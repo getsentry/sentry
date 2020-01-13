@@ -322,6 +322,13 @@ let appConfig = {
   resolve: {
     alias: {
       app: path.join(staticPrefix, 'app'),
+      '@emotion/styled': path.join(staticPrefix, 'app', 'styled'),
+      '@original-emotion/styled': path.join(
+        __dirname,
+        'node_modules',
+        '@emotion',
+        'styled'
+      ),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
@@ -397,7 +404,7 @@ if (USE_HOT_MODULE_RELOAD && !NO_DEV_SERVER) {
     hotOnly: true,
     port: SENTRY_WEBPACK_PROXY_PORT,
     stats: 'errors-only',
-    overlay: true,
+    overlay: false,
     watchOptions: {
       ignored: ['node_modules'],
     },

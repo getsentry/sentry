@@ -11,20 +11,13 @@ const SELECTOR_BUTTON_SAVED = 'ButtonSaved';
 const SELECTOR_BUTTON_UPDATE = '[data-test-id="discover2-savedquery-button-update"]';
 const SELECTOR_BUTTON_DELETE = '[data-test-id="discover2-savedquery-button-delete"]';
 
-function generateWrappedComponent(
-  location,
-  organization,
-  eventView,
-  savedQueries,
-  onQueryChange
-) {
+function generateWrappedComponent(location, organization, eventView, savedQuery) {
   return mountWithTheme(
     <SavedQueryButtonGroup
       location={location}
       organization={organization}
       eventView={eventView}
-      savedQueries={savedQueries}
-      onQueryChange={onQueryChange}
+      savedQuery={savedQuery}
     />,
     TestStubs.routerContext()
   );
@@ -47,19 +40,15 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
   const errorsViewModified = EventView.fromSavedQuery(errorsQuery);
   errorsViewModified.id = '1';
   errorsViewModified.name = 'Modified Name';
-  errorsViewModified.fields[0].title = 'Modified Field Name';
 
-  const errorsSavedQuery = errorsViewSaved.toNewQuery();
-  const savedQueries = [errorsSavedQuery];
+  const savedQuery = errorsViewSaved.toNewQuery();
 
   describe('building on a new query', () => {
-    let onQueryChange;
     const mockUtils = jest
       .spyOn(utils, 'handleCreateQuery')
-      .mockImplementation(() => Promise.resolve(errorsSavedQuery));
+      .mockImplementation(() => Promise.resolve(savedQuery));
 
     beforeEach(() => {
-      onQueryChange = jest.fn();
       mockUtils.mockClear();
     });
 
@@ -68,8 +57,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         location,
         organization,
         errorsView,
-        savedQueries,
-        onQueryChange
+        undefined
       );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
@@ -88,8 +76,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         location,
         organization,
         errorsView,
-        savedQueries,
-        onQueryChange
+        undefined
       );
 
       // Click on ButtonSaveAs to open dropdown
@@ -114,7 +101,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         }),
         true
       );
-      expect(onQueryChange).toHaveBeenCalled();
     });
 
     it('rejects if query.name is empty', async () => {
@@ -122,8 +108,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         location,
         organization,
         errorsView,
-        savedQueries,
-        onQueryChange
+        undefined
       );
 
       // Click on ButtonSaveAs to open dropdown
@@ -148,18 +133,16 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       // expect(wrapper.state('queryName')).toBe('');
 
       expect(mockUtils).not.toHaveBeenCalled();
-      expect(onQueryChange).not.toHaveBeenCalled();
     });
   });
 
   describe('viewing a saved query', () => {
-    let mockUtils, onQueryChange;
+    let mockUtils;
 
     beforeEach(() => {
       mockUtils = jest
         .spyOn(utils, 'handleDeleteQuery')
-        .mockImplementation(() => Promise.resolve(errorsSavedQuery));
-      onQueryChange = jest.fn();
+        .mockImplementation(() => Promise.resolve(savedQuery));
     });
 
     afterEach(() => {
@@ -171,8 +154,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         location,
         organization,
         errorsViewSaved,
-        savedQueries,
-        onQueryChange
+        savedQuery
       );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
@@ -191,8 +173,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         location,
         organization,
         errorsViewSaved,
-        savedQueries,
-        onQueryChange
+        savedQuery
       );
 
       const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE).first();
@@ -203,20 +184,18 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
         organization,
         expect.objectContaining({id: '1'})
       );
-      expect(onQueryChange).toHaveBeenCalled();
     });
   });
 
   describe('modifying a saved query', () => {
-    let mockUtils, onQueryChange;
+    let mockUtils;
 
     it('renders the correct set of buttons', () => {
       const wrapper = generateWrappedComponent(
         location,
         organization,
         errorsViewModified,
-        [errorsViewSaved.toNewQuery()],
-        onQueryChange
+        errorsViewSaved.toNewQuery()
       );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
@@ -234,8 +213,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       beforeEach(() => {
         mockUtils = jest
           .spyOn(utils, 'handleUpdateQuery')
-          .mockImplementation(() => Promise.resolve(errorsSavedQuery));
-        onQueryChange = jest.fn();
+          .mockImplementation(() => Promise.resolve(savedQuery));
       });
 
       afterEach(() => {
@@ -247,8 +225,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
           location,
           organization,
           errorsViewModified,
-          savedQueries,
-          onQueryChange
+          savedQuery
         );
 
         // Click on Save in the Dropdown
@@ -262,7 +239,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
             ...errorsViewModified,
           })
         );
-        expect(onQueryChange).toHaveBeenCalled();
       });
     });
 
@@ -270,7 +246,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       beforeEach(() => {
         mockUtils = jest
           .spyOn(utils, 'handleCreateQuery')
-          .mockImplementation(() => Promise.resolve(errorsSavedQuery));
+          .mockImplementation(() => Promise.resolve(savedQuery));
       });
 
       afterEach(() => {
@@ -282,8 +258,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
           location,
           organization,
           errorsViewModified,
-          savedQueries,
-          onQueryChange
+          savedQuery
         );
 
         // Click on ButtonSaveAs to open dropdown
@@ -308,7 +283,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
           }),
           false
         );
-        expect(onQueryChange).toHaveBeenCalled();
       });
     });
   });

@@ -1,10 +1,12 @@
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
 import {t} from 'app/locale';
-import Avatar from 'app/components/avatar';
+import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/links/externalLink';
 import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
@@ -89,7 +91,7 @@ class SettingsIndex extends React.Component<Props> {
               <HomePanelHeader>
                 <HomeLinkIcon to="/settings/account/">
                   <AvatarContainer>
-                    <Avatar user={user} size={HOME_ICON_SIZE} />
+                    <UserAvatar user={user} size={HOME_ICON_SIZE} />
                   </AvatarContainer>
                   {t('My Account')}
                 </HomeLinkIcon>
@@ -122,7 +124,10 @@ class SettingsIndex extends React.Component<Props> {
                 <HomeLinkIcon to={organizationSettingsUrl}>
                   {organization ? (
                     <AvatarContainer>
-                      <Avatar organization={organization} size={HOME_ICON_SIZE} />
+                      <OrganizationAvatar
+                        organization={organization}
+                        size={HOME_ICON_SIZE}
+                      />
                     </AvatarContainer>
                   ) : (
                     <HomeIcon color="green">

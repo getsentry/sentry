@@ -1,12 +1,3 @@
-"""
-sentry.conf.urls
-~~~~~~~~~~~~~~~~
-
-These are additional urls used by the Sentry-provided web server
-
-:copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 from django.conf import settings

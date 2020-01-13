@@ -72,7 +72,7 @@ def set_filter_state(filter_id, project, state):
             project=project, key=u"filters:{}".format(filter_id), value=option_val
         )
 
-        return option_val
+        return option_val == "1" if option_val in ("0", "1") else option_val
 
     else:
         # all boolean filters
@@ -264,6 +264,8 @@ _EXTENSION_EXC_SOURCES = re.compile(
             r"^chrome(?:-extension)?:\/\/",
             # Firefox extensions
             r"^moz-extension:\/\/",
+            # Safari extensions
+            r"^safari-extension:\/\/",
             # Cacaoweb
             r"127\.0\.0\.1:4001\/isrunning",
             # Other

@@ -76,43 +76,6 @@ const colors = {
   placeholderBackground: '#f5f5f5',
 };
 
-// from the Sentry design system: most useful for showing a transition
-// from one extreme, through a neutral middle, to an opposite extreme.
-export const divergentColorScale = {
-  blue: '#444674',
-  maroon: '#955389',
-  magenta: '#C15584',
-  salmon: '#E65D73',
-  purple: '#694E86',
-  orange: '#F27A58',
-  marigold: '#F6983B',
-  yellow: '#F2B712',
-  softBlue: '#535577',
-  softMaroon: '#805567',
-  softMagenta: '#99628F',
-  softSalmon: '#96545E',
-  softPurple: '#6B597E',
-  softOrange: '#D17D65',
-  softMarigold: '#E4944E',
-  softYellow: '#EDC658',
-  darkOrange: '#98361B',
-  darkBlue: '#1E1F33',
-  darkMaroon: '#382947',
-  darkMagenta: '#522E4B',
-  darkSalmon: '#833054',
-  darkPurple: '#AF2C41',
-  darkMarigold: '#C36609',
-  darkYellow: '#E2B22E',
-};
-
-// you can link span operation types to specific colors here
-export const spanColors = {
-  default: divergentColorScale.blue,
-  transaction: divergentColorScale.softBlue,
-  db: divergentColorScale.magenta,
-  http: divergentColorScale.marigold,
-};
-
 const warning = {
   backgroundLight: colors.yellowLightest,
   background: colors.yellowDarkest,
@@ -124,6 +87,7 @@ const alert = {
   muted: {
     backgroundLight: colors.offWhite,
     background: colors.gray1,
+    iconColor: 'inherit',
     border: colors.gray6,
   },
   info: {
@@ -229,6 +193,7 @@ const theme = {
   zIndex: {
     traceView: {
       spanTreeToggler: 900,
+      rowInfoMessage: 900,
       dividerLine: 909,
       minimapContainer: 999,
     },
@@ -337,6 +302,8 @@ const theme = {
     empty: '#e2dee6',
     colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
   },
+
+  space: [0, 8, 16, 20, 30],
 };
 
 export default theme;

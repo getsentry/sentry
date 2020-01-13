@@ -1,6 +1,6 @@
 import flatMap from 'lodash/flatMap';
 
-type QueryResults = {
+export type QueryResults = {
   /**
    * The text portion of the string query
    */

@@ -11,6 +11,7 @@ import re
 import six
 import time
 import urllib3
+import sentry_sdk
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -61,7 +62,7 @@ GROUPS_SENTRY_SNUBA_MAP.update(
     # TODO: Bring this into Columns?
     {
         "status": "groups.status",
-        "events.issue": "events.issue",
+        "group_id": "events.group_id",
         "active_at": "groups.active_at",
         "first_seen": "groups.first_seen",
         "last_seen": "groups.last_seen",
@@ -100,7 +101,7 @@ DATASETS = {
 # Add `group_id` to the events dataset list as we don't want to publically
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
-    Dataset.Events: list(SENTRY_SNUBA_MAP.values()) + ["group_id"],
+    Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
     Dataset.Transactions: list(TRANSACTIONS_SENTRY_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
     Dataset.Groups: list(GROUPS_SENTRY_SNUBA_MAP.values()),
@@ -217,9 +218,35 @@ def options_override(overrides):
             OVERRIDE_OPTIONS.pop(k)
 
 
+class RetrySkipTimeout(urllib3.Retry):
+    """
+    urllib3 Retry class does not allow us to retry on read errors but to exclude
+    read timeout. Retrying after a timeout adds useless load to Snuba.
+    """
+
+    def increment(
+        self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
+    ):
+        """
+        Just rely on the parent class unless we have a read timeout. In that case
+        immediately give up
+        """
+        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+            raise six.reraise(type(error), error, _stacktrace)
+
+        return super(RetrySkipTimeout, self).increment(
+            method=method,
+            url=url,
+            response=response,
+            error=error,
+            _pool=_pool,
+            _stacktrace=_stacktrace,
+        )
+
+
 _snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
-    retries=urllib3.Retry(
+    retries=RetrySkipTimeout(
         total=5,
         # Expand our retries to POST since all of
         # our requests are POST and they don't mutate, so they
@@ -275,7 +302,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
-    no_conversion = set(["issue", "project_id", "start", "end"])
+    no_conversion = set(["group_id", "project_id", "start", "end"])
 
     if name in no_conversion:
         return name
@@ -284,88 +311,6 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
         return name
 
     return DATASETS[dataset].get(name, u"tags[{}]".format(name))
-
-
-def detect_dataset(query_args, aliased_conditions=False):
-    """
-    Determine the dataset to use based on the conditions, selected_columns,
-    groupby clauses.
-
-    This function operates on the end user field aliases and not the internal column
-    names that have been converted using the field mappings.
-
-    The aliased_conditions parameter switches column detection between
-    the public aliases and the internal names. When query conditions
-    have been pre-parsed by api.event_search set aliased_conditions=True
-    as we need to look for internal names.
-
-    :deprecated: This method and the automatic dataset resolution is deprecated.
-    You should use sentry.snuba.discover instead.
-    """
-    if query_args.get("dataset", None):
-        return query_args["dataset"]
-
-    dataset = Dataset.Events
-    transaction_fields = set(DATASETS[Dataset.Transactions].keys()) - set(
-        DATASETS[Dataset.Events].keys()
-    )
-    condition_fieldset = transaction_fields
-
-    if aliased_conditions:
-        # Release and user are also excluded as they are present on both
-        # datasets and don't trigger usage of transactions.
-        condition_fieldset = (
-            set(DATASET_FIELDS[Dataset.Transactions])
-            - set(DATASET_FIELDS[Dataset.Events])
-            - set(["release", "user"])
-        )
-
-    for condition in query_args.get("conditions") or []:
-        if isinstance(condition[0], six.string_types) and condition[0] in condition_fieldset:
-            return Dataset.Transactions
-        if condition == ["event.type", "=", "transaction"] or condition == [
-            "type",
-            "=",
-            "transaction",
-        ]:
-            return Dataset.Transactions
-
-        if condition == ["event.type", "!=", "transaction"] or condition == [
-            "type",
-            "!=",
-            "transaction",
-        ]:
-            return Dataset.Events
-
-    for field in query_args.get("selected_columns") or []:
-        if isinstance(field, six.string_types) and field in transaction_fields:
-            return Dataset.Transactions
-
-    for field in query_args.get("aggregations") or []:
-        if len(field) != 3:
-            continue
-        # Check field or fields
-        if isinstance(field[1], six.string_types) and field[1] in transaction_fields:
-            return Dataset.Transactions
-        if isinstance(field[1], (list, tuple)):
-            is_transaction = [column for column in field[1] if column in transaction_fields]
-            if is_transaction:
-                return Dataset.Transactions
-        # Check for transaction only field aliases
-        if isinstance(field[2], six.string_types) and field[2] in (
-            "apdex",
-            "impact",
-            "p75",
-            "p95",
-            "p99",
-        ):
-            return Dataset.Transactions
-
-    for field in query_args.get("groupby") or []:
-        if field in transaction_fields:
-            return Dataset.Transactions
-
-    return dataset
 
 
 def get_function_index(column_expr, depth=0):
@@ -405,7 +350,7 @@ def get_function_index(column_expr, depth=0):
         return None
 
 
-def parse_columns_in_functions(col, context=None, index=None, dataset=Dataset.Events):
+def parse_columns_in_functions(col, context=None, index=None):
     """
     Checks expressions for arguments that should be considered a column while
     ignoring strings that represent clickhouse function names
@@ -428,46 +373,29 @@ def parse_columns_in_functions(col, context=None, index=None, dataset=Dataset.Ev
         if function_name_index > 0:
             for i in six.moves.xrange(0, function_name_index):
                 if context is not None:
-                    context[i] = get_snuba_column_name(col[i], dataset)
+                    context[i] = get_snuba_column_name(col[i])
 
         args = col[function_name_index + 1]
 
         # check for nested functions in args
         if get_function_index(args):
             # look for columns
-            return parse_columns_in_functions(args, args, dataset=dataset)
+            return parse_columns_in_functions(args, args)
 
         # check each argument for column names
         else:
             for (i, arg) in enumerate(args):
-                parse_columns_in_functions(arg, args, i, dataset=dataset)
+                parse_columns_in_functions(arg, args, i)
     else:
         # probably a column name
         if context is not None and index is not None:
-            context[index] = get_snuba_column_name(col, dataset)
+            context[index] = get_snuba_column_name(col)
 
 
 def get_arrayjoin(column):
     match = re.match(r"^(exception_stacks|exception_frames|contexts)\..+$", column)
     if match:
         return match.groups()[0]
-
-
-def valid_orderby(orderby, custom_fields=None, dataset=Dataset.Events):
-    """
-    Check if a field can be used in sorting. We don't allow
-    sorting on fields that would be aliased as tag[foo] because those
-    fields are unlikely to be selected.
-    """
-    if custom_fields is None:
-        custom_fields = []
-    fields = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-    mapping = DATASETS[dataset]
-    for field in fields:
-        field = field.lstrip("-")
-        if field not in mapping and field not in custom_fields:
-            return False
-    return True
 
 
 def transform_aliases_and_query(**kwargs):
@@ -493,7 +421,7 @@ def transform_aliases_and_query(**kwargs):
     arrayjoin = kwargs.get("arrayjoin")
     orderby = kwargs.get("orderby")
     having = kwargs.get("having", [])
-    dataset = detect_dataset(kwargs)
+    dataset = Dataset.Events
 
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
@@ -505,14 +433,14 @@ def transform_aliases_and_query(**kwargs):
                 translated_columns[col[2]] = col[2]
                 derived_columns.add(col[2])
             else:
-                name = get_snuba_column_name(col, dataset)
+                name = get_snuba_column_name(col)
                 selected_columns[idx] = name
                 translated_columns[name] = col
 
     if groupby:
         for (idx, col) in enumerate(groupby):
             if col not in derived_columns:
-                name = get_snuba_column_name(col, dataset)
+                name = get_snuba_column_name(col)
             else:
                 name = col
 
@@ -522,12 +450,12 @@ def transform_aliases_and_query(**kwargs):
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
         if isinstance(aggregation[1], six.string_types):
-            aggregation[1] = get_snuba_column_name(aggregation[1], dataset)
+            aggregation[1] = get_snuba_column_name(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
-            aggregation[1] = [get_snuba_column_name(col, dataset) for col in aggregation[1]]
+            aggregation[1] = [get_snuba_column_name(col) for col in aggregation[1]]
 
     for col in filter_keys.keys():
-        name = get_snuba_column_name(col, dataset)
+        name = get_snuba_column_name(col)
         filter_keys[name] = filter_keys.pop(col)
 
     if conditions:
@@ -552,7 +480,7 @@ def transform_aliases_and_query(**kwargs):
             translated_orderby.append(
                 u"{}{}".format(
                     "-" if field_with_order.startswith("-") else "",
-                    field if field in derived_columns else get_snuba_column_name(field, dataset),
+                    field if field in derived_columns else get_snuba_column_name(field),
                 )
             )
 
@@ -617,7 +545,7 @@ def get_query_params_to_update_for_projects(query_params):
         )
 
     # any project will do, as they should all be from the same organization
-    organization_id = Project.objects.get(pk=project_ids[0]).organization_id
+    organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
 
     return organization_id, {"project": project_ids}
 
@@ -694,7 +622,7 @@ def _prepare_query_params(query_params):
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
     # wouldn't return any results anyway
-    new_start = shrink_time_window(query_params.filter_keys.get("issue"), start)
+    new_start = shrink_time_window(query_params.filter_keys.get("group_id"), start)
 
     # TODO (alexh) this is a quick emergency fix for an occasion where a search
     # results in only 1 django candidate, which is then passed to snuba to
@@ -768,7 +696,7 @@ class SnubaQueryParams(object):
         # TODO: instead of having events be the default, make dataset required.
         self.dataset = dataset or Dataset.Events
         self.start = start or datetime.utcfromtimestamp(0)  # will be clamped to project retention
-        self.end = end or datetime.utcnow()
+        self.end = end or datetime.utcnow() + timedelta(seconds=1)
         self.groupby = groupby or []
         self.conditions = conditions or []
         self.aggregations = aggregations or []
@@ -822,13 +750,16 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         query_params, forward, reverse = params
         try:
             with timer("snuba_query"):
-                return (
-                    _snuba_pool.urlopen(
-                        "POST", "/query", body=json.dumps(query_params), headers=headers
-                    ),
-                    forward,
-                    reverse,
-                )
+                body = json.dumps(query_params)
+                with sentry_sdk.start_span(
+                    op="snuba", description=u"query {}".format(body)
+                ) as span:
+                    span.set_tag("referrer", headers.get("referer", "<unknown>"))
+                    return (
+                        _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
+                        forward,
+                        reverse,
+                    )
         except urllib3.exceptions.HTTPError as err:
             raise SnubaError(err)
 
@@ -965,6 +896,7 @@ def constrain_column_to_dataset(col, dataset, value=None):
 
     # Special case for the type condition as we only want
     # to drop it when we are querying transactions.
+
     if dataset == Dataset.Transactions and col == "event.type" and value == "transaction":
         return None
     if not col or QUOTED_LITERAL_RE.match(col):
@@ -1057,15 +989,7 @@ def dataset_query(
     You should use sentry.snuba.discover instead.
     """
     if dataset is None:
-        dataset = detect_dataset(
-            dict(
-                dataset=dataset,
-                aggregations=aggregations,
-                conditions=conditions,
-                selected_columns=selected_columns,
-                groupby=groupby,
-            )
-        )
+        raise ValueError("A dataset is required, and is no longer automatically detected.")
 
     derived_columns = []
     if selected_columns:
@@ -1216,7 +1140,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                     # returned by the query.
                     row,
                     col,
-                    trans.get((row["issue"], row[col])),
+                    trans.get((row["group_id"], row[col])),
                 )
             )(col, rev_map)
 
@@ -1266,7 +1190,7 @@ def get_related_project_ids(column, ids):
     Get the project_ids from a model that has a foreign key to project.
     """
     mappings = {
-        "issue": (Group, "id", "project_id"),
+        "group_id": (Group, "id", "project_id"),
         "tags[sentry:release]": (ReleaseProject, "release_id", "project_id"),
         "release": (ReleaseProject, "release_id", "project_id"),
     }

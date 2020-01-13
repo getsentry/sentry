@@ -842,6 +842,95 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         assert set(results) == set([])
 
+    @mock.patch("sentry.utils.snuba.raw_query")
+    def test_snuba_not_called_optimization(self, query_mock):
+        assert self.make_query(search_filter_query="status:unresolved").results == [self.group1]
+        assert not query_mock.called
+
+        assert (
+            self.make_query(
+                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
+                sort_by="date",
+            ).results
+            == []
+        )
+        assert query_mock.called
+
+    @mock.patch("sentry.utils.snuba.raw_query")
+    def test_optimized_aggregates(self, query_mock):
+        # TODO this test is annoyingly fragile and breaks in hard-to-see ways
+        # any time anything about the snuba query changes
+        query_mock.return_value = {"data": [], "totals": {"total": 0}}
+
+        def Any(cls):
+            class Any(object):
+                def __eq__(self, other):
+                    return isinstance(other, cls)
+
+            return Any()
+
+        DEFAULT_LIMIT = 100
+        chunk_growth = options.get("snuba.search.chunk-growth-rate")
+        limit = int(DEFAULT_LIMIT * chunk_growth)
+
+        common_args = {
+            "arrayjoin": None,
+            "dataset": Dataset.Events,
+            "start": Any(datetime),
+            "end": Any(datetime),
+            "filter_keys": {
+                "project_id": [self.project.id],
+                "group_id": [self.group1.id, self.group2.id],
+            },
+            "referrer": "search",
+            "groupby": ["group_id"],
+            "conditions": [[["positionCaseInsensitive", ["message", "'foo'"]], "!=", 0]],
+            "selected_columns": [],
+            "limit": limit,
+            "offset": 0,
+            "totals": True,
+            "turbo": False,
+            "sample": 1,
+        }
+
+        self.make_query(search_filter_query="status:unresolved")
+        assert not query_mock.called
+
+        self.make_query(
+            search_filter_query="last_seen:>=%s foo" % date_to_query_format(timezone.now()),
+            sort_by="date",
+        )
+        assert query_mock.call_args == mock.call(
+            orderby=["-last_seen", "group_id"],
+            aggregations=[
+                ["uniq", "group_id", "total"],
+                ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
+            ],
+            having=[["last_seen", ">=", Any(int)]],
+            **common_args
+        )
+
+        self.make_query(search_filter_query="foo", sort_by="priority")
+        assert query_mock.call_args == mock.call(
+            orderby=["-priority", "group_id"],
+            aggregations=[
+                ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
+                ["count()", "", "times_seen"],
+                ["uniq", "group_id", "total"],
+                ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
+            ],
+            having=[],
+            **common_args
+        )
+
+        self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
+        assert query_mock.call_args == mock.call(
+            orderby=["-times_seen", "group_id"],
+            aggregations=[["count()", "", "times_seen"], ["uniq", "group_id", "total"]],
+            having=[["times_seen", "=", 5]],
+            **common_args
+        )
+
     def test_pre_and_post_filtering(self):
         prev_max_pre = options.get("snuba.search.max-pre-snuba-candidates")
         options.set("snuba.search.max-pre-snuba-candidates", 1)
@@ -1267,95 +1356,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         assert set(results) == set([group_a])
 
-    @mock.patch("sentry.utils.snuba.raw_query")
-    def test_snuba_not_called_optimization(self, query_mock):
-        assert self.make_query(search_filter_query="status:unresolved").results == [self.group1]
-        assert not query_mock.called
-
-        assert (
-            self.make_query(
-                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
-                sort_by="date",
-            ).results
-            == []
-        )
-        assert query_mock.called
-
-    @mock.patch("sentry.utils.snuba.raw_query")
-    def test_optimized_aggregates(self, query_mock):
-        # TODO this test is annoyingly fragile and breaks in hard-to-see ways
-        # any time anything about the snuba query changes
-        query_mock.return_value = {"data": [], "totals": {"total": 0}}
-
-        def Any(cls):
-            class Any(object):
-                def __eq__(self, other):
-                    return isinstance(other, cls)
-
-            return Any()
-
-        DEFAULT_LIMIT = 100
-        chunk_growth = options.get("snuba.search.chunk-growth-rate")
-        limit = int(DEFAULT_LIMIT * chunk_growth)
-
-        common_args = {
-            "arrayjoin": None,
-            "dataset": Dataset.Events,
-            "start": Any(datetime),
-            "end": Any(datetime),
-            "filter_keys": {
-                "project_id": [self.project.id],
-                "issue": [self.group1.id, self.group2.id],
-            },
-            "referrer": "search",
-            "groupby": ["issue"],
-            "conditions": [[["positionCaseInsensitive", ["message", "'foo'"]], "!=", 0]],
-            "selected_columns": [],
-            "limit": limit,
-            "offset": 0,
-            "totals": True,
-            "turbo": False,
-            "sample": 1,
-        }
-
-        self.make_query(search_filter_query="status:unresolved")
-        assert not query_mock.called
-
-        self.make_query(
-            search_filter_query="last_seen:>=%s foo" % date_to_query_format(timezone.now()),
-            sort_by="date",
-        )
-        assert query_mock.call_args == mock.call(
-            orderby=["-last_seen", "issue"],
-            aggregations=[
-                ["uniq", "issue", "total"],
-                ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
-            ],
-            having=[["last_seen", ">=", Any(int)]],
-            **common_args
-        )
-
-        self.make_query(search_filter_query="foo", sort_by="priority")
-        assert query_mock.call_args == mock.call(
-            orderby=["-priority", "issue"],
-            aggregations=[
-                ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
-                ["count()", "", "times_seen"],
-                ["uniq", "issue", "total"],
-                ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
-            ],
-            having=[],
-            **common_args
-        )
-
-        self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
-        assert query_mock.call_args == mock.call(
-            orderby=["-times_seen", "issue"],
-            aggregations=[["count()", "", "times_seen"], ["uniq", "issue", "total"]],
-            having=[["times_seen", "=", 5]],
-            **common_args
-        )
-
     def test_all_fields_do_not_error(self):
         # Just a sanity check to make sure that all fields can be successfully
         # searched on without returning type errors and other schema related
@@ -1376,7 +1376,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             elif key in IssueSearchVisitor.date_keys:
                 val = "2019-01-01"
             else:
-                val = "hello"
+                val = "abadcafedeadbeefdeaffeedabadfeed"
                 test_query("!%s:%s" % (key, val))
 
             test_query("%s:%s" % (key, val))

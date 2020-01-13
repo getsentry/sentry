@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from copy import deepcopy
 import mock
 import os
 
@@ -102,13 +101,6 @@ def pytest_configure(config):
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
-    # Use the synchronous executor to make multiple backends easier to test
-    eventstore_options = deepcopy(settings.SENTRY_EVENTSTORE_OPTIONS)
-    eventstore_options["backends"]["snuba_discover"]["executor"][
-        "path"
-    ] = "sentry.utils.concurrent.SynchronousExecutor"
-    settings.SENTRY_EVENTSTORE_OPTIONS = eventstore_options
-
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
@@ -143,12 +135,15 @@ def pytest_configure(config):
         bootstrap_options,
         configure_structlog,
         initialize_receivers,
+        monkeypatch_model_unpickle,
         monkeypatch_django_migrations,
         setup_services,
     )
 
     bootstrap_options(settings)
     configure_structlog()
+
+    monkeypatch_model_unpickle()
 
     import django
 

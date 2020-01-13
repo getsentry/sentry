@@ -149,6 +149,9 @@ register("snuba.search.max-total-chunk-time-seconds", default=30.0)
 register("snuba.search.hits-sample-size", default=100)
 register("snuba.track-outcomes-sample-rate", default=0.0)
 
+# The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
+register("snuba.tagstore.cache-tagkeys-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
+
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0)
 register("kafka-publisher.max-event-size", default=100000)
@@ -163,15 +166,17 @@ register("store.projects-normalize-in-rust-percent-opt-in", default=0.0)  # unus
 # From 0.0 to 1.0: Randomly disable normalization code in interfaces when loading from db
 register("store.empty-interface-sample-rate", default=0.0)
 
+# Enable multiple topics for eventstream. It allows specific event types to be sent
+# to specific topic.
+register("store.eventstream-per-type-topic", default=False, flags=FLAG_PRIORITIZE_DISK)
+
 # if this is turned to `True` sentry will behave like relay would do with
 # regards to filter responses.
 register("store.lie-about-filter-status", default=False)
 
-# Skip nodestore save when saving an event
-register("store.save-event-skips-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
-
-# Skip saving an event to postgres
-register("store.skip-pg-save", default=True, flags=FLAG_PRIORITIZE_DISK)
+# Use Django event
+register("store.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
+register("eventstream.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
 
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
@@ -200,3 +205,6 @@ register("transaction-events.force-disable-internal-project", default=False)
 # Moving signals and TSDB into outcomes consumer
 register("outcomes.signals-in-consumer-sample-rate", default=0.0)
 register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
+
+# Eventstore uses Nodestore instead of Snuba for get_event_by_id
+register("eventstore.use-nodestore", default=True, flags=FLAG_PRIORITIZE_DISK)

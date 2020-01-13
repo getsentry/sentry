@@ -1,7 +1,8 @@
 import isNil from 'lodash/isNil';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
+import get from 'lodash/get';
 
 import Access from 'app/components/acl/access';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -10,40 +11,22 @@ import Checkbox from 'app/components/checkbox';
 import DebugFileFeature from 'app/components/debugFileFeature';
 import EventDataSection from 'app/components/events/eventDataSection';
 import InlineSvg from 'app/components/inlineSvg';
-import Input from 'app/components/forms/input';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
-
+import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
+import SearchInput from 'app/components/forms/searchInput';
+import {
+  formatAddress,
+  parseAddress,
+  getImageRange,
+} from 'app/components/events/interfaces/utils';
+import ImageForBar from 'app/components/events/interfaces/imageForBar';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 
 const IMAGE_ADDR_LEN = 12;
 const MIN_FILTER_LEN = 3;
-
-function formatAddr(addr) {
-  return `0x${addr.toString(16).padStart(IMAGE_ADDR_LEN, '0')}`;
-}
-
-function parseAddr(addr) {
-  try {
-    return parseInt(addr, 16) || 0;
-  } catch (_e) {
-    return 0;
-  }
-}
-
-function getImageRange(image) {
-  // The start address is normalized to a `0x` prefixed hex string. The event
-  // schema also allows ingesting plain numbers, but this is converted during
-  // ingestion.
-  const startAddress = parseAddr(image.image_addr);
-
-  // The image size is normalized to a regular number. However, it can also be
-  // `null`, in which case we assume that it counts up to the next image.
-  const endAddress = startAddress + (image.image_size || 0);
-
-  return [startAddress, endAddress];
-}
 
 function getFileName(path) {
   const directorySeparator = /^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/';
@@ -88,7 +71,7 @@ function getImageStatusDetails(status) {
     case 'unused':
       return t('The image was not required for processing the stack trace.');
     case 'missing':
-      return t('No debug information could not be in any of the specified sources.');
+      return t('No debug information could be found in any of the specified sources.');
     case 'malformed':
       return t('The debug information file for this image failed to process.');
     case 'timeout':
@@ -101,13 +84,13 @@ function getImageStatusDetails(status) {
   }
 }
 
-function combineStatus(debugStatus, unwindStatus) {
+export const combineStatus = (debugStatus, unwindStatus) => {
   const debugWeight = getStatusWeight(debugStatus);
   const unwindWeight = getStatusWeight(unwindStatus);
 
   const combined = debugWeight >= unwindWeight ? debugStatus : unwindStatus;
   return combined || 'unused';
-}
+};
 
 class DebugImage extends React.PureComponent {
   static propTypes = {
@@ -202,8 +185,9 @@ class DebugImage extends React.PureComponent {
         <ImageInfoGroup>{iconElement}</ImageInfoGroup>
 
         <ImageInfoGroup>
-          <Formatted>{formatAddr(startAddress)}</Formatted> &ndash; <br />
-          <Formatted>{formatAddr(endAddress)}</Formatted>
+          <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
+          <br />
+          <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
         </ImageInfoGroup>
 
         <ImageInfoGroup fullWidth>
@@ -308,6 +292,18 @@ class DebugMetaInterface extends React.PureComponent {
     };
   }
 
+  componentDidMount() {
+    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange);
+  }
+  componentWillUnmount() {
+    this.unsubscribeFromStore();
+  }
+  onStoreChange = store => {
+    this.setState({
+      filter: store.filter,
+    });
+  };
+
   filterImage(image) {
     const {showUnused, filter} = this.state;
     if (!filter || filter.length < MIN_FILTER_LEN) {
@@ -333,7 +329,7 @@ class DebugMetaInterface extends React.PureComponent {
     // When searching for an address, check for the address range of the image
     // instead of an exact match.
     if (filter.indexOf('0x') === 0) {
-      const needle = parseAddr(filter);
+      const needle = parseAddress(filter);
       if (needle > 0) {
         const [startAddress, endAddress] = getImageRange(image);
         return needle >= startAddress && needle < endAddress;
@@ -361,7 +357,7 @@ class DebugMetaInterface extends React.PureComponent {
   };
 
   handleChangeFilter = e => {
-    this.setState({filter: e.target.value});
+    DebugMetaActions.updateFilter(e.target.value || '');
   };
 
   isValidImage(image) {
@@ -389,7 +385,7 @@ class DebugMetaInterface extends React.PureComponent {
     // Sort images by their start address. We assume that images have
     // non-overlapping ranges. Each address is given as hex string (e.g.
     // "0xbeef").
-    filtered.sort((a, b) => parseAddr(a.image_addr) - parseAddr(b.image_addr));
+    filtered.sort((a, b) => parseAddress(a.image_addr) - parseAddress(b.image_addr));
 
     return filtered;
   }
@@ -397,7 +393,7 @@ class DebugMetaInterface extends React.PureComponent {
   renderToolbar() {
     const {filter, showDetails, showUnused} = this.state;
     return (
-      <Toolbar>
+      <ToolbarWrapper>
         <Label>
           <Checkbox checked={showDetails} onChange={this.handleChangeShowDetails} />
           {t('details')}
@@ -411,12 +407,15 @@ class DebugMetaInterface extends React.PureComponent {
           />
           {t('show unreferenced')}
         </Label>
-
-        <SearchBox
-          onChange={this.handleChangeFilter}
-          placeholder={t('Search loaded images\u2026')}
-        />
-      </Toolbar>
+        <SearchInputWrapper>
+          <SearchInput
+            value={filter}
+            onChange={this.handleChangeFilter}
+            placeholder={t('Search images\u2026')}
+            smaller
+          />
+        </SearchInputWrapper>
+      </ToolbarWrapper>
     );
   }
 
@@ -432,13 +431,21 @@ class DebugMetaInterface extends React.PureComponent {
     const titleElement = (
       <div>
         <GuideAnchor target="packages" position="top">
-          <Title>
-            <strong>{t('Images Loaded')}</strong>
-          </Title>
-          {this.renderToolbar()}
+          <AlignItems>
+            <ImagesTitle>{t('Images Loaded')}</ImagesTitle>
+            {this.renderToolbar()}
+          </AlignItems>
         </GuideAnchor>
       </div>
     );
+
+    const frames = get(
+      this.props.event.entries.find(({type}) => type === 'exception'),
+      'data.values[0].stacktrace.frames'
+    );
+    const foundFrame = frames
+      ? frames.find(frame => frame.instructionAddr === this.state.filter)
+      : null;
 
     return (
       <EventDataSection
@@ -449,6 +456,9 @@ class DebugMetaInterface extends React.PureComponent {
       >
         <DebugImagesPanel>
           <PanelBody>
+            {foundFrame && (
+              <ImageForBar frame={foundFrame} onShowAllImages={this.handleChangeFilter} />
+            )}
             {filteredImages.length > 0 ? (
               filteredImages.map(image => (
                 <DebugImage
@@ -472,12 +482,17 @@ class DebugMetaInterface extends React.PureComponent {
   }
 }
 
-const Title = styled('h3')`
-  float: left;
+//remove important once less files are gone
+const AlignItems = styled('div')`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: ${space(3)};
 `;
-
-const Toolbar = styled('div')`
-  float: right;
+const ImagesTitle = styled('h3')`
+  margin-bottom: 0 !important;
+  padding-right: ${space(1)};
 `;
 
 const Label = styled('label')`
@@ -487,11 +502,6 @@ const Label = styled('label')`
   > input {
     margin-right: 1ex;
   }
-`;
-
-const SearchBox = styled(Input)`
-  width: auto;
-  display: inline;
 `;
 
 const DebugImagesPanel = styled(Panel)`
@@ -566,6 +576,15 @@ const EmptyItem = styled(PanelItem)`
     margin-right: 1ex;
     vertical-align: text-bottom;
   }
+`;
+const ToolbarWrapper = styled('div')`
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+`;
+const SearchInputWrapper = styled('div')`
+  max-width: 180px;
+  display: inline-block;
 `;
 
 export default DebugMetaInterface;

@@ -7,11 +7,7 @@ import sys
 
 from sentry.exceptions import InvalidIdentity, PluginError
 
-from sentry_plugins.constants import (
-    ERR_INTERNAL,
-    ERR_UNAUTHORIZED,
-    ERR_UNSUPPORTED_RESPONSE_TYPE,
-)
+from sentry_plugins.constants import ERR_INTERNAL, ERR_UNAUTHORIZED, ERR_UNSUPPORTED_RESPONSE_TYPE
 from sentry_plugins.exceptions import (
     ApiError,
     ApiHostError,
@@ -26,7 +22,7 @@ class CorePluginMixin(object):
     version = sentry_plugins.VERSION
     resource_links = [
         ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
-        ("Source", "https://github.com/getsentry/sentry"),
+        ("Source", "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins"),
     ]
 
     # HACK(dcramer): work around MRO issue with plugin metaclass

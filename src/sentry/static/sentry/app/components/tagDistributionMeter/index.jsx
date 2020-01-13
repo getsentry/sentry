@@ -1,10 +1,11 @@
 import React from 'react';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
 
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {percent} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 
@@ -17,10 +18,8 @@ export default class TagDistributionMeter extends React.Component {
     segments: PropTypes.arrayOf(
       PropTypes.shape({
         count: PropTypes.number.isRequired,
-        name: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array])
-          .isRequired,
-        value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array])
-          .isRequired,
+        name: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
+        value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
         url: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
       })
     ).isRequired,
@@ -38,30 +37,66 @@ export default class TagDistributionMeter extends React.Component {
     renderError: () => null,
   };
 
+  renderTitle() {
+    const {segments, totalValues, title, isLoading, hasError} = this.props;
+
+    if (!Array.isArray(segments) || segments.length <= 0) {
+      return (
+        <Title>
+          <TitleType>{title}</TitleType>
+        </Title>
+      );
+    }
+
+    const largestSegment = segments[0];
+    const pct = percent(largestSegment.count, totalValues);
+    const pctLabel = Math.floor(pct);
+
+    return (
+      <Title>
+        <TitleType>{title}</TitleType>
+        <TitleDescription>
+          <Label>{largestSegment.name || t('n/a')}</Label>
+          {isLoading || hasError ? null : <Percent>{pctLabel}%</Percent>}
+        </TitleDescription>
+      </Title>
+    );
+  }
+
   renderSegments() {
-    const {segments, totalValues, onTagClick, title} = this.props;
+    const {
+      segments,
+      onTagClick,
+      title,
+      isLoading,
+      hasError,
+      totalValues,
+      renderLoading,
+      renderError,
+      renderEmpty,
+    } = this.props;
 
-    const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
-    const hasOther = totalVisible < totalValues;
+    if (isLoading) {
+      return renderLoading();
+    }
 
-    if (hasOther) {
-      segments.push({
-        isOther: true,
-        name: t('Other'),
-        value: 'other',
-        count: totalValues - totalVisible,
-      });
+    if (hasError) {
+      return <SegmentBar>{renderError()}</SegmentBar>;
+    }
+
+    if (totalValues === 0) {
+      return <SegmentBar>{renderEmpty()}</SegmentBar>;
     }
 
     return (
-      <Segments>
+      <SegmentBar>
         {segments.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
 
           const tooltipHtml = (
             <React.Fragment>
-              <div className="truncate">{value.name}</div>
+              <div className="truncate">{value.name || t('n/a')}</div>
               {pctLabel}%
             </React.Fragment>
           );
@@ -78,89 +113,90 @@ export default class TagDistributionMeter extends React.Component {
                       onTagClick(title, value);
                     }
                   }}
-                >
-                  <Description first={index === 0}>
-                    <Percentage>{pctLabel}%</Percentage>
-                    <Label>{value.name}</Label>
-                  </Description>
-                </Segment>
+                />
               </Tooltip>
             </div>
           );
         })}
-      </Segments>
+      </SegmentBar>
     );
   }
 
-  renderTag() {
-    const {
-      isLoading,
-      hasError,
-      totalValues,
-      renderLoading,
-      renderError,
-      renderEmpty,
-    } = this.props;
-
-    if (isLoading) {
-      return renderLoading();
-    }
-
-    if (hasError) {
-      return renderError();
-    }
-
-    if (!totalValues) {
-      return renderEmpty();
-    }
-
-    return this.renderSegments();
-  }
-
   render() {
-    const {title} = this.props;
+    const {segments, totalValues} = this.props;
+
+    const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
+    const hasOther = totalVisible < totalValues;
+
+    if (hasOther) {
+      segments.push({
+        isOther: true,
+        name: t('Other'),
+        value: 'other',
+        count: totalValues - totalVisible,
+      });
+    }
 
     return (
-      <DistributionGraph>
-        <Title>{title}</Title>
-        {this.renderTag()}
-      </DistributionGraph>
+      <TagSummary>
+        {this.renderTitle()}
+        {this.renderSegments()}
+      </TagSummary>
     );
   }
 }
 
-const DistributionGraph = styled('div')`
-  position: relative;
-  font-size: 13px;
-  margin-bottom: 10px;
-`;
-
-const Title = styled('div')`
-  position: relative;
-  font-size: 13px;
-  margin: 10px 0 8px;
-  font-weight: bold;
-  z-index: 5;
-  line-height: 1;
-`;
-
-const colors = [
-  '#7c7484',
-  '#867f90',
-  '#918a9b',
-  '#9b96a7',
-  '#a6a1b3',
-  '#b0acbe',
-  '#bbb7ca',
-  '#c5c3d6',
-  '#d0cee1',
-  '#dad9ed',
+const COLORS = [
+  '#3A3387',
+  '#5F40A3',
+  '#8C4FBD',
+  '#B961D3',
+  '#DE76E4',
+  '#EF91E8',
+  '#F7B2EC',
+  '#FCD8F4',
+  '#FEEBF9',
 ];
 
-const Segments = styled('div')`
+const TagSummary = styled('div')`
+  margin-bottom: ${space(1)};
+`;
+
+const SegmentBar = styled('div')`
   display: flex;
-  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
+  border-radius: 2px;
+`;
+
+const Title = styled('div', {shouldForwardProp: isPropValid})`
+  display: flex;
+  font-size: ${p => p.theme.fontSizeSmall};
+  justify-content: space-between;
+`;
+
+const TitleType = styled('div')`
+  color: ${p => p.theme.gray4};
+  font-weight: bold;
+`;
+
+const TitleDescription = styled('div')`
+  display: flex;
+  color: ${p => p.theme.gray2};
+  text-align: right;
+`;
+
+const Label = styled('div')`
+  display: inline;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 150px;
+`;
+
+const Percent = styled('div')`
+  font-weight: bold;
+  padding-left: ${space(0.5)};
+  color: ${p => p.theme.gray4};
 `;
 
 const Segment = styled(Link, {shouldForwardProp: isPropValid})`
@@ -168,44 +204,6 @@ const Segment = styled(Link, {shouldForwardProp: isPropValid})`
   width: 100%;
   height: 16px;
   color: inherit;
-
-  &:hover,
-  &.focus-visible {
-    background: ${p => p.theme.purple};
-    outline: none;
-  }
-
-  background-color: ${p => (p.isOther ? colors[colors.length - 1] : colors[p.index])};
-`;
-
-const Description = styled('span', {shouldForwardProp: isPropValid})`
-  position: absolute;
-  text-align: right;
-  top: -1px;
-  right: 0;
-  line-height: 1;
-  z-index: 1;
-  width: 100%;
-  display: ${p => (p.first ? 'block' : 'none')};
-
-  &:hover {
-    display: block;
-    z-index: 2;
-  }
-`;
-
-const Percentage = styled('span')`
-  display: inline-block;
-  margin-right: 6px;
-  color: ${p => p.theme.gray2};
-  vertical-align: middle;
-`;
-
-const Label = styled('span')`
-  display: inline-block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 45%;
-  vertical-align: middle;
+  outline: none;
+  background-color: ${p => (p.isOther ? COLORS[COLORS.length - 1] : COLORS[p.index])};
 `;

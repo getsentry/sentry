@@ -54,6 +54,7 @@ describe('GlobalSelectionHeader', function() {
   });
 
   beforeEach(function() {
+    MockApiClient.clearMockResponses();
     jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
       projects: organization.projects,
       loadingProjects: false,
@@ -66,6 +67,10 @@ describe('GlobalSelectionHeader', function() {
       router.push,
       router.replace,
     ].forEach(mock => mock.mockClear());
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
   });
 
   it('does not update router if there is custom routing', function() {
@@ -513,29 +518,32 @@ describe('GlobalSelectionHeader', function() {
   });
 
   describe('forceProject selection mode', function() {
-    const initialData = initializeOrg({
-      organization: {features: ['global-views']},
-      projects: [
-        {id: 1, slug: 'staging-project', environments: ['staging']},
-        {id: 2, slug: 'prod-project', environments: ['prod']},
-      ],
-      router: {
-        location: {query: {}},
-      },
-    });
-    jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
-      projects: initialData.organization.projects,
-      loadingProjects: false,
-    }));
+    let wrapper;
+    beforeAll(function() {
+      const initialData = initializeOrg({
+        organization: {features: ['global-views']},
+        projects: [
+          {id: 1, slug: 'staging-project', environments: ['staging']},
+          {id: 2, slug: 'prod-project', environments: ['prod']},
+        ],
+        router: {
+          location: {query: {}},
+        },
+      });
+      jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
+        projects: initialData.organization.projects,
+        loadingProjects: false,
+      }));
 
-    const wrapper = mountWithTheme(
-      <GlobalSelectionHeader
-        organization={initialData.organization}
-        shouldForceProject
-        forceProject={initialData.organization.projects[0]}
-      />,
-      initialData.routerContext
-    );
+      wrapper = mountWithTheme(
+        <GlobalSelectionHeader
+          organization={initialData.organization}
+          shouldForceProject
+          forceProject={initialData.organization.projects[0]}
+        />,
+        initialData.routerContext
+      );
+    });
 
     it('renders a back button to the forced project', function() {
       const back = wrapper.find('BackButtonWrapper');

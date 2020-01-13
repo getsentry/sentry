@@ -1,6 +1,6 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
@@ -170,7 +170,7 @@ const RateLimitRow = styled('div')`
 `;
 
 const EventsIn = styled('small')`
-  font-size: ${p => p.theme.fontSizeRelativeSmaller};
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
   text-align: center;
   white-space: nowrap;
 `;

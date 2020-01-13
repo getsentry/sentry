@@ -43,6 +43,10 @@ describe('OrganizationDashboard', function() {
       url: `/organizations/${org.slug}/environments/`,
       body: TestStubs.Environments(),
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
     discoverMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/query/',
       method: 'POST',

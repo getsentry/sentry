@@ -1,9 +1,10 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select';
 import GlobalModal from 'app/components/globalModal';
+import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 
 describe('Incident Rules Details', function() {
   beforeAll(function() {
@@ -19,6 +20,17 @@ describe('Incident Rules Details', function() {
       url: '/organizations/org-slug/events-stats/',
       body: null,
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/available-actions/',
+      body: [
+        {
+          allowedTargetTypes: ['user', 'team'],
+          integrationName: null,
+          type: 'email',
+          integrationId: null,
+        },
+      ],
+    });
   });
 
   it('renders and adds and edits trigger', async function() {
@@ -29,29 +41,41 @@ describe('Incident Rules Details', function() {
       body: rule,
     });
 
-    // TODO: Implement creating/saving triggers
-    // const createTrigger = MockApiClient.addMockResponse({
-    // url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/`,
-    // method: 'POST',
-    // body: (_, options) =>
-    // TestStubs.IncidentTrigger({
-    // ...options.data,
-    // id: '123',
-    // }),
-    // });
-    // const updateTrigger = MockApiClient.addMockResponse({
-    // url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/123/`,
-    // method: 'PUT',
-    // body: (_, options) =>
-    // TestStubs.IncidentTrigger({
-    // ...options.data,
-    // }),
-    // });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [TestStubs.Member()],
+    });
+
+    const editRule = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      method: 'PUT',
+      body: rule,
+    });
+
+    const editTrigger = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/1/`,
+      method: 'PUT',
+      body: TestStubs.IncidentTrigger(),
+    });
+
+    const createTrigger = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/`,
+      method: 'POST',
+      body: TestStubs.IncidentTrigger({id: 2}),
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/${
         rule.id
-      }/triggers/123/actions/`,
+      }/triggers/1/actions/`,
+      body: [],
+    });
+
+    const addAction = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${
+        rule.id
+      }/triggers/1/actions/`,
+      method: 'POST',
       body: [],
     });
 
@@ -68,153 +92,153 @@ describe('Incident Rules Details', function() {
       </React.Fragment>,
       routerContext
     );
+
+    await tick();
     wrapper.update();
+
+    // has existing trigger
+    expect(
+      wrapper
+        .find('input[name="alertThresholdInput"]')
+        .first()
+        .prop('value')
+    ).toEqual(70);
+    expect(
+      wrapper
+        .find('input[name="resolutionThresholdInput"]')
+        .first()
+        .prop('value')
+    ).toEqual(36);
 
     expect(req).toHaveBeenCalled();
-    expect(wrapper.find('TriggersList Label').text()).toBe('Trigger');
 
     // Create a new Trigger
-    wrapper.find('button[aria-label="New Trigger"]').simulate('click');
-    await tick(); // tick opening a modal
-    wrapper.update();
+    wrapper.find('button[aria-label="Add Warning Trigger"]').simulate('click');
 
     wrapper
-      .find('TriggersModal input[name="label"]')
-      .simulate('change', {target: {value: 'New Trigger'}});
+      .find('input[name="alertThresholdInput"]')
+      .at(1)
+      .simulate('change', {target: {value: 13}});
     wrapper
-      .find('TriggersModal input[name="alertThreshold"]')
-      .simulate('input', {target: {value: 13}});
-    wrapper
-      .find('TriggersModal input[name="resolveThreshold"]')
-      .simulate('input', {target: {value: 12}});
+      .find('input[name="resolutionThresholdInput"]')
+      .at(1)
+      .simulate('change', {target: {value: 12}});
+
+    // Add an action
+    selectByValue(wrapper, 'email', {
+      control: true,
+      name: 'add-action',
+    });
 
     // Save Trigger
-    wrapper.find('TriggersModal button[aria-label="Create Trigger"]').simulate('submit');
+    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
+
+    expect(editRule).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          aggregation: 0,
+          dataset: 'events',
+          id: '4',
+          name: 'My Incident Rule',
+          projects: ['project-slug'],
+          query: '',
+          status: 0,
+          timeWindow: 60,
+          triggers: [
+            expect.objectContaining({
+              actions: [
+                {
+                  targetIdentifier: '',
+                  targetType: 'user',
+                  type: 'email',
+                },
+              ],
+              alertRuleId: '4',
+              alertThreshold: 70,
+              id: '1',
+              resolveThreshold: 36,
+              thresholdType: 0,
+            }),
+            expect.objectContaining({
+              actions: [],
+              alertThreshold: 13,
+              resolveThreshold: 12,
+              thresholdType: 0,
+            }),
+          ],
+        }),
+        method: 'PUT',
+      })
+    );
 
     // New Trigger should be in list
     await tick();
-    await tick(); // tick#2 - flakiness
     wrapper.update();
-    expect(
-      wrapper
-        .find('TriggersList Label')
-        .last()
-        .text()
-    ).toBe('New Trigger');
-    expect(wrapper.find('TriggersModal')).toHaveLength(0);
 
-    // Edit new trigger
-    wrapper
-      .find('button[aria-label="Edit"]')
-      .last()
-      .simulate('click');
-    await tick(); // tick opening a modal
-    wrapper.update();
+    // TODO(incidents): This should be removed when we consolidate API
+    expect(editTrigger).toHaveBeenCalled();
+    // TODO(incidents): This should be removed when we consolidate API
+    expect(createTrigger).toHaveBeenCalled();
+    // TODO(incidents): This should be removed when we consolidate API
+    expect(addAction).toHaveBeenCalled();
 
     // Has correct values
-
-    expect(wrapper.find('TriggersModal input[name="label"]').prop('value')).toBe(
-      'New Trigger'
-    );
-    expect(wrapper.find('TriggersModal input[name="alertThreshold"]').prop('value')).toBe(
-      13
-    );
-    expect(
-      wrapper.find('TriggersModal input[name="resolveThreshold"]').prop('value')
-    ).toBe(12);
-
-    wrapper
-      .find('TriggersModal input[name="label"]')
-      .simulate('change', {target: {value: 'New Trigger!!'}});
-
-    // Save Trigger
-    wrapper.find('TriggersModal button[aria-label="Update Trigger"]').simulate('submit');
-
-    // New Trigger should be in list
-    await tick();
-    await tick(); // tick#2 - flakiness
-    wrapper.update();
-
     expect(
       wrapper
-        .find('TriggersList Label')
-        .last()
-        .text()
-    ).toBe('New Trigger!!');
-    expect(wrapper.find('TriggersModal')).toHaveLength(0);
+        .find('input[name="alertThresholdInput"]')
+        .at(1)
+        .prop('value')
+    ).toBe(13);
+    expect(
+      wrapper
+        .find('input[name="resolutionThresholdInput"]')
+        .at(1)
+        .prop('value')
+    ).toBe(12);
 
-    // Attempt and fail to delete trigger
-    let deleteTrigger = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/1`,
-      method: 'DELETE',
-      statusCode: 400,
-    });
-    const deleteUndefinedTrigger = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${
-        rule.id
-      }/triggers/undefined`,
-      method: 'DELETE',
-    });
+    editRule.mockReset();
 
+    // Delete Trigger
     wrapper
-      .find('TriggersList button[aria-label="Delete Trigger"]')
+      .find('button[aria-label="Delete Trigger"]')
       .first()
       .simulate('click');
 
-    wrapper.find('Confirm button[aria-label="Confirm"]').simulate('click');
+    // Save Trigger
+    wrapper.find('button[aria-label="Save Rule"]').simulate('submit');
 
-    await tick();
-    wrapper.update();
-
-    expect(deleteTrigger).toHaveBeenCalled();
-
-    expect(
-      wrapper
-        .find('TriggersList Label')
-        .first()
-        .text()
-    ).toBe('Trigger');
-
-    // Remove unsaved trigger from list
-    wrapper
-      .find('TriggersList button[aria-label="Delete Trigger"]')
-      .last()
-      .simulate('click');
-
-    wrapper.find('Confirm button[aria-label="Confirm"]').simulate('click');
-
-    await tick();
-    wrapper.update();
-
-    expect(deleteUndefinedTrigger).not.toHaveBeenCalled();
-
-    // The last trigger is now the first trigger
-    expect(
-      wrapper
-        .find('TriggersList Label')
-        .last()
-        .text()
-    ).toBe('Trigger');
-
-    // Actually delete saved trigger
-    deleteTrigger = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/1`,
-      method: 'DELETE',
-    });
-
-    wrapper
-      .find('TriggersList button[aria-label="Delete Trigger"]')
-      .last()
-      .simulate('click');
-
-    wrapper.find('Confirm button[aria-label="Confirm"]').simulate('click');
-
-    await tick();
-    wrapper.update();
-
-    expect(deleteTrigger).toHaveBeenCalled();
-
-    // No triggers left
-    expect(wrapper.find('TriggersList Label')).toHaveLength(0);
+    expect(editRule).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          aggregation: 0,
+          dataset: 'events',
+          id: '4',
+          name: 'My Incident Rule',
+          projects: ['project-slug'],
+          query: '',
+          status: 0,
+          timeWindow: 60,
+          triggers: [
+            expect.objectContaining({
+              actions: [
+                {
+                  targetIdentifier: '',
+                  targetType: 'user',
+                  type: 'email',
+                },
+              ],
+              alertRuleId: '4',
+              alertThreshold: 70,
+              id: '1',
+              resolveThreshold: 36,
+              thresholdType: 0,
+            }),
+          ],
+        }),
+        method: 'PUT',
+      })
+    );
   });
 });

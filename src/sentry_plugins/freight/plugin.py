@@ -1,10 +1,3 @@
-"""
-freight.plugin
-~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2015 by Sentry Team, see AUTHORS for more details.
-:license: Apache 2.0, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
 import json
@@ -37,10 +30,6 @@ class FreightReleaseHook(ReleaseHook):
 class FreightPlugin(ReleaseTrackingPlugin):
     author = "Sentry Team"
     author_url = "https://github.com/getsentry"
-    resource_links = (
-        ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
-        ("Source", "https://github.com/getsentry/sentry"),
-    )
 
     title = "Freight"
     slug = "freight"

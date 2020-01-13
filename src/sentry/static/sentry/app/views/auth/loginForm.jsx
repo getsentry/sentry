@@ -1,7 +1,8 @@
+import {ClassNames} from '@emotion/core';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {formFooterClass} from 'app/views/auth/login';
 import {t} from 'app/locale';
@@ -16,9 +17,14 @@ import space from 'app/styles/space';
 
 // TODO(epurkhiser): The abstraction here would be much nicer if we just
 // exposed a configuration object telling us what auth providers there are.
-const LoginProviders = ({vstsLoginLink, githubLoginLink}) => (
+const LoginProviders = ({vstsLoginLink, githubLoginLink, googleLoginLink}) => (
   <ProviderWrapper>
     <ProviderHeading>{t('External Account Login')}</ProviderHeading>
+    {googleLoginLink && (
+      <Button align="left" size="small" icon="icon-google" href={googleLoginLink}>
+        {t('Sign in with Google')}
+      </Button>
+    )}
     {githubLoginLink && (
       <Button align="left" size="small" icon="icon-github" href={githubLoginLink}>
         {t('Sign in with GitHub')}
@@ -35,6 +41,7 @@ const LoginProviders = ({vstsLoginLink, githubLoginLink}) => (
 LoginProviders.propTypes = {
   githubLoginLink: PropTypes.string,
   vstsLoginLink: PropTypes.string,
+  googleLoginLink: PropTypes.string,
 };
 
 class LoginForm extends React.Component {
@@ -91,35 +98,41 @@ class LoginForm extends React.Component {
     const hasLoginProvider = githubLoginLink || vstsLoginLink;
 
     return (
-      <FormWrapper hasLoginProvider={hasLoginProvider}>
-        <Form
-          submitLabel={t('Continue')}
-          onSubmit={this.handleSubmit}
-          footerClass={formFooterClass}
-          errorMessage={errorMessage}
-          extraButton={
-            <LostPasswordLink to="/account/recover/">
-              {t('Lost your password?')}
-            </LostPasswordLink>
-          }
-        >
-          <TextField
-            name="username"
-            placeholder={t('username or email')}
-            label={t('Account')}
-            error={errors.username}
-            required
-          />
-          <PasswordField
-            name="password"
-            placeholder={t('password')}
-            label={t('Password')}
-            error={errors.password}
-            required
-          />
-        </Form>
-        {hasLoginProvider && <LoginProviders {...{vstsLoginLink, githubLoginLink}} />}
-      </FormWrapper>
+      <ClassNames>
+        {({css}) => (
+          <FormWrapper hasLoginProvider={hasLoginProvider}>
+            <Form
+              submitLabel={t('Continue')}
+              onSubmit={this.handleSubmit}
+              footerClass={css`
+                ${formFooterClass}
+              `}
+              errorMessage={errorMessage}
+              extraButton={
+                <LostPasswordLink to="/account/recover/">
+                  {t('Lost your password?')}
+                </LostPasswordLink>
+              }
+            >
+              <TextField
+                name="username"
+                placeholder={t('username or email')}
+                label={t('Account')}
+                error={errors.username}
+                required
+              />
+              <PasswordField
+                name="password"
+                placeholder={t('password')}
+                label={t('Password')}
+                error={errors.password}
+                required
+              />
+            </Form>
+            {hasLoginProvider && <LoginProviders {...{vstsLoginLink, githubLoginLink}} />}
+          </FormWrapper>
+        )}
+      </ClassNames>
     );
   }
 }

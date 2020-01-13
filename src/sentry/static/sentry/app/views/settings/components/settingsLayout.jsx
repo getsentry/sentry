@@ -1,7 +1,6 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
@@ -27,16 +26,14 @@ class SettingsLayout extends React.Component {
       <React.Fragment>
         <SettingsColumn>
           <SettingsHeader>
-            <Flex align="center" width={1}>
-              <Box flex="1">
-                <SettingsBreadcrumb
-                  params={params}
-                  routes={childRoutes}
-                  route={childRoute}
-                />
-              </Box>
+            <HeaderContent>
+              <StyledSettingsBreadcrumb
+                params={params}
+                routes={childRoutes}
+                route={childRoute}
+              />
               <SettingsSearch routes={routes} router={router} params={params} />
-            </Flex>
+            </HeaderContent>
           </SettingsHeader>
 
           <MaxWidthContainer>
@@ -54,6 +51,7 @@ class SettingsLayout extends React.Component {
 const MaxWidthContainer = styled('div')`
   display: flex;
   max-width: ${p => p.theme.settings.containerWidth};
+  min-width: 600px; /* for small screen sizes, we need a min width to make it semi digestible */
   flex: 1;
 `;
 
@@ -65,10 +63,20 @@ const SidebarWrapper = styled('div')`
   padding: ${space(4)};
 `;
 
+const HeaderContent = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
+  flex: 1;
+`;
+
 const SettingsColumn = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1; /* so this stretches vertically so that footer is fixed at bottom */
+  min-width: 0; /* fixes problem when child content stretches beyond layout width */
   footer {
     margin-top: 0;
   }

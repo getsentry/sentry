@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
 import posed from 'react-pose';
-import styled, {cx} from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
@@ -99,7 +100,7 @@ function ToastIndicator({indicator, onDismiss, className, ...props}) {
     <Toast
       onClick={handleClick}
       data-test-id={type ? `toast-${type}` : 'toast'}
-      className={cx(className, 'ref-toast', `ref-${type}`)}
+      className={classNames(className, 'ref-toast', `ref-${type}`)}
       {...props}
     >
       {type === 'loading' ? (

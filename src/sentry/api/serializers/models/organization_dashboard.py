@@ -29,7 +29,7 @@ class WidgetSerializer(Serializer):
             "title": obj.title,
             "displayType": WidgetDisplayTypes.get_type_name(obj.display_type),
             "displayOptions": obj.display_options,
-            "dateAdded": obj.date_added,
+            "dateCreated": obj.date_added,
             "dashboardId": six.text_type(obj.dashboard_id),
             "dataSources": attrs["dataSources"],
         }
@@ -68,7 +68,7 @@ class DashboardWithWidgetsSerializer(Serializer):
             "id": six.text_type(obj.id),
             "title": obj.title,
             "organization": six.text_type(obj.organization.id),
-            "dateAdded": obj.date_added,
+            "dateCreated": obj.date_added,
             "createdBy": six.text_type(obj.created_by.id),
             "widgets": attrs["widgets"],
         }

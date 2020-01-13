@@ -56,7 +56,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_owners(
                 self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
             ),
-            ([Actor(self.user.id, User), Actor(self.team.id, Team)], [rule_a, rule_b]),
+            ([Actor(self.team.id, Team), Actor(self.user.id, User)], [rule_a, rule_b]),
         )
 
         assert ProjectOwnership.get_owners(
@@ -71,6 +71,13 @@ class ProjectOwnershipTestCase(TestCase):
         assert ProjectOwnership.get_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "xxxx"}]}}
         ) == ([], None)
+
+        self.assert_ownership_equals(
+            ProjectOwnership.get_owners(
+                self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
+            ),
+            ([Actor(self.team.id, Team), Actor(self.user.id, User)], [rule_a, rule_b]),
+        )
 
 
 class ResolveActorsTestCase(TestCase):

@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import InlineSvg from 'app/components/inlineSvg';
 import Placeholder from 'app/components/placeholder';
 import SentryTypes from 'app/sentryTypes';
@@ -21,7 +21,7 @@ class ActivityAvatar extends React.Component {
   render() {
     const {className, type, user, size} = this.props;
     if (user) {
-      return <Avatar user={user} size={size} className={className} />;
+      return <UserAvatar user={user} size={size} className={className} />;
     }
 
     if (type === 'system') {

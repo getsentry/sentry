@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from django.db import models, IntegrityError
 from django.utils import timezone
 
@@ -11,6 +13,9 @@ from sentry.db.models import (
     Model,
 )
 from sentry.signals import integration_added
+
+
+logger = logging.getLogger(__name__)
 
 
 class PagerDutyService(Model):
@@ -145,6 +150,14 @@ class Integration(Model):
             if not created and default_auth_id:
                 org_integration.update(default_auth_id=default_auth_id)
         except IntegrityError:
+            logger.info(
+                "add-organization-integrity-error",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": self.id,
+                    "default_auth_id": default_auth_id,
+                },
+            )
             return False
         else:
             integration_added.send_robust(

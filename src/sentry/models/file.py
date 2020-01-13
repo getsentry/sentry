@@ -330,20 +330,12 @@ class File(Model):
             delete=delete,
         )
 
-    def getfile(self, mode=None, prefetch=False, as_tempfile=False):
+    def getfile(self, mode=None, prefetch=False):
         """Returns a file object.  By default the file is fetched on
         demand but if prefetch is enabled the file is fully prefetched
         into a tempfile before reading can happen.
-
-        Additionally if `as_tempfile` is passed a NamedTemporaryFile is
-        returned instead which can help in certain situations where a
-        tempfile is necessary.
         """
-        if as_tempfile:
-            prefetch = True
         impl = self._get_chunked_blob(mode, prefetch)
-        if as_tempfile:
-            return impl.detach_tempfile()
         return FileObj(impl, self.name)
 
     def save_to(self, path):
@@ -550,6 +542,10 @@ class ChunkedFileBlobIndexWrapper(object):
 
         if pos < 0:
             raise IOError("Invalid argument")
+        if pos == 0 and not self._indexes:
+            # Empty file, there's no seeking to be done.
+            return
+
         for n, idx in enumerate(self._indexes[::-1]):
             if idx.offset <= pos:
                 if idx != self._curidx:

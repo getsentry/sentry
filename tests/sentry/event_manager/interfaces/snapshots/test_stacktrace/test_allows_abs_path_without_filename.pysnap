@@ -1,15 +1,15 @@
 ---
-created: '2019-03-14T17:12:36.239507Z'
+created: '2019-12-19T00:38:25.071476Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_stacktrace.py
 ---
 errors: null
-get_stacktrace: "Stacktrace (most recent call last):\n\n  File \"foo/bar/baz.py\"\
+get_stacktrace: "Stacktrace (most recent call first):\n\n  File \"foo/bar/baz.py\"\
   , line 1"
 to_json:
   frames:
   - abs_path: foo/bar/baz.py
     filename: foo/bar/baz.py
     lineno: 1
-to_string: "Stacktrace (most recent call last):\n\n  File \"foo/bar/baz.py\", line\
+to_string: "Stacktrace (most recent call first):\n\n  File \"foo/bar/baz.py\", line\
   \ 1"

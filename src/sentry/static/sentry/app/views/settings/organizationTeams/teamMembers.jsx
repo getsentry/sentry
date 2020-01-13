@@ -1,14 +1,14 @@
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
@@ -199,10 +199,13 @@ class TeamMembers extends React.Component {
   };
 
   renderDropdown = access => {
-    // You can add members if you have `org:write` or you have `team:admin` AND you belong to the team
-    // a parent "team details" request should determine your team membership, so this only view is rendered only
-    // when you are a member
-    const canAddMembers = access.has('org:write') || access.has('team:admin');
+    const {organization} = this.props;
+
+    // members can add other members to a team if the `Open Membership` setting is enabled
+    // otherwise, `org:write` or `team:admin` permissions are required
+    const hasOpenMembership = organization && organization.openMembership;
+    const hasWriteAccess = access.has('org:write') || access.has('team:admin');
+    const canAddMembers = hasOpenMembership || hasWriteAccess;
 
     if (!canAddMembers) {
       return (
@@ -211,6 +214,7 @@ class TeamMembers extends React.Component {
           title={t('You do not have enough permission to add new members')}
           isOpen={false}
           size="xsmall"
+          data-test-id="add-member"
         >
           {t('Add Member')}
         </DropdownButton>
@@ -341,7 +345,7 @@ const StyledNameOrEmail = styled('div')`
   ${overflowEllipsis};
 `;
 
-const StyledAvatar = styled(props => <Avatar {...props} />)`
+const StyledAvatar = styled(props => <UserAvatar {...props} />)`
   min-width: 1.75em;
   min-height: 1.75em;
   width: 1.5em;

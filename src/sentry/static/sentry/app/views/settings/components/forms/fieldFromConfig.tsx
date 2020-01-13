@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Scope} from 'app/types';
+
 import BooleanField from './booleanField';
 import EmailField from './emailField';
 import HiddenField from './hiddenField';
@@ -22,9 +24,11 @@ type Props = {
   field: Field;
   highlighted?: boolean;
   disabled?: boolean;
+  flexibleControlStateSize?: boolean;
+  stacked?: boolean;
+  inline?: boolean;
 
-  // TODO(ts): Investigate further
-  access?: any;
+  access?: Scope[];
 };
 
 export default class FieldFromConfig extends React.Component<Props> {

@@ -60,6 +60,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
                             "sentry:user": u"id:user{}".format(r),
                         },
                         "user": {"id": u"user{}".format(r), "email": u"user{}@sentry.io".format(r)},
+                        "exception": {"values": [{"stacktrace": {"frames": [{"lineno": 29}]}}]},
                     },
                 }
                 for r in [1, 2]
@@ -271,6 +272,14 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 value="notreal",
             )
 
+    def test_get_tag_value_label(self):
+        assert self.ts.get_tag_value_label("foo", "notreal") == "notreal"
+        assert self.ts.get_tag_value_label("sentry:user", None) is None
+        assert self.ts.get_tag_value_label("sentry:user", "id:stuff") == "stuff"
+        assert self.ts.get_tag_value_label("sentry:user", "email:stuff") == "stuff"
+        assert self.ts.get_tag_value_label("sentry:user", "username:stuff") == "stuff"
+        assert self.ts.get_tag_value_label("sentry:user", "ip:stuff") == "stuff"
+
     def test_get_groups_user_counts(self):
         assert self.ts.get_groups_user_counts(
             project_ids=[self.proj1.id],
@@ -445,6 +454,73 @@ class TagStorageTest(TestCase, SnubaTestCase):
             TagValue(
                 key="sentry:user",
                 value="id:user1",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=1),
+            )
+        ]
+
+    def test_get_tag_value_paginator_with_dates(self):
+        from sentry.tagstore.types import TagValue
+
+        day_ago = self.now - timedelta(days=1)
+        two_days_ago = self.now - timedelta(days=2)
+        assert list(
+            self.ts.get_tag_value_paginator(
+                self.proj1.id, self.proj1env1.id, "sentry:user", start=day_ago, end=self.now
+            ).get_result(10)
+        ) == [
+            TagValue(
+                key="sentry:user",
+                value="id:user1",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=1),
+            ),
+            TagValue(
+                key="sentry:user",
+                value="id:user2",
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=2),
+            ),
+        ]
+
+        day_ago = self.now - timedelta(days=1)
+        assert (
+            list(
+                self.ts.get_tag_value_paginator(
+                    self.proj1.id, self.proj1env1.id, "sentry:user", start=two_days_ago, end=day_ago
+                ).get_result(10)
+            )
+            == []
+        )
+
+    def test_numeric_tag_value_paginator(self):
+        from sentry.tagstore.types import TagValue
+
+        assert list(
+            self.ts.get_tag_value_paginator(
+                self.proj1.id, self.proj1env1.id, "stack.lineno"
+            ).get_result(10)
+        ) == [
+            TagValue(
+                key="stack.lineno",
+                value="29",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=1),
+            )
+        ]
+
+        assert list(
+            self.ts.get_tag_value_paginator(
+                self.proj1.id, self.proj1env1.id, "stack.lineno", query="30"
+            ).get_result(10)
+        ) == [
+            TagValue(
+                key="stack.lineno",
+                value="29",
                 times_seen=2,
                 first_seen=self.now - timedelta(seconds=2),
                 last_seen=self.now - timedelta(seconds=1),

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from mock import patch
 import pytest
 import pytz
 
@@ -14,7 +13,6 @@ from sentry.utils.snuba import (
     zerofill,
     get_json_type,
     get_snuba_column_name,
-    detect_dataset,
     transform_aliases_and_query,
     Dataset,
     SnubaQueryParams,
@@ -91,7 +89,7 @@ class SnubaUtilsTest(TestCase):
         # to Releases. Reverse translation depends on multiple
         # fields.
         filter_keys = {
-            "issue": [self.proj1group1.id, self.proj1group2.id],
+            "group_id": [self.proj1group1.id, self.proj1group2.id],
             "tags[sentry:release]": [
                 self.group1release1.id,
                 self.group1release2.id,
@@ -100,7 +98,7 @@ class SnubaUtilsTest(TestCase):
         }
         forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=True)
         assert forward(filter_keys) == {
-            "issue": [self.proj1group1.id, self.proj1group2.id],
+            "group_id": [self.proj1group1.id, self.proj1group2.id],
             "tags[sentry:release]": [
                 self.release1.version,
                 self.release2.version,
@@ -109,17 +107,17 @@ class SnubaUtilsTest(TestCase):
         }
         result = [
             {
-                "issue": self.proj1group1.id,
+                "group_id": self.proj1group1.id,
                 "tags[sentry:release]": self.release1.version,
                 "count": 1,
             },
             {
-                "issue": self.proj1group1.id,
+                "group_id": self.proj1group1.id,
                 "tags[sentry:release]": self.release2.version,
                 "count": 2,
             },
             {
-                "issue": self.proj1group2.id,
+                "group_id": self.proj1group2.id,
                 "tags[sentry:release]": self.release1.version,
                 "count": 3,
             },
@@ -128,17 +126,17 @@ class SnubaUtilsTest(TestCase):
         result = [reverse(r) for r in result]
         assert result == [
             {
-                "issue": self.proj1group1.id,
+                "group_id": self.proj1group1.id,
                 "tags[sentry:release]": self.group1release1.id,
                 "count": 1,
             },
             {
-                "issue": self.proj1group1.id,
+                "group_id": self.proj1group1.id,
                 "tags[sentry:release]": self.group1release2.id,
                 "count": 2,
             },
             {
-                "issue": self.proj1group2.id,
+                "group_id": self.proj1group2.id,
                 "tags[sentry:release]": self.group2release1.id,
                 "count": 3,
             },
@@ -281,315 +279,6 @@ class TransformAliasesAndQueryTest(SnubaTestCase, TestCase):
             filter_keys={"environment": [self.environment.id], "project_id": [self.project.id]},
         )
         assert len(result["data"]) == 1
-
-
-class TransformAliasesAndQueryTransactionsTest(TestCase):
-    """
-    This test mocks snuba.raw_query because there is currently no
-    way to insert data into the transactions dataset during tests.
-    """
-
-    @patch("sentry.utils.snuba.raw_query")
-    def test_selected_columns_aliasing_in_function(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "duration"}],
-            "data": [{"transaction": "api.do_things", "duration": 200}],
-        }
-        transform_aliases_and_query(
-            selected_columns=["transaction", "transaction.duration"],
-            aggregations=[
-                ["argMax", ["id", "transaction.duration"], "longest"],
-                ["uniq", "transaction", "uniq_transaction"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction_name", "duration"],
-            aggregations=[
-                ["argMax", ["event_id", "duration"], "longest"],
-                ["uniq", "transaction_name", "uniq_transaction"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Transactions,
-            arrayjoin=None,
-            end=None,
-            start=None,
-            conditions=None,
-            groupby=None,
-            having=None,
-            orderby=None,
-        )
-
-    @patch("sentry.utils.snuba.raw_query")
-    def test_selected_columns_opaque_string(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "p95"}],
-            "data": [{"transaction": "api.do_things", "p95": 200}],
-        }
-        transform_aliases_and_query(
-            selected_columns=["transaction"],
-            aggregations=[
-                ["quantile(0.95)(duration)", "", "p95"],
-                ["uniq", "transaction", "uniq_transaction"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction_name"],
-            aggregations=[
-                ["quantile(0.95)(duration)", "", "p95"],
-                ["uniq", "transaction_name", "uniq_transaction"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Transactions,
-            arrayjoin=None,
-            end=None,
-            start=None,
-            conditions=None,
-            groupby=None,
-            having=None,
-            orderby=None,
-        )
-
-    @patch("sentry.utils.snuba.raw_query")
-    def test_orderby_aliasing(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction_name"}, {"name": "duration"}],
-            "data": [{"transaction_name": "api.do_things", "duration": 200}],
-        }
-        transform_aliases_and_query(
-            selected_columns=["transaction", "transaction.duration"],
-            filter_keys={"project_id": [self.project.id]},
-            orderby=["timestamp"],
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction_name", "duration"],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Transactions,
-            orderby=["finish_ts"],
-            aggregations=None,
-            arrayjoin=None,
-            end=None,
-            start=None,
-            conditions=None,
-            groupby=None,
-            having=None,
-        )
-
-    @patch("sentry.utils.snuba.raw_query")
-    def test_conditions_order_and_groupby_aliasing(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction_name"}, {"name": "duration"}],
-            "data": [{"transaction_name": "api.do_things", "duration": 200}],
-        }
-        transform_aliases_and_query(
-            selected_columns=["transaction", "transaction.duration"],
-            conditions=[
-                ["transaction.duration", "=", 200],
-                ["time", ">", "2019-09-23"],
-                ["http.method", "=", "GET"],
-            ],
-            aggregations=[["count", "", "count"]],
-            groupby=["transaction.op"],
-            orderby=["-timestamp", "-count"],
-            filter_keys={"project_id": [self.project.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction_name", "duration"],
-            conditions=[
-                ["duration", "=", 200],
-                ["bucketed_end", ">", "2019-09-23"],
-                ["tags[http.method]", "=", "GET"],
-            ],
-            aggregations=[["count", "", "count"]],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=["transaction_op"],
-            orderby=["-finish_ts", "-count"],
-            dataset=Dataset.Transactions,
-            arrayjoin=None,
-            end=None,
-            start=None,
-            having=None,
-        )
-
-    @patch("sentry.utils.snuba.raw_query")
-    def test_conditions_nested_function_aliasing(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction_name"}],
-            "data": [{"transaction_name": "api.do_things"}],
-        }
-        transform_aliases_and_query(
-            selected_columns=["transaction"],
-            conditions=[
-                ["event.type", "=", "transaction"],
-                ["match", [["ifNull", ["tags[user_email]", ""]], "'(?i)^.*\@sentry\.io$'"]],
-                [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
-            ],
-            aggregations=[["count", "", "count"]],
-            filter_keys={"project_id": [self.project.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction_name"],
-            conditions=[
-                ["match", [["ifNull", ["tags[user_email]", ""]], "'(?i)^.*\@sentry\.io$'"]],
-                [["positionCaseInsensitive", ["transaction_name", "'recent-searches'"]], "!=", 0],
-            ],
-            aggregations=[["count", "", "count"]],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Transactions,
-            groupby=None,
-            orderby=None,
-            arrayjoin=None,
-            end=None,
-            start=None,
-            having=None,
-        )
-
-    @patch("sentry.utils.snuba.raw_query")
-    def test_condition_removal(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction_name"}, {"name": "duration"}],
-            "data": [{"transaction_name": "api.do_things", "duration": 200}],
-        }
-        transform_aliases_and_query(
-            selected_columns=["transaction", "transaction.duration"],
-            conditions=[["event.type", "=", "transaction"], ["duration", ">", 200]],
-            groupby=["transaction.op"],
-            filter_keys={"project_id": [self.project.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction_name", "duration"],
-            conditions=[["duration", ">", 200]],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=["transaction_op"],
-            dataset=Dataset.Transactions,
-            aggregations=None,
-            arrayjoin=None,
-            end=None,
-            start=None,
-            having=None,
-            orderby=None,
-        )
-
-    @patch("sentry.utils.snuba.raw_query")
-    def test_condition_not_remove_type_csp(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction_name"}, {"name": "duration"}],
-            "data": [{"transaction_name": "api.do_things", "duration": 200}],
-        }
-        transform_aliases_and_query(
-            selected_columns=["transaction", "transaction.duration"],
-            conditions=[
-                ["event.type", "=", "transaction"],
-                ["type", "=", "csp"],
-                ["duration", ">", 200],
-            ],
-            groupby=["transaction.op"],
-            filter_keys={"project_id": [self.project.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction_name", "duration"],
-            conditions=[["tags[type]", "=", "csp"], ["duration", ">", 200]],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=["transaction_op"],
-            dataset=Dataset.Transactions,
-            aggregations=None,
-            arrayjoin=None,
-            end=None,
-            start=None,
-            having=None,
-            orderby=None,
-        )
-
-    @patch("sentry.utils.snuba.raw_query")
-    def test_condition_transform(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction_name"}, {"name": "duration"}],
-            "data": [{"transaction_name": "api.do_things", "duration": 200}],
-        }
-        transform_aliases_and_query(
-            selected_columns=["transaction", "transaction.duration"],
-            conditions=[["http_method", "=", "GET"], ["geo.country_code", "=", "CA"]],
-            groupby=["transaction.op"],
-            filter_keys={"project_id": [self.project.id]},
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction_name", "duration"],
-            conditions=[
-                ["tags[http_method]", "=", "GET"],
-                ["contexts[geo.country_code]", "=", "CA"],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=["transaction_op"],
-            dataset=Dataset.Transactions,
-            aggregations=None,
-            arrayjoin=None,
-            end=None,
-            start=None,
-            having=None,
-            orderby=None,
-        )
-
-
-class DetectDatasetTest(TestCase):
-    def test_dataset_key(self):
-        query = {"dataset": Dataset.Events, "conditions": [["event.type", "=", "transaction"]]}
-        assert detect_dataset(query) == Dataset.Events
-
-    def test_event_type_condition(self):
-        query = {"conditions": [["event.type", "=", "transaction"]]}
-        assert detect_dataset(query) == Dataset.Transactions
-
-        query = {"conditions": [["event.type", "=", "error"]]}
-        assert detect_dataset(query) == Dataset.Events
-
-        query = {"conditions": [["event.type", "=", "transaction"]]}
-        assert detect_dataset(query) == Dataset.Transactions
-
-        query = {"conditions": [["event.type", "=", "error"]]}
-        assert detect_dataset(query) == Dataset.Events
-
-        query = {"conditions": [["type", "!=", "transactions"]]}
-        assert detect_dataset(query) == Dataset.Events
-
-    def test_conditions(self):
-        query = {"conditions": [["transaction", "=", "api.do_thing"]]}
-        assert detect_dataset(query) == Dataset.Events
-
-        query = {"conditions": [["transaction.duration", ">", "3"]]}
-        assert detect_dataset(query) == Dataset.Transactions
-
-        # Internal aliases are treated as tags
-        query = {"conditions": [["duration", ">", "3"]]}
-        assert detect_dataset(query) == Dataset.Events
-
-    def test_conditions_aliased(self):
-        query = {"conditions": [["duration", ">", "3"]]}
-        assert detect_dataset(query, aliased_conditions=True) == Dataset.Transactions
-
-        # Not an internal alias
-        query = {"conditions": [["transaction.duration", ">", "3"]]}
-        assert detect_dataset(query, aliased_conditions=True) == Dataset.Events
-
-    def test_selected_columns(self):
-        query = {"selected_columns": ["id", "message"]}
-        assert detect_dataset(query) == Dataset.Events
-
-        query = {"selected_columns": ["id", "transaction", "transaction.duration"]}
-        assert detect_dataset(query) == Dataset.Transactions
-
-    def test_aggregations(self):
-        query = {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]}
-        assert detect_dataset(query) == Dataset.Events
-
-        query = {"aggregations": [["argMax", ["id", "duration"], "longest"]]}
-        assert detect_dataset(query) == Dataset.Events
-
-        query = {"aggregations": [["quantile(0.95)", "transaction.duration", "p95_duration"]]}
-        assert detect_dataset(query) == Dataset.Transactions
-
-        query = {"aggregations": [["uniq", "transaction.op", "uniq_transaction_op"]]}
-        assert detect_dataset(query) == Dataset.Transactions
 
 
 class PrepareQueryParamsTest(TestCase):

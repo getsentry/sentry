@@ -1,14 +1,16 @@
-import {css, cx} from 'emotion';
+import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
 import color from 'color';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import InlineSvg from 'app/components/inlineSvg';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 
-type Props = {
+// exporting it down with alertStyles caused error  'Props' is not defined  no-undef
+export type Props = {
   type?: 'muted' | 'info' | 'warning' | 'success' | 'error' | 'beta';
   iconSize?: string;
   icon?: string;
@@ -90,7 +92,7 @@ const StyledTextBlock = styled(TextBlock)`
 
 const Alert = styled(
   ({type, icon, iconSize, children, system, className, ...props}: AlertProps) => (
-    <div className={cx(type ? `ref-${type}` : '', className)} {...props}>
+    <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
       {icon && <StyledInlineSvg src={icon} size={iconSize!} />}
       <StyledTextBlock>{children}</StyledTextBlock>
     </div>

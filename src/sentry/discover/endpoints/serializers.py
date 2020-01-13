@@ -89,7 +89,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return [self.get_condition(condition) for condition in value]
 
     def validate_aggregations(self, value):
-        valid_functions = set(["count()", "uniq", "avg"])
+        valid_functions = set(["count()", "uniq", "avg", "sum"])
         requested_functions = set(agg[0] for agg in value)
 
         if not requested_functions.issubset(valid_functions):
@@ -158,13 +158,13 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
 
     # Attributes that are only accepted if version = 2
     environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
-    fieldnames = ListField(child=serializers.CharField(), required=False, allow_null=True)
     query = serializers.CharField(required=False, allow_null=True)
     tags = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    widths = ListField(child=serializers.CharField(), required=False, allow_null=True)
     yAxis = serializers.CharField(required=False, allow_null=True)
 
     disallowed_fields = {
-        1: set(["environment", "fieldnames", "query", "tags", "yAxis"]),
+        1: set(["environment", "query", "tags", "yAxis"]),
         2: set(["groupby", "rollup", "aggregations", "conditions", "limit"]),
     }
 
@@ -188,7 +188,6 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     def validate(self, data):
         query = {}
         query_keys = [
-            "fieldnames",
             "environment",
             "query",
             "fields",
@@ -200,6 +199,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "orderby",
             "limit",
             "tags",
+            "widths",
             "yAxis",
         ]
 
@@ -212,11 +212,6 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if version == 2:
             if len(query["fields"]) < 1:
                 raise serializers.ValidationError("You must include at least one field.")
-
-            if query.get("fieldnames") and len(query["fieldnames"]) != len(query["fields"]):
-                raise serializers.ValidationError(
-                    "You must provide an equal number of field names and fields"
-                )
 
         if data["projects"] == ALL_ACCESS_PROJECTS:
             data["projects"] = []

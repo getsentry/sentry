@@ -33,7 +33,6 @@ class ListResolverTestCase(TestCase):
 
     def test_generates_list_ids(self):
         expected = u"{0.project.slug}.{0.organization.slug}.namespace".format(self.event)
-        assert self.resolver(self.event) == expected
         assert self.resolver(self.event.group) == expected
         assert self.resolver(self.event.project) == expected
 
@@ -284,7 +283,7 @@ class MessageBuilderTest(TestCase):
             event=self.event, namespace=options.get("mail.list-namespace")
         )
 
-        references = (self.event, self.event.group, self.event.project, self.activity)
+        references = (self.event.group, self.event.project, self.activity)
 
         for reference in references:
             (message,) = build_message(reference=reference).get_built_messages(["foo@example.com"])

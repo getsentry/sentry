@@ -38,11 +38,11 @@ export const AGGREGATIONS = {
     type: ['timestamp', 'duration'],
     isSortable: true,
   },
-  sum: {
+  avg: {
     type: ['duration'],
     isSortable: true,
   },
-  avg: {
+  sum: {
     type: ['duration'],
     isSortable: true,
   },
@@ -92,7 +92,6 @@ export const FIELDS = {
   last_seen: 'never',
   latest_event: 'never',
 
-  // user
   user: 'string',
   'user.id': 'string',
   'user.email': 'string',
@@ -137,7 +136,7 @@ export const FIELDS = {
   'stack.in_app': 'boolean',
   'stack.colno': 'number',
   'stack.lineno': 'number',
-  'stack.stack_level': 'string',
+  'stack.stack_level': 'number',
   tags: 'string',
   'tags.key': 'string',
   'tags.value': 'string',
@@ -147,6 +146,7 @@ export const FIELDS = {
 
   'transaction.duration': 'duration',
   'transaction.op': 'string',
+  'transaction.status': 'string',
   apdex: 'number',
   impact: 'number',
   // duration aliases
@@ -164,6 +164,7 @@ export const TRACING_FIELDS = [
   'sum',
   'transaction.duration',
   'transaction.op',
+  'transaction.status',
   'apdex',
   'impact',
   'p99',

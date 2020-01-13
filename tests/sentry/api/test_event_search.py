@@ -5,6 +5,7 @@ import pytest
 import six
 import unittest
 from datetime import timedelta
+from semaphore.consts import SPAN_STATUS_CODE_TO_NAME
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -13,7 +14,6 @@ from sentry.api.event_search import (
     event_search_grammar,
     get_filter,
     resolve_field_list,
-    get_reference_event_conditions,
     parse_search_query,
     get_json_meta_type,
     InvalidSearchQuery,
@@ -23,9 +23,7 @@ from sentry.api.event_search import (
     SearchValue,
     SearchVisitor,
 )
-from sentry.utils.samples import load_data
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.cases import TestCase
 
 
 def test_get_json_meta_type():
@@ -996,18 +994,57 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_issue_filter(self):
         filter = get_filter("issue.id:1")
         assert not filter.conditions
-        assert filter.filter_keys == {"issue": [1]}
+        assert filter.filter_keys == {"group_id": [1]}
         assert filter.group_ids == [1]
 
         filter = get_filter("issue.id:1 issue.id:2 issue.id:3")
         assert not filter.conditions
-        assert filter.filter_keys == {"issue": [1, 2, 3]}
+        assert filter.filter_keys == {"group_id": [1, 2, 3]}
         assert filter.group_ids == [1, 2, 3]
 
         filter = get_filter("issue.id:1 user.email:foo@example.com")
         assert filter.conditions == [["user.email", "=", "foo@example.com"]]
-        assert filter.filter_keys == {"issue": [1]}
+        assert filter.filter_keys == {"group_id": [1]}
         assert filter.group_ids == [1]
+
+    def test_environment_param(self):
+        params = {"environment": ["", "prod"]}
+        filter = get_filter("", params)
+        # Should generate OR conditions
+        assert filter.conditions == [
+            [["environment", "IS NULL", None], ["environment", "=", "prod"]]
+        ]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        params = {"environment": ["dev", "prod"]}
+        filter = get_filter("", params)
+        assert filter.conditions == [[["environment", "IN", {"dev", "prod"}]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+    def test_environment_condition_string(self):
+        filter = get_filter("environment:dev")
+        assert filter.conditions == [[["environment", "=", "dev"]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        filter = get_filter("!environment:dev")
+        assert filter.conditions == [[["environment", "!=", "dev"]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        filter = get_filter("environment:dev environment:prod")
+        # Will generate conditions that will never find anything
+        assert filter.conditions == [[["environment", "=", "dev"]], [["environment", "=", "prod"]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        filter = get_filter("environment: ")
+        # The '' environment is Null in snuba
+        assert filter.conditions == [[["environment", "IS NULL", None]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
 
     def test_project_name(self):
         p1 = self.create_project(organization=self.organization)
@@ -1018,6 +1055,33 @@ class GetSnubaQueryArgsTest(TestCase):
         filter.conditions == [["project_id", "=", p1.id]]
         filter.filter_keys == {"project_id": [p1.id, p2.id]}
         filter.project_ids == [p1.id, p2.id]
+
+        params = {"project_id": []}
+        filter = get_filter("!project.name:{}".format(p1.slug), params)
+        filter.conditions == [["project_id", "!=", p1.id]]
+        filter.filter_keys == {}
+        filter.project_ids == []
+
+    def test_transaction_status(self):
+        for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
+            result = get_filter("transaction.status:{}".format(val))
+            assert result.conditions == [["transaction.status", "=", key]]
+
+    def test_transaction_status_no_wildcard(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("transaction.status:o*")
+        assert "Invalid value" in six.text_type(err)
+        assert "cancelled," in six.text_type(err)
+
+    def test_transaction_status_invalid(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("transaction.status:lol")
+        assert "Invalid value" in six.text_type(err)
+        assert "cancelled," in six.text_type(err)
+
+    def test_trace_id(self):
+        result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
+        assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
 
 
 class ResolveFieldListTest(unittest.TestCase):
@@ -1052,10 +1116,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
-            ["apdex(duration, 300)", "", "apdex"],
+            ["apdex(duration, 300)", None, "apdex"],
             [
                 "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
-                "",
+                None,
                 "impact",
             ],
             ["quantile(0.75)(duration)", None, "p75"],
@@ -1210,181 +1274,3 @@ class ResolveFieldListTest(unittest.TestCase):
             ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []
-
-
-class GetReferenceEventConditionsTest(SnubaTestCase, TestCase):
-    def setUp(self):
-        super(GetReferenceEventConditionsTest, self).setUp()
-
-        self.conditions = {"filter_keys": {"project_id": [self.project.id]}}
-
-    def test_bad_slug_format(self):
-        with pytest.raises(InvalidSearchQuery):
-            get_reference_event_conditions(self.organization, self.conditions, "lol")
-
-    def test_unknown_project(self):
-        event = self.store_event(
-            data={"message": "oh no!", "timestamp": iso_format(before_now(seconds=1))},
-            project_id=self.project.id,
-        )
-        self.conditions["filter_keys"]["project_id"] = [-1]
-        with pytest.raises(InvalidSearchQuery):
-            get_reference_event_conditions(
-                self.organization, self.conditions, "nope:{}".format(event.event_id)
-            )
-
-    def test_unknown_event(self):
-        with pytest.raises(InvalidSearchQuery):
-            slug = "{}:deadbeef".format(self.project.slug)
-            get_reference_event_conditions(self.organization, self.conditions, slug)
-
-    def test_no_fields(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "transaction": "/issues/{issue_id}",
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
-            project_id=self.project.id,
-        )
-        self.conditions["groupby"] = []
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.organization, self.conditions, slug)
-        assert len(result) == 0
-
-    def test_basic_fields(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "transaction": "/issues/{issue_id}",
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
-            project_id=self.project.id,
-        )
-        self.conditions["groupby"] = ["message", "transaction", "unknown-field"]
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.organization, self.conditions, slug)
-        assert result == [
-            ["message", "=", "oh no! /issues/{issue_id}"],
-            ["transaction", "=", "/issues/{issue_id}"],
-        ]
-
-    def test_geo_field(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "transaction": "/issues/{issue_id}",
-                "user": {
-                    "id": 1,
-                    "geo": {"country_code": "US", "region": "CA", "city": "San Francisco"},
-                },
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
-            project_id=self.project.id,
-        )
-        self.conditions["groupby"] = ["geo.city", "geo.region", "geo.country_code"]
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.organization, self.conditions, slug)
-        assert result == [
-            ["geo.city", "=", "San Francisco"],
-            ["geo.region", "=", "CA"],
-            ["geo.country_code", "=", "US"],
-        ]
-
-    def test_sdk_field(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "transaction": "/issues/{issue_id}",
-                "sdk": {"name": "sentry-python", "version": "5.0.12"},
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
-            project_id=self.project.id,
-        )
-        self.conditions["groupby"] = ["sdk.version", "sdk.name"]
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.organization, self.conditions, slug)
-        assert result == [["sdk.version", "=", "5.0.12"], ["sdk.name", "=", "sentry-python"]]
-
-    def test_error_field(self):
-        data = load_data("php")
-        data["timestamp"] = iso_format(before_now(seconds=1))
-        event = self.store_event(data=data, project_id=self.project.id)
-        self.conditions["groupby"] = ["error.value", "error.type", "error.handled"]
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.organization, self.conditions, slug)
-        assert result == [
-            ["error.value", "=", "This is a test exception sent from the Raven CLI."],
-            ["error.type", "=", "Exception"],
-        ]
-
-    def test_stack_field(self):
-        data = load_data("php")
-        data["timestamp"] = iso_format(before_now(seconds=1))
-        event = self.store_event(data=data, project_id=self.project.id)
-        self.conditions["groupby"] = ["stack.filename", "stack.function"]
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.organization, self.conditions, slug)
-        assert result == [
-            ["stack.filename", "=", "/Users/example/Development/raven-php/bin/raven"],
-            ["stack.function", "=", "raven_cli_test"],
-        ]
-
-    def test_tag_value(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "timestamp": iso_format(before_now(seconds=1)),
-                "tags": {"customer_id": 1, "color": "red"},
-            },
-            project_id=self.project.id,
-        )
-        self.conditions["groupby"] = ["nope", "color", "customer_id"]
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.organization, self.conditions, slug)
-        assert result == [["color", "=", "red"], ["customer_id", "=", "1"]]
-
-    def test_context_value(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "timestamp": iso_format(before_now(seconds=1)),
-                "contexts": {
-                    "os": {"version": "10.14.6", "type": "os", "name": "Mac OS X"},
-                    "browser": {"type": "browser", "name": "Firefox", "version": "69"},
-                    "gpu": {"type": "gpu", "name": "nvidia 8600", "vendor": "nvidia"},
-                },
-            },
-            project_id=self.project.id,
-        )
-        self.conditions["groupby"] = ["gpu.name", "browser.name"]
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.organization, self.conditions, slug)
-        assert result == [["gpu.name", "=", "nvidia 8600"], ["browser.name", "=", "Firefox"]]
-
-    def test_issue_field(self):
-        event = self.store_event(
-            data={
-                "message": "oh no!",
-                "timestamp": iso_format(before_now(seconds=1)),
-                "contexts": {
-                    "os": {"version": "10.14.6", "type": "os", "name": "Mac OS X"},
-                    "browser": {"type": "browser", "name": "Firefox", "version": "69"},
-                    "gpu": {"type": "gpu", "name": "nvidia 8600", "vendor": "nvidia"},
-                },
-            },
-            project_id=self.project.id,
-        )
-        self.conditions["groupby"] = ["issue.id"]
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.organization, self.conditions, slug)
-        assert result == [["issue.id", "=", event.group_id]]
-
-    @pytest.mark.xfail(reason="This requires eventstore.get_event_by_id to work with transactions")
-    def test_transcation_field(self):
-        data = load_data("transaction")
-        event = self.store_event(data=data, project_id=self.project.id)
-        self.conditions["groupby"] = ["transaction.op", "transaction.duration"]
-        slug = "{}:{}".format(self.project.slug, event.event_id)
-        result = get_reference_event_conditions(self.organization, self.conditions, slug)
-        assert result == [["transaction.op", "=", "db"], ["transaction.duration", "=", 2]]

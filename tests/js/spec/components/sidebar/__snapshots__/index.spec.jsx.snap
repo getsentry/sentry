@@ -3,13 +3,13 @@
 exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
 <SwitchOrganizationMenu
   data-test-id="sidebar-switch-org-menu"
-  innerRef={[Function]}
+  isStyled={true}
   onClick={[Function]}
   onMouseEnter={[Function]}
   onMouseLeave={[Function]}
 >
   <div
-    className="css-1t0ls5k-SwitchOrganizationMenu-SidebarDropdownMenu ejspo4a4"
+    className="css-pm8679-SwitchOrganizationMenu-SidebarDropdownMenu ejspo4a4"
     data-test-id="sidebar-switch-org-menu"
     onClick={[Function]}
     onMouseEnter={[Function]}
@@ -17,7 +17,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
   >
     <OrganizationList>
       <div
-        className="css-1qovpib-OrganizationList ejspo4a5"
+        className="css-1tlc4cl-OrganizationList ejspo4a5"
       />
     </OrganizationList>
     <SidebarMenuItem
@@ -39,7 +39,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
         to="/organizations/new/"
       >
         <Component
-          className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-3v825n-MenuItemLink e1ru2gxu1"
           data-test-id="sidebar-create-org"
           style={
             Object {
@@ -49,7 +49,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
           to="/organizations/new/"
         >
           <Link
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-3v825n-MenuItemLink e1ru2gxu1"
             data-test-id="sidebar-create-org"
             style={
               Object {
@@ -59,7 +59,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
             to="/organizations/new/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-3v825n-MenuItemLink e1ru2gxu1"
               data-test-id="sidebar-create-org"
               onlyActiveOnIndex={false}
               style={
@@ -70,7 +70,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
               to="/organizations/new/"
             >
               <a
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-3v825n-MenuItemLink e1ru2gxu1"
                 data-test-id="sidebar-create-org"
                 onClick={[Function]}
                 style={
@@ -83,21 +83,21 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                   hasMenu={false}
                 >
                   <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                    className="css-1ug1il4-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                   >
                     <MenuItemLabelWithIcon>
                       <span
-                        className="css-186585d-MenuItemLabelWithIcon ejspo4a1"
+                        className="css-1l4bf1b-MenuItemLabelWithIcon ejspo4a1"
                       >
                         <AddIcon
                           src="icon-circle-add"
                         >
                           <ForwardRef
-                            className="css-10d4dz9-InlineSvg-AddIcon ejspo4a0"
+                            className="css-1tqex7n-InlineSvg-AddIcon ejspo4a0"
                             src="icon-circle-add"
                           >
                             <svg
-                              className="css-10d4dz9-InlineSvg-AddIcon ejspo4a0"
+                              className="css-1tqex7n-InlineSvg-AddIcon ejspo4a0"
                               height="1em"
                               viewBox={Object {}}
                               width="1em"
@@ -128,7 +128,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
 
 exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
 <OrgAndUserMenu
-  innerRef={[Function]}
+  isStyled={true}
   onClick={[Function]}
   onMouseEnter={[Function]}
   onMouseLeave={[Function]}
@@ -162,7 +162,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
   }
 >
   <div
-    className="css-1edm9sw-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-yvb5my-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -199,11 +199,9 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
     >
       <OrgSummary>
         <div
-          className="css-1d1he2f-OrgSummary e1dvf3yd0"
+          className="css-epf2t7-OrgSummary e1h7qc9l0"
         >
-          <Avatar
-            className="css-6su6fj"
-            hasTooltip={false}
+          <OrganizationAvatar
             organization={
               Object {
                 "access": Array [
@@ -234,61 +232,36 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
             }
             size={36}
           >
-            <OrganizationAvatar
-              className="css-6su6fj"
+            <BaseAvatar
               hasTooltip={false}
-              organization={
-                Object {
-                  "access": Array [
-                    "org:read",
-                    "org:write",
-                    "org:admin",
-                    "org:integrations",
-                    "project:read",
-                    "project:write",
-                    "project:admin",
-                    "team:read",
-                    "team:write",
-                    "team:admin",
-                  ],
-                  "features": Array [],
-                  "id": "3",
-                  "name": "Organization Name",
-                  "onboardingTasks": Array [],
-                  "projects": Array [],
-                  "scrapeJavaScript": true,
-                  "slug": "org-slug",
-                  "status": Object {
-                    "id": "active",
-                    "name": "active",
-                  },
-                  "teams": Array [],
-                }
-              }
+              letterId="org-slug"
+              round={false}
               size={36}
+              style={Object {}}
+              title="org slug"
+              tooltip="org-slug"
+              type="letter_avatar"
+              uploadPath="organization-avatar"
             >
-              <BaseAvatar
-                className="css-6su6fj"
-                hasTooltip={false}
-                letterId="org-slug"
-                round={false}
-                size={36}
-                style={Object {}}
-                title="org slug"
-                tooltip="org-slug"
-                type="letter_avatar"
-                uploadPath="organization-avatar"
+              <Tooltip
+                containerDisplayMode="inline-block"
+                disabled={true}
+                position="top"
+                title="org-slug"
               >
-                <Tooltip
-                  containerDisplayMode="inline-block"
-                  disabled={true}
-                  position="top"
-                  title="org-slug"
+                <StyledBaseAvatar
+                  className="avatar"
+                  loaded={true}
+                  round={false}
+                  style={
+                    Object {
+                      "height": "36px",
+                      "width": "36px",
+                    }
+                  }
                 >
-                  <StyledBaseAvatar
-                    className="avatar css-6su6fj"
-                    loaded={true}
-                    round={false}
+                  <span
+                    className="avatar css-wr6j9i-StyledBaseAvatar e147uwb0"
                     style={
                       Object {
                         "height": "36px",
@@ -296,69 +269,59 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       }
                     }
                   >
-                    <span
-                      className="avatar css-1ezk8y8-StyledBaseAvatar e147uwb0"
-                      style={
-                        Object {
-                          "height": "36px",
-                          "width": "36px",
-                        }
-                      }
+                    <LetterAvatar
+                      displayName="org slug"
+                      identifier="org-slug"
+                      round={false}
                     >
-                      <LetterAvatar
+                      <Component
+                        className="css-1ei2ksv-LetterAvatar e12lgfev0"
                         displayName="org slug"
                         identifier="org-slug"
                         round={false}
                       >
-                        <Component
-                          className="css-1k35his-LetterAvatar e12lgfev0"
-                          displayName="org slug"
-                          identifier="org-slug"
-                          round={false}
+                        <svg
+                          className="css-1ei2ksv-LetterAvatar e12lgfev0"
+                          viewBox="0 0 120 120"
                         >
-                          <svg
-                            className="css-1k35his-LetterAvatar e12lgfev0"
-                            viewBox="0 0 120 120"
-                          >
-                            <rect
-                              fill="#4674ca"
-                              height="120"
-                              rx="15"
-                              ry="15"
-                              width="120"
-                              x="0"
-                              y="0"
-                            />
-                            <text
-                              fill="#FFFFFF"
-                              fontSize="65"
-                              style={
-                                Object {
-                                  "dominantBaseline": "central",
-                                }
+                          <rect
+                            fill="#4674ca"
+                            height="120"
+                            rx="15"
+                            ry="15"
+                            width="120"
+                            x="0"
+                            y="0"
+                          />
+                          <text
+                            fill="#FFFFFF"
+                            fontSize="65"
+                            style={
+                              Object {
+                                "dominantBaseline": "central",
                               }
-                              textAnchor="middle"
-                              x="50%"
-                              y="50%"
-                            >
-                              OS
-                            </text>
-                          </svg>
-                        </Component>
-                      </LetterAvatar>
-                    </span>
-                  </StyledBaseAvatar>
-                </Tooltip>
-              </BaseAvatar>
-            </OrganizationAvatar>
-          </Avatar>
+                            }
+                            textAnchor="middle"
+                            x="50%"
+                            y="50%"
+                          >
+                            OS
+                          </text>
+                        </svg>
+                      </Component>
+                    </LetterAvatar>
+                  </span>
+                </StyledBaseAvatar>
+              </Tooltip>
+            </BaseAvatar>
+          </OrganizationAvatar>
           <Details>
             <div
-              className="css-r07pll-Details e1dvf3yd3"
+              className="css-18lie9u-Details e1h7qc9l3"
             >
               <SummaryOrgName>
                 <div
-                  className="css-18gl0tz-SummaryOrgName e1dvf3yd1"
+                  className="css-1o68u16-SummaryOrgName e1h7qc9l1"
                 >
                   Organization Name
                 </div>
@@ -375,21 +338,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         to="/settings/org-slug/"
       >
         <Component
-          className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-3v825n-MenuItemLink e1ru2gxu1"
           to="/settings/org-slug/"
         >
           <Link
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-3v825n-MenuItemLink e1ru2gxu1"
             to="/settings/org-slug/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-3v825n-MenuItemLink e1ru2gxu1"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/settings/org-slug/"
             >
               <a
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-3v825n-MenuItemLink e1ru2gxu1"
                 onClick={[Function]}
                 style={Object {}}
               >
@@ -397,7 +360,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   hasMenu={false}
                 >
                   <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                    className="css-1ug1il4-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                   >
                     Organization settings
                   </span>
@@ -415,21 +378,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         to="/settings/org-slug/teams/"
       >
         <Component
-          className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-3v825n-MenuItemLink e1ru2gxu1"
           to="/settings/org-slug/teams/"
         >
           <Link
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-3v825n-MenuItemLink e1ru2gxu1"
             to="/settings/org-slug/teams/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-3v825n-MenuItemLink e1ru2gxu1"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/settings/org-slug/teams/"
             >
               <a
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-3v825n-MenuItemLink e1ru2gxu1"
                 onClick={[Function]}
                 style={Object {}}
               >
@@ -437,7 +400,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   hasMenu={false}
                 >
                   <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                    className="css-1ug1il4-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                   >
                     Teams
                   </span>
@@ -484,17 +447,17 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
     <SidebarMenuItem>
       <MenuItemLink>
         <Component
-          className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-1a5th4k-MenuItemLink e1ru2gxu1"
         >
           <div
-            className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1a5th4k-MenuItemLink e1ru2gxu1"
             tabIndex="0"
           >
             <MenuItemLabel
               hasMenu={true}
             >
               <span
-                className="css-rkoh57-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                className="css-uvye8q-MenuItemLabel-MenuItemLabel e1ru2gxu0"
               >
                 <withOrganizations(SwitchOrganization)
                   canCreateOrganization={false}
@@ -511,7 +474,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     >
                       <SwitchOrganizationMenuActor
                         data-test-id="sidebar-switch-org"
-                        innerRef={[Function]}
+                        isStyled={true}
                         onClick={[Function]}
                         onKeyDown={[Function]}
                         onMouseEnter={[Function]}
@@ -523,7 +486,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                         }
                       >
                         <span
-                          className="css-1lqnj07-SwitchOrganizationMenuActor ejspo4a3"
+                          className="css-lpolsh-SwitchOrganizationMenuActor ejspo4a3"
                           data-test-id="sidebar-switch-org"
                           onClick={[Function]}
                           onKeyDown={[Function]}
@@ -538,7 +501,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                           Switch organization
                           <SubMenuCaret>
                             <span
-                              className="css-turth4-SubMenuCaret ejspo4a2"
+                              className="css-3ur4f5-SubMenuCaret ejspo4a2"
                             >
                               <i
                                 className="icon-arrow-right"
@@ -558,24 +521,24 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
     </SidebarMenuItem>
     <Divider>
       <div
-        className="css-19r16al-Divider e18ox4wg0"
+        className="css-10onrkb-Divider e18ox4wg0"
       />
     </Divider>
     <UserSummary
       to="/settings/account/details/"
     >
       <Link
-        className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+        className="css-j625pk-UserSummary e1fowdfw1"
         to="/settings/account/details/"
       >
         <Link
-          className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+          className="css-j625pk-UserSummary e1fowdfw1"
           onlyActiveOnIndex={false}
           style={Object {}}
           to="/settings/account/details/"
         >
           <a
-            className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+            className="css-j625pk-UserSummary e1fowdfw1"
             onClick={[Function]}
             style={Object {}}
           >
@@ -601,7 +564,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
             >
               <IdBadge
                 avatarSize={32}
-                className="css-1tz319h-UserBadgeNoOverflow e1fowdfw2"
+                className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
                 user={
                   Object {
                     "email": "foo@example.com",
@@ -624,12 +587,12 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   mini={true}
                 >
                   <ErrorBoundary
-                    className="css-e4um1y-InlineErrorBoundary e83vi020"
+                    className="css-1wuy21l-InlineErrorBoundary e83vi020"
                     mini={true}
                   >
                     <UserBadge
                       avatarSize={32}
-                      className="css-1tz319h-UserBadgeNoOverflow e1fowdfw2"
+                      className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
                       hideEmail={false}
                       useLink={true}
                       user={
@@ -651,12 +614,13 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       }
                     >
                       <StyledUserBadge
-                        className="css-1tz319h-UserBadgeNoOverflow e1fowdfw2"
+                        className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
                       >
                         <div
-                          className="e1fowdfw2 css-1dpgz1o-StyledUserBadge-UserBadgeNoOverflow ev46mzr0"
+                          className="e1fowdfw2 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
                         >
                           <StyledAvatar
+                            gravatar={false}
                             size={32}
                             user={
                               Object {
@@ -676,8 +640,9 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                               }
                             }
                           >
-                            <Component
-                              className="css-1u6j7yz-StyledAvatar ev46mzr4"
+                            <UserAvatar
+                              className="css-593o0g-StyledAvatar e31z2f84"
+                              gravatar={false}
                               size={32}
                               user={
                                 Object {
@@ -697,153 +662,106 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                 }
                               }
                             >
-                              <Avatar
-                                className="css-1u6j7yz-StyledAvatar ev46mzr4"
+                              <BaseAvatar
+                                className="css-593o0g-StyledAvatar e31z2f84"
+                                gravatarId="foo@example.com"
                                 hasTooltip={false}
+                                letterId="foo@example.com"
+                                round={true}
                                 size={32}
-                                user={
-                                  Object {
-                                    "email": "foo@example.com",
-                                    "flags": Object {
-                                      "newsletter_consent_prompt": false,
-                                    },
-                                    "hasPasswordAuth": true,
-                                    "id": "1",
-                                    "isAuthenticated": true,
-                                    "name": "Foo Bar",
-                                    "options": Object {
-                                      "timezone": "UTC",
-                                    },
-                                    "permissions": Set {},
-                                    "username": "foo@example.com",
-                                  }
-                                }
+                                style={Object {}}
+                                title="Foo Bar"
+                                tooltip="Foo Bar (foo@example.com)"
+                                type="letter_avatar"
+                                uploadId=""
+                                uploadPath="avatar"
                               >
-                                <UserAvatar
-                                  className="css-1u6j7yz-StyledAvatar ev46mzr4"
-                                  gravatar={false}
-                                  hasTooltip={false}
-                                  size={32}
-                                  user={
-                                    Object {
-                                      "email": "foo@example.com",
-                                      "flags": Object {
-                                        "newsletter_consent_prompt": false,
-                                      },
-                                      "hasPasswordAuth": true,
-                                      "id": "1",
-                                      "isAuthenticated": true,
-                                      "name": "Foo Bar",
-                                      "options": Object {
-                                        "timezone": "UTC",
-                                      },
-                                      "permissions": Set {},
-                                      "username": "foo@example.com",
-                                    }
-                                  }
+                                <Tooltip
+                                  containerDisplayMode="inline-block"
+                                  disabled={true}
+                                  position="top"
+                                  title="Foo Bar (foo@example.com)"
                                 >
-                                  <BaseAvatar
-                                    className="css-1u6j7yz-StyledAvatar ev46mzr4"
-                                    gravatarId="foo@example.com"
-                                    hasTooltip={false}
-                                    letterId="foo@example.com"
+                                  <StyledBaseAvatar
+                                    className="avatar css-593o0g-StyledAvatar e31z2f84"
+                                    loaded={true}
                                     round={true}
-                                    size={32}
-                                    style={Object {}}
-                                    title="Foo Bar"
-                                    tooltip="Foo Bar (foo@example.com)"
-                                    type="letter_avatar"
-                                    uploadId=""
-                                    uploadPath="avatar"
+                                    style={
+                                      Object {
+                                        "height": "32px",
+                                        "width": "32px",
+                                      }
+                                    }
                                   >
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
-                                      disabled={true}
-                                      position="top"
-                                      title="Foo Bar (foo@example.com)"
-                                    >
-                                      <StyledBaseAvatar
-                                        className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
-                                        loaded={true}
-                                        round={true}
-                                        style={
-                                          Object {
-                                            "height": "32px",
-                                            "width": "32px",
-                                          }
+                                    <span
+                                      className="avatar e31z2f84 css-13sepyg-StyledBaseAvatar-StyledAvatar e147uwb0"
+                                      style={
+                                        Object {
+                                          "height": "32px",
+                                          "width": "32px",
                                         }
+                                      }
+                                    >
+                                      <LetterAvatar
+                                        displayName="Foo Bar"
+                                        identifier="foo@example.com"
+                                        round={true}
                                       >
-                                        <span
-                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e147uwb0"
-                                          style={
-                                            Object {
-                                              "height": "32px",
-                                              "width": "32px",
-                                            }
-                                          }
+                                        <Component
+                                          className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                          displayName="Foo Bar"
+                                          identifier="foo@example.com"
+                                          round={true}
                                         >
-                                          <LetterAvatar
-                                            displayName="Foo Bar"
-                                            identifier="foo@example.com"
-                                            round={true}
+                                          <svg
+                                            className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                            viewBox="0 0 120 120"
                                           >
-                                            <Component
-                                              className="css-vyy37i-LetterAvatar e12lgfev0"
-                                              displayName="Foo Bar"
-                                              identifier="foo@example.com"
-                                              round={true}
+                                            <rect
+                                              fill="#315cac"
+                                              height="120"
+                                              rx="15"
+                                              ry="15"
+                                              width="120"
+                                              x="0"
+                                              y="0"
+                                            />
+                                            <text
+                                              fill="#FFFFFF"
+                                              fontSize="65"
+                                              style={
+                                                Object {
+                                                  "dominantBaseline": "central",
+                                                }
+                                              }
+                                              textAnchor="middle"
+                                              x="50%"
+                                              y="50%"
                                             >
-                                              <svg
-                                                className="css-vyy37i-LetterAvatar e12lgfev0"
-                                                viewBox="0 0 120 120"
-                                              >
-                                                <rect
-                                                  fill="#315cac"
-                                                  height="120"
-                                                  rx="15"
-                                                  ry="15"
-                                                  width="120"
-                                                  x="0"
-                                                  y="0"
-                                                />
-                                                <text
-                                                  fill="#FFFFFF"
-                                                  fontSize="65"
-                                                  style={
-                                                    Object {
-                                                      "dominantBaseline": "central",
-                                                    }
-                                                  }
-                                                  textAnchor="middle"
-                                                  x="50%"
-                                                  y="50%"
-                                                >
-                                                  FB
-                                                </text>
-                                              </svg>
-                                            </Component>
-                                          </LetterAvatar>
-                                        </span>
-                                      </StyledBaseAvatar>
-                                    </Tooltip>
-                                  </BaseAvatar>
-                                </UserAvatar>
-                              </Avatar>
-                            </Component>
+                                              FB
+                                            </text>
+                                          </svg>
+                                        </Component>
+                                      </LetterAvatar>
+                                    </span>
+                                  </StyledBaseAvatar>
+                                </Tooltip>
+                              </BaseAvatar>
+                            </UserAvatar>
                           </StyledAvatar>
                           <StyledNameAndEmail>
                             <div
-                              className="css-9l6b2w-StyledNameAndEmail ev46mzr1"
+                              className="css-14b4oxh-StyledNameAndEmail e31z2f81"
                             >
                               <StyledName
                                 hideEmail={false}
                               >
                                 <Component
-                                  className="css-12fcmnb-StyledName ev46mzr3"
+                                  className="css-19h2nhd-StyledName e31z2f83"
                                   hideEmail={false}
                                 >
                                   <span
-                                    className="css-12fcmnb-StyledName ev46mzr3"
+                                    className="css-19h2nhd-StyledName e31z2f83"
                                   >
                                     Foo Bar
                                   </span>
@@ -851,7 +769,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                               </StyledName>
                               <StyledEmail>
                                 <div
-                                  className="css-3w2sfq-StyledEmail ev46mzr2"
+                                  className="css-zdh78r-StyledEmail e31z2f82"
                                 >
                                   foo@example.com
                                 </div>
@@ -877,21 +795,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           to="/settings/account/"
         >
           <Component
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-3v825n-MenuItemLink e1ru2gxu1"
             to="/settings/account/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-3v825n-MenuItemLink e1ru2gxu1"
               to="/settings/account/"
             >
               <Link
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-3v825n-MenuItemLink e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/"
               >
                 <a
-                  className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                  className="css-3v825n-MenuItemLink e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -899,7 +817,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     hasMenu={false}
                   >
                     <span
-                      className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                      className="css-1ug1il4-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                     >
                       User settings
                     </span>
@@ -917,21 +835,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           to="/settings/account/api/"
         >
           <Component
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-3v825n-MenuItemLink e1ru2gxu1"
             to="/settings/account/api/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-3v825n-MenuItemLink e1ru2gxu1"
               to="/settings/account/api/"
             >
               <Link
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-3v825n-MenuItemLink e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/api/"
               >
                 <a
-                  className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                  className="css-3v825n-MenuItemLink e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -939,7 +857,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     hasMenu={false}
                   >
                     <span
-                      className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                      className="css-1ug1il4-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                     >
                       API keys
                     </span>
@@ -959,12 +877,12 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           onClick={[Function]}
         >
           <Component
-            className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1a5th4k-MenuItemLink e1ru2gxu1"
             data-test-id="sidebarSignout"
             onClick={[Function]}
           >
             <div
-              className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-1a5th4k-MenuItemLink e1ru2gxu1"
               data-test-id="sidebarSignout"
               onClick={[Function]}
               tabIndex="0"
@@ -973,7 +891,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 hasMenu={true}
               >
                 <span
-                  className="css-rkoh57-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                  className="css-uvye8q-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                 >
                   Sign out
                 </span>
@@ -989,13 +907,13 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
 
 exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
 <HelpMenu
-  innerRef={[Function]}
+  isStyled={true}
   onClick={[Function]}
   onMouseEnter={[Function]}
   onMouseLeave={[Function]}
 >
   <div
-    className="css-10k5q9j-HelpMenu-SidebarDropdownMenu e1q2bb9t2"
+    className="css-jlq0c6-HelpMenu-SidebarDropdownMenu e1q2bb9t2"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -1040,11 +958,11 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
         onClick={[Function]}
       >
         <Component
-          className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-1a5th4k-MenuItemLink e1ru2gxu1"
           onClick={[Function]}
         >
           <div
-            className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1a5th4k-MenuItemLink e1ru2gxu1"
             onClick={[Function]}
             tabIndex="0"
           >
@@ -1052,7 +970,7 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
               hasMenu={true}
             >
               <span
-                className="css-rkoh57-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                className="css-uvye8q-MenuItemLabel-MenuItemLabel e1ru2gxu0"
               >
                 Search Docs and FAQs
               </span>
@@ -1070,17 +988,17 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
         target="_blank"
       >
         <Component
-          className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-3v825n-MenuItemLink e1ru2gxu1"
           href="https://forum.sentry.io/"
           target="_blank"
         >
           <Link
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-3v825n-MenuItemLink e1ru2gxu1"
             href="https://forum.sentry.io/"
             target="_blank"
           >
             <a
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-3v825n-MenuItemLink e1ru2gxu1"
               href="https://forum.sentry.io/"
               target="_blank"
             >
@@ -1088,7 +1006,7 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
                 hasMenu={false}
               >
                 <span
-                  className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                  className="css-1ug1il4-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                 >
                   Community Discussions
                 </span>
@@ -1107,17 +1025,17 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
         target="_blank"
       >
         <Component
-          className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+          className="css-3v825n-MenuItemLink e1ru2gxu1"
           href="https://status.sentry.io/"
           target="_blank"
         >
           <Link
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-3v825n-MenuItemLink e1ru2gxu1"
             href="https://status.sentry.io/"
             target="_blank"
           >
             <a
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-3v825n-MenuItemLink e1ru2gxu1"
               href="https://status.sentry.io/"
               target="_blank"
             >
@@ -1125,7 +1043,7 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
                 hasMenu={false}
               >
                 <span
-                  className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                  className="css-1ug1il4-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                 >
                   Service Status
                 </span>
@@ -1149,27 +1067,27 @@ exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] 
 >
   <SidebarPanelItemRoot>
     <div
-      className="css-11zw7jo-SidebarPanelItemRoot ekutvbl0"
+      className="css-lce7u9-SidebarPanelItemRoot ekutvbl0"
     >
       <Title
         hasSeen={false}
       >
         <div
-          className="css-hs42c5-Title ekutvbl2"
+          className="css-1fgxw89-Title ekutvbl2"
         >
           Learn about Source Maps
         </div>
       </Title>
       <Message>
         <div
-          className="css-1rszf37-Text-Message ekutvbl4"
+          className="css-kuchfm-Text-Message ekutvbl4"
         >
           Source maps are JSON files that contain information on how to map your transpiled source code back to their original source.
         </div>
       </Message>
       <Text>
         <div
-          className="css-7bhqyd-Text ekutvbl3"
+          className="css-166h1v-Text ekutvbl3"
         >
           <ForwardRef
             href="https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry"
@@ -1194,17 +1112,17 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
   className="incident-list"
 >
   <ul
-    className="incident-list css-9jctl-IncidentList eglisrw0"
+    className="incident-list css-1iut4k0-IncidentList eglisrw0"
   >
     <IncidentItem
       key="1"
     >
       <li
-        className="css-14n5z5w-IncidentItem eglisrw1"
+        className="css-16z7ejm-IncidentItem eglisrw1"
       >
         <IncidentTitle>
           <div
-            className="css-5djkqu-IncidentTitle eglisrw2"
+            className="css-c7gclf-IncidentTitle eglisrw2"
           >
             Test Incident
           </div>
@@ -1212,20 +1130,20 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
         <div>
           <StatusHeader>
             <div
-              className="css-1x43ghi-StatusHeader eglisrw3"
+              className="css-1p5jdbq-StatusHeader eglisrw3"
             >
               Latest updates:
             </div>
           </StatusHeader>
           <StatusList>
             <ul
-              className="css-144h8i2-StatusList eglisrw4"
+              className="css-xjcuzc-StatusList eglisrw4"
             >
               <StatusItem
                 key="0"
               >
                 <li
-                  className="css-ykoqmj-StatusItem eglisrw5"
+                  className="css-y8e5o2-StatusItem eglisrw5"
                 >
                   First Update
                 </li>
@@ -1234,7 +1152,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 key="1"
               >
                 <li
-                  className="css-ykoqmj-StatusItem eglisrw5"
+                  className="css-y8e5o2-StatusItem eglisrw5"
                 >
                   Second Update
                 </li>
@@ -1263,7 +1181,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Learn more"
-                className="css-z6hjis-StyledButton-getColors edwq9my0"
+                className="css-12ogwys-StyledButton edwq9my0"
                 disabled={false}
                 external={true}
                 href="https://status.sentry.io"
@@ -1274,7 +1192,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 <ForwardRef
                   aria-disabled={false}
                   aria-label="Learn more"
-                  className="css-z6hjis-StyledButton-getColors edwq9my0"
+                  className="css-12ogwys-StyledButton edwq9my0"
                   href="https://status.sentry.io"
                   onClick={[Function]}
                   role="button"
@@ -1283,7 +1201,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                   <a
                     aria-disabled={false}
                     aria-label="Learn more"
-                    className="css-z6hjis-StyledButton-getColors edwq9my0"
+                    className="css-12ogwys-StyledButton edwq9my0"
                     href="https://status.sentry.io"
                     onClick={[Function]}
                     rel="noreferrer noopener"
@@ -1297,11 +1215,11 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                     >
                       <Component
                         align="center"
-                        className="css-1h693nz-ButtonLabel edwq9my1"
+                        className="css-19gcr2f-ButtonLabel edwq9my1"
                         size="small"
                       >
                         <span
-                          className="css-1h693nz-ButtonLabel edwq9my1"
+                          className="css-19gcr2f-ButtonLabel edwq9my1"
                         >
                           Learn more
                         </span>
@@ -1329,21 +1247,21 @@ exports[`Sidebar can have onboarding feature 1`] = `
     collapsed={false}
   >
     <Component
-      className="css-1k75klj-StyledSidebarPanel-getPositionForOrientation e1cvaskl0"
+      className="css-kp1td3-StyledSidebarPanel e1cvaskl0"
       collapsed={false}
     >
       <div
-        className="css-1k75klj-StyledSidebarPanel-getPositionForOrientation e1cvaskl0"
+        className="css-kp1td3-StyledSidebarPanel e1cvaskl0"
       >
         <SidebarPanelHeader>
           <div
-            className="css-13cwjk8-SidebarPanelHeader e1cvaskl1"
+            className="css-svlib3-SidebarPanelHeader e1cvaskl1"
           >
             <PanelClose
               onClick={[Function]}
             >
               <a
-                className="css-3guzl0-PanelClose e1cvaskl3"
+                className="css-f8nv6a-PanelClose e1cvaskl3"
                 onClick={[Function]}
               >
                 <span
@@ -1353,7 +1271,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
             </PanelClose>
             <Title>
               <div
-                className="css-87m5mp-Title e1cvaskl4"
+                className="css-17el80e-Title e1cvaskl4"
               >
                 Getting Started with Sentry
               </div>
@@ -1362,7 +1280,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
         </SidebarPanelHeader>
         <SidebarPanelBody>
           <div
-            className="css-1pl3kd6-SidebarPanelBody e1cvaskl2"
+            className="css-1jf6thw-SidebarPanelBody e1cvaskl2"
           >
             <withApi(WithOrganizationMockWrapper)>
               <WithOrganizationMockWrapper
@@ -1417,7 +1335,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                 >
                   <StyledTodoList>
                     <ul
-                      className="css-1j5mlad-StyledTodoList e1l1x1b40"
+                      className="css-1vmqa5q-StyledTodoList e1l1x1b40"
                     >
                       <WithOrganizationMockWrapper
                         key="1"
@@ -1485,7 +1403,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             onMouseOver={[Function]}
                           >
                             <li
-                              className="css-djxgjv-Item e1a4o5470"
+                              className="css-7hhgol-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
@@ -1493,28 +1411,27 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 blur={false}
                               >
                                 <div
-                                  className="css-qpu70d-Content e1a4o5471"
+                                  className="css-9av8oo-Content e1a4o5471"
                                 >
                                   <Checkbox>
                                     <div
-                                      className="css-6neou0-Checkbox e1a4o5472"
+                                      className="css-hygfta-Checkbox e1a4o5472"
                                     />
                                   </Checkbox>
                                   <StyledLink
+                                    data-test-id={1}
                                     href="/organizations/org-slug/projects/new/"
                                     onClick={[Function]}
                                   >
                                     <a
-                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      className="css-1scniln-StyledLink e1a4o5475"
+                                      data-test-id={1}
                                       href="/organizations/org-slug/projects/new/"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={1}
-                                      >
+                                      <ItemHeader>
                                         <h4
-                                          className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={1}
+                                          className="css-13fewgq-ItemHeader e1a4o5476"
                                         >
                                           Create a project
                                         </h4>
@@ -1523,7 +1440,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   </StyledLink>
                                   <Description>
                                     <p
-                                      className="css-rz8513-Description e1a4o5474"
+                                      className="css-1l0q5ef-Description e1a4o5474"
                                     >
                                       Create your first Sentry project
                                     </p>
@@ -1537,7 +1454,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   >
                                     <Button
                                       align="center"
-                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      className="css-13i4fqu-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
                                       onClick={[Function]}
@@ -1546,7 +1463,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       <StyledButton
                                         aria-disabled={false}
                                         aria-label="Skip task"
-                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
                                         hide={true}
                                         onClick={[Function]}
@@ -1556,7 +1473,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -1566,7 +1483,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                            className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -1577,11 +1494,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             >
                                               <Component
                                                 align="center"
-                                                className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                  className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -1639,12 +1556,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     onClick={[Function]}
                                   >
                                     <div
-                                      className="css-1hengah-Container e18z0fp40"
+                                      className="css-1r2yi7q-Container e18z0fp40"
                                       onClick={[Function]}
                                     >
                                       <Header>
                                         <h4
-                                          className="css-134yp1m-Header e18z0fp41"
+                                          className="css-cwdjtc-Header e18z0fp41"
                                         >
                                           Want help?
                                         </h4>
@@ -1668,7 +1585,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-budrs3-StyledButton-getColors edwq9my0"
+                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -1678,7 +1595,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                className="css-1ilrgbi-StyledButton edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -1688,7 +1605,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                  className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -1699,11 +1616,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   >
                                                     <Component
                                                       align="center"
-                                                      className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                        className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -1800,7 +1717,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             onMouseOver={[Function]}
                           >
                             <li
-                              className="css-djxgjv-Item e1a4o5470"
+                              className="css-7hhgol-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
@@ -1808,28 +1725,27 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 blur={false}
                               >
                                 <div
-                                  className="css-qpu70d-Content e1a4o5471"
+                                  className="css-9av8oo-Content e1a4o5471"
                                 >
                                   <Checkbox>
                                     <div
-                                      className="css-6neou0-Checkbox e1a4o5472"
+                                      className="css-hygfta-Checkbox e1a4o5472"
                                     />
                                   </Checkbox>
                                   <StyledLink
+                                    data-test-id={2}
                                     href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
                                     onClick={[Function]}
                                   >
                                     <a
-                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      className="css-1scniln-StyledLink e1a4o5475"
+                                      data-test-id={2}
                                       href="/organizations/org-slug/projects/choose/?onboarding=1&task=2"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={2}
-                                      >
+                                      <ItemHeader>
                                         <h4
-                                          className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={2}
+                                          className="css-13fewgq-ItemHeader e1a4o5476"
                                         >
                                           Send your first event
                                         </h4>
@@ -1838,7 +1754,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   </StyledLink>
                                   <Description>
                                     <p
-                                      className="css-rz8513-Description e1a4o5474"
+                                      className="css-1l0q5ef-Description e1a4o5474"
                                     >
                                       Install Sentry's client
                                     </p>
@@ -1852,7 +1768,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   >
                                     <Button
                                       align="center"
-                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      className="css-13i4fqu-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
                                       onClick={[Function]}
@@ -1861,7 +1777,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       <StyledButton
                                         aria-disabled={false}
                                         aria-label="Skip task"
-                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
                                         hide={true}
                                         onClick={[Function]}
@@ -1871,7 +1787,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -1881,7 +1797,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                            className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -1892,11 +1808,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             >
                                               <Component
                                                 align="center"
-                                                className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                  className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -1954,12 +1870,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     onClick={[Function]}
                                   >
                                     <div
-                                      className="css-1hengah-Container e18z0fp40"
+                                      className="css-1r2yi7q-Container e18z0fp40"
                                       onClick={[Function]}
                                     >
                                       <Header>
                                         <h4
-                                          className="css-134yp1m-Header e18z0fp41"
+                                          className="css-cwdjtc-Header e18z0fp41"
                                         >
                                           Want help?
                                         </h4>
@@ -1983,7 +1899,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-budrs3-StyledButton-getColors edwq9my0"
+                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -1993,7 +1909,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                className="css-1ilrgbi-StyledButton edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -2003,7 +1919,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                  className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -2014,11 +1930,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   >
                                                     <Component
                                                       align="center"
-                                                      className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                        className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -2054,8 +1970,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
         by unlocking mentions, assignment, and suggested issue owners.",
                             "display": true,
-                            "featureLocation": "organization",
-                            "location": "members/",
+                            "featureLocation": "modal",
+                            "location": [Function],
                             "prereq": Array [],
                             "skippable": true,
                             "task": 3,
@@ -2099,8 +2015,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "detailedDescription": "Let Sentry help your team triage and assign issues. Improve your workflow
         by unlocking mentions, assignment, and suggested issue owners.",
                               "display": true,
-                              "featureLocation": "organization",
-                              "location": "members/",
+                              "featureLocation": "modal",
+                              "location": [Function],
                               "prereq": Array [],
                               "skippable": true,
                               "task": 3,
@@ -2113,7 +2029,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             onMouseOver={[Function]}
                           >
                             <li
-                              className="css-djxgjv-Item e1a4o5470"
+                              className="css-7hhgol-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
@@ -2121,28 +2037,25 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 blur={false}
                               >
                                 <div
-                                  className="css-qpu70d-Content e1a4o5471"
+                                  className="css-9av8oo-Content e1a4o5471"
                                 >
                                   <Checkbox>
                                     <div
-                                      className="css-6neou0-Checkbox e1a4o5472"
+                                      className="css-hygfta-Checkbox e1a4o5472"
                                     />
                                   </Checkbox>
                                   <StyledLink
-                                    href="/organizations/org-slug/members/"
+                                    data-test-id={3}
                                     onClick={[Function]}
                                   >
                                     <a
-                                      className="css-1ylws2h-StyledLink e1a4o5475"
-                                      href="/organizations/org-slug/members/"
+                                      className="css-1scniln-StyledLink e1a4o5475"
+                                      data-test-id={3}
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={3}
-                                      >
+                                      <ItemHeader>
                                         <h4
-                                          className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={3}
+                                          className="css-13fewgq-ItemHeader e1a4o5476"
                                         >
                                           Invite team members
                                         </h4>
@@ -2151,7 +2064,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   </StyledLink>
                                   <Description>
                                     <p
-                                      className="css-rz8513-Description e1a4o5474"
+                                      className="css-1l0q5ef-Description e1a4o5474"
                                     >
                                       Bring your team aboard
                                     </p>
@@ -2165,7 +2078,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   >
                                     <Button
                                       align="center"
-                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      className="css-13i4fqu-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
                                       onClick={[Function]}
@@ -2174,7 +2087,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       <StyledButton
                                         aria-disabled={false}
                                         aria-label="Skip task"
-                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
                                         hide={true}
                                         onClick={[Function]}
@@ -2184,7 +2097,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -2194,7 +2107,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                            className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -2205,11 +2118,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             >
                                               <Component
                                                 align="center"
-                                                className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                  className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -2267,12 +2180,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     onClick={[Function]}
                                   >
                                     <div
-                                      className="css-1hengah-Container e18z0fp40"
+                                      className="css-1r2yi7q-Container e18z0fp40"
                                       onClick={[Function]}
                                     >
                                       <Header>
                                         <h4
-                                          className="css-134yp1m-Header e18z0fp41"
+                                          className="css-cwdjtc-Header e18z0fp41"
                                         >
                                           Want help?
                                         </h4>
@@ -2296,7 +2209,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-budrs3-StyledButton-getColors edwq9my0"
+                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -2306,7 +2219,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                className="css-1ilrgbi-StyledButton edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -2316,7 +2229,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                  className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -2327,11 +2240,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   >
                                                     <Component
                                                       align="center"
-                                                      className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                        className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -2430,7 +2343,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             onMouseOver={[Function]}
                           >
                             <li
-                              className="css-djxgjv-Item e1a4o5470"
+                              className="css-7hhgol-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
@@ -2438,28 +2351,27 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 blur={false}
                               >
                                 <div
-                                  className="css-qpu70d-Content e1a4o5471"
+                                  className="css-9av8oo-Content e1a4o5471"
                                 >
                                   <Checkbox>
                                     <div
-                                      className="css-6neou0-Checkbox e1a4o5472"
+                                      className="css-hygfta-Checkbox e1a4o5472"
                                     />
                                   </Checkbox>
                                   <StyledLink
+                                    data-test-id={4}
                                     href="/organizations/org-slug/projects/new/"
                                     onClick={[Function]}
                                   >
                                     <a
-                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      className="css-1scniln-StyledLink e1a4o5475"
+                                      data-test-id={4}
                                       href="/organizations/org-slug/projects/new/"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={4}
-                                      >
+                                      <ItemHeader>
                                         <h4
-                                          className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={4}
+                                          className="css-13fewgq-ItemHeader e1a4o5476"
                                         >
                                           Add a second platform
                                         </h4>
@@ -2468,7 +2380,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   </StyledLink>
                                   <Description>
                                     <p
-                                      className="css-rz8513-Description e1a4o5474"
+                                      className="css-1l0q5ef-Description e1a4o5474"
                                     >
                                       Add Sentry to a second platform
                                     </p>
@@ -2482,7 +2394,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   >
                                     <Button
                                       align="center"
-                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      className="css-13i4fqu-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
                                       onClick={[Function]}
@@ -2491,7 +2403,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       <StyledButton
                                         aria-disabled={false}
                                         aria-label="Skip task"
-                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
                                         hide={true}
                                         onClick={[Function]}
@@ -2501,7 +2413,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -2511,7 +2423,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                            className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -2522,11 +2434,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             >
                                               <Component
                                                 align="center"
-                                                className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                  className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -2584,12 +2496,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     onClick={[Function]}
                                   >
                                     <div
-                                      className="css-1hengah-Container e18z0fp40"
+                                      className="css-1r2yi7q-Container e18z0fp40"
                                       onClick={[Function]}
                                     >
                                       <Header>
                                         <h4
-                                          className="css-134yp1m-Header e18z0fp41"
+                                          className="css-cwdjtc-Header e18z0fp41"
                                         >
                                           Want help?
                                         </h4>
@@ -2613,7 +2525,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-budrs3-StyledButton-getColors edwq9my0"
+                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -2623,7 +2535,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                className="css-1ilrgbi-StyledButton edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -2633,7 +2545,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                  className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -2644,11 +2556,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   >
                                                     <Component
                                                       align="center"
-                                                      className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                        className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -2749,7 +2661,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             onMouseOver={[Function]}
                           >
                             <li
-                              className="css-djxgjv-Item e1a4o5470"
+                              className="css-7hhgol-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
@@ -2757,28 +2669,27 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 blur={false}
                               >
                                 <div
-                                  className="css-qpu70d-Content e1a4o5471"
+                                  className="css-9av8oo-Content e1a4o5471"
                                 >
                                   <Checkbox>
                                     <div
-                                      className="css-6neou0-Checkbox e1a4o5472"
+                                      className="css-hygfta-Checkbox e1a4o5472"
                                     />
                                   </Checkbox>
                                   <StyledLink
+                                    data-test-id={5}
                                     href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
                                     onClick={[Function]}
                                   >
                                     <a
-                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      className="css-1scniln-StyledLink e1a4o5475"
+                                      data-test-id={5}
                                       href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={5}
-                                      >
+                                      <ItemHeader>
                                         <h4
-                                          className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={5}
+                                          className="css-13fewgq-ItemHeader e1a4o5476"
                                         >
                                           Add user context
                                         </h4>
@@ -2787,7 +2698,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   </StyledLink>
                                   <Description>
                                     <p
-                                      className="css-rz8513-Description e1a4o5474"
+                                      className="css-1l0q5ef-Description e1a4o5474"
                                     >
                                       Know who is being affected by crashes
                                     </p>
@@ -2801,7 +2712,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   >
                                     <Button
                                       align="center"
-                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      className="css-13i4fqu-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
                                       onClick={[Function]}
@@ -2810,7 +2721,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       <StyledButton
                                         aria-disabled={false}
                                         aria-label="Skip task"
-                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
                                         hide={true}
                                         onClick={[Function]}
@@ -2820,7 +2731,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -2830,7 +2741,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                            className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -2841,11 +2752,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             >
                                               <Component
                                                 align="center"
-                                                className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                  className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -2903,12 +2814,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     onClick={[Function]}
                                   >
                                     <div
-                                      className="css-1hengah-Container e18z0fp40"
+                                      className="css-1r2yi7q-Container e18z0fp40"
                                       onClick={[Function]}
                                     >
                                       <Header>
                                         <h4
-                                          className="css-134yp1m-Header e18z0fp41"
+                                          className="css-cwdjtc-Header e18z0fp41"
                                         >
                                           Want help?
                                         </h4>
@@ -2932,7 +2843,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-budrs3-StyledButton-getColors edwq9my0"
+                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -2942,7 +2853,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                className="css-1ilrgbi-StyledButton edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -2952,7 +2863,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                  className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -2963,11 +2874,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   >
                                                     <Component
                                                       align="center"
-                                                      className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                        className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -3068,7 +2979,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             onMouseOver={[Function]}
                           >
                             <li
-                              className="css-djxgjv-Item e1a4o5470"
+                              className="css-7hhgol-Item e1a4o5470"
                               onMouseOut={[Function]}
                               onMouseOver={[Function]}
                             >
@@ -3076,28 +2987,27 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 blur={false}
                               >
                                 <div
-                                  className="css-qpu70d-Content e1a4o5471"
+                                  className="css-9av8oo-Content e1a4o5471"
                                 >
                                   <Checkbox>
                                     <div
-                                      className="css-6neou0-Checkbox e1a4o5472"
+                                      className="css-hygfta-Checkbox e1a4o5472"
                                     />
                                   </Checkbox>
                                   <StyledLink
+                                    data-test-id={6}
                                     href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
                                     onClick={[Function]}
                                   >
                                     <a
-                                      className="css-1ylws2h-StyledLink e1a4o5475"
+                                      className="css-1scniln-StyledLink e1a4o5475"
+                                      data-test-id={6}
                                       href="/organizations/org-slug/projects/choose/?onboarding=1&task=6"
                                       onClick={[Function]}
                                     >
-                                      <ItemHeader
-                                        data-test-id={6}
-                                      >
+                                      <ItemHeader>
                                         <h4
-                                          className="css-158to6c-ItemHeader e1a4o5476"
-                                          data-test-id={6}
+                                          className="css-13fewgq-ItemHeader e1a4o5476"
                                         >
                                           Set up release tracking
                                         </h4>
@@ -3106,7 +3016,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   </StyledLink>
                                   <Description>
                                     <p
-                                      className="css-rz8513-Description e1a4o5474"
+                                      className="css-1l0q5ef-Description e1a4o5474"
                                     >
                                       See which releases cause errors
                                     </p>
@@ -3120,7 +3030,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   >
                                     <Button
                                       align="center"
-                                      className="css-1q81x7o-SkipButton e1a4o5477"
+                                      className="css-13i4fqu-SkipButton e1a4o5477"
                                       disabled={false}
                                       hide={true}
                                       onClick={[Function]}
@@ -3129,7 +3039,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       <StyledButton
                                         aria-disabled={false}
                                         aria-label="Skip task"
-                                        className="css-1q81x7o-SkipButton e1a4o5477"
+                                        className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
                                         hide={true}
                                         onClick={[Function]}
@@ -3139,7 +3049,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         <ForwardRef
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                           disabled={false}
                                           hide={true}
                                           onClick={[Function]}
@@ -3149,7 +3059,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           <button
                                             aria-disabled={false}
                                             aria-label="Skip task"
-                                            className="e1a4o5477 css-1bmgan6-StyledButton-getColors-SkipButton edwq9my0"
+                                            className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
@@ -3160,11 +3070,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             >
                                               <Component
                                                 align="center"
-                                                className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
                                                 <span
-                                                  className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                  className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 >
                                                   Skip task
                                                 </span>
@@ -3222,12 +3132,12 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     onClick={[Function]}
                                   >
                                     <div
-                                      className="css-1hengah-Container e18z0fp40"
+                                      className="css-1r2yi7q-Container e18z0fp40"
                                       onClick={[Function]}
                                     >
                                       <Header>
                                         <h4
-                                          className="css-134yp1m-Header e18z0fp41"
+                                          className="css-cwdjtc-Header e18z0fp41"
                                         >
                                           Want help?
                                         </h4>
@@ -3251,7 +3161,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                             <ForwardRef
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-budrs3-StyledButton-getColors edwq9my0"
+                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
                                               onClick={[Function]}
                                               priority="link"
@@ -3261,7 +3171,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               <Link
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
-                                                className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                className="css-1ilrgbi-StyledButton edwq9my0"
                                                 onClick={[Function]}
                                                 onlyActiveOnIndex={false}
                                                 role="button"
@@ -3271,7 +3181,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                 <a
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
-                                                  className="css-budrs3-StyledButton-getColors edwq9my0"
+                                                  className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
                                                   role="button"
                                                   style={Object {}}
@@ -3282,11 +3192,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   >
                                                     <Component
                                                       align="center"
-                                                      className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
                                                       <span
-                                                        className="css-19qfo0c-ButtonLabel edwq9my1"
+                                                        className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
                                                         Go to Support
                                                       </span>
@@ -3328,14 +3238,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
 
 exports[`Sidebar renders without org and router 1`] = `
 <OrgAndUserMenu
-  innerRef={[Function]}
+  isStyled={true}
   onClick={[Function]}
   onMouseEnter={[Function]}
   onMouseLeave={[Function]}
   org={null}
 >
   <div
-    className="css-1edm9sw-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-yvb5my-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -3344,17 +3254,17 @@ exports[`Sidebar renders without org and router 1`] = `
       to="/settings/account/details/"
     >
       <Link
-        className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+        className="css-j625pk-UserSummary e1fowdfw1"
         to="/settings/account/details/"
       >
         <Link
-          className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+          className="css-j625pk-UserSummary e1fowdfw1"
           onlyActiveOnIndex={false}
           style={Object {}}
           to="/settings/account/details/"
         >
           <a
-            className="css-1eqpqy9-UserSummary-getMenuItemStyles e1fowdfw1"
+            className="css-j625pk-UserSummary e1fowdfw1"
             onClick={[Function]}
             style={Object {}}
           >
@@ -3380,7 +3290,7 @@ exports[`Sidebar renders without org and router 1`] = `
             >
               <IdBadge
                 avatarSize={32}
-                className="css-1tz319h-UserBadgeNoOverflow e1fowdfw2"
+                className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
                 user={
                   Object {
                     "email": "foo@example.com",
@@ -3403,12 +3313,12 @@ exports[`Sidebar renders without org and router 1`] = `
                   mini={true}
                 >
                   <ErrorBoundary
-                    className="css-e4um1y-InlineErrorBoundary e83vi020"
+                    className="css-1wuy21l-InlineErrorBoundary e83vi020"
                     mini={true}
                   >
                     <UserBadge
                       avatarSize={32}
-                      className="css-1tz319h-UserBadgeNoOverflow e1fowdfw2"
+                      className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
                       hideEmail={false}
                       useLink={true}
                       user={
@@ -3430,12 +3340,13 @@ exports[`Sidebar renders without org and router 1`] = `
                       }
                     >
                       <StyledUserBadge
-                        className="css-1tz319h-UserBadgeNoOverflow e1fowdfw2"
+                        className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
                       >
                         <div
-                          className="e1fowdfw2 css-1dpgz1o-StyledUserBadge-UserBadgeNoOverflow ev46mzr0"
+                          className="e1fowdfw2 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
                         >
                           <StyledAvatar
+                            gravatar={false}
                             size={32}
                             user={
                               Object {
@@ -3455,8 +3366,9 @@ exports[`Sidebar renders without org and router 1`] = `
                               }
                             }
                           >
-                            <Component
-                              className="css-1u6j7yz-StyledAvatar ev46mzr4"
+                            <UserAvatar
+                              className="css-593o0g-StyledAvatar e31z2f84"
+                              gravatar={false}
                               size={32}
                               user={
                                 Object {
@@ -3476,153 +3388,106 @@ exports[`Sidebar renders without org and router 1`] = `
                                 }
                               }
                             >
-                              <Avatar
-                                className="css-1u6j7yz-StyledAvatar ev46mzr4"
+                              <BaseAvatar
+                                className="css-593o0g-StyledAvatar e31z2f84"
+                                gravatarId="foo@example.com"
                                 hasTooltip={false}
+                                letterId="foo@example.com"
+                                round={true}
                                 size={32}
-                                user={
-                                  Object {
-                                    "email": "foo@example.com",
-                                    "flags": Object {
-                                      "newsletter_consent_prompt": false,
-                                    },
-                                    "hasPasswordAuth": true,
-                                    "id": "1",
-                                    "isAuthenticated": true,
-                                    "name": "Foo Bar",
-                                    "options": Object {
-                                      "timezone": "UTC",
-                                    },
-                                    "permissions": Set {},
-                                    "username": "foo@example.com",
-                                  }
-                                }
+                                style={Object {}}
+                                title="Foo Bar"
+                                tooltip="Foo Bar (foo@example.com)"
+                                type="letter_avatar"
+                                uploadId=""
+                                uploadPath="avatar"
                               >
-                                <UserAvatar
-                                  className="css-1u6j7yz-StyledAvatar ev46mzr4"
-                                  gravatar={false}
-                                  hasTooltip={false}
-                                  size={32}
-                                  user={
-                                    Object {
-                                      "email": "foo@example.com",
-                                      "flags": Object {
-                                        "newsletter_consent_prompt": false,
-                                      },
-                                      "hasPasswordAuth": true,
-                                      "id": "1",
-                                      "isAuthenticated": true,
-                                      "name": "Foo Bar",
-                                      "options": Object {
-                                        "timezone": "UTC",
-                                      },
-                                      "permissions": Set {},
-                                      "username": "foo@example.com",
-                                    }
-                                  }
+                                <Tooltip
+                                  containerDisplayMode="inline-block"
+                                  disabled={true}
+                                  position="top"
+                                  title="Foo Bar (foo@example.com)"
                                 >
-                                  <BaseAvatar
-                                    className="css-1u6j7yz-StyledAvatar ev46mzr4"
-                                    gravatarId="foo@example.com"
-                                    hasTooltip={false}
-                                    letterId="foo@example.com"
+                                  <StyledBaseAvatar
+                                    className="avatar css-593o0g-StyledAvatar e31z2f84"
+                                    loaded={true}
                                     round={true}
-                                    size={32}
-                                    style={Object {}}
-                                    title="Foo Bar"
-                                    tooltip="Foo Bar (foo@example.com)"
-                                    type="letter_avatar"
-                                    uploadId=""
-                                    uploadPath="avatar"
+                                    style={
+                                      Object {
+                                        "height": "32px",
+                                        "width": "32px",
+                                      }
+                                    }
                                   >
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
-                                      disabled={true}
-                                      position="top"
-                                      title="Foo Bar (foo@example.com)"
-                                    >
-                                      <StyledBaseAvatar
-                                        className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
-                                        loaded={true}
-                                        round={true}
-                                        style={
-                                          Object {
-                                            "height": "32px",
-                                            "width": "32px",
-                                          }
+                                    <span
+                                      className="avatar e31z2f84 css-13sepyg-StyledBaseAvatar-StyledAvatar e147uwb0"
+                                      style={
+                                        Object {
+                                          "height": "32px",
+                                          "width": "32px",
                                         }
+                                      }
+                                    >
+                                      <LetterAvatar
+                                        displayName="Foo Bar"
+                                        identifier="foo@example.com"
+                                        round={true}
                                       >
-                                        <span
-                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e147uwb0"
-                                          style={
-                                            Object {
-                                              "height": "32px",
-                                              "width": "32px",
-                                            }
-                                          }
+                                        <Component
+                                          className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                          displayName="Foo Bar"
+                                          identifier="foo@example.com"
+                                          round={true}
                                         >
-                                          <LetterAvatar
-                                            displayName="Foo Bar"
-                                            identifier="foo@example.com"
-                                            round={true}
+                                          <svg
+                                            className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                            viewBox="0 0 120 120"
                                           >
-                                            <Component
-                                              className="css-vyy37i-LetterAvatar e12lgfev0"
-                                              displayName="Foo Bar"
-                                              identifier="foo@example.com"
-                                              round={true}
+                                            <rect
+                                              fill="#315cac"
+                                              height="120"
+                                              rx="15"
+                                              ry="15"
+                                              width="120"
+                                              x="0"
+                                              y="0"
+                                            />
+                                            <text
+                                              fill="#FFFFFF"
+                                              fontSize="65"
+                                              style={
+                                                Object {
+                                                  "dominantBaseline": "central",
+                                                }
+                                              }
+                                              textAnchor="middle"
+                                              x="50%"
+                                              y="50%"
                                             >
-                                              <svg
-                                                className="css-vyy37i-LetterAvatar e12lgfev0"
-                                                viewBox="0 0 120 120"
-                                              >
-                                                <rect
-                                                  fill="#315cac"
-                                                  height="120"
-                                                  rx="15"
-                                                  ry="15"
-                                                  width="120"
-                                                  x="0"
-                                                  y="0"
-                                                />
-                                                <text
-                                                  fill="#FFFFFF"
-                                                  fontSize="65"
-                                                  style={
-                                                    Object {
-                                                      "dominantBaseline": "central",
-                                                    }
-                                                  }
-                                                  textAnchor="middle"
-                                                  x="50%"
-                                                  y="50%"
-                                                >
-                                                  FB
-                                                </text>
-                                              </svg>
-                                            </Component>
-                                          </LetterAvatar>
-                                        </span>
-                                      </StyledBaseAvatar>
-                                    </Tooltip>
-                                  </BaseAvatar>
-                                </UserAvatar>
-                              </Avatar>
-                            </Component>
+                                              FB
+                                            </text>
+                                          </svg>
+                                        </Component>
+                                      </LetterAvatar>
+                                    </span>
+                                  </StyledBaseAvatar>
+                                </Tooltip>
+                              </BaseAvatar>
+                            </UserAvatar>
                           </StyledAvatar>
                           <StyledNameAndEmail>
                             <div
-                              className="css-9l6b2w-StyledNameAndEmail ev46mzr1"
+                              className="css-14b4oxh-StyledNameAndEmail e31z2f81"
                             >
                               <StyledName
                                 hideEmail={false}
                               >
                                 <Component
-                                  className="css-12fcmnb-StyledName ev46mzr3"
+                                  className="css-19h2nhd-StyledName e31z2f83"
                                   hideEmail={false}
                                 >
                                   <span
-                                    className="css-12fcmnb-StyledName ev46mzr3"
+                                    className="css-19h2nhd-StyledName e31z2f83"
                                   >
                                     Foo Bar
                                   </span>
@@ -3630,7 +3495,7 @@ exports[`Sidebar renders without org and router 1`] = `
                               </StyledName>
                               <StyledEmail>
                                 <div
-                                  className="css-3w2sfq-StyledEmail ev46mzr2"
+                                  className="css-zdh78r-StyledEmail e31z2f82"
                                 >
                                   foo@example.com
                                 </div>
@@ -3656,21 +3521,21 @@ exports[`Sidebar renders without org and router 1`] = `
           to="/settings/account/"
         >
           <Component
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-3v825n-MenuItemLink e1ru2gxu1"
             to="/settings/account/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-3v825n-MenuItemLink e1ru2gxu1"
               to="/settings/account/"
             >
               <Link
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-3v825n-MenuItemLink e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/"
               >
                 <a
-                  className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                  className="css-3v825n-MenuItemLink e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -3678,7 +3543,7 @@ exports[`Sidebar renders without org and router 1`] = `
                     hasMenu={false}
                   >
                     <span
-                      className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                      className="css-1ug1il4-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                     >
                       User settings
                     </span>
@@ -3696,21 +3561,21 @@ exports[`Sidebar renders without org and router 1`] = `
           to="/settings/account/api/"
         >
           <Component
-            className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-3v825n-MenuItemLink e1ru2gxu1"
             to="/settings/account/api/"
           >
             <Link
-              className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-3v825n-MenuItemLink e1ru2gxu1"
               to="/settings/account/api/"
             >
               <Link
-                className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                className="css-3v825n-MenuItemLink e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/api/"
               >
                 <a
-                  className="css-opa9tx-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+                  className="css-3v825n-MenuItemLink e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -3718,7 +3583,7 @@ exports[`Sidebar renders without org and router 1`] = `
                     hasMenu={false}
                   >
                     <span
-                      className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                      className="css-1ug1il4-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                     >
                       API keys
                     </span>
@@ -3738,12 +3603,12 @@ exports[`Sidebar renders without org and router 1`] = `
           onClick={[Function]}
         >
           <Component
-            className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+            className="css-1a5th4k-MenuItemLink e1ru2gxu1"
             data-test-id="sidebarSignout"
             onClick={[Function]}
           >
             <div
-              className="css-1yav7bf-MenuItemLink-getMenuItemStyles e1ru2gxu1"
+              className="css-1a5th4k-MenuItemLink e1ru2gxu1"
               data-test-id="sidebarSignout"
               onClick={[Function]}
               tabIndex="0"
@@ -3752,7 +3617,7 @@ exports[`Sidebar renders without org and router 1`] = `
                 hasMenu={true}
               >
                 <span
-                  className="css-rkoh57-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                  className="css-uvye8q-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                 >
                   Sign out
                 </span>

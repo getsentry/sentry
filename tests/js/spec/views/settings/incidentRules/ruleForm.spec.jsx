@@ -2,13 +2,18 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {RuleFormContainer} from 'app/views/settings/incidentRules/ruleForm';
+import RuleFormContainer from 'app/views/settings/incidentRules/ruleForm';
 
 describe('Incident Rules Form', function() {
   const {organization, project, routerContext} = initializeOrg();
   const createWrapper = props =>
     mountWithTheme(
-      <RuleFormContainer organization={organization} project={project} {...props} />,
+      <RuleFormContainer
+        params={{orgId: organization.slug}}
+        organization={organization}
+        project={project}
+        {...props}
+      />,
       routerContext
     );
 
@@ -17,6 +22,25 @@ describe('Incident Rules Form', function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: TestStubs.EventsStats(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/available-actions/',
+      body: [
+        {
+          allowedTargetTypes: ['user', 'team'],
+          integrationName: null,
+          type: 'email',
+          integrationId: null,
+        },
+      ],
     });
   });
 
@@ -35,7 +59,7 @@ describe('Incident Rules Form', function() {
     it('creates a rule', async function() {
       const wrapper = createWrapper({
         rule: {
-          aggregations: [0],
+          aggregation: 0,
           query: '',
           projects: [project.slug],
           timeWindow: 60,
@@ -63,6 +87,7 @@ describe('Incident Rules Form', function() {
 
   describe('Editing a rule', function() {
     let editRule;
+    let editTrigger;
     const rule = TestStubs.IncidentRule();
 
     beforeEach(function() {
@@ -71,6 +96,15 @@ describe('Incident Rules Form', function() {
         method: 'PUT',
         body: rule,
       });
+      editTrigger = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/alert-rules/${rule.id}/triggers/1/`,
+        method: 'PUT',
+        body: TestStubs.IncidentTrigger({id: 1}),
+      });
+    });
+    afterEach(function() {
+      editRule.mockReset();
+      editTrigger.mockReset();
     });
 
     it('edits metric', async function() {
@@ -93,7 +127,6 @@ describe('Incident Rules Form', function() {
           }),
         })
       );
-      editRule.mockReset();
     });
   });
 });

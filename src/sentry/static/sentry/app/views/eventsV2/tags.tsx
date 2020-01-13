@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import {Location} from 'history';
 import {t} from 'app/locale';
@@ -155,7 +155,7 @@ class Tags extends React.Component<Props, State> {
 }
 
 const StyledHeading = styled(SectionHeading)`
-  margin: 0 0 ${space(2)} 0;
+  margin: 0 0 ${space(1.5)} 0;
 `;
 
 const TagSection = styled('div')`

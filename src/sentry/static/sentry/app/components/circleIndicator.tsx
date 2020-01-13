@@ -1,12 +1,17 @@
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
+
+const defaultProps = {
+  enabled: true,
+  size: 14,
+};
+
+type DefaultProps = Readonly<typeof defaultProps>;
 
 type Props = {
-  enabled?: boolean;
-  size: number;
   color?: string;
   theme?: any;
-};
+} & Partial<DefaultProps>;
 
 const getBackgroundColor = (p: Props) => {
   if (p.color) {
@@ -35,9 +40,6 @@ CircleIndicator.propTypes = {
   color: PropTypes.string,
 };
 
-CircleIndicator.defaultProps = {
-  enabled: true,
-  size: 14,
-};
+CircleIndicator.defaultProps = defaultProps;
 
 export default CircleIndicator;

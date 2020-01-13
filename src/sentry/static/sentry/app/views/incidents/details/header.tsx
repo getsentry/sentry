@@ -1,8 +1,9 @@
 import {Params} from 'react-router/lib/Router';
 import {Link} from 'react-router';
 import React from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import moment from 'moment';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
@@ -205,7 +206,9 @@ const Breadcrumb = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const IncidentTitle = styled('div')<{loading: boolean}>`
+const IncidentTitle = styled('div', {
+  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+})<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
 `;
 

@@ -299,6 +299,8 @@ def initialize_app(config, skip_service_validation=False):
     if getattr(settings, "SENTRY_DEBUGGER", None) is None:
         settings.SENTRY_DEBUGGER = settings.DEBUG
 
+    monkeypatch_model_unpickle()
+
     import django
 
     django.setup()
@@ -388,6 +390,40 @@ def validate_options(settings):
     from sentry.options import default_manager
 
     default_manager.validate(settings.SENTRY_OPTIONS, warn=True)
+
+
+import django.db.models.base
+
+model_unpickle = django.db.models.base.model_unpickle
+
+
+def __model_unpickle_compat(model_id, attrs=None, factory=None):
+    from django import VERSION
+
+    if VERSION[:2] == (1, 9):
+        attrs = [] if attrs is None else attrs
+        factory = django.db.models.base.simple_class_factory if factory is None else factory
+        return model_unpickle(model_id, attrs, factory)
+    # TODO(joshuarli): unverified on 1.11, but i'm doing this to unblock tests for now
+    elif VERSION[:2] in [(1, 10), (1, 11)]:
+        return model_unpickle(model_id)
+    else:
+        raise NotImplementedError
+
+
+def __simple_class_factory_compat(model, attrs):
+    return model
+
+
+def monkeypatch_model_unpickle():
+    # https://code.djangoproject.com/ticket/27187
+    # Django 1.10 breaks pickle compat with 1.9 models.
+    django.db.models.base.model_unpickle = __model_unpickle_compat
+
+    # Django 1.10 needs this to unpickle 1.9 models, but we can't branch while
+    # monkeypatching else our monkeypatched funcs won't be pickleable.
+    # So just vendor simple_class_factory from 1.9.
+    django.db.models.base.simple_class_factory = __simple_class_factory_compat
 
 
 def monkeypatch_django_migrations():

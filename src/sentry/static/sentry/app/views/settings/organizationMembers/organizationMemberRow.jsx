@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import InlineSvg from 'app/components/inlineSvg';
@@ -98,7 +98,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     return (
       <StyledPanelItem data-test-id={email}>
         <MemberHeading>
-          <Avatar size={32} user={user ? user : {id: email, email}} />
+          <UserAvatar size={32} user={user ? user : {id: email, email}} />
           <MemberDescription to={detailsUrl}>
             <h5 style={{margin: '0 0 3px'}}>
               <UserName>{name}</UserName>

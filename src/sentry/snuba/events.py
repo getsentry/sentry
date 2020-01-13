@@ -15,7 +15,6 @@ class Columns(Enum):
 
     EVENT_ID = Column("events.event_id", "event_id", "event_id", "event_id", "id")
     GROUP_ID = Column("events.group_id", "group_id", None, "group_id", "issue.id")
-    ISSUE = Column("events.issue", "issue", None, "group_id", "issue.id")
     PROJECT_ID = Column("events.project_id", "project_id", "project_id", "project_id", "project.id")
     TIMESTAMP = Column("events.timestamp", "timestamp", "finish_ts", "timestamp", "timestamp")
     TIME = Column("events.time", "time", "bucketed_end", "time", "time")
@@ -206,20 +205,28 @@ class Columns(Enum):
     # Transactions specific columns
     TRANSACTION_OP = Column(None, None, "transaction_op", "transaction_op", "transaction.op")
     TRANSACTION_DURATION = Column(None, None, "duration", "duration", "transaction.duration")
-
-
-def get_columns_from_aliases(aliases):
-    """
-    Resolve a list of aliases to the columns
-    """
-    columns = set()
-    for alias in aliases:
-        for _i, col in enumerate(Columns):
-            if col.value.alias == alias:
-                columns.add(col)
-                continue
-            # Handle as a tag if its not on the list
-            columns.add(Columns.TAGS_KEY)
-            columns.add(Columns.TAGS_VALUE)
-
-    return list(columns)
+    TRANSACTION_STATUS = Column(
+        None, None, "transaction_status", "transaction_status", "transaction.status"
+    )
+    # Tracing context fields.
+    TRACE_ID = Column(
+        "events.contexts[trace.trace_id]",
+        "contexts[trace.trace_id]",
+        "trace_id",
+        "trace_id",
+        "trace",
+    )
+    SPAN_ID = Column(
+        "events.contexts[trace.span_id]",
+        "contexts[trace.span_id]",
+        "contexts[trace.span_id]",
+        "contexts[trace.span_id]",
+        "trace.span",
+    )
+    PARENT_SPAN_ID = Column(
+        None,
+        None,
+        "contexts[trace.parent_span_id]",
+        "contexts[trace.parent_span_id]",
+        "trace.parent_span",
+    )

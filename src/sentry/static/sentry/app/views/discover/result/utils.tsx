@@ -1,7 +1,7 @@
 import orderBy from 'lodash/orderBy';
 import Papa from 'papaparse';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Aggregation, Query, Result, SnubaResult} from '../types';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';

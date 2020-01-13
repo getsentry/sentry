@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
@@ -10,6 +10,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 import EventView from './eventView';
+import {generateDiscoverResultsRoute} from './results';
 
 type Props = {
   eventView: EventView;
@@ -27,26 +28,26 @@ class DiscoverBreadcrumb extends React.Component<Props> {
     const {eventView, event, organization, location} = this.props;
     const crumbs: React.ReactNode[] = [];
 
+    const discoverTarget = {
+      pathname: `/organizations/${organization.slug}/eventsv2/`,
+      query: {
+        ...location.query,
+        ...eventView.generateBlankQueryStringObject(),
+        ...eventView.getGlobalSelection(),
+      },
+    };
+
+    crumbs.push(
+      <BreadcrumbItem to={discoverTarget} key="eventview-home">
+        {t('Discover')}
+      </BreadcrumbItem>
+    );
+
     if (eventView && eventView.isValid()) {
       const eventTarget = {
-        pathname: `/organizations/${organization.slug}/eventsv2/`,
+        pathname: generateDiscoverResultsRoute(organization.slug),
         query: eventView.generateQueryStringObject(),
       };
-
-      const discoverTarget = {
-        pathname: `/organizations/${organization.slug}/eventsv2/`,
-        query: {
-          ...location.query,
-          ...eventView.generateBlankQueryStringObject(),
-          ...eventView.getGlobalSelection(),
-        },
-      };
-
-      crumbs.push(
-        <BreadcrumbItem to={discoverTarget} key="eventview-home">
-          {t('Discover')}
-        </BreadcrumbItem>
-      );
 
       crumbs.push(
         <span key="eventview-sep">

@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import InlineSvg from 'app/components/inlineSvg';
@@ -38,11 +38,13 @@ class QueryCard extends React.PureComponent<Props> {
     } = this.props;
 
     return (
-      <StyledQueryCard onClick={this.handleClick}>
+      <StyledQueryCard data-test-id={`card-${title}`} onClick={this.handleClick}>
         <QueryCardHeader>
           <StyledTitle>{title}</StyledTitle>
           <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
-          {starred ? <StyledInlineSvg src="icon-star-small-filled" /> : null}
+          {starred ? (
+            <StyledInlineSvg data-test-id="is-saved-query" src="icon-star-small-filled" />
+          ) : null}
         </QueryCardHeader>
         <QueryCardBody>{renderGraph()}</QueryCardBody>
         <QueryCardFooter>

@@ -1,5 +1,6 @@
 import React from 'react';
-import styled from 'react-emotion';
+import isPropValid from '@emotion/is-prop-valid';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
@@ -22,7 +23,9 @@ const SideHeader = styled(function SideHeader({className, loading, children}: Pr
   text-transform: uppercase;
 `;
 
-const Title = styled('span')<{loading: boolean}>`
+const Title = styled('span', {
+  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+})<{loading: boolean}>`
   ${p =>
     p.loading
       ? `

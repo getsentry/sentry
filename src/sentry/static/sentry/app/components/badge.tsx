@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -11,7 +11,7 @@ const priorityColors = {
 } as const;
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
-  text?: string | number;
+  text?: string | number | null;
   priority?: keyof typeof priorityColors;
   className?: string;
 };

@@ -313,14 +313,6 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         return queryset_conditions
 
 
-class SnubaSearchBackend(EventsDatasetSnubaSearchBackend):
-    """ IMPORTANT!!! Retaining backwards compatible for getsentry while we rename this class.
-    We will deploy with `SnubaSearchBackend` pointing to `EventsDatasetSnubaSearchBackend`, and then deploy getsentry to use `EventsDatasetSnubaSearchBackend`
-    and then delete this class."""
-
-    pass
-
-
 class GroupsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     """This class will have logic to use the groups dataset, and to also determine which QueryExecutor to use."""
 

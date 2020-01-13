@@ -1,8 +1,9 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {OrganizationDetailed, Member} from 'app/types';
+import {Organization, Member} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -17,10 +18,10 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
-type Props = AsyncView['props'] & {
+type Props = {
   children?: any;
-  organization: OrganizationDetailed;
-};
+  organization: Organization;
+} & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
   inviteRequests: Member[];

@@ -2,7 +2,7 @@ import {AutoSizer, List} from 'react-virtualized';
 import PropTypes from 'prop-types';
 import React from 'react';
 import flatMap from 'lodash/flatMap';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import AutoComplete from 'app/components/autoComplete';
@@ -49,9 +49,14 @@ class DropdownAutoCompleteMenu extends React.Component {
     isOpen: PropTypes.bool,
 
     /**
-     * Show loading indicator next to input
+     * Show loading indicator next to input and "Searching..." text in the list
      */
     busy: PropTypes.bool,
+
+    /**
+     * Show loading indicator next to input but don't hide list items
+     */
+    busyItemsStillVisible: PropTypes.bool,
 
     /**
      * Hide's the input when there are no items. Avoid using this when querying
@@ -77,6 +82,11 @@ class DropdownAutoCompleteMenu extends React.Component {
      * Callback for when dropdown menu closes
      */
     onClose: PropTypes.func,
+
+    /**
+     * Callback for when dropdown menu is being scrolled
+     */
+    onScroll: PropTypes.func,
 
     /**
      * Message to display when there are no items initially
@@ -233,7 +243,7 @@ class DropdownAutoCompleteMenu extends React.Component {
     return Math.min(minHeight, maxHeight);
   };
 
-  renderList = ({items, ...otherProps}) => {
+  renderList = ({items, onScroll, ...otherProps}) => {
     const {virtualizedHeight, virtualizedLabelHeight} = this.props;
 
     // If `virtualizedHeight` is defined, use a virtualized list
@@ -245,6 +255,7 @@ class DropdownAutoCompleteMenu extends React.Component {
               width={width}
               style={{outline: 'none'}}
               height={this.getHeight(items)}
+              onScroll={onScroll}
               rowCount={items.length}
               rowHeight={({index}) => {
                 return items[index].groupLabel && virtualizedLabelHeight
@@ -327,6 +338,8 @@ class DropdownAutoCompleteMenu extends React.Component {
       searchPlaceholder,
       itemSize,
       busy,
+      busyItemsStillVisible,
+      onScroll,
       hideInput,
       filterValue,
       emptyHidesInput,
@@ -374,7 +387,8 @@ class DropdownAutoCompleteMenu extends React.Component {
           // No items to display
           const showNoItems = !busy && !filterValueOrInput && !hasItems;
           // Results mean there was an attempt to search
-          const showNoResultsMessage = !busy && filterValueOrInput && !hasResults;
+          const showNoResultsMessage =
+            !busy && !busyItemsStillVisible && filterValueOrInput && !hasResults;
 
           // Hide the input when we have no items to filter, only if
           // emptyHidesInput is set to true.
@@ -425,7 +439,9 @@ class DropdownAutoCompleteMenu extends React.Component {
                         {...getInputProps({...inputProps, onChange})}
                       />
                       <InputLoadingWrapper>
-                        {busy && <LoadingIndicator size={16} mini />}
+                        {(busy || busyItemsStillVisible) && (
+                          <LoadingIndicator size={16} mini />
+                        )}
                       </InputLoadingWrapper>
                       {renderedInputActions}
                     </StyledInputWrapper>
@@ -455,6 +471,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                           highlightedIndex,
                           inputValue,
                           getItemProps,
+                          onScroll,
                         })}
                     </StyledItemList>
 

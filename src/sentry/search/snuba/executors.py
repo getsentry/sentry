@@ -5,8 +5,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import logging
 import time
 import six
-import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from hashlib import md5
 
 from django.utils import timezone
@@ -125,7 +124,7 @@ class AbstractQueryExecutor:
             filters["environment"] = environment_ids
 
         if group_ids:
-            filters[self.TABLE_ALIAS + "issue"] = sorted(group_ids)
+            filters["group_id"] = sorted(group_ids)
 
         conditions = []
         having = []
@@ -166,7 +165,7 @@ class AbstractQueryExecutor:
         if get_sample:
             query_hash = md5(repr(conditions)).hexdigest()[:8]
             selected_columns.append(
-                ("cityHash64", ("'{}'".format(query_hash), self.TABLE_ALIAS + "issue"), "sample")
+                ("cityHash64", ("'{}'".format(query_hash), "group_id"), "sample")
             )
             sort_field = "sample"
             orderby = [sort_field]
@@ -176,7 +175,7 @@ class AbstractQueryExecutor:
             # in the order that we want them.
             orderby = [
                 "-{}".format(sort_field),
-                self.TABLE_ALIAS + "issue",
+                "group_id",
             ]  # ensure stable sort within the same score
             referrer = "search"
 
@@ -185,7 +184,7 @@ class AbstractQueryExecutor:
             start=start,
             end=end,
             selected_columns=selected_columns,
-            groupby=[self.TABLE_ALIAS + "issue"],
+            groupby=["group_id"],
             conditions=conditions,
             having=having,
             filter_keys=filters,
@@ -204,7 +203,7 @@ class AbstractQueryExecutor:
         if not get_sample:
             metrics.timing("snuba.search.num_result_groups", len(rows))
 
-        return [(row[self.TABLE_ALIAS + "issue"], row[sort_field]) for row in rows], total
+        return [(row["group_id"], row[sort_field]) for row in rows], total
 
     def _transform_converted_filter(
         self, search_filter, converted_filter, project_ids, environment_ids=None
@@ -217,7 +216,7 @@ class AbstractQueryExecutor:
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
-    ISSUE_FIELD_NAME = "issue"
+    ISSUE_FIELD_NAME = "group_id"
 
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
@@ -574,7 +573,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
 class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
     TABLE_ALIAS = "events."
-    ISSUE_FIELD_NAME = TABLE_ALIAS + "issue"
+    ISSUE_FIELD_NAME = "group_id"
     logger = logging.getLogger("sentry.search.snubagroups")
 
     # TODO: Define these variables using table alias? The only difference in these definitions is the added `events` alias
@@ -612,7 +611,7 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
         special_date_names = ["active_at", "first_seen", "last_seen"]
         if search_filter.key.name in special_date_names:
             # Need to get '2018-02-06T03:35:54' format out of 1517888878000 format
-            datetime_value = datetime.datetime.fromtimestamp(converted_filter[2] / 1000)
+            datetime_value = datetime.fromtimestamp(converted_filter[2] / 1000)
             datetime_value = datetime_value.replace(microsecond=0).isoformat().replace("+00:00", "")
             converted_filter[2] = datetime_value
 
@@ -732,7 +731,6 @@ class SnubaOnlyQueryExecutor(AbstractQueryExecutor):
             num_chunks += 1
 
             chunk_limit = min(int(chunk_limit * chunk_growth), max_chunk_size)
-
             snuba_groups, total = self.snuba_search(
                 start=start,
                 end=end,

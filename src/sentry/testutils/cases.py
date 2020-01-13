@@ -20,7 +20,6 @@ __all__ = (
 )
 
 import base64
-import calendar
 import contextlib
 import os
 import os.path
@@ -63,13 +62,10 @@ from sentry.auth.superuser import (
 from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.models import (
-    GroupEnvironment,
-    GroupHash,
     GroupMeta,
     ProjectOption,
     Repository,
     DeletedOrganization,
-    Environment,
     Organization,
     TotpInterface,
     Dashboard,
@@ -868,7 +864,6 @@ class SnubaTestCase(BaseTestCase):
         Takes the results from the existing `create_event` method and
         inserts into the local test Snuba cluster so that tests can be
         run against the same event data.
-
         Note that we create a GroupHash as necessary because `create_event`
         doesn't run them through the 'real' event pipeline. In a perfect
         world all test events would go through the full regular pipeline.

@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.core.urlresolvers import reverse, resolve
-from sudo.utils import is_safe_url
+from django.utils.http import is_safe_url
 from time import time
 
 from sentry.models import User, Authenticator
@@ -298,3 +298,10 @@ class EmailAuthBackend(ModelBackend):
                 except ValueError:
                     continue
         return None
+
+    # TODO(joshuarli): When we're fully on Django 1.10, we should switch to
+    # subclassing AllowAllUsersModelBackend (this isn't available in 1.9 and
+    # simply overriding user_can_authenticate here is a lot less verbose than
+    # conditionally importing).
+    def user_can_authenticate(self, user):
+        return True

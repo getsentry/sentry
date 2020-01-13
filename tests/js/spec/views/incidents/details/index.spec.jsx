@@ -32,16 +32,17 @@ describe('IncidentDetails', function() {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/123/suspects/',
-      body: [TestStubs.IncidentSuspectCommit()],
+      url: '/organizations/org-slug/incidents/123/seen/',
+      method: 'POST',
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/456/',
       statusCode: 404,
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/456/suspects/',
-      body: [],
+      url: '/organizations/org-slug/incidents/456/activity/',
+      statusCode: 404,
     });
     activitiesList = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/${
@@ -80,15 +81,6 @@ describe('IncidentDetails', function() {
         .at(2)
         .text()
     ).toBe('20');
-
-    expect(wrapper.find('SuspectItem')).toHaveLength(1);
-    expect(
-      wrapper
-        .find('SuspectItem')
-        .at(0)
-        .find('MessageOverflow')
-        .text()
-    ).toBe('feat: Do something to raven/base.py');
   });
 
   it('handles invalid incident', async function() {
@@ -164,71 +156,5 @@ describe('IncidentDetails', function() {
     // Click again to re-subscribe
     wrapper.find('SubscribeButton').simulate('click');
     expect(subscribe).toHaveBeenCalled();
-  });
-
-  it('loads related incidents', async function() {
-    MockApiClient.addMockResponse({
-      url: '/issues/1/',
-      body: TestStubs.Group({
-        id: '1',
-        organization,
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: '/issues/2/',
-      body: TestStubs.Group({
-        id: '2',
-        organization,
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/123/',
-      body: {
-        ...mockIncident,
-
-        groups: ['1', '2'],
-      },
-    });
-
-    const wrapper = createWrapper();
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('RelatedItem')).toHaveLength(2);
-
-    expect(
-      wrapper
-        .find('RelatedItem Title')
-        .at(0)
-        .text()
-    ).toBe('RequestErrorfetchData(app/components/group/suggestedOwners)');
-
-    expect(
-      wrapper
-        .find('RelatedItem GroupShortId')
-        .at(0)
-        .text()
-    ).toBe('JAVASCRIPT-6QS');
-  });
-
-  it('renders incident without issues', async function() {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/123/',
-      body: {
-        ...mockIncident,
-        groups: [],
-      },
-    });
-
-    const wrapper = createWrapper();
-
-    expect(wrapper.find('RelatedIssues Placeholder')).toHaveLength(1);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('RelatedItem')).toHaveLength(0);
-    expect(wrapper.find('RelatedIssues Placeholder')).toHaveLength(0);
   });
 });

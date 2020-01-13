@@ -1,9 +1,10 @@
 import React from 'react';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 
@@ -166,4 +167,5 @@ export default withApi<TableProps>(Table);
 const Container = styled('div')`
   min-width: 0;
   overflow: hidden;
+  margin-top: ${space(1.5)};
 `;

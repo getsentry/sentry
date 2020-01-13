@@ -24,10 +24,10 @@ const defaultProps = {
 type DefaultProps = typeof defaultProps;
 
 type Props = {
-  user: AvatarUser;
+  user: AvatarUser | undefined;
   renderTooltip?: RenderTooltipFunc;
 } & Partial<DefaultProps> &
-  BaseAvatar['props'];
+  Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
 class UserAvatar extends React.Component<Props> {
   static propTypes: any = {

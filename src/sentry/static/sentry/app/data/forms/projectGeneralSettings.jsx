@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {extractMultilineFields} from 'app/utils';
 import {t, tct, tn} from 'app/locale';
@@ -346,20 +346,18 @@ export const fields = {
   relayPiiConfig: {
     name: 'relayPiiConfig',
     type: 'string',
-    label: t('Custom Relay PII Config'),
-    placeholder: t(
-      'Paste a relay JSON PII config here. Leave empty to generate a default based on the above settings.'
-    ),
+    label: t('Advanced datascrubber configuration'),
+    placeholder: t('Paste a JSON configuration here.'),
     multiline: true,
     autosize: true,
     maxRows: 10,
     help: tct(
-      'If you put a custom JSON relay PII config here it overrides the default generated config.  This is pushed to all trusted relays.  [learn_more:Learn more]',
+      'Advanced JSON-based configuration for datascrubbing. Applied in addition to the settings above. [learn_more:Learn more]',
       {
-        learn_more: <a href="https://docs.sentry.io/relay/pii-config/" />,
+        learn_more: <a href="https://getsentry.github.io/semaphore/pii-config/" />,
       }
     ),
-    visible: ({features}) => features.has('relay'),
+    visible: ({features}) => features.has('datascrubbers-v2'),
     validate: ({id, form}) => {
       try {
         JSON.parse(form[id]);
