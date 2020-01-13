@@ -392,7 +392,7 @@ exports[`ProjectCard renders 1`] = `
                                                 platform="javascript"
                                                 size={18}
                                               >
-                                                <Platformicon
+                                                <PlatformIcon
                                                   className="css-d510pr-StyledPlatformIcon ezvce7z1"
                                                   platform="javascript"
                                                   size="18px"
@@ -410,7 +410,7 @@ exports[`ProjectCard renders 1`] = `
                                                     }
                                                     width="18px"
                                                   />
-                                                </Platformicon>
+                                                </PlatformIcon>
                                               </Component>
                                             </StyledPlatformIcon>
                                           </div>
@@ -567,13 +567,13 @@ exports[`ProjectCard renders 1`] = `
                     src="icon-star-small-filled"
                   >
                     <ForwardRef
-                      className="css-176na0z-InlineSvg-Star e5ekdrk0"
+                      className="css-176na0z-InlineSvg-Star ez1a7zv0"
                       isBookmarked={false}
                       onClick={[Function]}
                       src="icon-star-small-filled"
                     >
                       <svg
-                        className="css-176na0z-InlineSvg-Star e5ekdrk0"
+                        className="css-176na0z-InlineSvg-Star ez1a7zv0"
                         height="1em"
                         onClick={[Function]}
                         viewBox={Object {}}

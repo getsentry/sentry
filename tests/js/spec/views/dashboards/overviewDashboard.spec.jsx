@@ -206,7 +206,7 @@ describe('OverviewDashboard', function() {
         data: expect.objectContaining({
           environments: [],
           projects: [2, 3],
-          range: '14d',
+          range: '7d',
 
           fields: [],
           conditions: [],
