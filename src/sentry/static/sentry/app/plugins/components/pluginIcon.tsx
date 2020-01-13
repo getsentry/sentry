@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import placeholder from 'app/../images/logos/logo-default.svg';
 import sentry from 'app/../images/logos/logo-sentry.svg';

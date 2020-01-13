@@ -1,7 +1,8 @@
+import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -107,7 +108,9 @@ const getLoadingStyle = p =>
     `) ||
   '';
 
-const StyledIssueDiff = styled('div', {shouldForwardProp: isPropValid})`
+const StyledIssueDiff = styled('div', {
+  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+})`
   background-color: #f7f8f9;
   overflow: auto;
   padding: 10px;

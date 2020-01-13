@@ -1,4 +1,6 @@
-export const imageStyle = (props: {round?: boolean}) => `
+import {css} from '@emotion/core';
+
+export const imageStyle = (props: {round?: boolean}) => css`
   position: absolute;
   top: 0px;
   left: 0px;

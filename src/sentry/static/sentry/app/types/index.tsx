@@ -732,3 +732,15 @@ export type IntegrationIssueConfig = {
   provider: IntegrationProvider;
   icon: string[];
 };
+
+export type OnboardingTask = {
+  task: number;
+  title: string;
+  description: string;
+  detailedDescription?: string;
+  skippable: boolean;
+  prereq: number[];
+  featureLocation: string;
+  location: string | (() => void);
+  display: boolean;
+};

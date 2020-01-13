@@ -66,7 +66,7 @@ describe('SettingsSearch', function() {
 
   it('can focus when `handleFocusSearch` is called and target is not search input', function() {
     const wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
-    const searchInput = wrapper.instance().searchInput;
+    const searchInput = wrapper.find('SearchInput input').instance();
     const focusSpy = jest.spyOn(searchInput, 'focus');
 
     wrapper.instance().handleFocusSearch({
@@ -79,7 +79,7 @@ describe('SettingsSearch', function() {
 
   it('does not focus search input if it is current target and `handleFocusSearch` is called', function() {
     const wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
-    const searchInput = wrapper.instance().searchInput;
+    const searchInput = wrapper.find('SearchInput input').instance();
     const focusSpy = jest.spyOn(searchInput, 'focus');
 
     wrapper.instance().handleFocusSearch({

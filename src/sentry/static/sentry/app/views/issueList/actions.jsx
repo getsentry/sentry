@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';

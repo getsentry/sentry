@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import IssueList from 'app/components/issueList';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
@@ -33,7 +33,7 @@ export default class ReleaseIssues extends React.Component {
           renderEmpty={() => (
             <Panel>
               <PanelBody>
-                <PanelItem justify="center">{t('No issues resolved')}</PanelItem>
+                <PanelItem justifyContent="center">{t('No issues resolved')}</PanelItem>
               </PanelBody>
             </Panel>
           )}
@@ -53,7 +53,7 @@ export default class ReleaseIssues extends React.Component {
           renderEmpty={() => (
             <Panel>
               <PanelBody>
-                <PanelItem justify="center">{t('No new issues')}</PanelItem>
+                <PanelItem justifyContent="center">{t('No new issues')}</PanelItem>
               </PanelBody>
             </Panel>
           )}

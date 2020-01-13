@@ -2,7 +2,7 @@ import compact from 'lodash/compact';
 import groupBy from 'lodash/groupBy';
 import keyBy from 'lodash/keyBy';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {
   Organization,
