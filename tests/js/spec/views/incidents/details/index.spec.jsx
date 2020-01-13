@@ -108,7 +108,7 @@ describe('IncidentDetails', function() {
 
     expect(activitiesList).toHaveBeenCalledTimes(1);
 
-    expect(wrapper.find('Status').text()).toBe('Open');
+    expect(wrapper.find('Status').text()).not.toBe('Resolved');
     wrapper.find('[data-test-id="status-dropdown"] DropdownButton').simulate('click');
     wrapper
       .find('[data-test-id="status-dropdown"] MenuItem a')
@@ -126,7 +126,7 @@ describe('IncidentDetails', function() {
 
     // Refresh activities list since status changes also creates an activity
     expect(activitiesList).toHaveBeenCalledTimes(2);
-    expect(wrapper.find('Status').text()).toBe('Closed');
+    expect(wrapper.find('Status').text()).toBe('Resolved');
   });
 
   it('toggles subscribe status with Subscribe button', async function() {
