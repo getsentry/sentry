@@ -170,8 +170,12 @@ class EventStorage(Service):
         For binding a single Event object (most use cases), it's easier to use
         event.bind_node_data().
         """
+        # Temporarily make bind_nodes noop to prevent unnecessary additional calls
+        # to nodestore by the event serializer.
+        unfetched_object_list = [i for i in object_list if not getattr(i, node_name)._node_data]
+
         object_node_list = [
-            (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
+            (i, getattr(i, node_name)) for i in unfetched_object_list if getattr(i, node_name).id
         ]
 
         node_ids = [n.id for _, n in object_node_list]

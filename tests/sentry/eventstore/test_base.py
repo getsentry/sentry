@@ -5,7 +5,7 @@ import mock
 import pytest
 import six
 
-from sentry import eventstore
+from sentry import eventstore, nodestore
 from sentry.eventstore.models import Event
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -41,6 +41,11 @@ class EventStorageTest(TestCase):
         self.eventstorage.bind_nodes([event, event2], "data")
         assert event.data._node_data is not None
         assert event.data["user"]["id"] == u"user1"
+
+        # Bind nodes is noop if node data was already fetched
+        with mock.patch.object(nodestore, "get_multi") as mock_get_multi:
+            self.eventstorage.bind_nodes([event, event2])
+            assert mock_get_multi.call_count == 0
 
 
 class ServiceDelegationTest(TestCase, SnubaTestCase):
