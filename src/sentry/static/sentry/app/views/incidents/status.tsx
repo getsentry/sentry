@@ -7,8 +7,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
-import {Incident} from './types';
-import {isOpen} from './utils';
+import {Incident, IncidentStatus} from './types';
 
 type Props = {
   className?: string;
@@ -23,12 +22,12 @@ export default class Status extends React.Component<Props> {
 
   render() {
     const {className, incident} = this.props;
-    const isIncidentOpen = isOpen(incident);
+    const isIncidentOpen = incident.status !== IncidentStatus.CLOSED;
 
     // TODO(incidents): Make this work
     const status = !isIncidentOpen
       ? 'resolved'
-      : Math.random() < 0.5
+      : incident.status === IncidentStatus.CREATED
       ? 'critical'
       : 'warning';
     const isResolved = status === 'resolved';

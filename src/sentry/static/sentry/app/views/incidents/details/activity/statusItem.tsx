@@ -1,12 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IncidentActivityType, IncidentStatus} from 'app/views/incidents/utils';
 import {t} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import getDynamicText from 'app/utils/getDynamicText';
 
-import {ActivityType} from '../../types';
+import {IncidentActivityType, IncidentStatus, ActivityType} from '../../types';
 
 type Props = {
   activity: ActivityType;
