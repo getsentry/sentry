@@ -120,7 +120,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       eventKey: 'discover_v2.event_details',
       eventName: 'Discoverv2: Opened Event Details',
       event_type: event.type,
-      organization_id: organization.id,
+      organization_id: parseInt(organization.id, 10),
     });
 
     // Having an aggregate field means we want to show pagination/graphs
