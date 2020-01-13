@@ -24,7 +24,7 @@ export function handleCreateQuery(
 
   trackAnalyticsEvent({
     ...getAnalyticsCreateEventKeyName(isNewQuery, 'request'),
-    organization_id: organization.id,
+    organization_id: parseInt(organization.id, 10),
     ...extractAnalyticsQueryFields(payload),
   });
 
@@ -36,7 +36,7 @@ export function handleCreateQuery(
 
       trackAnalyticsEvent({
         ...getAnalyticsCreateEventKeyName(isNewQuery, 'success'),
-        organization_id: organization.id,
+        organization_id: parseInt(organization.id, 10),
         ...extractAnalyticsQueryFields(payload),
       });
 
@@ -47,7 +47,7 @@ export function handleCreateQuery(
 
       trackAnalyticsEvent({
         ...getAnalyticsCreateEventKeyName(isNewQuery, 'failed'),
-        organization_id: organization.id,
+        organization_id: parseInt(organization.id, 10),
         ...extractAnalyticsQueryFields(payload),
         error:
           (err && err.message) ||
@@ -84,7 +84,7 @@ export function handleUpdateQuery(
   trackAnalyticsEvent({
     eventKey: 'discover_v2.update_query_request',
     eventName: 'Discoverv2: Request to update a saved query',
-    organization_id: organization.id,
+    organization_id: parseInt(organization.id, 10),
     ...extractAnalyticsQueryFields(payload),
   });
 
@@ -97,7 +97,7 @@ export function handleUpdateQuery(
       trackAnalyticsEvent({
         eventKey: 'discover_v2.update_query_success',
         eventName: 'Discoverv2: Successfully updated a saved query',
-        organization_id: organization.id,
+        organization_id: parseInt(organization.id, 10),
         ...extractAnalyticsQueryFields(payload),
       });
       // NOTE: there is no need to convert _saved into an EventView and push it
@@ -112,7 +112,7 @@ export function handleUpdateQuery(
       trackAnalyticsEvent({
         eventKey: 'discover_v2.update_query_failed',
         eventName: 'Discoverv2: Failed to update a saved query',
-        organization_id: organization.id,
+        organization_id: parseInt(organization.id, 10),
         ...extractAnalyticsQueryFields(payload),
         error: (err && err.message) || 'Failed to update a query',
       });
@@ -135,7 +135,7 @@ export function handleUpdateQueryName(
   trackAnalyticsEvent({
     eventKey: 'discover_v2.update_query_name_request',
     eventName: "Discoverv2: Request to update a saved query's name",
-    organization_id: organization.id,
+    organization_id: parseInt(organization.id, 10),
     ...extractAnalyticsQueryFields(payload),
   });
 
@@ -148,7 +148,7 @@ export function handleUpdateQueryName(
       trackAnalyticsEvent({
         eventKey: 'discover_v2.update_query_name_success',
         eventName: "Discoverv2: Successfully updated a saved query's name",
-        organization_id: organization.id,
+        organization_id: parseInt(organization.id, 10),
         ...extractAnalyticsQueryFields(payload),
       });
     })
@@ -158,7 +158,7 @@ export function handleUpdateQueryName(
       trackAnalyticsEvent({
         eventKey: 'discover_v2.update_query_failed',
         eventName: "Discoverv2: Failed to update a saved query's name",
-        organization_id: organization.id,
+        organization_id: parseInt(organization.id, 10),
         ...extractAnalyticsQueryFields(payload),
         error: (err && err.message) || 'Failed to update a query name',
       });
@@ -175,7 +175,7 @@ export function handleDeleteQuery(
   trackAnalyticsEvent({
     eventKey: 'discover_v2.delete_query_request',
     eventName: 'Discoverv2: Request to delete a saved query',
-    organization_id: organization.id,
+    organization_id: parseInt(organization.id, 10),
     ...extractAnalyticsQueryFields(eventView.toNewQuery()),
   });
 
@@ -188,7 +188,7 @@ export function handleDeleteQuery(
       trackAnalyticsEvent({
         eventKey: 'discover_v2.delete_query_success',
         eventName: 'Discoverv2: Successfully deleted a saved query',
-        organization_id: organization.id,
+        organization_id: parseInt(organization.id, 10),
         ...extractAnalyticsQueryFields(eventView.toNewQuery()),
       });
     })
@@ -198,7 +198,7 @@ export function handleDeleteQuery(
       trackAnalyticsEvent({
         eventKey: 'discover_v2.delete_query_failed',
         eventName: 'Discoverv2: Failed to delete a saved query',
-        organization_id: organization.id,
+        organization_id: parseInt(organization.id, 10),
         ...extractAnalyticsQueryFields(eventView.toNewQuery()),
         error: (err && err.message) || 'Failed to delete query',
       });

@@ -104,7 +104,7 @@ class TableModalEditColumnBodyForm extends React.Component<
           eventKey: 'discover_v2.edit_column.open_modal',
           eventName: 'Discoverv2: Opened modal to edit a column',
           index: focusedColumnIndex,
-          organization_id: organization.id,
+          organization_id: parseInt(organization.id, 10),
         });
       }
     } else {
@@ -113,7 +113,7 @@ class TableModalEditColumnBodyForm extends React.Component<
         eventKey: 'discover_v2.add_column.open_modal',
         eventName: 'Discoverv2: Opened modal to add a column',
         index: focusedColumnIndex,
-        organization_id: organization.id,
+        organization_id: parseInt(organization.id, 10),
       });
     }
   }
