@@ -3,20 +3,20 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Organization} from 'app/types';
 import {Hooks} from 'app/types/hooks';
 
-const ECOSYSTEM_ANALYTICS_SESSION_KEY = 'ecosystemAnalyticsSession';
+const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'integrationsAnalyticsSession';
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
-  window.sessionStorage.setItem(ECOSYSTEM_ANALYTICS_SESSION_KEY, sessionId);
+  window.sessionStorage.setItem(INTEGRATIONS_ANALYTICS_SESSION_KEY, sessionId);
   return sessionId;
 };
 
 export const clearAnalyticsSession = () => {
-  window.sessionStorage.removeItem(ECOSYSTEM_ANALYTICS_SESSION_KEY);
+  window.sessionStorage.removeItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 };
 
 export const getAnalyticsSessionId = () => {
-  return window.sessionStorage.getItem(ECOSYSTEM_ANALYTICS_SESSION_KEY);
+  return window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 };
 
 type SingleIntegrationEvent = {
@@ -27,11 +27,14 @@ type SingleIntegrationEvent = {
   already_installed: boolean;
 };
 
+//TODO(Steve): hook up events
 type MultipleIntegrationsEvent = {
+  eventKey: 'integrations.index_viewed';
+  eventName: 'Integrations: Index Page Viewed';
   integrations_installed: number;
 };
 
-type EcosystemEventParams = (MultipleIntegrationsEvent | SingleIntegrationEvent) & {
+type IntegrationsEventParams = (MultipleIntegrationsEvent | SingleIntegrationEvent) & {
   view?: 'external_install' | 'integrations_page' | 'legacy_integrations';
 } & Parameters<Hooks['analytics:track-event']>[0];
 
@@ -40,8 +43,8 @@ type EcosystemEventParams = (MultipleIntegrationsEvent | SingleIntegrationEvent)
  * Must be tied to an organization
  * Uses the current session ID or generates a new one if startSession == true
  */
-export const trackEcosystemEvent = (
-  analtyicsParams: EcosystemEventParams,
+export const trackIntegrationEvent = (
+  analtyicsParams: IntegrationsEventParams,
   org: Organization,
   options?: {startSession: boolean}
 ) => {
@@ -56,7 +59,7 @@ export const trackEcosystemEvent = (
   //could put this into a debug method or for the main trackAnalyticsEvent event
   if (window.localStorage.getItem('DEBUG') === '1') {
     // eslint-disable-next-line no-console
-    console.log('trackEcosystemEvent', fullParams);
+    console.log('trackIntegrationEvent', fullParams);
   }
   return trackAnalyticsEvent(fullParams);
 };

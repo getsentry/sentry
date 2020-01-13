@@ -21,7 +21,7 @@ import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
 import {Hooks} from 'app/types/hooks';
 import {IntegrationFeature} from 'app/types';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
-import {trackEcosystemEvent} from 'app/utils/ecosystemUtil';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = {
   closeOnInstall?: boolean;
@@ -79,7 +79,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     const {sentryApp, organization, isInstalled} = this.props;
     recordInteraction(sentryApp.slug, 'sentry_app_viewed');
 
-    trackEcosystemEvent(
+    trackIntegrationEvent(
       {
         eventKey: 'integrations.install_modal_opened',
         eventName: 'Integrations: Install Modal Opened',

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {trackEcosystemEvent} from 'app/utils/ecosystemUtil';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
@@ -57,7 +57,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
   };
 
   componentDidMount() {
-    trackEcosystemEvent(
+    trackIntegrationEvent(
       {
         eventKey: 'integrations.install_modal_opened',
         eventName: 'Integrations: Install Modal Opened',
