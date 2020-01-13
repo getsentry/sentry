@@ -1,6 +1,6 @@
 import {Link} from 'react-router';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Badge from 'app/components/badge';
 import HookOrDefault from 'app/components/hookOrDefault';
@@ -12,6 +12,7 @@ type Props = {
   badge?: string | number | null;
   index?: boolean;
   id?: string;
+  onClick?: (e: React.MouseEvent) => void;
 };
 
 const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {

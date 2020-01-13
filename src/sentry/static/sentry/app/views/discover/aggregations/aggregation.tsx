@@ -144,7 +144,7 @@ export default class AggregationRow extends React.Component<
     return (
       <div>
         <SelectControl
-          innerRef={(ref: any) => (this.select = ref)}
+          ref={(ref: any) => (this.select = ref)}
           value={getInternal(this.props.value)}
           placeholder={
             <PlaceholderText>{t('Add aggregation function...')}</PlaceholderText>

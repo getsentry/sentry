@@ -1,4 +1,4 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 const FieldRequiredBadge = styled('div')`
   display: inline-block;

@@ -1,8 +1,19 @@
 /*eslint-env node*/
 module.exports = {
-  presets: ['@babel/react', '@babel/env', '@babel/preset-typescript'],
+  presets: [
+    '@babel/react',
+    '@babel/env',
+    '@babel/preset-typescript',
+    [
+      '@emotion/babel-preset-css-prop',
+      {
+        autoLabel: true,
+        sourceMap: false,
+        labelFormat: '[local]',
+      },
+    ],
+  ],
   plugins: [
-    'emotion',
     'react-hot-loader/babel',
     '@babel/plugin-syntax-dynamic-import',
     '@babel/plugin-proposal-object-rest-spread',
@@ -34,13 +45,19 @@ module.exports = {
       ],
     },
     development: {
-      plugins: [
-        ['emotion', {sourceMap: true, autoLabel: true}],
-        '@babel/plugin-transform-react-jsx-source',
+      presets: [
+        [
+          '@emotion/babel-preset-css-prop',
+          {
+            autoLabel: true,
+            sourceMap: false,
+          },
+        ],
       ],
+      plugins: ['@babel/plugin-transform-react-jsx-source'],
     },
     test: {
-      plugins: [['emotion', {autoLabel: true}], 'dynamic-import-node'],
+      plugins: ['dynamic-import-node'],
     },
   },
 };
