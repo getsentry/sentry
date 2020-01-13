@@ -52,6 +52,33 @@ describe('Incident Rules Details', function() {
       body: rule,
     });
 
+    const editTrigger = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/1/`,
+      method: 'PUT',
+      body: TestStubs.IncidentTrigger(),
+    });
+
+    const createTrigger = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/triggers/`,
+      method: 'POST',
+      body: TestStubs.IncidentTrigger({id: 2}),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${
+        rule.id
+      }/triggers/1/actions/`,
+      body: [],
+    });
+
+    const addAction = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/alert-rules/${
+        rule.id
+      }/triggers/1/actions/`,
+      method: 'POST',
+      body: [],
+    });
+
     const wrapper = mountWithTheme(
       <React.Fragment>
         <GlobalModal />
@@ -148,6 +175,13 @@ describe('Incident Rules Details', function() {
     // New Trigger should be in list
     await tick();
     wrapper.update();
+
+    // TODO(incidents): This should be removed when we consolidate API
+    expect(editTrigger).toHaveBeenCalled();
+    // TODO(incidents): This should be removed when we consolidate API
+    expect(createTrigger).toHaveBeenCalled();
+    // TODO(incidents): This should be removed when we consolidate API
+    expect(addAction).toHaveBeenCalled();
 
     // Has correct values
     expect(
