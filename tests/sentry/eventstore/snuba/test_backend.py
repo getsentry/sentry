@@ -88,20 +88,12 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert events == []
 
     def test_get_event_by_id(self):
-        # Get event with default columns
+        # Get valid event
         event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
 
         assert event.id == "a" * 32
         assert event.event_id == "a" * 32
         assert event.project_id == self.project1.id
-
-        # Get all columns
-        event = self.eventstore.get_event_by_id(
-            self.project2.id, "b" * 32, self.eventstore.full_columns
-        )
-        assert event.id == "b" * 32
-        assert event.event_id == "b" * 32
-        assert event.project_id == self.project2.id
 
         # Get non existent event
         event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)
