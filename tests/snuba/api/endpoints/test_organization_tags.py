@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import mock
+
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -63,3 +65,72 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data == []
+
+    @mock.patch("sentry.options.get", return_value=1.0)
+    @mock.patch("sentry.utils.snuba.query", return_value={})
+    def test_tag_caching(self, mock_snuba_query, mock_options):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+        self.create_project(organization=org, teams=[team])
+        self.login_as(user=user)
+
+        url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
+        response = self.client.get(url, {"use_cache": "1", "statsPeriod": "14d"}, format="json")
+        assert response.status_code == 200, response.content
+        assert mock_snuba_query.call_count == 1
+
+        response = self.client.get(url, {"use_cache": "1", "statsPeriod": "14d"}, format="json")
+        assert response.status_code == 200, response.content
+        # Cause we're caching, we shouldn't call snuba again
+        assert mock_snuba_query.call_count == 1
+
+    @mock.patch("sentry.options.get", return_value=1.0)
+    @mock.patch("sentry.utils.snuba.query", return_value={})
+    def test_different_statsperiod_caching(self, mock_snuba_query, mock_options):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+        self.create_project(organization=org, teams=[team])
+        self.login_as(user=user)
+
+        url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
+        response = self.client.get(url, {"use_cache": "1", "statsPeriod": "14d"}, format="json")
+        assert response.status_code == 200, response.content
+        # Empty cache, we should query snuba
+        assert mock_snuba_query.call_count == 1
+
+        response = self.client.get(url, {"use_cache": "1", "statsPeriod": "30d"}, format="json")
+        assert response.status_code == 200, response.content
+        # With a different statsPeriod, we shouldn't use cache and still query snuba
+        assert mock_snuba_query.call_count == 2
+
+    @mock.patch("sentry.options.get", return_value=1.0)
+    @mock.patch("sentry.utils.snuba.query", return_value={})
+    def test_different_times_caching(self, mock_snuba_query, mock_options):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+        self.create_project(organization=org, teams=[team])
+        self.login_as(user=user)
+
+        start = iso_format(before_now(minutes=10))
+        end = iso_format(before_now(minutes=5))
+        url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
+        response = self.client.get(
+            url, {"use_cache": "1", "start": start, "end": end}, format="json"
+        )
+        assert response.status_code == 200, response.content
+        assert mock_snuba_query.call_count == 1
+
+        # 5 minutes later, cache_key should be different
+        start = iso_format(before_now(minutes=5))
+        end = iso_format(before_now(minutes=0))
+        response = self.client.get(
+            url, {"use_cache": "1", "start": start, "end": end}, format="json"
+        )
+        assert response.status_code == 200, response.content
+        assert mock_snuba_query.call_count == 2
