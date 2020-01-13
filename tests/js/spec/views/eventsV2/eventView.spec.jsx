@@ -31,7 +31,6 @@ describe('EventView constructor', function() {
       name: undefined,
       fields: [],
       sorts: [],
-      tags: [],
       query: '',
       project: [],
       start: undefined,
@@ -52,7 +51,6 @@ describe('EventView.fromLocation()', function() {
         field: ['count()', 'id'],
         widths: ['123', '456'],
         sort: ['title', '-count'],
-        tag: ['foo', 'bar'],
         query: 'event.type:transaction',
         project: [123],
         start: '2019-10-01T00:00:00',
@@ -70,7 +68,6 @@ describe('EventView.fromLocation()', function() {
       name: 'best query',
       fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
       sorts: generateSorts(['count']),
-      tags: ['foo', 'bar'],
       query: 'event.type:transaction',
       project: [123],
       start: undefined,
@@ -89,7 +86,6 @@ describe('EventView.fromLocation()', function() {
         field: ['count()', 'id'],
         widths: ['123', '456'],
         sort: ['title', '-count'],
-        tag: ['foo', 'bar'],
         query: 'event.type:transaction',
         project: [123],
         start: '2019-10-01T00:00:00',
@@ -106,7 +102,6 @@ describe('EventView.fromLocation()', function() {
       name: 'best query',
       fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
       sorts: generateSorts(['count']),
-      tags: ['foo', 'bar'],
       query: 'event.type:transaction',
       project: [123],
       start: undefined,
@@ -124,7 +119,6 @@ describe('EventView.fromLocation()', function() {
         field: ['count()', 'id'],
         widths: ['123', '456'],
         sort: ['title', '-count'],
-        tag: ['foo', 'bar'],
         query: 'event.type:transaction',
         project: [123],
         start: '2019-10-01T00:00:00',
@@ -140,7 +134,6 @@ describe('EventView.fromLocation()', function() {
       name: 'best query',
       fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
       sorts: generateSorts(['count']),
-      tags: ['foo', 'bar'],
       query: 'event.type:transaction',
       project: [123],
       start: '2019-10-01T00:00:00.000',
@@ -161,7 +154,6 @@ describe('EventView.fromLocation()', function() {
       name: void 0,
       fields: [],
       sorts: [],
-      tags: [],
       query: '',
       project: [],
       start: void 0,
@@ -197,7 +189,6 @@ describe('EventView.fromSavedQuery()', function() {
         {field: 'id', width: COL_WIDTH_UNDEFINED},
       ],
       sorts: [{field: 'id', kind: 'desc'}],
-      tags: [],
       query: 'event.type:transaction',
       project: [123],
       start: undefined,
@@ -220,7 +211,6 @@ describe('EventView.fromSavedQuery()', function() {
         {field: 'id', width: COL_WIDTH_UNDEFINED},
       ],
       sorts: [{field: 'id', kind: 'desc'}],
-      tags: [],
       query: 'event.type:transaction',
       project: [123],
       start: '2019-10-01T00:00:00.000',
@@ -368,14 +358,6 @@ describe('EventView.fromNewQueryWithLocation()', function() {
     fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
     orderby: '-timestamp',
     version: 2,
-    tags: [
-      'event.type',
-      'release',
-      'project.name',
-      'user.email',
-      'user.ip',
-      'environment',
-    ],
   };
 
   it('maps basic properties of a prebuilt query', function() {
@@ -398,14 +380,6 @@ describe('EventView.fromNewQueryWithLocation()', function() {
         {field: 'timestamp'},
       ],
       sorts: [{field: 'timestamp', kind: 'desc'}],
-      tags: [
-        'event.type',
-        'release',
-        'project.name',
-        'user.email',
-        'user.ip',
-        'environment',
-      ],
       query: '',
       project: [],
       start: undefined,
@@ -439,14 +413,6 @@ describe('EventView.fromNewQueryWithLocation()', function() {
         {field: 'timestamp'},
       ],
       sorts: [{field: 'timestamp', kind: 'desc'}],
-      tags: [
-        'event.type',
-        'release',
-        'project.name',
-        'user.email',
-        'user.ip',
-        'environment',
-      ],
       query: '',
       project: [456],
       start: undefined,
@@ -486,14 +452,6 @@ describe('EventView.fromNewQueryWithLocation()', function() {
         {field: 'timestamp'},
       ],
       sorts: [{field: 'timestamp', kind: 'desc'}],
-      tags: [
-        'event.type',
-        'release',
-        'project.name',
-        'user.email',
-        'user.ip',
-        'environment',
-      ],
       query: '',
       project: [987],
       start: undefined,
@@ -535,14 +493,6 @@ describe('EventView.fromNewQueryWithLocation()', function() {
         {field: 'timestamp'},
       ],
       sorts: [{field: 'timestamp', kind: 'desc'}],
-      tags: [
-        'event.type',
-        'release',
-        'project.name',
-        'user.email',
-        'user.ip',
-        'environment',
-      ],
       query: '',
       project: [987],
       start: '2019-10-01T00:00:00.000',
@@ -558,7 +508,6 @@ describe('EventView.generateQueryStringObject()', function() {
   it('skips empty values', function() {
     const eventView = new EventView({
       fields: generateFields(['id', 'title']),
-      tags: [],
       sorts: [],
       project: [],
       environment: '',
@@ -574,7 +523,6 @@ describe('EventView.generateQueryStringObject()', function() {
       field: ['id', 'title'],
       widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
       sort: [],
-      tag: [],
       query: '',
       project: [],
       environment: [],
@@ -589,7 +537,6 @@ describe('EventView.generateQueryStringObject()', function() {
       name: 'best query',
       fields: [{field: 'count()', width: 123}, {field: 'project.id', width: 456}],
       sorts: generateSorts(['count']),
-      tags: ['foo', 'bar'],
       query: 'event.type:error',
       project: [42],
       start: '2019-10-01T00:00:00',
@@ -607,7 +554,6 @@ describe('EventView.generateQueryStringObject()', function() {
       field: ['count()', 'project.id'],
       widths: [123, 456],
       sort: ['-count'],
-      tag: ['foo', 'bar'],
       query: 'event.type:error',
       project: [42],
       start: '2019-10-01T00:00:00',
@@ -623,7 +569,6 @@ describe('EventView.generateQueryStringObject()', function() {
   it('encodes fields', function() {
     const eventView = new EventView({
       fields: [{field: 'id'}, {field: 'title'}],
-      tags: [],
       sorts: [],
     });
     const query = eventView.generateQueryStringObject();
@@ -633,7 +578,6 @@ describe('EventView.generateQueryStringObject()', function() {
   it('returns a copy of data preventing mutation', function() {
     const eventView = new EventView({
       fields: [{field: 'id'}, {field: 'title'}],
-      tags: [],
       sorts: [],
     });
     const query = eventView.generateQueryStringObject();
@@ -654,7 +598,6 @@ describe('EventView.getEventsAPIPayload()', function() {
       name: 'amazing query',
       fields: generateFields(['id']),
       sorts: generateSorts(['id']),
-      tags: ['project'],
       query: 'event.type:csp',
       project: [567],
       environment: ['prod'],
@@ -676,7 +619,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     const eventView = new EventView({
       fields: generateFields(['id']),
       sorts: [],
-      tags: [],
       query: 'event.type:csp',
     });
 
@@ -692,7 +634,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     const eventView = new EventView({
       fields: generateFields(['count()', 'title']),
       sorts: generateSorts(['title', 'count']),
-      tags: [],
       query: 'event.type:csp',
     });
 
@@ -707,7 +648,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
-      tags: [],
       query: 'event.type:csp',
     });
 
@@ -722,7 +662,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
-      tags: [],
       query: 'event.type:csp',
     });
 
@@ -760,7 +699,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
-      tags: [],
       query: 'event.type:csp',
       project: [1234],
       environment: ['staging'],
@@ -818,7 +756,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
-      tags: [],
       query: 'event.type:csp',
       project: [1234],
       environment: ['staging'],
@@ -873,7 +810,6 @@ describe('EventView.getEventsAPIPayload()', function() {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['count']),
-      tags: [],
       query: 'event.type:csp',
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
@@ -898,12 +834,11 @@ describe('EventView.getEventsAPIPayload()', function() {
   });
 });
 
-describe('EventView.getTagsAPIPayload()', function() {
+describe('EventView.getFacetsAPIPayload()', function() {
   it('only includes relevant query strings', function() {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
-      tags: [],
       query: 'event.type:csp',
     });
 
@@ -923,14 +858,12 @@ describe('EventView.getTagsAPIPayload()', function() {
       },
     };
 
-    expect(eventView.getTagsAPIPayload(location)).toEqual({
+    expect(eventView.getFacetsAPIPayload(location)).toEqual({
       project: [],
       environment: [],
       utc: 'true',
       statsPeriod: '14d',
 
-      field: ['title', 'count()'],
-      per_page: 50,
       query: 'event.type:csp',
     });
   });
@@ -942,7 +875,6 @@ describe('EventView.toNewQuery()', function() {
     name: 'best query',
     fields: [{field: 'count()', width: 123}, {field: 'project.id', width: 456}],
     sorts: generateSorts(['count']),
-    tags: ['foo', 'bar'],
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -969,7 +901,6 @@ describe('EventView.toNewQuery()', function() {
       end: '2019-10-02T00:00:00',
       range: '14d',
       environment: ['staging'],
-      tags: ['foo', 'bar'],
     };
 
     expect(output).toEqual(expected);
@@ -998,7 +929,6 @@ describe('EventView.toNewQuery()', function() {
       end: '2019-10-02T00:00:00',
       range: '14d',
       environment: ['staging'],
-      tags: ['foo', 'bar'],
     };
 
     expect(output).toEqual(expected);
@@ -1027,7 +957,6 @@ describe('EventView.toNewQuery()', function() {
       end: '2019-10-02T00:00:00',
       range: '14d',
       environment: ['staging'],
-      tags: ['foo', 'bar'],
     };
 
     expect(output).toEqual(expected);
@@ -1039,7 +968,6 @@ describe('EventView.isValid()', function() {
     const eventView = new EventView({
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
-      tags: [],
       project: [],
     });
 
@@ -1050,7 +978,6 @@ describe('EventView.isValid()', function() {
     const eventView = new EventView({
       fields: [],
       sorts: [],
-      tags: [],
       project: [],
     });
 
@@ -1063,7 +990,6 @@ describe('EventView.getFields()', function() {
     const eventView = new EventView({
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
-      tags: [],
       project: [],
     });
 
@@ -1076,7 +1002,6 @@ describe('EventView.hasAutolinkField()', function() {
     const eventView = new EventView({
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
-      tags: [],
       project: [],
     });
 
@@ -1088,7 +1013,6 @@ describe('EventView.hasAutolinkField()', function() {
       const eventView = new EventView({
         fields: generateFields([field]),
         sorts: [],
-        tags: [],
         project: [],
       });
 
@@ -1104,7 +1028,6 @@ describe('EventView.numOfColumns()', function() {
     const eventView = new EventView({
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
-      tags: [],
       project: [],
     });
 
@@ -1115,7 +1038,6 @@ describe('EventView.numOfColumns()', function() {
     const eventView2 = new EventView({
       fields: [],
       sorts: [],
-      tags: [],
       project: [],
     });
 
@@ -1130,7 +1052,6 @@ describe('EventView.clone()', function() {
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
-      tags: ['foo', 'bar'],
       query: 'event.type:error',
       project: [42],
       start: '2019-10-01T00:00:00',
@@ -1157,7 +1078,6 @@ describe('EventView.withNewColumn()', function() {
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
-    tags: ['foo', 'bar'],
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -1239,7 +1159,6 @@ describe('EventView.withUpdatedColumn()', function() {
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
-    tags: ['foo', 'bar'],
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -1478,7 +1397,6 @@ describe('EventView.withDeletedColumn()', function() {
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
-    tags: ['foo', 'bar'],
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -1603,7 +1521,6 @@ describe('EventView.withMovedColumn()', function() {
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
-    tags: ['foo', 'bar'],
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -1643,7 +1560,6 @@ describe('EventView.getSorts()', function() {
     const eventView = new EventView({
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
-      tags: [],
       project: [],
     });
 
@@ -1661,7 +1577,6 @@ describe('EventView.getQuery()', function() {
     const eventView = new EventView({
       fields: [],
       sorts: [],
-      tags: [],
       project: [],
       query: 'event.type:error',
     });
@@ -1678,7 +1593,6 @@ describe('EventView.getQuery()', function() {
     const eventView = new EventView({
       fields: [],
       sorts: [],
-      tags: [],
       project: [],
     });
 
@@ -1697,7 +1611,6 @@ describe('EventView.isFieldSorted()', function() {
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
-    tags: ['foo', 'bar'],
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -1742,7 +1655,6 @@ describe('EventView.sortOnField()', function() {
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
-    tags: ['foo', 'bar'],
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -1813,7 +1725,6 @@ describe('EventView.isEqualTo()', function() {
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
-      tags: ['foo', 'bar'],
       query: 'event.type:error',
       project: [42],
       start: '2019-10-01T00:00:00',
@@ -1842,7 +1753,6 @@ describe('EventView.isEqualTo()', function() {
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
-      tags: ['foo', 'bar'],
       query: 'event.type:error',
       project: [42],
       start: '2019-10-20T21:02:51+0000',
@@ -1866,7 +1776,6 @@ describe('EventView.isEqualTo()', function() {
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
-      tags: ['foo', 'bar'],
       query: 'event.type:error',
       project: [42],
       start: '2019-10-01T00:00:00',
@@ -1913,16 +1822,7 @@ describe('EventView.isEqualTo()', function() {
     });
     expect(eventView.isEqualTo(eventView2)).toBe(false);
 
-    // tags differs
-
-    eventView2 = new EventView({
-      ...state,
-      tags: ['foo', 'baz'],
-    });
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
-
     // query differs
-
     eventView2 = new EventView({
       ...state,
       query: 'event.type:transaction',
@@ -1930,7 +1830,6 @@ describe('EventView.isEqualTo()', function() {
     expect(eventView.isEqualTo(eventView2)).toBe(false);
 
     // project differs
-
     eventView2 = new EventView({
       ...state,
       project: [24],
@@ -1938,7 +1837,6 @@ describe('EventView.isEqualTo()', function() {
     expect(eventView.isEqualTo(eventView2)).toBe(false);
 
     // date time differs
-
     eventView2 = new EventView({
       ...state,
       start: '2019-09-01T00:00:00',
@@ -1958,7 +1856,6 @@ describe('EventView.isEqualTo()', function() {
     expect(eventView.isEqualTo(eventView2)).toBe(false);
 
     // environment differs
-
     eventView2 = new EventView({
       ...state,
       environment: [],
@@ -1978,7 +1875,6 @@ describe('isAPIPayloadSimilar', function() {
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: generateSorts(['count']),
-    tags: ['foo', 'bar'],
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -2170,25 +2066,43 @@ describe('isAPIPayloadSimilar', function() {
     });
   });
 
-  describe('getTagsAPIPayload', function() {
+  describe('getFacetsAPIPayload', function() {
+    it('only includes relevant parameters', function() {
+      const thisEventView = new EventView(state);
+      const location = {};
+      const results = thisEventView.getFacetsAPIPayload(location);
+      const expected = {
+        query: state.query,
+        project: ['42'],
+        statsPeriod: state.statsPeriod,
+        environment: state.environment,
+      };
+
+      expect(results).toEqual(expected);
+    });
+
     it('is similar on sort key sorted in opposite directions', function() {
       const thisEventView = new EventView(state);
       const location = {};
-      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
+      const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
-      const otherEventView = thisEventView.sortOnField({field: 'count()'}, meta);
+      const newColumn = {
+        aggregation: 'count',
+        field: '',
+      };
+
+      const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
       const otherLocation = {};
-      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
+      const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-
       expect(results).toBe(true);
     });
 
-    it('is not similar when a new column is added', function() {
+    it('is similar when a columns are different', function() {
       const thisEventView = new EventView(state);
       const location = {};
-      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
+      const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
       const newColumn = {
         aggregation: '',
@@ -2197,114 +2111,9 @@ describe('isAPIPayloadSimilar', function() {
 
       const otherEventView = thisEventView.withNewColumn(newColumn);
       const otherLocation = {};
-      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
+      const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-
-      expect(results).toBe(false);
-    });
-
-    it('is similar when a column is updated with no changes', function() {
-      const thisEventView = new EventView(state);
-      const location = {};
-      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
-
-      const newColumn = {
-        aggregation: 'count',
-        field: '',
-      };
-
-      const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
-      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
-
-      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-
-      expect(results).toBe(true);
-    });
-
-    it('is not similar when a column is updated with a replaced field', function() {
-      const thisEventView = new EventView(state);
-      const location = {};
-      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
-
-      const newColumn = {
-        aggregation: '',
-        field: 'title',
-      };
-
-      const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
-      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
-
-      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-
-      expect(results).toBe(false);
-    });
-
-    it('is not similar when a column is updated with a replaced aggregation', function() {
-      const thisEventView = new EventView(state);
-      const location = {};
-      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
-
-      const newColumn = {
-        aggregation: 'avg',
-        field: '',
-      };
-
-      const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
-      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
-
-      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-
-      expect(results).toBe(false);
-    });
-
-    it('is similar when a column is renamed', function() {
-      const thisEventView = new EventView(state);
-      const location = {};
-      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
-
-      const newColumn = {
-        aggregation: 'count',
-        field: '',
-      };
-
-      const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
-      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
-
-      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-
-      expect(results).toBe(true);
-    });
-
-    it('is not similar when a column is deleted', function() {
-      const thisEventView = new EventView(state);
-      const location = {};
-      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
-
-      const otherEventView = thisEventView.withDeletedColumn(0, meta);
-      const otherLocation = {};
-      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
-
-      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-
-      expect(results).toBe(false);
-    });
-
-    it('is similar when a column is moved', function() {
-      const thisEventView = new EventView(state);
-      const location = {};
-      const thisAPIPayload = thisEventView.getTagsAPIPayload(location);
-
-      const otherEventView = thisEventView.withMovedColumn({fromIndex: 0, toIndex: 1});
-      const otherLocation = {};
-      const otherAPIPayload = otherEventView.getTagsAPIPayload(otherLocation);
-
-      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-
       expect(results).toBe(true);
     });
   });
@@ -2346,7 +2155,6 @@ describe('isAPIPayloadSimilar', function() {
         name: undefined,
         fields: undefined,
         sorts: undefined,
-        tags: undefined,
         query: undefined,
         project: undefined,
         start: undefined,

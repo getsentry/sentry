@@ -9,42 +9,19 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 describe('Tags', function() {
   const org = TestStubs.Organization();
   beforeEach(function() {
-    Client.addMockResponse(
-      {
-        url: `/organizations/${org.slug}/events-distribution/`,
-        body: {
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/events-facets/`,
+      body: [
+        {
           key: 'release',
-          name: 'Release',
-          totalValues: 2,
           topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
         },
-      },
-      {
-        predicate: (_, options) => {
-          return options.query.key === 'release';
-        },
-      }
-    );
-
-    Client.addMockResponse(
-      {
-        url: `/organizations/${org.slug}/events-distribution/`,
-        body: {
+        {
           key: 'environment',
-          name: 'Environment',
-          totalValues: 2,
           topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
         },
-      },
-      {
-        predicate: (_, options) => {
-          return (
-            options.query.key === 'environment' &&
-            options.query.query === 'event.type:csp'
-          );
-        },
-      }
-    );
+      ],
+    });
 
     Client.addMockResponse({
       url: `/organizations/${org.slug}/events-meta/`,
@@ -64,7 +41,6 @@ describe('Tags', function() {
     const view = new EventView({
       fields: [],
       sorts: [],
-      tags: ['release', 'environment'],
       query: 'event.type:csp',
     });
 
@@ -79,7 +55,7 @@ describe('Tags', function() {
     );
 
     // component is in loading state
-    expect(wrapper.find('StyledPlaceholder')).toHaveLength(2);
+    expect(wrapper.find('StyledPlaceholder').length).toBeTruthy();
 
     await tick();
     wrapper.update();
@@ -94,7 +70,6 @@ describe('Tags', function() {
     const view = new EventView({
       fields: [],
       sorts: [],
-      tags: ['release', 'environment'],
       query: 'event.type:csp',
     });
 
@@ -117,7 +92,7 @@ describe('Tags', function() {
     );
 
     // component is in loading state
-    expect(wrapper.find('StyledPlaceholder')).toHaveLength(2);
+    expect(wrapper.find('StyledPlaceholder').length).toBeTruthy();
 
     await tick();
     wrapper.update();
