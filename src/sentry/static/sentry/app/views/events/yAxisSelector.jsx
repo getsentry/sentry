@@ -14,11 +14,7 @@ const YAxisSelector = props => {
       <DropdownControl
         menuOffset="29px"
         button={({isOpen, getActorProps}) => (
-          <StyledDropdownButton
-            {...getActorProps({isStyled: true})}
-            size="zero"
-            isOpen={isOpen}
-          >
+          <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
             {selectedOption.label}
           </StyledDropdownButton>
         )}

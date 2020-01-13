@@ -29,7 +29,7 @@ class DropdownAutoComplete extends React.Component {
             //eslint-disable-next-line no-unused-vars
             onClick,
             ...actorProps
-          } = renderProps.getActorProps({isStyled: true});
+          } = renderProps.getActorProps();
 
           return (
             <Actor
