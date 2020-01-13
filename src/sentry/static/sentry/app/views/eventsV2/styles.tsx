@@ -1,4 +1,4 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Link from 'app/components/links/link';
 import space from 'app/styles/space';
