@@ -69,7 +69,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           </TitleAndSparkLine>
           <Status incident={incident} />
           <div>
-            {started.format('LL')}
+            {started.format('L')}
             <LightDuration seconds={getDynamicText({value: duration, fixed: 1200})} />
           </div>
           <NumericColumn>
@@ -103,9 +103,12 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         <Panel>
           <PanelHeader>
             <TableLayout>
-              <div>{t('Incident')}</div>
+              <TitleAndSparkLine>
+                <div>{t('Alert')}</div>
+                <div>{t('Trend')}</div>
+              </TitleAndSparkLine>
               <div>{t('Status')}</div>
-              <div>{t('Started')}</div>
+              <div>{t('Start time (duration)')}</div>
               <NumericColumn>{t('Users affected')}</NumericColumn>
               <NumericColumn>{t('Total events')}</NumericColumn>
             </TableLayout>
@@ -140,11 +143,11 @@ class IncidentsListContainer extends React.Component<Props> {
     const status = query.status === undefined ? DEFAULT_QUERY_STATUS : query.status;
 
     return (
-      <DocumentTitle title={`Incidents - ${orgId} - Sentry`}>
+      <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>
           <PageHeader>
             <PageHeading>
-              {t('Incidents')} <BetaTag />
+              {t('Alerts')} <BetaTag />
             </PageHeading>
 
             <Actions>
