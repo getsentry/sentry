@@ -46,6 +46,7 @@ from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, Snub
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
 
+
 class StatusAlreadyChangedError(Exception):
     pass
 

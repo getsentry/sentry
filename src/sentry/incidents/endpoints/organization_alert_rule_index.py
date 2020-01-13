@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
 from sentry.incidents.endpoints.serializers import UnifiedAlertRuleSerializer
 
+
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         """
@@ -37,11 +38,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         serializer = UnifiedAlertRuleSerializer(
-            context={
-                "organization": organization,
-                "access": request.access,
-            },
-            data=request.data,
+            context={"organization": organization, "access": request.access}, data=request.data
         )
 
         if serializer.is_valid():

@@ -33,7 +33,6 @@ class CamelSnakeModelSerializerTest(TestCase):
             }
         )
         assert serializer.is_valid()
-        print ("data:", serializer.data)
         assert serializer.data == {
             "app_label": "hello",
             "model": "Something",
