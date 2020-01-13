@@ -52,13 +52,6 @@ describe('Incident Rules Details', function() {
       body: rule,
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${
-        rule.id
-      }/triggers/1/actions/`,
-      body: [],
-    });
-
     const wrapper = mountWithTheme(
       <React.Fragment>
         <GlobalModal />
