@@ -5,8 +5,11 @@ from django.test import TestCase
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import (
-    CamelSnakeSerializer,
     CamelSnakeModelSerializer,
+    CamelSnakeSerializer,
+    convert_dict_key_case,
+    camel_to_snake_case,
+    snake_to_camel_case,
 )
 
 
@@ -49,3 +52,23 @@ class CamelSnakeModelSerializerTest(TestCase):
             "appLabel": [u"This field may not be null."],
             "model": [u"This field is required."],
         }
+
+
+def test_convert_dict_key_case():
+    camelData = {
+        "appLabel": "hello",
+        "model": "Something",
+        "nestedList": [
+            {"someObject": "someValue", "nestWithinNest": [{"anotherKey": "andAValue"}]}
+        ],
+    }
+    snake_data = convert_dict_key_case(camelData, camel_to_snake_case)
+    assert snake_data == {
+        "app_label": "hello",
+        "model": "Something",
+        "nested_list": [
+            {"some_object": "someValue", "nest_within_nest": [{"another_key": "andAValue"}]}
+        ],
+    }
+
+    assert camelData == convert_dict_key_case(snake_data, snake_to_camel_case)
