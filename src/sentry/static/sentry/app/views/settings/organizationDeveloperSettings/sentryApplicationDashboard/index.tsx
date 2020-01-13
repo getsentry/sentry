@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import AsyncView from 'app/views/asyncView';

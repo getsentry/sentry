@@ -1,8 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import sortBy from 'lodash/sortBy';
+import styled from '@emotion/styled';
 
 import ContextData from 'app/components/contextData';
+import theme from 'app/utils/theme';
 
 class KeyValueList extends React.Component {
   static propTypes = {
@@ -11,12 +13,14 @@ class KeyValueList extends React.Component {
     isSorted: PropTypes.bool,
     onClick: PropTypes.func,
     raw: PropTypes.bool,
+    longKeys: PropTypes.bool,
   };
 
   static defaultProps = {
     isContextData: false,
     isSorted: true,
     raw: false,
+    longKeys: false,
   };
 
   render() {
@@ -42,7 +46,9 @@ class KeyValueList extends React.Component {
             if (this.props.isContextData) {
               return [
                 <tr key={key}>
-                  <td className="key">{key}</td>
+                  <TableData className="key" wide={this.props.longKeys}>
+                    {key}
+                  </TableData>
                   <td className="val">
                     <ContextData data={!raw ? value : JSON.stringify(value)} />
                   </td>
@@ -51,7 +57,9 @@ class KeyValueList extends React.Component {
             } else {
               return [
                 <tr key={key}>
-                  <td className="key">{key}</td>
+                  <TableData className="key" wide={this.props.longKeys}>
+                    {key}
+                  </TableData>
                   <td className="val">
                     <pre className="val-string">{'' + value || ' '}</pre>
                   </td>
@@ -64,6 +72,12 @@ class KeyValueList extends React.Component {
     );
   }
 }
+
+const TableData = styled('td')`
+  @media (min-width: ${theme.breakpoints[2]}) {
+    max-width: ${p => (p.wide ? '620px !important' : null)};
+  }
+`;
 
 KeyValueList.displayName = 'KeyValueList';
 

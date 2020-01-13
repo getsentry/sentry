@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import get from 'lodash/get';
 import map from 'lodash/map';
 
@@ -143,7 +143,6 @@ class SpanDetail extends React.Component<Props, State> {
         'transaction.duration',
         'timestamp',
       ],
-      fieldnames: ['transaction', 'project', 'trace.span', 'duration', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${
         span.span_id
@@ -189,7 +188,6 @@ class SpanDetail extends React.Component<Props, State> {
         'transaction.duration',
         'timestamp',
       ],
-      fieldnames: ['transaction', 'project', 'trace.span', 'duration', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id}`,
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
@@ -267,7 +265,6 @@ class SpanDetail extends React.Component<Props, State> {
                 </Row>
               );
             })}
-            <Row title="Raw">{JSON.stringify(span, null, 4)}</Row>
           </tbody>
         </table>
       </SpanDetailContainer>

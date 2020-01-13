@@ -1,7 +1,7 @@
 import groupBy from 'lodash/groupBy';
 import React from 'react';
 import moment from 'moment';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {IncidentActivityType} from 'app/views/incidents/utils';

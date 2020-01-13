@@ -113,7 +113,6 @@ class TableView extends React.Component<TableViewProps> {
     const payload = {
       aggregation: String(nextColumn.aggregation),
       field: String(nextColumn.field),
-      fieldname: String(nextColumn.name),
       width: nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED,
     };
 
@@ -128,7 +127,6 @@ class TableView extends React.Component<TableViewProps> {
 
       const aggregationChanged = prevField.aggregation !== nextField.aggregation;
       const fieldChanged = prevField.field !== nextField.field;
-      const fieldnameChanged = prevField.fieldname !== nextField.fieldname;
       const widthChanged = prevField.width !== nextField.width;
 
       if (aggregationChanged) {
@@ -137,10 +135,6 @@ class TableView extends React.Component<TableViewProps> {
 
       if (fieldChanged) {
         changed.push('field');
-      }
-
-      if (fieldnameChanged) {
-        changed.push('fieldname');
       }
 
       if (widthChanged) {
@@ -183,7 +177,6 @@ class TableView extends React.Component<TableViewProps> {
       organization_id: organization.id,
       aggregation: prevField.aggregation,
       field: prevField.field,
-      fieldname: prevField.fieldname,
     });
 
     pushEventViewToLocation({
@@ -211,7 +204,6 @@ class TableView extends React.Component<TableViewProps> {
       organization_id: organization.id,
       aggregation: prevField.aggregation,
       field: prevField.field,
-      fieldname: prevField.fieldname,
     });
 
     pushEventViewToLocation({
@@ -490,7 +482,6 @@ const ExpandAggregateRow = (props: {
         const updatedColumn = {
           aggregation: '',
           field: exploded.field,
-          fieldname: exploded.field,
           width: exploded.width,
         };
 

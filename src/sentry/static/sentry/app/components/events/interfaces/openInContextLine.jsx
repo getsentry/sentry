@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import SentryAppIcon from 'app/components/sentryAppIcon';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';

@@ -51,13 +51,11 @@ const reverseSort = (sort: Sort): Sort => {
 
 export type Field = {
   field: string;
-  title: string;
   width?: number;
 };
 export type Column = {
   aggregation: string;
   field: string;
-  fieldname: string;
   width?: number;
 };
 
@@ -131,11 +129,6 @@ const decodeFields = (location: Location): Array<Field> => {
     : isString(query.field)
     ? [query.field]
     : [];
-  const fieldnames: string[] = Array.isArray(query.fieldnames)
-    ? query.fieldnames
-    : isString(query.fieldnames)
-    ? [query.fieldnames]
-    : [];
   const widths = Array.isArray(query.widths)
     ? query.widths
     : isString(query.widths)
@@ -144,12 +137,10 @@ const decodeFields = (location: Location): Array<Field> => {
 
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
-    const title = fieldnames[i] ? fieldnames[i] : field;
-
     const w = Number(widths[i]);
     const width = !isNaN(w) ? w : COL_WIDTH_UNDEFINED;
 
-    parsed.push({field, title, width});
+    parsed.push({field, width});
   });
 
   return parsed;
@@ -390,11 +381,10 @@ class EventView {
 
   static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
     const fields = saved.fields.map((field, i) => {
-      const title = saved.fieldnames && saved.fieldnames[i] ? saved.fieldnames[i] : field;
       const width =
         saved.widths && saved.widths[i] ? Number(saved.widths[i]) : COL_WIDTH_UNDEFINED;
 
-      return {field, title, width};
+      return {field, width};
     });
     const yAxis = saved.yAxis;
 
@@ -483,7 +473,6 @@ class EventView {
       id: this.id,
       name: this.name || '',
       fields: this.getFields(),
-      fieldnames: this.getFieldNames(),
       widths: this.getWidths().map(w => String(w)),
       orderby,
       tags: this.tags,
@@ -520,7 +509,6 @@ class EventView {
       id: undefined,
       name: undefined,
       field: undefined,
-      fieldnames: undefined,
       widths: undefined,
       sort: undefined,
       tag: undefined,
@@ -540,7 +528,6 @@ class EventView {
       id: this.id,
       name: this.name,
       field: this.getFields(),
-      fieldnames: this.getFieldNames(),
       widths: this.getWidths(),
       sort: encodeSorts(this.sorts),
       tag: this.tags,
@@ -565,10 +552,6 @@ class EventView {
 
   getFields(): string[] {
     return this.fields.map(field => field.field);
-  }
-
-  getFieldNames(): string[] {
-    return this.fields.map(field => field.title);
   }
 
   getWidths(): number[] {
@@ -621,12 +604,8 @@ class EventView {
     const field = newColumn.field.trim();
     const aggregation = newColumn.aggregation.trim();
     const fieldAsString = generateFieldAsString({field, aggregation});
-    const name = newColumn.fieldname.trim();
-    const hasName = name.length > 0;
-
     const newField: Field = {
       field: fieldAsString,
-      title: hasName ? name : fieldAsString,
       width: newColumn.width || COL_WIDTH_UNDEFINED,
     };
 
@@ -648,16 +627,15 @@ class EventView {
     updatedColumn: Column,
     tableMeta: MetaType | undefined
   ): EventView {
-    const {aggregation, field, fieldname, width} = updatedColumn;
+    const {aggregation, field, width} = updatedColumn;
 
     const columnToBeUpdated = this.fields[columnIndex];
     const fieldAsString = generateFieldAsString({field, aggregation});
 
     const updateField = columnToBeUpdated.field !== fieldAsString;
-    const updateFieldName = columnToBeUpdated.title !== fieldname;
     const updateWidth = columnToBeUpdated.width !== width;
 
-    if (!updateField && !updateFieldName && !updateWidth) {
+    if (!updateField && !updateWidth) {
       return this;
     }
 
@@ -668,7 +646,6 @@ class EventView {
 
     const updatedField: Field = {
       field: fieldAsString,
-      title: fieldname,
       width: width || COL_WIDTH_UNDEFINED,
     };
 

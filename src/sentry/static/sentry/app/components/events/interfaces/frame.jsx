@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 import scrollToElement from 'scroll-to-element';
 
 import {defined, objectIsEmpty, isUrl} from 'app/utils';
@@ -25,6 +26,8 @@ import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import InlineSvg from 'app/components/inlineSvg';
 import {combineStatus} from 'app/components/events/interfaces/debugmeta';
+import {Assembly} from 'app/components/events/interfaces/assembly';
+import {parseAssembly} from 'app/components/events/interfaces/utils';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -116,12 +119,17 @@ export class Frame extends React.Component {
     return !objectIsEmpty(this.props.registers);
   }
 
+  hasAssembly() {
+    return this.getPlatform() === 'csharp' && defined(this.props.data.package);
+  }
+
   isExpandable() {
     return (
       (!this.props.isOnlyFrame && this.props.emptySourceNotation) ||
       this.hasContextSource() ||
       this.hasContextVars() ||
-      this.hasContextRegisters()
+      this.hasContextRegisters() ||
+      this.hasAssembly()
     );
   }
 
@@ -228,7 +236,11 @@ export class Frame extends React.Component {
 
       // in case we prioritized the module name but we also have a filename info
       // we want to show a litle (?) icon that on hover shows the actual filename
-      if (shouldPrioritizeModuleName && data.filename) {
+      if (
+        shouldPrioritizeModuleName &&
+        data.filename &&
+        this.getPlatform() !== 'csharp'
+      ) {
         title.push(
           <Tooltip key={data.filename} title={data.filename}>
             <a className="in-at real-filename">
@@ -279,7 +291,7 @@ export class Frame extends React.Component {
       );
     }
 
-    if (defined(data.package)) {
+    if (defined(data.package) && this.getPlatform() !== 'csharp') {
       title.push(
         <span className="within" key="within">
           {' '}
@@ -319,13 +331,14 @@ export class Frame extends React.Component {
     const hasContextSource = this.hasContextSource();
     const hasContextVars = this.hasContextVars();
     const hasContextRegisters = this.hasContextRegisters();
+    const hasAssembly = this.hasAssembly();
     const expandable = this.isExpandable();
 
     const contextLines = isExpanded
       ? data.context
       : data.context && data.context.filter(l => l[0] === data.lineNo);
 
-    if (hasContextSource || hasContextVars || hasContextRegisters) {
+    if (hasContextSource || hasContextVars || hasContextRegisters || hasAssembly) {
       const startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}>
@@ -340,7 +353,7 @@ export class Frame extends React.Component {
               const isActive = data.lineNo === line[0];
               const components = this.getSentryAppComponents();
               const hasComponents = isActive && components.length > 0;
-              const className = hasComponents
+              const contextLineCss = hasComponents
                 ? css`
                     background: inherit;
                     padding: 0;
@@ -356,7 +369,7 @@ export class Frame extends React.Component {
                   key={index}
                   line={line}
                   isActive={isActive}
-                  className={className}
+                  css={contextLineCss}
                 >
                   {hasComponents && (
                     <ErrorBoundary mini>
@@ -379,6 +392,10 @@ export class Frame extends React.Component {
               )}
               {hasContextVars && <FrameVariables data={data.vars} key="vars" />}
             </ClippedBox>
+          )}
+
+          {hasAssembly && (
+            <Assembly {...parseAssembly(data.package)} filePath={data.absPath} />
           )}
         </ol>
       );
@@ -403,6 +420,7 @@ export class Frame extends React.Component {
         title={t('Toggle context')}
         onClick={this.toggleContext}
         className="btn btn-sm btn-default btn-toggle"
+        css={this.getPlatform() === 'csharp' && {display: 'block !important'}} // remove important once we get rid of css files
       >
         <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'} />
       </a>
