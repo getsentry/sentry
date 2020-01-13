@@ -1,30 +1,32 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 
-class SearchBar extends React.PureComponent {
-  static propTypes = {
-    query: PropTypes.string,
-    defaultQuery: PropTypes.string,
-    onSearch: PropTypes.func,
-    placeholder: PropTypes.string,
-  };
+type Props = {
+  query: string;
+  defaultQuery: string;
+  onSearch: (query: string) => void;
+  placeholder?: string;
+  className?: string;
+};
 
-  static defaultProps = {
-    defaultQuery: '',
+type State = {
+  query: string;
+  dropdownVisible: boolean;
+};
+
+class SearchBar extends React.PureComponent<Props, State> {
+  static defaultProps: Partial<Props> = {
     query: '',
+    defaultQuery: '',
     onSearch: function() {},
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      query: this.props.query || this.props.defaultQuery,
-    };
-    this.searchInputRef = React.createRef();
-  }
+  state = {
+    query: this.props.query || this.props.defaultQuery,
+    dropdownVisible: false,
+  };
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     if (nextProps.query !== this.props.query) {
       this.setState({
         query: nextProps.query,
@@ -32,11 +34,15 @@ class SearchBar extends React.PureComponent {
     }
   }
 
+  searchInputRef = React.createRef<HTMLInputElement>();
+
   blur = () => {
-    this.searchInputRef.current.blur();
+    if (this.searchInputRef.current) {
+      this.searchInputRef.current.blur();
+    }
   };
 
-  onSubmit = evt => {
+  onSubmit = (evt: React.FormEvent<HTMLFormElement>) => {
     evt.preventDefault();
     this.blur();
     this.props.onSearch(this.state.query);
@@ -58,12 +64,13 @@ class SearchBar extends React.PureComponent {
     this.setState({dropdownVisible: false});
   };
 
-  onQueryChange = evt => {
+  onQueryChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({query: evt.target.value});
   };
 
   render() {
     const {className} = this.props;
+
     return (
       <div className={classNames('search', className)}>
         <form className="form-horizontal" onSubmit={this.onSubmit}>
