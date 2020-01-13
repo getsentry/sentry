@@ -8,8 +8,10 @@ if [ "${1:0:1}" = '-' ]; then
 	set -- sentry "$@"
 fi
 
+VALID_COMMANDS=$(python -c 'import pkgutil; import os.path; import sentry.runner.commands as c; print("|".join([name for _, name, _ in pkgutil.iter_modules([os.path.dirname(c
+.__file__)])]))')
 case "$1" in
-	celery|cleanup|config|createuser|devserver|django|exec|export|help|import|init|plugins|queues|repair|run|shell|start|tsdb|upgrade)
+	"$VALID_COMMANDS")
 		set -- sentry "$@"
 	;;
 esac
