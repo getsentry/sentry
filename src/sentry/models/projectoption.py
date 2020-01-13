@@ -55,7 +55,6 @@ class ProjectOptionManager(OptionManager):
         return self._option_cache.get(cache_key, {})
 
     def reload_cache(self, project_id):
-        schedule_update_config_cache(project_id=project_id, generate=True)
         cache_key = self._make_key(project_id)
         result = dict((i.key, i.value) for i in self.filter(project=project_id))
         cache.set(cache_key, result)
@@ -63,9 +62,11 @@ class ProjectOptionManager(OptionManager):
         return result
 
     def post_save(self, instance, **kwargs):
+        schedule_update_config_cache(project_id=instance.project_id, generate=True)
         self.reload_cache(instance.project_id)
 
     def post_delete(self, instance, **kwargs):
+        schedule_update_config_cache(project_id=instance.project_id, generate=True)
         self.reload_cache(instance.project_id)
 
 
