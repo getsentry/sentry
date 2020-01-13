@@ -16,8 +16,7 @@ from setuptools.command.develop import develop as DevelopCommand
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-# add sentry to path so we can import distutils
-# XXX: consequentially, this means sentry must be pip installed with --no-use-pep517
+# add sentry to path so we can import sentry.utils.distutils
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from sentry.utils.distutils import (
