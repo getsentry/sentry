@@ -30,7 +30,6 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
             facets = discover.get_facets(
                 query=request.GET.get("query"),
                 params=params,
-                limit=20,
                 referrer="api.organization-events-facets.top-tags",
             )
         except discover.InvalidSearchQuery as error:
