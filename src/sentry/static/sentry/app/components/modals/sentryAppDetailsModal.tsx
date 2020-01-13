@@ -24,7 +24,7 @@ import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = {
-  closeOnInstall?: boolean;
+  view?: 'integrations_page' | 'external_install';
   closeModal: () => void;
 } & SentryAppDetailsModalOptions &
   AsyncComponent['props'];
@@ -57,11 +57,11 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     onInstall: PropTypes.func.isRequired,
     isInstalled: PropTypes.bool.isRequired,
     closeModal: PropTypes.func.isRequired,
-    closeOnInstall: PropTypes.bool.isRequired,
+    view: PropTypes.string.isRequired,
   };
 
   static defaultProps = {
-    closeOnInstall: true,
+    view: 'integrations_page',
   };
 
   componentDidUpdate(prevProps: Props) {
@@ -76,7 +76,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
   }
 
   trackOpened() {
-    const {sentryApp, organization, isInstalled} = this.props;
+    const {sentryApp, organization, isInstalled, view} = this.props;
     recordInteraction(sentryApp.slug, 'sentry_app_viewed');
 
     trackIntegrationEvent(
@@ -86,9 +86,10 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
         integration_type: 'sentry_app',
         integration: sentryApp.slug,
         already_installed: isInstalled,
-        view: 'external_install',
+        view,
       },
-      organization
+      organization,
+      {startSession: view === 'external_install'} //new session on external installs
     );
   }
 
@@ -109,10 +110,10 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
   }
 
   onInstall() {
-    const {onInstall, closeModal, closeOnInstall} = this.props;
+    const {onInstall, closeModal, view} = this.props;
     onInstall();
-    // let onInstall handle redirection post install when onCloseInstall is false
-    closeOnInstall && closeModal();
+    // let onInstall handle redirection post install on the external install flow
+    view !== 'external_install' && closeModal();
   }
 
   renderPermissions() {

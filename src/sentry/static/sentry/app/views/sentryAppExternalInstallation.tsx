@@ -269,7 +269,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
             onInstall={this.onInstall}
             closeModal={this.onClose}
             isInstalled={this.disableInstall}
-            closeOnInstall={false}
+            view="external_install"
           />
         )}
       </div>
