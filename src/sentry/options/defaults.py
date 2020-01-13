@@ -149,6 +149,9 @@ register("snuba.search.max-total-chunk-time-seconds", default=30.0)
 register("snuba.search.hits-sample-size", default=100)
 register("snuba.track-outcomes-sample-rate", default=0.0)
 
+# The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
+register("snuba.tagstore.cache-tagkeys-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
+
 # Kafka Publisher
 register("kafka-publisher.raw-event-sample-rate", default=0.0)
 register("kafka-publisher.max-event-size", default=100000)
@@ -173,6 +176,7 @@ register("store.lie-about-filter-status", default=False)
 
 # Use Django event
 register("store.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
+register("eventstream.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
 
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints

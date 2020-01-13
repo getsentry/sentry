@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {MetricAction} from 'app/types/alerts';
 import {Organization, Project} from 'app/types';
@@ -16,6 +16,7 @@ import withProjects from 'app/utils/withProjects';
 
 type DeleteButtonProps = {
   triggerIndex: number;
+  disabled: boolean;
   onDelete: (triggerIndex: number, e: React.MouseEvent<Element>) => void;
 };
 
@@ -25,6 +26,7 @@ type DeleteButtonProps = {
 const DeleteButton: React.FC<DeleteButtonProps> = ({
   triggerIndex,
   onDelete,
+  disabled,
 }: DeleteButtonProps) => (
   <Button
     type="button"
@@ -32,6 +34,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
     size="xsmall"
     aria-label={t('Delete Trigger')}
     onClick={(e: React.MouseEvent<Element>) => onDelete(triggerIndex, e)}
+    disabled={disabled}
   >
     {t('Delete')}
   </Button>
@@ -44,6 +47,7 @@ type Props = {
   triggers: Trigger[];
   currentProject: string;
   availableActions: MetricAction[] | null;
+  disabled: boolean;
 
   errors: Map<number, {[fieldName: string]: string}>;
 
@@ -77,6 +81,7 @@ class Triggers extends React.Component<Props> {
       organization,
       projects,
       triggers,
+      disabled,
       onAdd,
     } = this.props;
 
@@ -95,6 +100,7 @@ class Triggers extends React.Component<Props> {
                 </Title>
                 {!isCritical && (
                   <DeleteButton
+                    disabled={disabled}
                     triggerIndex={index}
                     onDelete={this.handleDeleteTrigger}
                   />
@@ -102,6 +108,7 @@ class Triggers extends React.Component<Props> {
               </PanelHeader>
               <PanelBody>
                 <TriggerForm
+                  disabled={disabled}
                   isCritical={isCritical}
                   error={errors && errors.get(index)}
                   availableActions={availableActions}

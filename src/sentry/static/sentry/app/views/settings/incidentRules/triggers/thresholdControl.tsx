@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {
   ThresholdControlValue,
@@ -13,6 +13,7 @@ import space from 'app/styles/space';
 
 type Props = ThresholdControlValue & {
   type: AlertRuleThreshold;
+  disabled: boolean;
   onChange: (
     type: AlertRuleThreshold,
     value: ThresholdControlValue,
@@ -20,7 +21,14 @@ type Props = ThresholdControlValue & {
   ) => void;
 };
 
-function ThresholdControl({thresholdType, threshold, type, onChange, ...props}: Props) {
+function ThresholdControl({
+  thresholdType,
+  threshold,
+  type,
+  onChange,
+  disabled,
+  ...props
+}: Props) {
   const onChangeThresholdType = ({value}, e) => {
     onChange(
       type,
@@ -44,6 +52,7 @@ function ThresholdControl({thresholdType, threshold, type, onChange, ...props}: 
   return (
     <div {...props}>
       <SelectControl
+        disabled={disabled}
         name={`${thresholdName}ThresholdType`}
         value={getThresholdTypeForThreshold(type, thresholdType)}
         options={[
@@ -53,6 +62,7 @@ function ThresholdControl({thresholdType, threshold, type, onChange, ...props}: 
         onChange={onChangeThresholdType}
       />
       <Input
+        disabled={disabled}
         name={`${thresholdName}ThresholdInput`}
         type="number"
         placeholder="300"

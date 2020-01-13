@@ -68,6 +68,7 @@ class SnubaEventStorage(EventStorage):
             limit=limit,
             offset=offset,
             referrer=referrer,
+            dataset=snuba.Dataset.Events,
         )
 
         if "error" not in result:
@@ -120,6 +121,7 @@ class SnubaEventStorage(EventStorage):
                 end=event_time + timedelta(seconds=1),
                 filter_keys={"project_id": [project_id], "event_id": [event_id]},
                 limit=1,
+                referrer="eventstore.get_event_by_id_nodestore",
             )
 
             assert len(result["data"]) == 1
@@ -189,6 +191,9 @@ class SnubaEventStorage(EventStorage):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
 
         try:
+            # This query uses the discover dataset to enable
+            # getting events across both errors and transactions, which is
+            # required when doing pagination in discover
             result = snuba.dataset_query(
                 selected_columns=columns,
                 conditions=filter.conditions,
@@ -198,7 +203,7 @@ class SnubaEventStorage(EventStorage):
                 limit=1,
                 referrer="eventstore.get_next_or_prev_event_id",
                 orderby=orderby,
-                dataset=snuba.detect_dataset({"conditions": filter.conditions}),
+                dataset=snuba.Dataset.Discover,
             )
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging

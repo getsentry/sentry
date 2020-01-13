@@ -209,13 +209,13 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
                     "range": "24h",
                     "limit": 20,
                     "environment": ["dev"],
-                    "fieldnames": ["event id"],
+                    "yAxis": "count(id)",
                     "aggregations": [],
                     "orderby": "-time",
                 },
             )
         assert response.status_code == 400, response.content
-        assert "cannot use the environment, fieldnames attribute(s)" in response.content
+        assert "cannot use the environment, yAxis attribute(s)" in response.content
 
 
 class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
@@ -254,23 +254,6 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert response.status_code == 400, response.content
         assert "include at least one field" in response.content
 
-    def test_post_fieldnames_length_mismatch(self):
-        with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
-            response = self.client.post(
-                url,
-                {
-                    "name": "new query",
-                    "projects": self.project_ids,
-                    "fields": ["event", "count()", "project"],
-                    "fieldnames": ["event", "total"],
-                    "range": "24h",
-                    "version": 2,
-                },
-            )
-        assert response.status_code == 400, response.content
-        assert "equal number of field names and fields" in response.content
-
     def test_post_success(self):
         with self.feature(self.feature_name):
             url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
@@ -281,10 +264,8 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": self.project_ids,
                     "fields": ["title", "count()", "project"],
                     "environment": ["dev"],
-                    "fieldnames": ["event title", "total", "project"],
                     "query": "event.type:error browser.name:Firefox",
                     "range": "24h",
-                    "tags": ["release", "environment"],
                     "yAxis": "count(id)",
                     "version": 2,
                 },
@@ -292,28 +273,11 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert response.status_code == 201, response.content
         data = response.data
         assert data["fields"] == ["title", "count()", "project"]
-        assert data["fieldnames"] == ["event title", "total", "project"]
         assert data["range"] == "24h"
         assert data["environment"] == ["dev"]
         assert data["query"] == "event.type:error browser.name:Firefox"
-        assert data["tags"] == ["release", "environment"]
         assert data["yAxis"] == "count(id)"
         assert data["version"] == 2
-
-    def test_post_success_no_fieldnames(self):
-        with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
-            response = self.client.post(
-                url,
-                {
-                    "name": "new query",
-                    "projects": self.project_ids,
-                    "fields": ["event", "count()", "project"],
-                    "range": "24h",
-                    "version": 2,
-                },
-            )
-        assert response.status_code == 201, response.content
 
     def test_post_all_projects(self):
         with self.feature(self.feature_name):

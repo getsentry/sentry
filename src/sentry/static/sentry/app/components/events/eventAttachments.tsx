@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {Event, EventAttachment} from 'app/types';
@@ -109,7 +109,7 @@ class EventAttachments extends React.Component<Props, State> {
             <PanelBody>
               {attachmentList.map(attachment => {
                 return (
-                  <PanelItem key={attachment.id} align="center">
+                  <PanelItem key={attachment.id} alignItems="center">
                     <AttachmentName>{attachment.name}</AttachmentName>
                     <FileSizeWithGap bytes={attachment.size} />
                     <AttachmentUrl

@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
@@ -10,7 +10,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import pinIcon from 'app/../images/icons/icon-location-filled.svg';
+import pinIcon from 'app/../images/graph/icon-location-filled.svg';
 import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
 import floatFormat from 'app/utils/floatFormat';
@@ -35,7 +35,6 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   query: '',
   projects: [],
   fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
-  fieldnames: ['title', 'type', 'project', 'user', 'time'],
   orderby: '-timestamp',
   version: 2,
   tags: ['event.type', 'release', 'project.name', 'user.email', 'user.ip', 'environment'],
@@ -54,7 +53,6 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
       'p75',
       'p95',
     ],
-    fieldnames: ['transaction', 'project', 'count', 'avg', '75th', '95th'],
     orderby: '-count_id',
     query: 'event.type:transaction',
     tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
@@ -69,7 +67,6 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     id: undefined,
     name: t('Errors'),
     fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
-    fieldnames: ['error', 'count', 'users', 'project', 'last seen'],
     orderby: '-count_id',
     query: 'event.type:error',
     tags: ['project.name', 'release', 'environment'],
@@ -81,7 +78,6 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     id: undefined,
     name: t('Project Summary'),
     fields: ['project', 'count(id)', 'count_unique(issue.id)'],
-    fieldnames: ['project', 'count', 'unique errors'],
     orderby: '-count_id',
     query: 'event.type:error',
     tags: ['error.type', 'project.name', 'release', 'environment'],
@@ -93,7 +89,6 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     id: undefined,
     name: t('Errors by URL'),
     fields: ['url', 'count(id)', 'count_unique(issue.id)'],
-    fieldnames: ['URL', 'count', 'unique errors'],
     orderby: '-count_id',
     query: 'event.type:error',
     tags: ['error.type', 'project.name', 'url', 'release', 'environment'],
@@ -106,7 +101,6 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     id: undefined,
     name: t('Errors by Release'),
     fields: ['release', 'count(id)', 'count_unique(user)', 'timestamp'],
-    fieldnames: ['Release', 'Issue', 'Users', 'time'],
     orderby: '-count_id',
     tags: ['event.type', 'release', 'project', 'user.email', 'user.ip', 'environment'],
     projects: [],

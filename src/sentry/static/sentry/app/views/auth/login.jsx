@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import LoadingError from 'app/components/loadingError';
@@ -133,7 +133,7 @@ const FormWrapper = styled('div')`
   width: ${p => (p.hasAuthProviders ? '600px' : '490px')};
 `;
 
-const formFooterClass = css`
+const formFooterClass = `
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-gap: ${space(1)};

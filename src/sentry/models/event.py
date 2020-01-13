@@ -2,10 +2,8 @@ from __future__ import absolute_import
 
 import six
 import string
-import pytz
 
 from collections import OrderedDict
-from dateutil.parser import parse as parse_date
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -54,10 +52,6 @@ class EventDict(CanonicalKeyDict):
 
 
 class EventCommon(object):
-    """
-    Methods and properties common to both Event and SnubaEvent.
-    """
-
     @classmethod
     def generate_node_id(cls, project_id, event_id):
         """
@@ -117,16 +111,6 @@ class EventCommon(object):
 
     def get_interface(self, name):
         return self.interfaces.get(name)
-
-    def get_legacy_message(self):
-        # TODO: This is only used in the pagerduty plugin. We should use event.title
-        # there and remove this function once users have been notified, since PD
-        # alert routing may be based off the message field.
-        return (
-            get_path(self.data, "logentry", "formatted")
-            or get_path(self.data, "logentry", "message")
-            or self.message
-        )
 
     def get_event_type(self):
         """
@@ -363,174 +347,6 @@ class EventCommon(object):
         node_data = nodestore.get(node_id) or {}
         ref = self.data.get_ref(self)
         self.data.bind_data(node_data, ref=ref)
-
-
-class SnubaEvent(EventCommon):
-    """
-        An event backed by data stored in snuba.
-
-        This is a readonly event and does not support event creation or save.
-        The basic event data is fetched from snuba, and the event body is
-        fetched from nodestore and bound to the data property in the same way
-        as a regular Event.
-    """
-
-    # The minimal list of columns we need to get from snuba to bootstrap an
-    # event. If the client is planning on loading the entire event body from
-    # nodestore anyway, we may as well only fetch the minimum from snuba to
-    # avoid duplicated work.
-    minimal_columns = ["event_id", "group_id", "project_id", "timestamp"]
-
-    __repr__ = sane_repr("project_id", "group_id")
-
-    def __init__(self, snuba_values):
-        """
-            When initializing a SnubaEvent, think about the attributes you
-            might need to access on it. If you only need a few properties, and
-            they are all available in snuba, then you should use
-            `SnubaEvent.selected_colums` (or a subset depending on your needs)
-            But if you know you are going to need the entire event body anyway
-            (which requires a nodestore lookup) you may as well just initialize
-            the event with `SnubaEvent.minimal_colums` and let the rest of of
-            the attributes come from nodestore.
-        """
-        assert all(k in snuba_values for k in SnubaEvent.minimal_columns)
-
-        # self.snuba_data is a dict of all the stuff we got from snuba
-        self.snuba_data = snuba_values
-
-        # self.data is a (lazy) dict of everything we got from nodestore
-        node_id = SnubaEvent.generate_node_id(
-            self.snuba_data["project_id"], self.snuba_data["event_id"]
-        )
-        self.data = NodeData(node_id, data=None, wrapper=EventDict)
-
-    # ============================================
-    # Snuba-only implementations of properties that
-    # would otherwise require nodestore data.
-    # ============================================
-    @property
-    def tags(self):
-        """
-        Override of tags property that uses tags from snuba rather than
-        the nodestore event body. This might be useful for implementing
-        tag deletions without having to rewrite nodestore blobs.
-        """
-        if "tags.key" in self.snuba_data and "tags.value" in self.snuba_data:
-            keys = self.snuba_data["tags.key"]
-            values = self.snuba_data["tags.value"]
-            if keys and values and len(keys) == len(values):
-                return sorted(zip(keys, values))
-            else:
-                return []
-        else:
-            return super(SnubaEvent, self).tags
-
-    def get_minimal_user(self):
-        from sentry.interfaces.user import User
-
-        if all(key in self.snuba_data for key in ["user_id", "email", "username", "ip_address"]):
-            user_id = self.snuba_data["user_id"]
-            email = self.snuba_data["email"]
-            username = self.snuba_data["username"]
-            ip_address = self.snuba_data["ip_address"]
-
-            return User.to_python(
-                {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
-            )
-
-        return super(SnubaEvent, self).get_minimal_user()
-
-    # If the data for these is available from snuba, we assume
-    # it was already normalized on the way in and we can just return
-    # it, otherwise we defer to EventCommon implementation.
-    def get_event_type(self):
-        if "type" in self.snuba_data:
-            return self.snuba_data["type"]
-        return super(SnubaEvent, self).get_event_type()
-
-    @property
-    def ip_address(self):
-        if "ip_address" in self.snuba_data:
-            return self.snuba_data["ip_address"]
-        return super(SnubaEvent, self).ip_address
-
-    @property
-    def title(self):
-        if "title" in self.snuba_data:
-            return self.snuba_data["title"]
-        return super(SnubaEvent, self).title
-
-    @property
-    def culprit(self):
-        if "culprit" in self.snuba_data:
-            return self.snuba_data["culprit"]
-        return super(SnubaEvent, self).culprit
-
-    @property
-    def location(self):
-        if "location" in self.snuba_data:
-            return self.snuba_data["location"]
-        return super(SnubaEvent, self).location
-
-    # ====================================================
-    # Snuba implementations of the django fields on Event
-    # ====================================================
-    @property
-    def datetime(self):
-        """
-        Reconstruct the datetime of this event from the snuba timestamp
-        """
-        # dateutil seems to use tzlocal() instead of UTC even though the string
-        # ends with '+00:00', so just replace the TZ with UTC because we know
-        # all timestamps from snuba are UTC.
-        return parse_date(self.timestamp).replace(tzinfo=pytz.utc)
-
-    @property
-    def message(self):
-        if "message" in self.snuba_data:
-            return self.snuba_data["message"]
-        return self.real_message
-
-    @property
-    def platform(self):
-        if "platform" in self.snuba_data:
-            return self.snuba_data["platform"]
-        return self.data.get("platform")
-
-    @property
-    def id(self):
-        # Because a snuba event will never have a django row id, just return
-        # the hex event_id here. We should be moving to a world where we never
-        # have to reference the row id anyway.
-        return self.event_id
-
-    @property
-    def timestamp(self):
-        return self.snuba_data["timestamp"]
-
-    @property
-    def event_id(self):
-        return self.snuba_data["event_id"]
-
-    @property
-    def project_id(self):
-        return self.snuba_data["project_id"]
-
-    @project_id.setter
-    def project_id(self, value):
-        self.snuba_data["project_id"] = value
-
-    @property
-    def group_id(self):
-        return self.snuba_data["group_id"]
-
-    @group_id.setter
-    def group_id(self, value):
-        self.snuba_data["group_id"] = value
-
-    def save(self):
-        raise NotImplementedError
 
 
 def ref_func(x):

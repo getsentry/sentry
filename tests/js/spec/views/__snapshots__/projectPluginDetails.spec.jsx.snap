@@ -295,26 +295,26 @@ exports[`ProjectPluginDetails renders 1`] = `
                       </Button>
                     </div>
                   }
-                  className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+                  className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
                   noTitleStyles={false}
                   title="Amazon SQS"
                 >
                   <div
-                    className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+                    className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
                   >
                     <TitleAndActions>
                       <div
-                        className="css-b5tiyd-TitleAndActions e1uay4fd0"
+                        className="css-ifzfc5-TitleAndActions e1uay4fd0"
                       >
                         <Title
                           styled={false}
                         >
                           <div
-                            className="css-2kvddg-Title e1uay4fd1"
+                            className="css-120v9s3-Title e1uay4fd1"
                           >
                             <HeaderTitle>
                               <h4
-                                className="css-1w8ttcn-HeaderTitle eqkydle2"
+                                className="css-1bosio6-HeaderTitle eqkydle2"
                               >
                                 Amazon SQS
                               </h4>
@@ -323,7 +323,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                         </Title>
                         <Action>
                           <div
-                            className="css-18luhfc-Action e1uay4fd3"
+                            className="css-au7gsx-Action e1uay4fd3"
                           >
                             <div
                               className="pull-right"
@@ -355,7 +355,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   <ForwardRef
                                     aria-disabled={false}
                                     aria-label="Enable Plugin"
-                                    className="css-z6hjis-StyledButton-getColors edwq9my0"
+                                    className="css-12ogwys-StyledButton edwq9my0"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -369,7 +369,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     <button
                                       aria-disabled={false}
                                       aria-label="Enable Plugin"
-                                      className="css-z6hjis-StyledButton-getColors edwq9my0"
+                                      className="css-12ogwys-StyledButton edwq9my0"
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
@@ -385,11 +385,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       >
                                         <Component
                                           align="center"
-                                          className="css-1h693nz-ButtonLabel edwq9my1"
+                                          className="css-19gcr2f-ButtonLabel edwq9my1"
                                           size="small"
                                         >
                                           <span
-                                            className="css-1h693nz-ButtonLabel edwq9my1"
+                                            className="css-19gcr2f-ButtonLabel edwq9my1"
                                           >
                                             Enable Plugin
                                           </span>
@@ -416,7 +416,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   <ForwardRef
                                     aria-disabled={false}
                                     aria-label="Reset Configuration"
-                                    className="css-z6hjis-StyledButton-getColors edwq9my0"
+                                    className="css-12ogwys-StyledButton edwq9my0"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
@@ -425,7 +425,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     <button
                                       aria-disabled={false}
                                       aria-label="Reset Configuration"
-                                      className="css-z6hjis-StyledButton-getColors edwq9my0"
+                                      className="css-12ogwys-StyledButton edwq9my0"
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
@@ -436,11 +436,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       >
                                         <Component
                                           align="center"
-                                          className="css-1h693nz-ButtonLabel edwq9my1"
+                                          className="css-19gcr2f-ButtonLabel edwq9my1"
                                           size="small"
                                         >
                                           <span
-                                            className="css-1h693nz-ButtonLabel edwq9my1"
+                                            className="css-19gcr2f-ButtonLabel edwq9my1"
                                           >
                                             Reset Configuration
                                           </span>
@@ -599,27 +599,27 @@ exports[`ProjectPluginDetails renders 1`] = `
                         className="plugin-config ref-plugin-config-amazon-sqs"
                       >
                         <Component
-                          className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e119nu470"
+                          className="plugin-config ref-plugin-config-amazon-sqs css-15hwgrz-Panel e119nu470"
                         >
                           <div
-                            className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e119nu470"
+                            className="plugin-config ref-plugin-config-amazon-sqs css-15hwgrz-Panel e119nu470"
                           >
                             <PanelHeader
                               hasButtons={true}
                             >
                               <div
-                                className="css-113w9ek-PanelHeader-getPadding en8g1d30"
+                                className="css-yhsu7n-PanelHeader en8g1d30"
                               >
                                 <PluginName>
                                   <div
-                                    className="css-1uqkybv-PluginName e1ueudyh0"
+                                    className="css-1wbtb06-PluginName e1ueudyh0"
                                   >
                                     <StyledPluginIcon
                                       pluginId="amazon-sqs"
                                       size={20}
                                     >
                                       <div
-                                        className="css-cspdwe-PluginIcon-StyledPluginIcon e1ueudyh1"
+                                        className="css-10inpvs-PluginIcon-StyledPluginIcon e1ueudyh1"
                                         size={20}
                                       />
                                     </StyledPluginIcon>
@@ -636,81 +636,96 @@ exports[`ProjectPluginDetails renders 1`] = `
                               flex={false}
                             >
                               <PanelBody
-                                className="css-1shq0zk-StyledPanelBody e1ueudyh4"
+                                className="css-1b3dypq-StyledPanelBody e1ueudyh4"
                                 direction="column"
                                 disablePadding={true}
                                 flex={false}
                               >
-                                <div
-                                  className="e1ueudyh4 css-sykvmd-textStyles-StyledPanelBody"
+                                <EmotionCssPropInternal
+                                  __EMOTION_LABEL_PLEASE_DO_NOT_USE__="PanelBody"
+                                  __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
+                                  className="css-1b3dypq-StyledPanelBody e1ueudyh4"
+                                  css={
+                                    Object {
+                                      "map": undefined,
+                                      "name": "b1rh9y-PanelBody",
+                                      "next": undefined,
+                                      "styles": "h1,h2,h3,h4,h5,h6,p,ul,ol,table,dl,blockquote,form,pre,.auto-select-text,.section,[class^='highlight-']{margin-bottom:20px;&:last-child{margin-bottom:0;}}h1,h2,h3,h4,h5,h6{line-height:1.2;}p,ul,ol,blockquote{line-height:1.5;}h1{font-size:2em;}h2{font-size:1.75em;}h3{font-size:1.5em;}h4{font-size:1.25em;}h5{font-size:1em;}pre{word-break:break-all;white-space:pre-wrap;};;label:PanelBody;",
+                                      "toString": [Function],
+                                    }
+                                  }
                                 >
                                   <div
-                                    dangerouslySetInnerHTML={
-                                      Object {
-                                        "__html": undefined,
+                                    className="e1ueudyh4 css-6qfguy-PanelBody-StyledPanelBody"
+                                  >
+                                    <div
+                                      dangerouslySetInnerHTML={
+                                        Object {
+                                          "__html": undefined,
+                                        }
                                       }
-                                    }
-                                  />
-                                  <PluginSettings
-                                    organization={
-                                      Object {
-                                        "access": Array [
-                                          "org:read",
-                                          "org:write",
-                                          "org:admin",
-                                          "org:integrations",
-                                          "project:read",
-                                          "project:write",
-                                          "project:admin",
-                                          "team:read",
-                                          "team:write",
-                                          "team:admin",
-                                        ],
-                                        "features": Array [],
-                                        "id": "3",
-                                        "name": "Organization Name",
-                                        "onboardingTasks": Array [],
-                                        "projects": Array [],
-                                        "scrapeJavaScript": true,
-                                        "slug": "org-slug",
-                                        "status": Object {
-                                          "id": "active",
-                                          "name": "active",
-                                        },
-                                        "teams": Array [],
+                                    />
+                                    <PluginSettings
+                                      organization={
+                                        Object {
+                                          "access": Array [
+                                            "org:read",
+                                            "org:write",
+                                            "org:admin",
+                                            "org:integrations",
+                                            "project:read",
+                                            "project:write",
+                                            "project:admin",
+                                            "team:read",
+                                            "team:write",
+                                            "team:admin",
+                                          ],
+                                          "features": Array [],
+                                          "id": "3",
+                                          "name": "Organization Name",
+                                          "onboardingTasks": Array [],
+                                          "projects": Array [],
+                                          "scrapeJavaScript": true,
+                                          "slug": "org-slug",
+                                          "status": Object {
+                                            "id": "active",
+                                            "name": "active",
+                                          },
+                                          "teams": Array [],
+                                        }
                                       }
-                                    }
-                                    plugin={
-                                      DefaultPlugin {
-                                        "assets": Array [],
-                                        "author": Object {
-                                          "name": "Sentry Team",
-                                          "url": "https://github.com/getsentry/sentry",
-                                        },
-                                        "canDisable": true,
-                                        "enabled": false,
-                                        "hasConfiguration": true,
-                                        "id": "amazon-sqs",
-                                        "isHidden": false,
-                                        "name": "Amazon SQS",
-                                        "slug": "amazon-sqs",
-                                        "version": "8.23.0.dev0",
+                                      plugin={
+                                        DefaultPlugin {
+                                          "assets": Array [],
+                                          "author": Object {
+                                            "name": "Sentry Team",
+                                            "url": "https://github.com/getsentry/sentry",
+                                          },
+                                          "canDisable": true,
+                                          "enabled": false,
+                                          "hasConfiguration": true,
+                                          "id": "amazon-sqs",
+                                          "isHidden": false,
+                                          "name": "Amazon SQS",
+                                          "slug": "amazon-sqs",
+                                          "version": "8.23.0.dev0",
+                                        }
                                       }
-                                    }
-                                    project={
-                                      Object {
-                                        "environments": Array [],
-                                        "hasAccess": true,
-                                        "id": "2",
-                                        "isBookmarked": false,
-                                        "isMember": true,
-                                        "name": "Project Name",
-                                        "slug": "project-slug",
-                                        "teams": Array [],
+                                      project={
+                                        Object {
+                                          "environments": Array [],
+                                          "hasAccess": true,
+                                          "id": "2",
+                                          "isBookmarked": false,
+                                          "isMember": true,
+                                          "name": "Project Name",
+                                          "slug": "project-slug",
+                                          "teams": Array [],
+                                        }
                                       }
-                                    }
-                                  />
-                                </div>
+                                    />
+                                  </div>
+                                </EmotionCssPropInternal>
                               </PanelBody>
                             </StyledPanelBody>
                           </div>

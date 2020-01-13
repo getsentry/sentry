@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.contrib.auth import logout, REDIRECT_FIELD_NAME
 from django.contrib.auth.models import AnonymousUser
-from sudo.utils import is_safe_url
+from django.utils.http import is_safe_url
 
 from sentry.web.frontend.base import BaseView
 from sentry.utils import auth

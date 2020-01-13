@@ -7,6 +7,7 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import RuleForm from 'app/views/settings/incidentRules/ruleForm';
+import recreateRoute from 'app/utils/recreateRoute';
 import withOrganization from 'app/utils/withOrganization';
 
 type RouteParams = {
@@ -42,6 +43,12 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
       ],
     ];
   }
+
+  handleSubmitSuccess = () => {
+    const {params, routes, router, location} = this.props;
+
+    router.push(recreateRoute('', {params, routes, location, stepBack: -2}));
+  };
 
   // XXX(billy): This is temporary, ideally we want actions fetched with triggers?
   onRequestSuccess = async ({data}) => {
@@ -91,6 +98,7 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
         {...this.props}
         incidentRuleId={incidentRuleId}
         rule={this.getActions(rule, this.state.actions)}
+        onSubmitSuccess={this.handleSubmitSuccess}
       />
     );
   }

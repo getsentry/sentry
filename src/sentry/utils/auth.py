@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.core.urlresolvers import reverse, resolve
-from sudo.utils import is_safe_url
+from django.utils.http import is_safe_url
 from time import time
 
 from sentry.models import User, Authenticator
