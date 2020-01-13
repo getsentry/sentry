@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box} from 'reflexbox';
 import React from 'react';
 
 import {disconnectIdentity} from 'app/actionCreators/account';
@@ -65,7 +65,7 @@ class AccountIdentities extends AsyncView {
 
             {!isEmpty &&
               this.state.identities.map(identity => (
-                <PanelItem p={0} key={identity.id} align="center">
+                <PanelItem p={0} key={identity.id} alignItems="center">
                   <Box flex="1" p={2}>
                     {identity.providerLabel}
                   </Box>

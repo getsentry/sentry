@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`TextCopyInput renders 1`] = `
-<Flex>
+<Styled(div)>
   <OverflowContainer>
     <StyledInput
       onClick={[Function]}
@@ -30,5 +30,5 @@ exports[`TextCopyInput renders 1`] = `
       />
     </StyledCopyButton>
   </Clipboard>
-</Flex>
+</Styled(div)>
 `;

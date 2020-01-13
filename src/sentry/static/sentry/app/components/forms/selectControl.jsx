@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactSelect, {Async, Creatable, AsyncCreatable} from 'react-select';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
@@ -14,7 +15,7 @@ ReactSelect.Value.propTypes = {
   value: PropTypes.any,
 };
 
-export default class SelectControl extends React.Component {
+class SelectControl extends React.Component {
   static propTypes = {
     ...ReactSelect.propTypes,
     options: PropTypes.arrayOf(
@@ -103,10 +104,7 @@ SelectPicker.propTypes = {
   forwardedRef: PropTypes.any,
 };
 
-const forwardRef = (props, ref) => <SelectPicker forwardedRef={ref} {...props} />;
-forwardRef.displayName = 'SelectPicker';
-
-const StyledSelect = styled(React.forwardRef(forwardRef))`
+const StyledSelect = styled(SelectPicker)`
   font-size: 15px;
 
   .Select-control {
@@ -177,3 +175,13 @@ const StyledSelect = styled(React.forwardRef(forwardRef))`
       }
     `}
 `;
+
+const forwardRef = (props, ref) => <SelectControl forwardedRef={ref} {...props} />;
+forwardRef.displayName = 'RefForwardedSelectControl';
+
+const RefForwardedSelectControl = React.forwardRef(forwardRef);
+
+// TODO(ts): Needed because <SelectField> uses this
+RefForwardedSelectControl.propTypes = SelectControl.propTypes;
+
+export default RefForwardedSelectControl;

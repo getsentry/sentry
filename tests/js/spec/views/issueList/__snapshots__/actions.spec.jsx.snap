@@ -168,7 +168,7 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Cancel"
-                className="css-4gvaqq-StyledButton-getColors edwq9my0"
+                className="css-1c2phb1-StyledButton edwq9my0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -181,7 +181,7 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-4gvaqq-StyledButton-getColors edwq9my0"
+                  className="css-1c2phb1-StyledButton edwq9my0"
                   onClick={[Function]}
                   role="button"
                   style={
@@ -195,10 +195,10 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                   >
                     <Component
                       align="center"
-                      className="css-oo1m2a-ButtonLabel edwq9my1"
+                      className="css-zmpclt-ButtonLabel edwq9my1"
                     >
                       <span
-                        className="css-oo1m2a-ButtonLabel edwq9my1"
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                       >
                         Cancel
                       </span>
@@ -230,7 +230,7 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 aria-disabled={false}
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
-                className="css-xiynrq-StyledButton-getColors edwq9my0"
+                className="css-1e05jtd-StyledButton edwq9my0"
                 data-test-id="confirm-button"
                 disabled={false}
                 onClick={[Function]}
@@ -241,7 +241,7 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                   aria-disabled={false}
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
-                  className="css-xiynrq-StyledButton-getColors edwq9my0"
+                  className="css-1e05jtd-StyledButton edwq9my0"
                   data-test-id="confirm-button"
                   onClick={[Function]}
                   role="button"
@@ -252,11 +252,11 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                   >
                     <Component
                       align="center"
-                      className="css-oo1m2a-ButtonLabel edwq9my1"
+                      className="css-zmpclt-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
-                        className="css-oo1m2a-ButtonLabel edwq9my1"
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                       >
                         Bulk resolve issues
                       </span>
@@ -473,7 +473,7 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Cancel"
-                className="css-4gvaqq-StyledButton-getColors edwq9my0"
+                className="css-1c2phb1-StyledButton edwq9my0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -486,7 +486,7 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-4gvaqq-StyledButton-getColors edwq9my0"
+                  className="css-1c2phb1-StyledButton edwq9my0"
                   onClick={[Function]}
                   role="button"
                   style={
@@ -500,10 +500,10 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                   >
                     <Component
                       align="center"
-                      className="css-oo1m2a-ButtonLabel edwq9my1"
+                      className="css-zmpclt-ButtonLabel edwq9my1"
                     >
                       <span
-                        className="css-oo1m2a-ButtonLabel edwq9my1"
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                       >
                         Cancel
                       </span>
@@ -535,7 +535,7 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 aria-disabled={false}
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
-                className="css-xiynrq-StyledButton-getColors edwq9my0"
+                className="css-1e05jtd-StyledButton edwq9my0"
                 data-test-id="confirm-button"
                 disabled={false}
                 onClick={[Function]}
@@ -546,7 +546,7 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                   aria-disabled={false}
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
-                  className="css-xiynrq-StyledButton-getColors edwq9my0"
+                  className="css-1e05jtd-StyledButton edwq9my0"
                   data-test-id="confirm-button"
                   onClick={[Function]}
                   role="button"
@@ -557,11 +557,11 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                   >
                     <Component
                       align="center"
-                      className="css-oo1m2a-ButtonLabel edwq9my1"
+                      className="css-zmpclt-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
-                        className="css-oo1m2a-ButtonLabel edwq9my1"
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                       >
                         Bulk resolve issues
                       </span>
