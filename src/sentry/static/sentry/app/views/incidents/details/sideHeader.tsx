@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 
 type Props = {
   className?: string;
-  loading: boolean;
+  loading?: boolean;
   children: React.ReactNode;
 };
 
@@ -17,7 +17,7 @@ const SideHeader = styled(function SideHeader({className, loading, children}: Pr
     </h6>
   );
 })`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray2};
   font-weight: bold;
   margin-bottom: ${space(1)};
   text-transform: uppercase;
@@ -25,7 +25,7 @@ const SideHeader = styled(function SideHeader({className, loading, children}: Pr
 
 const Title = styled('span', {
   shouldForwardProp: p => isPropValid(p) && p !== 'loading',
-})<{loading: boolean}>`
+})<{loading?: boolean}>`
   ${p =>
     p.loading
       ? `
