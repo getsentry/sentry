@@ -284,12 +284,14 @@ const GroupDetailsActions = createReactClass({
 
         <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
 
-        <div
-          className={bookmarkClassName}
-          title={t('Bookmark')}
-          onClick={this.onToggleBookmark}
-        >
-          <span className="icon-star-solid" />
+        <div className="btn-group">
+          <div
+            className={bookmarkClassName}
+            title={t('Bookmark')}
+            onClick={this.onToggleBookmark}
+          >
+            <span className="icon-star-solid" />
+          </div>
         </div>
 
         <DeleteActions
@@ -313,13 +315,15 @@ const GroupDetailsActions = createReactClass({
         )}
 
         {orgFeatures.has('events-v2') && (
-          <Link
-            className={buttonClassName}
-            title={t('Open in Discover')}
-            to={this.getDiscoverUrl()}
-          >
-            {t('Open in Discover')}
-          </Link>
+          <div className="btn-group">
+            <Link
+              className={buttonClassName}
+              title={t('Open in Discover')}
+              to={this.getDiscoverUrl()}
+            >
+              {t('Open in Discover')}
+            </Link>
+          </div>
         )}
       </div>
     );
