@@ -139,7 +139,8 @@ class EventNodeStoreTest(TestCase):
             event.bind_node_data()
 
     def test_accepts_valid_ref(self):
-        event = self.store_event(data={}, project_id=self.project.id)
+        self.store_event(data={"event_id": "a" * 32}, project_id=self.project.id)
+        event = Event(project_id=self.project.id, event_id="a" * 32)
         event.data.bind_ref(event)
         event.bind_node_data()
         assert event.data.ref == event.project.id
