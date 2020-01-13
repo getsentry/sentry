@@ -1461,7 +1461,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                                     platform="default"
                                                                     size={14}
                                                                   >
-                                                                    <Platformicon
+                                                                    <PlatformIcon
                                                                       className="css-7okses-StyledPlatformIcon ezvce7z1"
                                                                       platform="default"
                                                                       size="14px"
@@ -1479,7 +1479,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                                         }
                                                                         width="14px"
                                                                       />
-                                                                    </Platformicon>
+                                                                    </PlatformIcon>
                                                                   </Component>
                                                                 </StyledPlatformIcon>
                                                               </div>

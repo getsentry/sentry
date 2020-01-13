@@ -53,17 +53,24 @@ const PLATFORM_TO_ICON = {
   // We need to figure out what is causing it to be python-pythonawslambda
 };
 
-export function getIcon(platform) {
+export function getIcon(platform: string): string {
   const icon = PLATFORM_TO_ICON[platform];
 
   if (!icon) {
     return 'generic';
-  } else {
-    return icon;
   }
+
+  return icon;
 }
 
-const Platformicon = ({platform, size, width, height, ...props}) => {
+type Props = {
+  platform: string;
+  size?: string;
+  width?: string;
+  height?: string;
+};
+
+const PlatformIcon: React.FC<Props> = ({platform, size, width, height, ...props}) => {
   const icon = getIcon(platform);
 
   return (
@@ -76,11 +83,11 @@ const Platformicon = ({platform, size, width, height, ...props}) => {
   );
 };
 
-Platformicon.propTypes = {
+PlatformIcon.propTypes = {
   platform: PropTypes.string.isRequired,
   size: PropTypes.string,
   width: PropTypes.string,
   height: PropTypes.string,
 };
 
-export default Platformicon;
+export default PlatformIcon;
