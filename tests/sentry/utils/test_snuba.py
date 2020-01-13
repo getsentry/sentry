@@ -5,15 +5,12 @@ import pytest
 import pytz
 
 from sentry.models import GroupRelease, Release
-from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils import TestCase
 from sentry.utils.snuba import (
     _prepare_query_params,
     get_snuba_translators,
-    zerofill,
     get_json_type,
     get_snuba_column_name,
-    transform_aliases_and_query,
     Dataset,
     SnubaQueryParams,
     UnqualifiedQueryError,
@@ -142,22 +139,6 @@ class SnubaUtilsTest(TestCase):
             },
         ]
 
-    def test_zerofill(self):
-        results = zerofill(
-            {}, datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, "time"
-        )
-        results_desc = zerofill(
-            {}, datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, "-time"
-        )
-
-        assert results == list(reversed(results_desc))
-
-        # Bucket for the 2, 3, 4, 5, 6, 7, 8, 9
-        assert len(results) == 8
-
-        assert results[0]["time"] == 1546387200
-        assert results[7]["time"] == 1546992000
-
     def test_get_json_type(self):
         assert get_json_type("UInt8") == "boolean"
         assert get_json_type("UInt16") == "integer"
@@ -180,105 +161,6 @@ class SnubaUtilsTest(TestCase):
         # This is odd behavior but captures what we do currently.
         assert get_snuba_column_name("tags[sentry:user]") == "tags[tags[sentry:user]]"
         assert get_snuba_column_name("organization") == "tags[organization]"
-
-
-class TransformAliasesAndQueryTest(SnubaTestCase, TestCase):
-    def setUp(self):
-        super(TransformAliasesAndQueryTest, self).setUp()
-        self.environment = self.create_environment(self.project, name="prod")
-        self.release = self.create_release(self.project, version="first-release")
-
-        self.store_event(
-            data={
-                "message": "oh no",
-                "release": "first-release",
-                "environment": "prod",
-                "platform": "python",
-                "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(before_now(minutes=1)),
-            },
-            project_id=self.project.id,
-        )
-
-    def test_field_aliasing_in_selected_columns(self):
-        result = transform_aliases_and_query(
-            selected_columns=["project.id", "user.email", "release"],
-            filter_keys={"project_id": [self.project.id]},
-        )
-        data = result["data"]
-        assert len(data) == 1
-        assert data[0]["project.id"] == self.project.id
-        assert data[0]["user.email"] == "bruce@example.com"
-        assert data[0]["release"] == "first-release"
-
-    def test_field_aliasing_in_aggregate_functions_and_groupby(self):
-        result = transform_aliases_and_query(
-            selected_columns=["project.id"],
-            aggregations=[["uniq", "user.email", "uniq_email"]],
-            filter_keys={"project_id": [self.project.id]},
-            groupby=["project.id"],
-        )
-        data = result["data"]
-        assert len(data) == 1
-        assert data[0]["project.id"] == self.project.id
-        assert data[0]["uniq_email"] == 1
-
-    def test_field_aliasing_in_conditions(self):
-        result = transform_aliases_and_query(
-            selected_columns=["project.id", "user.email"],
-            conditions=[["user.email", "=", "bruce@example.com"]],
-            filter_keys={"project_id": [self.project.id]},
-        )
-        data = result["data"]
-        assert len(data) == 1
-        assert data[0]["project.id"] == self.project.id
-        assert data[0]["user.email"] == "bruce@example.com"
-
-    def test_autoconversion_of_time_column(self):
-        result = transform_aliases_and_query(
-            aggregations=[["count", "", "count"]],
-            filter_keys={"project_id": [self.project.id]},
-            start=before_now(minutes=5),
-            end=before_now(),
-            groupby=["time"],
-            orderby=["time"],
-            rollup=3600,
-        )
-        data = result["data"]
-        assert isinstance(data[-1]["time"], int)
-        assert data[-1]["count"] == 1
-
-    def test_conversion_of_release_filter_key(self):
-        result = transform_aliases_and_query(
-            selected_columns=["id", "message"],
-            filter_keys={
-                "release": [self.create_release(self.project).id],
-                "project_id": [self.project.id],
-            },
-        )
-        assert len(result["data"]) == 0
-
-        result = transform_aliases_and_query(
-            selected_columns=["id", "message"],
-            filter_keys={"release": [self.release.id], "project_id": [self.project.id]},
-        )
-        assert len(result["data"]) == 1
-
-    def test_conversion_of_environment_filter_key(self):
-        result = transform_aliases_and_query(
-            selected_columns=["id", "message"],
-            filter_keys={
-                "environment": [self.create_environment(self.project).id],
-                "project_id": [self.project.id],
-            },
-        )
-        assert len(result["data"]) == 0
-
-        result = transform_aliases_and_query(
-            selected_columns=["id", "message"],
-            filter_keys={"environment": [self.environment.id], "project_id": [self.project.id]},
-        )
-        assert len(result["data"]) == 1
 
 
 class PrepareQueryParamsTest(TestCase):
