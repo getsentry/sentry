@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import datetime
 import functools
 import six
 from collections import defaultdict, Iterable
@@ -66,11 +67,24 @@ def cache_suffix_timeformat(time, key_hash, duration=300):
         The end of the duration will be different per key_hash which avoids spikes in the number of queries
         Must be based on the key_hash so they cache keys are consistent per query
     """
-    return u"{}:{}:{}".format(
-        time.date().isoformat(),
-        time.hour,
-        (time.minute * 60 + time.second + key_hash % duration) // duration * duration,
-    )
+    # Use the hash so that seconds past the hour gets rounded differently per query.
+    jitter = key_hash % duration
+    seconds_past_hour = time.minute * 60 + time.second
+    # Round seconds to a multiple of duration, cause this uses "floor" division shouldn't give us a future window
+    time_window_start = seconds_past_hour // duration * duration + jitter
+    # If the time is past the rounded seconds then we want our key to be for this timewindow
+    if time_window_start < seconds_past_hour:
+        seconds_past_hour = time_window_start
+    # Otherwise we're in the previous time window, subtract duration to give us the previous timewindows start
+    else:
+        seconds_past_hour = time_window_start - duration
+    return (
+        # Since we're adding seconds past the hour, we want time but without minutes or seconds
+        datetime.datetime(time.year, time.month, time.day, time.hour)
+        +
+        # Use timedelta here so keys are consistent around hour boundaries
+        datetime.timedelta(seconds=seconds_past_hour)
+    ).isoformat()
 
 
 class SnubaTagStorage(TagStorage):
@@ -231,11 +245,11 @@ class SnubaTagStorage(TagStorage):
 
         # If we want to continue attempting to cache after checking against the cache rate
         if should_cache:
-            cache_key += u":{}.{}".format(
-                cache_suffix_timeformat(start, key_hash), cache_suffix_timeformat(end, key_hash)
+            cache_key += u":{}@{}".format(
+                (end - start).total_seconds(), cache_suffix_timeformat(end, key_hash)
             )
             result = cache.get(cache_key, None)
-            if result:
+            if result is not None:
                 metrics.incr("testing.tagstore.cache_tag_key.hit")
             else:
                 metrics.incr("testing.tagstore.cache_tag_key.miss")
