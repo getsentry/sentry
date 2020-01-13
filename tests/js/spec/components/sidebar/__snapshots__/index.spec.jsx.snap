@@ -617,9 +617,10 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                         className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
                       >
                         <div
-                          className="e1fowdfw2 css-qu415y-StyledUserBadge-UserBadgeNoOverflow ev46mzr0"
+                          className="e1fowdfw2 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
                         >
                           <StyledAvatar
+                            gravatar={false}
                             size={32}
                             user={
                               Object {
@@ -639,8 +640,9 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                               }
                             }
                           >
-                            <Component
-                              className="css-593o0g-StyledAvatar ev46mzr4"
+                            <UserAvatar
+                              className="css-593o0g-StyledAvatar e31z2f84"
+                              gravatar={false}
                               size={32}
                               user={
                                 Object {
@@ -660,52 +662,39 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                 }
                               }
                             >
-                              <UserAvatar
-                                className="css-593o0g-StyledAvatar ev46mzr4"
-                                gravatar={false}
+                              <BaseAvatar
+                                className="css-593o0g-StyledAvatar e31z2f84"
+                                gravatarId="foo@example.com"
+                                hasTooltip={false}
+                                letterId="foo@example.com"
+                                round={true}
                                 size={32}
-                                user={
-                                  Object {
-                                    "email": "foo@example.com",
-                                    "flags": Object {
-                                      "newsletter_consent_prompt": false,
-                                    },
-                                    "hasPasswordAuth": true,
-                                    "id": "1",
-                                    "isAuthenticated": true,
-                                    "name": "Foo Bar",
-                                    "options": Object {
-                                      "timezone": "UTC",
-                                    },
-                                    "permissions": Set {},
-                                    "username": "foo@example.com",
-                                  }
-                                }
+                                style={Object {}}
+                                title="Foo Bar"
+                                tooltip="Foo Bar (foo@example.com)"
+                                type="letter_avatar"
+                                uploadId=""
+                                uploadPath="avatar"
                               >
-                                <BaseAvatar
-                                  className="css-593o0g-StyledAvatar ev46mzr4"
-                                  gravatarId="foo@example.com"
-                                  hasTooltip={false}
-                                  letterId="foo@example.com"
-                                  round={true}
-                                  size={32}
-                                  style={Object {}}
-                                  title="Foo Bar"
-                                  tooltip="Foo Bar (foo@example.com)"
-                                  type="letter_avatar"
-                                  uploadId=""
-                                  uploadPath="avatar"
+                                <Tooltip
+                                  containerDisplayMode="inline-block"
+                                  disabled={true}
+                                  position="top"
+                                  title="Foo Bar (foo@example.com)"
                                 >
-                                  <Tooltip
-                                    containerDisplayMode="inline-block"
-                                    disabled={true}
-                                    position="top"
-                                    title="Foo Bar (foo@example.com)"
+                                  <StyledBaseAvatar
+                                    className="avatar css-593o0g-StyledAvatar e31z2f84"
+                                    loaded={true}
+                                    round={true}
+                                    style={
+                                      Object {
+                                        "height": "32px",
+                                        "width": "32px",
+                                      }
+                                    }
                                   >
-                                    <StyledBaseAvatar
-                                      className="avatar css-593o0g-StyledAvatar ev46mzr4"
-                                      loaded={true}
-                                      round={true}
+                                    <span
+                                      className="avatar e31z2f84 css-13sepyg-StyledBaseAvatar-StyledAvatar e147uwb0"
                                       style={
                                         Object {
                                           "height": "32px",
@@ -713,76 +702,66 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                         }
                                       }
                                     >
-                                      <span
-                                        className="avatar ev46mzr4 css-13sepyg-StyledBaseAvatar-StyledAvatar e147uwb0"
-                                        style={
-                                          Object {
-                                            "height": "32px",
-                                            "width": "32px",
-                                          }
-                                        }
+                                      <LetterAvatar
+                                        displayName="Foo Bar"
+                                        identifier="foo@example.com"
+                                        round={true}
                                       >
-                                        <LetterAvatar
+                                        <Component
+                                          className="css-1oxr9oh-LetterAvatar e12lgfev0"
                                           displayName="Foo Bar"
                                           identifier="foo@example.com"
                                           round={true}
                                         >
-                                          <Component
+                                          <svg
                                             className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                            displayName="Foo Bar"
-                                            identifier="foo@example.com"
-                                            round={true}
+                                            viewBox="0 0 120 120"
                                           >
-                                            <svg
-                                              className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                              viewBox="0 0 120 120"
-                                            >
-                                              <rect
-                                                fill="#315cac"
-                                                height="120"
-                                                rx="15"
-                                                ry="15"
-                                                width="120"
-                                                x="0"
-                                                y="0"
-                                              />
-                                              <text
-                                                fill="#FFFFFF"
-                                                fontSize="65"
-                                                style={
-                                                  Object {
-                                                    "dominantBaseline": "central",
-                                                  }
+                                            <rect
+                                              fill="#315cac"
+                                              height="120"
+                                              rx="15"
+                                              ry="15"
+                                              width="120"
+                                              x="0"
+                                              y="0"
+                                            />
+                                            <text
+                                              fill="#FFFFFF"
+                                              fontSize="65"
+                                              style={
+                                                Object {
+                                                  "dominantBaseline": "central",
                                                 }
-                                                textAnchor="middle"
-                                                x="50%"
-                                                y="50%"
-                                              >
-                                                FB
-                                              </text>
-                                            </svg>
-                                          </Component>
-                                        </LetterAvatar>
-                                      </span>
-                                    </StyledBaseAvatar>
-                                  </Tooltip>
-                                </BaseAvatar>
-                              </UserAvatar>
-                            </Component>
+                                              }
+                                              textAnchor="middle"
+                                              x="50%"
+                                              y="50%"
+                                            >
+                                              FB
+                                            </text>
+                                          </svg>
+                                        </Component>
+                                      </LetterAvatar>
+                                    </span>
+                                  </StyledBaseAvatar>
+                                </Tooltip>
+                              </BaseAvatar>
+                            </UserAvatar>
                           </StyledAvatar>
                           <StyledNameAndEmail>
                             <div
-                              className="css-14b4oxh-StyledNameAndEmail ev46mzr1"
+                              className="css-14b4oxh-StyledNameAndEmail e31z2f81"
                             >
                               <StyledName
                                 hideEmail={false}
                               >
                                 <Component
-                                  className="css-19h2nhd-StyledName ev46mzr3"
+                                  className="css-19h2nhd-StyledName e31z2f83"
                                   hideEmail={false}
                                 >
                                   <span
-                                    className="css-19h2nhd-StyledName ev46mzr3"
+                                    className="css-19h2nhd-StyledName e31z2f83"
                                   >
                                     Foo Bar
                                   </span>
@@ -790,7 +769,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                               </StyledName>
                               <StyledEmail>
                                 <div
-                                  className="css-zdh78r-StyledEmail ev46mzr2"
+                                  className="css-zdh78r-StyledEmail e31z2f82"
                                 >
                                   foo@example.com
                                 </div>
@@ -3364,9 +3343,10 @@ exports[`Sidebar renders without org and router 1`] = `
                         className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
                       >
                         <div
-                          className="e1fowdfw2 css-qu415y-StyledUserBadge-UserBadgeNoOverflow ev46mzr0"
+                          className="e1fowdfw2 css-qu415y-StyledUserBadge-UserBadgeNoOverflow e31z2f80"
                         >
                           <StyledAvatar
+                            gravatar={false}
                             size={32}
                             user={
                               Object {
@@ -3386,8 +3366,9 @@ exports[`Sidebar renders without org and router 1`] = `
                               }
                             }
                           >
-                            <Component
-                              className="css-593o0g-StyledAvatar ev46mzr4"
+                            <UserAvatar
+                              className="css-593o0g-StyledAvatar e31z2f84"
+                              gravatar={false}
                               size={32}
                               user={
                                 Object {
@@ -3407,52 +3388,39 @@ exports[`Sidebar renders without org and router 1`] = `
                                 }
                               }
                             >
-                              <UserAvatar
-                                className="css-593o0g-StyledAvatar ev46mzr4"
-                                gravatar={false}
+                              <BaseAvatar
+                                className="css-593o0g-StyledAvatar e31z2f84"
+                                gravatarId="foo@example.com"
+                                hasTooltip={false}
+                                letterId="foo@example.com"
+                                round={true}
                                 size={32}
-                                user={
-                                  Object {
-                                    "email": "foo@example.com",
-                                    "flags": Object {
-                                      "newsletter_consent_prompt": false,
-                                    },
-                                    "hasPasswordAuth": true,
-                                    "id": "1",
-                                    "isAuthenticated": true,
-                                    "name": "Foo Bar",
-                                    "options": Object {
-                                      "timezone": "UTC",
-                                    },
-                                    "permissions": Set {},
-                                    "username": "foo@example.com",
-                                  }
-                                }
+                                style={Object {}}
+                                title="Foo Bar"
+                                tooltip="Foo Bar (foo@example.com)"
+                                type="letter_avatar"
+                                uploadId=""
+                                uploadPath="avatar"
                               >
-                                <BaseAvatar
-                                  className="css-593o0g-StyledAvatar ev46mzr4"
-                                  gravatarId="foo@example.com"
-                                  hasTooltip={false}
-                                  letterId="foo@example.com"
-                                  round={true}
-                                  size={32}
-                                  style={Object {}}
-                                  title="Foo Bar"
-                                  tooltip="Foo Bar (foo@example.com)"
-                                  type="letter_avatar"
-                                  uploadId=""
-                                  uploadPath="avatar"
+                                <Tooltip
+                                  containerDisplayMode="inline-block"
+                                  disabled={true}
+                                  position="top"
+                                  title="Foo Bar (foo@example.com)"
                                 >
-                                  <Tooltip
-                                    containerDisplayMode="inline-block"
-                                    disabled={true}
-                                    position="top"
-                                    title="Foo Bar (foo@example.com)"
+                                  <StyledBaseAvatar
+                                    className="avatar css-593o0g-StyledAvatar e31z2f84"
+                                    loaded={true}
+                                    round={true}
+                                    style={
+                                      Object {
+                                        "height": "32px",
+                                        "width": "32px",
+                                      }
+                                    }
                                   >
-                                    <StyledBaseAvatar
-                                      className="avatar css-593o0g-StyledAvatar ev46mzr4"
-                                      loaded={true}
-                                      round={true}
+                                    <span
+                                      className="avatar e31z2f84 css-13sepyg-StyledBaseAvatar-StyledAvatar e147uwb0"
                                       style={
                                         Object {
                                           "height": "32px",
@@ -3460,76 +3428,66 @@ exports[`Sidebar renders without org and router 1`] = `
                                         }
                                       }
                                     >
-                                      <span
-                                        className="avatar ev46mzr4 css-13sepyg-StyledBaseAvatar-StyledAvatar e147uwb0"
-                                        style={
-                                          Object {
-                                            "height": "32px",
-                                            "width": "32px",
-                                          }
-                                        }
+                                      <LetterAvatar
+                                        displayName="Foo Bar"
+                                        identifier="foo@example.com"
+                                        round={true}
                                       >
-                                        <LetterAvatar
+                                        <Component
+                                          className="css-1oxr9oh-LetterAvatar e12lgfev0"
                                           displayName="Foo Bar"
                                           identifier="foo@example.com"
                                           round={true}
                                         >
-                                          <Component
+                                          <svg
                                             className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                            displayName="Foo Bar"
-                                            identifier="foo@example.com"
-                                            round={true}
+                                            viewBox="0 0 120 120"
                                           >
-                                            <svg
-                                              className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                              viewBox="0 0 120 120"
-                                            >
-                                              <rect
-                                                fill="#315cac"
-                                                height="120"
-                                                rx="15"
-                                                ry="15"
-                                                width="120"
-                                                x="0"
-                                                y="0"
-                                              />
-                                              <text
-                                                fill="#FFFFFF"
-                                                fontSize="65"
-                                                style={
-                                                  Object {
-                                                    "dominantBaseline": "central",
-                                                  }
+                                            <rect
+                                              fill="#315cac"
+                                              height="120"
+                                              rx="15"
+                                              ry="15"
+                                              width="120"
+                                              x="0"
+                                              y="0"
+                                            />
+                                            <text
+                                              fill="#FFFFFF"
+                                              fontSize="65"
+                                              style={
+                                                Object {
+                                                  "dominantBaseline": "central",
                                                 }
-                                                textAnchor="middle"
-                                                x="50%"
-                                                y="50%"
-                                              >
-                                                FB
-                                              </text>
-                                            </svg>
-                                          </Component>
-                                        </LetterAvatar>
-                                      </span>
-                                    </StyledBaseAvatar>
-                                  </Tooltip>
-                                </BaseAvatar>
-                              </UserAvatar>
-                            </Component>
+                                              }
+                                              textAnchor="middle"
+                                              x="50%"
+                                              y="50%"
+                                            >
+                                              FB
+                                            </text>
+                                          </svg>
+                                        </Component>
+                                      </LetterAvatar>
+                                    </span>
+                                  </StyledBaseAvatar>
+                                </Tooltip>
+                              </BaseAvatar>
+                            </UserAvatar>
                           </StyledAvatar>
                           <StyledNameAndEmail>
                             <div
-                              className="css-14b4oxh-StyledNameAndEmail ev46mzr1"
+                              className="css-14b4oxh-StyledNameAndEmail e31z2f81"
                             >
                               <StyledName
                                 hideEmail={false}
                               >
                                 <Component
-                                  className="css-19h2nhd-StyledName ev46mzr3"
+                                  className="css-19h2nhd-StyledName e31z2f83"
                                   hideEmail={false}
                                 >
                                   <span
-                                    className="css-19h2nhd-StyledName ev46mzr3"
+                                    className="css-19h2nhd-StyledName e31z2f83"
                                   >
                                     Foo Bar
                                   </span>
@@ -3537,7 +3495,7 @@ exports[`Sidebar renders without org and router 1`] = `
                               </StyledName>
                               <StyledEmail>
                                 <div
-                                  className="css-zdh78r-StyledEmail ev46mzr2"
+                                  className="css-zdh78r-StyledEmail e31z2f82"
                                 >
                                   foo@example.com
                                 </div>
