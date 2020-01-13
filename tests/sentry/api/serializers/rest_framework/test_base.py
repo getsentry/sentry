@@ -32,6 +32,7 @@ class CamelSnakeSerializerTest(TestCase):
             "name": [u"This field is required."],
         }
 
+
 class ContentTypeSerializer(CamelSnakeModelSerializer):
     class Meta:
         model = ContentType
