@@ -4,35 +4,36 @@ import styled from '@emotion/styled';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {Organization} from 'app/types';
+import {tn} from 'app/locale';
 
-class SidebarOrgSummary extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-  };
+type Props = {
+  organization: Organization;
+};
 
-  render() {
-    const {organization} = this.props;
-    const projects = organization.projects && organization.projects.length;
-    const extra = [];
+const SidebarOrgSummary: React.FC<Props> = ({organization}) => {
+  const projects = organization.projects && organization.projects.length;
+  const extra: string[] = [];
 
-    if (projects) {
-      extra.push(`${projects} projects`);
-    }
-
-    return (
-      <OrgSummary>
-        <OrganizationAvatar css={{flexShrink: 0}} organization={organization} size={36} />
-
-        <Details>
-          <SummaryOrgName>{organization.name}</SummaryOrgName>
-          {!!extra.length && <SummaryOrgDetails>{extra.join(', ')}</SummaryOrgDetails>}
-        </Details>
-      </OrgSummary>
-    );
+  if (projects) {
+    extra.push(tn('%d project', '%d projects', projects));
   }
-}
 
-export default SidebarOrgSummary;
+  return (
+    <OrgSummary>
+      <OrganizationAvatar organization={organization} size={36} />
+
+      <Details>
+        <SummaryOrgName>{organization.name}</SummaryOrgName>
+        {!!extra.length && <SummaryOrgDetails>{extra.join(', ')}</SummaryOrgDetails>}
+      </Details>
+    </OrgSummary>
+  );
+};
+
+SidebarOrgSummary.propTypes = {
+  organization: SentryTypes.Organization,
+};
 
 const OrgSummary = styled('div')`
   display: flex;
@@ -64,3 +65,4 @@ const Details = styled('div')`
 
 // Needed for styling in SidebarMenuItem
 export {OrgSummary};
+export default SidebarOrgSummary;
