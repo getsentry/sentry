@@ -479,7 +479,7 @@ def get_facets(query, params, limit=10, referrer=None):
     # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
     sample_rate = 0.1 if key_names["data"][0]["count"] > 10000 else None
     # Rescale the results if we're sampling
-    multiplier = 10 if sample_rate is not None else 1
+    multiplier = 1 / sample_rate if sample_rate is not None else 1
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
