@@ -13,5 +13,6 @@ class OrganizationAccessRequestSerializer(Serializer):
             "id": six.text_type(obj.id),
             "member": serialize(obj.member),
             "team": serialize(obj.team),
+            "requester": serialize(obj.requester),
         }
         return d

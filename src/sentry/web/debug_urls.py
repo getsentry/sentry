@@ -81,6 +81,10 @@ urlpatterns = [
         DebugResolvedInReleaseUpcomingEmailView.as_view(),
     ),
     url(r"^debug/mail/request-access/$", sentry.web.frontend.debug.mail.request_access),
+    url(
+        r"^debug/mail/request-access-for-another-member/$",
+        sentry.web.frontend.debug.mail.request_access_for_another_member,
+    ),
     url(r"^debug/mail/join-request/$", DebugOrganizationJoinRequestEmailView.as_view()),
     url(r"^debug/mail/invite-request/$", DebugOrganizationInviteRequestEmailView.as_view()),
     url(r"^debug/mail/access-approved/$", sentry.web.frontend.debug.mail.access_approved),

@@ -513,7 +513,7 @@ def report(request):
 
 @login_required
 def request_access(request):
-    org = Organization(id=1, slug="example", name="Example")
+    org = Organization(id=1, slug="sentry", name="Sentry org")
     team = Team(id=1, slug="example", name="Example", organization=org)
 
     return MailPreview(
@@ -525,9 +525,33 @@ def request_access(request):
             "organization": org,
             "team": team,
             "url": absolute_uri(
-                reverse("sentry-organization-members", kwargs={"organization_slug": org.slug})
-                + "?ref=access-requests"
+                reverse(
+                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
+                )
             ),
+        },
+    ).render(request)
+
+
+@login_required
+def request_access_for_another_member(request):
+    org = Organization(id=1, slug="sentry", name="Sentry org")
+    team = Team(id=1, slug="example", name="Example", organization=org)
+
+    return MailPreview(
+        html_template="sentry/emails/request-team-access.html",
+        text_template="sentry/emails/request-team-access.txt",
+        context={
+            "email": "foo@example.com",
+            "name": "Username",
+            "organization": org,
+            "team": team,
+            "url": absolute_uri(
+                reverse(
+                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
+                )
+            ),
+            "requester": request.user.get_display_name(),
         },
     ).render(request)
 

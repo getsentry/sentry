@@ -1,7 +1,11 @@
-{{ name }} is requesting access to #{{ team.slug }}.
+{% if requester %}
+{{ requester }} is requesting to add {{ name }} to the #{{ team.slug }} team.
+{% else %}
+{{ name }} is requesting access to the #{{ team.slug }} team on Sentry.
+{% endif %}
 
 You can accept or decline this request in via the pending requests panel:
 
-    {{ url }}
+  {{ url }}
 
 You are receiving this email because you're listed as an administrator of the #{{ team.slug }} team.

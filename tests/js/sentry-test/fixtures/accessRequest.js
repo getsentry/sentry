@@ -6,6 +6,7 @@ export function AccessRequest(params = {}) {
     id: '123',
     member: Member(),
     team: Team(),
+    requester: null,
     ...params,
   };
 }
