@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import pytest
 
 from sentry.tasks.relay import schedule_update_config_cache
-from sentry.relay.config import ProjectConfig
 
 
 @pytest.fixture
@@ -44,8 +43,18 @@ def test_debounce(monkeypatch, default_project, default_organization, redis_cach
     schedule_update_config_cache(generate=False, organization_id=default_organization.id)
 
     assert tasks == [
-        {"generate": True, "project_id": default_project.id, "organization_id": None},
-        {"generate": True, "project_id": None, "organization_id": default_organization.id},
+        {
+            "generate": True,
+            "project_id": default_project.id,
+            "organization_id": None,
+            "update_reason": None,
+        },
+        {
+            "generate": True,
+            "project_id": None,
+            "organization_id": default_organization.id,
+            "update_reason": None,
+        },
     ]
 
 
@@ -86,8 +95,9 @@ def test_invalidate(
     redis_cache,
 ):
 
-    redis_cache.set_many([ProjectConfig(default_project, foo="bar")])
-    assert redis_cache.get(default_project.id) == {"foo": "bar"}
+    cfg = {"projectId": default_project.id, "foo": "bar"}
+    redis_cache.set_many([cfg])
+    assert redis_cache.get(default_project.id) == cfg
 
     if not entire_organization:
         kwargs = {"project_id": default_project.id}
