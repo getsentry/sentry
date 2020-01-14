@@ -474,9 +474,12 @@ def get_facets(query, params, limit=10, referrer=None):
         return []
 
     # TODO(mark) Make the sampling rate scale based on the result size and scaling factor in
-    # sentry.options.
-    # To test the lowest acceptable sampling rate, we use turbo mode.
-    turbo_values = key_names["data"][0]["count"] > 10000
+    # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
+    # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
+    # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
+    sample_rate = 0.1 if key_names["data"][0]["count"] > 10000 else None
+    # Rescale the results if we're sampling
+    multiplier = 10 if sample_rate is not None else 1
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
@@ -496,10 +499,13 @@ def get_facets(query, params, limit=10, referrer=None):
             orderby="-count",
             dataset=Dataset.Discover,
             referrer=referrer,
-            turbo=turbo_values,
+            sample=sample_rate,
         )
         results.extend(
-            [FacetResult("project", r["project_id"], r["count"]) for r in project_values["data"]]
+            [
+                FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
+                for r in project_values["data"]
+            ]
         )
 
     # Get tag counts for our top tags. Fetching them individually
@@ -518,8 +524,13 @@ def get_facets(query, params, limit=10, referrer=None):
             limit=TOP_VALUES_DEFAULT_LIMIT,
             dataset=Dataset.Discover,
             referrer=referrer,
-            turbo=turbo_values,
+            sample=sample_rate,
         )
-        results.extend([FacetResult(tag_name, r[tag], int(r["count"])) for r in tag_values["data"]])
+        results.extend(
+            [
+                FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
+                for r in tag_values["data"]
+            ]
+        )
 
     return results
