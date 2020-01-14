@@ -64,6 +64,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
         integration_type: 'first_party',
         integration: this.props.provider.key,
         already_installed: this.props.isInstalled,
+        view: 'integrations_page',
       },
       this.props.organization
     );
