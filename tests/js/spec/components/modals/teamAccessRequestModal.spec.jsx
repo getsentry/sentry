@@ -10,9 +10,9 @@ describe('TeamAccessRequestModal', function() {
 
   const closeModal = jest.fn();
   const onClose = jest.fn();
-  const orgId = TestStubs.Organization().id;
+  const orgId = TestStubs.Organization().slug;
   const memberId = TestStubs.Member().id;
-  const teamId = TestStubs.Team().id;
+  const teamId = TestStubs.Team().slug;
 
   const modalRenderProps = {
     Body: Modal.Body,
@@ -42,7 +42,7 @@ describe('TeamAccessRequestModal', function() {
 
   it('renders', function() {
     expect(wrapper.find('div[className="modal-body"]').text()).toBe(
-      'You do not have permission to add members to teams, but we will send a request to your organization admins for approval.'
+      `You do not have permission to add members to the #${teamId} team, but we will send a request to your organization admins for approval.`
     );
   });
 

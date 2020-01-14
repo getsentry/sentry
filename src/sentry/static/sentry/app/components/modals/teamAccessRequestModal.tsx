@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {ModalRenderProps, TeamAccessRequestModalOptions} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
@@ -38,30 +38,28 @@ class CreateTeamAccessRequest extends React.Component<Props, State> {
           method: 'POST',
         }
       );
-      this.setState({createBusy: false});
       addSuccessMessage(t('Team request sent for approval'));
     } catch (err) {
-      this.setState({createBusy: false});
       addErrorMessage(t('Unable to send team request'));
     }
+    this.setState({createBusy: false});
     closeModal();
   };
 
   render() {
-    const {Body, Footer, closeModal} = this.props;
+    const {Body, Footer, closeModal, teamId} = this.props;
 
     return (
       <React.Fragment>
         <Body>
-          {t(
-            'You do not have permission to add members to teams, but we will send a request to your organization admins for approval.'
+          {tct(
+            'You do not have permission to add members to the #[team] team, but we will send a request to your organization admins for approval.',
+            {team: teamId}
           )}
         </Body>
         <Footer>
           <ButtonGroup>
-            <Button onClick={closeModal} autoFocus>
-              {t('Cancel')}
-            </Button>
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
             <Button
               priority="primary"
               onClick={this.handleClick}
