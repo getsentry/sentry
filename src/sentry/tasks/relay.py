@@ -40,8 +40,10 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
     cache.delete(debounce_key)
 
     if project_id:
-        projects = Project.objects.filter(id=project_id)
+        projects = [Project.objects.get_from_cache(id=project_id)]
     elif organization_id:
+        # XXX(markus): I feel like we should be able to cache this but I don't
+        # want to add another method to src/sentry/db/models/manager.py
         projects = Project.objects.filter(organization_id=organization_id)
 
     if generate:
@@ -81,7 +83,10 @@ def schedule_update_config_cache(
     ):
         # This cache backend is a noop, don't bother creating a noop celery
         # task.
-        metrics.incr("relay.projectconfig_cache.skipped", tags={"reason": "noop_backend"})
+        metrics.incr(
+            "relay.projectconfig_cache.skipped",
+            tags={"reason": "noop_backend", "update_reason": update_reason},
+        )
         return
 
     if bool(organization_id) == bool(project_id):
@@ -89,7 +94,10 @@ def schedule_update_config_cache(
 
     debounce_key = _get_schedule_debounce_key(project_id, organization_id)
     if cache.get(debounce_key, None):
-        metrics.incr("relay.projectconfig_cache.skipped", tags={"reason": "debounce"})
+        metrics.incr(
+            "relay.projectconfig_cache.skipped",
+            tags={"reason": "debounce", "update_reason": update_reason},
+        )
         # If this task is already in the queue, do not schedule another task.
         return
 
