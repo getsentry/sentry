@@ -60,7 +60,15 @@ def _get_schedule_debounce_key(project_id, organization_id):
         raise ValueError()
 
 
-def schedule_update_config_cache(generate, project_id=None, organization_id=None):
+def schedule_update_config_cache(
+    generate, project_id=None, organization_id=None, update_reason=None
+):
+    """
+    Schedule the `update_config_cache` with debouncing applied.
+
+    See documentation of `update_config_cache` for documentation of parameters.
+    """
+
     if (
         settings.SENTRY_RELAY_PROJECTCONFIG_CACHE
         == "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
