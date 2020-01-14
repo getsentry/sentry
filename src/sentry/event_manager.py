@@ -66,7 +66,7 @@ from sentry.models import (
     Organization,
 )
 from sentry.plugins.base import plugins
-from sentry.signals import event_discarded, event_saved, first_event_received
+from sentry.signals import event_discarded, event_saved, first_event_received, group_created
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import metrics
 from sentry.utils.canonical import CanonicalKeyDict
@@ -879,6 +879,13 @@ class EventManager(object):
 
             metrics.incr(
                 "group.created", skip_internal=True, tags={"platform": event.platform or "unknown"}
+            )
+
+            group_created.send_robust(
+                sender=self,
+                group=group,
+                project=event.project,
+                organization=event.project.organization,
             )
 
         else:
