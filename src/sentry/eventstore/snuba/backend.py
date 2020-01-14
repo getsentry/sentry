@@ -4,6 +4,7 @@ import six
 
 from copy import deepcopy
 from datetime import datetime, timedelta
+import logging
 
 from sentry import options
 from sentry.eventstore.base import EventStorage
@@ -21,6 +22,8 @@ DESC_ORDERING = ["-{}".format(TIMESTAMP), "-{}".format(EVENT_ID)]
 ASC_ORDERING = [TIMESTAMP, EVENT_ID]
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
+
+logger = logging.getLogger(__name__)
 
 
 def get_before_event_condition(event):
@@ -124,7 +127,14 @@ class SnubaEventStorage(EventStorage):
                 referrer="eventstore.get_event_by_id_nodestore",
             )
 
-            assert len(result["data"]) == 1
+            # Return None if the event from Nodestore was not yet written to Snuba
+            if len(result["data"]) != 1:
+                logger.warning(
+                    "eventstore.missing-snuba-event",
+                    extra={"project_id": project_id, "event_id": event_id},
+                )
+                return None
+
             event.group_id = result["data"][0]["group_id"]
 
         return event

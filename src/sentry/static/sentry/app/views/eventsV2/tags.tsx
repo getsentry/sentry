@@ -93,15 +93,14 @@ class Tags extends React.Component<Props, State> {
       });
   };
 
-  onTagClick = (tag: string, segment: TagTopValue) => {
+  onTagClick = (tag: string) => {
     const {organization} = this.props;
     // metrics
     trackAnalyticsEvent({
       eventKey: 'discover_v2.facet_map.clicked',
       eventName: 'Discoverv2: Clicked on a tag on the facet map',
       tag,
-      value: segment.value,
-      organization_id: organization.id,
+      organization_id: parseInt(organization.id, 10),
     });
   };
 
