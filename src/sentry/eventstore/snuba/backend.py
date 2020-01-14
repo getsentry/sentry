@@ -106,7 +106,6 @@ class SnubaEventStorage(EventStorage):
 
     def __get_event_by_id_nodestore(self, project_id, event_id):
         event = Event(project_id=project_id, event_id=event_id)
-        event.bind_node_data()
 
         # Return None if there was no data in nodestore
         if len(event.data) == 0:

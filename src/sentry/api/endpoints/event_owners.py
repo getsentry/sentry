@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 from rest_framework.response import Response
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.fields.actor import Actor
 from sentry.api.serializers import serialize
@@ -25,10 +25,6 @@ class EventOwnersEndpoint(ProjectEndpoint):
         event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
-
-        # populate event data
-        if not options.get("eventstore.use-nodestore"):
-            event.bind_node_data()
 
         owners, rules = ProjectOwnership.get_owners(project.id, event.data)
 
