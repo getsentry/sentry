@@ -16,7 +16,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import withOrganization from 'app/utils/withOrganization';
 
-class ApiTokens extends AsyncView {
+export class ApiTokens extends AsyncView {
   getTitle() {
     return t('API Tokens');
   }
@@ -130,5 +130,4 @@ class ApiTokens extends AsyncView {
   }
 }
 
-export {ApiTokens};
 export default withOrganization(ApiTokens);
