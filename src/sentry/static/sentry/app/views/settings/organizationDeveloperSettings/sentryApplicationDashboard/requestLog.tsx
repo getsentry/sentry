@@ -205,7 +205,10 @@ export default class RequestLog extends AsyncComponent<Props, State> {
               label={eventType}
               menuWidth="220px"
               button={({isOpen, getActorProps}) => (
-                <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
+                <StyledDropdownButton
+                  {...getActorProps({isStyled: true})}
+                  isOpen={isOpen}
+                >
                   {eventType}
                 </StyledDropdownButton>
               )}

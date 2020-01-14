@@ -169,7 +169,11 @@ class OrganizationMembersList extends AsyncView<Props, State> {
         <DropdownMenu closeOnEscape>
           {({getActorProps, isOpen}) => (
             <FilterWrapper>
-              <Button size="small" icon="icon-sliders" {...getActorProps({})}>
+              <Button
+                size="small"
+                icon="icon-sliders"
+                {...getActorProps({isStyled: true})}
+              >
                 {t('Search Filters')}
               </Button>
               {isOpen && (

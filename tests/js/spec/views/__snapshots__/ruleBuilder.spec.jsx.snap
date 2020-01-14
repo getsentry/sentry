@@ -488,9 +488,13 @@ exports[`RuleBuilder renders 1`] = `
           </svg>
         </ForwardRef>
       </Divider>
-      <SelectOwnersWrapper>
+      <Styled(div)
+        alignItems="center"
+        flex="1"
+        mr={1}
+      >
         <div
-          className="css-1518iv7-SelectOwnersWrapper e1hyuoc79"
+          className="css-1379u9y"
         >
           <SelectOwners
             onChange={[Function]}
@@ -976,7 +980,7 @@ exports[`RuleBuilder renders 1`] = `
             </EmotionCssPropInternal>
           </SelectOwners>
         </div>
-      </SelectOwnersWrapper>
+      </Styled(div)>
       <AddButton
         align="center"
         disabled={true}
@@ -987,7 +991,7 @@ exports[`RuleBuilder renders 1`] = `
       >
         <Button
           align="center"
-          className="css-f6y09s-AddButton e1hyuoc710"
+          className="css-f6y09s-AddButton e1hyuoc79"
           disabled={true}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -996,7 +1000,7 @@ exports[`RuleBuilder renders 1`] = `
         >
           <StyledButton
             aria-disabled={true}
-            className="css-f6y09s-AddButton e1hyuoc710"
+            className="css-f6y09s-AddButton e1hyuoc79"
             disabled={true}
             onClick={[Function]}
             priority="primary"
@@ -1005,7 +1009,7 @@ exports[`RuleBuilder renders 1`] = `
           >
             <ForwardRef
               aria-disabled={true}
-              className="e1hyuoc710 css-1vf07fg-StyledButton-AddButton edwq9my0"
+              className="e1hyuoc79 css-1vf07fg-StyledButton-AddButton edwq9my0"
               disabled={true}
               onClick={[Function]}
               priority="primary"
@@ -1014,7 +1018,7 @@ exports[`RuleBuilder renders 1`] = `
             >
               <button
                 aria-disabled={true}
-                className="e1hyuoc710 css-1vf07fg-StyledButton-AddButton edwq9my0"
+                className="e1hyuoc79 css-1vf07fg-StyledButton-AddButton edwq9my0"
                 onClick={[Function]}
                 role="button"
                 size="small"
@@ -1752,9 +1756,13 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </svg>
         </ForwardRef>
       </Divider>
-      <SelectOwnersWrapper>
+      <Styled(div)
+        alignItems="center"
+        flex="1"
+        mr={1}
+      >
         <div
-          className="css-1518iv7-SelectOwnersWrapper e1hyuoc79"
+          className="css-1379u9y"
         >
           <SelectOwners
             onChange={[Function]}
@@ -2840,7 +2848,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             </EmotionCssPropInternal>
           </SelectOwners>
         </div>
-      </SelectOwnersWrapper>
+      </Styled(div)>
       <AddButton
         align="center"
         disabled={false}
@@ -2851,7 +2859,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
       >
         <Button
           align="center"
-          className="css-f6y09s-AddButton e1hyuoc710"
+          className="css-f6y09s-AddButton e1hyuoc79"
           disabled={false}
           icon="icon-circle-add"
           onClick={[Function]}
@@ -2860,7 +2868,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         >
           <StyledButton
             aria-disabled={false}
-            className="css-f6y09s-AddButton e1hyuoc710"
+            className="css-f6y09s-AddButton e1hyuoc79"
             disabled={false}
             onClick={[Function]}
             priority="primary"
@@ -2869,7 +2877,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           >
             <ForwardRef
               aria-disabled={false}
-              className="e1hyuoc710 css-cdfv3-StyledButton-AddButton edwq9my0"
+              className="e1hyuoc79 css-cdfv3-StyledButton-AddButton edwq9my0"
               disabled={false}
               onClick={[Function]}
               priority="primary"
@@ -2878,7 +2886,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             >
               <button
                 aria-disabled={false}
-                className="e1hyuoc710 css-cdfv3-StyledButton-AddButton edwq9my0"
+                className="e1hyuoc79 css-cdfv3-StyledButton-AddButton edwq9my0"
                 onClick={[Function]}
                 role="button"
                 size="small"

@@ -81,7 +81,7 @@ class TableView extends React.Component<TableViewProps> {
         eventKey: 'discover_v2.add_column',
         eventName: 'Discoverv2: Add a new column at an index',
         insert_at_index: insertAt,
-        organization_id: parseInt(organization.id, 10),
+        organization_id: organization.id,
         ...payload,
       });
     } else {
@@ -92,7 +92,7 @@ class TableView extends React.Component<TableViewProps> {
       trackAnalyticsEvent({
         eventKey: 'discover_v2.add_column.right_end',
         eventName: 'Discoverv2: Add a new column at the right end of the table',
-        organization_id: parseInt(organization.id, 10),
+        organization_id: organization.id,
         ...payload,
       });
     }
@@ -146,7 +146,7 @@ class TableView extends React.Component<TableViewProps> {
         eventName: 'Discoverv2: A column was updated',
         updated_at_index: columnIndex,
         changed,
-        organization_id: parseInt(organization.id, 10),
+        organization_id: organization.id,
         ...payload,
       });
     }
@@ -174,7 +174,7 @@ class TableView extends React.Component<TableViewProps> {
       eventKey: 'discover_v2.delete_column',
       eventName: 'Discoverv2: A column was deleted',
       deleted_at_index: columnIndex,
-      organization_id: parseInt(organization.id, 10),
+      organization_id: organization.id,
       aggregation: prevField.aggregation,
       field: prevField.field,
     });
@@ -201,7 +201,7 @@ class TableView extends React.Component<TableViewProps> {
       eventName: 'Discoverv2: A column was moved',
       from_index: fromIndex,
       to_index: toIndex,
-      organization_id: parseInt(organization.id, 10),
+      organization_id: organization.id,
       aggregation: prevField.aggregation,
       field: prevField.field,
     });
@@ -347,14 +347,14 @@ class TableView extends React.Component<TableViewProps> {
       trackAnalyticsEvent({
         eventKey: 'discover_v2.table.column_header.edit_mode.enter',
         eventName: 'Discoverv2: Enter column header edit mode',
-        organization_id: parseInt(organization.id, 10),
+        organization_id: organization.id,
       });
     } else {
       // metrics
       trackAnalyticsEvent({
         eventKey: 'discover_v2.table.column_header.edit_mode.exit',
         eventName: 'Discoverv2: Exit column header edit mode',
-        organization_id: parseInt(organization.id, 10),
+        organization_id: organization.id,
       });
     }
   };

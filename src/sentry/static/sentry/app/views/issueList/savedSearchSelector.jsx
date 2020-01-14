@@ -96,7 +96,7 @@ export default class SavedSearchSelector extends React.Component {
           menuWidth="35vw"
           blendWithActor
           button={({isOpen, getActorProps}) => (
-            <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
+            <StyledDropdownButton {...getActorProps({isStyled: true})} isOpen={isOpen}>
               <ButtonTitle>{this.getTitle()}</ButtonTitle>
             </StyledDropdownButton>
           )}

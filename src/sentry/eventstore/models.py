@@ -80,7 +80,7 @@ class Event(EventCommon):
         if column in self._snuba_data:
             return self._snuba_data[column]
 
-        return self.real_message
+        return self.data.get("message")
 
     @message.setter
     def message(self, value):

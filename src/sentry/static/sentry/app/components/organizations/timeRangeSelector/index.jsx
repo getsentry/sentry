@@ -329,13 +329,16 @@ class TimeRangeSelector extends React.PureComponent {
               hasChanges={this.state.hasChanges}
               onClear={this.handleClear}
               allowClear
-              {...getActorProps()}
+              {...getActorProps({isStyled: true})}
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}
             </StyledHeaderItem>
 
             {isOpen && (
-              <Menu {...getMenuProps()} isAbsoluteSelected={isAbsoluteSelected}>
+              <Menu
+                {...getMenuProps({isStyled: true})}
+                isAbsoluteSelected={isAbsoluteSelected}
+              >
                 <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
                   <SelectorItemsHook
                     {...{

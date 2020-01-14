@@ -87,7 +87,7 @@ class Results extends React.Component<Props, State> {
     trackAnalyticsEvent({
       eventKey: 'discover_v2.y_axis_change',
       eventName: "Discoverv2: Change chart's y axis",
-      organization_id: parseInt(this.props.organization.id, 10),
+      organization_id: this.props.organization.id,
       y_axis_value: value,
     });
   };

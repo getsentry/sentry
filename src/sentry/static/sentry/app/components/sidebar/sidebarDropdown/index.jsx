@@ -75,11 +75,11 @@ const SidebarDropdown = withApi(
         <DropdownMenu>
           {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
             return (
-              <SidebarDropdownRoot {...getRootProps()}>
+              <SidebarDropdownRoot {...getRootProps({isStyled: true})}>
                 <SidebarDropdownActor
                   type="button"
                   data-test-id="sidebar-dropdown"
-                  {...getActorProps()}
+                  {...getActorProps({isStyled: true})}
                 >
                   {avatar}
                   {!collapsed && orientation !== 'top' && (
@@ -96,7 +96,7 @@ const SidebarDropdown = withApi(
                 </SidebarDropdownActor>
 
                 {isOpen && (
-                  <OrgAndUserMenu {...getMenuProps()}>
+                  <OrgAndUserMenu {...getMenuProps({isStyled: true, org})}>
                     {hasOrganization && (
                       <React.Fragment>
                         <SidebarOrgSummary organization={org} />

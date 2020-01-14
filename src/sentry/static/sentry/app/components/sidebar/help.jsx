@@ -32,10 +32,12 @@ class SidebarHelp extends React.Component {
   render() {
     return (
       <DropdownMenu>
-        {({isOpen, getActorProps, getMenuProps}) => {
+        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
           return (
             <HelpRoot>
-              <HelpActor {...getActorProps({onClick: this.handleActorClick})}>
+              <HelpActor
+                {...getActorProps({onClick: this.handleActorClick, isStyled: true})}
+              >
                 <SidebarItem
                   orientation={this.props.orientation}
                   collapsed={this.props.collapsed}
@@ -47,7 +49,7 @@ class SidebarHelp extends React.Component {
               </HelpActor>
 
               {isOpen && (
-                <HelpMenu {...getMenuProps()}>
+                <HelpMenu {...getMenuProps({isStyled: true})}>
                   <Hook name="sidebar:help-menu" organization={this.props.organization} />
                   <SidebarMenuItem onClick={this.handleSearchClick}>
                     {t('Search Docs and FAQs')}

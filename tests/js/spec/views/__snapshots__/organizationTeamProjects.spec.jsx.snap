@@ -150,6 +150,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           >
                             <Actor
                               isOpen={false}
+                              isStyled={true}
                               onClick={[Function]}
                               onKeyDown={[Function]}
                               onMouseEnter={[Function]}

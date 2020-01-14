@@ -212,7 +212,7 @@ class EventTest(TestCase):
         assert event_from_nodestore.timestamp == event_from_snuba.timestamp
         assert event_from_nodestore.datetime == event_from_snuba.datetime
         assert event_from_nodestore.title == event_from_snuba.title
-        assert event_from_nodestore.message == event_from_snuba.message
+        assert event_from_nodestore.message["formatted"] == event_from_snuba.message
         assert event_from_nodestore.platform == event_from_snuba.platform
         assert event_from_nodestore.location == event_from_snuba.location
         assert event_from_nodestore.culprit == event_from_snuba.culprit

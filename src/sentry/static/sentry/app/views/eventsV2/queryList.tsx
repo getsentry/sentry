@@ -143,7 +143,7 @@ class QueryList extends React.Component<Props> {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
               eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: parseInt(this.props.organization.id, 10),
+              organization_id: this.props.organization.id,
               query_name: eventView.name,
             });
           }}
@@ -190,7 +190,7 @@ class QueryList extends React.Component<Props> {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
               eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: parseInt(this.props.organization.id, 10),
+              organization_id: this.props.organization.id,
               query_name: eventView.name,
             });
           }}

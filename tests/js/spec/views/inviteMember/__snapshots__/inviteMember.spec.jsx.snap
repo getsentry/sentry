@@ -578,6 +578,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                 >
                                   <Actor
                                     isOpen={false}
+                                    isStyled={true}
                                     onClick={[Function]}
                                     onKeyDown={[Function]}
                                     onMouseEnter={[Function]}

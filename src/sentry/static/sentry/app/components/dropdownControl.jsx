@@ -48,7 +48,10 @@ class DropdownControl extends React.Component {
       return button({isOpen, getActorProps});
     }
     return (
-      <StyledDropdownButton {...getActorProps(buttonProps)} isOpen={isOpen}>
+      <StyledDropdownButton
+        {...getActorProps({...buttonProps, isStyled: true})}
+        isOpen={isOpen}
+      >
         {label}
       </StyledDropdownButton>
     );
@@ -72,7 +75,7 @@ class DropdownControl extends React.Component {
               <React.Fragment>
                 {this.renderButton(isOpen, getActorProps)}
                 <MenuContainer
-                  {...getMenuProps()}
+                  {...getMenuProps({isStyled: true})}
                   alignMenu={alignRight ? 'right' : 'left'}
                   width={menuWidth}
                   menuOffset={menuOffset}

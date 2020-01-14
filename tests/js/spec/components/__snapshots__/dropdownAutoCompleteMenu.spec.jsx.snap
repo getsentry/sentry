@@ -96,6 +96,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                 }
               }
               blendCorner={true}
+              isStyled={true}
               onClick={[Function]}
               onMouseDown={[Function]}
               onMouseEnter={[Function]}
@@ -104,6 +105,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
               <BubbleWithMinWidth
                 blendCorner={true}
                 className="css-0"
+                isStyled={true}
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -310,6 +312,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                 }
               }
               blendCorner={true}
+              isStyled={true}
               onClick={[Function]}
               onMouseDown={[Function]}
               onMouseEnter={[Function]}
@@ -318,6 +321,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
               <BubbleWithMinWidth
                 blendCorner={true}
                 className="css-0"
+                isStyled={true}
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}

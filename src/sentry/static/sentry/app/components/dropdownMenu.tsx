@@ -9,6 +9,7 @@ type GetActorArgs = {
   onMouseEnter?: (e: React.MouseEvent<Element>) => void;
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
   onKeyDown?: (e: React.KeyboardEvent<Element>) => void;
+  isStyled?: boolean;
   style?: React.CSSProperties;
 };
 
@@ -16,6 +17,7 @@ type GetMenuArgs = {
   onClick?: (e: React.MouseEvent<Element>) => void;
   onMouseEnter?: (e: React.MouseEvent<Element>) => void;
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
+  isStyled?: boolean;
 };
 
 // Props for the "actor" element of `<DropdownMenu>`
@@ -33,6 +35,9 @@ type MenuProps = {
   onMouseLeave: (e: React.MouseEvent<Element>) => void;
 };
 
+// XXX(epurkhiser): these types aren't completely correct as it doesn't include
+// the fact that a innerRef / ref is required to be available on the component
+// the props are passed to.
 type GetActorPropsFn = (opts: GetActorArgs) => ActorProps;
 type GetMenuPropsFn = (opts: GetMenuArgs) => MenuProps;
 

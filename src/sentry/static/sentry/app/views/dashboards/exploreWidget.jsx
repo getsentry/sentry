@@ -53,7 +53,7 @@ class ExploreWidget extends React.Component {
                   <Chevron isOpen={isOpen} src="icon-chevron-right" />
                 </ExploreButton>
               </div>
-              <ExploreMenu {...getMenuProps({isOpen})}>
+              <ExploreMenu {...getMenuProps({isStyled: true, isOpen})}>
                 {discoverQueries.map(query => (
                   <ExploreRow key={query.name}>
                     <QueryName>{query.name}</QueryName>
