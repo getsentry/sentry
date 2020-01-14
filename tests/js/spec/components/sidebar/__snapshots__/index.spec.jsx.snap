@@ -3,7 +3,6 @@
 exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
 <SwitchOrganizationMenu
   data-test-id="sidebar-switch-org-menu"
-  isStyled={true}
   onClick={[Function]}
   onMouseEnter={[Function]}
   onMouseLeave={[Function]}
@@ -128,38 +127,9 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
 
 exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
 <OrgAndUserMenu
-  isStyled={true}
   onClick={[Function]}
   onMouseEnter={[Function]}
   onMouseLeave={[Function]}
-  org={
-    Object {
-      "access": Array [
-        "org:read",
-        "org:write",
-        "org:admin",
-        "org:integrations",
-        "project:read",
-        "project:write",
-        "project:admin",
-        "team:read",
-        "team:write",
-        "team:admin",
-      ],
-      "features": Array [],
-      "id": "3",
-      "name": "Organization Name",
-      "onboardingTasks": Array [],
-      "projects": Array [],
-      "scrapeJavaScript": true,
-      "slug": "org-slug",
-      "status": Object {
-        "id": "active",
-        "name": "active",
-      },
-      "teams": Array [],
-    }
-  }
 >
   <div
     className="css-yvb5my-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
@@ -474,7 +444,6 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     >
                       <SwitchOrganizationMenuActor
                         data-test-id="sidebar-switch-org"
-                        isStyled={true}
                         onClick={[Function]}
                         onKeyDown={[Function]}
                         onMouseEnter={[Function]}
@@ -907,7 +876,6 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
 
 exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
 <HelpMenu
-  isStyled={true}
   onClick={[Function]}
   onMouseEnter={[Function]}
   onMouseLeave={[Function]}
@@ -3238,11 +3206,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
 
 exports[`Sidebar renders without org and router 1`] = `
 <OrgAndUserMenu
-  isStyled={true}
   onClick={[Function]}
   onMouseEnter={[Function]}
   onMouseLeave={[Function]}
-  org={null}
 >
   <div
     className="css-yvb5my-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"

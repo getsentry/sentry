@@ -23,6 +23,7 @@ def test_get_task_kwargs_for_message_invalid_version():
         get_task_kwargs_for_message(json.dumps([0, "insert", {}]))
 
 
+@pytest.mark.django_db
 def test_get_task_kwargs_for_message_version_1():
     event_data = {
         "project_id": 1,
@@ -50,7 +51,6 @@ def test_get_task_kwargs_for_message_version_1():
     assert event.message == "message"
     assert event.platform == "python"
     assert event.datetime == datetime(2018, 7, 20, 21, 4, 27, 600640, tzinfo=pytz.utc)
-
     assert kwargs.pop("primary_hash") == "49f68a5c8493ec2c0bf489821c21fc3b"
 
     assert kwargs.pop("is_new") is True
