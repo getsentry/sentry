@@ -24,8 +24,8 @@ from sentry.utils.snuba import (
     QUOTED_LITERAL_RE,
     get_function_index,
     raw_query,
-    transform_results,
-    zerofill,
+    to_naive_timestamp,
+    naiveify_datetime,
 )
 
 __all__ = (
@@ -37,6 +37,8 @@ __all__ = (
     "timeseries_query",
     "get_pagination_ids",
     "get_facets",
+    "transform_results",
+    "zerofill",
 )
 
 
@@ -244,6 +246,57 @@ def resolve_discover_aliases(snuba_args):
             )
         resolved["orderby"] = resolved_orderby
     return resolved, translated_columns
+
+
+def zerofill(data, start, end, rollup, orderby):
+    rv = []
+    start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
+    end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
+    data_by_time = {}
+
+    for obj in data:
+        if obj["time"] in data_by_time:
+            data_by_time[obj["time"]].append(obj)
+        else:
+            data_by_time[obj["time"]] = [obj]
+
+    for key in six.moves.xrange(start, end, rollup):
+        if key in data_by_time and len(data_by_time[key]) > 0:
+            rv = rv + data_by_time[key]
+            data_by_time[key] = []
+        else:
+            rv.append({"time": key})
+
+    if "-time" in orderby:
+        return list(reversed(rv))
+
+    return rv
+
+
+def transform_results(result, translated_columns, snuba_args):
+    """
+    Transform internal names back to the public schema ones.
+
+    When getting timeseries results via rollup, this function will
+    zerofill the output results.
+    """
+    # Translate back columns that were converted to snuba format
+    for col in result["meta"]:
+        col["name"] = translated_columns.get(col["name"], col["name"])
+
+    def get_row(row):
+        return {translated_columns.get(key, key): value for key, value in row.items()}
+
+    if len(translated_columns):
+        result["data"] = [get_row(row) for row in result["data"]]
+
+    rollup = snuba_args.get("rollup")
+    if rollup and rollup > 0:
+        result["data"] = zerofill(
+            result["data"], snuba_args["start"], snuba_args["end"], rollup, snuba_args["orderby"]
+        )
+
+    return result
 
 
 def query(

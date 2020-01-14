@@ -33,6 +33,7 @@ from sentry.incidents.models import (
     IncidentType,
     TimeSeriesSnapshot,
 )
+from sentry.snuba.discover import zerofill
 from sentry.models import Commit, Integration, Project, Release
 from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
@@ -42,7 +43,7 @@ from sentry.snuba.subscriptions import (
     query_aggregation_to_snuba,
 )
 from sentry.utils.committers import get_event_file_committers
-from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult, zerofill
+from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
 
