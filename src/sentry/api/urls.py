@@ -18,6 +18,7 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
+from .endpoints.data_export import DataExportEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
     DebugFilesEndpoint,
@@ -374,6 +375,7 @@ urlpatterns = [
         ),
     ),
     # Api Data
+    url(r"^data-export/$", DataExportEndpoint.as_view(), name="sentry-api-0-data-export"),
     url(r"^assistant/$", AssistantEndpoint.as_view(), name="sentry-api-0-assistant"),
     url(
         r"^api-applications/$",
