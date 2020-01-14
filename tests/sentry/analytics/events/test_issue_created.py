@@ -20,10 +20,6 @@ class IssueCreatedAnalyticsTest(TestCase):
         project = self.create_project()
         group = self.create_group(project)
 
-        print (group)
-        print (group.data)
-        print (group.get_event_type())
-
         provider = DummyAnalytics()
         provider.event_manager.register(IssueCreatedEvent)
 
