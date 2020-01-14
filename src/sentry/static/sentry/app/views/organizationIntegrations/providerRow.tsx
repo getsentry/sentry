@@ -160,6 +160,7 @@ const ProviderDetails = styled(Flex)`
 const StatusContainer = styled(Flex)`
   align-items: center;
 `;
+
 type StatusProps = {
   enabled: boolean;
   theme?: any; //TS complains if we don't make this optional
@@ -189,11 +190,6 @@ const Status = styled(
     font-weight: normal;
   }
   margin-right: ${space(0.75)};
-`;
-
-const StatusWrapper = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const NewInstallation = styled('div')`
