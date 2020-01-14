@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
@@ -203,7 +203,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
               eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: this.props.organization.id,
+              organization_id: parseInt(this.props.organization.id, 10),
               query_name: eventView.name,
             });
           }}

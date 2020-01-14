@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {getDiscoverUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getDiscoverUrlPathFromDiscoverQuery';
@@ -53,7 +53,7 @@ class ExploreWidget extends React.Component {
                   <Chevron isOpen={isOpen} src="icon-chevron-right" />
                 </ExploreButton>
               </div>
-              <ExploreMenu {...getMenuProps({isStyled: true, isOpen})}>
+              <ExploreMenu {...getMenuProps({isOpen})}>
                 {discoverQueries.map(query => (
                   <ExploreRow key={query.name}>
                     <QueryName>{query.name}</QueryName>

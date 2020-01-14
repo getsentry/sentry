@@ -1,5 +1,11 @@
 from __future__ import absolute_import
 
+import six
+import pytest
+
+from mock import patch
+from datetime import datetime, timedelta
+
 from sentry import eventstore
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.snuba import discover
@@ -7,12 +13,6 @@ from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import Dataset
-
-from mock import patch
-from datetime import timedelta
-
-import six
-import pytest
 
 
 class QueryIntegrationTest(SnubaTestCase, TestCase):
@@ -1179,3 +1179,20 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
+
+
+def test_zerofill():
+    results = discover.zerofill(
+        {}, datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, "time"
+    )
+    results_desc = discover.zerofill(
+        {}, datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, "-time"
+    )
+
+    assert results == list(reversed(results_desc))
+
+    # Bucket for the 2, 3, 4, 5, 6, 7, 8, 9
+    assert len(results) == 8
+
+    assert results[0]["time"] == 1546387200
+    assert results[7]["time"] == 1546992000

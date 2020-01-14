@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
+import {AvatarUser, Member} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -8,41 +9,67 @@ import space from 'app/styles/space';
 import SentryTypes from 'app/sentryTypes';
 import omit from 'lodash/omit';
 
+const defaultProps = {
+  useLink: true,
+  hideEmail: false,
+};
+
+type Props = {
+  avatarSize: UserAvatar['props']['size'];
+  className?: string;
+  displayName?: string;
+  displayEmail?: string;
+  user?: AvatarUser;
+  member?: Member;
+  orgId?: string;
+} & Partial<typeof defaultProps>;
+
+function getUser(props: {user?: AvatarUser; member?: Member}): AvatarUser | undefined {
+  if (props.user) {
+    return props.user;
+  }
+  if (props.member && props.member.user) {
+    return props.member.user;
+  }
+  return undefined;
+}
+
 const UserBadge = ({
+  className,
   displayName,
   displayEmail,
-  user,
-  member,
   orgId,
   avatarSize,
   useLink,
   hideEmail,
   ...props
-}) => {
-  const userFromPropsOrMember = user || (member && member.user) || member;
+}: Props) => {
+  const user = getUser(props);
+  const member = props.member;
+  const title =
+    displayName ||
+    (user &&
+      (user.name ||
+        user.email ||
+        user.username ||
+        user.ipAddress ||
+        // Because this can be used to render EventUser models, or User *interface*
+        // objects from serialized Event models. we try both ipAddress and ip_address.
+        user.ip_address)) ||
+    (member && member.name);
+
   return (
-    <StyledUserBadge {...props}>
-      <StyledAvatar user={userFromPropsOrMember} size={avatarSize} />
+    <StyledUserBadge className={className}>
+      <StyledAvatar user={user} size={avatarSize} />
       <StyledNameAndEmail>
         <StyledName
           useLink={useLink && orgId && member}
           hideEmail={hideEmail}
           to={member && orgId && `/settings/${orgId}/members/${member.id}/`}
         >
-          {displayName ||
-            userFromPropsOrMember.name ||
-            userFromPropsOrMember.email ||
-            userFromPropsOrMember.username ||
-            userFromPropsOrMember.ipAddress ||
-            /**
-             * Because this can be used to render EventUser models, or User *interface*
-             * objects from serialized Event models. we try both ipAddress and ip_address.
-             */
-            userFromPropsOrMember.ip_address}
+          {title}
         </StyledName>
-        {!hideEmail && (
-          <StyledEmail>{displayEmail || userFromPropsOrMember.email}</StyledEmail>
-        )}
+        {!hideEmail && <StyledEmail>{displayEmail || (user && user.email)}</StyledEmail>}
       </StyledNameAndEmail>
     </StyledUserBadge>
   );
@@ -66,10 +93,7 @@ UserBadge.propTypes = {
   hideEmail: PropTypes.bool,
 };
 
-UserBadge.defaultProps = {
-  useLink: true,
-  hideEmail: false,
-};
+UserBadge.defaultProps = defaultProps;
 
 const StyledUserBadge = styled('div')`
   display: flex;
@@ -89,16 +113,21 @@ const StyledEmail = styled('div')`
   ${overflowEllipsis};
 `;
 
-const StyledName = styled(({useLink, to, ...props}) => {
+type NameProps = {
+  useLink: boolean;
+  hideEmail: boolean;
+} & Link['props'];
+
+const StyledName = styled<NameProps>(({useLink, to, ...props}) => {
   const forwardProps = omit(props, 'hideEmail');
   return useLink ? <Link to={to} {...forwardProps} /> : <span {...forwardProps} />;
 })`
-  font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
+  font-weight: ${(p: NameProps) => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
   ${overflowEllipsis};
 `;
 
-const StyledAvatar = styled(props => <UserAvatar {...props} />)`
+const StyledAvatar = styled(UserAvatar)`
   min-width: ${space(3)};
   min-height: ${space(3)};
   margin-right: ${space(1)};

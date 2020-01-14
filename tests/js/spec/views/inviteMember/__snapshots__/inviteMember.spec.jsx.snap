@@ -82,26 +82,26 @@ exports[`InviteMember should render roles when available and allowed, and handle
       title="Add Member to Organization"
     >
       <SettingsPageHeading
-        className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+        className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
         noTitleStyles={false}
         title="Add Member to Organization"
       >
         <div
-          className="css-1fvvoq2-StyledSettingsPageHeading e1uay4fd4"
+          className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
         >
           <TitleAndActions>
             <div
-              className="css-b5tiyd-TitleAndActions e1uay4fd0"
+              className="css-ifzfc5-TitleAndActions e1uay4fd0"
             >
               <Title
                 styled={false}
               >
                 <div
-                  className="css-2kvddg-Title e1uay4fd1"
+                  className="css-120v9s3-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4
-                      className="css-1w8ttcn-HeaderTitle eqkydle2"
+                      className="css-1bosio6-HeaderTitle eqkydle2"
                     >
                       Add Member to Organization
                     </h4>
@@ -115,7 +115,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
     </StyledSettingsPageHeading>
     <TextBlock>
       <div
-        className="css-1geyb25-TextBlock e1x1lar10"
+        className="css-1j3tvli-TextBlock e1x1lar10"
       >
         Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one. Multiple emails delimited by commas.
       </div>
@@ -185,14 +185,14 @@ exports[`InviteMember should render roles when available and allowed, and handle
       >
         <Panel>
           <Component
-            className="css-10qfvek-Panel e119nu470"
+            className="css-15hwgrz-Panel e119nu470"
           >
             <div
-              className="css-10qfvek-Panel e119nu470"
+              className="css-15hwgrz-Panel e119nu470"
             >
               <PanelHeader>
                 <div
-                  className="css-cjwccy-PanelHeader-getPadding en8g1d30"
+                  className="css-1es1m70-PanelHeader en8g1d30"
                 >
                   Role
                 </div>
@@ -202,136 +202,218 @@ exports[`InviteMember should render roles when available and allowed, and handle
                 disablePadding={true}
                 flex={false}
               >
-                <div
-                  className="css-a4ya23-textStyles"
+                <EmotionCssPropInternal
+                  __EMOTION_LABEL_PLEASE_DO_NOT_USE__="PanelBody"
+                  __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
+                  css={
+                    Object {
+                      "map": undefined,
+                      "name": "b1rh9y-PanelBody",
+                      "next": undefined,
+                      "styles": "h1,h2,h3,h4,h5,h6,p,ul,ol,table,dl,blockquote,form,pre,.auto-select-text,.section,[class^='highlight-']{margin-bottom:20px;&:last-child{margin-bottom:0;}}h1,h2,h3,h4,h5,h6{line-height:1.2;}p,ul,ol,blockquote{line-height:1.5;}h1{font-size:2em;}h2{font-size:1.75em;}h3{font-size:1.5em;}h4{font-size:1.25em;}h5{font-size:1em;}pre{word-break:break-all;white-space:pre-wrap;};;label:PanelBody;",
+                      "toString": [Function],
+                    }
+                  }
                 >
-                  <PanelItem
-                    className="css-0"
-                    key="1"
-                    onClick={[Function]}
-                    p={2}
+                  <div
+                    className="css-b1rh9y-PanelBody"
                   >
-                    <Base
-                      className="css-125s2dx-PanelItem eo8n7lk0"
+                    <EmotionCssPropInternal
+                      __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                        Object {
+                          "$$typeof": Symbol(react.forward_ref),
+                          "__emotion_base": "div",
+                          "__emotion_forwardProp": [Function],
+                          "__emotion_real": [Circular],
+                          "__emotion_styles": Array [
+                            Object {
+                              "boxSizing": "border-box",
+                              "margin": 0,
+                              "minWidth": 0,
+                            },
+                            [Function],
+                            [Function],
+                            [Function],
+                            [Function],
+                            [Function],
+                            Object {
+                              "display": "flex",
+                            },
+                            "label:PanelItem;",
+                            "border-bottom:1px solid ",
+                            [Function],
+                            ";&:last-child{border:0;}",
+                          ],
+                          "defaultProps": Object {
+                            "p": 2,
+                          },
+                          "displayName": "PanelItem",
+                          "propTypes": Object {
+                            "p": [Function],
+                          },
+                          "render": [Function],
+                          "withComponent": [Function],
+                        }
+                      }
+                      css={Object {}}
+                      key="1"
                       onClick={[Function]}
-                      p={2}
                     >
-                      <div
-                        className="css-125s2dx-PanelItem eo8n7lk0"
-                        is={null}
+                      <PanelItem
+                        className="css-0"
                         onClick={[Function]}
+                        p={2}
                       >
-                        <Label>
-                          <label
-                            className="css-1oswpsn-Label e1noblkb0"
-                          >
-                            <Radio
-                              checked={false}
-                              id="1"
-                              readOnly={true}
-                              value="member"
+                        <div
+                          className="css-ylaqrk-PanelItem eo8n7lk0"
+                          onClick={[Function]}
+                        >
+                          <Label>
+                            <label
+                              className="css-1k85637-Label e1noblkb0"
                             >
-                              <input
+                              <Radio
                                 checked={false}
-                                className="radio-select"
                                 id="1"
                                 readOnly={true}
-                                type="radio"
                                 value="member"
-                              />
-                            </Radio>
-                            <div
-                              style={
-                                Object {
-                                  "flex": 1,
-                                  "padding": "0 16px",
-                                }
-                              }
-                            >
-                              member
-                              <TextBlock
-                                noMargin={true}
                               >
-                                <div
-                                  className="css-h0npum-TextBlock e1x1lar10"
+                                <input
+                                  checked={false}
+                                  className="radio-select"
+                                  id="1"
+                                  readOnly={true}
+                                  type="radio"
+                                  value="member"
+                                />
+                              </Radio>
+                              <div
+                                style={
+                                  Object {
+                                    "flex": 1,
+                                    "padding": "0 16px",
+                                  }
+                                }
+                              >
+                                member
+                                <TextBlock
+                                  noMargin={true}
                                 >
                                   <div
-                                    className="help-block"
+                                    className="css-1liehie-TextBlock e1x1lar10"
                                   >
-                                    a normal member
+                                    <div
+                                      className="help-block"
+                                    >
+                                      a normal member
+                                    </div>
                                   </div>
-                                </div>
-                              </TextBlock>
-                            </div>
-                          </label>
-                        </Label>
-                      </div>
-                    </Base>
-                  </PanelItem>
-                  <PanelItem
-                    className="css-0"
-                    key="2"
-                    onClick={[Function]}
-                    p={2}
-                  >
-                    <Base
-                      className="css-125s2dx-PanelItem eo8n7lk0"
+                                </TextBlock>
+                              </div>
+                            </label>
+                          </Label>
+                        </div>
+                      </PanelItem>
+                    </EmotionCssPropInternal>
+                    <EmotionCssPropInternal
+                      __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                        Object {
+                          "$$typeof": Symbol(react.forward_ref),
+                          "__emotion_base": "div",
+                          "__emotion_forwardProp": [Function],
+                          "__emotion_real": [Circular],
+                          "__emotion_styles": Array [
+                            Object {
+                              "boxSizing": "border-box",
+                              "margin": 0,
+                              "minWidth": 0,
+                            },
+                            [Function],
+                            [Function],
+                            [Function],
+                            [Function],
+                            [Function],
+                            Object {
+                              "display": "flex",
+                            },
+                            "label:PanelItem;",
+                            "border-bottom:1px solid ",
+                            [Function],
+                            ";&:last-child{border:0;}",
+                          ],
+                          "defaultProps": Object {
+                            "p": 2,
+                          },
+                          "displayName": "PanelItem",
+                          "propTypes": Object {
+                            "p": [Function],
+                          },
+                          "render": [Function],
+                          "withComponent": [Function],
+                        }
+                      }
+                      css={Object {}}
+                      key="2"
                       onClick={[Function]}
-                      p={2}
                     >
-                      <div
-                        className="css-125s2dx-PanelItem eo8n7lk0"
-                        is={null}
+                      <PanelItem
+                        className="css-0"
                         onClick={[Function]}
+                        p={2}
                       >
-                        <Label>
-                          <label
-                            className="css-1oswpsn-Label e1noblkb0"
-                          >
-                            <Radio
-                              checked={false}
-                              id="2"
-                              readOnly={true}
-                              value="bar"
+                        <div
+                          className="css-ylaqrk-PanelItem eo8n7lk0"
+                          onClick={[Function]}
+                        >
+                          <Label>
+                            <label
+                              className="css-1k85637-Label e1noblkb0"
                             >
-                              <input
+                              <Radio
                                 checked={false}
-                                className="radio-select"
                                 id="2"
                                 readOnly={true}
-                                type="radio"
                                 value="bar"
-                              />
-                            </Radio>
-                            <div
-                              style={
-                                Object {
-                                  "flex": 1,
-                                  "padding": "0 16px",
-                                }
-                              }
-                            >
-                              bar
-                              <TextBlock
-                                noMargin={true}
                               >
-                                <div
-                                  className="css-h0npum-TextBlock e1x1lar10"
+                                <input
+                                  checked={false}
+                                  className="radio-select"
+                                  id="2"
+                                  readOnly={true}
+                                  type="radio"
+                                  value="bar"
+                                />
+                              </Radio>
+                              <div
+                                style={
+                                  Object {
+                                    "flex": 1,
+                                    "padding": "0 16px",
+                                  }
+                                }
+                              >
+                                bar
+                                <TextBlock
+                                  noMargin={true}
                                 >
                                   <div
-                                    className="help-block"
+                                    className="css-1liehie-TextBlock e1x1lar10"
                                   >
-                                    another role
+                                    <div
+                                      className="help-block"
+                                    >
+                                      another role
+                                    </div>
                                   </div>
-                                </div>
-                              </TextBlock>
-                            </div>
-                          </label>
-                        </Label>
-                      </div>
-                    </Base>
-                  </PanelItem>
-                </div>
+                                </TextBlock>
+                              </div>
+                            </label>
+                          </Label>
+                        </div>
+                      </PanelItem>
+                    </EmotionCssPropInternal>
+                  </div>
+                </EmotionCssPropInternal>
               </PanelBody>
             </div>
           </Component>
@@ -440,16 +522,16 @@ exports[`InviteMember should render roles when available and allowed, and handle
         >
           <Panel>
             <Component
-              className="css-10qfvek-Panel e119nu470"
+              className="css-15hwgrz-Panel e119nu470"
             >
               <div
-                className="css-10qfvek-Panel e119nu470"
+                className="css-15hwgrz-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}
                 >
                   <div
-                    className="css-113w9ek-PanelHeader-getPadding en8g1d30"
+                    className="css-yhsu7n-PanelHeader en8g1d30"
                   >
                     Team
                     <DropdownAutoComplete
@@ -489,13 +571,12 @@ exports[`InviteMember should render roles when available and allowed, and handle
                           >
                             <AutoCompleteRoot>
                               <Component
-                                className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+                                className="css-j1qymt-AutoCompleteRoot ejumqxq0"
                               >
                                 <div
-                                  className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+                                  className="css-j1qymt-AutoCompleteRoot ejumqxq0"
                                 >
                                   <Actor
-                                    innerRef={[Function]}
                                     isOpen={false}
                                     onClick={[Function]}
                                     onKeyDown={[Function]}
@@ -510,7 +591,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                     tabIndex="0"
                                   >
                                     <div
-                                      className="css-12n6mek-Actor e53us8t0"
+                                      className="css-1vv9ctx-Actor e53us8t0"
                                       onClick={[Function]}
                                       onKeyDown={[Function]}
                                       onMouseEnter={[Function]}
@@ -539,7 +620,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                         >
                                           <ForwardRef
                                             aria-label="Add Team"
-                                            className="css-13vimgs-StyledButton e1yghndz1"
+                                            className="css-k164fp-StyledButton e1yghndz1"
                                             disabled={true}
                                             isOpen={false}
                                             size="xsmall"
@@ -548,18 +629,16 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                             <Button
                                               align="center"
                                               aria-label="Add Team"
-                                              className="css-13vimgs-StyledButton e1yghndz1"
+                                              className="css-k164fp-StyledButton e1yghndz1"
                                               disabled={true}
-                                              innerRef={null}
                                               size="xsmall"
                                               type="button"
                                             >
                                               <StyledButton
                                                 aria-disabled={true}
                                                 aria-label="Add Team"
-                                                className="css-13vimgs-StyledButton e1yghndz1"
+                                                className="css-k164fp-StyledButton e1yghndz1"
                                                 disabled={true}
-                                                innerRef={null}
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
@@ -568,7 +647,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                 <ForwardRef
                                                   aria-disabled={true}
                                                   aria-label="Add Team"
-                                                  className="e1yghndz1 css-1ejluh3-StyledButton-getColors-StyledButton edwq9my0"
+                                                  className="e1yghndz1 css-jk8rcx-StyledButton-StyledButton edwq9my0"
                                                   disabled={true}
                                                   onClick={[Function]}
                                                   role="button"
@@ -578,7 +657,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                   <button
                                                     aria-disabled={true}
                                                     aria-label="Add Team"
-                                                    className="e1yghndz1 css-1ejluh3-StyledButton-getColors-StyledButton edwq9my0"
+                                                    className="e1yghndz1 css-jk8rcx-StyledButton-StyledButton edwq9my0"
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="xsmall"
@@ -590,27 +669,27 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                     >
                                                       <Component
                                                         align="center"
-                                                        className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                        className="css-cmi7y3-ButtonLabel edwq9my1"
                                                         size="xsmall"
                                                       >
                                                         <span
-                                                          className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                          className="css-cmi7y3-ButtonLabel edwq9my1"
                                                         >
                                                           Add Team
                                                           <StyledChevronDown>
                                                             <Component
-                                                              className="css-17v3tc-StyledChevronDown e1yghndz0"
+                                                              className="css-1jdzfs8-StyledChevronDown e1yghndz0"
                                                             >
                                                               <InlineSvg
-                                                                className="css-17v3tc-StyledChevronDown e1yghndz0"
+                                                                className="css-1jdzfs8-StyledChevronDown e1yghndz0"
                                                                 src="icon-chevron-down"
                                                               >
                                                                 <ForwardRef
-                                                                  className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
+                                                                  className="e1yghndz0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
                                                                   src="icon-chevron-down"
                                                                 >
                                                                   <svg
-                                                                    className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
+                                                                    className="e1yghndz0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
                                                                     height="1em"
                                                                     viewBox={Object {}}
                                                                     width="1em"
@@ -650,30 +729,44 @@ exports[`InviteMember should render roles when available and allowed, and handle
                   disablePadding={true}
                   flex={false}
                 >
-                  <div
-                    className="css-a4ya23-textStyles"
+                  <EmotionCssPropInternal
+                    __EMOTION_LABEL_PLEASE_DO_NOT_USE__="PanelBody"
+                    __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
+                    css={
+                      Object {
+                        "map": undefined,
+                        "name": "b1rh9y-PanelBody",
+                        "next": undefined,
+                        "styles": "h1,h2,h3,h4,h5,h6,p,ul,ol,table,dl,blockquote,form,pre,.auto-select-text,.section,[class^='highlight-']{margin-bottom:20px;&:last-child{margin-bottom:0;}}h1,h2,h3,h4,h5,h6{line-height:1.2;}p,ul,ol,blockquote{line-height:1.5;}h1{font-size:2em;}h2{font-size:1.75em;}h3{font-size:1.5em;}h4{font-size:1.25em;}h5{font-size:1em;}pre{word-break:break-all;white-space:pre-wrap;};;label:PanelBody;",
+                        "toString": [Function],
+                      }
+                    }
                   >
-                    <EmptyMessage>
-                      <Component
-                        className="css-11r4vxm-EmptyMessage e1h3yfdx4"
-                      >
-                        <div
-                          className="css-11r4vxm-EmptyMessage e1h3yfdx4"
-                          data-test-id="empty-message"
+                    <div
+                      className="css-b1rh9y-PanelBody"
+                    >
+                      <EmptyMessage>
+                        <Component
+                          className="css-1scmenn-EmptyMessage e1h3yfdx4"
                         >
-                          <Description
-                            noMargin={true}
+                          <div
+                            className="css-1scmenn-EmptyMessage e1h3yfdx4"
+                            data-test-id="empty-message"
                           >
-                            <div
-                              className="css-pwn5v-TextBlock-Description-MarginStyles e1h3yfdx0"
+                            <Description
+                              noMargin={true}
                             >
-                              No Teams assigned
-                            </div>
-                          </Description>
-                        </div>
-                      </Component>
-                    </EmptyMessage>
-                  </div>
+                              <div
+                                className="css-1y44za3-TextBlock-Description e1h3yfdx0"
+                              >
+                                No Teams assigned
+                              </div>
+                            </Description>
+                          </div>
+                        </Component>
+                      </EmptyMessage>
+                    </div>
+                  </EmotionCssPropInternal>
                 </PanelBody>
               </div>
             </Component>
@@ -702,7 +795,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
             aria-disabled={false}
             aria-label="Add Member"
             busy={false}
-            className="invite-member-submit css-xiynrq-StyledButton-getColors edwq9my0"
+            className="invite-member-submit css-1e05jtd-StyledButton edwq9my0"
             disabled={false}
             onClick={[Function]}
             priority="primary"
@@ -711,7 +804,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
             <button
               aria-disabled={false}
               aria-label="Add Member"
-              className="invite-member-submit css-xiynrq-StyledButton-getColors edwq9my0"
+              className="invite-member-submit css-1e05jtd-StyledButton edwq9my0"
               onClick={[Function]}
               role="button"
             >
@@ -721,11 +814,11 @@ exports[`InviteMember should render roles when available and allowed, and handle
               >
                 <Component
                   align="center"
-                  className="css-oo1m2a-ButtonLabel edwq9my1"
+                  className="css-zmpclt-ButtonLabel edwq9my1"
                   priority="primary"
                 >
                   <span
-                    className="css-oo1m2a-ButtonLabel edwq9my1"
+                    className="css-zmpclt-ButtonLabel edwq9my1"
                   >
                     Add Member
                   </span>

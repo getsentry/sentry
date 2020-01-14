@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 import memoize from 'lodash/memoize';
 
@@ -205,10 +205,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
               label={eventType}
               menuWidth="220px"
               button={({isOpen, getActorProps}) => (
-                <StyledDropdownButton
-                  {...getActorProps({isStyled: true})}
-                  isOpen={isOpen}
-                >
+                <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
                   {eventType}
                 </StyledDropdownButton>
               )}
@@ -337,9 +334,7 @@ const ErrorsOnlyCheckbox = styled('div')`
   align-items: center;
 `;
 
-const StyledDropdownButton = styled(
-  React.forwardRef((prop, ref) => <DropdownButton innerRef={ref} {...prop} />)
-)`
+const StyledDropdownButton = styled(DropdownButton)`
   z-index: ${p => p.theme.zIndex.header - 1};
   white-space: nowrap;
 

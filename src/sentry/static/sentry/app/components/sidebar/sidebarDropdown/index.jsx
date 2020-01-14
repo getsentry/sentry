@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {logout} from 'app/actionCreators/account';
 import {t} from 'app/locale';
@@ -75,11 +75,11 @@ const SidebarDropdown = withApi(
         <DropdownMenu>
           {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
             return (
-              <SidebarDropdownRoot {...getRootProps({isStyled: true})}>
+              <SidebarDropdownRoot {...getRootProps()}>
                 <SidebarDropdownActor
                   type="button"
                   data-test-id="sidebar-dropdown"
-                  {...getActorProps({isStyled: true})}
+                  {...getActorProps()}
                 >
                   {avatar}
                   {!collapsed && orientation !== 'top' && (
@@ -96,7 +96,7 @@ const SidebarDropdown = withApi(
                 </SidebarDropdownActor>
 
                 {isOpen && (
-                  <OrgAndUserMenu {...getMenuProps({isStyled: true, org})}>
+                  <OrgAndUserMenu {...getMenuProps()}>
                     {hasOrganization && (
                       <React.Fragment>
                         <SidebarOrgSummary organization={org} />

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment-timezone';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
@@ -329,16 +329,13 @@ class TimeRangeSelector extends React.PureComponent {
               hasChanges={this.state.hasChanges}
               onClear={this.handleClear}
               allowClear
-              {...getActorProps({isStyled: true})}
+              {...getActorProps()}
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}
             </StyledHeaderItem>
 
             {isOpen && (
-              <Menu
-                {...getMenuProps({isStyled: true})}
-                isAbsoluteSelected={isAbsoluteSelected}
-              >
+              <Menu {...getMenuProps()} isAbsoluteSelected={isAbsoluteSelected}>
                 <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
                   <SelectorItemsHook
                     {...{

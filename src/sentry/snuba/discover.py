@@ -24,8 +24,8 @@ from sentry.utils.snuba import (
     QUOTED_LITERAL_RE,
     get_function_index,
     raw_query,
-    transform_results,
-    zerofill,
+    to_naive_timestamp,
+    naiveify_datetime,
 )
 
 __all__ = (
@@ -37,6 +37,8 @@ __all__ = (
     "timeseries_query",
     "get_pagination_ids",
     "get_facets",
+    "transform_results",
+    "zerofill",
 )
 
 
@@ -246,6 +248,57 @@ def resolve_discover_aliases(snuba_args):
     return resolved, translated_columns
 
 
+def zerofill(data, start, end, rollup, orderby):
+    rv = []
+    start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
+    end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
+    data_by_time = {}
+
+    for obj in data:
+        if obj["time"] in data_by_time:
+            data_by_time[obj["time"]].append(obj)
+        else:
+            data_by_time[obj["time"]] = [obj]
+
+    for key in six.moves.xrange(start, end, rollup):
+        if key in data_by_time and len(data_by_time[key]) > 0:
+            rv = rv + data_by_time[key]
+            data_by_time[key] = []
+        else:
+            rv.append({"time": key})
+
+    if "-time" in orderby:
+        return list(reversed(rv))
+
+    return rv
+
+
+def transform_results(result, translated_columns, snuba_args):
+    """
+    Transform internal names back to the public schema ones.
+
+    When getting timeseries results via rollup, this function will
+    zerofill the output results.
+    """
+    # Translate back columns that were converted to snuba format
+    for col in result["meta"]:
+        col["name"] = translated_columns.get(col["name"], col["name"])
+
+    def get_row(row):
+        return {translated_columns.get(key, key): value for key, value in row.items()}
+
+    if len(translated_columns):
+        result["data"] = [get_row(row) for row in result["data"]]
+
+    rollup = snuba_args.get("rollup")
+    if rollup and rollup > 0:
+        result["data"] = zerofill(
+            result["data"], snuba_args["start"], snuba_args["end"], rollup, snuba_args["orderby"]
+        )
+
+    return result
+
+
 def query(
     selected_columns,
     query,
@@ -447,15 +500,14 @@ def get_facets(query, params, limit=10, referrer=None):
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
 
-    # Force sampling for multi-project results as we don't need accuracy
-    # with that much data.
-    sample = len(snuba_filter.filter_keys["project_id"]) > 2
-
     # Exclude tracing tags as they are noisy and generally not helpful.
     excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span"]]
 
-    # Get the most frequent tag keys, enable sampling
-    # as we don't need accuracy here.
+    # Sampling keys for multi-project results as we don't need accuracy
+    # with that much data.
+    sample = len(snuba_filter.filter_keys["project_id"]) > 2
+
+    # Get the most frequent tag keys
     key_names = raw_query(
         aggregations=[["count", None, "count"]],
         start=snuba_args.get("start"),
@@ -473,6 +525,14 @@ def get_facets(query, params, limit=10, referrer=None):
     top_tags = [r["tags_key"] for r in key_names["data"]]
     if not top_tags:
         return []
+
+    # TODO(mark) Make the sampling rate scale based on the result size and scaling factor in
+    # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
+    # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
+    # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
+    sample_rate = 0.1 if key_names["data"][0]["count"] > 10000 else None
+    # Rescale the results if we're sampling
+    multiplier = 1 / sample_rate if sample_rate is not None else 1
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
@@ -492,9 +552,13 @@ def get_facets(query, params, limit=10, referrer=None):
             orderby="-count",
             dataset=Dataset.Discover,
             referrer=referrer,
+            sample=sample_rate,
         )
         results.extend(
-            [FacetResult("project", r["project_id"], r["count"]) for r in project_values["data"]]
+            [
+                FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
+                for r in project_values["data"]
+            ]
         )
 
     # Get tag counts for our top tags. Fetching them individually
@@ -513,7 +577,13 @@ def get_facets(query, params, limit=10, referrer=None):
             limit=TOP_VALUES_DEFAULT_LIMIT,
             dataset=Dataset.Discover,
             referrer=referrer,
+            sample=sample_rate,
         )
-        results.extend([FacetResult(tag_name, r[tag], int(r["count"])) for r in tag_values["data"]])
+        results.extend(
+            [
+                FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
+                for r in tag_values["data"]
+            ]
+        )
 
     return results

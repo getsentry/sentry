@@ -112,16 +112,6 @@ class EventCommon(object):
     def get_interface(self, name):
         return self.interfaces.get(name)
 
-    def get_legacy_message(self):
-        # TODO: This is only used in the pagerduty plugin. We should use event.title
-        # there and remove this function once users have been notified, since PD
-        # alert routing may be based off the message field.
-        return (
-            get_path(self.data, "logentry", "formatted")
-            or get_path(self.data, "logentry", "message")
-            or self.message
-        )
-
     def get_event_type(self):
         """
         Return the type of this event.
@@ -353,6 +343,10 @@ class EventCommon(object):
         return data
 
     def bind_node_data(self):
+        # Do not rebind if node_data is already loaded
+        if self.data._node_data:
+            return
+
         node_id = Event.generate_node_id(self.project_id, self.event_id)
         node_data = nodestore.get(node_id) or {}
         ref = self.data.get_ref(self)

@@ -108,9 +108,6 @@ from .endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoi
 from .endpoints.organization_incident_subscription_index import (
     OrganizationIncidentSubscriptionIndexEndpoint,
 )
-from .endpoints.organization_incident_suspects_index import (
-    OrganizationIncidentSuspectsIndexEndpoint,
-)
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
@@ -640,11 +637,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/subscriptions/$",
                     OrganizationIncidentSubscriptionIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-incident-subscription-index",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/suspects/$",
-                    OrganizationIncidentSuspectsIndexEndpoint.as_view(),
-                    name="sentry-api-0-organization-incident-suspect-index",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/chunk-upload/$",

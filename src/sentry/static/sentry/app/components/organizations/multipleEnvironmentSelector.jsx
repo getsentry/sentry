@@ -1,6 +1,7 @@
+import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
 import {analytics} from 'app/utils/analytics';
@@ -16,12 +17,6 @@ import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSele
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
-
-const rootClassName = css`
-  position: relative;
-  display: flex;
-  left: -1px;
-`;
 
 /**
  * Environment Selector
@@ -228,57 +223,63 @@ class MultipleEnvironmentSelector extends React.PureComponent {
         {t('Loading\u2026')}
       </StyledHeaderItem>
     ) : (
-      <StyledDropdownAutoComplete
-        alignMenu="left"
-        allowActorToggle
-        closeOnSelect
-        blendCorner={false}
-        searchPlaceholder={t('Filter environments')}
-        onSelect={this.handleSelect}
-        onClose={this.handleClose}
-        maxHeight={500}
-        rootClassName={rootClassName}
-        zIndex={theme.zIndex.dropdown}
-        inputProps={{style: {padding: 8, paddingLeft: 14}}}
-        emptyMessage={t('You have no environments')}
-        noResultsMessage={t('No environments found')}
-        virtualizedHeight={theme.headerSelectorRowHeight}
-        emptyHidesInput
-        menuProps={{style: {position: 'relative'}}}
-        menuFooter={({actions}) =>
-          this.state.hasChanges && (
-            <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
-          )
-        }
-        items={environments.map(env => ({
-          value: env,
-          searchKey: env,
-          label: ({inputValue}) => (
-            <EnvironmentSelectorItem
-              environment={env}
-              multi
-              inputValue={inputValue}
-              isChecked={this.state.selectedEnvs.has(env)}
-              onMultiSelect={this.handleMultiSelect}
-            />
-          ),
-        }))}
-      >
-        {({isOpen, getActorProps}) => (
-          <StyledHeaderItem
-            data-test-id="global-header-environment-selector"
-            icon={<StyledInlineSvg src="icon-window" />}
-            isOpen={isOpen}
-            hasSelected={value && !!value.length}
-            onClear={this.handleClear}
-            {...getActorProps({
-              isStyled: true,
-            })}
+      <ClassNames>
+        {({css}) => (
+          <StyledDropdownAutoComplete
+            alignMenu="left"
+            allowActorToggle
+            closeOnSelect
+            blendCorner={false}
+            searchPlaceholder={t('Filter environments')}
+            onSelect={this.handleSelect}
+            onClose={this.handleClose}
+            maxHeight={500}
+            rootClassName={css`
+              position: relative;
+              display: flex;
+              left: -1px;
+            `}
+            zIndex={theme.zIndex.dropdown}
+            inputProps={{style: {padding: 8, paddingLeft: 14}}}
+            emptyMessage={t('You have no environments')}
+            noResultsMessage={t('No environments found')}
+            virtualizedHeight={theme.headerSelectorRowHeight}
+            emptyHidesInput
+            menuProps={{style: {position: 'relative'}}}
+            menuFooter={({actions}) =>
+              this.state.hasChanges && (
+                <MultipleSelectorSubmitRow onSubmit={() => this.handleUpdate(actions)} />
+              )
+            }
+            items={environments.map(env => ({
+              value: env,
+              searchKey: env,
+              label: ({inputValue}) => (
+                <EnvironmentSelectorItem
+                  environment={env}
+                  multi
+                  inputValue={inputValue}
+                  isChecked={this.state.selectedEnvs.has(env)}
+                  onMultiSelect={this.handleMultiSelect}
+                />
+              ),
+            }))}
           >
-            {summary}
-          </StyledHeaderItem>
+            {({isOpen, getActorProps}) => (
+              <StyledHeaderItem
+                data-test-id="global-header-environment-selector"
+                icon={<StyledInlineSvg src="icon-window" />}
+                isOpen={isOpen}
+                hasSelected={value && !!value.length}
+                onClear={this.handleClear}
+                {...getActorProps()}
+              >
+                {summary}
+              </StyledHeaderItem>
+            )}
+          </StyledDropdownAutoComplete>
         )}
-      </StyledDropdownAutoComplete>
+      </ClassNames>
     );
   }
 }

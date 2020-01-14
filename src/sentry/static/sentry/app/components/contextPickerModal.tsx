@@ -3,7 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
 import {t} from 'app/locale';
@@ -214,7 +214,7 @@ class ContextPickerModal extends React.Component<Props> {
           <div>{t('Select an organization/project to continue')}</div>
           {needOrg && (
             <StyledSelectControl
-              innerRef={ref => {
+              ref={ref => {
                 this.orgSelect = ref;
                 if (shouldShowProjectSelector) {
                   return;
@@ -232,7 +232,7 @@ class ContextPickerModal extends React.Component<Props> {
 
           {organization && needProject && projects && (
             <StyledSelectControl
-              innerRef={ref => {
+              ref={ref => {
                 this.projectSelect = ref;
                 this.focusProjectSelector();
               }}

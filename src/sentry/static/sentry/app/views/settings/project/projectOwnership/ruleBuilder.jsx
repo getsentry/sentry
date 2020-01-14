@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import memberListStore from 'app/stores/memberListStore';
@@ -137,7 +136,7 @@ class RuleBuilder extends React.Component {
             }
           />
           <Divider src="icon-chevron-right" />
-          <Flex flex="1" align="center" mr={1}>
+          <SelectOwnersWrapper>
             <SelectOwners
               organization={organization}
               project={project}
@@ -145,7 +144,7 @@ class RuleBuilder extends React.Component {
               onChange={this.handleChangeOwners}
               disabled={disabled}
             />
-          </Flex>
+          </SelectOwnersWrapper>
 
           <AddButton
             priority="primary"
@@ -212,6 +211,12 @@ const Divider = styled(InlineSvg)`
   color: ${p => p.theme.borderDark};
   flex-shrink: 0;
   margin-right: 5px;
+`;
+
+const SelectOwnersWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-right: ${space(1)};
 `;
 
 const AddButton = styled(Button)`

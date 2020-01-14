@@ -266,7 +266,6 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "environment": ["dev"],
                     "query": "event.type:error browser.name:Firefox",
                     "range": "24h",
-                    "tags": ["release", "environment"],
                     "yAxis": "count(id)",
                     "version": 2,
                 },
@@ -277,7 +276,6 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert data["range"] == "24h"
         assert data["environment"] == ["dev"]
         assert data["query"] == "event.type:error browser.name:Firefox"
-        assert data["tags"] == ["release", "environment"]
         assert data["yAxis"] == "count(id)"
         assert data["version"] == 2
 

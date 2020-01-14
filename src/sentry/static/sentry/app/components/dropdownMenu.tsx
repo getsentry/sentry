@@ -9,7 +9,6 @@ type GetActorArgs = {
   onMouseEnter?: (e: React.MouseEvent<Element>) => void;
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
   onKeyDown?: (e: React.KeyboardEvent<Element>) => void;
-  isStyled?: boolean;
   style?: React.CSSProperties;
 };
 
@@ -17,7 +16,6 @@ type GetMenuArgs = {
   onClick?: (e: React.MouseEvent<Element>) => void;
   onMouseEnter?: (e: React.MouseEvent<Element>) => void;
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
-  isStyled?: boolean;
 };
 
 // Props for the "actor" element of `<DropdownMenu>`
@@ -35,9 +33,6 @@ type MenuProps = {
   onMouseLeave: (e: React.MouseEvent<Element>) => void;
 };
 
-// XXX(epurkhiser): these types aren't completely correct as it doesn't include
-// the fact that a innerRef / ref is required to be available on the component
-// the props are passed to.
 type GetActorPropsFn = (opts: GetActorArgs) => ActorProps;
 type GetMenuPropsFn = (opts: GetMenuArgs) => MenuProps;
 
@@ -318,17 +313,12 @@ class DropdownMenu extends React.Component<Props, State> {
     onMouseEnter,
     onMouseLeave,
     onKeyDown,
-    isStyled,
     style = {},
     ...props
   } = {}) => {
     const {isNestedDropdown, closeOnEscape} = this.props;
 
-    // `isStyled`: with styled-components we need to pass `innerRef` to get DOM
-    // el's ref vs `ref` otherwise
-    const refProps = isStyled
-      ? {innerRef: this.handleActorMount}
-      : {ref: this.handleActorMount};
+    const refProps = {ref: this.handleActorMount};
 
     // Props that the actor needs to have <DropdownMenu> work
     return {
@@ -393,14 +383,9 @@ class DropdownMenu extends React.Component<Props, State> {
     onClick,
     onMouseLeave,
     onMouseEnter,
-    isStyled,
     ...props
-  } = {}) => {
-    // `isStyled`: with styled-components we need to pass `innerRef` to get DOM
-    // el's ref vs `ref` otherwise
-    const refProps = isStyled
-      ? {innerRef: this.handleMenuMount}
-      : {ref: this.handleMenuMount};
+  }: GetMenuArgs = {}): MenuProps => {
+    const refProps = {ref: this.handleMenuMount};
 
     // Props that the menu needs to have <DropdownMenu> work
     return {

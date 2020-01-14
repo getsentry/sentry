@@ -4,7 +4,7 @@ import 'react-date-range/dist/theme/default.css';
 import {Calendar} from 'react-date-range';
 import React from 'react';
 import moment from 'moment';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {inputStyles} from 'app/styles/input';
 import DropdownMenu from 'app/components/dropdownMenu';
@@ -26,7 +26,7 @@ export default class DatePickerField extends React.Component {
     return (
       <InputField
         {...this.props}
-        field={({onChange, onBlur, value, disabled, name, id}) => {
+        field={({onChange, onBlur, value, disabled, id}) => {
           const dateObj = new Date(value);
           const inputValue = !isNaN(dateObj.getTime()) ? dateObj : new Date();
           const dateString = moment(inputValue).format('LL');
@@ -34,13 +34,8 @@ export default class DatePickerField extends React.Component {
           return (
             <DropdownMenu keepMenuOpen>
               {({isOpen, getRootProps, getActorProps, getMenuProps, actions}) => (
-                <DatePickerWrapper {...getRootProps({isStyled: true})}>
-                  <InputWrapper
-                    name={id}
-                    id={id}
-                    {...getActorProps({isStyled: true})}
-                    isOpen={isOpen}
-                  >
+                <DatePickerWrapper {...getRootProps()}>
+                  <InputWrapper name={id} id={id} {...getActorProps()} isOpen={isOpen}>
                     <StyledInput readOnly value={dateString} />
                     <CalendarIcon>
                       <InlineSvg src="icon-calendar" />
@@ -48,7 +43,7 @@ export default class DatePickerField extends React.Component {
                   </InputWrapper>
 
                   {isOpen && (
-                    <CalendarMenu {...getMenuProps({isStyled: true})}>
+                    <CalendarMenu {...getMenuProps()}>
                       <Calendar
                         disabled={disabled}
                         date={inputValue}

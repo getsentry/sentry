@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {SettingsSearch} from 'app/views/settings/components/settingsSearch';
 import FormSearchStore from 'app/stores/formSearchStore';
@@ -57,7 +57,10 @@ describe('SettingsSearch', function() {
   });
 
   it('renders', async function() {
-    const wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
+    const wrapper = mountWithTheme(
+      <SettingsSearch params={{orgId: 'org-slug'}} />,
+      routerContext
+    );
 
     // renders input
     expect(wrapper.find('SearchInput')).toHaveLength(1);
@@ -65,8 +68,11 @@ describe('SettingsSearch', function() {
   });
 
   it('can focus when `handleFocusSearch` is called and target is not search input', function() {
-    const wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
-    const searchInput = wrapper.instance().searchInput;
+    const wrapper = mountWithTheme(
+      <SettingsSearch params={{orgId: 'org-slug'}} />,
+      routerContext
+    );
+    const searchInput = wrapper.find('SearchInput input').instance();
     const focusSpy = jest.spyOn(searchInput, 'focus');
 
     wrapper.instance().handleFocusSearch({
@@ -78,8 +84,11 @@ describe('SettingsSearch', function() {
   });
 
   it('does not focus search input if it is current target and `handleFocusSearch` is called', function() {
-    const wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
-    const searchInput = wrapper.instance().searchInput;
+    const wrapper = mountWithTheme(
+      <SettingsSearch params={{orgId: 'org-slug'}} />,
+      routerContext
+    );
+    const searchInput = wrapper.find('SearchInput input').instance();
     const focusSpy = jest.spyOn(searchInput, 'focus');
 
     wrapper.instance().handleFocusSearch({
@@ -91,7 +100,10 @@ describe('SettingsSearch', function() {
   });
 
   it('can search', async function() {
-    const wrapper = mount(<SettingsSearch params={{orgId: 'org-slug'}} />, routerContext);
+    const wrapper = mountWithTheme(
+      <SettingsSearch params={{orgId: 'org-slug'}} />,
+      routerContext
+    );
 
     wrapper.find('input').simulate('change', {target: {value: 'bil'}});
 

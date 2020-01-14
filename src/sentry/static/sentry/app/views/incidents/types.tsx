@@ -1,5 +1,4 @@
 import {User, Repository} from 'app/types';
-import {IncidentActivityType} from './utils';
 
 type Data = [number, {count: number}[]][];
 
@@ -52,3 +51,16 @@ export type NoteType = {
   text: string;
   mentions: [string, string][];
 };
+
+export enum IncidentActivityType {
+  CREATED,
+  DETECTED,
+  STATUS_CHANGE,
+  COMMENT,
+}
+
+export enum IncidentStatus {
+  DETECTED,
+  CREATED,
+  CLOSED,
+}
