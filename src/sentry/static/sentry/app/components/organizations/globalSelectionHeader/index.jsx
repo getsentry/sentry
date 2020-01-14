@@ -323,12 +323,7 @@ class GlobalSelectionHeader extends React.Component {
     } else if (requestedProjects && requestedProjects.length > 0) {
       // If there is a list of projects from URL params, select first project from that list
       newProject = [requestedProjects[0]];
-    } else if (
-      organization &&
-      params &&
-      organization.slug &&
-      organization.slug === params.orgId
-    ) {
+    } else if (organization?.slug && organization?.slug === params?.orgId) {
       // When we have finished loading the organization into the props,  i.e. the organization slug is consistent with
       // the URL param--Sentry will get the first project from the organization that the user is a member of.
       newProject = this.getFirstProject();
