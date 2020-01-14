@@ -1,19 +1,6 @@
 import {Client} from 'app/api';
 
-import {Incident} from './types';
-
-export enum IncidentActivityType {
-  CREATED,
-  DETECTED,
-  STATUS_CHANGE,
-  COMMENT,
-}
-
-export enum IncidentStatus {
-  DETECTED,
-  CREATED,
-  CLOSED,
-}
+import {Incident, IncidentStatus} from './types';
 
 export function fetchIncident(
   api: Client,
