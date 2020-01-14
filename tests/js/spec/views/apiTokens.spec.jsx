@@ -2,7 +2,9 @@ import React from 'react';
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
-import ApiTokens from 'app/views/settings/account/apiTokens';
+import {ApiTokens} from 'app/views/settings/account/apiTokens';
+
+const organization = TestStubs.Organization();
 
 describe('ApiTokens', function() {
   const routerContext = TestStubs.routerContext();
@@ -16,7 +18,7 @@ describe('ApiTokens', function() {
       url: '/api-tokens/',
     });
 
-    const wrapper = shallow(<ApiTokens />, routerContext);
+    const wrapper = shallow(<ApiTokens organization={organization} />, routerContext);
 
     // Should be loading
     expect(wrapper).toMatchSnapshot();
@@ -28,7 +30,7 @@ describe('ApiTokens', function() {
       body: [TestStubs.ApiToken()],
     });
 
-    const wrapper = shallow(<ApiTokens />, routerContext);
+    const wrapper = shallow(<ApiTokens organization={organization} />, routerContext);
 
     // Should be loading
     expect(wrapper).toMatchSnapshot();
@@ -47,7 +49,10 @@ describe('ApiTokens', function() {
 
     expect(mock).not.toHaveBeenCalled();
 
-    const wrapper = mountWithTheme(<ApiTokens />, routerContext);
+    const wrapper = mountWithTheme(
+      <ApiTokens organization={organization} />,
+      routerContext
+    );
 
     wrapper.find('button[aria-label="Remove"]').simulate('click');
 

@@ -7,14 +7,16 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
+import AlertLink from 'app/components/alertLink';
 import ApiTokenRow from 'app/views/settings/account/apiTokenRow';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import withOrganization from 'app/utils/withOrganization';
 
-class ApiTokens extends AsyncView {
+export class ApiTokens extends AsyncView {
   getTitle() {
     return t('API Tokens');
   }
@@ -58,6 +60,7 @@ class ApiTokens extends AsyncView {
   };
 
   renderBody() {
+    const {organization} = this.props;
     const {tokenList} = this.state;
 
     const isEmpty = tokenList.length === 0;
@@ -76,6 +79,14 @@ class ApiTokens extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title="Auth Tokens" action={action} />
+        <AlertLink
+          to={`/settings/${(organization && organization.slug) ||
+            ''}/developer-settings/new-internal`}
+        >
+          {t(
+            "Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using internal integrations to create/manage tokens tied to the organization instead."
+          )}
+        </AlertLink>
         <TextBlock>
           {t(
             "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
@@ -122,4 +133,4 @@ class ApiTokens extends AsyncView {
   }
 }
 
-export default ApiTokens;
+export default withOrganization(ApiTokens);
