@@ -13,6 +13,7 @@ import {assert} from 'app/types/utils';
 import Link from 'app/components/links/link';
 
 import {
+  downloadAsCsv,
   getAggregateAlias,
   getFieldRenderer,
   pushEventViewToLocation,
@@ -39,6 +40,7 @@ export type TableViewProps = {
   eventView: EventView;
   tableData: TableData | null | undefined;
   tagKeys: null | string[];
+  title: string;
 };
 
 /**
@@ -360,7 +362,15 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   render() {
-    const {organization, isLoading, error, tableData, tagKeys, eventView} = this.props;
+    const {
+      organization,
+      isLoading,
+      error,
+      tableData,
+      tagKeys,
+      eventView,
+      title,
+    } = this.props;
 
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
@@ -420,6 +430,7 @@ class TableView extends React.Component<TableViewProps> {
                 moveColumnCommit: this._moveColumnCommit,
                 onDragStart: startColumnDrag,
               }}
+              downloadAsCsv={() => downloadAsCsv(tableData, title)}
             />
           );
         }}

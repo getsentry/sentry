@@ -113,6 +113,8 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => void;
     deleteColumn: (index: number) => void;
   };
+
+  downloadAsCsv: () => void;
 };
 
 type GridEditableState = {
@@ -484,7 +486,7 @@ class GridEditable<
   };
 
   render() {
-    const {isEditable} = this.props;
+    const {isEditable, downloadAsCsv} = this.props;
 
     return (
       <React.Fragment>
@@ -494,7 +496,11 @@ class GridEditable<
           {/* TODO(leedongwei): This is ugly but I need to move it to work on
           resizing columns. It will be refactored in a upcoming PR */}
           <div style={{display: 'flex', flexDirection: 'row'}}>
-            {this.renderHeaderButton()}
+            <HeaderButton onClick={downloadAsCsv} data-test-id="grid-add-column">
+              <InlineSvg src="icon-download" />
+              {t('Download CSV')}
+            </HeaderButton>
+            <div style={{marginLeft: '16px'}}>{this.renderHeaderButton()}</div>
 
             <div style={{marginLeft: '16px'}}>
               {isEditable && this.renderGridHeadEditButtons()}
