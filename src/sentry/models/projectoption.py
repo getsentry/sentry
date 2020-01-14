@@ -62,11 +62,15 @@ class ProjectOptionManager(OptionManager):
         return result
 
     def post_save(self, instance, **kwargs):
-        schedule_update_config_cache(project_id=instance.project_id, generate=True)
+        schedule_update_config_cache(
+            project_id=instance.project_id, generate=True, update_reason="projectoption.post_save"
+        )
         self.reload_cache(instance.project_id)
 
     def post_delete(self, instance, **kwargs):
-        schedule_update_config_cache(project_id=instance.project_id, generate=True)
+        schedule_update_config_cache(
+            project_id=instance.project_id, generate=True, update_reason="projectoption.post_delete"
+        )
         self.reload_cache(instance.project_id)
 
 

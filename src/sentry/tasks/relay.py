@@ -6,12 +6,13 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 
 @instrumented_task(name="sentry.tasks.relay.update_config_cache", queue="relay_config")
-def update_config_cache(generate, organization_id=None, project_id=None):
+def update_config_cache(generate, organization_id=None, project_id=None, update_reason=None):
     """
     Update the Redis cache for the Relay projectconfig. This task is invoked
     whenever a project/org option has been saved or smart quotas potentially
@@ -50,6 +51,11 @@ def update_config_cache(generate, organization_id=None, project_id=None):
     else:
         projectconfig_cache.delete_many([project.id for project in projects])
 
+    metrics.incr(
+        "relay.projectconfig_cache.done",
+        tags={"generate": generate, "update_reason": update_reason},
+    )
+
 
 def _get_schedule_debounce_key(project_id, organization_id):
     if organization_id:
@@ -75,6 +81,7 @@ def schedule_update_config_cache(
     ):
         # This cache backend is a noop, don't bother creating a noop celery
         # task.
+        metrics.incr("relay.projectconfig_cache.skipped", tags={"reason": "noop_backend"})
         return
 
     if bool(organization_id) == bool(project_id):
@@ -82,6 +89,7 @@ def schedule_update_config_cache(
 
     debounce_key = _get_schedule_debounce_key(project_id, organization_id)
     if cache.get(debounce_key, None):
+        metrics.incr("relay.projectconfig_cache.skipped", tags={"reason": "debounce"})
         # If this task is already in the queue, do not schedule another task.
         return
 
@@ -90,6 +98,13 @@ def schedule_update_config_cache(
     # XXX(markus): We could schedule this task a couple seconds into the
     # future, this would make debouncing more effective. If we want to do this
     # we might want to use the sleep queue.
+    metrics.incr(
+        "relay.projectconfig_cache.scheduled",
+        tags={"generate": generate, "update_reason": update_reason},
+    )
     update_config_cache.delay(
-        generate=generate, project_id=project_id, organization_id=organization_id
+        generate=generate,
+        project_id=project_id,
+        organization_id=organization_id,
+        update_reason=update_reason,
     )

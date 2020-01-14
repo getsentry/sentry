@@ -57,11 +57,19 @@ class OrganizationOptionManager(OptionManager):
         return result
 
     def post_save(self, instance, **kwargs):
-        schedule_update_config_cache(organization_id=instance.organization_id, generate=False)
+        schedule_update_config_cache(
+            organization_id=instance.organization_id,
+            generate=False,
+            update_reason="organizationoption.post_save",
+        )
         self.reload_cache(instance.organization_id)
 
     def post_delete(self, instance, **kwargs):
-        schedule_update_config_cache(organization_id=instance.organization_id, generate=False)
+        schedule_update_config_cache(
+            organization_id=instance.organization_id,
+            generate=False,
+            update_reason="organizationoption.post_delete",
+        )
         self.reload_cache(instance.organization_id)
 
 
