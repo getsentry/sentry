@@ -7,6 +7,7 @@ import getpass
 
 SENTRY_APIDOCS_REDIS_PORT = 12355
 SENTRY_APIDOCS_WEB_PORT = 12356
+SENTRY_APIDOCS_SNUBA_PORT = 1219
 
 SENTRY_URL_PREFIX = "https://sentry.io"
 
@@ -73,3 +74,5 @@ SENTRY_OPTIONS.update(
 
 # Enable feature flags so sample responses generate.
 SENTRY_FEATURES["projects:servicehooks"] = True
+
+SENTRY_SNUBA = "http://127.0.0.1:%d" % SENTRY_APIDOCS_SNUBA_PORT
