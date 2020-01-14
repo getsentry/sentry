@@ -427,6 +427,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       >
                         <LinkWithConfirmation
                           className="btn btn-default btn-sm"
+                          disabled={false}
                           message="Are you sure you want to remove this API key?"
                           onConfirm={[Function]}
                           title="Remove API Key?"
@@ -435,6 +436,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                             cancelText="Cancel"
                             confirmText="Confirm"
                             disableConfirmButton={false}
+                            disabled={false}
                             message="Are you sure you want to remove this API key?"
                             onConfirm={[Function]}
                             priority="primary"
@@ -442,6 +444,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           >
                             <a
                               className="btn btn-default btn-sm"
+                              disabled={false}
                               onClick={[Function]}
                               title="Remove API Key?"
                             >
