@@ -7,5 +7,9 @@ from sentry.signals import group_created
 @group_created.connect(weak=False)
 def record_join_request_created(group, project, organization, **kwargs):
     analytics.record(
-        "issue.created", group_id=group.id, project_id=project.id, organization_id=organization.id
+        "issue.created",
+        group_id=group.id,
+        project_id=project.id,
+        organization_id=organization.id,
+        event_type=group.get_event_type(),
     )

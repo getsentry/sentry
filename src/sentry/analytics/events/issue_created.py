@@ -7,9 +7,10 @@ class IssueCreatedEvent(analytics.Event):
     type = "issue.created"
 
     attributes = (
-        analytics.Attribute("group_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("organization_id"),
+        analytics.Attribute("group_id", type=int),
+        analytics.Attribute("project_id", type=int),
+        analytics.Attribute("organization_id", type=int),
+        analytics.Attribute("event_type"),
     )
 
 
