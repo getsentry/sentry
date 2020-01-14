@@ -422,7 +422,6 @@ class DropdownAutoCompleteMenu extends React.Component {
                   {...getMenuProps({
                     ...menuProps,
                     style,
-                    isStyled: true,
                     css: this.props.css,
                     itemCount,
                     blendCorner,

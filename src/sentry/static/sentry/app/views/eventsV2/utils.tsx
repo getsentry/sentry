@@ -129,29 +129,28 @@ export type TagTopValue = {
 };
 
 export type Tag = {
+  key: string;
   topValues: Array<TagTopValue>;
 };
 
 /**
- * Fetches tag distributions for a single tag key
+ * Fetches tag facets for a query
  *
  * @param {Object} api
  * @param {String} orgSlug
- * @param {String} key
  * @param {String} query
  * @returns {Promise<Object>}
  */
-export function fetchTagDistribution(
+export function fetchTagFacets(
   api: Client,
   orgSlug: string,
-  key: string,
   query: EventQuery
-): Promise<Tag> {
+): Promise<Tag[]> {
   const urlParams = pick(query, Object.values(URL_PARAM));
 
-  const queryOption = {...urlParams, key, query: query.query};
+  const queryOption = {...urlParams, query: query.query};
 
-  return api.requestPromise(`/organizations/${orgSlug}/events-distribution/`, {
+  return api.requestPromise(`/organizations/${orgSlug}/events-facets/`, {
     query: queryOption,
   });
 }

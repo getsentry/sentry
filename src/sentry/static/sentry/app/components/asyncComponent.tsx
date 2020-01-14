@@ -292,23 +292,35 @@ export default class AsyncComponent<
     // Allow children to implement this
   }
 
+  onLoadAllEndpointsSuccess() {
+    // Allow children to implement this
+  }
+
   handleRequestSuccess({stateKey, data, jqXHR}, initialRequest?: boolean) {
-    this.setState(prevState => {
-      const state = {
-        [stateKey]: data,
-        // TODO(billy): This currently fails if this request is retried by SudoModal
-        [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
-      };
+    this.setState(
+      prevState => {
+        const state = {
+          [stateKey]: data,
+          // TODO(billy): This currently fails if this request is retried by SudoModal
+          [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
+        };
 
-      if (initialRequest) {
-        state.remainingRequests = prevState.remainingRequests! - 1;
-        state.loading = prevState.remainingRequests! > 1;
-        state.reloading = prevState.reloading && state.loading;
-        this.markShouldMeasure({remainingRequests: state.remainingRequests});
+        if (initialRequest) {
+          state.remainingRequests = prevState.remainingRequests! - 1;
+          state.loading = prevState.remainingRequests! > 1;
+          state.reloading = prevState.reloading && state.loading;
+          this.markShouldMeasure({remainingRequests: state.remainingRequests});
+        }
+
+        return state;
+      },
+      () => {
+        //if everything is loaded and we don't have an error, call the callback
+        if (this.state.remainingRequests === 0 && !this.state.error) {
+          this.onLoadAllEndpointsSuccess();
+        }
       }
-
-      return state;
-    });
+    );
     this.onRequestSuccess({stateKey, data, jqXHR});
   }
 

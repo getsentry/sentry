@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 import {NavigationGroupProps} from 'app/views/settings/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 const SettingsNavigationGroup = (props: NavigationGroupProps) => {
   const {organization, project, name, items} = props;
@@ -11,7 +12,7 @@ const SettingsNavigationGroup = (props: NavigationGroupProps) => {
   return (
     <NavSection data-test-id={name}>
       <SettingsHeading>{name}</SettingsHeading>
-      {items.map(({path, title, index, show, badge, id}) => {
+      {items.map(({path, title, index, show, badge, id, recordAnalytics}) => {
         if (typeof show === 'function' && !show(props)) {
           return null;
         }
@@ -24,6 +25,20 @@ const SettingsNavigationGroup = (props: NavigationGroupProps) => {
           ...(project ? {projectId: project.slug} : {}),
         });
 
+        const handleClick = () => {
+          //only call the analytics event if the URL is changing
+          if (recordAnalytics && to !== window.location.pathname) {
+            trackAnalyticsEvent({
+              organization_id: organization && organization.id,
+              project_id: project && project.id,
+              eventName: 'Sidebar Item Clicked',
+              eventKey: 'sidebar.item_clicked',
+              sidebar_item_id: id,
+              dest: path,
+            });
+          }
+        };
+
         return (
           <SettingsNavItem
             key={title}
@@ -32,6 +47,7 @@ const SettingsNavigationGroup = (props: NavigationGroupProps) => {
             index={index}
             badge={badgeResult}
             id={id}
+            onClick={handleClick}
           />
         );
       })}
