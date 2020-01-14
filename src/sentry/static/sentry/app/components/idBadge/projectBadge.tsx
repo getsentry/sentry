@@ -7,7 +7,8 @@ import {Project} from 'app/types';
 
 type Props = {
   project: Project;
-  avatarSize: number;
+  // Has a default value in BaseBadge
+  avatarSize?: number;
   className?: string;
   hideAvatar?: boolean;
   hideName?: boolean;
