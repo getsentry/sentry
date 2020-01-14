@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from sentry.utils.services import Service
-from sentry.relay.config import ProjectConfig
 
 
 class ProjectConfigCache(Service):
@@ -11,7 +10,7 @@ class ProjectConfigCache(Service):
         pass
 
     def set_many(self, configs):
-        assert all(isinstance(config, ProjectConfig) for config in configs)
+        pass
 
     def delete_many(self, project_ids):
         pass

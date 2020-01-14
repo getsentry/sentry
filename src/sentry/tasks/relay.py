@@ -46,7 +46,7 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
 
     if generate:
         projectconfig_cache.set_many(
-            [get_project_config(project, full_config=True) for project in projects]
+            [get_project_config(project, full_config=True).to_dict() for project in projects]
         )
     else:
         projectconfig_cache.delete_many([project.id for project in projects])
