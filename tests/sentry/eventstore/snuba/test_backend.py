@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-import pytest
 
 from django.conf import settings
 
@@ -169,7 +168,6 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert oldest_event is None
         assert latest_event is None
 
-    @pytest.mark.skip(reason="Not yet implemented")
     def test_transaction_get_next_prev_event_id(self):
         filter = Filter(
             project_ids=[self.project1.id, self.project2.id],
