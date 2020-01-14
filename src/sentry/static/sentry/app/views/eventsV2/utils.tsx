@@ -382,23 +382,24 @@ export function decodeScalar(
 
 export function downloadAsCsv(tableData, filename) {
   const {meta, data} = tableData;
-  if (meta !== undefined) {
-    const headings = Object.keys(meta);
-
-    const csvContent = Papa.unparse({
-      fields: headings,
-      data: data.map(row => {
-        return headings.map(col => disableMacros(row[col]));
-      }),
-    });
-
-    const encodedDataUrl = encodeURI(`data:text/csv;charset=utf8,${csvContent}`);
-
-    // Create a download link then click it, this is so we can get a filename
-    const link = document.createElement('a');
-    const now = new Date();
-    link.setAttribute('href', encodedDataUrl);
-    link.setAttribute('download', `${filename} ${getUtcDateString(now)}.csv`);
-    link.click();
+  if (meta === undefined) {
+    return;
   }
+  const headings = Object.keys(meta);
+
+  const csvContent = Papa.unparse({
+    fields: headings,
+    data: data.map(row => {
+      return headings.map(col => disableMacros(row[col]));
+    }),
+  });
+
+  const encodedDataUrl = encodeURI(`data:text/csv;charset=utf8,${csvContent}`);
+
+  // Create a download link then click it, this is so we can get a filename
+  const link = document.createElement('a');
+  const now = new Date();
+  link.setAttribute('href', encodedDataUrl);
+  link.setAttribute('download', `${filename} ${getUtcDateString(now)}.csv`);
+  link.click();
 }

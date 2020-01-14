@@ -20,6 +20,7 @@ import {
   Header,
   HeaderTitle,
   HeaderButton,
+  HeaderButtonContainer,
   Body,
   Grid,
   GridRow,
@@ -496,15 +497,17 @@ class GridEditable<
           {/* TODO(leedongwei): This is ugly but I need to move it to work on
           resizing columns. It will be refactored in a upcoming PR */}
           <div style={{display: 'flex', flexDirection: 'row'}}>
-            <HeaderButton onClick={downloadAsCsv} data-test-id="grid-add-column">
-              <InlineSvg src="icon-download" />
-              {t('Download CSV')}
-            </HeaderButton>
-            <div style={{marginLeft: '16px'}}>{this.renderHeaderButton()}</div>
+            <HeaderButtonContainer>
+              <HeaderButton onClick={downloadAsCsv} data-test-id="grid-download-csv">
+                <InlineSvg src="icon-download" />
+                {t('Download CSV')}
+              </HeaderButton>
+            </HeaderButtonContainer>
+            <HeaderButtonContainer>{this.renderHeaderButton()}</HeaderButtonContainer>
 
-            <div style={{marginLeft: '16px'}}>
+            <HeaderButtonContainer>
               {isEditable && this.renderGridHeadEditButtons()}
-            </div>
+            </HeaderButtonContainer>
           </div>
         </Header>
 
