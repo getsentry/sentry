@@ -23,7 +23,6 @@ from sentry.models import (
     EventAttachment,
 )
 from sentry.similarity import features
-from sentry.snuba.events import Columns
 from sentry.tasks.base import instrumented_task
 from six.moves import reduce
 
@@ -505,13 +504,16 @@ def unmerge(
         filter=eventstore.Filter(
             project_ids=[project_id], group_ids=[source.id], conditions=conditions
         ),
-        # We need the text-only "search message" from Snuba, not the raw message
-        # dict field from nodestore.
-        additional_columns=[Columns.MESSAGE],
         limit=batch_size,
         referrer="unmerge",
         orderby=["-timestamp", "-event_id"],
     )
+
+    for event in events:
+        # TODO: We need a better way to deal with this but we need event.message to
+        # be the text-only "search message" here, which matches what is originally
+        # saved into Snuba, not the raw message dict field in nodestore.
+        event.message = event.get_search_message(event.get_event_metadata(), event.culprit)
 
     # If there are no more events to process, we're done with the migration.
     if not events:

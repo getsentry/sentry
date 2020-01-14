@@ -76,13 +76,7 @@ class EventStorage(Service):
     minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
 
     def get_events(
-        self,
-        filter,
-        additional_columns=None,
-        orderby=None,
-        limit=100,
-        offset=0,
-        referrer="eventstore.get_events",
+        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_events"
     ):
         """
         Fetches a list of events given a set of criteria.
