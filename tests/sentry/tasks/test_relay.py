@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import pytest
 
 from sentry.tasks.relay import schedule_update_config_cache
+from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 
 
 @pytest.fixture
@@ -12,9 +13,12 @@ def redis_cache(monkeypatch):
         "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache",
     )
 
-    from sentry.relay import projectconfig_cache
+    cache = RedisProjectConfigCache()
+    monkeypatch.setattr("sentry.relay.projectconfig_cache.set_many", cache.set_many)
+    monkeypatch.setattr("sentry.relay.projectconfig_cache.delete_many", cache.delete_many)
+    monkeypatch.setattr("sentry.relay.projectconfig_cache.get", cache.get)
 
-    return projectconfig_cache
+    return cache
 
 
 @pytest.mark.django_db

@@ -278,8 +278,7 @@ def test_relay_projectconfig_cache_full_config(
         assert status_code < 400
 
     http_cfg, = six.itervalues(result["configs"])
-    [[cfg]] = projectconfig_cache_set
-    redis_cfg = cfg.to_dict()
+    [[redis_cfg]] = projectconfig_cache_set
 
     del http_cfg["lastFetch"]
     del http_cfg["lastChange"]
