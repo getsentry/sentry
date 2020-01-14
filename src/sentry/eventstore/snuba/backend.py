@@ -54,31 +54,16 @@ class SnubaEventStorage(EventStorage):
         referrer="eventstore.get_events",
     ):
         """
-        Get events from Snuba.
+        Get events from Snuba, with node data loaded.
         """
-        assert filter, "You must provide a filter"
-        cols = self.__get_columns()
-        orderby = orderby or DESC_ORDERING
-
-        result = snuba.dataset_query(
-            selected_columns=cols,
-            start=filter.start,
-            end=filter.end,
-            conditions=filter.conditions,
-            filter_keys=filter.filter_keys,
+        return self.get_events(
+            filter,
             orderby=orderby,
             limit=limit,
             offset=offset,
             referrer=referrer,
-            dataset=snuba.Dataset.Events,
+            should_bind_nodes=True,
         )
-
-        if "error" not in result:
-            events = [self.__make_event(evt) for evt in result["data"]]
-            self.bind_nodes(events)
-            return events
-
-        return []
 
     def get_unfetched_events(
         self,
@@ -93,6 +78,24 @@ class SnubaEventStorage(EventStorage):
         from nodestore. The current use case for this is event data deletions where
         we just need the event IDs in order to process the deletions.
         """
+        return self.get_events(
+            filter,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+            should_bind_nodes=False,
+        )
+
+    def __get_events(
+        self,
+        filter,
+        orderby=None,
+        limit=DEFAULT_LIMIT,
+        offset=DEFAULT_OFFSET,
+        referrer=None,
+        should_bind_nodes=False,
+    ):
         assert filter, "You must provide a filter"
         cols = self.__get_columns()
         orderby = orderby or DESC_ORDERING
@@ -112,6 +115,8 @@ class SnubaEventStorage(EventStorage):
 
         if "error" not in result:
             events = [self.__make_event(evt) for evt in result["data"]]
+            if should_bind_nodes:
+                self.bind_nodes(events)
             return events
 
         return []
