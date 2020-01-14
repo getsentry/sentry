@@ -62,6 +62,7 @@ class EventStorage(Service):
         "create_event",
         "get_event_by_id",
         "get_events",
+        "get_unfetched_events",
         "get_prev_event_id",
         "get_next_event_id",
         "get_earliest_event_id",
@@ -89,6 +90,11 @@ class EventStorage(Service):
         offset (int): Query offset - default 0
         referrer (string): Referrer - default "eventstore.get_events"
         """
+        raise NotImplementedError
+
+    def get_unfetched_events(
+        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_unfetched_events"
+    ):
         raise NotImplementedError
 
     def get_event_by_id(self, project_id, event_id, additional_columns=None):

@@ -80,6 +80,42 @@ class SnubaEventStorage(EventStorage):
 
         return []
 
+    def get_unfetched_events(
+        self,
+        filter,
+        orderby=None,
+        limit=DEFAULT_LIMIT,
+        offset=DEFAULT_OFFSET,
+        referrer="eventstore.get_unfetched_events",
+    ):
+        """
+        Used for fetching large volumes of events that do not need data loaded
+        from nodestore. The current use case for this is event data deletions where
+        we just need the event IDs in order to process the deletions.
+        """
+        assert filter, "You must provide a filter"
+        cols = self.__get_columns()
+        orderby = orderby or DESC_ORDERING
+
+        result = snuba.raw_query(
+            selected_columns=cols,
+            start=filter.start,
+            end=filter.end,
+            conditions=filter.conditions,
+            filter_keys=filter.filter_keys,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+            dataset=snuba.Dataset.Events,
+        )
+
+        if "error" not in result:
+            events = [self.__make_event(evt) for evt in result["data"]]
+            return events
+
+        return []
+
     def get_event_by_id(self, project_id, event_id, additional_columns=None):
         """
         Get an event given a project ID and event ID
