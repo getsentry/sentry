@@ -55,4 +55,51 @@ describe('AsyncComponent', function() {
         .text()
     ).toEqual('oops there was a problem');
   });
+
+  describe('multi-route component', () => {
+    class MultiRouteComponent extends TestAsyncComponent {
+      getEndpoints() {
+        return [['data', '/some/path/to/something/'], ['project', '/another/path/here']];
+      }
+    }
+
+    it('calls onLoadAllEndpointsSuccess when all endpoints have been loaded', () => {
+      jest.useFakeTimers();
+      jest.spyOn(Client.prototype, 'request').mockImplementation((url, options) => {
+        const timeout = url.includes('something') ? 100 : 50;
+        setTimeout(
+          () =>
+            options.success({
+              message: 'good',
+            }),
+          timeout
+        );
+      });
+      const mockOnAllEndpointsSuccess = jest.spyOn(
+        MultiRouteComponent.prototype,
+        'onLoadAllEndpointsSuccess'
+      );
+
+      const wrapper = shallow(<MultiRouteComponent />);
+
+      expect(wrapper.state('loading')).toEqual(true);
+      expect(wrapper.state('remainingRequests')).toEqual(2);
+
+      jest.advanceTimersByTime(40);
+      expect(wrapper.state('loading')).toEqual(true);
+      expect(wrapper.state('remainingRequests')).toEqual(2);
+
+      jest.advanceTimersByTime(40);
+      expect(wrapper.state('loading')).toEqual(true);
+      expect(wrapper.state('remainingRequests')).toEqual(1);
+      expect(mockOnAllEndpointsSuccess).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(40);
+      expect(wrapper.state('loading')).toEqual(false);
+      expect(wrapper.state('remainingRequests')).toEqual(0);
+      expect(mockOnAllEndpointsSuccess).toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+    });
+  });
 });
