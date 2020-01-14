@@ -292,6 +292,10 @@ export default class AsyncComponent<
     // Allow children to implement this
   }
 
+  onLoadAllEndpointsSuccess() {
+    // Allow children to implement this
+  }
+
   handleRequestSuccess({stateKey, data, jqXHR}, initialRequest?: boolean) {
     this.setState(
       prevState => {
@@ -313,7 +317,7 @@ export default class AsyncComponent<
       () => {
         //if everything is loaded and we don't have an error, call the callback
         if (this.state.remainingRequests === 0 && !this.state.error) {
-          this.onEndpointsLoadedSuccessfully();
+          this.onLoadAllEndpointsSuccess();
         }
       }
     );
@@ -347,10 +351,6 @@ export default class AsyncComponent<
       return state;
     });
     this.onRequestError(error, args);
-  }
-
-  onEndpointsLoadedSuccessfully() {
-    // Allow children to implement this
   }
 
   /**
