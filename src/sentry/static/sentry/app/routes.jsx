@@ -1119,6 +1119,14 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
 
+      <Route
+        path="/organizations/:orgId/data-export/:dataTag"
+        componentPromise={() =>
+          import(/* webpackChunkName: "DataDownloadView" */ 'app/views/dataExport/dataDownload.jsx')
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
       <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
         <IndexRedirect to="welcome/" />
         <Route
