@@ -5,22 +5,15 @@ import six
 
 from time import time
 
-from sentry import options
-from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import NotRateLimited, Quota, RateLimited
-from sentry.utils.redis import get_cluster_from_options, load_script, redis_clusters
+from sentry.utils.redis import (
+    get_dynamic_cluster_from_options,
+    validate_dynamic_cluster,
+    load_script,
+)
 from sentry.utils.json import prune_empty_keys
 
 is_rate_limited = load_script("quotas/is_rate_limited.lua")
-
-
-def get_dynamic_cluster_from_options(setting, config):
-    cluster_name = config.get("cluster", "default")
-    cluster_opts = options.default_manager.get("redis.clusters").get(cluster_name)
-    if cluster_opts is not None and cluster_opts.get("is_redis_cluster"):
-        return True, redis_clusters.get(cluster_name), config
-
-    return (False,) + get_cluster_from_options(setting, config)
 
 
 class BasicRedisQuota(object):
@@ -144,14 +137,7 @@ class RedisQuota(Quota):
         self.namespace = "quota"
 
     def validate(self):
-        try:
-            if self.is_redis_cluster:
-                self.cluster.ping()
-            else:
-                with self.cluster.all() as client:
-                    client.ping()
-        except Exception as e:
-            raise InvalidConfiguration(six.text_type(e))
+        validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
 
     def __get_redis_client(self, routing_key):
         if self.is_redis_cluster:

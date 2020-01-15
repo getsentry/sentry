@@ -85,7 +85,7 @@ class Triggers extends React.Component<Props> {
       onAdd,
     } = this.props;
 
-    // Note we only support 2 triggers on UI - API can support many
+    // Note we only support 2 triggers max
     return (
       <React.Fragment>
         {triggers.map((trigger, index) => {
