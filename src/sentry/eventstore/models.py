@@ -1,14 +1,19 @@
 from __future__ import absolute_import
 
 import pytz
+import six
 
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 
+from django.conf import settings
+from django.utils.encoding import force_text
+
+from sentry import eventtypes
 from sentry.models import EventCommon, EventDict
 from sentry.db.models import NodeData
-
 from sentry.snuba.events import Columns
+from sentry.utils.safe import trim
 
 
 def ref_func(x):
@@ -16,13 +21,14 @@ def ref_func(x):
 
 
 class Event(EventCommon):
-    def __init__(
-        self, project_id, event_id, group_id=None, message=None, data=None, snuba_data=None
-    ):
+    """
+    Event backed by nodestore and Snuba.
+    """
+
+    def __init__(self, project_id, event_id, group_id=None, data=None, snuba_data=None):
         self.project_id = project_id
         self.event_id = event_id
         self.group_id = group_id
-        self.message = message
         self.data = data
         self._snuba_data = snuba_data or {}
         super(Event, self).__init__()
@@ -73,9 +79,8 @@ class Event(EventCommon):
 
     @property
     def message(self):
-        if self._message:
+        if hasattr(self, "_message"):
             return self._message
-
         column = self.__get_column_name(Columns.MESSAGE)
         if column in self._snuba_data:
             return self._snuba_data[column]
@@ -85,6 +90,37 @@ class Event(EventCommon):
     @message.setter
     def message(self, value):
         self._message = value
+
+    @property
+    def search_message(self):
+        """This generates the internal event.search_message attribute which is used
+        for search purposes. It adds a bunch of data from the metadata and
+        the culprit.
+        """
+        data = self.data
+        culprit = self.culprit
+
+        event_metadata = self.get_event_metadata()
+
+        if event_metadata is None:
+            event_metadata = eventtypes.get(self.get_event_type())().get_metadata(self.data)
+
+        message = ""
+
+        if data.get("logentry"):
+            message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
+
+        if event_metadata:
+            for value in six.itervalues(event_metadata):
+                value_u = force_text(value, errors="replace")
+                if value_u not in message:
+                    message = u"{} {}".format(message, value_u)
+
+        if culprit and culprit not in message:
+            culprit_u = force_text(culprit, errors="replace")
+            message = u"{} {}".format(message, culprit_u)
+
+        return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     @property
     def datetime(self):
