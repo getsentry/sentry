@@ -19,16 +19,29 @@ def update_user_reports(**kwargs):
         group__isnull=True, environment__isnull=True, date_added__gte=now - timedelta(days=1)
     )
 
-    count = 0
-    updated = 0
-    for report in user_reports:
-        count += 1
-        event = eventstore.get_event_by_id(report.project_id, report.event_id)
-        if event:
+    project_ids = [r.project_id for r in user_reports]
+    event_ids = [r.event_id for r in user_reports]
+    report_by_event = {r.event_id: r for r in user_reports}
+
+    snuba_filter = eventstore.Filter(project_ids=project_ids, event_ids=event_ids)
+    events = eventstore.get_events(filter=snuba_filter)
+
+    total_reports = len(user_reports)
+    reports_with_event = 0
+    updated_reports = 0
+
+    for event in events:
+        report = report_by_event.get(event.event_id)
+        if report:
+            reports_with_event += 1
             report.update(group_id=event.group_id, environment=event.get_environment())
-            updated += 1
+            updated_reports += 1
 
     logger.info(
         "update_user_reports.records_updated",
-        extra={"records_updated": updated, "records_to_update": count},
+        extra={
+            "reports_to_update": total_reports,
+            "reports_with_event": reports_with_event,
+            "updated_reports": updated_reports,
+        },
     )
