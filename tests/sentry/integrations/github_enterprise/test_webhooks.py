@@ -16,7 +16,7 @@ from .testutils import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
 )
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 
 class WebhookTest(APITestCase):

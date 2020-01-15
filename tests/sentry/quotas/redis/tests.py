@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 import pytest
-import mock
+from sentry.utils.compat import mock
 import six
 import time
 

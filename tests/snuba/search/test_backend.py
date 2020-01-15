@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 import pytz
 from datetime import datetime, timedelta
 from django.utils import timezone

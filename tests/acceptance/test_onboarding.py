@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 from selenium.common.exceptions import TimeoutException
 
 from sentry.models import Project

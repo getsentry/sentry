@@ -9,7 +9,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 import pytz
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 from django.utils import timezone
 
 from sentry import eventstream, tagstore

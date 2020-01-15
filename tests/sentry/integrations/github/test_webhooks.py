@@ -17,7 +17,7 @@ from .testutils import (
 )
 from sentry import options
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 
 class WebhookTest(APITestCase):

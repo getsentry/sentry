@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import functools
 import logging
-import mock
+from sentry.utils.compat import mock
 import pytest
 
 from sentry.exceptions import InvalidConfiguration

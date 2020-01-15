@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import copy
-import mock
+from sentry.utils.compat import mock
 
 from sentry.models import (
     ApiKey,

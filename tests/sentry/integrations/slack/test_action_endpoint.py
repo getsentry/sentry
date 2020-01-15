@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import responses
 
 from six.moves.urllib.parse import parse_qs
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.api import client
 from sentry import options

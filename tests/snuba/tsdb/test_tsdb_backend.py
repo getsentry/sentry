@@ -8,7 +8,7 @@ import requests
 import six
 
 from django.conf import settings
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.models import GroupHash, GroupRelease, Release
 from sentry.tsdb.base import TSDBModel

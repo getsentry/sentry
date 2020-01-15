@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 import logging
-import mock
+from sentry.utils.compat import mock
 
 from sentry.logging.handlers import StructLogHandler
 

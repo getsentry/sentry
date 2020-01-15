@@ -5,7 +5,7 @@ import hmac
 from django.core.urlresolvers import reverse
 from exam import fixture
 from hashlib import sha256
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase

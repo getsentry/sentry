@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import responses
 
 from django.db import connection
-from mock import patch
+from sentry.utils.compat.mock import patch
 from requests.exceptions import RequestException
 
 from sentry.mediators.sentry_app_installations import Creator, Destroyer

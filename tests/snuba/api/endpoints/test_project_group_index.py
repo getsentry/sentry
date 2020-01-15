@@ -7,7 +7,7 @@ from uuid import uuid4
 import six
 from django.utils import timezone
 from exam import fixture
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 
 from sentry.models import (
     Activity,

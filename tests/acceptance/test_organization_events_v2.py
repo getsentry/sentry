@@ -5,7 +5,7 @@ import six
 import pytest
 import pytz
 import time
-from mock import patch
+from sentry.utils.compat.mock import patch
 from datetime import timedelta
 
 from six.moves.urllib.parse import urlencode

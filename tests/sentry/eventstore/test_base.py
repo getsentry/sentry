@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import logging
-import mock
+from sentry.utils.compat import mock
 import pytest
 import six
 

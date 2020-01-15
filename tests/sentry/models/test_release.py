@@ -5,7 +5,7 @@ import six
 
 from django.utils import timezone
 from freezegun import freeze_time
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.models import (

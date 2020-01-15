@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 from django.db import IntegrityError
 
 from sentry.mediators.sentry_apps import Creator

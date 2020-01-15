@@ -4,7 +4,7 @@ import itertools
 import pytz
 from datetime import datetime, timedelta
 
-import mock
+from sentry.utils.compat import mock
 import six
 
 from sentry import tsdb

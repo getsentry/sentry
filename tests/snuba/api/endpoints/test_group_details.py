@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-import mock
+from sentry.utils.compat import mock
 
 from sentry.models import Environment
 from sentry.testutils import APITestCase, SnubaTestCase

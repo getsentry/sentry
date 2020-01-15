@@ -6,7 +6,7 @@ import pytest
 from celery import Task
 from collections import namedtuple
 from django.core.urlresolvers import reverse
-from mock import patch
+from sentry.utils.compat.mock import patch
 from requests.exceptions import RequestException
 
 from sentry.models import Rule, SentryApp, SentryAppInstallation

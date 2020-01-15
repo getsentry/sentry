@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from datetime import timedelta
 from django.core import mail
 from django.utils import timezone
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.auth import manager
 from sentry.models import InviteStatus, OrganizationMember, INVITE_DAYS_VALID

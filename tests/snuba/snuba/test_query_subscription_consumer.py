@@ -8,7 +8,7 @@ from confluent_kafka import Producer
 from django.conf import settings
 from django.test.utils import override_settings
 from exam import fixture
-from mock import call, Mock
+from sentry.utils.compat.mock import call, Mock
 
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscription_consumer import (

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import pytest
-from mock import patch
+from sentry.utils.compat.mock import patch
 from django.core.exceptions import SuspiciousOperation
 
 from sentry.testutils import TestCase

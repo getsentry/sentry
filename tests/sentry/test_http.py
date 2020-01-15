@@ -6,7 +6,7 @@ import pytest
 import tempfile
 
 from django.core.exceptions import SuspiciousOperation
-from mock import patch
+from sentry.utils.compat.mock import patch
 from urllib3.util.connection import HAS_IPV6
 
 from sentry import http

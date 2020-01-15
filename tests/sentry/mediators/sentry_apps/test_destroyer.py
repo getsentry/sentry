@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.db import connection
-from mock import patch
+from sentry.utils.compat.mock import patch
 import responses
 
 from sentry.mediators.sentry_apps import Destroyer

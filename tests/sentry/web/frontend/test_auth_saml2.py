@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 import pytest
 import base64
-import mock
+from sentry.utils.compat import mock
 from exam import fixture
 from six.moves.urllib.parse import urlencode, urlparse, parse_qs
 

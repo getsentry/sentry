@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import pytest
 import six
 import responses
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 
 from sentry.identity.vsts import VSTSIdentityProvider
 from sentry.integrations.exceptions import IntegrationError

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.tasks.merge import merge_groups
 from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import functools
 from datetime import datetime, timedelta
 
-import mock
+from sentry.utils.compat import mock
 import pytest
 import pytz
 import copy

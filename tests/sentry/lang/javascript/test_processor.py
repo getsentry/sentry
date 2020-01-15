@@ -8,7 +8,7 @@ import unittest
 from symbolic import SourceMapTokenMatch
 
 from copy import deepcopy
-from mock import patch
+from sentry.utils.compat.mock import patch
 from requests.exceptions import RequestException
 
 from sentry import http, options

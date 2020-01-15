@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 import zipfile
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from six import BytesIO
 

@@ -5,7 +5,7 @@ from functools import partial
 import pytest
 import unittest
 
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 from sentry.testutils import TestCase
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path, setdefault_path

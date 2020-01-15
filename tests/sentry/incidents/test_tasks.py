@@ -4,7 +4,7 @@ import six
 from django.core.urlresolvers import reverse
 from exam import fixture, patcher
 from freezegun import freeze_time
-from mock import Mock, patch
+from sentry.utils.compat.mock import Mock, patch
 
 from sentry.incidents.logic import (
     create_alert_rule_trigger,

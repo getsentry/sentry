@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import responses
 
 from exam import fixture
-from mock import patch
+from sentry.utils.compat.mock import patch
 from social_auth.models import UserSocialAuth
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.testutils import PluginTestCase

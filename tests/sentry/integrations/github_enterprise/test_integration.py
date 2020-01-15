@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import responses
 import six
-from mock import patch
+from sentry.utils.compat.mock import patch
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider

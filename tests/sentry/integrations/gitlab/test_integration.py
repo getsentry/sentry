@@ -4,7 +4,7 @@ import responses
 import six
 
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 
 from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.models import (

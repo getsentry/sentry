@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import responses
 import six
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 from exam import fixture
 from django.test import RequestFactory
 

@@ -6,7 +6,7 @@ import os
 import datetime
 import json
 import logging
-import mock
+from sentry.utils.compat import mock
 import six
 from time import sleep
 import zlib

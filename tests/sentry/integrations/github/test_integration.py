@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import responses
 import sentry
 
-from mock import MagicMock
+from sentry.utils.compat.mock import MagicMock
 from six.moves.urllib.parse import urlencode, urlparse
 
 from sentry.constants import ObjectStatus
