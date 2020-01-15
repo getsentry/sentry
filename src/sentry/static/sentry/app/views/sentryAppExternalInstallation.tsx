@@ -12,7 +12,6 @@ import {
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
-import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
