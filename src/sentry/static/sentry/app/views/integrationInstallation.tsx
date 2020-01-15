@@ -13,6 +13,7 @@ import IndicatorStore from 'app/stores/indicatorStore';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
 import {Organization, IntegrationProvider, Integration} from 'app/types';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = RouteComponentProps<{providerId: string; installationId: string}, {}>;
 
@@ -40,6 +41,29 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
     return t('Choose Installation Organization');
   }
 
+  trackOpened() {
+    const {organization} = this.state;
+    const provider = this.provider;
+    //should have these set but need to make TS happy
+    if (!organization || !provider) {
+      return;
+    }
+
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.install_modal_opened',
+        eventName: 'Integrations: Install Modal Opened',
+        integration_type: 'first_party',
+        integration: provider.key,
+        //We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
+        already_installed: false,
+        view: 'external_install',
+      },
+      organization,
+      {startSession: true}
+    );
+  }
+
   get provider(): IntegrationProvider | undefined {
     return this.state.providers.find(p => p.key === this.props.params.providerId);
   }
@@ -57,7 +81,8 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
     const reloading = false;
 
     this.api.request(`/organizations/${orgId}/`, {
-      success: (organization: Organization) => this.setState({organization, reloading}),
+      success: (organization: Organization) =>
+        this.setState({organization, reloading}, this.trackOpened),
       error: () => {
         this.setState({reloading});
         IndicatorStore.addError(t('Failed to retrieve organization details'));
