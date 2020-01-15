@@ -74,7 +74,7 @@ def _make_index_backend(cluster=None):
         RedisScriptMinHashIndexBackend(
             cluster, "sim:1", MinHashSignatureBuilder(16, 0xFFFF), 8, 60 * 60 * 24 * 30, 3, 5000
         ),
-        scope_tag_name="project_id",
+        scope_tag_name=None,
     )
 
 
