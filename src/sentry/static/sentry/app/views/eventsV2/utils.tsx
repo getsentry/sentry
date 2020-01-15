@@ -380,17 +380,25 @@ export function decodeScalar(
   return isString(unwrapped) ? unwrapped : undefined;
 }
 
-export function downloadAsCsv(tableData, filename) {
+export function downloadAsCsv(tableData, columnOrder, filename) {
   const {meta, data} = tableData;
-  if (meta === undefined) {
+  if (!meta) {
     return;
   }
-  const headings = Object.keys(meta);
+  const headings = columnOrder.map(column => column.name);
 
   const csvContent = Papa.unparse({
     fields: headings,
     data: data.map(row => {
-      return headings.map(col => disableMacros(row[col]));
+      return headings.map(col => {
+        // alias for project doesn't match the table data name
+        if (col === 'project') {
+          col = 'project.name';
+        } else {
+          col = getAggregateAlias(col);
+        }
+        return disableMacros(row[col]);
+      });
     }),
   });
 

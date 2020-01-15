@@ -65,6 +65,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
   columnOrder: GridColumnOrder<ColumnKey>[];
   columnSortBy: GridColumnSortBy<ColumnKey>[];
   data: DataRow[];
+  downloadAsCsv: () => void;
 
   /**
    * GridEditable allows the parent component to determine how to display the
@@ -114,8 +115,6 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => void;
     deleteColumn: (index: number) => void;
   };
-
-  downloadAsCsv: () => void;
 };
 
 type GridEditableState = {

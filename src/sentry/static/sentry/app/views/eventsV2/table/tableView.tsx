@@ -411,6 +411,7 @@ class TableView extends React.Component<TableViewProps> {
               isLoading={isLoading}
               error={error}
               data={tableData ? tableData.data : []}
+              downloadAsCsv={() => downloadAsCsv(tableData, columnOrder, title)}
               columnOrder={this.generateColumnOrder({
                 initialColumnIndex: draggingColumnIndex,
                 destinationColumnIndex,
@@ -430,7 +431,6 @@ class TableView extends React.Component<TableViewProps> {
                 moveColumnCommit: this._moveColumnCommit,
                 onDragStart: startColumnDrag,
               }}
-              downloadAsCsv={() => downloadAsCsv(tableData, title)}
             />
           );
         }}
