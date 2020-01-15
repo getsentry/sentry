@@ -407,4 +407,5 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
   link.setAttribute('href', encodedDataUrl);
   link.setAttribute('download', `${filename} ${getUtcDateString(now)}.csv`);
   link.click();
+  link.remove();
 }

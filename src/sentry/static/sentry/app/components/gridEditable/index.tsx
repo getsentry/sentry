@@ -352,6 +352,19 @@ class GridEditable<
     );
   };
 
+  renderDownloadCsvButton = () => {
+    if (this.props.isLoading) {
+      return null;
+    }
+
+    return (
+      <HeaderButton onClick={this.props.downloadAsCsv} data-test-id="grid-download-csv">
+        <InlineSvg src="icon-download" />
+        {t('Download CSV')}
+      </HeaderButton>
+    );
+  };
+
   renderGridHeadEditButtons = () => {
     if (!this.props.isEditable) {
       return null;
@@ -486,7 +499,7 @@ class GridEditable<
   };
 
   render() {
-    const {isEditable, downloadAsCsv} = this.props;
+    const {isEditable} = this.props;
 
     return (
       <React.Fragment>
@@ -497,10 +510,7 @@ class GridEditable<
           resizing columns. It will be refactored in a upcoming PR */}
           <div style={{display: 'flex', flexDirection: 'row'}}>
             <HeaderButtonContainer>
-              <HeaderButton onClick={downloadAsCsv} data-test-id="grid-download-csv">
-                <InlineSvg src="icon-download" />
-                {t('Download CSV')}
-              </HeaderButton>
+              {this.renderDownloadCsvButton()}
             </HeaderButtonContainer>
             <HeaderButtonContainer>{this.renderHeaderButton()}</HeaderButtonContainer>
 
