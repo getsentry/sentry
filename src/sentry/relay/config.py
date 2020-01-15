@@ -79,7 +79,7 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
                 "piiConfig": _get_pii_config(project),
                 "datascrubbingSettings": _get_datascrubbing_settings(project, org_options),
             },
-            "projectId": project.id,
+            "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
 
     if not full_config:
