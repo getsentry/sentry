@@ -381,10 +381,7 @@ export function decodeScalar(
 }
 
 export function downloadAsCsv(tableData, columnOrder, filename) {
-  const {meta, data} = tableData;
-  if (!meta) {
-    return;
-  }
+  const {data} = tableData;
   const headings = columnOrder.map(column => column.name);
 
   const csvContent = Papa.unparse({
