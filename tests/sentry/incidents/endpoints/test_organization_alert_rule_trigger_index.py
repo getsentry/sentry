@@ -78,6 +78,7 @@ class AlertRuleTriggerCreateEndpointTest(APITestCase):
                 thresholdType=1,
                 alertThreshold=1000,
                 resolveThreshold=300,
+                actions=[],
                 status_code=201,
             )
         assert "id" in resp.data
@@ -101,6 +102,7 @@ class AlertRuleTriggerCreateEndpointTest(APITestCase):
                     self.project.slug,
                     self.create_project(organization=self.create_organization()).slug,
                 ],
+                actions=[],
                 status_code=400,
             )
         assert resp.data == {"excludedProjects": [u"Invalid project"]}

@@ -4,12 +4,27 @@ from collections import defaultdict
 
 import six
 
-from sentry.api.serializers import register, Serializer
-from sentry.incidents.models import AlertRuleTrigger, AlertRuleTriggerExclusion
+from sentry.api.serializers import register, serialize, Serializer
+from sentry.incidents.models import AlertRuleTrigger, AlertRuleTriggerAction, AlertRuleTriggerExclusion
 
 
 @register(AlertRuleTrigger)
 class AlertRuleTriggerSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+
+        triggers = {item.id: item for item in item_list}
+        result = defaultdict(dict)
+
+        actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger__in=item_list).order_by("id")
+        serialized_actions = serialize(list(actions))
+        for trigger, serialized in zip(actions, serialized_actions):
+            triggers_actions = result[triggers[trigger.alert_rule_trigger_id]].setdefault(
+                "actions", []
+            )
+            triggers_actions.append(serialized)
+
+        return result
+
     def serialize(self, obj, attrs, user):
         return {
             "id": six.text_type(obj.id),
@@ -19,6 +34,7 @@ class AlertRuleTriggerSerializer(Serializer):
             "alertThreshold": obj.alert_threshold,
             "resolveThreshold": obj.resolve_threshold,
             "dateCreated": obj.date_added,
+            "actions": attrs.get("actions", []),
         }
 
 

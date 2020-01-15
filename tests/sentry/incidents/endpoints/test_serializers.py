@@ -180,6 +180,7 @@ class TestAlertRuleTriggerSerializer(TestCase):
             "resolve_threshold": 1,
             "alert_threshold": 0,
             "excluded_projects": [self.project.slug],
+            "actions": [{"type": "email", "targetType": "team", "targetIdentifier": self.team.id}],
         }
 
     @fixture
@@ -209,6 +210,7 @@ class TestAlertRuleTriggerSerializer(TestCase):
             "label": field_is_required,
             "thresholdType": field_is_required,
             "alertThreshold": field_is_required,
+            "actions": field_is_required,
         }
 
     def test_threshold_type(self):
