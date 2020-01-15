@@ -56,7 +56,7 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
-        return self.get_events(
+        return self.__get_events(
             filter,
             orderby=orderby,
             limit=limit,
@@ -78,7 +78,7 @@ class SnubaEventStorage(EventStorage):
         from nodestore. The current use case for this is event data deletions where
         we just need the event IDs in order to process the deletions.
         """
-        return self.get_events(
+        return self.__get_events(
             filter,
             orderby=orderby,
             limit=limit,
