@@ -1374,7 +1374,7 @@ SENTRY_DEVSERVICES = {
         "volumes": {"clickhouse": {"bind": "/var/lib/clickhouse"}},
     },
     "snuba": {
-        "image": "getsentry/snuba:latest",
+        "image": "gcr.io/sentryio/snuba:latest",
         "pull": True,
         "ports": {"1218/tcp": 1218},
         "command": ["devserver"],
