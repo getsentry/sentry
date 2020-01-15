@@ -6,6 +6,7 @@ from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
 from sentry.utils.cache import cache
+from sentry.tasks.relay import schedule_update_config_cache
 
 
 class OrganizationOptionManager(OptionManager):
@@ -56,9 +57,19 @@ class OrganizationOptionManager(OptionManager):
         return result
 
     def post_save(self, instance, **kwargs):
+        schedule_update_config_cache(
+            organization_id=instance.organization_id,
+            generate=False,
+            update_reason="organizationoption.post_save",
+        )
         self.reload_cache(instance.organization_id)
 
     def post_delete(self, instance, **kwargs):
+        schedule_update_config_cache(
+            organization_id=instance.organization_id,
+            generate=False,
+            update_reason="organizationoption.post_delete",
+        )
         self.reload_cache(instance.organization_id)
 
 
