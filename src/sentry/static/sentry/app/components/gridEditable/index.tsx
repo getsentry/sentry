@@ -484,14 +484,12 @@ class GridEditable<
   };
 
   render() {
-    const {title, isEditable} = this.props;
+    const {isEditable} = this.props;
 
     return (
       <React.Fragment>
         <Header>
-          {/* TODO(leedongwei): Check with Bowen/Dora on what they want the
-          default title to be */}
-          <HeaderTitle>{title || t('Query Builder')}</HeaderTitle>
+          <HeaderTitle>{t('Results')}</HeaderTitle>
 
           {/* TODO(leedongwei): This is ugly but I need to move it to work on
           resizing columns. It will be refactored in a upcoming PR */}
