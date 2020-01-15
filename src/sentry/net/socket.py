@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 import ipaddress
 import socket
-from functools32 import lru_cache
+from sentry.utils.compat import functools
 from ssl import wrap_socket
 from six.moves.urllib.parse import urlparse
 
@@ -18,7 +18,7 @@ DISALLOWED_IPS = frozenset(
 )
 
 
-@lru_cache(maxsize=100)
+@functools.lru_cache(maxsize=100)
 def is_ipaddress_allowed(ip):
     """
     Test if a given IP address is allowed or not
