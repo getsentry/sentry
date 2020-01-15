@@ -17,7 +17,7 @@ from sentry.tagstore.exceptions import (
     TagKeyNotFound,
     TagValueNotFound,
 )
-from sentry.tagstore.snuba.backend import SnubaTagStorage, cache_suffix_timeformat
+from sentry.tagstore.snuba.backend import SnubaTagStorage, cache_suffix_time
 from sentry.testutils import SnubaTestCase, TestCase
 
 
@@ -602,9 +602,9 @@ class TagStorageTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def test_cache_suffix_timeformat(self):
-        starting_key = cache_suffix_timeformat(self.now, 0)
-        finishing_key = cache_suffix_timeformat(self.now + timedelta(seconds=300), 0)
+    def test_cache_suffix_time(self):
+        starting_key = cache_suffix_time(self.now, 0)
+        finishing_key = cache_suffix_time(self.now + timedelta(seconds=300), 0)
 
         assert starting_key != finishing_key
 
@@ -619,8 +619,8 @@ class TagStorageTest(TestCase, SnubaTestCase):
         changed_on_hour = 0
         # Check multiple keyhashes so that this test doesn't depend on implementation
         for key_hash in range(10):
-            before_key = cache_suffix_timeformat(before, key_hash, duration=10)
-            on_key = cache_suffix_timeformat(on_hour, key_hash, duration=10)
+            before_key = cache_suffix_time(before, key_hash, duration=10)
+            on_key = cache_suffix_time(on_hour, key_hash, duration=10)
             if before_key != on_key:
                 changed_on_hour += 1
 
@@ -636,20 +636,20 @@ class TagStorageTest(TestCase, SnubaTestCase):
         next_day = datetime(2019, 9, 6, 0, 0, 0)
         changed_on_hour = 0
         for key_hash in range(10):
-            before_key = cache_suffix_timeformat(before, key_hash, duration=10)
-            next_key = cache_suffix_timeformat(next_day, key_hash, duration=10)
+            before_key = cache_suffix_time(before, key_hash, duration=10)
+            next_key = cache_suffix_time(next_day, key_hash, duration=10)
             if before_key != next_key:
                 changed_on_hour += 1
 
         assert changed_on_hour == 1
 
-    def test_cache_suffix_timeformat_matches_duration(self):
+    def test_cache_suffix_time_matches_duration(self):
         """ The number of seconds between keys changing should match duration """
-        previous_key = cache_suffix_timeformat(self.now, 0, duration=10)
+        previous_key = cache_suffix_time(self.now, 0, duration=10)
         changes = []
         for i in range(21):
             current_time = self.now + timedelta(seconds=i)
-            current_key = cache_suffix_timeformat(current_time, 0, duration=10)
+            current_key = cache_suffix_time(current_time, 0, duration=10)
             if current_key != previous_key:
                 changes.append(current_time)
                 previous_key = current_key
@@ -657,20 +657,20 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert len(changes) == 2
         assert (changes[1] - changes[0]).total_seconds() == 10
 
-    def test_cache_suffix_timeformat_jitter(self):
+    def test_cache_suffix_time_jitter(self):
         """ Different key hashes should change keys at different times
 
             While starting_key and other_key might begin as the same values they should change at different times
         """
-        starting_key = cache_suffix_timeformat(self.now, 0, duration=10)
+        starting_key = cache_suffix_time(self.now, 0, duration=10)
         for i in range(11):
-            current_key = cache_suffix_timeformat(self.now + timedelta(seconds=i), 0, duration=10)
+            current_key = cache_suffix_time(self.now + timedelta(seconds=i), 0, duration=10)
             if current_key != starting_key:
                 break
 
-        other_key = cache_suffix_timeformat(self.now, 5, duration=10)
+        other_key = cache_suffix_time(self.now, 5, duration=10)
         for j in range(11):
-            current_key = cache_suffix_timeformat(self.now + timedelta(seconds=j), 5, duration=10)
+            current_key = cache_suffix_time(self.now + timedelta(seconds=j), 5, duration=10)
             if current_key != other_key:
                 break
 

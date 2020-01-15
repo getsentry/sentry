@@ -9,6 +9,7 @@ from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
 
 from sentry import options
+from sentry.api.utils import default_start_end_dates
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.exceptions import (
@@ -18,7 +19,6 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
-from sentry.api.utils import default_start_end_dates
 from sentry.utils import snuba, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.dates import to_timestamp
@@ -60,12 +60,18 @@ def get_project_list(project_id):
     return project_id if isinstance(project_id, Iterable) else [project_id]
 
 
-def cache_suffix_timeformat(time, key_hash, duration=300):
+def cache_suffix_time(time, key_hash, duration=300):
     """ Adds jitter based on the key_hash around start/end times for caching snuba queries
 
-        Given a time and a key_hash this should result in a string that remains the same for a duration
+        Given a time and a key_hash this should result in a timestamp that remains the same for a duration
         The end of the duration will be different per key_hash which avoids spikes in the number of queries
         Must be based on the key_hash so they cache keys are consistent per query
+
+        For example: the time is 17:02:00, there's two queries query A has a key_hash of 30, query B has a key_hash of
+        60, we have the default duration of 300 (5 Minutes)
+        - query A will have the suffix of 17:00:30 for a timewindow from 17:00:30 until 17:05:30
+            - eg. Even when its 17:05:00 the suffix will still be 17:00:30
+        - query B will have the suffix of 17:01:00 for a timewindow from 17:01:00 until 17:06:00
     """
     # Use the hash so that seconds past the hour gets rounded differently per query.
     jitter = key_hash % duration
@@ -80,11 +86,11 @@ def cache_suffix_timeformat(time, key_hash, duration=300):
         seconds_past_hour = time_window_start - duration
     return (
         # Since we're adding seconds past the hour, we want time but without minutes or seconds
-        datetime.datetime(time.year, time.month, time.day, time.hour)
+        time.replace(minute=0, second=0, microsecond=0)
         +
         # Use timedelta here so keys are consistent around hour boundaries
         datetime.timedelta(seconds=seconds_past_hour)
-    ).isoformat()
+    )
 
 
 class SnubaTagStorage(TagStorage):
@@ -209,6 +215,20 @@ class SnubaTagStorage(TagStorage):
         use_cache=False,
         **kwargs
     ):
+        """ Query snuba for tag keys based on projects
+
+            When use_cache is passed, we'll attempt to use the cache. There's an exception if group_id was passed
+            which refines the query enough caching isn't required.
+            The cache key is based on the filters being passed so that different queries don't hit the same cache, with
+            exceptions for start and end dates. Since even a microsecond passing would result in a different caching
+            key, which means always missing the cache.
+            Instead, to keep the cache key the same for a short period we append the duration, and the end time rounded
+            with a certain jitter to the cache key.
+            This jitter is based on the hash of the key before duration/end time is added for consistency per query.
+            The jitter's intent is to avoid a dogpile effect of many queries being invalidated at the same time.
+            This is done by changing the rounding of the end key to a random offset. See cache_suffix_time for further
+            explanation of how that is done.
+        """
         default_start, default_end = default_start_end_dates()
         if start is None:
             start = default_start
@@ -245,9 +265,11 @@ class SnubaTagStorage(TagStorage):
 
         # If we want to continue attempting to cache after checking against the cache rate
         if should_cache:
-            cache_key += u":{}@{}".format(
-                (end - start).total_seconds(), cache_suffix_timeformat(end, key_hash)
-            )
+            # Needs to happen before creating the cache suffix otherwise rounding will cause different durations
+            duration = (end - start).total_seconds()
+            # Cause there's rounding to create this cache suffix, we want to update the query end so results match
+            end = cache_suffix_time(end, key_hash)
+            cache_key += u":{}@{}".format(duration, end.isoformat())
             result = cache.get(cache_key, None)
             if result is not None:
                 metrics.incr("testing.tagstore.cache_tag_key.hit")

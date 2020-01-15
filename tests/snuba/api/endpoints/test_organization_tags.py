@@ -134,3 +134,35 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200, response.content
         assert mock_snuba_query.call_count == 2
+
+    @mock.patch("sentry.options.get", return_value=1.0)
+    def test_different_times_retrieves_cache(self, mock_options):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+        project = self.create_project(organization=org, teams=[team])
+
+        start = iso_format(before_now(minutes=10))
+        middle = iso_format(before_now(minutes=5))
+        end = iso_format(before_now(minutes=0))
+        # Throw an event in the middle of the time window, since end might get rounded down a bit
+        self.store_event(
+            data={"event_id": "a" * 32, "tags": {"fruit": "apple"}, "timestamp": middle},
+            project_id=project.id,
+        )
+        self.login_as(user=user)
+
+        url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
+        response = self.client.get(
+            url, {"use_cache": "1", "start": start, "end": end}, format="json"
+        )
+        original_data = response.data
+
+        url = reverse("sentry-api-0-organization-tags", kwargs={"organization_slug": org.slug})
+        response = self.client.get(
+            url, {"use_cache": "1", "start": start, "end": end}, format="json"
+        )
+        cached_data = response.data
+
+        assert original_data == cached_data
