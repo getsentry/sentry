@@ -74,9 +74,7 @@ class SnubaEventStorage(EventStorage):
         referrer="eventstore.get_unfetched_events",
     ):
         """
-        Used for fetching large volumes of events that do not need data loaded
-        from nodestore. The current use case for this is event data deletions where
-        we just need the event IDs in order to process the deletions.
+        Get events from Snuba, without node data loaded.
         """
         return self.__get_events(
             filter,
