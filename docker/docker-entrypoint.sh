@@ -17,8 +17,8 @@ esac
 if [ "$1" = 'sentry' ]; then
 	set -- tini -- "$@"
 	if [ "$(id -u)" = '0' ]; then
-		mkdir -p "$SENTRY_FILESTORE_DIR"
-		find "$SENTRY_FILESTORE_DIR" ! -user sentry -exec chown sentry {} \;
+		mkdir -p /data/files
+		find /data ! -user sentry -exec chown sentry {} \;
 		set -- gosu sentry "$@"
 	fi
 fi
