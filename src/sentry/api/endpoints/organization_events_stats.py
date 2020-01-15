@@ -38,7 +38,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 query=request.GET.get("query"),
                 params=params,
                 rollup=self.get_rollup(request),
-                reference_event=self.reference_event(request, organization),
+                reference_event=self.reference_event(request, organization, params),
                 referrer="api.organization-event-stats",
             )
         except InvalidSearchQuery as err:

@@ -28,11 +28,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if orderby:
             return orderby
 
-    def reference_event(self, request, organization):
+    def reference_event(self, request, organization, params):
         fields = request.GET.getlist("field")[:]
         reference_event_id = request.GET.get("referenceEvent")
         if reference_event_id:
-            return ReferenceEvent(organization, reference_event_id, fields)
+            return ReferenceEvent(
+                organization, reference_event_id, fields, params.get("start"), params.get("end")
+            )
 
     def get_snuba_query_args_legacy(self, request, organization):
         params = self.get_filter_params(request, organization)

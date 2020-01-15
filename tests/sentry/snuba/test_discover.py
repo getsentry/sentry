@@ -145,24 +145,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["message"] == self.event.message
 
     def test_reference_event(self):
+        two_minutes = before_now(minutes=2)
+        five_minutes = before_now(minutes=5)
         self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "oh no",
-                "timestamp": iso_format(before_now(minutes=2)),
-            },
+            data={"event_id": "a" * 32, "message": "oh no", "timestamp": iso_format(two_minutes)},
             project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "b" * 32,
                 "message": "no match",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": iso_format(two_minutes),
             },
             project_id=self.project.id,
         )
         ref = discover.ReferenceEvent(
-            self.organization, "{}:{}".format(self.project.slug, "a" * 32), ["message", "count()"]
+            self.organization,
+            "{}:{}".format(self.project.slug, "a" * 32),
+            ["message", "count()"],
+            two_minutes,
+            two_minutes,
         )
         result = discover.query(
             selected_columns=["id", "message"],
@@ -173,6 +175,22 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(result["data"]) == 2
         for row in result["data"]:
             assert row["message"] == "oh no"
+
+        # make an invalid reference with old dates
+        ref = discover.ReferenceEvent(
+            self.organization,
+            "{}:{}".format(self.project.slug, "a" * 32),
+            ["message", "count()"],
+            five_minutes,
+            five_minutes,
+        )
+        with pytest.raises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=["id", "message"],
+                query="",
+                reference_event=ref,
+                params={"project_id": [self.project.id]},
+            )
 
 
 class QueryTransformTest(TestCase):
@@ -722,7 +740,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
 
 class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
     def test_bad_slug_format(self):
-        ref = discover.ReferenceEvent(self.organization, "lol", [])
+        ref = discover.ReferenceEvent(self.organization, "lol", ["title"])
         with pytest.raises(InvalidSearchQuery):
             discover.create_reference_event_conditions(ref)
 
@@ -731,7 +749,9 @@ class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
             data={"message": "oh no!", "timestamp": iso_format(before_now(seconds=1))},
             project_id=self.project.id,
         )
-        ref = discover.ReferenceEvent(self.organization, "nope:{}".format(event.event_id), [])
+        ref = discover.ReferenceEvent(
+            self.organization, "nope:{}".format(event.event_id), ["title"]
+        )
         with pytest.raises(InvalidSearchQuery):
             discover.create_reference_event_conditions(ref)
 

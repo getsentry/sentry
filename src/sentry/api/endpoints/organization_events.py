@@ -113,7 +113,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 selected_columns=request.GET.getlist("field")[:],
                 query=request.GET.get("query"),
                 params=params,
-                reference_event=self.reference_event(request, organization),
+                reference_event=self.reference_event(request, organization, params),
                 orderby=self.get_orderby(request),
                 offset=offset,
                 limit=limit,
