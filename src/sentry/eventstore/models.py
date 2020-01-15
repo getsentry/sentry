@@ -199,3 +199,7 @@ class Event(EventCommon):
         if column in self._snuba_data:
             return self._snuba_data[column]
         return super(Event, self).location
+
+    def __get_column_name(self, column):
+        # Events are currently populated from the Events dataset
+        return column.value.event_name
