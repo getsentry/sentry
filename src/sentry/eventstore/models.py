@@ -97,9 +97,9 @@ class Event(EventCommon):
 
     @property
     def search_message(self):
-        """This generates the internal event.search_message attribute which is used
-        for search purposes. It adds a bunch of data from the metadata and
-        the culprit.
+        """
+        The internal search_message attribute is only used for search purposes.
+        It adds a bunch of data from the metadata and the culprit.
         """
         data = self.data
         culprit = self.culprit
