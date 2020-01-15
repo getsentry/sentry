@@ -42,8 +42,9 @@ def _get_superuser():
 @click.option("--superuser/--no-superuser", default=None, is_flag=True)
 @click.option("--no-password", default=False, is_flag=True)
 @click.option("--no-input", default=False, is_flag=True)
+@click.option("--force", default=False, is_flag=True)
 @configuration
-def createuser(email, password, superuser, no_password, no_input):
+def createuser(email, password, superuser, no_password, no_input, force):
     "Create a new user."
     if not no_input:
         if not email:
@@ -77,7 +78,11 @@ def createuser(email, password, superuser, no_password, no_input):
         user.set_password(password)
 
     if User.objects.filter(username=email).exists():
-        click.echo("Exising user not created: %s" % (email,))
+        if force:
+            user.save(force_update=True)
+            click.echo("User updated: %s" % (email,))
+        else:
+            click.echo("User: %s exists, use --force to force an update" % (email,))
     else:
         user.save()
         click.echo("User created: %s" % (email,))
