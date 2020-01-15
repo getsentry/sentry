@@ -99,8 +99,8 @@ def test_invalidate(
     redis_cache,
 ):
 
-    cfg = {"projectId": default_project.id, "foo": "bar"}
-    redis_cache.set_many([cfg])
+    cfg = {"foo": "bar"}
+    redis_cache.set_many({default_project.id: cfg})
     assert redis_cache.get(default_project.id) == cfg
 
     if not entire_organization:
