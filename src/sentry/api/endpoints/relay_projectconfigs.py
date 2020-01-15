@@ -76,7 +76,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         configs = {}
         for project_id in project_ids:
-            configs[six.text_type(project_id)] = None
+            configs[six.text_type(project_id)] = {"disabled": True}
 
             project = projects.get(int(project_id))
             if project is None:
@@ -114,6 +114,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 )
 
         if full_config_requested:
-            projectconfig_cache.set_many(list(c for c in six.itervalues(configs) if c is not None))
+            projectconfig_cache.set_many(configs)
 
         return Response({"configs": configs}, status=200)

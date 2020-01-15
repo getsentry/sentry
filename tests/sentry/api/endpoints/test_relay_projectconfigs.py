@@ -242,7 +242,7 @@ def test_untrusted_external_relays_should_not_receive_configs(
 
     cfg = result["configs"][six.text_type(default_project.id)]
 
-    assert cfg is None
+    assert cfg["disabled"]
 
 
 @pytest.fixture
@@ -280,7 +280,9 @@ def test_relay_projectconfig_cache_full_config(
         assert status_code < 400
 
     http_cfg, = six.itervalues(result["configs"])
-    [[redis_cfg]] = projectconfig_cache_set
+    call, = projectconfig_cache_set
+    assert len(call) == 1
+    redis_cfg = call[six.text_type(default_project.id)]
 
     del http_cfg["lastFetch"]
     del http_cfg["lastChange"]
@@ -291,16 +293,14 @@ def test_relay_projectconfig_cache_full_config(
 
 
 @pytest.mark.django_db
-def test_relay_nonexistent_project(
-    call_endpoint, default_project, projectconfig_cache_set, task_runner
-):
+def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_runner):
+    wrong_id = max(p.id for p in Project.objects.all()) + 1
+
     with task_runner():
-        result, status_code = call_endpoint(
-            full_config=True, projects=[max(p.id for p in Project.objects.all()) + 1]
-        )
+        result, status_code = call_endpoint(full_config=True, projects=[wrong_id])
         assert status_code < 400
 
     http_cfg, = six.itervalues(result["configs"])
-    assert http_cfg is None
+    assert http_cfg == {"disabled": True}
 
-    assert projectconfig_cache_set == [[]]
+    assert projectconfig_cache_set == [{six.text_type(wrong_id): http_cfg}]
