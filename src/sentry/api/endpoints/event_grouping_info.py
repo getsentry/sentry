@@ -4,7 +4,7 @@ import six
 
 from django.http import HttpResponse
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import GroupingConfigNotFound
@@ -23,9 +23,6 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
             raise ResourceDoesNotExist
-
-        if not options.get("eventstore.use-nodestore"):
-            event.bind_node_data()
 
         rv = {}
         config_name = request.GET.get("config") or None
