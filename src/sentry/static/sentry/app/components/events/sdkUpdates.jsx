@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import SentryTypes from 'app/sentryTypes';
 import Alert from 'app/components/alert';

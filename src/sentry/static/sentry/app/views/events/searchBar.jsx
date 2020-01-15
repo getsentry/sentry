@@ -1,4 +1,4 @@
-import {css} from 'react-emotion';
+import {ClassNames} from '@emotion/core';
 import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
 import PropTypes from 'prop-types';
@@ -98,19 +98,23 @@ class SearchBar extends React.PureComponent {
 
   render() {
     return (
-      <SmartSearchBar
-        {...this.props}
-        hasRecentSearches
-        savedSearchType={SEARCH_TYPES.EVENT}
-        onGetTagValues={this.getEventFieldValues}
-        supportedTags={this.state.tags}
-        prepareQuery={this.prepareQuery}
-        excludeEnvironment
-        dropdownClassName={css`
-          max-height: 300px;
-          overflow-y: auto;
-        `}
-      />
+      <ClassNames>
+        {({css}) => (
+          <SmartSearchBar
+            {...this.props}
+            hasRecentSearches
+            savedSearchType={SEARCH_TYPES.EVENT}
+            onGetTagValues={this.getEventFieldValues}
+            supportedTags={this.state.tags}
+            prepareQuery={this.prepareQuery}
+            excludeEnvironment
+            dropdownClassName={css`
+              max-height: 300px;
+              overflow-y: auto;
+            `}
+          />
+        )}
+      </ClassNames>
     );
   }
 }

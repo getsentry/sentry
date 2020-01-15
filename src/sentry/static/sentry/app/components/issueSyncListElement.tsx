@@ -1,17 +1,12 @@
+import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import capitalize from 'lodash/capitalize';
 import Hovercard from 'app/components/hovercard';
 import {callIfFunction} from 'app/utils/callIfFunction';
-
-const hoverCardContainer = css`
-  display: flex;
-  align-items: center;
-  min-width: 0; /* flex-box overflow workaround */
-`;
 
 type Props = {
   externalIssueLink: string | null;
@@ -112,14 +107,22 @@ class IssueSyncListElement extends React.Component<Props> {
   render() {
     return (
       <IssueSyncListElementContainer>
-        <Hovercard
-          containerClassName={hoverCardContainer}
-          header={this.props.hoverCardHeader}
-          body={this.props.hoverCardBody}
-        >
-          {this.getIcon()}
-          {this.getLink()}
-        </Hovercard>
+        <ClassNames>
+          {({css}) => (
+            <Hovercard
+              containerClassName={css`
+                display: flex;
+                align-items: center;
+                min-width: 0; /* flex-box overflow workaround */
+              `}
+              header={this.props.hoverCardHeader}
+              body={this.props.hoverCardBody}
+            >
+              {this.getIcon()}
+              {this.getLink()}
+            </Hovercard>
+          )}
+        </ClassNames>
         {this.props.onOpen && this.props.onClose && (
           <OpenCloseIcon
             src="icon-close"

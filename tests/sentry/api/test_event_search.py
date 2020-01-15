@@ -1079,6 +1079,10 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    def test_trace_id(self):
+        result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
+        assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
+
 
 class ResolveFieldListTest(unittest.TestCase):
     def test_non_string_field_error(self):

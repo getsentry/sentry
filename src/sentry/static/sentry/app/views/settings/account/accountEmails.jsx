@@ -1,7 +1,7 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -47,8 +47,8 @@ class EmailRow extends React.Component {
     const {email, isPrimary, isVerified, hideRemove} = this.props;
 
     return (
-      <PanelItem justify="space-between">
-        <Flex align="center">
+      <PanelItem justifyContent="space-between">
+        <Flex alignItems="center">
           {email}
           {!isVerified && (
             <TagWithSpace priority="warning">{t('Unverified')}</TagWithSpace>

@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
@@ -199,7 +199,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         button={({isOpen, getActorProps}) => (
           <ButtonSaveAs
             data-test-id="button-save-as"
-            {...getActorProps({isStyled: true})}
+            {...getActorProps()}
             isOpen={isOpen}
             showChevron={false}
           >

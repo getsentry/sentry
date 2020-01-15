@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 import scrollToElement from 'scroll-to-element';
 
 import {defined, objectIsEmpty, isUrl} from 'app/utils';
@@ -352,7 +353,7 @@ export class Frame extends React.Component {
               const isActive = data.lineNo === line[0];
               const components = this.getSentryAppComponents();
               const hasComponents = isActive && components.length > 0;
-              const className = hasComponents
+              const contextLineCss = hasComponents
                 ? css`
                     background: inherit;
                     padding: 0;
@@ -368,7 +369,7 @@ export class Frame extends React.Component {
                   key={index}
                   line={line}
                   isActive={isActive}
-                  className={className}
+                  css={contextLineCss}
                 >
                   {hasComponents && (
                     <ErrorBoundary mini>

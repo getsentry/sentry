@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
-import mock
+from sentry.utils.compat import mock
 import pytz
 import six
 from django.contrib.auth.models import AnonymousUser
@@ -12,7 +12,7 @@ from django.core import mail
 from django.db.models import F
 from django.utils import timezone
 from exam import fixture
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 
 from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record

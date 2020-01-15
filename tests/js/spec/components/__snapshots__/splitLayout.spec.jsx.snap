@@ -2,9 +2,7 @@
 
 exports[`SplitLayout renders with a separation width 1`] = `
 <SpreadLayout
-  center={true}
   className="split-layout allow-responsive"
-  responsive={false}
 >
   <div
     className="split-layout-child"
@@ -44,9 +42,7 @@ exports[`SplitLayout renders with a separation width 1`] = `
 
 exports[`SplitLayout renders with multiple children 1`] = `
 <SpreadLayout
-  center={true}
   className="split-layout"
-  responsive={false}
 >
   <div
     className="split-layout-child"
@@ -86,9 +82,7 @@ exports[`SplitLayout renders with multiple children 1`] = `
 
 exports[`SplitLayout renders with one child 1`] = `
 <SpreadLayout
-  center={true}
   className="split-layout"
-  responsive={false}
 >
   <div
     className="split-layout-child"
@@ -106,9 +100,7 @@ exports[`SplitLayout renders with one child 1`] = `
 
 exports[`SplitLayout renders with responsive property 1`] = `
 <SpreadLayout
-  center={true}
   className="split-layout allow-responsive"
-  responsive={false}
 >
   <div
     className="split-layout-child"

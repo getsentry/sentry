@@ -17,7 +17,6 @@ exports[`SelectField renders with flat choices 1`] = `
       }
       clearable={true}
       disabled={false}
-      height={36}
       id="id-fieldName"
       multiple={false}
       name="fieldName"
@@ -55,7 +54,6 @@ exports[`SelectField renders with paired choices 1`] = `
       }
       clearable={true}
       disabled={false}
-      height={36}
       id="id-fieldName"
       multiple={false}
       name="fieldName"
@@ -98,7 +96,6 @@ exports[`SelectField renders without form context 1`] = `
       <StyledSelectControl
         clearable={true}
         disabled={false}
-        height={36}
         id="id-fieldName"
         multiple={false}
         name="fieldName"
@@ -118,11 +115,10 @@ exports[`SelectField renders without form context 1`] = `
         required={false}
         value="a"
       >
-        <SelectControl
-          className="css-gr8jfe-StyledSelectControl e1qrhqd00"
+        <ForwardRef(RefForwardedSelectControl)
+          className="css-9gm53a-StyledSelectControl e1qrhqd00"
           clearable={true}
           disabled={false}
-          height={36}
           id="id-fieldName"
           multiple={false}
           name="fieldName"
@@ -142,13 +138,11 @@ exports[`SelectField renders without form context 1`] = `
           required={false}
           value="a"
         >
-          <StyledSelect
-            arrowRenderer={[Function]}
-            backspaceRemoves={true}
-            className="css-gr8jfe-StyledSelectControl e1qrhqd00"
+          <SelectControl
+            className="css-9gm53a-StyledSelectControl e1qrhqd00"
             clearable={true}
-            deleteRemoves={true}
             disabled={false}
+            forwardedRef={null}
             height={36}
             id="id-fieldName"
             multiple={false}
@@ -169,13 +163,14 @@ exports[`SelectField renders without form context 1`] = `
             required={false}
             value="a"
           >
-            <ForwardRef(SelectPicker)
+            <StyledSelect
               arrowRenderer={[Function]}
               backspaceRemoves={true}
-              className="e1qrhqd00 css-tbbzhr-StyledSelect-StyledSelectControl eho28m20"
+              className="css-9gm53a-StyledSelectControl e1qrhqd00"
               clearable={true}
               deleteRemoves={true}
               disabled={false}
+              forwardedRef={null}
               height={36}
               id="id-fieldName"
               multiple={false}
@@ -199,7 +194,7 @@ exports[`SelectField renders without form context 1`] = `
               <SelectPicker
                 arrowRenderer={[Function]}
                 backspaceRemoves={true}
-                className="e1qrhqd00 css-tbbzhr-StyledSelect-StyledSelectControl eho28m20"
+                className="e1qrhqd00 css-j0gflv-StyledSelect-StyledSelectControl eho28m20"
                 clearable={true}
                 deleteRemoves={true}
                 disabled={false}
@@ -229,7 +224,7 @@ exports[`SelectField renders without form context 1`] = `
                   autosize={true}
                   backspaceRemoves={true}
                   backspaceToRemoveMessage="Press backspace to remove {label}"
-                  className="e1qrhqd00 css-tbbzhr-StyledSelect-StyledSelectControl eho28m20"
+                  className="e1qrhqd00 css-j0gflv-StyledSelect-StyledSelectControl eho28m20"
                   clearAllText="Clear all"
                   clearRenderer={[Function]}
                   clearValueText="Clear value"
@@ -289,7 +284,7 @@ exports[`SelectField renders without form context 1`] = `
                   valueKey="value"
                 >
                   <div
-                    className="Select e1qrhqd00 css-tbbzhr-StyledSelect-StyledSelectControl eho28m20 has-value is-clearable is-searchable Select--single"
+                    className="Select e1qrhqd00 css-j0gflv-StyledSelect-StyledSelectControl eho28m20 has-value is-clearable is-searchable Select--single"
                   >
                     <input
                       disabled={false}
@@ -425,9 +420,9 @@ exports[`SelectField renders without form context 1`] = `
                   </div>
                 </Select>
               </SelectPicker>
-            </ForwardRef(SelectPicker)>
-          </StyledSelect>
-        </SelectControl>
+            </StyledSelect>
+          </SelectControl>
+        </ForwardRef(RefForwardedSelectControl)>
       </StyledSelectControl>
     </div>
   </div>

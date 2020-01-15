@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {browserHistory} from 'react-router';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Location} from 'history';
 import {Organization, Project} from 'app/types';

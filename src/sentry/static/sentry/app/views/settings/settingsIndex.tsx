@@ -1,7 +1,8 @@
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
 import {t} from 'app/locale';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
@@ -26,7 +27,6 @@ const LINKS = {
   DOCUMENTATION_CLI: 'https://docs.sentry.io/learn/cli/',
   DOCUMENTATION_API: 'https://docs.sentry.io/hosted/api/',
   API: '/settings/account/api/',
-  API_APPLICATIONS: '/settings/account/api/applications/',
   MANAGE: '/manage/',
   FORUM: 'https://forum.sentry.io/',
   GITHUB_ISSUES: 'https://github.com/getsentry/sentry/issues',
@@ -243,7 +243,9 @@ class SettingsIndex extends React.Component<Props> {
                     <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
                   </li>
                   <li>
-                    <HomeLink to={LINKS.API_APPLICATIONS}>{t('Applications')}</HomeLink>
+                    <HomeLink to={`${organizationSettingsUrl}developer-settings/`}>
+                      {t('Your Integrations')}
+                    </HomeLink>
                   </li>
                   <li>
                     <ExternalHomeLink href={LINKS.DOCUMENTATION_API}>

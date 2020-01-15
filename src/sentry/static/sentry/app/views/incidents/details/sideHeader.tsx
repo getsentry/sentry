@@ -1,12 +1,12 @@
 import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
 type Props = {
   className?: string;
-  loading: boolean;
+  loading?: boolean;
   children: React.ReactNode;
 };
 
@@ -17,13 +17,15 @@ const SideHeader = styled(function SideHeader({className, loading, children}: Pr
     </h6>
   );
 })`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray2};
   font-weight: bold;
   margin-bottom: ${space(1)};
   text-transform: uppercase;
 `;
 
-const Title = styled('span', {shouldForwardProp: isPropValid})<{loading: boolean}>`
+const Title = styled('span', {
+  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+})<{loading?: boolean}>`
   ${p =>
     p.loading
       ? `

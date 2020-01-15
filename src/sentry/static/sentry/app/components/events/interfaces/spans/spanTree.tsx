@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import get from 'lodash/get';
 
 import {t} from 'app/locale';
@@ -320,7 +320,7 @@ class SpanTree extends React.Component<PropType> {
 
     return (
       <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-        <TraceViewContainer innerRef={this.traceViewRef}>
+        <TraceViewContainer ref={this.traceViewRef}>
           {spanTree}
           {infoMessage}
         </TraceViewContainer>

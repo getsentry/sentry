@@ -127,6 +127,7 @@ def get_function_component(
     context_line_available=False,
     raw_function=None,
     javascript_fuzzing=False,
+    php_detect_anonymous_classes=False,
 ):
     """
     Attempt to normalize functions by removing common platform outliers.
@@ -167,8 +168,12 @@ def get_function_component(
                 )
 
     elif platform == "php":
-        if func.startswith("[Anonymous"):
+        if func.startswith(("[Anonymous", "class@anonymous\x00")):
             function_component.update(contributes=False, hint="ignored anonymous function")
+        if php_detect_anonymous_classes and func.startswith("class@anonymous"):
+            new_function = func.rsplit("::", 1)[-1]
+            if new_function != func:
+                function_component.update(values=[new_function], hint="anonymous class method")
 
     elif platform == "java":
         if func.startswith("lambda$"):
@@ -213,6 +218,7 @@ def frame(frame, event, **meta):
 
     use_contextline = False
     javascript_fuzzing = False
+    php_detect_anonymous_classes = False
 
     # Version specific bugs
     legacy_function_logic = id == "frame:v1"
@@ -225,6 +231,11 @@ def frame(frame, event, **meta):
         # this assumes that we have sourcemaps available.
         use_contextline = platform in ("javascript", "node", "python", "php", "ruby")
 
+    # Starting with v4 we're adding support for anonymous classes
+    # detection
+    if id == "frame:v4":
+        php_detect_anonymous_classes = True
+
     return get_frame_component(
         frame,
         event,
@@ -233,6 +244,7 @@ def frame(frame, event, **meta):
         use_contextline=use_contextline,
         javascript_fuzzing=javascript_fuzzing,
         with_context_line_file_origin_bug=with_context_line_file_origin_bug,
+        php_detect_anonymous_classes=php_detect_anonymous_classes,
     )
 
 
@@ -270,6 +282,7 @@ def get_frame_component(
     use_contextline=False,
     javascript_fuzzing=False,
     with_context_line_file_origin_bug=False,
+    php_detect_anonymous_classes=False,
 ):
     platform = frame.platform or event.platform
 
@@ -305,6 +318,7 @@ def get_frame_component(
         context_line_available=context_line_component and context_line_component.contributes,
         legacy_function_logic=legacy_function_logic,
         javascript_fuzzing=javascript_fuzzing,
+        php_detect_anonymous_classes=php_detect_anonymous_classes,
     )
 
     values = [module_component, filename_component, function_component]

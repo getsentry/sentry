@@ -5,7 +5,7 @@ import unittest
 from copy import deepcopy
 
 from exam import fixture, patcher
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscription_consumer import (

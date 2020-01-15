@@ -3,9 +3,9 @@ import {withRouter, browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import classNames from 'classnames';
 import createReactClass from 'create-react-class';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 import queryString from 'query-string';
 
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
@@ -164,6 +164,7 @@ class Sidebar extends React.Component {
       'releases',
       'user-feedback',
       'eventsv2',
+      'health',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
 
     // Only keep the querystring if the current route matches one of the above
@@ -224,7 +225,7 @@ class Sidebar extends React.Component {
     const hasOrganization = !!organization;
 
     return (
-      <StyledSidebar innerRef={this.sidebarRef} collapsed={collapsed}>
+      <StyledSidebar ref={this.sidebarRef} collapsed={collapsed}>
         <SidebarSectionGroupPrimary>
           <SidebarSection>
             <SidebarDropdown
@@ -384,7 +385,23 @@ class Sidebar extends React.Component {
                       id="monitors"
                     />
                   </Feature>
+                  <Feature features={['health']} organization={organization}>
+                    <SidebarItem
+                      {...sidebarItemProps}
+                      onClick={(_id, evt) =>
+                        this.navigateWithGlobalSelection(
+                          `/organizations/${organization.slug}/health/`,
+                          evt
+                        )
+                      }
+                      icon={<InlineSvg src="icon-health" />} // this needs to have different icon, because health is already taken (Dashboards)
+                      label={t('Health')}
+                      to={`/organizations/${organization.slug}/health/`}
+                      id="health"
+                    />
+                  </Feature>
                 </SidebarSection>
+
                 <SidebarSection>
                   <SidebarItem
                     {...sidebarItemProps}
@@ -620,11 +637,8 @@ const ExpandedIcon = css`
 const CollapsedIcon = css`
   transform: rotate(180deg);
 `;
-const StyledInlineSvg = styled(({className, collapsed, ...props}) => (
-  <InlineSvg
-    className={classNames(className, ExpandedIcon, collapsed && CollapsedIcon)}
-    {...props}
-  />
+const StyledInlineSvg = styled(({collapsed, ...props}) => (
+  <InlineSvg css={[ExpandedIcon, collapsed && CollapsedIcon]} {...props} />
 ))``;
 
 const SidebarCollapseItem = styled(SidebarItem)`

@@ -1,6 +1,6 @@
 import React from 'react';
 import keydown from 'react-keydown';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
@@ -10,17 +10,19 @@ const MIN_SEARCH_LENGTH = 1;
 const MAX_RESULTS = 10;
 
 class SettingsSearch extends React.Component {
+  searchInput = React.createRef();
+
   @keydown('/')
   handleFocusSearch(e) {
-    if (!this.searchInput) {
+    if (!this.searchInput.current) {
       return;
     }
-    if (e.target === this.searchInput) {
+    if (e.target === this.searchInput.current) {
       return;
     }
 
     e.preventDefault();
-    this.searchInput.focus();
+    this.searchInput.current.focus();
   }
 
   render() {
@@ -34,11 +36,11 @@ class SettingsSearch extends React.Component {
           <SearchInputWrapper>
             <SearchInputIcon size="14px" />
             <SearchInput
-              innerRef={ref => (this.searchInput = ref)}
               {...getInputProps({
                 type: 'text',
                 placeholder: t('Search'),
               })}
+              ref={this.searchInput}
             />
           </SearchInputWrapper>
         )}

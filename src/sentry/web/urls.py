@@ -265,11 +265,6 @@ urlpatterns += [
                     ),
                 ),
                 url(
-                    r"^settings/identities/(?P<identity_id>[^\/]+)/disconnect/$",
-                    accounts.disconnect_identity,
-                    name="sentry-account-disconnect-identity",
-                ),
-                url(
                     r"^settings/identities/associate/(?P<organization_slug>[^\/]+)/(?P<provider_key>[^\/]+)/(?P<external_id>[^\/]+)/$",
                     AccountIdentityAssociateView.as_view(),
                     name="sentry-account-associate-identity",
@@ -448,6 +443,11 @@ urlpatterns += [
                     react_page_view,
                     name="sentry-organization-member-settings",
                 ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/auth/$",
+                    react_page_view,
+                    name="sentry-organization-auth-settings",
+                ),
                 url(r"^", react_page_view),
             ]
         ),
@@ -508,11 +508,6 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-api-key-settings",
-                ),
-                url(
-                    r"^(?P<organization_slug>[\w_-]+)/auth/$",
-                    react_page_view,
-                    name="sentry-organization-auth-settings",
                 ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/auth/configure/$",

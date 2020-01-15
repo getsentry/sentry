@@ -24,6 +24,9 @@ type Props = {
   field: Field;
   highlighted?: boolean;
   disabled?: boolean;
+  flexibleControlStateSize?: boolean;
+  stacked?: boolean;
+  inline?: boolean;
 
   access?: Scope[];
 };

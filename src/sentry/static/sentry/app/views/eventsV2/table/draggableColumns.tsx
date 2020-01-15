@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import space from 'app/styles/space';
@@ -213,10 +213,7 @@ class DraggableColumns extends React.Component<Props, State> {
       const left = `${this.state.left}px`;
 
       const ghost = (
-        <GhostPlacement
-          innerRef={this.dragGhostRef}
-          style={{display: 'block', top, left}}
-        >
+        <GhostPlacement ref={this.dragGhostRef} style={{display: 'block', top, left}}>
           <GhostContentBox>{columnBeingDragged.name}</GhostContentBox>
         </GhostPlacement>
       );

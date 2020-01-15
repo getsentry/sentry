@@ -299,7 +299,12 @@ class SAML2Provider(Provider):
 
         # Email and identifier MUST be correctly mapped
         if not attributes[Attributes.IDENTIFIER] or not attributes[Attributes.USER_EMAIL]:
-            raise IdentityNotValid
+            raise IdentityNotValid(
+                _(
+                    "Failed to map SAML attributes. Assertion returned the following attribute keys: %(keys)s"
+                )
+                % {"keys": raw_attributes.keys()}
+            )
 
         name = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
         name = " ".join(filter(None, name))

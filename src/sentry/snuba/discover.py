@@ -4,6 +4,7 @@ import six
 
 from collections import namedtuple
 from copy import deepcopy
+from datetime import timedelta
 
 from sentry.api.event_search import (
     get_filter,
@@ -16,6 +17,7 @@ from sentry.api.event_search import (
 from sentry import eventstore
 
 from sentry.models import Project, ProjectStatus
+from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
     SnubaTSResult,
@@ -23,8 +25,8 @@ from sentry.utils.snuba import (
     QUOTED_LITERAL_RE,
     get_function_index,
     raw_query,
-    transform_results,
-    zerofill,
+    to_naive_timestamp,
+    naiveify_datetime,
 )
 
 __all__ = (
@@ -36,10 +38,14 @@ __all__ = (
     "timeseries_query",
     "get_pagination_ids",
     "get_facets",
+    "transform_results",
+    "zerofill",
 )
 
 
-ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields"])
+ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields", "start", "end"])
+ReferenceEvent.__new__.__defaults__ = (None, None)
+
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
@@ -64,6 +70,12 @@ def find_reference_event(reference_event):
         project_slug, event_id = reference_event.slug.split(":")
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
+
+    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
+    # We don't need to run a query if there are no columns
+    if not column_names:
+        return None
+
     try:
         project = Project.objects.get(
             slug=project_slug,
@@ -73,15 +85,18 @@ def find_reference_event(reference_event):
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
 
-    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
-
-    # We don't need to run a query if there are no columns
-    if not column_names:
-        return None
+    start = None
+    end = None
+    if reference_event.start:
+        start = reference_event.start - timedelta(seconds=5)
+    if reference_event.end:
+        end = reference_event.end + timedelta(seconds=5)
 
     event = raw_query(
         selected_columns=column_names,
         filter_keys={"project_id": [project.id], "event_id": [event_id]},
+        start=start,
+        end=end,
         dataset=Dataset.Discover,
         limit=1,
         referrer="discover.find_reference_event",
@@ -243,6 +258,57 @@ def resolve_discover_aliases(snuba_args):
             )
         resolved["orderby"] = resolved_orderby
     return resolved, translated_columns
+
+
+def zerofill(data, start, end, rollup, orderby):
+    rv = []
+    start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
+    end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
+    data_by_time = {}
+
+    for obj in data:
+        if obj["time"] in data_by_time:
+            data_by_time[obj["time"]].append(obj)
+        else:
+            data_by_time[obj["time"]] = [obj]
+
+    for key in six.moves.xrange(start, end, rollup):
+        if key in data_by_time and len(data_by_time[key]) > 0:
+            rv = rv + data_by_time[key]
+            data_by_time[key] = []
+        else:
+            rv.append({"time": key})
+
+    if "-time" in orderby:
+        return list(reversed(rv))
+
+    return rv
+
+
+def transform_results(result, translated_columns, snuba_args):
+    """
+    Transform internal names back to the public schema ones.
+
+    When getting timeseries results via rollup, this function will
+    zerofill the output results.
+    """
+    # Translate back columns that were converted to snuba format
+    for col in result["meta"]:
+        col["name"] = translated_columns.get(col["name"], col["name"])
+
+    def get_row(row):
+        return {translated_columns.get(key, key): value for key, value in row.items()}
+
+    if len(translated_columns):
+        result["data"] = [get_row(row) for row in result["data"]]
+
+    rollup = snuba_args.get("rollup")
+    if rollup and rollup > 0:
+        result["data"] = zerofill(
+            result["data"], snuba_args["start"], snuba_args["end"], rollup, snuba_args["orderby"]
+        )
+
+    return result
 
 
 def query(
@@ -419,7 +485,7 @@ def get_pagination_ids(event, query, params, reference_event=None, referrer=None
     )
 
 
-def get_facets(query, params, limit=20, referrer=None):
+def get_facets(query, params, limit=10, referrer=None):
     """
     High-level API for getting 'facet map' results.
 
@@ -446,15 +512,14 @@ def get_facets(query, params, limit=20, referrer=None):
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
 
-    # Force sampling for more than 9 projects. 9 was chosen arbitrarily.
-    sample = len(snuba_filter.filter_keys["project_id"]) > 9
-
     # Exclude tracing tags as they are noisy and generally not helpful.
-    conditions = snuba_args.get("conditions", [])
-    conditions.append(["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span"]])
+    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span"]]
 
-    # Get the most frequent tag keys, enable sampling
-    # as we don't need accuracy here.
+    # Sampling keys for multi-project results as we don't need accuracy
+    # with that much data.
+    sample = len(snuba_filter.filter_keys["project_id"]) > 2
+
+    # Get the most frequent tag keys
     key_names = raw_query(
         aggregations=[["count", None, "count"]],
         start=snuba_args.get("start"),
@@ -463,6 +528,7 @@ def get_facets(query, params, limit=20, referrer=None):
         filter_keys=snuba_args.get("filter_keys"),
         orderby=["-count", "tags_key"],
         groupby="tags_key",
+        having=[excluded_tags],
         dataset=Dataset.Discover,
         limit=limit,
         referrer=referrer,
@@ -471,6 +537,14 @@ def get_facets(query, params, limit=20, referrer=None):
     top_tags = [r["tags_key"] for r in key_names["data"]]
     if not top_tags:
         return []
+
+    # TODO(mark) Make the sampling rate scale based on the result size and scaling factor in
+    # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
+    # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
+    # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
+    sample_rate = 0.1 if key_names["data"][0]["count"] > 10000 else None
+    # Rescale the results if we're sampling
+    multiplier = 1 / sample_rate if sample_rate is not None else 1
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
@@ -481,7 +555,7 @@ def get_facets(query, params, limit=20, referrer=None):
     results = []
     if fetch_projects:
         project_values = raw_query(
-            aggregations=[["uniq", "event_id", "count"]],
+            aggregations=[["count", None, "count"]],
             start=snuba_args.get("start"),
             end=snuba_args.get("end"),
             conditions=snuba_args.get("conditions"),
@@ -490,48 +564,38 @@ def get_facets(query, params, limit=20, referrer=None):
             orderby="-count",
             dataset=Dataset.Discover,
             referrer=referrer,
-        )
-        results.extend(
-            [FacetResult("project", r["project_id"], r["count"]) for r in project_values["data"]]
-        )
-
-    # Environment is a special case because of the "" value which is stored as null
-    # in the environment column but not in the tag arrays.
-    if "environment" in top_tags:
-        top_tags.remove("environment")
-        environment_values = raw_query(
-            aggregations=[["uniq", "event_id", "count"]],
-            start=snuba_args.get("start"),
-            end=snuba_args.get("end"),
-            conditions=snuba_args.get("conditions"),
-            filter_keys=snuba_args.get("filter_keys"),
-            groupby="environment",
-            orderby=["-count", "environment"],
-            dataset=Dataset.Discover,
-            referrer=referrer,
+            sample=sample_rate,
         )
         results.extend(
             [
-                FacetResult("environment", r["environment"], r["count"])
-                for r in environment_values["data"]
+                FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
+                for r in project_values["data"]
             ]
         )
 
-    # Get tag counts for our top tags.
-    conditions.append(["tags_key", "IN", top_tags])
-    tag_values = raw_query(
-        aggregations=[["count", None, "count"]],
-        conditions=conditions,
-        start=snuba_args.get("start"),
-        end=snuba_args.get("end"),
-        filter_keys=snuba_args.get("filter_keys"),
-        orderby=["tags_key", "-count"],
-        groupby=["tags_key", "tags_value"],
-        dataset=Dataset.Discover,
-        referrer=referrer,
-    )
-    results.extend(
-        [FacetResult(r["tags_key"], r["tags_value"], int(r["count"])) for r in tag_values["data"]]
-    )
+    # Get tag counts for our top tags. Fetching them individually
+    # allows snuba to leverage promoted tags better and enables us to get
+    # the value count we want.
+    for tag_name in top_tags:
+        tag = u"tags[{}]".format(tag_name)
+        tag_values = raw_query(
+            aggregations=[["count", None, "count"]],
+            conditions=snuba_args.get("conditions"),
+            start=snuba_args.get("start"),
+            end=snuba_args.get("end"),
+            filter_keys=snuba_args.get("filter_keys"),
+            orderby=["-count"],
+            groupby=[tag],
+            limit=TOP_VALUES_DEFAULT_LIMIT,
+            dataset=Dataset.Discover,
+            referrer=referrer,
+            sample=sample_rate,
+        )
+        results.extend(
+            [
+                FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
+                for r in tag_values["data"]
+            ]
+        )
 
     return results

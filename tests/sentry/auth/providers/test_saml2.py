@@ -1,7 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import pytest
-import mock
+from sentry.utils.compat import mock
 
 from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes
 

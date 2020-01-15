@@ -243,7 +243,7 @@ describe('DiscoverContainer', function() {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            range: '14d',
+            range: '7d',
             start: null,
             end: null,
             utc: null,

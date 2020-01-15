@@ -1,4 +1,4 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {PanelHeader} from 'app/components/panels';
 import space from 'app/styles/space';

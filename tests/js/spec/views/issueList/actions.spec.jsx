@@ -17,11 +17,7 @@ describe('IssueListActions', function() {
   describe('Bulk', function() {
     describe('Total results > bulk limit', function() {
       beforeAll(function() {
-        const {routerContext} = initializeOrg({
-          organization: {
-            features: ['incidents'],
-          },
-        });
+        const {routerContext} = initializeOrg();
 
         SelectedGroupStore.records = {};
         SelectedGroupStore.add([1, 2, 3]);
@@ -57,22 +53,6 @@ describe('IssueListActions', function() {
         wrapper.find('.stream-select-all-notice a').simulate('click');
 
         expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
-      });
-
-      it('has "Create Incidents" disabled', function() {
-        // Do not allow users to create incidents with "bulk" selection
-        expect(
-          wrapper
-            .find('a[aria-label="Create new incident"]')
-            .at(0)
-            .prop('disabled')
-        ).toBe(true);
-        expect(
-          wrapper
-            .find('a[aria-label="Create new incident"]')
-            .at(1)
-            .prop('disabled')
-        ).toBe(true);
       });
 
       it('bulk resolves', async function() {

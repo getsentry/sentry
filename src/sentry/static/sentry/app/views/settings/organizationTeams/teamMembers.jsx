@@ -1,12 +1,15 @@
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
-import {openInviteMembersModal} from 'app/actionCreators/modal';
+import {
+  openInviteMembersModal,
+  openTeamAccessRequestModal,
+} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
@@ -150,7 +153,7 @@ class TeamMembers extends React.Component {
   };
 
   addTeamMember = selection => {
-    const params = this.props.params;
+    const {params} = this.props;
 
     this.setState({
       loading: true,
@@ -199,25 +202,14 @@ class TeamMembers extends React.Component {
   };
 
   renderDropdown = access => {
-    // You can add members if you have `org:write` or you have `team:admin` AND you belong to the team
-    // a parent "team details" request should determine your team membership, so this only view is rendered only
-    // when you are a member
-    const canAddMembers = access.has('org:write') || access.has('team:admin');
-
-    if (!canAddMembers) {
-      return (
-        <DropdownButton
-          disabled
-          title={t('You do not have enough permission to add new members')}
-          isOpen={false}
-          size="xsmall"
-        >
-          {t('Add Member')}
-        </DropdownButton>
-      );
-    }
-
+    const {organization, params} = this.props;
     const existingMembers = new Set(this.state.teamMemberList.map(member => member.id));
+
+    // members can add other members to a team if the `Open Membership` setting is enabled
+    // otherwise, `org:write` or `team:admin` permissions are required
+    const hasOpenMembership = organization && organization.openMembership;
+    const hasWriteAccess = access.has('org:write') || access.has('team:admin');
+    const canAddMembers = hasOpenMembership || hasWriteAccess;
 
     const items = (this.state.orgMemberList || [])
       .filter(m => !existingMembers.has(m.id))
@@ -249,7 +241,16 @@ class TeamMembers extends React.Component {
     return (
       <DropdownAutoComplete
         items={items}
-        onSelect={this.addTeamMember}
+        onSelect={
+          canAddMembers
+            ? this.addTeamMember
+            : selection =>
+                openTeamAccessRequestModal({
+                  teamId: params.teamId,
+                  orgId: params.orgId,
+                  memberId: selection.value,
+                })
+        }
         menuHeader={menuHeader}
         emptyMessage={t('No members')}
         onChange={this.handleMemberFilterChange}
@@ -291,8 +292,7 @@ class TeamMembers extends React.Component {
 
     const {params, organization, config} = this.props;
     const access = new Set(organization.access);
-    const isOrgAdmin = access.has('org:write');
-    const isTeamAdmin = access.has('team:admin');
+    const hasWriteAccess = access.has('org:write') || access.has('team:admin');
 
     return (
       <Panel>
@@ -303,7 +303,7 @@ class TeamMembers extends React.Component {
         {this.state.teamMemberList.length ? (
           this.state.teamMemberList.map(member => {
             const isSelf = member.email === config.user.email;
-            const canRemoveMember = isOrgAdmin || isTeamAdmin || isSelf;
+            const canRemoveMember = hasWriteAccess || isSelf;
             return (
               <StyledMemberContainer key={member.id}>
                 <IdBadge avatarSize={36} member={member} useLink orgId={params.orgId} />

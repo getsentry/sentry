@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 import pytz
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -1376,7 +1376,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             elif key in IssueSearchVisitor.date_keys:
                 val = "2019-01-01"
             else:
-                val = "hello"
+                val = "abadcafedeadbeefdeaffeedabadfeed"
                 test_query("!%s:%s" % (key, val))
 
             test_query("%s:%s" % (key, val))

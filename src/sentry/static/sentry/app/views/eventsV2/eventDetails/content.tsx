@@ -1,7 +1,7 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
@@ -120,7 +120,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       eventKey: 'discover_v2.event_details',
       eventName: 'Discoverv2: Opened Event Details',
       event_type: event.type,
-      organization_id: organization.id,
+      organization_id: parseInt(organization.id, 10),
     });
 
     // Having an aggregate field means we want to show pagination/graphs

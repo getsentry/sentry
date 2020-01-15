@@ -519,6 +519,21 @@ export const GlobalSelection = PropTypes.shape({
   }),
 });
 
+export const UserReport = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  eventID: PropTypes.string.isRequired,
+  issue: Group,
+  name: PropTypes.string.isRequired,
+  event: PropTypes.shape({
+    eventID: PropTypes.string.isRequired,
+    id: PropTypes.string.isRequired,
+  }),
+  user: User.isRequired,
+  dateCreated: PropTypes.string.isRequired,
+  comments: PropTypes.string.isRequired,
+  email: PropTypes.string.isRequired,
+});
+
 export const DebugSourceType = PropTypes.oneOf(['http', 's3', 'gcs']);
 
 // Avoiding code duplication here. This is validated strictly by the server and
@@ -1081,6 +1096,7 @@ const SentryTypes = {
   Release,
   Repository,
   User,
+  UserReport,
   SavedSearch,
   SentryApplication,
   Widget,

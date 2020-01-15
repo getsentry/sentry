@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import get from 'lodash/get';
 import map from 'lodash/map';
 
@@ -265,7 +265,6 @@ class SpanDetail extends React.Component<Props, State> {
                 </Row>
               );
             })}
-            <Row title="Raw">{JSON.stringify(span, null, 4)}</Row>
           </tbody>
         </table>
       </SpanDetailContainer>

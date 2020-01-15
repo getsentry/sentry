@@ -230,7 +230,7 @@ class Result extends React.Component<ResultProps, ResultState> {
           </HeadingContainer>
           {this.renderToggle()}
         </div>
-        <ResultInnerContainer innerRef={this.setDimensions}>
+        <ResultInnerContainer ref={this.setDimensions}>
           {view === 'table' && (
             <Table
               data={baseQuery.data}

@@ -1,7 +1,7 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
@@ -20,9 +20,11 @@ import CircleIndicator from 'app/components/circleIndicator';
 import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
 import {Hooks} from 'app/types/hooks';
 import {IntegrationFeature} from 'app/types';
+import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = {
-  closeOnInstall?: boolean;
+  view?: 'integrations_page' | 'external_install';
   closeModal: () => void;
 } & SentryAppDetailsModalOptions &
   AsyncComponent['props'];
@@ -55,12 +57,41 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     onInstall: PropTypes.func.isRequired,
     isInstalled: PropTypes.bool.isRequired,
     closeModal: PropTypes.func.isRequired,
-    closeOnInstall: PropTypes.bool.isRequired,
+    view: PropTypes.string.isRequired,
   };
 
   static defaultProps = {
-    closeOnInstall: true,
+    view: 'integrations_page',
   };
+
+  componentDidUpdate(prevProps: Props) {
+    //if the user changes org, count this as a fresh event to track
+    if (this.props.organization.id !== prevProps.organization.id) {
+      this.trackOpened();
+    }
+  }
+
+  componentDidMount() {
+    this.trackOpened();
+  }
+
+  trackOpened() {
+    const {sentryApp, organization, isInstalled, view} = this.props;
+    recordInteraction(sentryApp.slug, 'sentry_app_viewed');
+
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.install_modal_opened',
+        eventName: 'Integrations: Install Modal Opened',
+        integration_type: 'sentry_app',
+        integration: sentryApp.slug,
+        already_installed: isInstalled,
+        view,
+      },
+      organization,
+      {startSession: view === 'external_install'} //new session on external installs
+    );
+  }
 
   getEndpoints(): [string, string][] {
     const {sentryApp} = this.props;
@@ -79,10 +110,10 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
   }
 
   onInstall() {
-    const {onInstall, closeModal, closeOnInstall} = this.props;
+    const {onInstall, closeModal, view} = this.props;
     onInstall();
-    // let onInstall handle redirection post install when onCloseInstall is false
-    closeOnInstall && closeModal();
+    // let onInstall handle redirection post install on the external install flow
+    view !== 'external_install' && closeModal();
   }
 
   renderPermissions() {
@@ -154,10 +185,15 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
 
     return (
       <React.Fragment>
-        <Flex align="center" mb={2}>
+        <Flex alignItems="center" mb={2}>
           <PluginIcon pluginId={sentryApp.slug} size={50} />
 
-          <Flex pl={1} align="flex-start" direction="column" justify="center">
+          <Flex
+            pl={1}
+            alignItems="flex-start"
+            flexDirection="column"
+            justifyContent="center"
+          >
             <Name>{sentryApp.name}</Name>
             <Flex>{features.length && this.featureTags(features)}</Flex>
           </Flex>
@@ -225,7 +261,7 @@ const Author = styled(Box)`
 `;
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
-  <Flex align="center" flex={1} {...p}>
+  <Flex alignItems="center" flex={1} {...p}>
     <InlineSvg src="icon-circle-exclamation" size="1.5em" />
     <Box ml={1}>{reason}</Box>
   </Flex>

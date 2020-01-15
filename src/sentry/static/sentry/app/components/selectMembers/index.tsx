@@ -1,7 +1,7 @@
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {Member, Organization, Project, Team, User} from 'app/types';
@@ -314,7 +314,7 @@ class SelectMembers extends React.Component<Props> {
 
     return (
       <StyledSelectControl
-        innerRef={this.selectRef}
+        ref={this.selectRef}
         filterOptions={(options, filterText) =>
           options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1)
         }
