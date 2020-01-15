@@ -41,20 +41,11 @@ describe('Sentry App Installations', function() {
   });
 
   describe('when installing', () => {
-    let sentryAppInteractionRequest;
-
     beforeEach(() => {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/sentry-app-installations/`,
         method: 'POST',
         body: install,
-      });
-
-      sentryAppInteractionRequest = Client.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/interaction/`,
-        method: 'POST',
-        statusCode: 200,
-        body: {},
       });
     });
 
@@ -75,16 +66,6 @@ describe('Sentry App Installations', function() {
           organization: org,
           onInstall: expect.any(Function),
           isInstalled: false,
-        })
-      );
-
-      expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
-        `/sentry-apps/${sentryApp.slug}/interaction/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            tsdbField: 'sentry_app_viewed',
-          },
         })
       );
     });
@@ -112,15 +93,6 @@ describe('Sentry App Installations', function() {
           organization: org,
           onInstall: expect.any(Function),
           isInstalled: false,
-        })
-      );
-      expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
-        `/sentry-apps/${sentryApp.slug}/interaction/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            tsdbField: 'sentry_app_viewed',
-          },
         })
       );
       wrapper.instance().handleInstall(sentryApp);
