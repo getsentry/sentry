@@ -5,10 +5,14 @@ from sentry.api.bases.incident import IncidentPermission
 from sentry.api.base import Endpoint
 
 
+from sentry.tasks.data_export import compile_data
+
+
 class DataExportEndpoint(Endpoint):
     permission_classes = (IncidentPermission,)
 
     def get(self, *args, **kwargs):
+        compile_data()
         mock_response = {
             # 'data_id': kwargs['data_tag'],
             # 'org_id': kwargs['organization_slug'],
