@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 from django.http import QueryDict
 
 from sentry.models import GroupStatus

@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 import json
-import mock
+from sentry.utils.compat import mock
 
 from social_auth.models import UserSocialAuth
 

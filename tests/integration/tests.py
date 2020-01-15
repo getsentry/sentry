@@ -6,7 +6,7 @@ import os
 import datetime
 import json
 import logging
-import mock
+from sentry.utils.compat import mock
 import six
 from time import sleep
 import zlib
@@ -176,7 +176,7 @@ class SentryRemoteTest(SnubaTestCase):
         return reverse("sentry-api-store")
 
     def get_event(self, event_id):
-        instance = eventstore.get_event_by_id(self.project.id, event_id, eventstore.full_columns)
+        instance = eventstore.get_event_by_id(self.project.id, event_id)
         return instance
 
     def test_minimal(self):

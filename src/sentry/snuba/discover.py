@@ -4,6 +4,7 @@ import six
 
 from collections import namedtuple
 from copy import deepcopy
+from datetime import timedelta
 
 from sentry.api.event_search import (
     get_filter,
@@ -42,7 +43,9 @@ __all__ = (
 )
 
 
-ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields"])
+ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields", "start", "end"])
+ReferenceEvent.__new__.__defaults__ = (None, None)
+
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
@@ -67,6 +70,12 @@ def find_reference_event(reference_event):
         project_slug, event_id = reference_event.slug.split(":")
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
+
+    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
+    # We don't need to run a query if there are no columns
+    if not column_names:
+        return None
+
     try:
         project = Project.objects.get(
             slug=project_slug,
@@ -76,15 +85,18 @@ def find_reference_event(reference_event):
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
 
-    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
-
-    # We don't need to run a query if there are no columns
-    if not column_names:
-        return None
+    start = None
+    end = None
+    if reference_event.start:
+        start = reference_event.start - timedelta(seconds=5)
+    if reference_event.end:
+        end = reference_event.end + timedelta(seconds=5)
 
     event = raw_query(
         selected_columns=column_names,
         filter_keys={"project_id": [project.id], "event_id": [event_id]},
+        start=start,
+        end=end,
         dataset=Dataset.Discover,
         limit=1,
         referrer="discover.find_reference_event",

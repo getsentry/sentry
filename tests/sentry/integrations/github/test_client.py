@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import responses
-import mock
+from sentry.utils.compat import mock
 
 from sentry.testutils import TestCase
 from sentry.models import Integration

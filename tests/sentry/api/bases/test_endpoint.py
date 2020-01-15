@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 
 from sentry.testutils import TestCase
 

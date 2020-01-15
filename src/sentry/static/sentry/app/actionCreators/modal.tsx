@@ -24,6 +24,7 @@ export type IntegrationDetailsModalOptions = {
   onAddIntegration: (integration: Integration) => void;
   provider: IntegrationProvider;
   organization: Organization;
+  isInstalled: boolean; //used for analytics
 };
 
 export type SentryAppDetailsModalOptions = {
@@ -31,6 +32,12 @@ export type SentryAppDetailsModalOptions = {
   isInstalled: boolean;
   onInstall: () => void;
   organization: Organization;
+};
+
+export type TeamAccessRequestModalOptions = {
+  memberId: string;
+  teamId: string;
+  orgId: string;
 };
 
 /**
@@ -147,6 +154,16 @@ export function openRecoveryOptions(options: ModalOptions = {}) {
     .then(Modal => {
       openModal(deps => <Modal {...deps} {...options} />, {
         modalClassName: 'recovery-options',
+      });
+    });
+}
+
+export function openTeamAccessRequestModal(options: TeamAccessRequestModalOptions) {
+  import(/* webpackChunkName: "TeamAccessRequestModal" */ 'app/components/modals/teamAccessRequestModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'confirm-team-request',
       });
     });
 }

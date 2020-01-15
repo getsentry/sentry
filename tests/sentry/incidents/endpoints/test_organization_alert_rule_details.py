@@ -1,12 +1,17 @@
 from __future__ import absolute_import
 
+import six
+
+from copy import deepcopy
+
 from exam import fixture
+
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
-from sentry.incidents.logic import create_alert_rule
+from sentry.auth.access import OrganizationGlobalAccess
+from sentry.incidents.endpoints.serializers import UnifiedAlertRuleSerializer
 from sentry.incidents.models import AlertRule
-from sentry.snuba.models import QueryAggregations
 from sentry.testutils import APITestCase
 
 
@@ -26,16 +31,69 @@ class AlertRuleDetailsBase(object):
         return self.create_user()
 
     @fixture
-    def alert_rule(self):
-        return create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
+    def alert_rule_dict(self):
+        return {
+            "aggregation": 0,
+            "aggregations": [0],
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "JustAValidTestRule",
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "resolveThreshold": 100,
+                    "thresholdType": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 150,
+                    "resolveThreshold": 100,
+                    "thresholdType": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
+        }
+
+    def new_alert_rule(self, data=None):
+        if data is None:
+            data = deepcopy(self.alert_rule_dict)
+
+        serializer = UnifiedAlertRuleSerializer(
+            context={
+                "organization": self.organization,
+                "access": OrganizationGlobalAccess(self.organization),
+            },
+            data=data,
         )
+
+        assert serializer.is_valid()
+        alert_rule = serializer.save()
+        return alert_rule
+
+    def get_serialized_alert_rule(self):
+        # Only call after calling self.alert_rule to create it.
+        original_endpoint = self.endpoint
+        original_method = self.method
+        self.endpoint = "sentry-api-0-organization-alert-rules"
+        self.method = "get"
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug)
+            serialized_alert_rule = resp.data[0]
+        self.endpoint = original_endpoint
+        self.method = original_method
+        return serialized_alert_rule
+
+    @fixture
+    def alert_rule(self):
+        return self.new_alert_rule(data=deepcopy(self.alert_rule_dict))
 
     def test_invalid_rule_id(self):
         self.create_member(
@@ -83,11 +141,18 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         )
 
         self.login_as(self.user)
-        with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug, self.alert_rule.id, name="what")
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["name"] = "what"
 
-        self.alert_rule.name = "what"
-        assert resp.data == serialize(self.alert_rule)
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        alert_rule.name = "what"
+        assert resp.data == serialize(alert_rule)
         assert resp.data["name"] == "what"
 
     def test_not_updated_fields(self):
@@ -96,9 +161,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         )
 
         self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
-                self.organization.slug, self.alert_rule.id, aggregation=self.alert_rule.aggregation
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
         existing_sub = self.alert_rule.query_subscriptions.first()
@@ -109,6 +178,160 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         # it hasn't changed explicitly
         updated_sub = AlertRule.objects.get(id=self.alert_rule.id).query_subscriptions.first()
         assert updated_sub.subscription_id == existing_sub.subscription_id
+
+    def test_update_trigger_label_to_unallowed_value(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["triggers"][0]["label"] = "goodbye"
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+            )
+            assert resp.data == {
+                "nonFieldErrors": [
+                    'First trigger must be labeled "critical", second trigger must be labeled "warning"'
+                ]
+            }
+
+    def test_update_trigger_alert_threshold(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        serialized_alert_rule["triggers"][1]["alertThreshold"] = 125
+        serialized_alert_rule["name"] = "AUniqueName"
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert resp.data["name"] == "AUniqueName"
+        assert resp.data["triggers"][1]["alertThreshold"] == 125
+
+    def test_delete_trigger(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        serialized_alert_rule["triggers"].pop(1)
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert len(resp.data["triggers"]) == 1
+
+    def test_delete_action(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        serialized_alert_rule["triggers"][1]["actions"].pop(1)
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert len(resp.data["triggers"][1]["actions"]) == 1
+
+        # Delete the last one, make sure API errors since we have to have an action.
+        serialized_alert_rule["triggers"][1]["actions"].pop()
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug, alert_rule.id, **serialized_alert_rule)
+            assert resp.status_code == 400
+
+    def test_update_trigger_action_type(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        # Then we send it back with one of the actions changed:
+        serialized_alert_rule["triggers"][0]["actions"][0]["targetType"] = "user"
+        serialized_alert_rule["triggers"][0]["actions"][0]["targetIdentifier"] = self.user.id
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        # And it comes back successfully changed:
+        assert resp.data["triggers"][0]["actions"][0]["targetType"] == "user"
+        assert resp.data["triggers"][0]["actions"][0]["targetIdentifier"] == six.binary_type(
+            self.user.id
+        )
+
+        # And make sure we still only have two triggers, the first with 1 action and the second with 2 actions
+        # This is ensures they were updated and not new ones created, etc.
+        assert len(resp.data["triggers"]) == 2
+        assert len(resp.data["triggers"][0]["actions"]) == 1
+        assert len(resp.data["triggers"][1]["actions"]) == 2
+
+    def test_invalid_thresholds(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        serialized_alert_rule["triggers"][0]["alertThreshold"] = 50  # Invalid
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+            )
+        serialized_alert_rule["triggers"][0]["alertThreshold"] = 200  # Back to normal, valid.
+
+        serialized_alert_rule["triggers"][0][
+            "resolveThreshold"
+        ] = 50  # Invalid, less than warning resolve threshold.
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+            )
+        serialized_alert_rule["triggers"][0]["resolveThreshold"] = 100  # Back to normal, valid.
+
+        serialized_alert_rule["triggers"][0][
+            "thresholdType"
+        ] = 1  # Invalid, different than other trigger.
+        with self.feature("organizations:incidents"):
+            self.get_valid_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
+            )
+        serialized_alert_rule["triggers"][0]["thresholdType"] = 0  # Back to normal, valid.
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):

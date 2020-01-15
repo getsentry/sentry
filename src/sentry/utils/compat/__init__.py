@@ -7,6 +7,12 @@ try:
 except ImportError:
     import pickle  # NOQA
 
+try:
+    # TODO: remove when we drop Python 2.7 compat
+    import functools32 as functools
+except ImportError:
+    import functools  # NOQA
+
 
 def _identity(x):
     return x

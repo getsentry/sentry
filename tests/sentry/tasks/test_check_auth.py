@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 from datetime import timedelta
 from django.utils import timezone
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.dummy import DummyProvider
