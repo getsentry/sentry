@@ -70,7 +70,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
 
         stat_model = None
         stat = request.GET.get("stat", "received")
-        metric = request.GET.get("metric", 0) == StatsMixin.METRIC_EVENT_COUNT
+        metric = request.GET.get("metric", 0)
 
         if metric not in {StatsMixin.METRIC_EVENT_COUNT, StatsMixin.METRIC_BYTES_RECEIVED}:
             raise ValueError("Invalid metric")
