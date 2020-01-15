@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import json
 import pytz
 
+from mock import patch
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
@@ -17,6 +18,9 @@ now = datetime.utcnow().replace(tzinfo=pytz.utc)
 class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(IssueDetailsTest, self).setUp()
+        patcher = patch("django.utils.timezone.now", return_value=now)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")

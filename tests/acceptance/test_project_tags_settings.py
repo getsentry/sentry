@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
+from datetime import datetime
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from mock import patch
 import pytz
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
+current_time = datetime.utcnow().replace(tzinfo=pytz.utc)
 
 
 class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
@@ -19,7 +22,8 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
         self.login_as(self.user)
         self.path = u"/settings/{}/projects/{}/tags/".format(self.org.slug, self.project.slug)
 
-    def test_tags_list(self):
+    @patch("django.utils.timezone.now", return_value=current_time)
+    def test_tags_list(self, mock_timezone):
         self.store_event(
             data={
                 "event_id": "a" * 32,
