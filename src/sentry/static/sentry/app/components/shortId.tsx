@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import isPropValid from '@emotion/is-prop-valid';
 
 import AutoSelectText from 'app/components/autoSelectText';
 
@@ -44,7 +45,7 @@ const StyledShortId = styled('div')`
   justify-content: flex-end;
 `;
 
-const StyledAutoSelectText = styled(AutoSelectText)<{
+const StyledAutoSelectText = styled(AutoSelectText, {shouldForwardProp: isPropValid})<{
   avatar: boolean;
 }>`
   margin-left: ${p => p.avatar && '0.5em'};
