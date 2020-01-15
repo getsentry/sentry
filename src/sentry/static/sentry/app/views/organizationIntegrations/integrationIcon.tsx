@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import PluginIcon from 'app/plugins/components/pluginIcon';
+import PluginIcon, {ICON_PATHS, DEFAULT_ICON} from 'app/plugins/components/pluginIcon';
 import {Integration} from 'app/types';
 
 type Props = {
@@ -25,7 +25,10 @@ const IntegrationIcon = ({integration, size}: Props) =>
       size={size}
       src={integration.icon}
       onError={e => {
-        (e.target as HTMLImageElement).src = integration.provider.key;
+        (e.target as HTMLImageElement).src =
+          (integration.provider.key !== undefined &&
+            ICON_PATHS[integration.provider.key]) ||
+          DEFAULT_ICON;
       }}
     />
   ) : (
