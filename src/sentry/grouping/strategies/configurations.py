@@ -92,6 +92,7 @@ register_strategy_config(
     changelog="""
         * Better rules for when to take context lines into account for
           JavaScript platforms for grouping purposes.
+        * Better support for PHP7 anonymous classes.
     """,
 )
 
