@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 import pytest
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 from datetime import datetime, timedelta
 
 from sentry import eventstore

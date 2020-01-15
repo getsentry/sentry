@@ -9,7 +9,7 @@ from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from tests.acceptance.page_objects.issue_list import IssueListPage
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)

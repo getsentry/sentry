@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import json
-import mock
+from sentry.utils.compat import mock
 
 from sentry import options
 from sentry.utils.cache import memoize
