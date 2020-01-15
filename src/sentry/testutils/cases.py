@@ -27,7 +27,7 @@ import pytest
 import requests
 import six
 import types
-import mock
+from sentry.utils.compat import mock
 
 from click.testing import CliRunner
 from datetime import datetime

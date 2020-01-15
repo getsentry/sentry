@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import json
-import mock
+from sentry.utils.compat import mock
 import responses
 import six
 import pytest

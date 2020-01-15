@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 
 import pytest
-import mock
+from sentry.utils.compat import mock
 from django.conf import settings
 
 from sentry import eventstore

@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
-import mock
+from sentry.utils.compat import mock
 import pytz
 import six
 from django.contrib.auth.models import AnonymousUser
