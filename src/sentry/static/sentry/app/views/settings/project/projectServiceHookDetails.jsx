@@ -1,21 +1,24 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import AsyncView from 'app/views/asyncView';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ErrorBoundary from 'app/components/errorBoundary';
 import Field from 'app/views/settings/components/forms/field';
-import getDynamicText from 'app/utils/getDynamicText';
-import IndicatorStore from 'app/stores/indicatorStore';
+import ServiceHookSettingsForm from 'app/views/settings/project/serviceHookSettingsForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-
-import ServiceHookSettingsForm from 'app/views/settings/project/serviceHookSettingsForm';
+import getDynamicText from 'app/utils/getDynamicText';
 
 class HookStats extends AsyncComponent {
   getEndpoints() {
@@ -37,7 +40,7 @@ class HookStats extends AsyncComponent {
     ];
   }
 
-  renderTooltip(point, pointIdx, chart) {
+  renderTooltip(point, _pointIdx, chart) {
     const timeLabel = chart.getTimeLabel(point);
     const [total] = point.y;
 
@@ -97,22 +100,15 @@ export default class ProjectServiceHookDetails extends AsyncView {
 
   onDelete = () => {
     const {orgId, projectId, hookId} = this.props.params;
-    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes..'));
     this.api.request(`/projects/${orgId}/${projectId}/hooks/${hookId}/`, {
       method: 'DELETE',
       success: () => {
-        IndicatorStore.remove(loadingIndicator);
+        clearIndicators();
         browserHistory.push(`/settings/${orgId}/projects/${projectId}/hooks/`);
       },
       error: () => {
-        IndicatorStore.remove(loadingIndicator);
-        IndicatorStore.add(
-          t('Unable to remove application. Please try again.'),
-          'error',
-          {
-            duration: 3000,
-          }
-        );
+        addErrorMessage(t('Unable to remove application. Please try again.'));
       },
     });
   };

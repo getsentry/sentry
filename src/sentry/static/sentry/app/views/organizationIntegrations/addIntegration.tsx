@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import queryString from 'query-string';
 
-import {t} from 'app/locale';
-import IndicatorStore from 'app/stores/indicatorStore';
 import {IntegrationProvider, Integration} from 'app/types';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
 
 type Props = {
   children: (
@@ -96,7 +96,7 @@ export default class AddIntegration extends React.Component<Props> {
     this.dialog = null;
 
     if (!success) {
-      IndicatorStore.addError(data.error);
+      addErrorMessage(data.error);
       return;
     }
 
@@ -104,7 +104,7 @@ export default class AddIntegration extends React.Component<Props> {
       return;
     }
     this.props.onInstall(data);
-    IndicatorStore.addSuccess(t(`${this.props.provider.name} added`));
+    addSuccessMessage(t('%s added', this.props.provider.name));
   };
 
   render() {
