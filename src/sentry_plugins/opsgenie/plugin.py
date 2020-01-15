@@ -37,11 +37,6 @@ class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
 class OpsGeniePlugin(notify.NotificationPlugin):
     author = "Sentry Team"
     author_url = "https://github.com/getsentry"
-    resource_links = (
-        ("Bug Tracker", "https://github.com/getsentry/sentry-opsgenie/issues"),
-        ("Source", "https://github.com/getsentry/sentry-opsgenie"),
-    )
-
     title = "OpsGenie"
     slug = "opsgenie"
     description = "Create OpsGenie alerts out of notifications."

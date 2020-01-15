@@ -1,45 +1,22 @@
 #!/usr/bin/env python
-"""
-Sentry
-======
-
-Sentry is a realtime event logging and aggregation platform. It specializes
-in monitoring errors and extracting all the information needed to do a proper
-post-mortem without any of the hassle of the standard user feedback loop.
-
-Sentry is a Server
-------------------
-
-The Sentry package, at its core, is just a simple server and web UI. It will
-handle authentication clients (such as `the Python one
-<https://github.com/getsentry/sentry-python>`_)
-and all of the logic behind storage and aggregation.
-
-That said, Sentry is not limited to Python. The primary implementation is in
-Python, but it contains a full API for sending events from any language, in
-any application.
-
-:copyright: (c) 2011-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
-# if sys.version_info[:2] != (2, 7):
-#     print 'Error: Sentry requires Python 2.7'
-#     sys.exit(1)
+import sys
+
+if sys.version_info[:2] != (2, 7):
+    sys.exit("Error: Sentry requires Python 2.7.")
 
 import os
 import os.path
-import sys
 
 from distutils.command.build import build as BuildCommand
 from setuptools import setup, find_packages
 from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.develop import develop as DevelopCommand
 
-ROOT = os.path.realpath(os.path.join(os.path.dirname(sys.modules["__main__"].__file__)))
+ROOT = os.path.dirname(os.path.abspath(__file__))
 
-# Add Sentry to path so we can import distutils
+# add sentry to path so we can import sentry.utils.distutils
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from sentry.utils.distutils import (
@@ -48,22 +25,8 @@ from sentry.utils.distutils import (
     BuildJsSdkRegistryCommand,
 )
 
-# The version of sentry
-VERSION = "10.0.0.dev0"
-
-# Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
-# in multiprocessing/util.py _exit_function when running `python
-# setup.py test` (see
-# http://www.eby-sarna.com/pipermail/peak/2010-May/003357.html)
-for m in ("multiprocessing", "billiard"):
-    try:
-        __import__(m)
-    except ImportError:
-        pass
-
+VERSION = "10.1.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
-
-# we use pip requirements files to improve Docker layer caching
 
 
 def get_requirements(env):
@@ -129,18 +92,26 @@ setup(
     author_email="hello@sentry.io",
     url="https://sentry.io",
     description="A realtime logging and aggregation server.",
-    long_description=open(os.path.join(ROOT, "README.rst")).read(),
+    long_description=open(os.path.join(ROOT, "README.md")).read(),
+    long_description_content_type="text/markdown",
     package_dir={"": "src"},
     packages=find_packages("src"),
     zip_safe=False,
     install_requires=install_requires,
-    extras_require={"dev": dev_requires, "postgres": []},
+    extras_require={"dev": dev_requires},
     cmdclass=cmdclass,
     license="BSL-1.1",
     include_package_data=True,
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
         "sentry.apps": [
+            # TODO: This can be removed once the getsentry tests no longer check for this app
+            "auth_auth0 = sentry.auth.providers.saml2.auth0",
+            "auth_github = sentry.auth.providers.github",
+            "auth_okta = sentry.auth.providers.saml2.okta",
+            "auth_onelogin = sentry.auth.providers.saml2.onelogin",
+            "auth_rippling = sentry.auth.providers.saml2.rippling",
+            "auth_saml2 = sentry.auth.providers.saml2.generic",
             "jira_ac = sentry_plugins.jira_ac",
             "jira = sentry_plugins.jira",
             "freight = sentry_plugins.freight",
@@ -148,6 +119,7 @@ setup(
             "redmine = sentry_plugins.redmine",
             "sessionstack = sentry_plugins.sessionstack",
             "teamwork = sentry_plugins.teamwork",
+            "trello = sentry_plugins.trello",
             "twilio = sentry_plugins.twilio",
         ],
         "sentry.plugins": [
@@ -172,6 +144,7 @@ setup(
             "slack = sentry_plugins.slack.plugin:SlackPlugin",
             "splunk = sentry_plugins.splunk.plugin:SplunkPlugin",
             "teamwork = sentry_plugins.teamwork.plugin:TeamworkPlugin",
+            "trello = sentry_plugins.trello.plugin:TrelloPlugin",
             "twilio = sentry_plugins.twilio.plugin:TwilioPlugin",
             "victorops = sentry_plugins.victorops.plugin:VictorOpsPlugin",
             "vsts = sentry_plugins.vsts.plugin:VstsPlugin",

@@ -93,13 +93,12 @@ function getThreadTitle(thread, event, simplified) {
       );
     }
 
-    if (thread.crashed || thread.errored) {
+    if (thread.crashed) {
       const exc = findThreadException(thread, event);
-      const result = thread.crashed ? 'crashed' : 'errored';
       bits.push(' — ');
       bits.push(
         <small key="crashed">
-          {exc ? `(${result} with ${exc.values[0].type})` : `(${result})`}
+          {exc ? `(crashed with ${exc.values[0].type})` : '(crashed)'}
         </small>
       );
     }
@@ -114,11 +113,10 @@ function getIntendedStackView(thread, event) {
 }
 
 function findBestThread(threads) {
-  // Search the enire threads list for a crashed, errored or thread with stack
-  // trace. Prefer any crashed thread over errored threads, etc.
+  // Search the entire threads list for a crashed thread with stack
+  // trace.
   return (
     threads.find(thread => thread.crashed) ||
-    threads.find(thread => thread.errored) ||
     threads.find(thread => thread.stacktrace) ||
     threads[0]
   );
@@ -137,20 +135,14 @@ class Thread extends React.Component {
   };
 
   renderMissingStacktrace = () => {
-    const {crashed, errored} = this.props.data;
-    let message = t('No or unknown stacktrace');
-    if (crashed) {
-      message = t('Thread Crashed');
-    } else if (errored) {
-      message = t('Thread Errored');
-    }
-
     return (
       <div className="traceback missing-traceback">
         <ul>
           <li className="frame missing-frame">
             <div className="title">
-              <span className="informal">{message}</span>
+              <span className="informal">
+                {this.props.data.crashed ? 'Thread Crashed' : 'No or unknown stacktrace'}
+              </span>
             </div>
           </li>
         </ul>
@@ -187,11 +179,6 @@ class Thread extends React.Component {
             <Pill name="crashed" className={data.crashed ? 'false' : 'true'}>
               {data.crashed ? 'yes' : 'no'}
             </Pill>
-            {!data.crashed && (
-              <Pill name="errored" className={data.errored ? 'false' : 'true'}>
-                {data.errored ? 'yes' : 'no'}
-              </Pill>
-            )}
           </Pills>
         )}
 

@@ -7,7 +7,7 @@ import React from 'react';
 import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
@@ -126,7 +126,7 @@ class GroupTagValues extends React.Component {
             >
               {tagKey.key === 'user' ? (
                 <React.Fragment>
-                  <Avatar user={tagValue} size={20} className="avatar" />
+                  <UserAvatar user={tagValue} size={20} className="avatar" />
                   <span style={{marginLeft: 10}}>
                     {this.getUserDisplayName(tagValue)}
                   </span>

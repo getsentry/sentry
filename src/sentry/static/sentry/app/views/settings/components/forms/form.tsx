@@ -1,7 +1,7 @@
 import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {APIRequestMethod} from 'app/api';
 import {t} from 'app/locale';
@@ -11,6 +11,7 @@ import FormModel, {
   FieldValue,
 } from 'app/views/settings/components/forms/model';
 import Panel from 'app/components/panels/panel';
+import space from 'app/styles/space';
 
 type Data = {};
 
@@ -219,38 +220,41 @@ export default class Form extends React.Component<Props> {
             style={footerStyle}
             saveOnBlur={saveOnBlur}
           >
-            <Observer>
-              {() => (
-                <Button
-                  data-test-id="form-submit"
-                  priority={submitPriority}
-                  disabled={
-                    this.model.isError ||
-                    this.model.isSaving ||
-                    submitDisabled ||
-                    (requireChanges ? !this.model.formChanged : false)
-                  }
-                  type="submit"
-                >
-                  {submitLabel}
-                </Button>
+            {extraButton}
+            <DefaultButtons>
+              {onCancel && (
+                <Observer>
+                  {() => (
+                    <Button
+                      type="button"
+                      disabled={this.model.isSaving}
+                      onClick={onCancel}
+                      style={{marginLeft: 5}}
+                    >
+                      {cancelLabel}
+                    </Button>
+                  )}
+                </Observer>
               )}
-            </Observer>
 
-            {onCancel && (
               <Observer>
                 {() => (
                   <Button
-                    disabled={this.model.isSaving}
-                    onClick={onCancel}
-                    style={{marginLeft: 5}}
+                    data-test-id="form-submit"
+                    priority={submitPriority}
+                    disabled={
+                      this.model.isError ||
+                      this.model.isSaving ||
+                      submitDisabled ||
+                      (requireChanges ? !this.model.formChanged : false)
+                    }
+                    type="submit"
                   >
-                    {cancelLabel}
+                    {submitLabel}
                   </Button>
                 )}
               </Observer>
-            )}
-            {extraButton}
+            </DefaultButtons>
           </StyledFooter>
         )}
       </form>
@@ -259,7 +263,8 @@ export default class Form extends React.Component<Props> {
 }
 
 const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
-  text-align: right;
+  display: flex;
+  justify-content: flex-end;
   margin-top: 25px;
   border-top: 1px solid #e9ebec;
   background: none;
@@ -284,6 +289,14 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
     padding-bottom: 16px;
   }
   `};
+`;
+
+const DefaultButtons = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-auto-flow: column;
+  justify-content: flex-end;
+  flex: 1;
 `;
 
 export {FieldValue};

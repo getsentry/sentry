@@ -6,7 +6,7 @@ from django.conf import settings
 from sentry.utils.sdk import configure_sdk, bind_organization_context
 from sentry.app import raven
 
-from sentry.models import Event
+from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
 from sentry import nodestore
 

@@ -29,6 +29,10 @@ describe('EventsContainer', function() {
 
   beforeAll(async function() {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [{count: 1, tag: 'transaction'}, {count: 2, tag: 'mechanism'}],
     });

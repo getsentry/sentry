@@ -23,8 +23,6 @@ class PagerDutyNotifyActionTest(RuleTestCase):
     rule_cls = PagerDutyNotifyServiceAction
 
     def setUp(self):
-        self.get_event()
-
         self.integration = Integration.objects.create(
             provider="pagerduty",
             name="Example",
@@ -84,6 +82,50 @@ class PagerDutyNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert form.is_valid()
+
+    @responses.activate
+    def test_notifies_with_multiple_pd_accounts(self):
+        # make another PagerDuty account and service for the same organization
+        service_info = {
+            "type": "service",
+            "integration_key": "PND352",
+            "service_id": "346",
+            "service_name": "Informational",
+        }
+        integration = Integration.objects.create(
+            provider="pagerduty",
+            name="Example 3",
+            external_id="example-3",
+            metadata={"services": [service_info]},
+        )
+        integration.add_organization(self.organization, self.user)
+        service = PagerDutyService.objects.create(
+            service_name=service_info["service_name"],
+            integration_key=service_info["integration_key"],
+            organization_integration=integration.organizationintegration_set.first(),
+        )
+        self.installation = integration.get_installation(self.organization.id)
+
+        event = self.get_event()
+
+        rule = self.get_rule(data={"account": integration.id, "service": service.id})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://events.pagerduty.com/v2/enqueue/",
+            body={},
+            status=202,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        results[0].callback(event, futures=[])
+        data = json.loads(responses.calls[0].request.body)
+
+        assert data["event_action"] == "trigger"
 
     @responses.activate
     def test_invalid_service_selected(self):

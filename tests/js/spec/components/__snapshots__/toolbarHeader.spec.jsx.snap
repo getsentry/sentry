@@ -1,9 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ToolbarHeader renders 1`] = `
-<div
-  className="css-1d016dc-ToolbarHeader e8n6jt30"
->
-  <div />
-</div>
+<ContextConsumer>
+  <Component />
+</ContextConsumer>
 `;

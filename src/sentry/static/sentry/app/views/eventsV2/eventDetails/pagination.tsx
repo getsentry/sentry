@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
 
 import {t} from 'app/locale';
@@ -44,7 +44,7 @@ function buildTargets(
       const eventSlug = `${event.projectSlug}:${value}`;
 
       links[key] = {
-        pathname: generateEventDetailsRoute({eventSlug, organization}),
+        pathname: generateEventDetailsRoute({eventSlug, orgSlug: organization.slug}),
         query: eventView.generateQueryStringObject(),
       };
     }

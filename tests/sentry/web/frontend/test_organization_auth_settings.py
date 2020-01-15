@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from mock import patch
 
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
@@ -94,7 +95,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             "Require 2fa disabled during sso setup", extra={"organization_id": organization.id}
         )
 
-    def assert_basic_flow(self, user, organization):
+    def assert_basic_flow(self, user, organization, expect_error=False):
         configure_path = reverse(
             "sentry-organization-auth-provider-settings", args=[organization.slug]
         )
@@ -107,7 +108,13 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             path = reverse("sentry-auth-sso")
             resp = self.client.post(path, {"email": user.email})
 
-        self.assertRedirects(resp, configure_path)
+        settings_path = reverse("sentry-organization-auth-settings", args=[organization.slug])
+
+        if expect_error:
+            self.assertRedirects(resp, settings_path)
+            return
+        else:
+            self.assertRedirects(resp, configure_path)
 
         auth_provider = AuthProvider.objects.get(organization=organization, provider="dummy")
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
@@ -159,6 +166,17 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             target_object=organization.id, event=AuditLogEntryEvent.ORG_EDIT, actor=user
         ).exists()
         assert not logger.info.called
+
+    @patch("sentry.auth.helper.logger")
+    @patch("sentry.auth.providers.dummy.DummyProvider.build_identity")
+    def test_basic_flow_error(self, build_identity, logger):
+        build_identity.side_effect = IdentityNotValid()
+
+        user = self.create_user("bar@example.com")
+        organization = self.create_organization(name="foo", owner=user)
+
+        self.login_as(user)
+        self.assert_basic_flow(user, organization, expect_error=True)
 
     @patch("sentry.auth.helper.logger")
     def test_basic_flow__disable_require_2fa(self, logger):

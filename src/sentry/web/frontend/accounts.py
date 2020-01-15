@@ -95,10 +95,6 @@ def recover(request):
     return render_to_response(tpl, context, request)
 
 
-def get_template(name, mode):
-    return u"sentry/account/{}/{}.html".format(mode, name)
-
-
 def recover_confirm(request, user_id, hash, mode="recover"):
     try:
         password_hash = LostPasswordHash.objects.get(user=user_id, hash=hash)
@@ -108,8 +104,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
         user = password_hash.user
 
     except LostPasswordHash.DoesNotExist:
-        tpl = get_template("failure", mode)
-        return render_to_response(tpl, {}, request)
+        return render_to_response(u"sentry/account/{}/{}.html".format(mode, "failure"), {}, request)
 
     if request.method == "POST":
         form = ChangePasswordRecoverForm(request.POST)
@@ -141,10 +136,9 @@ def recover_confirm(request, user_id, hash, mode="recover"):
     else:
         form = ChangePasswordRecoverForm()
 
-    tpl = get_template("confirm", mode)
-    context = {"form": form}
-
-    return render_to_response(tpl, context, request)
+    return render_to_response(
+        u"sentry/account/{}/{}.html".format(mode, "confirm"), {"form": form}, request
+    )
 
 
 # Set password variation of password recovery

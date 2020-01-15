@@ -59,14 +59,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_sort_by_date_with_tag(self):
         # XXX(dcramer): this tests a case where an ambiguous column name existed
-        now = timezone.now()
-        group1 = self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
-        self.create_event(group=group1, datetime=now - timedelta(seconds=1))
+        event = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=self.project.id,
+        )
+        group = event.group
         self.login_as(user=self.user)
 
         response = self.get_valid_response(sort_by="date", query="is:unresolved")
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group1.id)
+        assert response.data[0]["id"] == six.text_type(group.id)
 
     def test_feature_gate(self):
         # ensure there are two or more projects
@@ -115,14 +117,29 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert "Invalid format for numeric search" in response.data["detail"]
 
-    def test_simple_pagination(self):
+    def test_invalid_search_query(self):
         now = timezone.now()
-        group1 = self.create_group(project=self.project, last_seen=now - timedelta(seconds=2))
-        self.create_event(group=group1, datetime=now - timedelta(seconds=2))
-        group2 = self.create_group(project=self.project, last_seen=now - timedelta(seconds=1))
-        self.create_event(
-            stacktrace=[["foo.py"]], group=group2, datetime=now - timedelta(seconds=1)
+        self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
+        self.login_as(user=self.user)
+
+        response = self.get_response(sort_by="date", query="trace:123")
+        assert response.status_code == 400
+        assert (
+            "Invalid value for the trace condition. Value must be a hexadecimal UUID string."
+            in response.data["detail"]
         )
+
+    def test_simple_pagination(self):
+        event1 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        group1 = event1.group
+        event2 = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        group2 = event2.group
         self.login_as(user=self.user)
         response = self.get_valid_response(sort_by="date", limit=1)
         assert len(response.data) == 1
@@ -187,13 +204,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_auto_resolved(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
-        now = timezone.now()
-        group = self.create_group(checksum="a" * 32, last_seen=now - timedelta(days=1))
-        self.create_event(group=group, datetime=now - timedelta(days=1))
-        group2 = self.create_group(checksum="b" * 32, last_seen=now - timedelta(seconds=1))
-        self.create_event(
-            group=group2, datetime=now - timedelta(seconds=1), stacktrace=[["foo.py"]]
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project.id,
         )
+        event2 = self.store_event(
+            data={"event_id": "b" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=project.id,
+        )
+        group2 = event2.group
 
         self.login_as(user=self.user)
         response = self.get_valid_response()
@@ -327,53 +346,74 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403
 
     def test_lookup_by_first_release(self):
-        now = timezone.now()
         self.login_as(self.user)
         project = self.project
         project2 = self.create_project(name="baz", organization=project.organization)
         release = Release.objects.create(organization=project.organization, version="12345")
         release.add_project(project)
         release.add_project(project2)
-        group = self.create_group(checksum="a" * 32, project=project, first_release=release)
-        self.create_event(group=group, datetime=now - timedelta(seconds=1))
-        group2 = self.create_group(checksum="b" * 32, project=project2, first_release=release)
-        self.create_event(group=group2, datetime=now - timedelta(seconds=1))
+        event = self.store_event(
+            data={
+                "tags": {"sentry:release": release.version},
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "tags": {"sentry:release": release.version},
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
+            project_id=project2.id,
+        )
+
         with self.feature("organizations:global-views"):
             response = self.get_valid_response(**{"first-release": '"%s"' % release.version})
         issues = json.loads(response.content)
         assert len(issues) == 2
-        assert int(issues[0]["id"]) == group2.id
-        assert int(issues[1]["id"]) == group.id
+        assert int(issues[0]["id"]) == event2.group.id
+        assert int(issues[1]["id"]) == event.group.id
 
     def test_lookup_by_release(self):
         self.login_as(self.user)
         project = self.project
         release = Release.objects.create(organization=project.organization, version="12345")
         release.add_project(project)
-        self.create_event(
-            group=self.group, datetime=self.min_ago, tags={"sentry:release": release.version}
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "tags": {"sentry:release": release.version},
+            },
+            project_id=project.id,
         )
 
         response = self.get_valid_response(release=release.version)
         issues = json.loads(response.content)
         assert len(issues) == 1
-        assert int(issues[0]["id"]) == self.group.id
+        assert int(issues[0]["id"]) == event.group.id
 
     def test_pending_delete_pending_merge_excluded(self):
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.PENDING_DELETION)
-        self.create_event(group=group, datetime=self.min_ago, data={"checksum": "a" * 32})
-        group2 = self.create_group(checksum="b" * 32)
-        self.create_event(group=group2, datetime=self.min_ago, data={"checksum": "b" * 32})
-        group3 = self.create_group(checksum="c" * 32, status=GroupStatus.DELETION_IN_PROGRESS)
-        self.create_event(group=group3, datetime=self.min_ago, data={"checksum": "c" * 32})
-        group4 = self.create_group(checksum="d" * 32, status=GroupStatus.PENDING_MERGE)
-        self.create_event(group=group4, datetime=self.min_ago, data={"checksum": "d" * 32})
+        events = []
+        for i in "abcd":
+            events.append(
+                self.store_event(
+                    data={
+                        "event_id": i * 32,
+                        "fingerprint": [i],
+                        "timestamp": iso_format(self.min_ago),
+                    },
+                    project_id=self.project.id,
+                )
+            )
+        events[0].group.update(status=GroupStatus.PENDING_DELETION)
+        events[2].group.update(status=GroupStatus.DELETION_IN_PROGRESS)
+        events[3].group.update(status=GroupStatus.PENDING_MERGE)
 
         self.login_as(user=self.user)
 
         response = self.get_valid_response()
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group2.id)
+        assert response.data[0]["id"] == six.text_type(events[1].group.id)
 
     def test_filters_based_on_retention(self):
         self.login_as(user=self.user)
@@ -395,16 +435,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
     def test_date_range(self):
-        now = timezone.now()
         with self.options({"system.event-retention-days": 2}):
-            group = self.create_group(
-                last_seen=now - timedelta(hours=5),
-                # first_seen needs to be accurate because of `shrink_time_window`
-                first_seen=now - timedelta(hours=5),
-                project=self.project,
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(hours=5))}, project_id=self.project.id
             )
+            group = event.group
 
-            self.create_event(group=group, datetime=now - timedelta(hours=5))
             self.login_as(user=self.user)
 
             response = self.get_valid_response(statsPeriod="6h")
@@ -520,15 +556,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         for i in range(200):
-            group = self.create_group(
-                status=GroupStatus.UNRESOLVED,
-                project=self.project,
-                first_seen=self.min_ago - timedelta(seconds=i),
-            )
-            self.create_event(
-                group=group,
-                data={"checksum": six.binary_type(i)},
-                datetime=self.min_ago - timedelta(seconds=i),
+            self.store_event(
+                data={
+                    "fingerprint": [i],
+                    "timestamp": iso_format(self.min_ago - timedelta(seconds=i)),
+                },
+                project_id=self.project.id,
             )
 
         response = self.get_valid_response(query="is:unresolved", sort_by="date", method="get")
@@ -548,8 +581,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
-        group = self.create_group(status=GroupStatus.UNRESOLVED, first_seen=self.min_ago)
-        self.create_event(group=group, datetime=self.min_ago)
+        event = self.store_event(
+            data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
+        )
+        group = event.group
 
         OrganizationIntegration.objects.filter(
             integration_id=integration.id, organization_id=group.organization.id

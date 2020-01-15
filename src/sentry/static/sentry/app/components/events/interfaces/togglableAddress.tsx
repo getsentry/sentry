@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
@@ -58,12 +58,13 @@ class TogglableAddress extends React.Component<Props> {
       isInlineFrame,
     } = this.props;
     const relativeAddress = this.convertAbsoluteAddressToRelative();
+    const canBeConverted = !!(onToggle && relativeAddress);
 
     const formattedAddress = !relativeAddress || isAbsolute ? address : relativeAddress;
 
     return (
       <Address>
-        {onToggle && relativeAddress && (
+        {canBeConverted && (
           <Tooltip title={isAbsolute ? t('Absolute') : t('Relative')}>
             <Toggle className="icon-filter" onClick={onToggle} />
           </Tooltip>
@@ -76,6 +77,7 @@ class TogglableAddress extends React.Component<Props> {
           <AddressText
             isFoundByStackScanning={isFoundByStackScanning}
             isInlineFrame={isInlineFrame}
+            canBeConverted={canBeConverted}
           >
             {formattedAddress}
           </AddressText>
@@ -98,7 +100,7 @@ const Toggle = styled('span')`
   }
 `;
 
-const AddressText = styled('span')<Partial<Props>>`
+const AddressText = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
   border-bottom: ${p => {
     if (p.isFoundByStackScanning) {
       return `1px dashed ${p.theme.red}`;
@@ -108,6 +110,7 @@ const AddressText = styled('span')<Partial<Props>>`
       return 'none';
     }
   }};
+  padding-left: ${p => (p.canBeConverted ? null : '18px')};
 `;
 
 const Address = styled('span')`

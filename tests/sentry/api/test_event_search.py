@@ -5,6 +5,7 @@ import pytest
 import six
 import unittest
 from datetime import timedelta
+from semaphore.consts import SPAN_STATUS_CODE_TO_NAME
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -1006,6 +1007,45 @@ class GetSnubaQueryArgsTest(TestCase):
         assert filter.filter_keys == {"group_id": [1]}
         assert filter.group_ids == [1]
 
+    def test_environment_param(self):
+        params = {"environment": ["", "prod"]}
+        filter = get_filter("", params)
+        # Should generate OR conditions
+        assert filter.conditions == [
+            [["environment", "IS NULL", None], ["environment", "=", "prod"]]
+        ]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        params = {"environment": ["dev", "prod"]}
+        filter = get_filter("", params)
+        assert filter.conditions == [[["environment", "IN", {"dev", "prod"}]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+    def test_environment_condition_string(self):
+        filter = get_filter("environment:dev")
+        assert filter.conditions == [[["environment", "=", "dev"]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        filter = get_filter("!environment:dev")
+        assert filter.conditions == [[["environment", "!=", "dev"]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        filter = get_filter("environment:dev environment:prod")
+        # Will generate conditions that will never find anything
+        assert filter.conditions == [[["environment", "=", "dev"]], [["environment", "=", "prod"]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
+        filter = get_filter("environment: ")
+        # The '' environment is Null in snuba
+        assert filter.conditions == [[["environment", "IS NULL", None]]]
+        assert filter.filter_keys == {}
+        assert filter.group_ids == []
+
     def test_project_name(self):
         p1 = self.create_project(organization=self.organization)
         p2 = self.create_project(organization=self.organization)
@@ -1015,6 +1055,33 @@ class GetSnubaQueryArgsTest(TestCase):
         filter.conditions == [["project_id", "=", p1.id]]
         filter.filter_keys == {"project_id": [p1.id, p2.id]}
         filter.project_ids == [p1.id, p2.id]
+
+        params = {"project_id": []}
+        filter = get_filter("!project.name:{}".format(p1.slug), params)
+        filter.conditions == [["project_id", "!=", p1.id]]
+        filter.filter_keys == {}
+        filter.project_ids == []
+
+    def test_transaction_status(self):
+        for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
+            result = get_filter("transaction.status:{}".format(val))
+            assert result.conditions == [["transaction.status", "=", key]]
+
+    def test_transaction_status_no_wildcard(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("transaction.status:o*")
+        assert "Invalid value" in six.text_type(err)
+        assert "cancelled," in six.text_type(err)
+
+    def test_transaction_status_invalid(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("transaction.status:lol")
+        assert "Invalid value" in six.text_type(err)
+        assert "cancelled," in six.text_type(err)
+
+    def test_trace_id(self):
+        result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
+        assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
 
 
 class ResolveFieldListTest(unittest.TestCase):
@@ -1049,10 +1116,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
-            ["apdex(duration, 300)", "", "apdex"],
+            ["apdex(duration, 300)", None, "apdex"],
             [
                 "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
-                "",
+                None,
                 "impact",
             ],
             ["quantile(0.75)(duration)", None, "p75"],

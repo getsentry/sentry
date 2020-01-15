@@ -14,8 +14,6 @@ from sentry.utils.http import absolute_uri
 
 from .client import TeamworkClient
 
-ISSUES_URL = "https://github.com/getsentry/sentry-teamwork/issues"
-
 
 class TeamworkSettingsForm(forms.Form):
     url = forms.URLField(label=_("Teamwork URL"), help_text=("i.e. http://sentry.teamwork.com"))
@@ -64,11 +62,6 @@ class TeamworkPlugin(IssuePlugin):
     title = _("Teamwork")
     description = _("Create Teamwork Tasks.")
     slug = "teamwork"
-
-    resource_links = [
-        (_("Bug Tracker"), ISSUES_URL),
-        (_("Source"), "https://github.com/getsentry/sentry"),
-    ]
 
     conf_title = title
     conf_key = slug

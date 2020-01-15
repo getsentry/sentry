@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 import memoize from 'lodash/memoize';
 
@@ -205,10 +205,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
               label={eventType}
               menuWidth="220px"
               button={({isOpen, getActorProps}) => (
-                <StyledDropdownButton
-                  {...getActorProps({isStyled: true})}
-                  isOpen={isOpen}
-                >
+                <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
                   {eventType}
                 </StyledDropdownButton>
               )}
@@ -236,7 +233,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
 
         <Panel>
           <PanelHeader>
-            <TableLayout>
+            <TableLayout hasOrganization={app.status !== 'internal'}>
               <div>{t('Time')}</div>
               <div>{t('Status Code')}</div>
               {app.status !== 'internal' && <div>{t('Organization')}</div>}
@@ -250,11 +247,13 @@ export default class RequestLog extends AsyncComponent<Props, State> {
               {currentRequests.length > 0 ? (
                 currentRequests.map((request, idx) => (
                   <PanelItem key={idx}>
-                    <TableLayout>
+                    <TableLayout hasOrganization={app.status !== 'internal'}>
                       <TimestampLink date={request.date} link={request.errorUrl} />
                       <ResponseCode code={request.responseCode} />
-                      {app.status !== 'internal' && request.organization && (
-                        <div>{request.organization.name}</div>
+                      {app.status !== 'internal' && (
+                        <div>
+                          {request.organization ? request.organization.name : null}
+                        </div>
                       )}
                       <div>{request.eventType}</div>
                       <OverflowBox>{request.webhookUrl}</OverflowBox>
@@ -291,9 +290,9 @@ export default class RequestLog extends AsyncComponent<Props, State> {
   }
 }
 
-const TableLayout = styled('div')`
+const TableLayout = styled('div')<{hasOrganization: boolean}>`
   display: grid;
-  grid-template-columns: 1fr 0.5fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 0.5fr ${p => (p.hasOrganization ? '1fr' : '')} 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
@@ -335,9 +334,7 @@ const ErrorsOnlyCheckbox = styled('div')`
   align-items: center;
 `;
 
-const StyledDropdownButton = styled(
-  React.forwardRef((prop, ref) => <DropdownButton innerRef={ref} {...prop} />)
-)`
+const StyledDropdownButton = styled(DropdownButton)`
   z-index: ${p => p.theme.zIndex.header - 1};
   white-space: nowrap;
 

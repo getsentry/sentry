@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import re
+import uuid
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime
@@ -11,6 +12,7 @@ from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
+from semaphore.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
 from sentry.models import Project
@@ -539,18 +541,19 @@ def convert_search_filter_to_snuba_query(search_filter):
         # conditions added to env_conditions are OR'd
         env_conditions = []
 
-        _envs = set(value if isinstance(value, (list, tuple)) else [value])
+        values = set(value if isinstance(value, (list, tuple)) else [value])
         # the "no environment" environment is null in snuba
-        if "" in _envs:
-            _envs.remove("")
+        if "" in values:
+            values.remove("")
             operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
             env_conditions.append(["environment", operator, None])
-
-        if _envs:
-            env_conditions.append(["environment", "IN", _envs])
-
+        if len(values) == 1:
+            operator = "=" if search_filter.operator == "=" else "!="
+            env_conditions.append(["environment", operator, values.pop()])
+        elif values:
+            operator = "IN" if search_filter.operator == "=" else "NOT IN"
+            env_conditions.append(["environment", operator, values])
         return env_conditions
-
     elif name == "message":
         if search_filter.value.is_wildcard():
             # XXX: We don't want the '^$' values at the beginning and end of
@@ -573,13 +576,36 @@ def convert_search_filter_to_snuba_query(search_filter):
         like_value = raw_value.replace("%", "\\%").replace("_", "\\_").replace("*", "%")
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
+    elif name == "transaction.status":
+        internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
+        if internal_value is None:
+            raise InvalidSearchQuery(
+                "Invalid value for transaction.status condition. Accepted values are {}".format(
+                    ", ".join(SPAN_STATUS_NAME_TO_CODE.keys())
+                )
+            )
+        return [name, search_filter.operator, internal_value]
+    elif name == "trace":
+        if not search_filter.value.raw_value:
+            operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
+            return [name, operator, None]
+
+        try:
+            return [
+                name,
+                search_filter.operator,
+                six.text_type(uuid.UUID(search_filter.value.raw_value)),
+            ]
+        except Exception:
+            raise InvalidSearchQuery(
+                "Invalid value for the trace condition. Value must be a hexadecimal UUID string."
+            )
     else:
         value = (
             int(to_timestamp(value)) * 1000
             if isinstance(value, datetime) and name != "timestamp"
             else value
         )
-
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
@@ -634,14 +660,12 @@ def get_filter(query=None, params=None):
 
     kwargs = {"start": None, "end": None, "conditions": [], "project_ids": [], "group_ids": []}
 
-    projects = {}
-    has_project_term = any(
-        isinstance(term, SearchFilter) and term.key.name == PROJECT_KEY for term in parsed_terms
-    )
-    if has_project_term:
-        projects = {
+    def get_projects(params):
+        return {
             p["slug"]: p["id"]
-            for p in Project.objects.filter(id__in=params["project_id"]).values("id", "slug")
+            for p in Project.objects.filter(id__in=params.get("project_id", [])).values(
+                "id", "slug"
+            )
         }
 
     def to_list(value):
@@ -649,10 +673,13 @@ def get_filter(query=None, params=None):
             return value
         return [value]
 
+    projects = None
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
             if name == PROJECT_KEY:
+                if projects is None:
+                    projects = get_projects(params)
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
             elif name == "issue.id":
@@ -690,13 +717,13 @@ FIELD_ALIASES = {
     "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
     # Long term these will become more complex functions but these are
     # field aliases.
-    "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", "", "apdex"]]},
+    "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", None, "apdex"]]},
     "impact": {
         "result_type": "number",
         "aggregations": [
             [
                 "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
-                "",
+                None,
                 "impact",
             ]
         ],
@@ -712,6 +739,7 @@ VALID_AGGREGATES = {
     "min": {"snuba_name": "min", "fields": ["time", "timestamp", "transaction.duration"]},
     "max": {"snuba_name": "max", "fields": ["time", "timestamp", "transaction.duration"]},
     "avg": {"snuba_name": "avg", "fields": ["transaction.duration"]},
+    "sum": {"snuba_name": "sum", "fields": ["transaction.duration"]},
 }
 
 AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$")
@@ -723,6 +751,8 @@ def get_json_meta_type(field, snuba_type):
         return alias_definition.get("result_type")
     if "duration" in field:
         return "duration"
+    if field == "transaction.status":
+        return "string"
     return get_json_type(snuba_type)
 
 

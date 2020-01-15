@@ -1,10 +1,9 @@
 import groupBy from 'lodash/groupBy';
 import React from 'react';
 import moment from 'moment';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import {IncidentActivityType} from 'app/views/incidents/utils';
 import {User} from 'app/types';
 import {t} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
@@ -18,7 +17,7 @@ import space from 'app/styles/space';
 import ActivityPlaceholder from './activityPlaceholder';
 import DateDivider from './dateDivider';
 import StatusItem from './statusItem';
-import {Incident, ActivityType, NoteType} from '../../types';
+import {Incident, IncidentActivityType, ActivityType, NoteType} from '../../types';
 
 type Props = {
   api: Client;
@@ -149,7 +148,6 @@ class Activity extends React.Component<Props> {
                         <ErrorBoundary mini key={`note-${activity.id}`}>
                           <StatusItem
                             showTime
-                            incident={incident}
                             authorName={authorName}
                             activity={activity}
                           />

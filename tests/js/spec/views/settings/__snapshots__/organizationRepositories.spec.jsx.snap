@@ -8,6 +8,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
   />
   <AlertLink
     priority="warning"
+    size="normal"
     to="/settings/org-slug/integrations/"
   >
     Want to add a repository to start tracking commits? Install or configure your version control integration here.
@@ -16,20 +17,20 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
     <PanelHeader
       disablePadding={true}
     >
-      <Flex>
-        <Box
+      <Styled(div)>
+        <Styled(div)
           px={2}
         >
           Added Repositories
-        </Box>
-      </Flex>
+        </Styled(div)>
+      </Styled(div)>
     </PanelHeader>
     <PanelBody
       direction="column"
       disablePadding={true}
       flex={false}
     >
-      <Box>
+      <Styled(div)>
         <RepositoryRow
           api={
             Client {
@@ -54,7 +55,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
           }
           showProvider={true}
         />
-      </Box>
+      </Styled(div)>
     </PanelBody>
   </Panel>
 </div>
@@ -68,6 +69,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
   />
   <AlertLink
     priority="warning"
+    size="normal"
     to="/settings/org-slug/integrations/"
   >
     Want to add a repository to start tracking commits? Install or configure your version control integration here.
@@ -107,21 +109,21 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
   <Panel
     className="align-center p-x-2 p-y-1"
   >
-    <Box
+    <Styled(div)
       mb={1}
     >
       <HeroIcon
         size="72px"
         src="icon-commit"
       />
-    </Box>
+    </Styled(div)>
     <h3>
       Sentry is better with commit data
     </h3>
     <TextBlock>
       Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
     </TextBlock>
-    <Box
+    <Styled(div)
       mb={1}
     >
       <Button
@@ -131,7 +133,7 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
       >
         Learn more
       </Button>
-    </Box>
+    </Styled(div)>
   </Panel>
 </div>
 `;
@@ -144,6 +146,7 @@ exports[`OrganizationRepositories renders without providers 1`] = `
   />
   <AlertLink
     priority="warning"
+    size="normal"
     to="/settings/org-slug/integrations/"
   >
     Want to add a repository to start tracking commits? Install or configure your version control integration here.
@@ -183,21 +186,21 @@ exports[`OrganizationRepositories renders without providers 1`] = `
   <Panel
     className="align-center p-x-2 p-y-1"
   >
-    <Box
+    <Styled(div)
       mb={1}
     >
       <HeroIcon
         size="72px"
         src="icon-commit"
       />
-    </Box>
+    </Styled(div)>
     <h3>
       Sentry is better with commit data
     </h3>
     <TextBlock>
       Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
     </TextBlock>
-    <Box
+    <Styled(div)
       mb={1}
     >
       <Button
@@ -207,7 +210,7 @@ exports[`OrganizationRepositories renders without providers 1`] = `
       >
         Learn more
       </Button>
-    </Box>
+    </Styled(div)>
   </Panel>
 </div>
 `;

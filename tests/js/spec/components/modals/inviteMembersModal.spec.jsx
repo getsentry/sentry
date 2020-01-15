@@ -3,9 +3,12 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import InviteMembersModal from 'app/components/modals/inviteMembersModal';
+import TeamStore from 'app/stores/teamStore';
 
 describe('InviteMembersModal', function() {
-  const org = TestStubs.Organization({access: ['member:write']});
+  const team = TestStubs.Team();
+  const org = TestStubs.Organization({access: ['member:write'], teams: [team]});
+  TeamStore.loadInitialData([team]);
 
   const noWriteOrg = TestStubs.Organization({
     access: [],
@@ -262,6 +265,106 @@ describe('InviteMembersModal', function() {
     expect(
       wrapper.find('SelectControl EmailLabel InlineSvg[src="icon-warning-sm"]').exists()
     ).toBe(true);
+  });
+
+  it('can send initial email', async function() {
+    const createMemberMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/members/`,
+      method: 'POST',
+    });
+
+    const initialEmail = 'test@gmail.com';
+    const initialData = [{emails: new Set([initialEmail])}];
+
+    const wrapper = mountWithTheme(
+      <InviteMembersModal
+        Body={Modal.Body}
+        Header={Modal.Header}
+        Footer={Modal.Footer}
+        organization={org}
+        initialData={initialData}
+      />,
+      TestStubs.routerContext()
+    );
+
+    expect(
+      wrapper
+        .find('span[className="Select-value-label"]')
+        .first()
+        .text()
+        .includes(initialEmail)
+    ).toBe(true);
+
+    wrapper.find('FooterContent Button[priority="primary"]').simulate('click');
+    await tick();
+    wrapper.update();
+
+    expect(createMemberMock).toHaveBeenCalledWith(
+      `/organizations/${org.slug}/members/`,
+      expect.objectContaining({
+        data: {email: initialEmail, role: 'member', teams: []},
+      })
+    );
+
+    expect(wrapper.find('StatusMessage').text()).toBe('Sent 1 invite');
+  });
+
+  it('can send initial email with role and team', async function() {
+    const createMemberMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/members/`,
+      method: 'POST',
+    });
+
+    const initialEmail = 'test@gmail.com';
+    const role = 'admin';
+    const initialData = [
+      {emails: new Set([initialEmail]), role, teams: new Set([team.slug])},
+    ];
+
+    const wrapper = mountWithTheme(
+      <InviteMembersModal
+        Body={Modal.Body}
+        Header={Modal.Header}
+        Footer={Modal.Footer}
+        organization={org}
+        initialData={initialData}
+      />,
+      TestStubs.routerContext()
+    );
+
+    expect(
+      wrapper
+        .find('SelectControl[data-test-id="select-emails"]')
+        .text()
+        .includes(initialEmail)
+    ).toBe(true);
+
+    expect(
+      wrapper
+        .find('SelectControl[data-test-id="select-role"]')
+        .text()
+        .toLowerCase()
+    ).toBe(role);
+
+    expect(
+      wrapper
+        .find('SelectControl[data-test-id="select-teams"]')
+        .text()
+        .includes(team.slug)
+    ).toBe(true);
+
+    wrapper.find('FooterContent Button[priority="primary"]').simulate('click');
+    await tick();
+    wrapper.update();
+
+    expect(createMemberMock).toHaveBeenCalledWith(
+      `/organizations/${org.slug}/members/`,
+      expect.objectContaining({
+        data: {email: initialEmail, role, teams: [team.slug]},
+      })
+    );
+
+    expect(wrapper.find('StatusMessage').text()).toBe('Sent 1 invite');
   });
 
   describe('member invite request mode', function() {

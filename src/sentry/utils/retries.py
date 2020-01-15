@@ -8,8 +8,6 @@ import functools
 
 from django.utils.encoding import force_bytes
 
-from sentry.utils import metrics
-
 logger = logging.getLogger(__name__)
 
 
@@ -97,6 +95,8 @@ class TimedRetryPolicy(RetryPolicy):
                         self.clock.sleep(delay)
         finally:
             if self.metric_instance:
+                from sentry.utils import metrics
+
                 metrics.timing(
                     "timedretrypolicy.duration",
                     self.clock.time() - start,

@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
 import {User} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
-import Avatar from 'app/components/avatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Tooltip from 'app/components/tooltip';
 
@@ -98,7 +98,7 @@ const Circle = css`
   }
 `;
 
-const StyledAvatar = styled(Avatar)`
+const StyledAvatar = styled(UserAvatar)`
   overflow: hidden;
   ${Circle};
 `;

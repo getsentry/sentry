@@ -4,7 +4,15 @@ import {mount} from 'sentry-test/enzyme';
 import Login from 'app/views/auth/login';
 
 describe('Login', function() {
+  afterAll(function() {
+    MockApiClient.clearMockResponses();
+  });
+
   it('renders a loading indicator', function() {
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+    });
+
     const wrapper = mount(<Login />);
 
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);

@@ -1,7 +1,7 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
@@ -18,10 +18,10 @@ import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
+import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {PageContent} from 'app/styles/organization';
 
 import EventView from '../eventView';
 import {hasAggregateField, EventQuery, generateTitle} from '../utils';
@@ -32,6 +32,7 @@ import EventInterfaces from './eventInterfaces';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 import {SectionHeading} from '../styles';
+import OpsBreakdown from './transaction/opsBreakdown';
 
 const slugValidator = function(
   props: {[key: string]: any},
@@ -119,7 +120,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       eventKey: 'discover_v2.event_details',
       eventName: 'Discoverv2: Opened Event Details',
       event_type: event.type,
-      organization_id: organization.id,
+      organization_id: parseInt(organization.id, 10),
     });
 
     // Having an aggregate field means we want to show pagination/graphs
@@ -176,6 +177,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               organization={organization}
               projectId={this.projectId}
             />
+            <OpsBreakdown event={event} />
             {event.groupID && (
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}
@@ -190,9 +192,17 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const notFound = Object.values(this.state.errors).find(
       resp => resp && resp.status === 404
     );
+    const permissionDenied = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 403
+    );
 
     if (notFound) {
       return this.renderWrapper(<NotFound />);
+    }
+    if (permissionDenied) {
+      return this.renderWrapper(
+        <LoadingError message={t('You do not have permission to view that event.')} />
+      );
     }
 
     return this.renderWrapper(super.renderError(error, true, true));
@@ -297,18 +307,19 @@ const EventMetadata = (props: {
   );
 };
 
-const ContentBox = styled(PageContent)`
+const ContentBox = styled('div')`
+  padding: ${space(2)} ${space(4)};
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 1fr 30px;
     grid-template-columns: 65% auto;
     grid-column-gap: ${space(3)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 350px;
+    grid-template-columns: auto 325px;
   }
 `;
 
@@ -348,7 +359,7 @@ const StyledTitle = styled('span')`
 `;
 
 const MetaDataID = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 `;
 
 const MetadataContainer = styled('div')`

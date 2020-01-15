@@ -179,10 +179,12 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         organization = self.context["project"].organization
         request = self.context["request"]
-        has_relays = features.has("organizations:relay", organization, actor=request.user)
-        if not has_relays:
+        has_datascrubbers_v2 = features.has(
+            "organizations:datascrubbers-v2", organization, actor=request.user
+        )
+        if not has_datascrubbers_v2:
             raise serializers.ValidationError(
-                "Organization does not have the relay feature enabled"
+                "Organization does not have the datascrubbers-v2 feature enabled"
             )
         return value
 
@@ -269,6 +271,11 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
                 )
 
         return other_project_id
+
+    def validate_platform(self, value):
+        if Project.is_valid_platform(value):
+            return value
+        raise serializers.ValidationError("Invalid platform")
 
 
 class RelaxedProjectPermission(ProjectPermission):

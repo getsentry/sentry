@@ -99,6 +99,10 @@ def dumps(value, escape=False, **kwargs):
     return _default_encoder.encode(value)
 
 
+def load(fp, **kwargs):
+    return loads(fp.read())
+
+
 def loads(value, **kwargs):
     return _default_decoder.decode(value)
 

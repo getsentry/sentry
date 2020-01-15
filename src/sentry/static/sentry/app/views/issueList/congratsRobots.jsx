@@ -1,11 +1,11 @@
 import Lottie from 'react-lottie';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import background from 'app/../images/congrats-robots/background.png';
-import main from 'app/../images/congrats-robots/main.json';
+import background from 'app/../images/spot/congrats-background.png';
+import main from 'app/../images/spot/congrats-robot.json';
 
 const CongratsRobots = () => {
   return (

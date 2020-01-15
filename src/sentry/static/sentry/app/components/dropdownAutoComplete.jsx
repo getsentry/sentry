@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
 
@@ -29,7 +29,7 @@ class DropdownAutoComplete extends React.Component {
             //eslint-disable-next-line no-unused-vars
             onClick,
             ...actorProps
-          } = renderProps.getActorProps({isStyled: true});
+          } = renderProps.getActorProps();
 
           return (
             <Actor

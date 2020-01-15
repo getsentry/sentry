@@ -14,8 +14,13 @@ import {uniqueId} from 'app/utils/guid';
 import ConfigStore from 'app/stores/configStore';
 import withApi from 'app/utils/withApi';
 
-import {ActivityType, ActivityTypeDraft, NoteType} from '../../types';
-import {IncidentActivityType, IncidentStatus} from '../../utils';
+import {
+  ActivityType,
+  ActivityTypeDraft,
+  IncidentActivityType,
+  IncidentStatus,
+  NoteType,
+} from '../../types';
 import Activity from './activity';
 
 function makeDefaultErrorJson() {

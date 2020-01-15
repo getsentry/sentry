@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 import pytest
 import mock
 
-from sentry.auth.providers.saml2 import SAML2Provider, Attributes
+from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import AuthProvider

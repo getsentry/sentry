@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import CommitLink from 'app/components/commitLink';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
@@ -25,7 +25,7 @@ export default class ResolutionBox extends React.Component {
     const {orgId, statusDetails} = this.props;
     const actor = statusDetails.actor ? (
       <strong>
-        <Avatar user={statusDetails.actor} size={20} className="avatar" />
+        <UserAvatar user={statusDetails.actor} size={20} className="avatar" />
         <span style={{marginLeft: 5}}>{statusDetails.actor.name}</span>
       </strong>
     ) : null;

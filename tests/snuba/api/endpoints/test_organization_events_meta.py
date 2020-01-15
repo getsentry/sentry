@@ -16,10 +16,9 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         project2 = self.create_project()
-        group = self.create_group(project=project)
-        group2 = self.create_group(project=project2)
-        self.create_event(event_id="a" * 32, group=group, datetime=self.min_ago)
-        self.create_event(event_id="m" * 32, group=group2, datetime=self.min_ago)
+
+        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=project.id)
+        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=project2.id)
 
         url = reverse(
             "sentry-api-0-organization-events-meta",
@@ -34,12 +33,13 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        group = self.create_group(project=project)
-        self.create_event(
-            event_id="x" * 32, group=group, message="how to make fast", datetime=self.min_ago
+        self.store_event(
+            data={"timestamp": iso_format(self.min_ago), "message": "how to make fast"},
+            project_id=project.id,
         )
-        self.create_event(
-            event_id="m" * 32, group=group, message="Delet the Data", datetime=self.min_ago
+        self.store_event(
+            data={"timestamp": iso_format(self.min_ago), "message": "Delet the Data"},
+            project_id=project.id,
         )
 
         url = reverse(
@@ -50,6 +50,18 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
+
+    def test_invalid_query(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        url = reverse(
+            "sentry-api-0-organization-events-meta",
+            kwargs={"organization_slug": project.organization.slug},
+        )
+        response = self.client.get(url, {"query": "is:unresolved"}, format="json")
+
+        assert response.status_code == 400, response.content
 
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)

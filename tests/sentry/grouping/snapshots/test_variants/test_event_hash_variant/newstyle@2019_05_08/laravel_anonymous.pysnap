@@ -1,0 +1,64 @@
+---
+created: '2020-01-15T14:24:44.628338Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: 'a728cdf5d62c8e017c35c3fe04051b6e'
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              u'server.php'
+            context-line*
+              u"require_once __DIR__.'/public/index.php';"
+          frame (non app frame)
+            filename*
+              u'pipeline.php'
+            function (ignored anonymous function)
+              u'class@anonymous\x00/var/www/html/dummy.php0x7190ad3c35cf::run'
+            context-line*
+              u'return $callable($passable);'
+          frame (non app frame)
+            filename*
+              u'pipeline.php'
+            function*
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+            context-line*
+              u'? $pipe->{$this->method}(...$parameters)'
+        type*
+          u'Exception'
+        value (ignored because stacktrace takes precedence)
+          u'LARAVEL TEST'
+--------------------------------------------------------------------------
+system:
+  hash: '38f89a430b4a251a06a5a15b382638b5'
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              u'server.php'
+            context-line*
+              u"require_once __DIR__.'/public/index.php';"
+          frame*
+            filename*
+              u'pipeline.php'
+            function (ignored anonymous function)
+              u'class@anonymous\x00/var/www/html/dummy.php0x7190ad3c35cf::run'
+            context-line*
+              u'return $callable($passable);'
+          frame*
+            filename*
+              u'pipeline.php'
+            function*
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+            context-line*
+              u'? $pipe->{$this->method}(...$parameters)'
+        type*
+          u'Exception'
+        value (ignored because stacktrace takes precedence)
+          u'LARAVEL TEST'

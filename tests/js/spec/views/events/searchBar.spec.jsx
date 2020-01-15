@@ -57,7 +57,11 @@ describe('SearchBar', function() {
     });
     tagKeysMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
-      body: [{count: 3, key: 'gpu'}, {count: 3, key: 'mytag'}],
+      body: [
+        {count: 3, key: 'gpu'},
+        {count: 3, key: 'mytag'},
+        {count: 0, key: 'browser'},
+      ],
     });
   });
 
@@ -85,7 +89,7 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: [1, 2]}})
+      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
     );
 
     await tick();
@@ -116,7 +120,7 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: [1, 2]}})
+      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
     );
 
     await tick();
@@ -191,9 +195,59 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: [1, 2]}})
+      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
     );
     selectFirstAutocompleteItem(wrapper);
     expect(wrapper.find('input').prop('value')).toBe('!gpu:*"Nvidia 1080ti" ');
+  });
+
+  it('stops searching after no values are returned', async function() {
+    const emptyTagValuesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/browser/values/',
+      body: [],
+    });
+
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    await tick();
+
+    setQuery(wrapper, 'browser:Nothing');
+    await tick();
+    wrapper.update();
+
+    expect(emptyTagValuesMock).toHaveBeenCalledTimes(1);
+
+    setQuery(wrapper, 'browser:NothingE');
+    await tick();
+    wrapper.update();
+
+    expect(emptyTagValuesMock).toHaveBeenCalledTimes(1);
+
+    setQuery(wrapper, 'browser:NothingEls');
+    await tick();
+    wrapper.update();
+
+    expect(emptyTagValuesMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('continues searching after no values if query changes', async function() {
+    const emptyTagValuesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/browser/values/',
+      body: [],
+    });
+
+    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
+    await tick();
+
+    setQuery(wrapper, 'browser:Nothing');
+    await tick();
+    wrapper.update();
+
+    expect(emptyTagValuesMock).toHaveBeenCalledTimes(1);
+
+    setQuery(wrapper, 'browser:Something');
+    await tick();
+    wrapper.update();
+
+    expect(emptyTagValuesMock).toHaveBeenCalledTimes(2);
   });
 });

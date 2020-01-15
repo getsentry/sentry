@@ -29,7 +29,7 @@ export function fetchOrgMembers(api, orgId, projectIds = null) {
 export function indexMembersByProject(members) {
   return members.reduce((acc, member) => {
     for (const project of member.projects) {
-      if (acc[project] === undefined) {
+      if (!acc.hasOwnProperty(project)) {
         acc[project] = [];
       }
       acc[project].push(member.user);

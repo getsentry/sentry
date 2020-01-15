@@ -2,7 +2,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import React from 'react';
 import classNames from 'classnames';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {Client} from 'app/api';
@@ -11,6 +11,7 @@ import {
   IssueAlertRule,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleConditionTemplate,
+  UnsavedIssueAlertRule,
 } from 'app/types/alerts';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {
@@ -48,6 +49,15 @@ const FREQUENCY_CHOICES = [
 
 const ACTION_MATCH_CHOICES = [['all', t('all')], ['any', t('any')], ['none', t('none')]];
 
+const defaultRule: UnsavedIssueAlertRule = {
+  actionMatch: 'all',
+  actions: [],
+  conditions: [],
+  name: '',
+  frequency: 30,
+  environment: ALL_ENVIRONMENTS_KEY,
+};
+
 // TODO(ts): I can't get this to work if I'm specific -- should be: 'condition' | 'action';
 type ConditionOrAction = string;
 
@@ -60,7 +70,7 @@ type Props = {
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId: string}, {}>;
 
 type State = {
-  rule: IssueAlertRule | null;
+  rule: UnsavedIssueAlertRule | IssueAlertRule;
   loading: boolean;
   error: null | {
     [key: string]: string[];
@@ -68,9 +78,15 @@ type State = {
   environments: Environment[];
 };
 
+function isSavedAlertRule(
+  rule: UnsavedIssueAlertRule | IssueAlertRule
+): rule is IssueAlertRule {
+  return rule.hasOwnProperty('id');
+}
+
 class IssueRuleEditor extends React.Component<Props, State> {
   state: State = {
-    rule: null,
+    rule: {...defaultRule},
     loading: false,
     error: null,
     environments: [],
@@ -85,15 +101,6 @@ class IssueRuleEditor extends React.Component<Props, State> {
       api,
       params: {ruleId, projectId, orgId},
     } = this.props;
-
-    const defaultRule = {
-      actionMatch: 'all',
-      actions: [],
-      conditions: [],
-      name: '',
-      frequency: 30,
-      environment: ALL_ENVIRONMENTS_KEY,
-    };
 
     const promises = [
       api.requestPromise(`/projects/${orgId}/${projectId}/environments/`),
@@ -112,12 +119,11 @@ class IssueRuleEditor extends React.Component<Props, State> {
 
   handleSubmit = async () => {
     const {rule} = this.state;
-    const isNew = !rule || !rule.id;
+    const ruleId = isSavedAlertRule(rule) ? `${rule.id}/` : '';
+    const isNew = !ruleId;
     const {project, organization} = this.props;
 
-    const endpoint = `/projects/${organization.slug}/${project.slug}/rules/${
-      rule && rule.id ? `${rule.id}/` : ''
-    }`;
+    const endpoint = `/projects/${organization.slug}/${project.slug}/rules/${ruleId}`;
 
     if (rule && rule.environment === ALL_ENVIRONMENTS_KEY) {
       delete rule.environment;
@@ -160,7 +166,7 @@ class IssueRuleEditor extends React.Component<Props, State> {
     return error.hasOwnProperty(field);
   };
 
-  handleEnvironmentChange = val => {
+  handleEnvironmentChange = (val: string) => {
     // If 'All Environments' is selected the value should be null
     if (val === ALL_ENVIRONMENTS_KEY) {
       this.handleChange('environment', null);
@@ -246,7 +252,7 @@ class IssueRuleEditor extends React.Component<Props, State> {
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={projectId} />
         <StyledForm
-          key={rule ? rule.id : undefined}
+          key={isSavedAlertRule(rule) ? rule.id : undefined}
           onCancel={this.handleCancel}
           onSubmit={this.handleSubmit}
           initialData={rule as object}

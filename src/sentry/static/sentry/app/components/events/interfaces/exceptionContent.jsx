@@ -18,8 +18,8 @@ class ExceptionContent extends React.Component {
   };
 
   render() {
-    const {newestFirst, event, view: stackView} = this.props;
-    const children = this.props.values.map((exc, excIdx) => {
+    const {newestFirst, event, view: stackView, platform, values} = this.props;
+    const children = values.map((exc, excIdx) => {
       return (
         <div key={excIdx} className="exception">
           <h5 className="break-word" style={{marginBottom: 5}}>
@@ -44,7 +44,9 @@ class ExceptionContent extends React.Component {
                   ? exc.stacktrace
                   : exc.rawStacktrace || exc.stacktrace
               }
-              expandFirstFrame={excIdx === 0}
+              expandFirstFrame={
+                platform === 'csharp' ? excIdx === values.length - 1 : excIdx === 0
+              }
               includeSystemFrames={stackView === 'full'}
               platform={this.props.platform}
               newestFirst={newestFirst}

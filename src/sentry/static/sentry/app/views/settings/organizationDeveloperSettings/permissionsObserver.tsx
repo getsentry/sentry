@@ -38,7 +38,7 @@ export default class PermissionsObserver extends React.Component<Props, State> {
     appPublished: false,
   };
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     this.state = {
       permissions: this.scopeListToPermissionState(),
@@ -60,11 +60,11 @@ export default class PermissionsObserver extends React.Component<Props, State> {
     return toResourcePermissions(this.props.scopes);
   }
 
-  onPermissionChange = permissions => {
+  onPermissionChange = (permissions: Permissions) => {
     this.setState({permissions});
   };
 
-  onEventChange = events => {
+  onEventChange = (events: WebhookEvent[]) => {
     this.setState({events});
   };
 

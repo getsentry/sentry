@@ -40,7 +40,7 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
     key="issue"
   >
     <div
-      className="css-8xqq56-SubscriptionGridItemWrapper e139qogw2"
+      className="css-n6nhf8-SubscriptionGridItemWrapper e146sawj2"
     >
       <Tooltip
         containerDisplayMode="inline-block"
@@ -52,33 +52,28 @@ exports[`SubscriptionBox renders resource checkbox 1`] = `
           disabled={false}
         >
           <div
-            className="css-1dyjgup-SubscriptionGridItem e139qogw1"
+            className="css-1on6nze-SubscriptionGridItem e146sawj1"
             disabled={false}
           >
             <SubscriptionInfo>
-              <Base
-                className="css-1fcst0e-SubscriptionInfo e139qogw0"
+              <div
+                className="css-18zuqp6-SubscriptionInfo e146sawj0"
               >
-                <div
-                  className="css-1fcst0e-SubscriptionInfo e139qogw0"
-                  is={null}
-                >
-                  <SubscriptionTitle>
-                    <div
-                      className="css-bubf59-SubscriptionTitle e139qogw4"
-                    >
-                      issue
-                    </div>
-                  </SubscriptionTitle>
-                  <SubscriptionDescription>
-                    <div
-                      className="css-1ghu3z2-SubscriptionDescription e139qogw3"
-                    >
-                      created, resolved, assigned
-                    </div>
-                  </SubscriptionDescription>
-                </div>
-              </Base>
+                <SubscriptionTitle>
+                  <div
+                    className="css-19vstk7-SubscriptionTitle e146sawj4"
+                  >
+                    issue
+                  </div>
+                </SubscriptionTitle>
+                <SubscriptionDescription>
+                  <div
+                    className="css-z255vm-SubscriptionDescription e146sawj3"
+                  >
+                    created, resolved, assigned
+                  </div>
+                </SubscriptionDescription>
+              </div>
             </SubscriptionInfo>
             <Checkbox
               checked={false}

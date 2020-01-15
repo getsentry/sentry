@@ -10,7 +10,6 @@ exports[`MultiSelectField render() renders without form context 1`] = `
     <StyledSelectControl
       clearable={true}
       disabled={false}
-      height={36}
       id="id-fieldName"
       multiple={true}
       name="fieldName"

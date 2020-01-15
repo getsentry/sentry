@@ -3,56 +3,36 @@ from __future__ import absolute_import
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
-from sentry.api.event_search import get_filter, resolve_field_list, InvalidSearchQuery
-from sentry.snuba.discover import ReferenceEvent, create_reference_event_conditions
+from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.models.project import Project
-from sentry.snuba.dataset import Dataset
-from sentry.utils import snuba
+from sentry.snuba.discover import ReferenceEvent
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
-    def get_snuba_query_args(self, request, organization, params):
+    def get_snuba_filter(self, request, organization, params=None):
+        if params is None:
+            params = self.get_filter_params(request, organization)
         query = request.GET.get("query")
         try:
-            filter = get_filter(query, params)
+            return get_filter(query, params)
         except InvalidSearchQuery as exc:
             raise OrganizationEventsError(exc.message)
 
-        snuba_args = {
-            "start": filter.start,
-            "end": filter.end,
-            "conditions": filter.conditions,
-            "filter_keys": filter.filter_keys,
-        }
-
+    def get_orderby(self, request):
         sort = request.GET.getlist("sort")
         if sort:
-            snuba_args["orderby"] = sort
-
+            return sort
         # Deprecated. `sort` should be used as it is supported by
         # more endpoints.
         orderby = request.GET.getlist("orderby")
-        if orderby and "orderby" not in snuba_args:
-            snuba_args["orderby"] = orderby
+        if orderby:
+            return orderby
 
-        if request.GET.get("rollup"):
-            try:
-                snuba_args["rollup"] = int(request.GET.get("rollup"))
-            except ValueError:
-                raise OrganizationEventsError("rollup must be an integer.")
-
+    def reference_event(self, request, organization):
         fields = request.GET.getlist("field")[:]
-        if fields:
-            try:
-                snuba_args.update(resolve_field_list(fields, snuba_args))
-            except InvalidSearchQuery as exc:
-                raise OrganizationEventsError(exc.message)
-
         reference_event_id = request.GET.get("referenceEvent")
         if reference_event_id:
-            reference = ReferenceEvent(organization, reference_event_id, fields)
-            snuba_args["conditions"].extend(create_reference_event_conditions(reference))
-        return snuba_args
+            return ReferenceEvent(organization, reference_event_id, fields)
 
     def get_snuba_query_args_legacy(self, request, organization):
         params = self.get_filter_params(request, organization)
@@ -87,13 +67,5 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             "conditions": _filter.conditions,
             "filter_keys": _filter.filter_keys,
         }
-
-        # 'legacy' endpoints cannot access transactions dataset.
-        # as they often have assumptions about which columns are returned.
-        dataset = snuba.detect_dataset(snuba_args)
-        if dataset != Dataset.Events:
-            raise OrganizationEventsError(
-                "Invalid query. You cannot reference non-events data in this endpoint."
-            )
 
         return snuba_args

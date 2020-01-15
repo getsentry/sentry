@@ -164,6 +164,6 @@ class PagerDutyInstallationRedirect(PipelineView):
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()
 
-        account_name = getattr(request, "account", None)
+        account_name = request.GET.get("account", None)
 
         return self.redirect(self.get_app_url(account_name))

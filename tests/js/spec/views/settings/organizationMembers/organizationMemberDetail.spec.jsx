@@ -188,9 +188,9 @@ describe('OrganizationMemberDetail', function() {
           .first()
           .prop('disabled')
       ).toBe(true);
-      expect(
-        wrapper.find('Button[className="invite-member-submit"]').prop('disabled')
-      ).toBe(true);
+
+      // Save Member
+      expect(wrapper.find('Button[priority="primary"]').prop('disabled')).toBe(true);
     });
   });
 

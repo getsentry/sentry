@@ -44,6 +44,10 @@ describe('WidgetChart', function() {
     router.push.mockRestore();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
     });

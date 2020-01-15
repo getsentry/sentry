@@ -17,7 +17,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
-type Props = RouteComponentProps<{}, {}> & AsyncView['props'];
+type Props = RouteComponentProps<{}, {}>;
 type State = {
   appList: ApiApplication[];
 } & AsyncView['state'];

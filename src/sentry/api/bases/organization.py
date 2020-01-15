@@ -64,6 +64,10 @@ class OrganizationPermission(SentryPermission):
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
 
+class OrganizationAuditPermission(OrganizationPermission):
+    scope_map = {"GET": ["org:write"]}
+
+
 class OrganizationEventPermission(OrganizationPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],

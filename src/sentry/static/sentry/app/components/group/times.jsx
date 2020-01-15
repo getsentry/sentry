@@ -1,5 +1,6 @@
+import {css} from '@emotion/core';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
@@ -15,7 +16,11 @@ const Times = props => {
   const {lastSeen, firstSeen} = props;
   return (
     <Container>
-      <div css={overflowEllipsis}>
+      <div
+        css={css`
+          ${overflowEllipsis}
+        `}
+      >
         {lastSeen && (
           <React.Fragment>
             <GroupTimeIcon src="icon-clock-sm" />

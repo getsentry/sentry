@@ -1,6 +1,7 @@
 import React, {MouseEvent} from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {logout} from 'app/actionCreators/account';
 import {t, tct} from 'app/locale';
@@ -23,13 +24,15 @@ type InviteDetails = {
   ssoProvider?: string;
 };
 
+type Props = RouteComponentProps<{memberId: string; token: string}, {}>;
+
 type State = AsyncView['state'] & {
   inviteDetails: InviteDetails;
   accepting: boolean | undefined;
   acceptError: boolean | undefined;
 };
 
-class AcceptOrganizationInvite extends AsyncView<AsyncView['props'], State> {
+class AcceptOrganizationInvite extends AsyncView<Props, State> {
   getEndpoints(): [string, string][] {
     const {memberId, token} = this.props.params;
     return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import django
 import six
 
 from six import string_types
@@ -12,10 +11,6 @@ def cmp(a, b):
 
 
 class Bit(object):
-    """
-    Represents a single Bit.
-    """
-
     def __init__(self, number, is_set=True):
         self.number = number
         self.is_set = bool(is_set)
@@ -26,11 +21,6 @@ class Bit(object):
 
     def __repr__(self):
         return "<%s: number=%d, is_set=%s>" % (self.__class__.__name__, self.number, self.is_set)
-
-    # def __str__(self):
-    #     if self.is_set:
-    #         return 'Yes'
-    #     return 'No'
 
     def __int__(self):
         return self.mask
@@ -260,15 +250,14 @@ class BitHandler(object):
         return self._labels[flag]
 
 
-if django.VERSION[:2] >= (1, 8):
-    from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured
 
-    # We need to register adapters in Django 1.8 in order to prevent
-    # "ProgrammingError: can't adapt type"
-    try:
-        from django.db.backends.postgresql_psycopg2.base import Database
+# We need to register adapters in Django 1.8 in order to prevent
+# "ProgrammingError: can't adapt type"
+try:
+    from django.db.backends.postgresql_psycopg2.base import Database
 
-        Database.extensions.register_adapter(Bit, lambda x: Database.extensions.AsIs(int(x)))
-        Database.extensions.register_adapter(BitHandler, lambda x: Database.extensions.AsIs(int(x)))
-    except ImproperlyConfigured:
-        pass
+    Database.extensions.register_adapter(Bit, lambda x: Database.extensions.AsIs(int(x)))
+    Database.extensions.register_adapter(BitHandler, lambda x: Database.extensions.AsIs(int(x)))
+except ImproperlyConfigured:
+    pass

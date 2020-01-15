@@ -70,10 +70,10 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature("organizations:discover"):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading")
-            self.browser.find_element_by_xpath("//button//span[contains(text(), 'Run')]").click()
+            self.browser.click_when_visible('[aria-label="Run"]')
             self.browser.wait_until_not(".loading")
+            self.browser.wait_until_test_id("result")
             self.browser.snapshot("discover - query results")
-            self.browser.save_screenshot("discover1.png")
 
     def test_save_query_edit(self):
         with self.feature("organizations:discover"):

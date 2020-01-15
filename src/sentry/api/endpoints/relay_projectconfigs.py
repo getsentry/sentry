@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 import six
 from rest_framework.response import Response
 
@@ -10,8 +11,14 @@ from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
 from sentry.relay import config
+from sentry.relay import projectconfig_cache
 from sentry.models import Project, ProjectKey, Organization, OrganizationOption
 from sentry.utils import metrics, json
+
+logger = logging.getLogger(__name__)
+
+# We'll log project IDS if their config size is larger than this value
+PROJECT_CONFIG_SIZE_THRESHOLD = 10000
 
 
 class RelayProjectConfigsEndpoint(Endpoint):
@@ -69,7 +76,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         configs = {}
         for project_id in project_ids:
-            configs[six.text_type(project_id)] = None
+            configs[six.text_type(project_id)] = {"disabled": True}
 
             project = projects.get(int(project_id))
             if project is None:
@@ -95,6 +102,18 @@ class RelayProjectConfigsEndpoint(Endpoint):
                     )
 
             configs[six.text_type(project_id)] = serialized_config = project_config.to_dict()
-            metrics.timing("relay_project_configs.config_size", len(json.dumps(serialized_config)))
+
+            config_size = len(json.dumps(serialized_config))
+            metrics.timing("relay_project_configs.config_size", config_size)
+
+            # Log if we see huge project configs
+            if config_size >= PROJECT_CONFIG_SIZE_THRESHOLD:
+                logger.info(
+                    "relay.project_config.huge_config",
+                    extra={"project_id": project_id, "size": config_size},
+                )
+
+        if full_config_requested:
+            projectconfig_cache.set_many(configs)
 
         return Response({"configs": configs}, status=200)

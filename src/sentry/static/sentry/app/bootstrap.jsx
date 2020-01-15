@@ -32,7 +32,7 @@ if (window.__initialData) {
 // SDK INIT  --------------------------------------------------------
 const config = ConfigStore.getConfig();
 // Only enable self-tracing when isApmDataSamplingEnabled is true
-const tracesSampleRate = config && config.isApmDataSamplingEnabled ? 1 : 0;
+const tracesSampleRate = config ? config.apmSampling : 0;
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
   integrations: [

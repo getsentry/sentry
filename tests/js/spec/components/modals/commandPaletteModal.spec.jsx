@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {openCommandPalette} from 'app/actionCreators/modal';
 import App from 'app/views/app';
 import FormSearchStore from 'app/stores/formSearchStore';
@@ -38,6 +38,14 @@ describe('Command Palette Modal', function() {
       query: 'foo',
       body: TestStubs.Members(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/?plugins=_all',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: [],
+    });
 
     MockApiClient.addMockResponse({
       url: '/internal/health/',
@@ -52,7 +60,7 @@ describe('Command Palette Modal', function() {
   });
 
   it('can open command palette modal and search', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>,
       TestStubs.routerContext([
         {

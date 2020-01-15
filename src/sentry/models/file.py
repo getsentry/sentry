@@ -542,6 +542,10 @@ class ChunkedFileBlobIndexWrapper(object):
 
         if pos < 0:
             raise IOError("Invalid argument")
+        if pos == 0 and not self._indexes:
+            # Empty file, there's no seeking to be done.
+            return
+
         for n, idx in enumerate(self._indexes[::-1]):
             if idx.offset <= pos:
                 if idx != self._curidx:

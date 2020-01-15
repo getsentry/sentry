@@ -133,6 +133,35 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 1}],
         ]
 
+    def test_discover2_backwards_compatibility(self):
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "user_count",
+                },
+                format="json",
+            )
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) > 0
+
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "event_count",
+                },
+                format="json",
+            )
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) > 0
+
     def test_with_event_count_flag(self):
         response = self.client.get(
             self.url,

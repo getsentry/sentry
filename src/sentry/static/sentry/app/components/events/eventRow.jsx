@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 import EventStore from 'app/stores/eventStore';
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import TimeSince from 'app/components/timeSince';
 
 class EventRow extends React.Component {
@@ -27,7 +27,7 @@ class EventRow extends React.Component {
     }
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(_nextProps, _nextState) {
     return false;
   }
 
@@ -61,7 +61,7 @@ class EventRow extends React.Component {
         <td className="event-user table-user-info">
           {event.user ? (
             <div>
-              <Avatar user={event.user} size={64} className="avatar" />
+              <UserAvatar user={event.user} size={64} className="avatar" />
               {event.user.email}
             </div>
           ) : (

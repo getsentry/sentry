@@ -1,4 +1,4 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 const LoadingMask = styled('div')`
   background-color: ${p => p.theme.offWhite};

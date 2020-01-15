@@ -1,5 +1,6 @@
 import React from 'react';
-import styled from 'react-emotion';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 import get from 'lodash/get';
 
 import {t, tct} from 'app/locale';
@@ -9,23 +10,23 @@ import Field from 'app/views/settings/components/forms/field';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
-import Avatar from 'app/components/avatar';
+import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
 import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import {
   LightWeightOrganization,
-  OrganizationDetailed,
+  Organization,
   SentryApp,
   SentryAppInstallation,
 } from 'app/types';
 
-type Props = AsyncView['props'];
+type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
 type State = AsyncView['state'] & {
   selectedOrgSlug: string | null;
-  organization: OrganizationDetailed | null;
+  organization: Organization | null;
   organizations: LightWeightOrganization[];
   reloading: boolean;
   sentryApp: SentryApp;
@@ -118,7 +119,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
 
     try {
       const [organization, installations]: [
-        OrganizationDetailed,
+        Organization,
         SentryAppInstallation[]
       ] = await Promise.all([
         this.api.requestPromise(`/organizations/${orgSlug}/`),
@@ -147,7 +148,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     return this.state.organizations.map(org => [
       org.slug,
       <div key={org.slug}>
-        <Avatar organization={org} />
+        <OrganizationAvatar organization={org} />
         <OrgNameHolder>{org.slug}</OrgNameHolder>
       </div>,
     ]);

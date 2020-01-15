@@ -5,6 +5,8 @@ from sentry import nodestore
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
 
+from .models import Event
+
 
 class Filter(object):
     """
@@ -58,6 +60,7 @@ class EventStorage(Service):
     __all__ = (
         "minimal_columns",
         "full_columns",
+        "create_event",
         "get_event_by_id",
         "get_events",
         "get_prev_event_id",
@@ -169,6 +172,14 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
+    def create_event(self, project_id=None, event_id=None, group_id=None, message=None, data=None):
+        """
+        Returns an Event from processed data
+        """
+        return Event(
+            project_id=project_id, event_id=event_id, group_id=group_id, message=message, data=data
+        )
+
     def bind_nodes(self, object_list, node_name="data"):
         """
         For a list of Event objects, and a property name where we might find an
@@ -179,8 +190,12 @@ class EventStorage(Service):
         For binding a single Event object (most use cases), it's easier to use
         event.bind_node_data().
         """
+        # Temporarily make bind_nodes noop to prevent unnecessary additional calls
+        # to nodestore by the event serializer.
+        unfetched_object_list = [i for i in object_list if not getattr(i, node_name)._node_data]
+
         object_node_list = [
-            (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
+            (i, getattr(i, node_name)) for i in unfetched_object_list if getattr(i, node_name).id
         ]
 
         node_ids = [n.id for _, n in object_node_list]

@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import get from 'lodash/get';
@@ -12,10 +12,17 @@ import {
   boundsGenerator,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  getSpanID,
+  getSpanOperation,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import * as CursorGuideHandler from './cursorGuideHandler';
-import {ParsedTraceType, TickAlignment, SpanType, SpanChildrenLookupType} from './types';
+import {
+  ParsedTraceType,
+  TickAlignment,
+  SpanChildrenLookupType,
+  RawSpanType,
+} from './types';
 import {zIndex} from './styles';
 
 export const MINIMAP_CONTAINER_HEIGHT = 106;
@@ -334,7 +341,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
       viewEnd: 1,
     });
 
-    const rootSpan: SpanType = {
+    const rootSpan: RawSpanType = {
       trace_id: trace.traceID,
       span_id: trace.rootSpanID,
       start_timestamp: trace.traceStartTimestamp,
@@ -395,12 +402,12 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
     spanNumber: number;
     childSpans: Readonly<SpanChildrenLookupType>;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-    span: Readonly<SpanType>;
+    span: Readonly<RawSpanType>;
   }): {
     spanTree: JSX.Element;
     nextSpanNumber: number;
   } => {
-    const spanBarColour: string = pickSpanBarColour(span.op);
+    const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
@@ -409,7 +416,7 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
 
     const {left: spanLeft, width: spanWidth} = this.getBounds(bounds);
 
-    const spanChildren: Array<SpanType> = get(childSpans, span.span_id, []);
+    const spanChildren: Array<RawSpanType> = get(childSpans, getSpanID(span), []);
 
     type AccType = {
       nextSpanNumber: number;
@@ -417,8 +424,8 @@ class ActualMinimap extends React.PureComponent<{trace: ParsedTraceType}> {
     };
 
     const reduced: AccType = spanChildren.reduce(
-      (acc: AccType, spanChild) => {
-        const key = `${spanChild.span_id}`;
+      (acc: AccType, spanChild, index: number) => {
+        const key = `${getSpanID(spanChild, String(index))}`;
 
         const results = this.renderSpan({
           spanNumber: acc.nextSpanNumber,

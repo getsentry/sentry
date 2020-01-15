@@ -4,7 +4,9 @@ import pytz
 import logging
 from datetime import datetime
 
-from sentry.models import Event, EventDict
+from sentry import options
+from sentry.eventstore.models import Event
+from sentry.models import EventDict, Event as DjangoEvent
 from sentry.utils import json, metrics
 
 
@@ -33,8 +35,8 @@ def basic_protocol_handler(unsupported_operations):
         # Rust (re)normalization here again would be too slow.
         event_data["data"] = EventDict(event_data["data"], skip_renormalization=True)
 
-        kwargs = {
-            "event": Event(
+        if options.get("eventstream.use-django-event"):
+            event = DjangoEvent(
                 **{
                     name: event_data[name]
                     for name in [
@@ -47,9 +49,16 @@ def basic_protocol_handler(unsupported_operations):
                         "data",
                     ]
                 }
-            ),
-            "primary_hash": event_data["primary_hash"],
-        }
+            )
+        else:
+            event = Event(
+                event_id=event_data["event_id"],
+                group_id=event_data["group_id"],
+                project_id=event_data["project_id"],
+            )
+            event.data.bind_data(event_data["data"])
+
+        kwargs = {"event": event, "primary_hash": event_data["primary_hash"]}
 
         for name in ("is_new", "is_regression", "is_new_group_environment"):
             kwargs[name] = task_state[name]

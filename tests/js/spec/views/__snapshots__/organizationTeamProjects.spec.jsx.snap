@@ -53,16 +53,16 @@ exports[`OrganizationTeamProjects Should render 1`] = `
 >
   <Panel>
     <Component
-      className="css-10qfvek-Panel e119nu470"
+      className="css-15hwgrz-Panel e119nu470"
     >
       <div
-        className="css-10qfvek-Panel e119nu470"
+        className="css-15hwgrz-Panel e119nu470"
       >
         <PanelHeader
           hasButtons={true}
         >
           <div
-            className="css-113w9ek-PanelHeader-getPadding en8g1d30"
+            className="css-yhsu7n-PanelHeader en8g1d30"
           >
             <div>
               Projects
@@ -80,16 +80,16 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                 items={
                   Array [
                     Object {
-                      "label": <ProjectListElement>
+                      "label": <ForwardRef(render)>
                         project-slug
-                      </ProjectListElement>,
+                      </ForwardRef(render)>,
                       "searchKey": "project-slug",
                       "value": "2",
                     },
                     Object {
-                      "label": <ProjectListElement>
+                      "label": <ForwardRef(render)>
                         project-slug-2
-                      </ProjectListElement>,
+                      </ForwardRef(render)>,
                       "searchKey": "project-slug-2",
                       "value": "3",
                     },
@@ -105,16 +105,16 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   items={
                     Array [
                       Object {
-                        "label": <ProjectListElement>
+                        "label": <ForwardRef(render)>
                           project-slug
-                        </ProjectListElement>,
+                        </ForwardRef(render)>,
                         "searchKey": "project-slug",
                         "value": "2",
                       },
                       Object {
-                        "label": <ProjectListElement>
+                        "label": <ForwardRef(render)>
                           project-slug-2
-                        </ProjectListElement>,
+                        </ForwardRef(render)>,
                         "searchKey": "project-slug-2",
                         "value": "3",
                       },
@@ -143,13 +143,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     >
                       <AutoCompleteRoot>
                         <Component
-                          className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+                          className="css-j1qymt-AutoCompleteRoot ejumqxq0"
                         >
                           <div
-                            className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+                            className="css-j1qymt-AutoCompleteRoot ejumqxq0"
                           >
                             <Actor
-                              innerRef={[Function]}
                               isOpen={false}
                               onClick={[Function]}
                               onKeyDown={[Function]}
@@ -164,7 +163,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               tabIndex="0"
                             >
                               <div
-                                className="css-12n6mek-Actor e53us8t0"
+                                className="css-1vv9ctx-Actor e53us8t0"
                                 onClick={[Function]}
                                 onKeyDown={[Function]}
                                 onMouseEnter={[Function]}
@@ -188,24 +187,22 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     type="button"
                                   >
                                     <ForwardRef
-                                      className="css-a2adl3-StyledButton e1yghndz1"
+                                      className="css-1k1xa0j-StyledButton e1yghndz1"
                                       isOpen={false}
                                       size="xsmall"
                                       type="button"
                                     >
                                       <Button
                                         align="center"
-                                        className="css-a2adl3-StyledButton e1yghndz1"
+                                        className="css-1k1xa0j-StyledButton e1yghndz1"
                                         disabled={false}
-                                        innerRef={null}
                                         size="xsmall"
                                         type="button"
                                       >
                                         <StyledButton
                                           aria-disabled={false}
-                                          className="css-a2adl3-StyledButton e1yghndz1"
+                                          className="css-1k1xa0j-StyledButton e1yghndz1"
                                           disabled={false}
-                                          innerRef={null}
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
@@ -213,7 +210,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         >
                                           <ForwardRef
                                             aria-disabled={false}
-                                            className="e1yghndz1 css-rfaawb-StyledButton-getColors-StyledButton edwq9my0"
+                                            className="e1yghndz1 css-ssbzqs-StyledButton-StyledButton edwq9my0"
                                             disabled={false}
                                             onClick={[Function]}
                                             role="button"
@@ -222,7 +219,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           >
                                             <button
                                               aria-disabled={false}
-                                              className="e1yghndz1 css-rfaawb-StyledButton-getColors-StyledButton edwq9my0"
+                                              className="e1yghndz1 css-ssbzqs-StyledButton-StyledButton edwq9my0"
                                               onClick={[Function]}
                                               role="button"
                                               size="xsmall"
@@ -234,27 +231,27 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                               >
                                                 <Component
                                                   align="center"
-                                                  className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                  className="css-cmi7y3-ButtonLabel edwq9my1"
                                                   size="xsmall"
                                                 >
                                                   <span
-                                                    className="css-1bqncjo-ButtonLabel edwq9my1"
+                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
                                                   >
                                                     Add Project
                                                     <StyledChevronDown>
                                                       <Component
-                                                        className="css-17v3tc-StyledChevronDown e1yghndz0"
+                                                        className="css-1jdzfs8-StyledChevronDown e1yghndz0"
                                                       >
                                                         <InlineSvg
-                                                          className="css-17v3tc-StyledChevronDown e1yghndz0"
+                                                          className="css-1jdzfs8-StyledChevronDown e1yghndz0"
                                                           src="icon-chevron-down"
                                                         >
                                                           <ForwardRef
-                                                            className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
+                                                            className="e1yghndz0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
                                                             src="icon-chevron-down"
                                                           >
                                                             <svg
-                                                              className="e1yghndz0 css-ft01vp-InlineSvg-StyledChevronDown enyz4ql0"
+                                                              className="e1yghndz0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
                                                               height="1em"
                                                               viewBox={Object {}}
                                                               width="1em"
@@ -295,20 +292,28 @@ exports[`OrganizationTeamProjects Should render 1`] = `
           disablePadding={true}
           flex={false}
         >
-          <div
-            className="css-a4ya23-textStyles"
+          <EmotionCssPropInternal
+            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="PanelBody"
+            __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
+            css={
+              Object {
+                "map": undefined,
+                "name": "b1rh9y-PanelBody",
+                "next": undefined,
+                "styles": "h1,h2,h3,h4,h5,h6,p,ul,ol,table,dl,blockquote,form,pre,.auto-select-text,.section,[class^='highlight-']{margin-bottom:20px;&:last-child{margin-bottom:0;}}h1,h2,h3,h4,h5,h6{line-height:1.2;}p,ul,ol,blockquote{line-height:1.5;}h1{font-size:2em;}h2{font-size:1.75em;}h3{font-size:1.5em;}h4{font-size:1.25em;}h5{font-size:1em;}pre{word-break:break-all;white-space:pre-wrap;};;label:PanelBody;",
+                "toString": [Function],
+              }
+            }
           >
-            <StyledPanelItem
-              key="2"
-              p={2}
+            <div
+              className="css-b1rh9y-PanelBody"
             >
-              <Base
-                className="css-1usthj3-PanelItem-StyledPanelItem eqsa6vb1"
+              <StyledPanelItem
+                key="2"
                 p={2}
               >
                 <div
-                  className="css-1usthj3-PanelItem-StyledPanelItem eqsa6vb1"
-                  is={null}
+                  className="css-1les87u-PanelItem-StyledPanelItem eqsa6vb1"
                 >
                   <ProjectItem
                     organization={
@@ -358,7 +363,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       key="2"
                     >
                       <div
-                        className="css-9ku3o0-Container enngb6z0"
+                        className="css-vtga8x-Container enngb6z0"
                       >
                         <BookmarkLink
                           isBookmarked={false}
@@ -407,7 +412,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           }
                         >
                           <withApi(BookmarkStar)
-                            className="css-10z01iz-BookmarkLink enngb6z1"
+                            className="css-1qavcxg-BookmarkLink enngb6z1"
                             isBookmarked={false}
                             onToggle={[Function]}
                             organization={
@@ -463,7 +468,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   "hasProjectBeenRenamed": [Function],
                                 }
                               }
-                              className="css-10z01iz-BookmarkLink enngb6z1"
+                              className="css-1qavcxg-BookmarkLink enngb6z1"
                               isBookmarked={false}
                               onToggle={[Function]}
                               organization={
@@ -510,19 +515,19 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               }
                             >
                               <Star
-                                className="css-10z01iz-BookmarkLink enngb6z1"
+                                className="css-1qavcxg-BookmarkLink enngb6z1"
                                 isBookmarked={false}
                                 onClick={[Function]}
                                 src="icon-star-small-filled"
                               >
                                 <ForwardRef
-                                  className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
+                                  className="enngb6z1 css-lulb5m-InlineSvg-Star-BookmarkLink ez1a7zv0"
                                   isBookmarked={false}
                                   onClick={[Function]}
                                   src="icon-star-small-filled"
                                 >
                                   <svg
-                                    className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
+                                    className="enngb6z1 css-lulb5m-InlineSvg-Star-BookmarkLink ez1a7zv0"
                                     height="1em"
                                     onClick={[Function]}
                                     viewBox={Object {}}
@@ -603,7 +608,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       >
                         <ForwardRef
                           aria-disabled={false}
-                          className="css-z6hjis-StyledButton-getColors edwq9my0"
+                          className="css-12ogwys-StyledButton edwq9my0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -611,7 +616,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <button
                             aria-disabled={false}
-                            className="css-z6hjis-StyledButton-getColors edwq9my0"
+                            className="css-12ogwys-StyledButton edwq9my0"
                             onClick={[Function]}
                             role="button"
                             size="small"
@@ -622,26 +627,26 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             >
                               <Component
                                 align="center"
-                                className="css-1h693nz-ButtonLabel edwq9my1"
+                                className="css-19gcr2f-ButtonLabel edwq9my1"
                                 size="small"
                               >
                                 <span
-                                  className="css-1h693nz-ButtonLabel edwq9my1"
+                                  className="css-19gcr2f-ButtonLabel edwq9my1"
                                 >
                                   <RemoveIcon>
                                     <Component
-                                      className="css-1e2j5j0-RemoveIcon eqsa6vb0"
+                                      className="css-1d2szfl-RemoveIcon eqsa6vb0"
                                     >
                                       <InlineSvg
-                                        className="css-1e2j5j0-RemoveIcon eqsa6vb0"
+                                        className="css-1d2szfl-RemoveIcon eqsa6vb0"
                                         src="icon-circle-subtract"
                                       >
                                         <ForwardRef
-                                          className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
+                                          className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
                                           src="icon-circle-subtract"
                                         >
                                           <svg
-                                            className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
+                                            className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
                                             height="1em"
                                             viewBox={Object {}}
                                             width="1em"
@@ -666,19 +671,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     </Button>
                   </Tooltip>
                 </div>
-              </Base>
-            </StyledPanelItem>
-            <StyledPanelItem
-              key="3"
-              p={2}
-            >
-              <Base
-                className="css-1usthj3-PanelItem-StyledPanelItem eqsa6vb1"
+              </StyledPanelItem>
+              <StyledPanelItem
+                key="3"
                 p={2}
               >
                 <div
-                  className="css-1usthj3-PanelItem-StyledPanelItem eqsa6vb1"
-                  is={null}
+                  className="css-1les87u-PanelItem-StyledPanelItem eqsa6vb1"
                 >
                   <ProjectItem
                     organization={
@@ -726,7 +725,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       key="3"
                     >
                       <div
-                        className="css-9ku3o0-Container enngb6z0"
+                        className="css-vtga8x-Container enngb6z0"
                       >
                         <BookmarkLink
                           isBookmarked={false}
@@ -773,7 +772,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           }
                         >
                           <withApi(BookmarkStar)
-                            className="css-10z01iz-BookmarkLink enngb6z1"
+                            className="css-1qavcxg-BookmarkLink enngb6z1"
                             isBookmarked={false}
                             onToggle={[Function]}
                             organization={
@@ -827,7 +826,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   "hasProjectBeenRenamed": [Function],
                                 }
                               }
-                              className="css-10z01iz-BookmarkLink enngb6z1"
+                              className="css-1qavcxg-BookmarkLink enngb6z1"
                               isBookmarked={false}
                               onToggle={[Function]}
                               organization={
@@ -872,19 +871,19 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               }
                             >
                               <Star
-                                className="css-10z01iz-BookmarkLink enngb6z1"
+                                className="css-1qavcxg-BookmarkLink enngb6z1"
                                 isBookmarked={false}
                                 onClick={[Function]}
                                 src="icon-star-small-filled"
                               >
                                 <ForwardRef
-                                  className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
+                                  className="enngb6z1 css-lulb5m-InlineSvg-Star-BookmarkLink ez1a7zv0"
                                   isBookmarked={false}
                                   onClick={[Function]}
                                   src="icon-star-small-filled"
                                 >
                                   <svg
-                                    className="enngb6z1 css-judnc9-InlineSvg-Star-BookmarkLink e5ekdrk0"
+                                    className="enngb6z1 css-lulb5m-InlineSvg-Star-BookmarkLink ez1a7zv0"
                                     height="1em"
                                     onClick={[Function]}
                                     viewBox={Object {}}
@@ -963,7 +962,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                       >
                         <ForwardRef
                           aria-disabled={false}
-                          className="css-z6hjis-StyledButton-getColors edwq9my0"
+                          className="css-12ogwys-StyledButton edwq9my0"
                           disabled={false}
                           onClick={[Function]}
                           role="button"
@@ -971,7 +970,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <button
                             aria-disabled={false}
-                            className="css-z6hjis-StyledButton-getColors edwq9my0"
+                            className="css-12ogwys-StyledButton edwq9my0"
                             onClick={[Function]}
                             role="button"
                             size="small"
@@ -982,26 +981,26 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                             >
                               <Component
                                 align="center"
-                                className="css-1h693nz-ButtonLabel edwq9my1"
+                                className="css-19gcr2f-ButtonLabel edwq9my1"
                                 size="small"
                               >
                                 <span
-                                  className="css-1h693nz-ButtonLabel edwq9my1"
+                                  className="css-19gcr2f-ButtonLabel edwq9my1"
                                 >
                                   <RemoveIcon>
                                     <Component
-                                      className="css-1e2j5j0-RemoveIcon eqsa6vb0"
+                                      className="css-1d2szfl-RemoveIcon eqsa6vb0"
                                     >
                                       <InlineSvg
-                                        className="css-1e2j5j0-RemoveIcon eqsa6vb0"
+                                        className="css-1d2szfl-RemoveIcon eqsa6vb0"
                                         src="icon-circle-subtract"
                                       >
                                         <ForwardRef
-                                          className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
+                                          className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
                                           src="icon-circle-subtract"
                                         >
                                           <svg
-                                            className="eqsa6vb0 css-wkk3z5-InlineSvg-RemoveIcon enyz4ql0"
+                                            className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
                                             height="1em"
                                             viewBox={Object {}}
                                             width="1em"
@@ -1026,14 +1025,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                     </Button>
                   </Tooltip>
                 </div>
-              </Base>
-            </StyledPanelItem>
-          </div>
+              </StyledPanelItem>
+            </div>
+          </EmotionCssPropInternal>
         </PanelBody>
       </div>
     </Component>
   </Panel>
-  <Pagination
+  <Styled(Pagination)
     api={
       Client {
         "_chain": [Function],
@@ -1043,7 +1042,6 @@ exports[`OrganizationTeamProjects Should render 1`] = `
         "hasProjectBeenRenamed": [Function],
       }
     }
-    className="css-1yt0wm7-streamCss"
     location={
       Object {
         "query": Object {},
@@ -1084,6 +1082,59 @@ exports[`OrganizationTeamProjects Should render 1`] = `
         "teamId": "team-slug",
       }
     }
-  />
+  >
+    <Pagination
+      api={
+        Client {
+          "_chain": [Function],
+          "_wrapRequest": [Function],
+          "bulkUpdate": [Function],
+          "handleRequestError": [Function],
+          "hasProjectBeenRenamed": [Function],
+        }
+      }
+      className="css-yneqnx e1vkspke0"
+      location={
+        Object {
+          "query": Object {},
+        }
+      }
+      onCursor={[Function]}
+      organization={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "org:integrations",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [],
+          "id": "3",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "scrapeJavaScript": true,
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
+      params={
+        Object {
+          "orgId": "org-slug",
+          "teamId": "team-slug",
+        }
+      }
+    />
+  </Styled(Pagination)>
 </TeamProjects>
 `;

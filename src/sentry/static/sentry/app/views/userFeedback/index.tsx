@@ -2,7 +2,7 @@ import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import omit from 'lodash/omit';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Organization, UserReport} from 'app/types';
 import {PageContent} from 'app/styles/organization';

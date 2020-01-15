@@ -2,7 +2,6 @@ import React from 'react';
 
 import InlineSvg from 'app/components/inlineSvg';
 
-import {FLAG_GRID_RESIZABLE} from './flags';
 import {
   GridHeadCell as GridHeadCellWrapper,
   GridHeadCellButton,
@@ -10,10 +9,8 @@ import {
   GridHeadCellButtonHoverBackground,
   GridHeadCellButtonHoverButton,
   GridHeadCellButtonHoverDraggable,
-  GridHeadCellResizer,
 } from './styles';
 import {GridColumnHeader} from './types';
-import AddColumnButton from './addColumnButton';
 
 export type GridHeadCellProps<Column> = {
   isColumnDragging: boolean;
@@ -122,41 +119,6 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     );
   }
 
-  renderResizeGrabbable = () => {
-    const {isEditing} = this.props;
-
-    if (!FLAG_GRID_RESIZABLE || !isEditing) {
-      return null;
-    }
-
-    return <GridHeadCellResizer isEditing={isEditing} />;
-  };
-
-  renderAddColumnButton = () => {
-    const {
-      isEditing,
-      isLast,
-      openModalAddColumnAt,
-      indexColumnOrder,
-      isColumnDragging,
-    } = this.props;
-
-    if (isLast || !isEditing || isColumnDragging) {
-      return null;
-    }
-
-    return (
-      <AddColumnButton
-        align="right"
-        onClick={() => {
-          const insertIndex = indexColumnOrder + 1;
-          openModalAddColumnAt(insertIndex);
-        }}
-        data-test-id={`grid-add-column-${indexColumnOrder}`}
-      />
-    );
-  };
-
   render() {
     const {isEditing, children, column, gridHeadCellButtonProps} = this.props;
 
@@ -173,13 +135,6 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
           {children}
           {this.renderButtonHoverDraggable(children)}
         </GridHeadCellButton>
-
-        {/*
-          Keep the Resizer component and the add column button at the bottom
-          to ensure that it is will always
-          float on top of everything else */
-        this.renderResizeGrabbable()}
-        {this.renderAddColumnButton()}
       </GridHeadCellWrapper>
     );
   }

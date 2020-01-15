@@ -18,13 +18,13 @@ exports[`ShareIssue renders when busy 1`] = `
         }
       }
     >
-      <FlowLayout
+      <ForwardRef(render)
         center={true}
         truncate={true}
       >
         <IndicatorDot />
         Share
-      </FlowLayout>
+      </ForwardRef(render)>
     </div>
   }
 >
@@ -36,8 +36,6 @@ exports[`ShareIssue renders when busy 1`] = `
     }
   >
     <SpreadLayout
-      center={true}
-      responsive={false}
       style={
         Object {
           "marginBottom": undefined,
@@ -47,7 +45,7 @@ exports[`ShareIssue renders when busy 1`] = `
       <SmallHeading>
         Enable public share link
       </SmallHeading>
-      <Switch
+      <ForwardRef
         size="sm"
         toggle={[Function]}
       />
@@ -74,7 +72,7 @@ exports[`ShareIssue renders when not shared 1`] = `
         }
       }
     >
-      <FlowLayout
+      <ForwardRef(render)
         center={true}
         truncate={true}
       >
@@ -82,7 +80,7 @@ exports[`ShareIssue renders when not shared 1`] = `
           active={false}
         />
         Share
-      </FlowLayout>
+      </ForwardRef(render)>
     </div>
   }
 >
@@ -94,8 +92,6 @@ exports[`ShareIssue renders when not shared 1`] = `
     }
   >
     <SpreadLayout
-      center={true}
-      responsive={false}
       style={
         Object {
           "marginBottom": undefined,
@@ -105,7 +101,7 @@ exports[`ShareIssue renders when not shared 1`] = `
       <SmallHeading>
         Enable public share link
       </SmallHeading>
-      <Switch
+      <ForwardRef
         isActive={false}
         size="sm"
         toggle={[Function]}
@@ -133,7 +129,7 @@ exports[`ShareIssue renders when shared  1`] = `
         }
       }
     >
-      <FlowLayout
+      <ForwardRef(render)
         center={true}
         truncate={true}
       >
@@ -141,7 +137,7 @@ exports[`ShareIssue renders when shared  1`] = `
           active={true}
         />
         Share
-      </FlowLayout>
+      </ForwardRef(render)>
     </div>
   }
 >
@@ -153,8 +149,6 @@ exports[`ShareIssue renders when shared  1`] = `
     }
   >
     <SpreadLayout
-      center={true}
-      responsive={false}
       style={
         Object {
           "marginBottom": 12,
@@ -164,7 +158,7 @@ exports[`ShareIssue renders when shared  1`] = `
       <SmallHeading>
         Enable public share link
       </SmallHeading>
-      <Switch
+      <ForwardRef
         isActive={true}
         size="sm"
         toggle={[Function]}

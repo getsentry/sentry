@@ -3,7 +3,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import classNames from 'classnames';
 import {Manager, Reference, Popper} from 'react-popper';
-import styled, {keyframes} from 'react-emotion';
+import styled from '@emotion/styled';
+import {keyframes} from '@emotion/core';
 
 import {fadeIn} from 'app/styles/animations';
 import space from 'app/styles/space';
@@ -140,8 +141,9 @@ class Hovercard extends React.Component {
             <Popper placement={position} modifiers={modifiers}>
               {({ref, style, placement, arrowProps}) => (
                 <StyledHovercard
+                  id={this.tooltipId}
                   visible={visible}
-                  innerRef={ref}
+                  ref={ref}
                   style={style}
                   placement={placement}
                   withHeader={!!header}
@@ -151,7 +153,7 @@ class Hovercard extends React.Component {
                   {header && <Header>{header}</Header>}
                   {body && <Body className={bodyClassName}>{body}</Body>}
                   <HovercardArrow
-                    innerRef={arrowProps.ref}
+                    ref={arrowProps.ref}
                     style={arrowProps.style}
                     placement={placement}
                     tipColor={tipColor}

@@ -7,7 +7,6 @@ import six
 import warnings
 from uuid import uuid4
 
-from django.db import models
 from django.db.models.signals import post_delete
 
 from sentry import nodestore
@@ -15,6 +14,7 @@ from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
+from sentry.db.models.utils import Creator
 
 from .gzippeddict import GzippedDictField
 
@@ -171,6 +171,7 @@ class NodeField(GzippedDictField):
 
     def contribute_to_class(self, cls, name):
         super(NodeField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
         post_delete.connect(self.on_delete, sender=self.model, weak=False)
 
     def on_delete(self, instance, **kwargs):
@@ -238,7 +239,3 @@ class NodeField(GzippedDictField):
         if not self.skip_nodestore_save:
             value.save()
         return compress(pickle.dumps({"node_id": value.id}))
-
-
-if hasattr(models, "SubfieldBase"):
-    NodeField = six.add_metaclass(models.SubfieldBase)(NodeField)

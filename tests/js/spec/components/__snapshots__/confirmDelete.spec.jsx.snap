@@ -35,16 +35,16 @@ exports[`ConfirmDelete renders 1`] = `
             type="error"
           >
             <Component
-              className="css-1i4sr27-Alert-getAlertColorStyles-alertStyles ejthpj82"
+              className="css-1c7awzo-Alert ejthpj82"
               iconSize="24px"
               type="error"
             >
               <div
-                className="ref-error css-1i4sr27-Alert-getAlertColorStyles-alertStyles ejthpj82"
+                className="ref-error css-1c7awzo-Alert ejthpj82"
               >
                 <StyledTextBlock>
                   <div
-                    className="css-1h3n7tg-TextBlock-StyledTextBlock ejthpj81"
+                    className="css-c2j570-TextBlock-StyledTextBlock ejthpj81"
                   >
                     Are you sure?
                   </div>
@@ -74,161 +74,88 @@ exports[`ConfirmDelete renders 1`] = `
               hasControlState={false}
               inline={false}
             >
-              <Component
-                className="css-1iv7wxj-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
+              <div
+                className="css-1j6rikj-FieldWrapper-FieldWrapper-FieldWrapper e2iyls20"
               >
-                <Flex
-                  className="css-1iv7wxj-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
+                <FieldDescription
+                  inline={false}
                 >
-                  <Base
-                    className="etqqcs20 css-k3lnij-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                  <label
+                    className="css-1q141sp-FieldDescription e3z18c30"
+                  >
+                    <FieldLabel
+                      disabled={false}
+                    >
+                      <div
+                        className="css-1c18lg-FieldLabel e16ushrl0"
+                      >
+                        <div>
+                          Please enter 
+                          <code>
+                            CoolOrg
+                          </code>
+                           to confirm the deletion
+                        </div>
+                         
+                      </div>
+                    </FieldLabel>
+                  </label>
+                </FieldDescription>
+                <FieldControl
+                  alignRight={false}
+                  controlState={<ControlState />}
+                  disabled={false}
+                  errorState={null}
+                  flexibleControlStateSize={true}
+                  inline={false}
+                >
+                  <FieldControlErrorWrapper
+                    inline={false}
                   >
                     <div
-                      className="etqqcs20 css-k3lnij-FieldWrapper-getPadding-borderStyle-inlineStyle"
-                      is={null}
+                      className="css-szisuz-FieldControlErrorWrapper e12jpfuq0"
                     >
-                      <FieldDescription
-                        inline={false}
-                      >
-                        <Component
-                          className="css-jq43rd-FieldDescription-inlineStyle e12jefmo0"
-                          inline={false}
+                      <FieldControlWrapper>
+                        <div
+                          className="css-1evsibf-FieldControlWrapper e12jpfuq2"
                         >
-                          <label
-                            className="css-jq43rd-FieldDescription-inlineStyle e12jefmo0"
+                          <FieldControlStyled
+                            alignRight={false}
                           >
-                            <FieldLabel
-                              disabled={false}
+                            <div
+                              className="css-ld1e0a-FieldControlStyled e12jpfuq1"
                             >
-                              <div
-                                className="css-qzvhly-FieldLabel ejkuyjq0"
+                              <Input
+                                onChange={[Function]}
+                                placeholder="CoolOrg"
+                                type="text"
+                                value=""
                               >
-                                <div>
-                                  Please enter 
-                                  <code>
-                                    CoolOrg
-                                  </code>
-                                   to confirm the deletion
-                                </div>
-                                 
-                              </div>
-                            </FieldLabel>
-                          </label>
-                        </Component>
-                      </FieldDescription>
-                      <FieldControl
-                        alignRight={false}
-                        controlState={<ControlState />}
-                        disabled={false}
-                        errorState={null}
-                        flexibleControlStateSize={true}
-                        inline={false}
-                      >
-                        <FieldControlErrorWrapper
-                          inline={false}
-                        >
-                          <Component
-                            className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0"
-                            inline={false}
+                                <input
+                                  className="css-1h04ndk-Input e1xej46s0"
+                                  onChange={[Function]}
+                                  placeholder="CoolOrg"
+                                  type="text"
+                                  value=""
+                                />
+                              </Input>
+                            </div>
+                          </FieldControlStyled>
+                          <FieldControlState
+                            flexibleControlStateSize={true}
                           >
-                            <Box
-                              className="css-1ge7tqf-FieldControlErrorWrapper e78b1iv0"
+                            <div
+                              className="css-mlgkyn-FieldControlState ep9s0su0"
                             >
-                              <Base
-                                className="e78b1iv0 css-nnn2ut-FieldControlErrorWrapper"
-                              >
-                                <div
-                                  className="e78b1iv0 css-nnn2ut-FieldControlErrorWrapper"
-                                  is={null}
-                                >
-                                  <FieldControlWrapper>
-                                    <Component
-                                      className="css-1ke1xob-FieldControlWrapper e78b1iv2"
-                                    >
-                                      <Flex
-                                        className="css-1ke1xob-FieldControlWrapper e78b1iv2"
-                                      >
-                                        <Base
-                                          className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
-                                        >
-                                          <div
-                                            className="e78b1iv2 css-w4o1g8-FieldControlWrapper"
-                                            is={null}
-                                          >
-                                            <FieldControlStyled
-                                              alignRight={false}
-                                            >
-                                              <Component
-                                                alignRight={false}
-                                                className="css-1pkvhmy-FieldControlStyled e78b1iv1"
-                                              >
-                                                <Box
-                                                  className="css-1pkvhmy-FieldControlStyled e78b1iv1"
-                                                >
-                                                  <Base
-                                                    className="e78b1iv1 css-wkkbba-FieldControlStyled"
-                                                  >
-                                                    <div
-                                                      className="e78b1iv1 css-wkkbba-FieldControlStyled"
-                                                      is={null}
-                                                    >
-                                                      <Input
-                                                        onChange={[Function]}
-                                                        placeholder="CoolOrg"
-                                                        type="text"
-                                                        value=""
-                                                      >
-                                                        <input
-                                                          className="css-1b7nva7-Input-inputStyles e1xej46s0"
-                                                          onChange={[Function]}
-                                                          placeholder="CoolOrg"
-                                                          type="text"
-                                                          value=""
-                                                        />
-                                                      </Input>
-                                                    </div>
-                                                  </Base>
-                                                </Box>
-                                              </Component>
-                                            </FieldControlStyled>
-                                            <FieldControlState
-                                              flexibleControlStateSize={true}
-                                            >
-                                              <Component
-                                                className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                flexibleControlStateSize={true}
-                                              >
-                                                <Flex
-                                                  className="css-1x60lk6-FieldControlState e1rziqw00"
-                                                >
-                                                  <Base
-                                                    className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                  >
-                                                    <div
-                                                      className="e1rziqw00 css-dgyrfj-FieldControlState"
-                                                      is={null}
-                                                    >
-                                                      <ControlState />
-                                                    </div>
-                                                  </Base>
-                                                </Flex>
-                                              </Component>
-                                            </FieldControlState>
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </Component>
-                                  </FieldControlWrapper>
-                                </div>
-                              </Base>
-                            </Box>
-                          </Component>
-                        </FieldControlErrorWrapper>
-                      </FieldControl>
+                              <ControlState />
+                            </div>
+                          </FieldControlState>
+                        </div>
+                      </FieldControlWrapper>
                     </div>
-                  </Base>
-                </Flex>
-              </Component>
+                  </FieldControlErrorWrapper>
+                </FieldControl>
+              </div>
             </FieldWrapper>
           </Field>
         </div>
@@ -260,7 +187,7 @@ exports[`ConfirmDelete renders 1`] = `
               <ForwardRef
                 aria-disabled={false}
                 aria-label="Cancel"
-                className="css-4gvaqq-StyledButton-getColors edwq9my0"
+                className="css-1c2phb1-StyledButton edwq9my0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -273,7 +200,7 @@ exports[`ConfirmDelete renders 1`] = `
                 <button
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-4gvaqq-StyledButton-getColors edwq9my0"
+                  className="css-1c2phb1-StyledButton edwq9my0"
                   onClick={[Function]}
                   role="button"
                   style={
@@ -287,10 +214,10 @@ exports[`ConfirmDelete renders 1`] = `
                   >
                     <Component
                       align="center"
-                      className="css-oo1m2a-ButtonLabel edwq9my1"
+                      className="css-zmpclt-ButtonLabel edwq9my1"
                     >
                       <span
-                        className="css-oo1m2a-ButtonLabel edwq9my1"
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                       >
                         Cancel
                       </span>
@@ -322,7 +249,7 @@ exports[`ConfirmDelete renders 1`] = `
                 aria-disabled={true}
                 aria-label="Confirm"
                 autoFocus={true}
-                className="css-pbzt2j-StyledButton-getColors edwq9my0"
+                className="css-1e3hcbu-StyledButton edwq9my0"
                 data-test-id="confirm-button"
                 disabled={true}
                 onClick={[Function]}
@@ -333,7 +260,7 @@ exports[`ConfirmDelete renders 1`] = `
                   aria-disabled={true}
                   aria-label="Confirm"
                   autoFocus={true}
-                  className="css-pbzt2j-StyledButton-getColors edwq9my0"
+                  className="css-1e3hcbu-StyledButton edwq9my0"
                   data-test-id="confirm-button"
                   onClick={[Function]}
                   role="button"
@@ -344,11 +271,11 @@ exports[`ConfirmDelete renders 1`] = `
                   >
                     <Component
                       align="center"
-                      className="css-oo1m2a-ButtonLabel edwq9my1"
+                      className="css-zmpclt-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
-                        className="css-oo1m2a-ButtonLabel edwq9my1"
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                       >
                         Confirm
                       </span>

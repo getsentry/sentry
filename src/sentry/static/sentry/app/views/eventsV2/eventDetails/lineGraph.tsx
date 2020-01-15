@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -41,11 +41,12 @@ const getCurrentEventMarker = (currentEvent: Event) => {
     data: [],
     markLine: MarkLine({
       symbol: [PIN_ICON, 'none'],
-      symbolSize: [15, 30],
+      symbolSize: [16, 150],
       lineStyle: {
         normal: {
-          color: theme.red,
-          type: 'dotted',
+          color: theme.redLight,
+          type: 'solid',
+          width: 1,
         },
       },
       tooltip: {
@@ -143,7 +144,7 @@ const handleClick = async function(
   const eventSlug = generateEventSlug(event);
 
   browserHistory.push({
-    pathname: generateEventDetailsRoute({eventSlug, organization}),
+    pathname: generateEventDetailsRoute({eventSlug, orgSlug: organization.slug}),
     query: eventView.generateQueryStringObject(),
   });
 };
@@ -245,6 +246,9 @@ const LineGraph = (props: LineGraphProps) => {
 const StyledPanel = styled(Panel)`
   .echarts-for-react div:first-child {
     width: 100% !important;
+  }
+  image {
+    y: 0;
   }
 `;
 

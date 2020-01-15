@@ -12,6 +12,7 @@ import getMetricDisplayName from './utils/getMetricDisplayName';
 
 type Props = {
   organization: Organization;
+  disabled: boolean;
 };
 
 type TimeWindowMapType = {[key in TimeWindow]: string};
@@ -30,14 +31,14 @@ const TIME_WINDOW_MAP: TimeWindowMapType = {
 
 class RuleConditionsForm extends React.PureComponent<Props> {
   render() {
-    const {organization} = this.props;
+    const {organization, disabled} = this.props;
 
     return (
       <Panel>
         <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
         <PanelBody>
           <SelectField
-            name="aggregations"
+            name="aggregation"
             label={t('Metric')}
             help={t('Choose which metric to trigger on')}
             choices={[
@@ -51,8 +52,7 @@ class RuleConditionsForm extends React.PureComponent<Props> {
               ],
             ]}
             required
-            setValue={value => (value && value.length ? value[0] : value)}
-            getValue={value => [value]}
+            disabled={disabled}
           />
           <FormField
             name="query"
@@ -66,6 +66,7 @@ class RuleConditionsForm extends React.PureComponent<Props> {
             {({onChange, onBlur, onKeyDown}) => {
               return (
                 <SearchBar
+                  disabled={disabled}
                   useFormWrapper={false}
                   organization={organization}
                   onChange={onChange}
@@ -82,6 +83,7 @@ class RuleConditionsForm extends React.PureComponent<Props> {
             help={t('The time window to use when evaluating the Metric')}
             choices={Object.entries(TIME_WINDOW_MAP)}
             required
+            disabled={disabled}
           />
         </PanelBody>
       </Panel>

@@ -1,8 +1,8 @@
-import {Params} from 'react-router/lib/Router';
 import {Link} from 'react-router';
+import {Params} from 'react-router/lib/Router';
 import React from 'react';
 import moment from 'moment';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
@@ -14,13 +14,16 @@ import InlineSvg from 'app/components/inlineSvg';
 import LoadingError from 'app/components/loadingError';
 import MenuItem from 'app/components/menuItem';
 import PageHeading from 'app/components/pageHeading';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Projects from 'app/utils/projects';
 import SubscribeButton from 'app/components/subscribeButton';
-import space from 'app/styles/space';
 import getDynamicText from 'app/utils/getDynamicText';
+import isPropValid from '@emotion/is-prop-valid';
+import space from 'app/styles/space';
 
+import {Incident} from '../types';
 import {isOpen} from '../utils';
 import Status from '../status';
-import {Incident} from '../types';
 
 type Props = {
   className?: string;
@@ -82,74 +85,73 @@ export default class DetailsHeader extends React.Component<Props> {
         )
         .as('seconds');
 
+    const project = incident && incident.projects && incident.projects[0];
+
     return (
       <Header>
-        <HeaderItem>
-          <PageHeading>
-            <Breadcrumb>
-              <IncidentsLink to={`/organizations/${params.orgId}/incidents/`}>
-                {t('Incidents')}
-              </IncidentsLink>
-              {dateStarted && (
-                <React.Fragment>
-                  <Chevron src="icon-chevron-right" size={space(2)} />
-                  <IncidentDate>{dateStarted}</IncidentDate>
-                </React.Fragment>
-              )}
-            </Breadcrumb>
-            <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
-              {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
-            </IncidentTitle>
-          </PageHeading>
-        </HeaderItem>
+        <PageHeading>
+          <Breadcrumb>
+            <IncidentsLink to={`/organizations/${params.orgId}/incidents/`}>
+              {t('Incidents')}
+            </IncidentsLink>
+            {dateStarted && (
+              <React.Fragment>
+                <Chevron src="icon-chevron-right" size={space(2)} />
+                <IncidentDate>{dateStarted}</IncidentDate>
+              </React.Fragment>
+            )}
+          </Breadcrumb>
+          <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
+            {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
+          </IncidentTitle>
+        </PageHeading>
+
         {hasIncidentDetailsError ? (
           <StyledLoadingError />
         ) : (
           <GroupedHeaderItems>
-            <HeaderItem>
-              <ItemTitle>{t('Status')}</ItemTitle>
-              <ItemValue>{this.renderStatus()}</ItemValue>
-            </HeaderItem>
-            <HeaderItem>
-              <ItemTitle>{t('Duration')}</ItemTitle>
-              {incident && (
-                <ItemValue>
-                  <Duration
-                    seconds={getDynamicText({value: duration || 0, fixed: 1200})}
-                  />
-                </ItemValue>
+            <ItemTitle>{t('Status')}</ItemTitle>
+            <ItemTitle>{t('Project')}</ItemTitle>
+            <ItemTitle>{t('Users affected')}</ItemTitle>
+            <ItemTitle>{t('Total events')}</ItemTitle>
+            <ItemTitle>{t('Duration')}</ItemTitle>
+            <ItemTitle>{t('Notifications')}</ItemTitle>
+            <ItemValue>{this.renderStatus()}</ItemValue>
+            <ItemValue>
+              {project && (
+                <Projects slugs={[project]} orgId={params.orgId}>
+                  {({projects}) => (
+                    <ProjectBadge project={projects && projects.length && projects[0]} />
+                  )}
+                </Projects>
               )}
-            </HeaderItem>
-            <HeaderItem>
-              <ItemTitle>{t('Users affected')}</ItemTitle>
-              {incident && (
-                <ItemValue>
-                  <Count value={incident.uniqueUsers} />
-                </ItemValue>
-              )}
-            </HeaderItem>
-            <HeaderItem>
-              <ItemTitle>{t('Total events')}</ItemTitle>
-              {incident && (
-                <ItemValue>
-                  <Count value={incident.totalEvents} />
-                  <OpenLink to={eventLink}>
-                    <InlineSvg src="icon-open" size="14" />
-                  </OpenLink>
-                </ItemValue>
-              )}
-            </HeaderItem>
-            <HeaderItem>
-              <ItemTitle>{t('Notifications')}</ItemTitle>
+            </ItemValue>
+            {incident && (
               <ItemValue>
-                <SubscribeButton
-                  disabled={!isIncidentReady}
-                  isSubscribed={incident && !!incident.isSubscribed}
-                  onClick={onSubscriptionChange}
-                  size="small"
-                />
+                <Duration seconds={getDynamicText({value: duration || 0, fixed: 1200})} />
               </ItemValue>
-            </HeaderItem>
+            )}
+            {incident && (
+              <ItemValue>
+                <Count value={incident.uniqueUsers} />
+              </ItemValue>
+            )}
+            {incident && (
+              <ItemValue>
+                <Count value={incident.totalEvents} />
+                <OpenLink to={eventLink}>
+                  <InlineSvg src="icon-open" size="14" />
+                </OpenLink>
+              </ItemValue>
+            )}
+            <ItemValue>
+              <SubscribeButton
+                disabled={!isIncidentReady}
+                isSubscribed={incident && !!incident.isSubscribed}
+                onClick={onSubscriptionChange}
+                size="small"
+              />
+            </ItemValue>
           </GroupedHeaderItems>
         )}
       </Header>
@@ -161,7 +163,17 @@ const Header = styled(PageHeader)`
   background-color: ${p => p.theme.white};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   margin-bottom: 0;
-  padding: ${space(3)} 0;
+  padding: ${space(3)};
+
+  grid-template-columns: max-content auto;
+  display: grid;
+  grid-gap: ${space(3)};
+  grid-auto-flow: column;
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: auto;
+    grid-auto-flow: row;
+  }
 `;
 
 const StyledLoadingError = styled(LoadingError)`
@@ -173,18 +185,20 @@ const StyledLoadingError = styled(LoadingError)`
 `;
 
 const GroupedHeaderItems = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(6, max-content);
+  grid-column-gap: ${space(3)};
+  grid-row-gap: ${space(1)};
   text-align: right;
-`;
 
-const HeaderItem = styled('div')`
-  padding: 0 ${space(4)};
-  min-width: 0; /* Prevent text from horizontally stretching flexbox */
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    text-align: left;
+  }
 `;
 
 const ItemTitle = styled('h6')`
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(1)};
+  margin-bottom: 0;
   text-transform: uppercase;
   color: ${p => p.theme.gray2};
   letter-spacing: 0.1px;
@@ -195,17 +209,18 @@ const ItemValue = styled('div')`
   justify-content: flex-end;
   align-items: center;
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  height: 40px; /* This is the height of the Status dropdown */
 `;
 
 const Breadcrumb = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
 `;
 
-const IncidentTitle = styled('div')<{loading: boolean}>`
+const IncidentTitle = styled('div', {
+  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+})<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
 `;
 

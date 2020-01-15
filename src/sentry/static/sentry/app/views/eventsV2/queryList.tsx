@@ -1,6 +1,6 @@
 import React, {MouseEvent} from 'react';
 import {Location, Query} from 'history';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import classNames from 'classnames';
 import moment from 'moment';
 import {browserHistory} from 'react-router';
@@ -22,6 +22,7 @@ import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
 import {getPrebuiltQueries} from './utils';
 import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
+import {generateDiscoverResultsRoute} from './results';
 
 type Props = {
   api: Client;
@@ -113,7 +114,7 @@ class QueryList extends React.Component<Props> {
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
       const to = {
-        pathname: `/organizations/${organization.slug}/eventsV2/results/`,
+        pathname: generateDiscoverResultsRoute(organization.slug),
         query: {
           ...location.query,
           // remove any landing page cursor
@@ -142,7 +143,7 @@ class QueryList extends React.Component<Props> {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
               eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: this.props.organization.id,
+              organization_id: parseInt(this.props.organization.id, 10),
               query_name: eventView.name,
             });
           }}
@@ -168,7 +169,7 @@ class QueryList extends React.Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
       const to = {
-        pathname: `/organizations/${organization.slug}/eventsV2/results/`,
+        pathname: generateDiscoverResultsRoute(organization.slug),
         query: {
           ...location.query,
           // remove any landing page cursor
@@ -189,7 +190,7 @@ class QueryList extends React.Component<Props> {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
               eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: this.props.organization.id,
+              organization_id: parseInt(this.props.organization.id, 10),
               query_name: eventView.name,
             });
           }}

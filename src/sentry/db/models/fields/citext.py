@@ -1,10 +1,9 @@
-from __future__ import absolute_import, print_function
-
-import six
+from __future__ import absolute_import
 
 from django.db import connections, models
 from django.db.models.signals import pre_migrate
 
+from sentry.db.models.utils import Creator
 
 __all__ = ("CITextField", "CICharField", "CIEmailField")
 
@@ -15,21 +14,21 @@ class CIText(object):
 
 
 class CITextField(CIText, models.TextField):
-    pass
+    def contribute_to_class(self, cls, name):
+        super(CITextField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
 
 
 class CICharField(CIText, models.CharField):
-    pass
+    def contribute_to_class(self, cls, name):
+        super(CICharField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
 
 
 class CIEmailField(CIText, models.EmailField):
-    pass
-
-
-if hasattr(models, "SubfieldBase"):
-    CITextField = six.add_metaclass(models.SubfieldBase)(CITextField)
-    CICharField = six.add_metaclass(models.SubfieldBase)(CICharField)
-    CIEmailField = six.add_metaclass(models.SubfieldBase)(CIEmailField)
+    def contribute_to_class(self, cls, name):
+        super(CIEmailField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
 
 
 def create_citext_extension(using, **kwargs):

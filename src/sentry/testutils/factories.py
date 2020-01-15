@@ -3,7 +3,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from django.conf import settings
 
-import copy
 import io
 import os
 import petname
@@ -45,8 +44,6 @@ from sentry.mediators import (
 from sentry.models import (
     Activity,
     Environment,
-    Event,
-    EventError,
     Group,
     Organization,
     OrganizationMember,
@@ -74,7 +71,6 @@ from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import json
-from sentry.utils.canonical import CanonicalKeyDict
 
 loremipsum = Generator()
 
@@ -470,52 +466,6 @@ class Factories(object):
         return useremail
 
     @staticmethod
-    def create_event(group=None, project=None, event_id=None, normalize=True, **kwargs):
-        # XXX: Do not use this method for new tests! Prefer `store_event`.
-        if event_id is None:
-            event_id = uuid4().hex
-        kwargs.setdefault("project", project if project else group.project)
-        kwargs.setdefault("data", copy.deepcopy(DEFAULT_EVENT_DATA))
-        kwargs.setdefault("platform", kwargs["data"].get("platform", "python"))
-        kwargs.setdefault("message", kwargs["data"].get("message", "message"))
-        if kwargs.get("tags"):
-            tags = kwargs.pop("tags")
-            if isinstance(tags, dict):
-                tags = list(tags.items())
-            kwargs["data"]["tags"] = tags
-        if kwargs.get("stacktrace"):
-            stacktrace = kwargs.pop("stacktrace")
-            kwargs["data"]["stacktrace"] = stacktrace
-
-        user = kwargs.pop("user", None)
-        if user is not None:
-            kwargs["data"]["user"] = user
-
-        kwargs["data"].setdefault("errors", [{"type": EventError.INVALID_DATA, "name": "foobar"}])
-
-        # maintain simple event Factories by supporting the legacy message
-        # parameter just like our API would
-        if "logentry" not in kwargs["data"]:
-            kwargs["data"]["logentry"] = {"message": kwargs["message"] or "<unlabeled event>"}
-
-        if normalize:
-            manager = EventManager(CanonicalKeyDict(kwargs["data"]))
-            manager.normalize()
-            kwargs["data"] = manager.get_data()
-            kwargs["data"].update(manager.materialize_metadata())
-            kwargs["message"] = manager.get_search_message()
-
-        # This is needed so that create_event saves the event in nodestore
-        # under the correct key. This is usually dont in EventManager.save()
-        kwargs["data"].setdefault("node_id", Event.generate_node_id(kwargs["project"].id, event_id))
-
-        event = Event(event_id=event_id, group=group, **kwargs)
-        # emulate EventManager refs
-        event.data.bind_ref(event)
-        event.data.save()
-        return event
-
-    @staticmethod
     def store_event(data, project_id, assert_no_errors=True):
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
@@ -528,107 +478,6 @@ class Factories(object):
         event = manager.save(project_id)
         if event.group:
             event.group.save()
-        return event
-
-    @staticmethod
-    def create_full_event(group, event_id="a", **kwargs):
-        payload = """
-            {
-                "event_id": "f5dd88e612bc406ba89dfebd09120769",
-                "project": 11276,
-                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
-                "platform": "javascript",
-                "culprit": "app/components/events/eventEntries in map",
-                "logentry": {"formatted": "TypeError: Cannot read property '1' of null"},
-                "tags": [
-                    ["environment", "prod"],
-                    ["sentry_version", "e1b5d1900526feaf20fe2bc9cad83d392136030a"],
-                    ["level", "error"],
-                    ["logger", "javascript"],
-                    ["sentry:release", "e1b5d1900526feaf20fe2bc9cad83d392136030a"],
-                    ["browser", "Chrome 48.0"],
-                    ["device", "Other"],
-                    ["os", "Windows 10"],
-                    ["url", "https://sentry.io/katon-direct/localhost/issues/112734598/"],
-                    ["sentry:user", "id:41656"]
-                ],
-                "errors": [{
-                    "url": "<anonymous>",
-                    "type": "js_no_source"
-                }],
-                "extra": {
-                    "session:duration": 40364
-                },
-                "exception": {
-                    "exc_omitted": null,
-                    "values": [{
-                        "stacktrace": {
-                            "frames": [{
-                                "function": "batchedUpdates",
-                                "abs_path": "webpack:////usr/src/getsentry/src/sentry/~/react/lib/ReactUpdates.js",
-                                "pre_context": ["  // verify that that's the case. (This is called by each top-level update", "  // function, like setProps, setState, forceUpdate, etc.; creation and", "  // destruction of top-level components is guarded in ReactMount.)", "", "  if (!batchingStrategy.isBatchingUpdates) {"],
-                                "post_context": ["    return;", "  }", "", "  dirtyComponents.push(component);", "}"],
-                                "filename": "~/react/lib/ReactUpdates.js",
-                                "module": "react/lib/ReactUpdates",
-                                "colno": 0,
-                                "in_app": false,
-                                "data": {
-                                    "orig_filename": "/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "orig_abs_path": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map",
-                                    "orig_lineno": 37,
-                                    "orig_function": "Object.s [as enqueueUpdate]",
-                                    "orig_colno": 16101
-                                },
-                                "context_line": "    batchingStrategy.batchedUpdates(enqueueUpdate, component);",
-                                "lineno": 176
-                            }],
-                            "frames_omitted": null
-                        },
-                        "type": "TypeError",
-                        "value": "Cannot read property '1' of null",
-                        "module": null
-                    }]
-                },
-                "request": {
-                    "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
-                    "headers": [
-                        ["Referer", "https://sentry.io/welcome/"],
-                        ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
-                    ]
-                },
-                "user": {
-                    "ip_address": "0.0.0.0",
-                    "id": "41656",
-                    "email": "test@example.com"
-                },
-                "version": "7",
-                "breadcrumbs": {
-                    "values": [
-                        {
-                            "category": "xhr",
-                            "timestamp": 1496395011.63,
-                            "type": "http",
-                            "data": {
-                                "url": "/api/path/here",
-                                "status_code": "500",
-                                "method": "POST"
-                            }
-                        }
-                    ]
-                }
-            }"""
-
-        event = Factories.create_event(
-            group=group,
-            event_id=event_id,
-            platform="javascript",
-            data=json.loads(payload),
-            # This payload already went through sourcemap
-            # processing, normalizing it would remove
-            # frame.data (orig_filename, etc)
-            normalize=False,
-        )
         return event
 
     @staticmethod
@@ -728,7 +577,7 @@ class Factories(object):
 
     @staticmethod
     def create_sentry_app(**kwargs):
-        app = sentry_apps.Creator.run(**Factories._sentry_app_kwargs(**kwargs))
+        app = sentry_apps.Creator.run(is_internal=False, **Factories._sentry_app_kwargs(**kwargs))
 
         if kwargs.get("published"):
             app.update(status=SentryAppStatus.PUBLISHED)
@@ -737,7 +586,9 @@ class Factories(object):
 
     @staticmethod
     def create_internal_integration(**kwargs):
-        return sentry_apps.InternalCreator.run(**Factories._sentry_app_kwargs(**kwargs))
+        return sentry_apps.InternalCreator.run(
+            is_internal=True, **Factories._sentry_app_kwargs(**kwargs)
+        )
 
     @staticmethod
     def create_internal_integration_token(install, **kwargs):
@@ -939,11 +790,12 @@ class Factories(object):
         threshold_period=1,
         include_all_projects=False,
         excluded_projects=None,
+        date_added=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
 
-        return create_alert_rule(
+        alert_rule = create_alert_rule(
             organization,
             projects,
             name,
@@ -954,6 +806,11 @@ class Factories(object):
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
         )
+
+        if date_added is not None:
+            alert_rule.update(date_added=date_added)
+
+        return alert_rule
 
     @staticmethod
     def create_alert_rule_trigger(

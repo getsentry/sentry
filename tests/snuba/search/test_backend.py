@@ -17,7 +17,7 @@ from sentry.models import (
     GroupStatus,
     GroupSubscription,
 )
-from sentry.search.snuba.backend import SnubaSearchBackend
+from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
@@ -27,10 +27,13 @@ def date_to_query_format(date):
     return date.strftime("%Y-%m-%dT%H:%M:%S")
 
 
-class SnubaSearchTest(TestCase, SnubaTestCase):
+class EventsSnubaSearchTest(TestCase, SnubaTestCase):
+    @property
+    def backend(self):
+        return EventsDatasetSnubaSearchBackend()
+
     def setUp(self):
-        super(SnubaSearchTest, self).setUp()
-        self.backend = SnubaSearchBackend()
+        super(EventsSnubaSearchTest, self).setUp()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
         event1_timestamp = iso_format(self.base_datetime - timedelta(days=21))
@@ -69,6 +72,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         self.group1.times_seen = 5
         self.group1.status = GroupStatus.UNRESOLVED
         self.group1.save()
+        self.store_group(self.group1)
 
         self.event2 = self.store_event(
             data={
@@ -90,6 +94,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         self.group2.status = GroupStatus.RESOLVED
         self.group2.times_seen = 10
         self.group2.save()
+        self.store_group(self.group2)
 
         GroupBookmark.objects.create(user=self.user, group=self.group2, project=self.group2.project)
 
@@ -109,7 +114,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         }
 
     def store_event(self, data, *args, **kwargs):
-        event = super(SnubaSearchTest, self).store_event(data, *args, **kwargs)
+        event = super(EventsSnubaSearchTest, self).store_event(data, *args, **kwargs)
         environment_name = data.get("environment")
         if environment_name:
             GroupEnvironment.objects.filter(
@@ -138,6 +143,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         self.group_p2.times_seen = 6
         self.group_p2.last_seen = self.base_datetime - timedelta(days=1)
         self.group_p2.save()
+        self.store_group(self.group_p2)
 
     def build_search_filter(self, query, projects=None, user=None, environments=None):
         user = user if user is not None else self.user
@@ -250,20 +256,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         results = self.make_query(sort_by="priority")
         assert list(results) == [self.group1, self.group2]
-
-    def test_sort_multi_project(self):
-        self.set_up_multi_project()
-        results = self.make_query([self.project, self.project2], sort_by="date")
-        assert list(results) == [self.group1, self.group_p2, self.group2]
-
-        results = self.make_query([self.project, self.project2], sort_by="new")
-        assert list(results) == [self.group2, self.group_p2, self.group1]
-
-        results = self.make_query([self.project, self.project2], sort_by="freq")
-        assert list(results) == [self.group1, self.group_p2, self.group2]
-
-        results = self.make_query([self.project, self.project2], sort_by="priority")
-        assert list(results) == [self.group1, self.group2, self.group_p2]
 
     def test_sort_with_environment(self):
         for dt in [
@@ -1003,6 +995,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             group.times_seen = 5
             group.status = GroupStatus.UNRESOLVED if i % 3 == 0 else GroupStatus.RESOLVED
             group.save()
+            self.store_group(group)
 
         # Sample should estimate there are roughly 66 overall matching groups
         # based on a random sample of 100 (or $sample_size) of the total 200
@@ -1060,6 +1053,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
 
         self.group1.first_release = release_1
         self.group1.save()
+        self.store_group(self.group1)
 
         results = self.make_query(search_filter_query="first_release:%s" % release_1.version)
         assert set(results) == set([self.group1])
@@ -1090,6 +1084,144 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             search_filter_query="first_release:%s" % release.version,
         )
         assert set(results) == set([self.group1])
+
+    def test_query_enclosed_in_quotes(self):
+        results = self.make_query(search_filter_query='"foo"')
+        assert set(results) == set([self.group1])
+
+        results = self.make_query(search_filter_query='"bar"')
+        assert set(results) == set([self.group2])
+
+    @xfail_if_not_postgres("Wildcard searching only supported in Postgres")
+    def test_wildcard(self):
+        escaped_event = self.store_event(
+            data={
+                "fingerprint": ["hello-there"],
+                "event_id": "f" * 32,
+                "message": "somet[hing]",
+                "environment": "production",
+                "tags": {"server": "example.net"},
+                "timestamp": iso_format(self.base_datetime),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        )
+        # Note: Adding in `environment:production` so that we make sure we query
+        # in both snuba and postgres
+        results = self.make_query(search_filter_query="environment:production so*t")
+        assert set(results) == set([escaped_event.group])
+        # Make sure it's case insensitive
+        results = self.make_query(search_filter_query="environment:production SO*t")
+        assert set(results) == set([escaped_event.group])
+        results = self.make_query(search_filter_query="environment:production so*zz")
+        assert set(results) == set()
+        results = self.make_query(search_filter_query="environment:production [hing]")
+        assert set(results) == set([escaped_event.group])
+        results = self.make_query(search_filter_query="environment:production s*]")
+        assert set(results) == set([escaped_event.group])
+        results = self.make_query(search_filter_query="environment:production server:example.*")
+        assert set(results) == set([self.group1, escaped_event.group])
+        results = self.make_query(search_filter_query="environment:production !server:*net")
+        assert set(results) == set([self.group1])
+        # TODO: Disabling tests that use [] syntax for the moment. Re-enable
+        # these if we decide to add back in, or remove if this comment has been
+        # here a while.
+        # results = self.make_query(
+        #     search_filter_query='environment:production [s][of][mz]',
+        # )
+        # assert set(results) == set([escaped_event.group])
+        # results = self.make_query(
+        #     search_filter_query='environment:production [z][of][mz]',
+        # )
+        # assert set(results) == set()
+
+    def test_null_tags(self):
+        tag_event = self.store_event(
+            data={
+                "fingerprint": ["hello-there"],
+                "event_id": "f" * 32,
+                "message": "something",
+                "environment": "production",
+                "tags": {"server": "example.net"},
+                "timestamp": iso_format(self.base_datetime),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        )
+        no_tag_event = self.store_event(
+            data={
+                "fingerprint": ["hello-there-2"],
+                "event_id": "5" * 32,
+                "message": "something",
+                "environment": "production",
+                "timestamp": iso_format(self.base_datetime),
+                "stacktrace": {"frames": [{"module": "group2"}]},
+            },
+            project_id=self.project.id,
+        )
+        results = self.make_query(search_filter_query="environment:production !server:*net")
+        assert set(results) == set([self.group1, no_tag_event.group])
+        results = self.make_query(search_filter_query="environment:production server:*net")
+        assert set(results) == set([tag_event.group])
+        results = self.make_query(search_filter_query="environment:production !server:example.net")
+        assert set(results) == set([self.group1, no_tag_event.group])
+        results = self.make_query(search_filter_query="environment:production server:example.net")
+        assert set(results) == set([tag_event.group])
+        results = self.make_query(search_filter_query="environment:production has:server")
+        assert set(results) == set([self.group1, tag_event.group])
+        results = self.make_query(search_filter_query="environment:production !has:server")
+        assert set(results) == set([no_tag_event.group])
+
+    def test_null_promoted_tags(self):
+        tag_event = self.store_event(
+            data={
+                "fingerprint": ["hello-there"],
+                "event_id": "f" * 32,
+                "message": "something",
+                "environment": "production",
+                "tags": {"logger": "csp"},
+                "timestamp": iso_format(self.base_datetime),
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        )
+        no_tag_event = self.store_event(
+            data={
+                "fingerprint": ["hello-there-2"],
+                "event_id": "5" * 32,
+                "message": "something",
+                "environment": "production",
+                "timestamp": iso_format(self.base_datetime),
+                "stacktrace": {"frames": [{"module": "group2"}]},
+            },
+            project_id=self.project.id,
+        )
+        results = self.make_query(search_filter_query="environment:production !logger:*sp")
+        assert set(results) == set([self.group1, no_tag_event.group])
+        results = self.make_query(search_filter_query="environment:production logger:*sp")
+        assert set(results) == set([tag_event.group])
+        results = self.make_query(search_filter_query="environment:production !logger:csp")
+        assert set(results) == set([self.group1, no_tag_event.group])
+        results = self.make_query(search_filter_query="environment:production logger:csp")
+        assert set(results) == set([tag_event.group])
+        results = self.make_query(search_filter_query="environment:production has:logger")
+        assert set(results) == set([tag_event.group])
+        results = self.make_query(search_filter_query="environment:production !has:logger")
+        assert set(results) == set([self.group1, no_tag_event.group])
+
+    def test_sort_multi_project(self):
+        self.set_up_multi_project()
+        results = self.make_query([self.project, self.project2], sort_by="date")
+        assert list(results) == [self.group1, self.group_p2, self.group2]
+
+        results = self.make_query([self.project, self.project2], sort_by="new")
+        assert list(results) == [self.group2, self.group_p2, self.group1]
+
+        results = self.make_query([self.project, self.project2], sort_by="freq")
+        assert list(results) == [self.group1, self.group_p2, self.group2]
+
+        results = self.make_query([self.project, self.project2], sort_by="priority")
+        assert list(results) == [self.group1, self.group2, self.group_p2]
 
     def test_first_release_any_or_no_environments(self):
         # test scenarios for tickets:
@@ -1224,130 +1356,6 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
         )
         assert set(results) == set([group_a])
 
-    def test_query_enclosed_in_quotes(self):
-        results = self.make_query(search_filter_query='"foo"')
-        assert set(results) == set([self.group1])
-
-        results = self.make_query(search_filter_query='"bar"')
-        assert set(results) == set([self.group2])
-
-    @xfail_if_not_postgres("Wildcard searching only supported in Postgres")
-    def test_wildcard(self):
-        escaped_event = self.store_event(
-            data={
-                "fingerprint": ["hello-there"],
-                "event_id": "f" * 32,
-                "message": "somet[hing]",
-                "environment": "production",
-                "tags": {"server": "example.net"},
-                "timestamp": iso_format(self.base_datetime),
-                "stacktrace": {"frames": [{"module": "group1"}]},
-            },
-            project_id=self.project.id,
-        )
-        # Note: Adding in `environment:production` so that we make sure we query
-        # in both snuba and postgres
-        results = self.make_query(search_filter_query="environment:production so*t")
-        assert set(results) == set([escaped_event.group])
-        # Make sure it's case insensitive
-        results = self.make_query(search_filter_query="environment:production SO*t")
-        assert set(results) == set([escaped_event.group])
-        results = self.make_query(search_filter_query="environment:production so*zz")
-        assert set(results) == set()
-        results = self.make_query(search_filter_query="environment:production [hing]")
-        assert set(results) == set([escaped_event.group])
-        results = self.make_query(search_filter_query="environment:production s*]")
-        assert set(results) == set([escaped_event.group])
-        results = self.make_query(search_filter_query="environment:production server:example.*")
-        assert set(results) == set([self.group1, escaped_event.group])
-        results = self.make_query(search_filter_query="environment:production !server:*net")
-        assert set(results) == set([self.group1])
-        # TODO: Disabling tests that use [] syntax for the moment. Re-enable
-        # these if we decide to add back in, or remove if this comment has been
-        # here a while.
-        # results = self.make_query(
-        #     search_filter_query='environment:production [s][of][mz]',
-        # )
-        # assert set(results) == set([escaped_event.group])
-        # results = self.make_query(
-        #     search_filter_query='environment:production [z][of][mz]',
-        # )
-        # assert set(results) == set()
-
-    def test_null_tags(self):
-        tag_event = self.store_event(
-            data={
-                "fingerprint": ["hello-there"],
-                "event_id": "f" * 32,
-                "message": "something",
-                "environment": "production",
-                "tags": {"server": "example.net"},
-                "timestamp": iso_format(self.base_datetime),
-                "stacktrace": {"frames": [{"module": "group1"}]},
-            },
-            project_id=self.project.id,
-        )
-        no_tag_event = self.store_event(
-            data={
-                "fingerprint": ["hello-there-2"],
-                "event_id": "5" * 32,
-                "message": "something",
-                "environment": "production",
-                "timestamp": iso_format(self.base_datetime),
-                "stacktrace": {"frames": [{"module": "group2"}]},
-            },
-            project_id=self.project.id,
-        )
-        results = self.make_query(search_filter_query="environment:production !server:*net")
-        assert set(results) == set([self.group1, no_tag_event.group])
-        results = self.make_query(search_filter_query="environment:production server:*net")
-        assert set(results) == set([tag_event.group])
-        results = self.make_query(search_filter_query="environment:production !server:example.net")
-        assert set(results) == set([self.group1, no_tag_event.group])
-        results = self.make_query(search_filter_query="environment:production server:example.net")
-        assert set(results) == set([tag_event.group])
-        results = self.make_query(search_filter_query="environment:production has:server")
-        assert set(results) == set([self.group1, tag_event.group])
-        results = self.make_query(search_filter_query="environment:production !has:server")
-        assert set(results) == set([no_tag_event.group])
-
-    def test_null_promoted_tags(self):
-        tag_event = self.store_event(
-            data={
-                "fingerprint": ["hello-there"],
-                "event_id": "f" * 32,
-                "message": "something",
-                "environment": "production",
-                "tags": {"logger": "csp"},
-                "timestamp": iso_format(self.base_datetime),
-                "stacktrace": {"frames": [{"module": "group1"}]},
-            },
-            project_id=self.project.id,
-        )
-        no_tag_event = self.store_event(
-            data={
-                "fingerprint": ["hello-there-2"],
-                "event_id": "5" * 32,
-                "message": "something",
-                "environment": "production",
-                "timestamp": iso_format(self.base_datetime),
-                "stacktrace": {"frames": [{"module": "group2"}]},
-            },
-            project_id=self.project.id,
-        )
-        results = self.make_query(search_filter_query="environment:production !logger:*sp")
-        assert set(results) == set([self.group1, no_tag_event.group])
-        results = self.make_query(search_filter_query="environment:production logger:*sp")
-        assert set(results) == set([tag_event.group])
-        results = self.make_query(search_filter_query="environment:production !logger:csp")
-        assert set(results) == set([self.group1, no_tag_event.group])
-        results = self.make_query(search_filter_query="environment:production logger:csp")
-        assert set(results) == set([tag_event.group])
-        results = self.make_query(search_filter_query="environment:production has:logger")
-        assert set(results) == set([tag_event.group])
-        results = self.make_query(search_filter_query="environment:production !has:logger")
-        assert set(results) == set([self.group1, no_tag_event.group])
-
     def test_all_fields_do_not_error(self):
         # Just a sanity check to make sure that all fields can be successfully
         # searched on without returning type errors and other schema related
@@ -1368,7 +1376,7 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
             elif key in IssueSearchVisitor.date_keys:
                 val = "2019-01-01"
             else:
-                val = "hello"
+                val = "abadcafedeadbeefdeaffeedabadfeed"
                 test_query("!%s:%s" % (key, val))
 
             test_query("%s:%s" % (key, val))

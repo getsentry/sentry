@@ -2,7 +2,7 @@ export function DebugSymbols(params) {
   return {
     debugSymbols: [
       {
-        dateAdded: '2018-01-31T07:16:26.072Z',
+        dateCreated: '2018-01-31T07:16:26.072Z',
         dsym: {
           headers: {'Content-Type': 'text/x-proguard+plain'},
           sha1: 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44',

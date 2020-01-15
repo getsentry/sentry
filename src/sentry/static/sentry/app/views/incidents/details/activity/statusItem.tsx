@@ -1,17 +1,15 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import {IncidentActivityType, IncidentStatus} from 'app/views/incidents/utils';
 import {t} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
-import Chart from 'app/views/incidents/details/chart';
 import getDynamicText from 'app/utils/getDynamicText';
-import {ActivityType, Incident} from '../../types';
+
+import {IncidentActivityType, IncidentStatus, ActivityType} from '../../types';
 
 type Props = {
   activity: ActivityType;
   authorName: string;
-  incident?: Incident;
   showTime: boolean;
 };
 
@@ -25,7 +23,7 @@ type Props = {
  */
 class StatusItem extends React.Component<Props> {
   render() {
-    const {activity, authorName, incident, showTime} = this.props;
+    const {activity, authorName, showTime} = this.props;
 
     const isCreated = activity.type === IncidentActivityType.CREATED;
     const isDetected = activity.type === IncidentActivityType.DETECTED;
@@ -44,6 +42,9 @@ class StatusItem extends React.Component<Props> {
 
     return (
       <ActivityItem
+        bubbleProps={{
+          borderColor: 'transparent',
+        }}
         showTime={showTime}
         author={{
           type: activity.user ? 'user' : 'system',
@@ -58,20 +59,7 @@ class StatusItem extends React.Component<Props> {
           </div>
         }
         date={getDynamicText({value: activity.dateCreated, fixed: new Date(0)})}
-      >
-        {activity.eventStats &&
-          getDynamicText({
-            value: (
-              <Chart
-                data={activity.eventStats.data}
-                detected={
-                  ((isCreated || isDetected) && incident && incident.dateStarted) || ''
-                }
-              />
-            ),
-            fixed: 'Chart Placeholder for Percy',
-          })}
-      </ActivityItem>
+      />
     );
   }
 }

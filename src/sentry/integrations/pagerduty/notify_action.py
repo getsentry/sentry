@@ -82,8 +82,12 @@ class PagerDutyNotifyServiceAction(EventAction):
         if event.group.is_ignored():
             return
 
+        integration_id = self.get_option("account")
+        service_id = self.get_option("service")
+
         try:
             integration = Integration.objects.get(
+                id=integration_id,
                 provider="pagerduty",
                 organizations=self.project.organization,
                 status=ObjectStatus.VISIBLE,
@@ -93,7 +97,7 @@ class PagerDutyNotifyServiceAction(EventAction):
             return
 
         try:
-            service = PagerDutyService.objects.get(pk=self.get_option("service"))
+            service = PagerDutyService.objects.get(pk=service_id)
         except PagerDutyService.DoesNotExist:
             return
 

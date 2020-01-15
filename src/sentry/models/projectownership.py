@@ -84,7 +84,15 @@ class ProjectOwnership(Model):
             return cls.Everyone if ownership.fallthrough else [], None
 
         owners = {o for rule in rules for o in rule.owners}
-        return filter(None, resolve_actors(owners, project_id).values()), rules
+        owners_to_actors = resolve_actors(owners, project_id)
+        ordered_actors = []
+        for rule in rules:
+            for o in rule.owners:
+                if o in owners and owners_to_actors.get(o) is not None:
+                    ordered_actors.append(owners_to_actors[o])
+                    owners.remove(o)
+
+        return ordered_actors, rules
 
     @classmethod
     def get_autoassign_owner(cls, project_id, data):

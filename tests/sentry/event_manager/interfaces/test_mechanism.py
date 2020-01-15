@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import absolute_import
 
 import pytest
 
+from sentry import eventstore
 from sentry.interfaces.exception import upgrade_legacy_mechanism
-from sentry.models import Event
 from sentry.event_manager import EventManager
 
 
@@ -16,7 +14,7 @@ def make_mechanism_snapshot(insta_snapshot):
             data={"exception": {"values": [{"type": "FooError", "mechanism": data}]}}
         )
         mgr.normalize()
-        evt = Event(data=mgr.get_data())
+        evt = eventstore.create_event(data=mgr.get_data())
         mechanism = evt.interfaces["exception"].values[0].mechanism
 
         insta_snapshot(

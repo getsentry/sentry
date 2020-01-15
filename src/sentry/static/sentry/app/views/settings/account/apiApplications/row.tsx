@@ -1,6 +1,6 @@
 import {Link} from 'react-router';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {ApiApplication} from 'app/types';
 import {Client} from 'app/api';

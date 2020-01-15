@@ -1,18 +1,19 @@
 from __future__ import absolute_import
 
 import pytest
-from django.template import Context, Template
+from django.template import engines
 
 
 def test_system_origin():
     result = (
-        Template(
+        engines["django"]
+        .from_string(
             """
         {% load sentry_helpers %}
         {% system_origin %}
     """
         )
-        .render(Context())
+        .render()
         .strip()
     )
 
@@ -54,5 +55,10 @@ def test_system_origin():
 )
 def test_absolute_uri(input, output):
     prefix = "{% load sentry_helpers %}"
-    result = Template(prefix + input).render(Context({"who": "matt", "desc": "awesome"})).strip()
+    result = (
+        engines["django"]
+        .from_string(prefix + input)
+        .render(context={"who": "matt", "desc": "awesome"})
+        .strip()
+    )
     assert result == output

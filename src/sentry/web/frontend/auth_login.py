@@ -155,7 +155,7 @@ class AuthLoginView(BaseView):
 
             if login_attempt and ratelimiter.is_limited(
                 u"auth:login:username:{}".format(
-                    md5_text(request.POST["username"].lower()).hexdigest()
+                    md5_text(login_form.clean_username(request.POST["username"])).hexdigest()
                 ),
                 limit=10,
                 window=60,  # 10 per minute should be enough for anyone

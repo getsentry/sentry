@@ -1,5 +1,7 @@
+import {ClassNames} from '@emotion/core';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -23,9 +25,9 @@ import theme from 'app/utils/theme';
 import OrganizationMemberRow from './organizationMemberRow';
 import MembersFilter from './components/membersFilter';
 
-type Props = AsyncView['props'] & {
+type Props = {
   organization: Organization;
-};
+} & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
   member: Member & {roles: MemberRole[]};
@@ -139,7 +141,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {params, router, organization} = this.props;
+    const {params, organization, routes} = this.props;
     const {membersPageLinks, members, member: currentMember} = this.state;
     const {name: orgName, access} = organization;
 
@@ -167,11 +169,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
         <DropdownMenu closeOnEscape>
           {({getActorProps, isOpen}) => (
             <FilterWrapper>
-              <Button
-                size="small"
-                icon="icon-sliders"
-                {...getActorProps({isStyled: true})}
-              >
+              <Button size="small" icon="icon-sliders" {...getActorProps({})}>
                 {t('Search Filters')}
               </Button>
               {isOpen && (
@@ -189,15 +187,19 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        {this.renderSearchInput({
-          updateRoute: true,
-          placeholder: t('Search Members'),
-          children: renderSearch,
-          className: css`
-            font-size: ${theme.fontSizeMedium};
-            padding: ${space(0.75)};
-          `,
-        })}
+        <ClassNames>
+          {({css}) =>
+            this.renderSearchInput({
+              updateRoute: true,
+              placeholder: t('Search Members'),
+              children: renderSearch,
+              className: css`
+                font-size: ${theme.fontSizeMedium};
+                padding: ${space(0.75)};
+              `,
+            })
+          }
+        </ClassNames>
         <Panel data-test-id="org-member-list">
           <PanelHeader>{t('Members')}</PanelHeader>
 
@@ -205,7 +207,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
             {members.map(member => {
               return (
                 <OrganizationMemberRow
-                  routes={router.routes}
+                  routes={routes}
                   params={params}
                   key={member.id}
                   member={member}

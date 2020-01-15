@@ -1,5 +1,6 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -16,7 +17,7 @@ import {SentryApp} from 'app/types';
 
 import RequestLog from './requestLog';
 
-type Props = AsyncView['props'];
+type Props = RouteComponentProps<{appSlug: string; orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
   stats: {

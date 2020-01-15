@@ -1,6 +1,6 @@
 import {t} from 'app/locale';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
