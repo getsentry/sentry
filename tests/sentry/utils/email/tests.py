@@ -4,7 +4,7 @@ import functools
 
 import pytest
 from django.core import mail
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry import options
 from sentry.models import GroupEmailThread, User, UserOption

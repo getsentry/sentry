@@ -9,7 +9,7 @@ import copy
 
 from django.core.urlresolvers import reverse
 from exam import fixture
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import (

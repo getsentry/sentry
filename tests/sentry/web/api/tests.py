@@ -7,7 +7,7 @@ from sentry.utils.compat import mock
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from exam import fixture
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 from six import BytesIO
 
 from sentry.coreapi import APIRateLimited

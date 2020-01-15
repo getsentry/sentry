@@ -8,7 +8,7 @@ import six
 from datetime import timedelta
 
 from django.utils import timezone
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import (

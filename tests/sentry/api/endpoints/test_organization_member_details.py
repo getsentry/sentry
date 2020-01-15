@@ -5,7 +5,7 @@ import six
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.db.models import F
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.models import (
     Authenticator,
