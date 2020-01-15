@@ -3,12 +3,7 @@ from __future__ import absolute_import
 import six
 import ipaddress
 import socket
-
-try:
-    # TODO: remove when we drop Python 2.7 compat
-    from functools32 import lru_cache
-except ImportError:
-    from functools import lru_cache
+from functools32 import lru_cache
 from ssl import wrap_socket
 from six.moves.urllib.parse import urlparse
 
