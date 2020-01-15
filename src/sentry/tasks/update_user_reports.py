@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 import logging
+import six
 
 from django.utils import timezone
 
@@ -19,23 +20,36 @@ def update_user_reports(**kwargs):
         group__isnull=True, environment__isnull=True, date_added__gte=now - timedelta(days=1)
     )
 
-    project_ids = [r.project_id for r in user_reports]
-    event_ids = [r.event_id for r in user_reports]
-    report_by_event = {r.event_id: r for r in user_reports}
+    # We do one query per project, just to avoid the small case that two projects have the same event ID
+    project_map = {}
+    for r in user_reports:
+        project_map.setdefault(r.project_id, []).append(r)
 
-    snuba_filter = eventstore.Filter(project_ids=project_ids, event_ids=event_ids)
-    events = eventstore.get_events(filter=snuba_filter)
-
+    # Logging values
     total_reports = len(user_reports)
     reports_with_event = 0
     updated_reports = 0
+    samples = None
 
-    for event in events:
-        report = report_by_event.get(event.event_id)
-        if report:
-            reports_with_event += 1
-            report.update(group_id=event.group_id, environment=event.get_environment())
-            updated_reports += 1
+    for project_id, reports in six.iteritems(project_map):
+        event_ids = [r.event_id for r in reports]
+        report_by_event = {r.event_id: r for r in reports}
+        snuba_filter = eventstore.Filter(project_ids=[project_id], event_ids=event_ids)
+        events = eventstore.get_events(filter=snuba_filter)
+
+        for event in events:
+            report = report_by_event.get(event.event_id)
+            if report:
+                reports_with_event += 1
+                report.update(group_id=event.group_id, environment=event.get_environment())
+                updated_reports += 1
+
+        if not samples and len(reports) <= 10:
+            samples = {
+                "project_id": project_id,
+                "event_ids": event_ids,
+                "reports_event_ids": {r.id: r.event_id for r in reports},
+            }
 
     logger.info(
         "update_user_reports.records_updated",
@@ -43,5 +57,6 @@ def update_user_reports(**kwargs):
             "reports_to_update": total_reports,
             "reports_with_event": reports_with_event,
             "updated_reports": updated_reports,
+            "samples": samples,
         },
     )
