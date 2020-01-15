@@ -47,7 +47,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if fields:
             event_slug = u"{}:{}".format(project.slug, event_id)
             reference = discover.ReferenceEvent(
-                organization, event_slug, fields, event.timestamp, event.timestamp
+                organization, event_slug, fields, event.datetime, event.datetime
             )
         try:
             pagination = discover.get_pagination_ids(
