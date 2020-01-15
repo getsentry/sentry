@@ -7,7 +7,7 @@ import json
 import six
 
 from pkg_resources import parse_version
-from functools32 import lru_cache
+from sentry.utils.compat.functools import lru_cache
 
 import sentry
 
