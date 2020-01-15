@@ -89,6 +89,10 @@ class Event(EventCommon):
 
     @message.setter
     def message(self, value):
+        """
+        This can be removed once Django Event is removed and we no longer need to manually
+        update this field in event_manager.save().
+        """
         self._message = value
 
     @property
