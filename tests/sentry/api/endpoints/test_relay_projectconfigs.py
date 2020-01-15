@@ -11,6 +11,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.utils import safe
 from sentry.models.relay import Relay
+from sentry.models import Project
 
 from semaphore.auth import generate_key_pair
 
@@ -60,10 +61,11 @@ def setup_relay(default_project):
 
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_project):
-    def inner(full_config):
+    def inner(full_config, projects=None):
         path = reverse("sentry-api-0-relay-projectconfigs")
 
-        projects = [six.text_type(default_project.id)]
+        if projects is None:
+            projects = [six.text_type(default_project.id)]
 
         if full_config is None:
             raw_json, signature = private_key.pack({"projects": projects})
@@ -286,3 +288,19 @@ def test_relay_projectconfig_cache_full_config(
     del redis_cfg["lastChange"]
 
     assert redis_cfg == http_cfg
+
+
+@pytest.mark.django_db
+def test_relay_nonexistent_project(
+    call_endpoint, default_project, projectconfig_cache_set, task_runner
+):
+    with task_runner():
+        result, status_code = call_endpoint(
+            full_config=True, projects=[max(p.id for p in Project.objects.all()) + 1]
+        )
+        assert status_code < 400
+
+    http_cfg, = six.itervalues(result["configs"])
+    assert http_cfg is None
+
+    assert projectconfig_cache_set == [[]]
