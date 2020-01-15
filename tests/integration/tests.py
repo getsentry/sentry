@@ -176,7 +176,7 @@ class SentryRemoteTest(SnubaTestCase):
         return reverse("sentry-api-store")
 
     def get_event(self, event_id):
-        instance = eventstore.get_event_by_id(self.project.id, event_id, eventstore.full_columns)
+        instance = eventstore.get_event_by_id(self.project.id, event_id)
         instance.bind_node_data()
         return instance
 
