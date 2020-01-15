@@ -586,18 +586,17 @@ class EventManager(object):
         # however the data is dynamically overridden by Event.title and
         # Event.location (See Event.as_dict)
         materialized_metadata = self.materialize_metadata()
-        event_metadata = materialized_metadata["metadata"]
         data.update(materialized_metadata)
         data["culprit"] = culprit
 
         # index components into ``Event.message``
         # See GH-3248
-        if event_metadata is None:
-            event_metadata = self.get_event_type().get_metadata(self._data)
-        if culprit is None:
-            culprit = self.get_culprit()
+        # TODO: We temporarily save the search message into the message field to
+        # maintain backward compatibility with the Django event model. Once
+        # "store.use-django-event" is turned off for good, we can just reference
+        # event.search_message everywhere.
+        event.message = event.search_message
 
-        event.message = event.get_search_message(event_metadata, culprit)
         received_timestamp = event.data.get("received") or float(event.datetime.strftime("%s"))
 
         if not issueless_event:

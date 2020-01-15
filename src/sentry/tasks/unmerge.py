@@ -98,7 +98,7 @@ initial_fields = {
     },
     "last_seen": lambda event: event.datetime,
     "level": lambda event: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
-    "message": lambda event: event.message,
+    "message": lambda event: event.search_message,
     "times_seen": lambda event: 0,
 }
 
