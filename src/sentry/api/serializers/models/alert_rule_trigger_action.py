@@ -25,4 +25,5 @@ class AlertRuleTriggerActionSerializer(Serializer):
             else obj.target_identifier,
             "integrationId": obj.integration_id,
             "dateCreated": obj.date_added,
+            "desc": obj.human_desc,
         }
