@@ -14,7 +14,11 @@ class MetricsWrapper(AbstractIndexBackend):
         return getattr(self.backend, name)
 
     def __instrumented_method_call(self, method, scope, *args, **kwargs):
-        with timer(self.template.format(method), tags={self.scope_tag_name: scope}):
+        tags = {}
+        if self.scope_tag_name is not None:
+            tags[self.scope_tag_name] = scope
+
+        with timer(self.template.format(method), tags=tags):
             return getattr(self.backend, method)(scope, *args, **kwargs)
 
     def record(self, *args, **kwargs):
