@@ -112,7 +112,7 @@ const OrganizationContext = createReactClass({
   },
 
   remountComponent() {
-    this.setState(this.getInitialState(), this.fetchData);
+    this.setState(this.getInitialState(), () => this.fetchData(false));
   },
 
   onProjectCreation() {
@@ -163,7 +163,7 @@ const OrganizationContext = createReactClass({
     );
   },
 
-  async fetchData() {
+  fetchData(isSilent = true) {
     if (!this.getOrganizationSlug()) {
       return;
     }
@@ -176,7 +176,7 @@ const OrganizationContext = createReactClass({
       this.props.api,
       this.getOrganizationSlug(),
       this.props.detailed,
-      true // silent, to not reset a lightweight org that was fetched
+      isSilent // silent, if true, will not reset a lightweight org that was fetched
     );
   },
 
