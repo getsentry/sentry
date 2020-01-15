@@ -418,7 +418,7 @@ class AlertRuleTriggerAction(Model):
 
     @property
     def human_desc(self):
-        # Returns a human readable description to di1splay in the UI
+        # Returns a human readable description to display in the UI
         if self.type == self.Type.EMAIL.value:
             if self.target:
                 if self.target_type == self.TargetType.USER.value:
