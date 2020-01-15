@@ -31,7 +31,7 @@ describe('TeamMembers', function() {
     Client.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
-      body: [member],
+      body: [member, ...members],
     });
     Client.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/members/`,
@@ -55,6 +55,40 @@ describe('TeamMembers', function() {
     );
     await tick();
     wrapper.update();
+  });
+
+  it('hides pending members in team member dropdown', async function() {
+    const pendingMember = TestStubs.Member({
+      id: '44',
+      email: 'sentry44@test.com',
+      name: 'Sentry 44 Name',
+      user: null,
+      pending: true,
+    });
+    Client.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [member, pendingMember],
+    });
+
+    const wrapper = mountWithTheme(
+      <TeamMembers
+        params={{orgId: organization.slug, teamId: team.slug}}
+        organization={organization}
+      />,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    wrapper.find('DropdownButton[data-test-id="add-member"]').simulate('click');
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('AutoCompleteItem').length).toBe(1);
+    expect(wrapper.find('AutoCompleteItem').text()).toContain(member.name);
   });
 
   it('can add member to team with open membership', async function() {

@@ -203,7 +203,6 @@ class TeamMembers extends React.Component {
 
   renderDropdown = access => {
     const {organization, params} = this.props;
-    const existingMembers = new Set(this.state.teamMemberList.map(member => member.id));
 
     // members can add other members to a team if the `Open Membership` setting is enabled
     // otherwise, `org:write` or `team:admin` permissions are required
@@ -211,16 +210,17 @@ class TeamMembers extends React.Component {
     const hasWriteAccess = access.has('org:write') || access.has('team:admin');
     const canAddMembers = hasOpenMembership || hasWriteAccess;
 
+    const existingMembers = new Set(this.state.teamMemberList.map(member => member.id));
     const items = (this.state.orgMemberList || [])
-      .filter(m => !existingMembers.has(m.id))
-      .map(m => {
+      .filter(member => !existingMembers.has(member.id) && !member.pending)
+      .map(member => {
         return {
-          searchKey: `${m.name} ${m.email}`,
-          value: m.id,
+          searchKey: `${member.name} ${member.email}`,
+          value: member.id,
           label: (
             <StyledUserListElement>
-              <StyledAvatar user={m} size={24} className="avatar" />
-              <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
+              <StyledAvatar user={member} size={24} className="avatar" />
+              <StyledNameOrEmail>{member.name || member.email}</StyledNameOrEmail>
             </StyledUserListElement>
           ),
         };
