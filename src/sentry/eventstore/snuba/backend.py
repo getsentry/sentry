@@ -98,7 +98,7 @@ class SnubaEventStorage(EventStorage):
         cols = self.__get_columns()
         orderby = orderby or DESC_ORDERING
 
-        result = snuba.raw_query(
+        result = snuba.dataset_query(
             selected_columns=cols,
             start=filter.start,
             end=filter.end,
