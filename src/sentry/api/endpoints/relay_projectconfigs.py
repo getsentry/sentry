@@ -114,6 +114,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 )
 
         if full_config_requested:
-            projectconfig_cache.set_many(list(six.itervalues(configs)))
+            projectconfig_cache.set_many(list(c for c in six.itervalues(configs) if c is not None))
 
         return Response({"configs": configs}, status=200)
