@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from contextlib import contextmanager
 from django.http import HttpRequest
 from rest_framework.response import Response
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry import features
 from sentry.features import OrganizationFeature

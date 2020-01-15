@@ -5,7 +5,7 @@ import six
 from base64 import b64encode
 from django.core.urlresolvers import reverse
 from django.core import mail
-from mock import patch
+from sentry.utils.compat.mock import patch
 from exam import fixture
 from pprint import pprint
 

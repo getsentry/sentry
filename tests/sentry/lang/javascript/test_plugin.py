@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import os.path
 import responses
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry import eventstore
 from sentry.models import File, Release, ReleaseFile

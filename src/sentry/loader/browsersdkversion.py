@@ -7,7 +7,7 @@ import json
 import six
 
 from pkg_resources import parse_version
-from functools32 import lru_cache
+from sentry.utils.compat import functools
 
 import sentry
 
@@ -19,7 +19,7 @@ _version_regexp = re.compile(r"^\d+\.\d+\.\d+$")  # We really only want stable r
 LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), "loader"))
 
 
-@lru_cache(maxsize=10)
+@functools.lru_cache(maxsize=10)
 def load_registry(path):
     if "/" in path:
         return None

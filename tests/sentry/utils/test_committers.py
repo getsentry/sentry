@@ -4,7 +4,7 @@ import unittest
 
 from datetime import timedelta
 from django.utils import timezone
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 from uuid import uuid4
 
 from sentry.models import Commit, CommitAuthor, CommitFileChange, Release, Repository
