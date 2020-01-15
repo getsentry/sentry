@@ -302,6 +302,9 @@ class EnvironmentMixin(object):
 
 
 class StatsMixin(object):
+    METRIC_EVENT_COUNT = 0
+    METRIC_BYTES_RECEIVED = 1
+
     def _parse_args(self, request, environment_id=None):
         resolution = request.GET.get("resolution")
         if resolution:

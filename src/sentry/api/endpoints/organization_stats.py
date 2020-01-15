@@ -41,7 +41,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
                                  in seconds since UNIX epoch.
         :qparam string resolution: an explicit resolution to search
                                    for (one of ``10s``, ``1h``, and ``1d``)
-        :qparam bool bytes: whether or not to return the counts as number of bytes
+        :qparam enum metric: the type of count to return (i.e. number of events, total bytes)
         :auth: required
         """
         group = request.GET.get("group", "organization")
@@ -70,45 +70,49 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
 
         stat_model = None
         stat = request.GET.get("stat", "received")
-        retrieve_bytes = request.GET.get("bytes", False) == "true"
+        metric = request.GET.get("metric", 0) == StatsMixin.METRIC_EVENT_COUNT
+
+        if metric not in {StatsMixin.METRIC_EVENT_COUNT, StatsMixin.METRIC_BYTES_RECEIVED}:
+            raise ValueError("Invalid metric")
+
         query_kwargs = {}
         if stat == "received":
             if group == "project":
                 stat_model = (
                     tsdb.models.project_total_received
-                    if not retrieve_bytes
+                    if metric == StatsMixin.METRIC_EVENT_COUNT
                     else tsdb.models.project_total_bytes_received
                 )
             else:
                 stat_model = (
                     tsdb.models.organization_total_received
-                    if not retrieve_bytes
+                    if metric == StatsMixin.METRIC_EVENT_COUNT
                     else tsdb.models.organization_total_bytes_received
                 )
         elif stat == "rejected":
             if group == "project":
                 stat_model = (
                     tsdb.models.project_total_rejected
-                    if not retrieve_bytes
+                    if metric == StatsMixin.METRIC_EVENT_COUNT
                     else tsdb.models.project_total_bytes_rejected
                 )
             else:
                 stat_model = (
                     tsdb.models.organization_total_rejected
-                    if not retrieve_bytes
+                    if metric == StatsMixin.METRIC_EVENT_COUNT
                     else tsdb.models.organization_total_bytes_rejected
                 )
         elif stat == "blacklisted":
             if group == "project":
                 stat_model = (
                     tsdb.models.project_total_blacklisted
-                    if not retrieve_bytes
+                    if metric == StatsMixin.METRIC_EVENT_COUNT
                     else tsdb.models.project_total_bytes_blacklisted
                 )
             else:
                 stat_model = (
                     tsdb.models.organization_total_blacklisted
-                    if not retrieve_bytes
+                    if metric == StatsMixin.METRIC_EVENT_COUNT
                     else tsdb.models.organization_total_bytes_blacklisted
                 )
         elif stat == "generated":
