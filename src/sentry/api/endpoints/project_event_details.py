@@ -44,9 +44,6 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
         event = eventstore.get_event_by_id(project.id, event_id)
 
-        if not options.get("eventstore.use-nodestore"):
-            event.bind_node_data()
-
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
