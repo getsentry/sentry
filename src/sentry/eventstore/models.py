@@ -199,30 +199,3 @@ class Event(EventCommon):
         if column in self._snuba_data:
             return self._snuba_data[column]
         return super(Event, self).location
-
-    def get_search_message(self, event_metadata=None, culprit=None):
-        """This generates the internal event.message attribute which is used
-        for search purposes.  It adds a bunch of data from the metadata and
-        the culprit.
-        """
-        data = self.data
-        message = ""
-
-        if data.get("logentry"):
-            message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
-
-        if event_metadata:
-            for value in six.itervalues(event_metadata):
-                value_u = force_text(value, errors="replace")
-                if value_u not in message:
-                    message = u"{} {}".format(message, value_u)
-
-        if culprit and culprit not in message:
-            culprit_u = force_text(culprit, errors="replace")
-            message = u"{} {}".format(message, culprit_u)
-
-        return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
-
-    def __get_column_name(self, column):
-        # Events are currently populated from the Events dataset
-        return column.value.event_name
