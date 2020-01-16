@@ -16,6 +16,7 @@ module.exports = {
   plugins: [
     'react-hot-loader/babel',
     '@babel/plugin-syntax-dynamic-import',
+    '@babel/plugin-proposal-nullish-coalescing-operator',
     '@babel/plugin-proposal-object-rest-spread',
     '@babel/plugin-proposal-optional-chaining',
     '@babel/plugin-transform-runtime',
