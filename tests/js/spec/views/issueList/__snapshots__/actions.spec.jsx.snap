@@ -165,21 +165,21 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
               <StyledButton
                 aria-disabled={false}
                 aria-label="Cancel"
+                as="button"
                 disabled={false}
-                forwardRef={null}
                 onClick={[Function]}
                 role="button"
+                shouldForwardProp={[Function]}
                 style={
                   Object {
                     "marginRight": 10,
                   }
                 }
               >
-                <Component
+                <button
                   aria-disabled={false}
                   aria-label="Cancel"
                   className="css-1c2phb1-StyledButton edwq9my0"
-                  forwardRef={null}
                   onClick={[Function]}
                   role="button"
                   style={
@@ -188,34 +188,21 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                     }
                   }
                 >
-                  <button
-                    aria-disabled={false}
-                    aria-label="Cancel"
-                    className="css-1c2phb1-StyledButton edwq9my0"
-                    onClick={[Function]}
-                    role="button"
-                    style={
-                      Object {
-                        "marginRight": 10,
-                      }
-                    }
+                  <ButtonLabel
+                    align="center"
                   >
-                    <ButtonLabel
+                    <Component
                       align="center"
+                      className="css-zmpclt-ButtonLabel edwq9my1"
                     >
-                      <Component
-                        align="center"
+                      <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
-                        >
-                          Cancel
-                        </span>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
+                        Cancel
+                      </span>
+                    </Component>
+                  </ButtonLabel>
+                </button>
               </StyledButton>
             </Button>
           </forwardRef<Button>>
@@ -238,51 +225,41 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
               <StyledButton
                 aria-disabled={false}
                 aria-label="Bulk resolve issues"
+                as="button"
                 autoFocus={true}
                 data-test-id="confirm-button"
                 disabled={false}
-                forwardRef={null}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
+                shouldForwardProp={[Function]}
               >
-                <Component
+                <button
                   aria-disabled={false}
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
                   className="css-1e05jtd-StyledButton edwq9my0"
                   data-test-id="confirm-button"
-                  forwardRef={null}
                   onClick={[Function]}
                   role="button"
                 >
-                  <button
-                    aria-disabled={false}
-                    aria-label="Bulk resolve issues"
-                    autoFocus={true}
-                    className="css-1e05jtd-StyledButton edwq9my0"
-                    data-test-id="confirm-button"
-                    onClick={[Function]}
-                    role="button"
+                  <ButtonLabel
+                    align="center"
+                    priority="primary"
                   >
-                    <ButtonLabel
+                    <Component
                       align="center"
+                      className="css-zmpclt-ButtonLabel edwq9my1"
                       priority="primary"
                     >
-                      <Component
-                        align="center"
+                      <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
-                        priority="primary"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
-                        >
-                          Bulk resolve issues
-                        </span>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
+                        Bulk resolve issues
+                      </span>
+                    </Component>
+                  </ButtonLabel>
+                </button>
               </StyledButton>
             </Button>
           </forwardRef<Button>>
@@ -490,21 +467,21 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
               <StyledButton
                 aria-disabled={false}
                 aria-label="Cancel"
+                as="button"
                 disabled={false}
-                forwardRef={null}
                 onClick={[Function]}
                 role="button"
+                shouldForwardProp={[Function]}
                 style={
                   Object {
                     "marginRight": 10,
                   }
                 }
               >
-                <Component
+                <button
                   aria-disabled={false}
                   aria-label="Cancel"
                   className="css-1c2phb1-StyledButton edwq9my0"
-                  forwardRef={null}
                   onClick={[Function]}
                   role="button"
                   style={
@@ -513,34 +490,21 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                     }
                   }
                 >
-                  <button
-                    aria-disabled={false}
-                    aria-label="Cancel"
-                    className="css-1c2phb1-StyledButton edwq9my0"
-                    onClick={[Function]}
-                    role="button"
-                    style={
-                      Object {
-                        "marginRight": 10,
-                      }
-                    }
+                  <ButtonLabel
+                    align="center"
                   >
-                    <ButtonLabel
+                    <Component
                       align="center"
+                      className="css-zmpclt-ButtonLabel edwq9my1"
                     >
-                      <Component
-                        align="center"
+                      <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
-                        >
-                          Cancel
-                        </span>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
+                        Cancel
+                      </span>
+                    </Component>
+                  </ButtonLabel>
+                </button>
               </StyledButton>
             </Button>
           </forwardRef<Button>>
@@ -563,51 +527,41 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
               <StyledButton
                 aria-disabled={false}
                 aria-label="Bulk resolve issues"
+                as="button"
                 autoFocus={true}
                 data-test-id="confirm-button"
                 disabled={false}
-                forwardRef={null}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
+                shouldForwardProp={[Function]}
               >
-                <Component
+                <button
                   aria-disabled={false}
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
                   className="css-1e05jtd-StyledButton edwq9my0"
                   data-test-id="confirm-button"
-                  forwardRef={null}
                   onClick={[Function]}
                   role="button"
                 >
-                  <button
-                    aria-disabled={false}
-                    aria-label="Bulk resolve issues"
-                    autoFocus={true}
-                    className="css-1e05jtd-StyledButton edwq9my0"
-                    data-test-id="confirm-button"
-                    onClick={[Function]}
-                    role="button"
+                  <ButtonLabel
+                    align="center"
+                    priority="primary"
                   >
-                    <ButtonLabel
+                    <Component
                       align="center"
+                      className="css-zmpclt-ButtonLabel edwq9my1"
                       priority="primary"
                     >
-                      <Component
-                        align="center"
+                      <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
-                        priority="primary"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
-                        >
-                          Bulk resolve issues
-                        </span>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
+                        Bulk resolve issues
+                      </span>
+                    </Component>
+                  </ButtonLabel>
+                </button>
               </StyledButton>
             </Button>
           </forwardRef<Button>>

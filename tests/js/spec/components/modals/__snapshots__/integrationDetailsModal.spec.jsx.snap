@@ -370,50 +370,40 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           <StyledButton
             aria-disabled={false}
             aria-label="Cancel"
+            as="button"
             data-test-id="cancel-button"
             disabled={false}
-            forwardRef={null}
             onClick={[Function]}
             role="button"
+            shouldForwardProp={[Function]}
             size="small"
           >
-            <Component
+            <button
               aria-disabled={false}
               aria-label="Cancel"
               className="css-12ogwys-StyledButton edwq9my0"
               data-test-id="cancel-button"
-              forwardRef={null}
               onClick={[Function]}
               role="button"
               size="small"
             >
-              <button
-                aria-disabled={false}
-                aria-label="Cancel"
-                className="css-12ogwys-StyledButton edwq9my0"
-                data-test-id="cancel-button"
-                onClick={[Function]}
-                role="button"
+              <ButtonLabel
+                align="center"
                 size="small"
               >
-                <ButtonLabel
+                <Component
                   align="center"
+                  className="css-19gcr2f-ButtonLabel edwq9my1"
                   size="small"
                 >
-                  <Component
-                    align="center"
+                  <span
                     className="css-19gcr2f-ButtonLabel edwq9my1"
-                    size="small"
                   >
-                    <span
-                      className="css-19gcr2f-ButtonLabel edwq9my1"
-                    >
-                      Cancel
-                    </span>
-                  </Component>
-                </ButtonLabel>
-              </button>
-            </Component>
+                    Cancel
+                  </span>
+                </Component>
+              </ButtonLabel>
+            </button>
           </StyledButton>
         </Button>
       </forwardRef<Button>>
@@ -676,12 +666,13 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           <StyledButton
                             aria-disabled={false}
                             aria-label="Add Installation"
+                            as="button"
                             data-test-id="add-button"
                             disabled={false}
-                            forwardRef={null}
                             onClick={[Function]}
                             priority="primary"
                             role="button"
+                            shouldForwardProp={[Function]}
                             size="small"
                             style={
                               Object {
@@ -689,12 +680,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                               }
                             }
                           >
-                            <Component
+                            <button
                               aria-disabled={false}
                               aria-label="Add Installation"
                               className="css-z8at1v-StyledButton edwq9my0"
                               data-test-id="add-button"
-                              forwardRef={null}
                               onClick={[Function]}
                               role="button"
                               size="small"
@@ -704,40 +694,25 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                                 }
                               }
                             >
-                              <button
-                                aria-disabled={false}
-                                aria-label="Add Installation"
-                                className="css-z8at1v-StyledButton edwq9my0"
-                                data-test-id="add-button"
-                                onClick={[Function]}
-                                role="button"
+                              <ButtonLabel
+                                align="center"
+                                priority="primary"
                                 size="small"
-                                style={
-                                  Object {
-                                    "marginLeft": "8px",
-                                  }
-                                }
                               >
-                                <ButtonLabel
+                                <Component
                                   align="center"
+                                  className="css-19gcr2f-ButtonLabel edwq9my1"
                                   priority="primary"
                                   size="small"
                                 >
-                                  <Component
-                                    align="center"
+                                  <span
                                     className="css-19gcr2f-ButtonLabel edwq9my1"
-                                    priority="primary"
-                                    size="small"
                                   >
-                                    <span
-                                      className="css-19gcr2f-ButtonLabel edwq9my1"
-                                    >
-                                      Add Installation
-                                    </span>
-                                  </Component>
-                                </ButtonLabel>
-                              </button>
-                            </Component>
+                                    Add Installation
+                                  </span>
+                                </Component>
+                              </ButtonLabel>
+                            </button>
                           </StyledButton>
                         </Button>
                       </forwardRef<Button>>

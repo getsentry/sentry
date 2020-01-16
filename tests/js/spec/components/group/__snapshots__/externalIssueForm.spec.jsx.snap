@@ -142,51 +142,41 @@ exports[`ExternalIssueForm create renders 1`] = `
                     <StyledButton
                       aria-disabled={false}
                       aria-label="Create Issue"
+                      as="button"
                       data-test-id="form-submit"
                       disabled={false}
-                      forwardRef={null}
                       onClick={[Function]}
                       priority="primary"
                       role="button"
+                      shouldForwardProp={[Function]}
                       type="submit"
                     >
-                      <Component
+                      <button
                         aria-disabled={false}
                         aria-label="Create Issue"
                         className="css-1e05jtd-StyledButton edwq9my0"
                         data-test-id="form-submit"
-                        forwardRef={null}
                         onClick={[Function]}
                         role="button"
                         type="submit"
                       >
-                        <button
-                          aria-disabled={false}
-                          aria-label="Create Issue"
-                          className="css-1e05jtd-StyledButton edwq9my0"
-                          data-test-id="form-submit"
-                          onClick={[Function]}
-                          role="button"
-                          type="submit"
+                        <ButtonLabel
+                          align="center"
+                          priority="primary"
                         >
-                          <ButtonLabel
+                          <Component
                             align="center"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
                             priority="primary"
                           >
-                            <Component
-                              align="center"
+                            <span
                               className="css-zmpclt-ButtonLabel edwq9my1"
-                              priority="primary"
                             >
-                              <span
-                                className="css-zmpclt-ButtonLabel edwq9my1"
-                              >
-                                Create Issue
-                              </span>
-                            </Component>
-                          </ButtonLabel>
-                        </button>
-                      </Component>
+                              Create Issue
+                            </span>
+                          </Component>
+                        </ButtonLabel>
+                      </button>
                     </StyledButton>
                   </Button>
                 </forwardRef<Button>>
@@ -2778,51 +2768,41 @@ exports[`ExternalIssueForm link renders 1`] = `
                     <StyledButton
                       aria-disabled={false}
                       aria-label="Link Issue"
+                      as="button"
                       data-test-id="form-submit"
                       disabled={false}
-                      forwardRef={null}
                       onClick={[Function]}
                       priority="primary"
                       role="button"
+                      shouldForwardProp={[Function]}
                       type="submit"
                     >
-                      <Component
+                      <button
                         aria-disabled={false}
                         aria-label="Link Issue"
                         className="css-1e05jtd-StyledButton edwq9my0"
                         data-test-id="form-submit"
-                        forwardRef={null}
                         onClick={[Function]}
                         role="button"
                         type="submit"
                       >
-                        <button
-                          aria-disabled={false}
-                          aria-label="Link Issue"
-                          className="css-1e05jtd-StyledButton edwq9my0"
-                          data-test-id="form-submit"
-                          onClick={[Function]}
-                          role="button"
-                          type="submit"
+                        <ButtonLabel
+                          align="center"
+                          priority="primary"
                         >
-                          <ButtonLabel
+                          <Component
                             align="center"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
                             priority="primary"
                           >
-                            <Component
-                              align="center"
+                            <span
                               className="css-zmpclt-ButtonLabel edwq9my1"
-                              priority="primary"
                             >
-                              <span
-                                className="css-zmpclt-ButtonLabel edwq9my1"
-                              >
-                                Link Issue
-                              </span>
-                            </Component>
-                          </ButtonLabel>
-                        </button>
-                      </Component>
+                              Link Issue
+                            </span>
+                          </Component>
+                        </ButtonLabel>
+                      </button>
                     </StyledButton>
                   </Button>
                 </forwardRef<Button>>

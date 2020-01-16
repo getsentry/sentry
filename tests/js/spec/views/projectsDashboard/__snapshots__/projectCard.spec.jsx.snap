@@ -973,19 +973,23 @@ exports[`ProjectCard renders 1`] = `
                           <StyledButton
                             aria-disabled={false}
                             aria-label="Track deploys"
+                            as={
+                              Object {
+                                "$$typeof": Symbol(react.forward_ref),
+                                "render": [Function],
+                              }
+                            }
                             disabled={false}
-                            external={true}
-                            forwardRef={null}
                             href="https://docs.sentry.io/learn/releases/"
                             onClick={[Function]}
                             role="button"
+                            shouldForwardProp={[Function]}
                             size="xsmall"
                           >
-                            <Component
+                            <ForwardRef
                               aria-disabled={false}
                               aria-label="Track deploys"
                               className="css-12ogwys-StyledButton edwq9my0"
-                              forwardRef={null}
                               href="https://docs.sentry.io/learn/releases/"
                               onClick={[Function]}
                               role="button"
@@ -997,8 +1001,10 @@ exports[`ProjectCard renders 1`] = `
                                 className="css-12ogwys-StyledButton edwq9my0"
                                 href="https://docs.sentry.io/learn/releases/"
                                 onClick={[Function]}
+                                rel="noreferrer noopener"
                                 role="button"
                                 size="xsmall"
+                                target="_blank"
                               >
                                 <ButtonLabel
                                   align="center"
@@ -1017,7 +1023,7 @@ exports[`ProjectCard renders 1`] = `
                                   </Component>
                                 </ButtonLabel>
                               </a>
-                            </Component>
+                            </ForwardRef>
                           </StyledButton>
                         </Button>
                       </forwardRef<Button>>

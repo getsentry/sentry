@@ -127,6 +127,8 @@ class Button extends React.Component<ButtonProps, {}> {
       priority,
       disabled,
       tooltipProps,
+      forwardRef,
+      external,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -138,11 +140,15 @@ class Button extends React.Component<ButtonProps, {}> {
     const screenReaderLabel =
       label || (typeof children === 'string' ? children : undefined);
 
+    const buttonElement = getButtonElement({to, href, external});
+
     // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
     // Let's use props to determine which to serve up, so we don't have to think about it.
     // *Note* you must still handle tabindex manually.
     const button = (
       <StyledButton
+        ref={forwardRef}
+        as={buttonElement}
         aria-label={screenReaderLabel}
         aria-disabled={disabled}
         disabled={disabled}
@@ -151,6 +157,7 @@ class Button extends React.Component<ButtonProps, {}> {
         size={size}
         priority={priority}
         borderless={borderless}
+        shouldForwardProp={prop => isPropValid(prop) && prop !== 'disabled'}
         {...buttonProps}
         onClick={this.handleClick}
         role="button"
@@ -203,7 +210,25 @@ ButtonForwardRef.displayName = 'forwardRef<Button>';
 
 export default ButtonForwardRef;
 
-type StyledButtonProps = ButtonProps & {theme?: any};
+type StyledButtonProps = ButtonProps;
+
+function getButtonElement(props: Pick<ButtonProps, 'to' | 'href' | 'external'>) {
+  // Get component to use based on existence of `to` or `href` properties
+  // Can be react-router `Link`, `a`, or `button`
+  if (props.to) {
+    return Link;
+  }
+
+  if (props.external && props.href) {
+    return ExternalLink;
+  }
+
+  if (props.href) {
+    return 'a';
+  }
+
+  return 'button';
+}
 
 const getFontSize = ({size, theme}: StyledButtonProps) => {
   switch (size) {
@@ -271,29 +296,9 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
   `;
 };
 
-const StyledButton = styled(
-  ({forwardRef, ...props}) => {
-    // Get component to use based on existence of `to` or `href` properties
-    // Can be react-router `Link`, `a`, or `button`
-    if (props.to) {
-      return <Link ref={forwardRef} {...props} />;
-    }
-
-    if (!props.href) {
-      return <button ref={forwardRef} {...props} />;
-    }
-
-    if (props.external && props.href) {
-      return <ExternalLink ref={forwardRef} {...props} />;
-    }
-
-    return <a ref={forwardRef} {...props} />;
-  },
-  {
-    shouldForwardProp: prop =>
-      prop === 'forwardRef' || (isPropValid(prop) && prop !== 'disabled'),
-  }
-)<Props>`
+const StyledButton = styled('button', {
+  shouldForwardProp: prop => isPropValid(prop) && prop !== 'disabled',
+})<Props>`
   display: inline-block;
   line-height: 1;
   border-radius: ${p => p.theme.button.borderRadius};

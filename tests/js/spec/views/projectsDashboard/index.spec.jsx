@@ -59,7 +59,7 @@ describe('ProjectsDashboard', function() {
         routerContext
       );
 
-      expect(wrapper.find('Button[data-test-id="create-project"]').exists()).toBe(false);
+      expect(wrapper.find('[data-test-id="create-project"]').exists()).toBe(false);
       expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
     });
 
@@ -77,7 +77,7 @@ describe('ProjectsDashboard', function() {
         routerContext
       );
 
-      expect(wrapper.find('Button[data-test-id="create-project"]').exists()).toBe(true);
+      expect(wrapper.find('[data-test-id="create-project"]').exists()).toBe(true);
       expect(wrapper.find('TeamSection').exists()).toBe(true);
       expect(wrapper.find('Resources').exists()).toBe(true);
     });
@@ -110,7 +110,7 @@ describe('ProjectsDashboard', function() {
         routerContext
       );
 
-      expect(wrapper.find('Button[data-test-id="create-project"]').exists()).toBe(true);
+      expect(wrapper.find('[data-test-id="create-project"]').exists()).toBe(true);
       expect(wrapper.find('NoProjectMessage').exists()).toBe(false);
       expect(wrapper.find('TeamSection').exists()).toBe(true);
       expect(wrapper.find('Resources').exists()).toBe(false);

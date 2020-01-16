@@ -1239,48 +1239,39 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                     <StyledButton
                                       aria-disabled={false}
                                       aria-label="Show"
+                                      as="button"
                                       className="css-1g4cmym-EnvironmentButton e1pnz46f0"
                                       disabled={false}
-                                      forwardRef={null}
                                       onClick={[Function]}
                                       role="button"
+                                      shouldForwardProp={[Function]}
                                       size="xsmall"
                                     >
-                                      <Component
+                                      <button
                                         aria-disabled={false}
                                         aria-label="Show"
                                         className="e1pnz46f0 css-kzdej5-StyledButton-EnvironmentButton edwq9my0"
-                                        forwardRef={null}
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"
                                       >
-                                        <button
-                                          aria-disabled={false}
-                                          aria-label="Show"
-                                          className="e1pnz46f0 css-kzdej5-StyledButton-EnvironmentButton edwq9my0"
-                                          onClick={[Function]}
-                                          role="button"
+                                        <ButtonLabel
+                                          align="center"
                                           size="xsmall"
                                         >
-                                          <ButtonLabel
+                                          <Component
                                             align="center"
+                                            className="css-cmi7y3-ButtonLabel edwq9my1"
                                             size="xsmall"
                                           >
-                                            <Component
-                                              align="center"
+                                            <span
                                               className="css-cmi7y3-ButtonLabel edwq9my1"
-                                              size="xsmall"
                                             >
-                                              <span
-                                                className="css-cmi7y3-ButtonLabel edwq9my1"
-                                              >
-                                                Show
-                                              </span>
-                                            </Component>
-                                          </ButtonLabel>
-                                        </button>
-                                      </Component>
+                                              Show
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
                                     </StyledButton>
                                   </Button>
                                 </forwardRef<Button>>

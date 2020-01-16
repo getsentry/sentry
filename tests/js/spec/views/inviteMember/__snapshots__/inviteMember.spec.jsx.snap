@@ -646,79 +646,69 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                 <StyledButton
                                                   aria-disabled={true}
                                                   aria-label="Add Team"
+                                                  as="button"
                                                   className="css-k164fp-StyledButton e1yghndz1"
                                                   disabled={true}
-                                                  forwardRef={null}
                                                   isOpen={false}
                                                   onClick={[Function]}
                                                   role="button"
+                                                  shouldForwardProp={[Function]}
                                                   size="xsmall"
                                                   type="button"
                                                 >
-                                                  <Component
+                                                  <button
                                                     aria-disabled={true}
                                                     aria-label="Add Team"
                                                     className="e1yghndz1 css-jk8rcx-StyledButton-StyledButton edwq9my0"
-                                                    forwardRef={null}
                                                     onClick={[Function]}
                                                     role="button"
                                                     size="xsmall"
                                                     type="button"
                                                   >
-                                                    <button
-                                                      aria-disabled={true}
-                                                      aria-label="Add Team"
-                                                      className="e1yghndz1 css-jk8rcx-StyledButton-StyledButton edwq9my0"
-                                                      onClick={[Function]}
-                                                      role="button"
+                                                    <ButtonLabel
+                                                      align="center"
                                                       size="xsmall"
-                                                      type="button"
                                                     >
-                                                      <ButtonLabel
+                                                      <Component
                                                         align="center"
+                                                        className="css-cmi7y3-ButtonLabel edwq9my1"
                                                         size="xsmall"
                                                       >
-                                                        <Component
-                                                          align="center"
+                                                        <span
                                                           className="css-cmi7y3-ButtonLabel edwq9my1"
-                                                          size="xsmall"
                                                         >
-                                                          <span
-                                                            className="css-cmi7y3-ButtonLabel edwq9my1"
-                                                          >
-                                                            Add Team
-                                                            <StyledChevronDown>
-                                                              <Component
+                                                          Add Team
+                                                          <StyledChevronDown>
+                                                            <Component
+                                                              className="css-1jdzfs8-StyledChevronDown e1yghndz0"
+                                                            >
+                                                              <InlineSvg
                                                                 className="css-1jdzfs8-StyledChevronDown e1yghndz0"
+                                                                src="icon-chevron-down"
                                                               >
-                                                                <InlineSvg
-                                                                  className="css-1jdzfs8-StyledChevronDown e1yghndz0"
+                                                                <ForwardRef
+                                                                  className="e1yghndz0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
                                                                   src="icon-chevron-down"
                                                                 >
-                                                                  <ForwardRef
+                                                                  <svg
                                                                     className="e1yghndz0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
-                                                                    src="icon-chevron-down"
+                                                                    height="1em"
+                                                                    viewBox={Object {}}
+                                                                    width="1em"
                                                                   >
-                                                                    <svg
-                                                                      className="e1yghndz0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
-                                                                      height="1em"
-                                                                      viewBox={Object {}}
-                                                                      width="1em"
-                                                                    >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
-                                                                      />
-                                                                    </svg>
-                                                                  </ForwardRef>
-                                                                </InlineSvg>
-                                                              </Component>
-                                                            </StyledChevronDown>
-                                                          </span>
-                                                        </Component>
-                                                      </ButtonLabel>
-                                                    </button>
-                                                  </Component>
+                                                                    <use
+                                                                      href="#test"
+                                                                      xlinkHref="#test"
+                                                                    />
+                                                                  </svg>
+                                                                </ForwardRef>
+                                                              </InlineSvg>
+                                                            </Component>
+                                                          </StyledChevronDown>
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </button>
                                                 </StyledButton>
                                               </Button>
                                             </forwardRef<Button>>
@@ -803,47 +793,39 @@ exports[`InviteMember should render roles when available and allowed, and handle
           <StyledButton
             aria-disabled={false}
             aria-label="Add Member"
+            as="button"
             busy={false}
             className="invite-member-submit"
             disabled={false}
-            forwardRef={null}
             onClick={[Function]}
             priority="primary"
             role="button"
+            shouldForwardProp={[Function]}
           >
-            <Component
+            <button
               aria-disabled={false}
               aria-label="Add Member"
               className="invite-member-submit css-1e05jtd-StyledButton edwq9my0"
-              forwardRef={null}
               onClick={[Function]}
               role="button"
             >
-              <button
-                aria-disabled={false}
-                aria-label="Add Member"
-                className="invite-member-submit css-1e05jtd-StyledButton edwq9my0"
-                onClick={[Function]}
-                role="button"
+              <ButtonLabel
+                align="center"
+                priority="primary"
               >
-                <ButtonLabel
+                <Component
                   align="center"
+                  className="css-zmpclt-ButtonLabel edwq9my1"
                   priority="primary"
                 >
-                  <Component
-                    align="center"
+                  <span
                     className="css-zmpclt-ButtonLabel edwq9my1"
-                    priority="primary"
                   >
-                    <span
-                      className="css-zmpclt-ButtonLabel edwq9my1"
-                    >
-                      Add Member
-                    </span>
-                  </Component>
-                </ButtonLabel>
-              </button>
-            </Component>
+                    Add Member
+                  </span>
+                </Component>
+              </ButtonLabel>
+            </button>
           </StyledButton>
         </Button>
       </forwardRef<Button>>

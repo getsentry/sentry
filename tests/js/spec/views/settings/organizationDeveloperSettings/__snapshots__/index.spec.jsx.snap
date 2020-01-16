@@ -201,103 +201,93 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                         <StyledButton
                           aria-disabled={false}
                           aria-label="New Public Integration"
+                          as={[Function]}
                           disabled={false}
-                          forwardRef={null}
                           onClick={[Function]}
                           priority="primary"
                           role="button"
+                          shouldForwardProp={[Function]}
                           size="small"
                           to="/settings/org-slug/developer-settings/new-public/"
                         >
-                          <Component
+                          <Link
                             aria-disabled={false}
                             aria-label="New Public Integration"
                             className="css-z8at1v-StyledButton edwq9my0"
-                            forwardRef={null}
                             onClick={[Function]}
+                            onlyActiveOnIndex={false}
                             role="button"
                             size="small"
+                            style={Object {}}
                             to="/settings/org-slug/developer-settings/new-public/"
                           >
-                            <Link
+                            <a
                               aria-disabled={false}
                               aria-label="New Public Integration"
                               className="css-z8at1v-StyledButton edwq9my0"
                               onClick={[Function]}
-                              onlyActiveOnIndex={false}
                               role="button"
                               size="small"
                               style={Object {}}
-                              to="/settings/org-slug/developer-settings/new-public/"
                             >
-                              <a
-                                aria-disabled={false}
-                                aria-label="New Public Integration"
-                                className="css-z8at1v-StyledButton edwq9my0"
-                                onClick={[Function]}
-                                role="button"
+                              <ButtonLabel
+                                align="center"
+                                priority="primary"
                                 size="small"
-                                style={Object {}}
                               >
-                                <ButtonLabel
+                                <Component
                                   align="center"
+                                  className="css-19gcr2f-ButtonLabel edwq9my1"
                                   priority="primary"
                                   size="small"
                                 >
-                                  <Component
-                                    align="center"
+                                  <span
                                     className="css-19gcr2f-ButtonLabel edwq9my1"
-                                    priority="primary"
-                                    size="small"
                                   >
-                                    <span
-                                      className="css-19gcr2f-ButtonLabel edwq9my1"
+                                    <Icon
+                                      hasChildren={true}
+                                      size="small"
                                     >
-                                      <Icon
+                                      <Component
+                                        className="css-1299qb2-Icon edwq9my2"
                                         hasChildren={true}
                                         size="small"
                                       >
-                                        <Component
+                                        <span
                                           className="css-1299qb2-Icon edwq9my2"
-                                          hasChildren={true}
                                           size="small"
                                         >
-                                          <span
-                                            className="css-1299qb2-Icon edwq9my2"
-                                            size="small"
+                                          <StyledInlineSvg
+                                            size="12px"
+                                            src="icon-circle-add"
                                           >
-                                            <StyledInlineSvg
+                                            <ForwardRef
+                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
                                               size="12px"
                                               src="icon-circle-add"
                                             >
-                                              <ForwardRef
+                                              <svg
                                                 className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                size="12px"
-                                                src="icon-circle-add"
+                                                height="12px"
+                                                viewBox={Object {}}
+                                                width="12px"
                                               >
-                                                <svg
-                                                  className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                  height="12px"
-                                                  viewBox={Object {}}
-                                                  width="12px"
-                                                >
-                                                  <use
-                                                    href="#test"
-                                                    xlinkHref="#test"
-                                                  />
-                                                </svg>
-                                              </ForwardRef>
-                                            </StyledInlineSvg>
-                                          </span>
-                                        </Component>
-                                      </Icon>
-                                      New Public Integration
-                                    </span>
-                                  </Component>
-                                </ButtonLabel>
-                              </a>
-                            </Link>
-                          </Component>
+                                                <use
+                                                  href="#test"
+                                                  xlinkHref="#test"
+                                                />
+                                              </svg>
+                                            </ForwardRef>
+                                          </StyledInlineSvg>
+                                        </span>
+                                      </Component>
+                                    </Icon>
+                                    New Public Integration
+                                  </span>
+                                </Component>
+                              </ButtonLabel>
+                            </a>
+                          </Link>
                         </StyledButton>
                       </Button>
                     </forwardRef<Button>>
@@ -382,103 +372,93 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                         <StyledButton
                           aria-disabled={false}
                           aria-label="New Internal Integration"
+                          as={[Function]}
                           disabled={false}
-                          forwardRef={null}
                           onClick={[Function]}
                           priority="primary"
                           role="button"
+                          shouldForwardProp={[Function]}
                           size="small"
                           to="/settings/org-slug/developer-settings/new-internal/"
                         >
-                          <Component
+                          <Link
                             aria-disabled={false}
                             aria-label="New Internal Integration"
                             className="css-z8at1v-StyledButton edwq9my0"
-                            forwardRef={null}
                             onClick={[Function]}
+                            onlyActiveOnIndex={false}
                             role="button"
                             size="small"
+                            style={Object {}}
                             to="/settings/org-slug/developer-settings/new-internal/"
                           >
-                            <Link
+                            <a
                               aria-disabled={false}
                               aria-label="New Internal Integration"
                               className="css-z8at1v-StyledButton edwq9my0"
                               onClick={[Function]}
-                              onlyActiveOnIndex={false}
                               role="button"
                               size="small"
                               style={Object {}}
-                              to="/settings/org-slug/developer-settings/new-internal/"
                             >
-                              <a
-                                aria-disabled={false}
-                                aria-label="New Internal Integration"
-                                className="css-z8at1v-StyledButton edwq9my0"
-                                onClick={[Function]}
-                                role="button"
+                              <ButtonLabel
+                                align="center"
+                                priority="primary"
                                 size="small"
-                                style={Object {}}
                               >
-                                <ButtonLabel
+                                <Component
                                   align="center"
+                                  className="css-19gcr2f-ButtonLabel edwq9my1"
                                   priority="primary"
                                   size="small"
                                 >
-                                  <Component
-                                    align="center"
+                                  <span
                                     className="css-19gcr2f-ButtonLabel edwq9my1"
-                                    priority="primary"
-                                    size="small"
                                   >
-                                    <span
-                                      className="css-19gcr2f-ButtonLabel edwq9my1"
+                                    <Icon
+                                      hasChildren={true}
+                                      size="small"
                                     >
-                                      <Icon
+                                      <Component
+                                        className="css-1299qb2-Icon edwq9my2"
                                         hasChildren={true}
                                         size="small"
                                       >
-                                        <Component
+                                        <span
                                           className="css-1299qb2-Icon edwq9my2"
-                                          hasChildren={true}
                                           size="small"
                                         >
-                                          <span
-                                            className="css-1299qb2-Icon edwq9my2"
-                                            size="small"
+                                          <StyledInlineSvg
+                                            size="12px"
+                                            src="icon-circle-add"
                                           >
-                                            <StyledInlineSvg
+                                            <ForwardRef
+                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
                                               size="12px"
                                               src="icon-circle-add"
                                             >
-                                              <ForwardRef
+                                              <svg
                                                 className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                size="12px"
-                                                src="icon-circle-add"
+                                                height="12px"
+                                                viewBox={Object {}}
+                                                width="12px"
                                               >
-                                                <svg
-                                                  className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                  height="12px"
-                                                  viewBox={Object {}}
-                                                  width="12px"
-                                                >
-                                                  <use
-                                                    href="#test"
-                                                    xlinkHref="#test"
-                                                  />
-                                                </svg>
-                                              </ForwardRef>
-                                            </StyledInlineSvg>
-                                          </span>
-                                        </Component>
-                                      </Icon>
-                                      New Internal Integration
-                                    </span>
-                                  </Component>
-                                </ButtonLabel>
-                              </a>
-                            </Link>
-                          </Component>
+                                                <use
+                                                  href="#test"
+                                                  xlinkHref="#test"
+                                                />
+                                              </svg>
+                                            </ForwardRef>
+                                          </StyledInlineSvg>
+                                        </span>
+                                      </Component>
+                                    </Icon>
+                                    New Internal Integration
+                                  </span>
+                                </Component>
+                              </ButtonLabel>
+                            </a>
+                          </Link>
                         </StyledButton>
                       </Button>
                     </forwardRef<Button>>
