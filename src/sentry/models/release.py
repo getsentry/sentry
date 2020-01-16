@@ -403,15 +403,14 @@ class Release(Model):
                         author = None
                     elif author_email not in authors:
                         author_data = {"name": data.get("author_name")}
-                        author, created = CommitAuthor.objects.create_or_update(
+                        author, created = CommitAuthor.objects.get_or_create(
                             organization_id=self.organization_id,
                             email=author_email,
-                            values=author_data,
+                            defaults=author_data,
                         )
-                        if not created:
-                            author = CommitAuthor.objects.get(
-                                organization_id=self.organization_id, email=author_email
-                            )
+                        if author.name != author_data["name"]:
+                            author.name = author_data["name"]
+                            author.save(update_fields=["name"])
                         authors[author_email] = author
                     else:
                         author = authors[author_email]
