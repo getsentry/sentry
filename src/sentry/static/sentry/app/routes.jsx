@@ -1231,7 +1231,7 @@ function routes() {
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "HealthLanding" */ 'app/views/health/landing')
+                import(/* webpackChunkName: "HealthList" */ 'app/views/health/list')
               }
               component={errorHandler(LazyLoad)}
             />
