@@ -1,10 +1,5 @@
 from __future__ import absolute_import
 
-import pytest
-
-# needed so we can see the full assertion errror in util
-pytest.register_assert_rewrite("tests.sentry.api.validators.sentry_apps.util")
-
 from .util import invalid_schema_with_error_message
 from sentry.testutils import TestCase
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
