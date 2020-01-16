@@ -251,7 +251,7 @@ USE_TZ = True
 
 # CAVEAT: If you're adding a middleware that modifies a response's content,
 # and appears before CommonMiddleware, you must either reorder your middleware
-# so that responses aren’t modified after Content-Length is set, or have the
+# so that responses aren't modified after Content-Length is set, or have the
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE_CLASSES = (
