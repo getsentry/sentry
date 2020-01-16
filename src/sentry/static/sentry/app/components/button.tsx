@@ -32,7 +32,7 @@ type Props = {
   label?: string;
   tooltipProps?: any;
   onClick?: (e: React.MouseEvent) => void;
-  forwardRef?: React.Ref<HTMLElement>;
+  forwardRef?: React.Ref<ButtonElement>;
 };
 
 type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props> & Props;
@@ -193,12 +193,13 @@ class Button extends React.Component<ButtonProps, {}> {
   }
 }
 
-const ButtonForwardRef = React.forwardRef<HTMLElement, ButtonProps>((props, ref) => (
+const ButtonForwardRef = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
   <Button forwardRef={ref} {...props} />
 ));
 
 // Some components use Button's propTypes
 ButtonForwardRef.propTypes = Button.propTypes;
+ButtonForwardRef.displayName = 'forwardRef<Button>';
 
 export default ButtonForwardRef;
 
