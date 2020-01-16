@@ -25,9 +25,9 @@ class UpdateUserReportTest(TestCase):
         with self.tasks():
             update_user_reports()
 
-        report1 = UserReport.objects.get(project=project, event_id=event1.id)
-        report2 = UserReport.objects.get(project=project, event_id=event2.id)
-        report3 = UserReport.objects.get(project=project, event_id=event3.id)
+        report1 = UserReport.objects.get(project=project, event_id=event1.event_id)
+        report2 = UserReport.objects.get(project=project, event_id=event2.event_id)
+        report3 = UserReport.objects.get(project=project, event_id=event3.event_id)
         assert report1.group_id == event1.group_id
         assert report1.environment == event1.get_environment()
         assert report2.group_id == event2.group_id
