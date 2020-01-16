@@ -12,25 +12,40 @@ type Props = {
 
 type IconProps = Pick<Props, 'size'>;
 
-const Icon = styled('img')<IconProps>`
+const StyledIcon = styled('img')<IconProps>`
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   border-radius: 2px;
   display: block;
 `;
 
+class Icon extends React.Component<Props> {
+  state = {
+    imgSrc: '',
+  };
+
+  componentDidMount() {
+    const {integration} = this.props;
+    this.setState({imgSrc: integration.icon});
+  }
+  render() {
+    const {integration, size} = this.props;
+
+    return (
+      <StyledIcon
+        size={size}
+        src={this.state.imgSrc}
+        onError={_ => {
+          this.setState({imgSrc: ICON_PATHS[integration.provider.key] || DEFAULT_ICON});
+        }}
+      />
+    );
+  }
+}
+
 const IntegrationIcon = ({integration, size}: Props) =>
   integration.icon ? (
-    <Icon
-      size={size}
-      src={integration.icon}
-      onError={e => {
-        (e.target as HTMLImageElement).src =
-          (integration.provider.key !== undefined &&
-            ICON_PATHS[integration.provider.key]) ||
-          DEFAULT_ICON;
-      }}
-    />
+    <Icon size={size} integration={integration} />
   ) : (
     <PluginIcon size={size} pluginId={integration.provider.key} />
   );
