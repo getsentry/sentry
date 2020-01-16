@@ -5,7 +5,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {analytics} from 'app/utils/analytics';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
 import ApiSource from 'app/components/search/sources/apiSource';
@@ -74,7 +74,10 @@ class Search extends React.Component {
   };
 
   componentDidMount() {
-    analytics(`${this.props.entryPoint}.open`);
+    trackAnalyticsEvent({
+      eventKey: `${this.props.entryPoint}.open`,
+      eventName: `${this.props.entryPoint} Open`,
+    });
   }
 
   handleSelect = (item, state) => {
@@ -82,7 +85,12 @@ class Search extends React.Component {
       return;
     }
 
-    analytics(`${this.props.entryPoint}.select`, {query: state && state.inputValue});
+    trackAnalyticsEvent({
+      eventKey: `${this.props.entryPoint}.select`,
+      eventName: `${this.props.entryPoint} Select`,
+      query: state && state.inputValue,
+      resultType: item.resultType,
+    });
 
     const {to, action} = item;
 
@@ -121,7 +129,11 @@ class Search extends React.Component {
     if (!query) {
       return;
     }
-    analytics(`${this.props.entryPoint}.query`, {query});
+    trackAnalyticsEvent({
+      eventKey: `${this.props.entryPoint}.query`,
+      eventName: `${this.props.entryPoint} Query`,
+      query,
+    });
   }, 200);
 
   renderItem = ({resultObj, index, highlightedIndex, getItemProps}) => {
