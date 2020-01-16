@@ -1,72 +1,46 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Button renders 1`] = `
-<StyledButton
-  aria-disabled={false}
-  aria-label="Button"
+<Button
+  align="center"
   disabled={false}
-  onClick={[Function]}
+  forwardRef={null}
   priority="primary"
-  role="button"
   size="large"
 >
-  <ButtonLabel
-    align="center"
-    priority="primary"
-    size="large"
-  >
-    Button
-  </ButtonLabel>
-</StyledButton>
+  Button
+</Button>
 `;
 
 exports[`Button renders disabled normal link 1`] = `
-<StyledButton
-  aria-disabled={false}
-  aria-label="Normal Link"
+<Button
+  align="center"
   disabled={false}
+  forwardRef={null}
   href="/some/relative/url"
-  onClick={[Function]}
-  role="button"
 >
-  <ButtonLabel
-    align="center"
-  >
-    Normal Link
-  </ButtonLabel>
-</StyledButton>
+  Normal Link
+</Button>
 `;
 
 exports[`Button renders normal link 1`] = `
-<StyledButton
-  aria-disabled={false}
-  aria-label="Normal Link"
+<Button
+  align="center"
   disabled={false}
+  forwardRef={null}
   href="/some/relative/url"
-  onClick={[Function]}
-  role="button"
 >
-  <ButtonLabel
-    align="center"
-  >
-    Normal Link
-  </ButtonLabel>
-</StyledButton>
+  Normal Link
+</Button>
 `;
 
 exports[`Button renders react-router link 1`] = `
-<StyledButton
-  aria-disabled={false}
-  aria-label="Router Link"
+<Button
+  align="center"
   disabled={false}
-  onClick={[Function]}
-  role="button"
+  forwardRef={null}
   to="/some/route"
 >
-  <ButtonLabel
-    align="center"
-  >
-    Router Link
-  </ButtonLabel>
-</StyledButton>
+  Router Link
+</Button>
 `;
