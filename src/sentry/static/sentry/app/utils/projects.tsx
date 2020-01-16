@@ -1,15 +1,111 @@
+import PropTypes from 'prop-types';
+import React from 'react';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
-import PropTypes from 'prop-types';
-import React from 'react';
 
+import {Client} from 'app/api';
+import {Project} from 'app/types';
+import {defined} from 'app/utils';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
+import RequestError from 'app/utils/requestError/requestError';
 import SentryTypes from 'app/sentryTypes';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
+
+type State = {
+  /**
+   * Projects from API
+   */
+  fetchedProjects: Project[] | {slug: string}[];
+
+  /**
+   * Projects fetched from store
+   */
+  projectsFromStore: Project[];
+
+  /**
+   * Reflects whether or not the initial fetch for the requested projects
+   * was fulfilled
+   */
+  initiallyLoaded: boolean;
+
+  /**
+   * This is state for when fetching data from API
+   */
+  fetching: boolean;
+
+  /**
+   * This is set when we fail to find some slugs from both store and API
+   */
+  isIncomplete: null | boolean;
+
+  /**
+   * Project results (from API) are paginated and there are more projects
+   * that are not in the initial queryset
+   */
+  hasMore: null | boolean;
+  prevSearch: null | string;
+  nextCursor?: null | string;
+
+  /**
+   * The error that occurred if fetching failed
+   */
+  fetchError: null | RequestError;
+};
+
+type RenderProps = {
+  /**
+   * We want to make sure that at the minimum, we return a list of objects with only `slug`
+   * while we load actual project data
+   */
+  projects: State['fetchedProjects'];
+
+  /**
+   * Calls API and searches for project, accepts a callback function with signature:
+   * fn(searchTerm, {append: bool})
+   */
+  onSearch: (searchTerm: string, {append: boolean}) => void;
+} & Pick<
+  State,
+  'isIncomplete' | 'fetching' | 'hasMore' | 'initiallyLoaded' | 'fetchError'
+>;
+type RenderFunc = (props: RenderProps) => React.ReactNode;
+
+type Props = {
+  api: Client;
+
+  /**
+   * Organization slug
+   */
+  orgId: string;
+
+  /**
+   * List of projects that have we already have summaries for (i.e. from store)
+   */
+  projects: Project[];
+
+  /**
+   * List of slugs to look for summaries for, this can be from `props.projects`,
+   * otherwise fetch from API
+   */
+  slugs?: string[];
+
+  /**
+   * Number of projects to return when not using `props.slugs`
+   */
+  limit?: number;
+
+  /**
+   * Whether to fetch all the projects in the organization of which the user
+   * has access to
+   * */
+  allProjects?: boolean;
+
+  children: RenderFunc;
+};
 
 /**
  * This is a utility component that should be used to fetch an organization's projects (summary).
@@ -19,23 +115,13 @@ import withProjects from 'app/utils/withProjects';
  * The legacy way of handling this is that `ProjectSummary[]` is expected to be included in an
  * `Organization` as well as being saved to `ProjectsStore`.
  */
-class Projects extends React.Component {
-  static propTypes = {
+class Projects extends React.Component<Props, State> {
+  static propTypes: any = {
     api: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
-
-    // List of projects that have we already have summaries for (i.e. from store)
     projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
-
-    // List of slugs to look for summaries for, this can be from `props.projects`,
-    // otherwise fetch from API
     slugs: PropTypes.arrayOf(PropTypes.string),
-
-    // Number of projects to return when not using `props.slugs`
     limit: PropTypes.number,
-
-    // Whether to fetch all the projects in the organization of which the user
-    // has access to
     allProjects: PropTypes.bool,
   };
 
@@ -48,6 +134,7 @@ class Projects extends React.Component {
     hasMore: null,
     prevSearch: null,
     nextCursor: null,
+    fetchError: null,
   };
 
   componentDidMount() {
@@ -63,12 +150,12 @@ class Projects extends React.Component {
   /**
    * List of projects that need to be fetched via API
    */
-  fetchQueue = new Set();
+  fetchQueue: Set<string> = new Set();
 
   /**
    * Memoized function that returns a `Map<project.slug, project>`
    */
-  getProjectsMap = memoize(
+  getProjectsMap: (projects: Project[]) => Map<string, Project> = memoize(
     projects => new Map(projects.map(project => [project.slug, project]))
   );
 
@@ -86,7 +173,9 @@ class Projects extends React.Component {
     const [inStore, notInStore] = partition(slugs, slug => projectsMap.has(slug));
 
     // Get the actual summaries of projects that are in store
-    const projectsFromStore = inStore.map(slug => projectsMap.get(slug));
+    const projectsFromStore: Project[] = inStore
+      .map(slug => projectsMap.get(slug))
+      .filter(defined);
 
     // Add to queue
     notInStore.forEach(slug => this.fetchQueue.add(slug));
@@ -121,7 +210,7 @@ class Projects extends React.Component {
     });
 
     let projects = [];
-    let fetchError;
+    let fetchError = null;
 
     try {
       const {results} = await fetchProjects(api, orgId, {
@@ -138,9 +227,9 @@ class Projects extends React.Component {
     // For each item in the fetch queue, lookup the project object and in the case
     // where something wrong has happened and we were unable to get project summary from
     // the server, just fill in with an object with only the slug
-    const projectsOrPlaceholder = Array.from(this.fetchQueue).map(slug =>
-      projectsMap.has(slug) ? projectsMap.get(slug) : {slug}
-    );
+    const projectsOrPlaceholder: Project[] | {slug: string}[] = Array.from(
+      this.fetchQueue
+    ).map(slug => (projectsMap.has(slug) && projectsMap.get(slug)) || {slug});
 
     this.setState({
       fetchedProjects: projectsOrPlaceholder,
@@ -202,7 +291,7 @@ class Projects extends React.Component {
    * @param {Object} options Options object
    * @param {Boolean} options.append Results should be appended to existing list (otherwise, will replace)
    */
-  handleSearch = async (search, {append} = {}) => {
+  handleSearch = async (search: string, {append}: {append?: boolean} = {}) => {
     const {api, orgId, limit} = this.props;
     const {prevSearch} = this.state;
     const cursor = this.state.nextCursor;
@@ -217,7 +306,7 @@ class Projects extends React.Component {
         cursor,
       });
 
-      this.setState(state => {
+      this.setState((state: State) => {
         let fetchedProjects;
         if (append) {
           // Remove duplicates
@@ -283,12 +372,24 @@ class Projects extends React.Component {
 
 export default withProjects(withApi(Projects));
 
+type FetchProjectsOptions = {
+  slugs?: string[];
+  cursor?: State['nextCursor'];
+  search?: State['prevSearch'];
+  prevSearch?: State['prevSearch'];
+} & Pick<Props, 'limit' | 'allProjects'>;
+
 async function fetchProjects(
-  api,
-  orgId,
-  {slugs, search, limit, prevSearch, cursor, allProjects} = {}
+  api: Client,
+  orgId: string,
+  {slugs, search, limit, prevSearch, cursor, allProjects}: FetchProjectsOptions = {}
 ) {
-  const query = {};
+  const query: {
+    query?: string;
+    cursor?: typeof cursor;
+    per_page?: number;
+    all_projects?: number;
+  } = {};
 
   if (slugs && slugs.length) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');
@@ -320,15 +421,12 @@ async function fetchProjects(
     query.all_projects = 1;
   }
 
-  let hasMore = false;
-  let nextCursor = null;
-  const [results, _, xhr] = await api.requestPromise(
-    `/organizations/${orgId}/projects/`,
-    {
-      includeAllArgs: true,
-      query,
-    }
-  );
+  let hasMore: null | boolean = false;
+  let nextCursor: null | string = null;
+  const [results, , xhr] = await api.requestPromise(`/organizations/${orgId}/projects/`, {
+    includeAllArgs: true,
+    query,
+  });
 
   const pageLinks = xhr && xhr.getResponseHeader('Link');
   if (pageLinks) {
