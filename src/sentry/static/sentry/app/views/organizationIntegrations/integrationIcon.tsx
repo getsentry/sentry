@@ -35,7 +35,7 @@ class Icon extends React.Component<Props> {
       <StyledIcon
         size={size}
         src={this.state.imgSrc}
-        onError={_ => {
+        onError={() => {
           this.setState({imgSrc: ICON_PATHS[integration.provider.key] || DEFAULT_ICON});
         }}
       />
