@@ -259,21 +259,5 @@
         "lineno": 112
       }
     ]
-  },
-  "sentry.interfaces.Template": {
-    "abs_path": "/srv/example/templates/debug_toolbar/base.html",
-    "pre_context": [
-      "{% endif %}\n",
-      "<script src=\"{% static 'debug_toolbar/js/toolbar.js' %}\"></script>\n",
-      "<div id=\"djDebug\" hidden=\"hidden\" dir=\"ltr\"\n"
-    ],
-    "post_context": [
-      "     {{ toolbar.config.ROOT_TAG_EXTRA_ATTRS|safe }}>\n",
-      "\t<div hidden=\"hidden\" id=\"djDebugToolbar\">\n",
-      "\t\t<ul id=\"djDebugPanelList\">\n"
-    ],
-    "filename": "debug_toolbar/base.html",
-    "lineno": 14,
-    "context_line": "     data-store-id=\"{{ toolbar.store_id }}\" data-render-panel-url=\"{% url 'djdt:render_panel' %}\"\n"
   }
 }

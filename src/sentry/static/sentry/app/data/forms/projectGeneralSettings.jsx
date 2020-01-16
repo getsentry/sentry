@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {extractMultilineFields} from 'app/utils';
 import {t, tct, tn} from 'app/locale';
@@ -9,6 +9,10 @@ import getDynamicText from 'app/utils/getDynamicText';
 import marked from 'app/utils/marked';
 import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
+import {
+  STORE_CRASH_REPORTS_VALUES,
+  formatStoreCrashReports,
+} from 'app/utils/crashReports';
 import space from 'app/styles/space';
 import {GroupingConfigItem} from 'app/components/events/groupingInfo';
 
@@ -330,30 +334,30 @@ export const fields = {
   },
   storeCrashReports: {
     name: 'storeCrashReports',
-    type: 'boolean',
+    type: 'range',
     label: t('Store Native Crash Reports'),
     help: t(
-      'Store native crash reports such as Minidumps for improved processing and download in issue details'
+      'Store native crash reports such as Minidumps for improved processing and download in issue details.  Overrides organization settings when enabled.'
     ),
     visible: ({features}) => features.has('event-attachments'),
+    formatLabel: formatStoreCrashReports,
+    allowedValues: STORE_CRASH_REPORTS_VALUES,
   },
   relayPiiConfig: {
     name: 'relayPiiConfig',
     type: 'string',
-    label: t('Custom Relay PII Config'),
-    placeholder: t(
-      'Paste a relay JSON PII config here. Leave empty to generate a default based on the above settings.'
-    ),
+    label: t('Advanced datascrubber configuration'),
+    placeholder: t('Paste a JSON configuration here.'),
     multiline: true,
     autosize: true,
     maxRows: 10,
     help: tct(
-      'If you put a custom JSON relay PII config here it overrides the default generated config.  This is pushed to all trusted relays.  [learn_more:Learn more]',
+      'Advanced JSON-based configuration for datascrubbing. Applied in addition to the settings above. [learn_more:Learn more]',
       {
-        learn_more: <a href="https://docs.sentry.io/relay/pii-config/" />,
+        learn_more: <a href="https://getsentry.github.io/semaphore/pii-config/" />,
       }
     ),
-    visible: ({features}) => features.has('relay'),
+    visible: ({features}) => features.has('datascrubbers-v2'),
     validate: ({id, form}) => {
       try {
         JSON.parse(form[id]);

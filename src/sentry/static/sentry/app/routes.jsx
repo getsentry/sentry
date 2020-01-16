@@ -4,7 +4,6 @@ import React from 'react';
 import {EXPERIMENTAL_SPA} from 'app/constants';
 import App from 'app/views/app';
 import AuthLayout from 'app/views/auth/layout';
-import HookOrDefault from 'app/components/hookOrDefault';
 import HookStore from 'app/stores/hookStore';
 import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
@@ -38,12 +37,6 @@ function appendTrailingSlash(nextState, replace) {
 const lazyLoad = cb => m => cb(null, m.default);
 
 const hook = name => HookStore.get(name).map(cb => cb());
-
-const OrganizationMembersWrapper = HookOrDefault({
-  hookName: 'component:org-members-view',
-  defaultComponentPromise: () =>
-    import(/* webpackChunkName: "OrganizationMembersWrapper" */ 'app/views/settings/organizationMembers/organizationMembersWrapper'),
-});
 
 function routes() {
   const accountSettingsRoutes = (
@@ -269,7 +262,13 @@ function routes() {
           import(/* webpackChunkName: "ProjectAlertsNew" */ 'app/views/settings/projectAlerts/new')
         }
       >
-        <IndexRedirect to="issue-rules/" />
+        <IndexRoute
+          component={errorHandler(LazyLoad)}
+          componentPromise={() =>
+            import(/* webpackChunkName: "ProjectAlertRules" */ 'app/views/settings/projectAlerts/projectAlertRulesNew')
+          }
+        />
+
         <Route
           path="settings/"
           name="Settings"
@@ -288,12 +287,7 @@ function routes() {
         />
 
         <Route path="issue-rules/" component={null}>
-          <IndexRoute
-            component={errorHandler(LazyLoad)}
-            componentPromise={() =>
-              import(/* webpackChunkName: "ProjectAlertRules" */ 'app/views/settings/projectAlerts/projectAlertRulesNew')
-            }
-          />
+          <IndexRedirect to="/settings/:orgId/projects/:projectId/alerts-v2/" />
           <Route
             path="new/"
             name="New Alert Rule"
@@ -312,13 +306,8 @@ function routes() {
           />
         </Route>
 
-        <Route path="metric-rules/" name="Metric Rules" component={null}>
-          <IndexRoute
-            componentPromise={() =>
-              import(/* webpackChunkName: "IncidentRulesList" */ 'app/views/settings/incidentRules/list')
-            }
-            component={errorHandler(LazyLoad)}
-          />
+        <Route path="metric-rules/" component={null}>
+          <IndexRedirect to="/settings/:orgId/projects/:projectId/alerts-v2/" />
           <Route
             name="New Incident Rule"
             path="new/"
@@ -584,7 +573,12 @@ function routes() {
       />
 
       <Route path="members/" name="Members">
-        <Route component={OrganizationMembersWrapper}>
+        <Route
+          componentPromise={() =>
+            import(/* webpackChunkName: "OrganizationMembersWrapper" */ 'app/views/settings/organizationMembers/organizationMembersWrapper')
+          }
+          component={errorHandler(LazyLoad)}
+        >
           <IndexRoute
             componentPromise={() =>
               import(/* webpackChunkName: "OrganizationMembersList" */ 'app/views/settings/organizationMembers/organizationMembersList')
@@ -741,7 +735,7 @@ function routes() {
         />
         <Route
           name="Integration Dashboard"
-          path=":appSlug/dashboard"
+          path=":appSlug/dashboard/"
           componentPromise={() =>
             import(/* webpackChunkName: "SentryApplicationDashboard" */ 'app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard')
           }
@@ -1087,6 +1081,13 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
           <Route
+            path="/organizations/:orgId/issues/:groupId/attachments/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "GroupEventAttachments" */ 'app/views/organizationGroupDetails/groupEventAttachments')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
             path="/organizations/:orgId/issues/:groupId/similar/"
             componentPromise={() =>
               import(/* webpackChunkName: "GroupSimilarView" */ 'app/views/organizationGroupDetails/groupSimilar')
@@ -1172,6 +1173,13 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
+              path="results/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "DiscoverV2Results" */ 'app/views/eventsV2/results')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
               path=":eventSlug/"
               componentPromise={() =>
                 import(/* webpackChunkName: "DiscoverV2Details" */ 'app/views/eventsV2/eventDetails')
@@ -1210,6 +1218,27 @@ function routes() {
               path="/organizations/:orgId/monitors/:monitorId/edit/"
               componentPromise={() =>
                 import(/* webpackChunkName: "MonitorEdit" */ 'app/views/monitors/edit')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
+            path="/organizations/:orgId/health/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "HealthContainer" */ 'app/views/health')
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "HealthLanding" */ 'app/views/health/landing')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path=":healthSlug/"
+              componentPromise={() =>
+                import(/* webpackChunkName: "HealthDetail" */ 'app/views/health/detail')
               }
               component={errorHandler(LazyLoad)}
             />

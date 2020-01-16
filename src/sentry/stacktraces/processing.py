@@ -16,7 +16,9 @@ from sentry.stacktraces.functions import set_in_app, trim_function_name
 
 logger = logging.getLogger(__name__)
 
-StacktraceInfo = namedtuple("StacktraceInfo", ["stacktrace", "container", "platforms"])
+StacktraceInfo = namedtuple(
+    "StacktraceInfo", ["stacktrace", "container", "platforms", "is_exception"]
+)
 StacktraceInfo.__hash__ = lambda x: id(x)
 StacktraceInfo.__eq__ = lambda a, b: a is b
 StacktraceInfo.__ne__ = lambda a, b: a is not b
@@ -145,6 +147,10 @@ class StacktraceProcessor(object):
         """
         pass
 
+    def process_exception(self, exception):
+        """Processes an exception."""
+        return False
+
     def process_frame(self, processable_frame, processing_task):
         """Processes the processable frame and returns a tuple of three
         lists: ``(frames, raw_frames, errors)`` where frames is the list of
@@ -162,26 +168,36 @@ class StacktraceProcessor(object):
         return False
 
 
-def find_stacktraces_in_data(data, include_raw=False):
+def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
     """Finds all stracktraces in a given data blob and returns it
     together with some meta information.
 
-    If `include_raw` is True, then also raw stacktraces are included.
+    If `include_raw` is True, then also raw stacktraces are included.  If
+    `with_exceptions` is set to `True` then stacktraces of the exception
+    are always included and the `is_exception` flag is set on that stack
+    info object.
     """
     rv = []
 
-    def _report_stack(stacktrace, container):
-        if not stacktrace or not get_path(stacktrace, "frames", filter=True):
+    def _report_stack(stacktrace, container, is_exception=False):
+        if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
         platforms = set(
             frame.get("platform") or data.get("platform")
             for frame in get_path(stacktrace, "frames", filter=True, default=())
         )
-        rv.append(StacktraceInfo(stacktrace=stacktrace, container=container, platforms=platforms))
+        rv.append(
+            StacktraceInfo(
+                stacktrace=stacktrace,
+                container=container,
+                platforms=platforms,
+                is_exception=is_exception,
+            )
+        )
 
     for exc in get_path(data, "exception", "values", filter=True, default=()):
-        _report_stack(exc.get("stacktrace"), exc)
+        _report_stack(exc.get("stacktrace"), exc, is_exception=with_exceptions)
 
     _report_stack(data.get("stacktrace"), None)
 
@@ -278,7 +294,7 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
 def should_process_for_stacktraces(data):
     from sentry.plugins.base import plugins
 
-    infos = find_stacktraces_in_data(data)
+    infos = find_stacktraces_in_data(data, with_exceptions=True)
     platforms = set()
     for info in infos:
         platforms.update(info.platforms or ())
@@ -388,6 +404,21 @@ def process_single_stacktrace(processing_task, stacktrace_info, processable_fram
 
 
 def get_crash_frame_from_event_data(data, frame_filter=None):
+    """
+    Return the highest (closest to the crash) in-app frame in the top stacktrace
+    which doesn't fail the given filter test.
+
+    If no such frame is available, return the highest non-in-app frame which
+    otherwise meets the same criteria.
+
+    Return None if any of the following are true:
+        - there are no frames
+        - all frames fail the given filter test
+        - we're unable to find any frames nested in either event.exception or
+          event.stacktrace, and there's anything other than exactly one thread
+          in the data
+    """
+
     frames = get_path(data, "exception", "values", -1, "stacktrace", "frames") or get_path(
         data, "stacktrace", "frames"
     )
@@ -462,7 +493,7 @@ def dedup_errors(errors):
 
 
 def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
-    infos = find_stacktraces_in_data(data)
+    infos = find_stacktraces_in_data(data, with_exceptions=True)
     if make_processors is None:
         processors = get_processors_for_stacktraces(data, infos)
     else:
@@ -486,6 +517,15 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
 
         # Process all stacktraces
         for stacktrace_info, processable_frames in processing_task.iter_processable_stacktraces():
+            # Let the stacktrace processors touch the exception
+            if stacktrace_info.is_exception and stacktrace_info.container:
+                for processor in processing_task.iter_processors():
+                    if processor.process_exception(stacktrace_info.container):
+                        changed = True
+
+            # If the stacktrace is empty we skip it for processing
+            if not stacktrace_info.stacktrace:
+                continue
             new_frames, new_raw_frames, errors = process_single_stacktrace(
                 processing_task, stacktrace_info, processable_frames
             )

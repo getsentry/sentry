@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -21,7 +21,7 @@ type Props = AsyncComponent['props'] & {
 
 type State = AsyncComponent['state'] & {
   showModal: boolean;
-  action: string | null;
+  action: 'create' | 'link' | null;
   selectedIntegration: GroupIntegration;
   issue: IntegrationExternalIssue | null;
 };
@@ -31,7 +31,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     integration: PropTypes.object.isRequired,
   };
 
-  constructor(props, context) {
+  constructor(props: Props, context) {
     super(props, context);
 
     this.state = {
@@ -53,7 +53,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
       : null;
   }
 
-  deleteIssue(issueId) {
+  deleteIssue(issueId: string) {
     const {group, integration} = this.props;
     const endpoint = `/groups/${group.id}/integrations/${
       integration.id
@@ -89,7 +89,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     });
   };
 
-  handleClick = action => {
+  handleClick = (action: 'create' | 'link') => {
     this.setState({action});
   };
 

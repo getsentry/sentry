@@ -2,11 +2,10 @@
 
 from __future__ import absolute_import
 
-from copy import deepcopy
 import pytest
 
+from sentry import eventstore
 from sentry.event_manager import EventManager
-from sentry.models import Event
 
 
 @pytest.fixture
@@ -14,7 +13,7 @@ def make_threads_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"threads": data})
         mgr.normalize()
-        evt = Event(data=mgr.get_data())
+        evt = eventstore.create_event(data=mgr.get_data())
 
         interface = evt.interfaces.get("threads")
         insta_snapshot(
@@ -52,12 +51,6 @@ basic_payload = dict(
 
 def test_basics(make_threads_snapshot):
     make_threads_snapshot(basic_payload)
-
-
-def test_errored(make_threads_snapshot):
-    payload = deepcopy(basic_payload)
-    payload["values"][0]["errored"] = True
-    make_threads_snapshot(payload)
 
 
 @pytest.mark.parametrize(

@@ -13,7 +13,7 @@ from sentry import tsdb, options
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
-from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
+from sentry.utils.pubsub import KafkaPublisher
 
 # valid values for outcome
 
@@ -110,9 +110,7 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
     """
     global outcomes_publisher
     if outcomes_publisher is None:
-        outcomes_publisher = QueuedPublisherService(
-            KafkaPublisher(settings.KAFKA_CLUSTERS[outcomes["cluster"]])
-        )
+        outcomes_publisher = KafkaPublisher(settings.KAFKA_CLUSTERS[outcomes["cluster"]])
 
     assert isinstance(org_id, six.integer_types)
     assert isinstance(project_id, six.integer_types)

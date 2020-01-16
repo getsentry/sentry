@@ -1,40 +1,41 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import {AlertRuleAggregations} from 'app/views/settings/incidentRules/types';
 import {Organization, Project} from 'app/types';
+import {createDefaultRule} from 'app/views/settings/incidentRules/constants';
 import recreateRoute from 'app/utils/recreateRoute';
 
 import RuleForm from './ruleForm';
 
-const DEFAULT_METRIC = [AlertRuleAggregations.TOTAL];
-const DEFAULT_RULE = {
-  aggregations: DEFAULT_METRIC,
-  query: '',
-  timeWindow: 60,
-  triggers: [],
+type RouteParams = {
+  orgId: string;
+  projectId: string;
+  incidentRuleId: string; //TODO(ts): make optional
 };
 
 type Props = {
   organization: Organization;
   project: Project;
-};
+} & RouteComponentProps<RouteParams, {}>;
 
-class IncidentRulesCreate extends React.Component<RouteComponentProps<{}, {}> & Props> {
+/**
+ * Show metric rules form with an empty rule. Redirects to alerts list after creation.
+ */
+class IncidentRulesCreate extends React.Component<Props> {
   handleSubmitSuccess = () => {
     const {params, routes, router, location} = this.props;
 
-    router.push(recreateRoute('metric-rules/', {params, routes, location, stepBack: -1}));
+    router.push(recreateRoute('', {params, routes, location, stepBack: -1}));
   };
 
   render() {
-    const {organization, project} = this.props;
+    const {project, ...props} = this.props;
 
     return (
       <RuleForm
-        organization={organization}
         onSubmitSuccess={this.handleSubmitSuccess}
-        rule={{...DEFAULT_RULE, projects: [project.slug]}}
+        rule={{...createDefaultRule(), projects: [project.slug]}}
+        {...props}
       />
     );
   }

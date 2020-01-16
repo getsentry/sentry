@@ -51,7 +51,7 @@ class IncidentSerializer(Serializer):
             "aggregation": obj.aggregation,
             "dateStarted": obj.date_started,
             "dateDetected": obj.date_detected,
-            "dateAdded": obj.date_added,
+            "dateCreated": obj.date_added,
             "dateClosed": obj.date_closed,
             "eventStats": serializer.serialize(attrs["event_stats"]),
             "totalEvents": attrs["total_events"],

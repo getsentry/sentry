@@ -33,6 +33,8 @@ from sentry_plugins.anonymizeip import anonymize_ip
 
 logger = logging.getLogger(__name__)
 
+SETUP_URL = "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/splunk/Splunk_Instructions.rst"
+
 
 class SplunkError(Exception):
     def __init__(self, status_code, code=0, text="unknown error"):
@@ -93,6 +95,7 @@ class SplunkPlugin(CorePluginMixin, Plugin):
     slug = "splunk"
     description = "Send Sentry events into Splunk."
     conf_key = "splunk"
+    resource_links = [("Splunk Setup Instructions", SETUP_URL)] + CorePluginMixin.resource_links
 
     def configure(self, project, request):
         return react_plugin_config(self, project, request)
@@ -155,9 +158,7 @@ class SplunkPlugin(CorePluginMixin, Plugin):
             "environment": event.get_tag("environment") or "",
             "type": event.get_event_type(),
         }
-        props["tags"] = [
-            [k.format(tagstore.get_standardized_key(k)), v] for k, v in event.get_tags()
-        ]
+        props["tags"] = [[k.format(tagstore.get_standardized_key(k)), v] for k, v in event.tags]
         for key, value in six.iteritems(event.interfaces):
             if key == "request":
                 headers = value.headers

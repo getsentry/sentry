@@ -123,7 +123,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         return "#" + LEVEL_TO_COLOR.get(event.get_tag("level"), "error")
 
     def _get_tags(self, event):
-        tag_list = event.get_tags()
+        tag_list = event.tags
         if not tag_list:
             return ()
 

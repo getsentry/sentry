@@ -16,7 +16,6 @@ const validHookNames = new Set<HookName>([
   'analytics:log-experiment',
   'component:header-date-range',
   'component:header-selector-items',
-  'component:org-members-view',
   'feature-disabled:custom-inbound-filters',
   'feature-disabled:custom-symbol-sources',
   'feature-disabled:data-forwarding',

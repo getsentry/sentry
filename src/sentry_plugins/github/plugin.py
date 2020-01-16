@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 
+from django.conf.urls import url
 from rest_framework.response import Response
 from uuid import uuid4
 
@@ -70,7 +71,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
     def get_group_urls(self):
         return super(GitHubPlugin, self).get_group_urls() + [
-            (
+            url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )

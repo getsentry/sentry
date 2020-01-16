@@ -1,5 +1,5 @@
-import {Params} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -8,21 +8,14 @@ import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 
-import {
-  IncidentStatus,
-  fetchIncident,
-  updateSubscription,
-  updateStatus,
-  isOpen,
-} from '../utils';
+import {fetchIncident, updateSubscription, updateStatus, isOpen} from '../utils';
 import DetailsBody from './body';
 import DetailsHeader from './header';
-import {Incident} from '../types';
+import {IncidentStatus, Incident} from '../types';
 
 type Props = {
   api: Client;
-  params: Params;
-};
+} & RouteComponentProps<{incidentId: string; orgId: string}, {}>;
 
 type State = {
   isLoading: boolean;
@@ -132,7 +125,7 @@ class IncidentDetails extends React.Component<Props, State> {
           onStatusChange={this.handleStatusChange}
         />
 
-        <DetailsBody params={params} incident={incident} />
+        <DetailsBody {...this.props} incident={incident} />
       </React.Fragment>
     );
   }

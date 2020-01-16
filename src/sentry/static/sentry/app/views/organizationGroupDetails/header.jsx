@@ -2,7 +2,7 @@ import {Link} from 'react-router';
 import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {t} from 'app/locale';
@@ -64,7 +64,9 @@ class GroupHeader extends React.Component {
 
   render() {
     const {project, group} = this.props;
+    const {organization, location} = this.context;
     const projectFeatures = new Set(project ? project.features : []);
+    const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
 
     let className = 'group-detail';
@@ -80,12 +82,12 @@ class GroupHeader extends React.Component {
     }
 
     const {memberList} = this.state;
-    const {organization, location} = this.context;
     const groupId = group.id;
     const orgId = organization.slug;
     const message = this.getMessage();
 
     const hasSimilarView = projectFeatures.has('similarity-view');
+    const hasEventAttachments = organizationFeatures.has('event-attachments');
 
     const baseUrl = `/organizations/${orgId}/issues/`;
 
@@ -215,6 +217,14 @@ class GroupHeader extends React.Component {
           >
             {t('User Feedback')} <Badge text={group.userReportCount} />
           </ListLink>
+          {hasEventAttachments && (
+            <ListLink
+              to={`${baseUrl}${groupId}/attachments/${location.search}`}
+              isActive={() => location.pathname.includes('/attachments/')}
+            >
+              {t('Attachments')}
+            </ListLink>
+          )}
           <ListLink
             to={`${baseUrl}${groupId}/tags/${location.search}`}
             isActive={() => location.pathname.includes('/tags/')}

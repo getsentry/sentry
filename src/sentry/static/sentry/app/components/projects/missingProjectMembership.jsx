@@ -1,15 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import IndicatorStore from 'app/stores/indicatorStore';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {joinTeam} from 'app/actionCreators/teams';
+import {t} from 'app/locale';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import HeroIcon from 'app/components/heroIcon';
 import Well from 'app/components/well';
-import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
-import {t} from 'app/locale';
+import withApi from 'app/utils/withApi';
 
 class MissingProjectMembership extends React.Component {
   static propTypes = {
@@ -54,10 +54,7 @@ class MissingProjectMembership extends React.Component {
             loading: false,
             error: true,
           });
-          IndicatorStore.add(
-            t('There was an error while trying to leave the team.'),
-            'error'
-          );
+          addErrorMessage(t('There was an error while trying to leave the team.'));
         },
       }
     );

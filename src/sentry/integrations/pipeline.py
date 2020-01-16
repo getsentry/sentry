@@ -107,10 +107,9 @@ class IntegrationPipeline(Pipeline):
             except IntegrityError:
                 # If the external_id is already used for a different user or
                 # the user already has a different external_id remove those
-                # identities and recreate it, except in the case of GitHub
-                # where we need to be more careful because users may be using
-                # those identities to log in.
-                if idp.type in ("github", "vsts"):
+                # identities and recreate it, except in the case of Identities
+                # being used for login.
+                if idp.type in ("github", "vsts", "google"):
                     try:
                         other_identity = Identity.objects.get(
                             idp=idp, external_id=identity["external_id"]
@@ -123,7 +122,7 @@ class IntegrationPipeline(Pipeline):
                         # The external_id is linked to a different user. If that user doesn't
                         # have a password, we don't delete the link as it may lock them out.
                         if not other_identity.user.has_usable_password():
-                            proper_name = "GitHub" if idp.type == "github" else "Azure DevOps"
+                            proper_name = idp.get_provider().name
                             return self._dialog_response(
                                 {
                                     "error": _(

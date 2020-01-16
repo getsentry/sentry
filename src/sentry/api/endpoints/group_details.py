@@ -178,7 +178,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         """
         # TODO(dcramer): handle unauthenticated/public response
 
-        environments = get_environments(request, group.project.organization)
+        organization = group.project.organization
+        environments = get_environments(request, organization)
         environment_ids = [e.id for e in environments]
 
         # WARNING: the rest of this endpoint relies on this serializer

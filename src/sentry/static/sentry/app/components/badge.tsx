@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -11,7 +11,7 @@ const priorityColors = {
 } as const;
 
 type Props = React.HTMLProps<HTMLSpanElement> & {
-  text?: string;
+  text?: string | number | null;
   priority?: keyof typeof priorityColors;
   className?: string;
 };
@@ -38,7 +38,7 @@ const Badge = styled(({priority, text, ...props}: Props) => (
 `;
 
 Badge.propTypes = {
-  text: PropTypes.string,
+  text: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   priority: PropTypes.oneOf(['strong', 'new', 'highlight']),
 } as any;
 

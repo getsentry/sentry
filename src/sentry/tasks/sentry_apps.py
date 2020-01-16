@@ -6,6 +6,7 @@ from celery.task import current
 from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
+from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
@@ -22,7 +23,6 @@ from sentry.models import (
     ServiceHook,
     ServiceHookProject,
     SentryApp,
-    SnubaEvent,
 )
 from sentry.models.sentryapp import VALID_EVENTS
 
@@ -39,7 +39,7 @@ TASK_OPTIONS = {
 # Hook events to match what we externally call these primitives.
 RESOURCE_RENAMES = {"Group": "issue"}
 
-TYPES = {"Group": Group, "Error": SnubaEvent}
+TYPES = {"Group": Group, "Error": Event}
 
 
 def _webhook_event_data(event, group_id, project_id):
@@ -263,6 +263,21 @@ def send_webhooks(installation, event, **kwargs):
     # the event is within the allowed projects.
     project_limited = ServiceHookProject.objects.filter(service_hook_id=servicehook.id).exists()
 
+    # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
+    # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
+    # # Make sure we don't send the request, to prevent potential infinite loops
+    # if (
+    #     event == "error.created"
+    #     and installation.organization_id == installation.sentry_app.owner_id
+    # ):
+    #     # We just want to exclude error.created from the project that the integration lives in
+    #     # Need to first implement project mapping for integration partners
+    #     metrics.incr(
+    #         "webhook_request.dropped",
+    #         tags={"sentry_app": installation.sentry_app.id, "event": event},
+    #     )
+    #     return
+
     if not project_limited:
         resource, action = event.split(".")
 
@@ -293,6 +308,13 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
-    buffer.add_request(response_code=resp.status_code, org_id=org_id, event=event, url=url)
+    buffer.add_request(
+        response_code=resp.status_code,
+        org_id=org_id,
+        event=event,
+        url=url,
+        error_id=resp.headers.get("Sentry-Hook-Error"),
+        project_id=resp.headers.get("Sentry-Hook-Project"),
+    )
 
     return resp

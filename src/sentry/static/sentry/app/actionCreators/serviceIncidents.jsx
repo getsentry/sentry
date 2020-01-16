@@ -1,5 +1,3 @@
-import $ from 'jquery';
-
 import ConfigStore from 'app/stores/configStore';
 import ServiceIncidentActions from 'app/actions/serviceIncidentActions';
 
@@ -27,31 +25,28 @@ function getIncidentsFromIncidentResponse(incidents) {
   return [log, isMajor ? 'major' : 'minor'];
 }
 
-export function load() {
+export async function load() {
   const cfg = ConfigStore.get('statuspage');
   if (cfg && cfg.id) {
     ServiceIncidentActions.update();
 
-    $.ajax({
-      type: 'GET',
-      url: 'https://' + cfg.id + '.' + cfg.api_host + '/api/v2/incidents/unresolved.json',
-      crossDomain: true,
-      cache: false,
-      success: data => {
-        const [incidents, indicator] = getIncidentsFromIncidentResponse(data.incidents);
-        ServiceIncidentActions.updateSuccess({
-          status: {
-            incidents,
-            indicator,
-            url: data.page.url,
-          },
-        });
-      },
-      error: () => {
-        ServiceIncidentActions.updateError({
-          status: null,
-        });
-      },
-    });
+    const response = await fetch(
+      `https://${cfg.id}.${cfg.api_host}/api/v2/incidents/unresolved.json`
+    );
+    if (response.ok) {
+      const data = await response.json();
+      const [incidents, indicator] = getIncidentsFromIncidentResponse(data.incidents);
+      ServiceIncidentActions.updateSuccess({
+        status: {
+          incidents,
+          indicator,
+          url: data.page.url,
+        },
+      });
+    } else {
+      ServiceIncidentActions.updateError({
+        status: null,
+      });
+    }
   }
 }

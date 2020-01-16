@@ -3,6 +3,8 @@ from __future__ import absolute_import, print_function
 import importlib
 import six
 
+from sentry.db.models.utils import Creator
+
 from django.db import models
 from django.db.models.fields import NOT_PROVIDED
 from psycopg2.extensions import register_adapter
@@ -98,6 +100,10 @@ class UUIDField(models.Field):
         # This is the standard case; just use the superclass logic.
         return super(UUIDField, self).pre_save(instance, add)
 
+    def contribute_to_class(self, cls, name):
+        super(UUIDField, self).contribute_to_class(cls, name)
+        setattr(cls, name, Creator(self))
+
     def to_python(self, value):
         """Return a UUID object."""
         if isinstance(value, self._coerce_to) or not value:
@@ -123,9 +129,6 @@ class UUIDAdapter(object):
     def getquoted(self):
         return ("'%s'" % self.value).encode("utf8")
 
-
-if hasattr(models, "SubfieldBase"):
-    UUIDField = six.add_metaclass(models.SubfieldBase)(UUIDField)
 
 # Register the UUID type with psycopg2.
 register_adapter(UUID, UUIDAdapter)

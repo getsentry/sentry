@@ -42,7 +42,7 @@ class NotifyPlugin(TestCase):
             def hook(*a, **kw):
                 raise err
 
-            event = self.create_event()
+            event = self.store_event(data={}, project_id=self.project.id)
             notification = Notification(event)
 
             n.notify_users = hook

@@ -4,7 +4,7 @@ import operator
 import six
 
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Event, Group
+from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_values
@@ -165,9 +165,6 @@ def get_previous_releases(project, start_version, limit=5):
 
 
 def get_event_file_committers(project, event, frame_limit=25):
-    # populate event data
-    Event.objects.bind_nodes([event], "data")
-
     group = Group.objects.get(id=event.group_id)
 
     first_release_version = group.get_first_release()

@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
@@ -20,6 +20,7 @@ class EventsContainer extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     router: PropTypes.object,
+    selection: SentryTypes.GlobalSelection,
   };
 
   constructor(props) {
@@ -40,7 +41,7 @@ class EventsContainer extends React.Component {
   };
 
   render() {
-    const {organization, location, children} = this.props;
+    const {organization, location, children, selection} = this.props;
 
     return (
       <Feature
@@ -61,6 +62,7 @@ class EventsContainer extends React.Component {
                 </HeaderTitle>
                 <StyledSearchBar
                   organization={organization}
+                  projectIds={selection.projects}
                   query={(location.query && location.query.query) || ''}
                   placeholder={t('Search for events, users, tags, and everything else.')}
                   onSearch={this.handleSearch}

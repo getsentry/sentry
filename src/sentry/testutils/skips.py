@@ -10,23 +10,6 @@ import pytest
 _service_status = {}
 
 
-def cassandra_is_available():
-    if "cassandra" in _service_status:
-        return _service_status["cassandra"]
-    try:
-        socket.create_connection(("127.0.0.1", 9042), 1.0)
-    except socket.error:
-        _service_status["cassandra"] = False
-    else:
-        _service_status["cassandra"] = True
-    return _service_status["cassandra"]
-
-
-requires_cassandra = pytest.mark.skipif(
-    not cassandra_is_available(), reason="requires cassandra server running"
-)
-
-
 def snuba_is_available():
     if "snuba" in _service_status:
         return _service_status["snuba"]

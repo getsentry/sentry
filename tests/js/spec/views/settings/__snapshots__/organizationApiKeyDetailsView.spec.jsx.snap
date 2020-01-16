@@ -61,16 +61,14 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
             onSubmit={[Function]}
           >
             <form
-              className="form-stacked css-10f3krf-StyledForm e18zovyk0"
+              className="form-stacked css-1z07nlv-StyledForm e18zovyk0"
               onSubmit={[Function]}
             >
               <SplitLayout
                 splitWidth={15}
               >
                 <SpreadLayout
-                  center={true}
                   className="split-layout"
-                  responsive={false}
                 >
                   <div
                     className="spread-layout split-layout center"
@@ -220,6 +218,10 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                     Array [
                       "org:admin",
                       "org:admin",
+                    ],
+                    Array [
+                      "org:integrations",
+                      "org:integrations",
                     ],
                     Array [
                       "member:read",
@@ -436,6 +438,19 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                         value="org:admin"
                       />
                       org:admin
+                    </label>
+                    <label
+                      className="checkbox"
+                      key="org:integrations"
+                    >
+                      <input
+                        checked={false}
+                        disabled={false}
+                        onChange={[Function]}
+                        type="checkbox"
+                        value="org:integrations"
+                      />
+                      org:integrations
                     </label>
                     <label
                       className="checkbox"

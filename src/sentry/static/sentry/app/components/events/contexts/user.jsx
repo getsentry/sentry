@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import each from 'lodash/each';
 
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalLink from 'app/components/links/externalLink';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
@@ -22,11 +22,11 @@ class UserContextType extends React.Component {
     const children = [];
 
     // Handle our native attributes specially
-    user.id && builtins.push(['ID', <pre>{user.id}</pre>]);
+    user.id && builtins.push(['ID', <pre className="val-string">{user.id}</pre>]);
     user.email &&
       builtins.push([
         'Email',
-        <pre>
+        <pre className="val-string">
           {user.email}
           {EMAIL_REGEX.test(user.email) && (
             <ExternalLink href={`mailto:${user.email}`} className="external-icon">
@@ -35,9 +35,11 @@ class UserContextType extends React.Component {
           )}
         </pre>,
       ]);
-    user.username && builtins.push(['Username', <pre>{user.username}</pre>]);
-    user.ip_address && builtins.push(['IP Address', <pre>{user.ip_address}</pre>]);
-    user.name && builtins.push(['Name', <pre>{user.name}</pre>]);
+    user.username &&
+      builtins.push(['Username', <pre className="val-string">{user.username}</pre>]);
+    user.ip_address &&
+      builtins.push(['IP Address', <pre className="val-string">{user.ip_address}</pre>]);
+    user.name && builtins.push(['Name', <pre className="val-string">{user.name}</pre>]);
 
     // We also attach user supplied data as 'user.data'
     each(user.data, function(value, key) {
@@ -47,7 +49,7 @@ class UserContextType extends React.Component {
     return (
       <div className="user-widget">
         <div className="pull-left">
-          <Avatar user={removeFilterMaskedEntries(user)} size={48} gravatar={false} />
+          <UserAvatar user={removeFilterMaskedEntries(user)} size={48} gravatar={false} />
         </div>
         <table className="key-value table">
           <tbody>

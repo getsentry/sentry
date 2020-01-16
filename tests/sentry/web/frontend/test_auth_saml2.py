@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 import pytest
 import base64
-import mock
+from sentry.utils.compat import mock
 from exam import fixture
 from six.moves.urllib.parse import urlencode, urlparse, parse_qs
 
@@ -11,7 +11,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
 
-from sentry.auth.providers.saml2 import SAML2Provider, Attributes, HAS_SAML2
+from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes, HAS_SAML2
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,

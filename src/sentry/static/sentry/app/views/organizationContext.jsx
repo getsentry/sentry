@@ -4,11 +4,11 @@ import React from 'react';
 import Reflux from 'reflux';
 import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
 import {fetchOrganizationDetails} from 'app/actionCreators/organization';
-import {metric, logExperiment} from 'app/utils/analytics';
+import {metric} from 'app/utils/analytics';
 import {openSudo} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
@@ -186,15 +186,6 @@ const OrganizationContext = createReactClass({
     if (organization && !error) {
       HookStore.get('organization:header').forEach(cb => {
         hooks.push(cb(organization));
-      });
-
-      // Log exposure to the improved invite experiment
-      logExperiment({
-        organization,
-        key: 'ImprovedInvitesExperiment',
-        unitName: 'org_id',
-        unitId: parseInt(organization.id, 10),
-        param: 'variant',
       });
 
       // Configure scope to have organization tag

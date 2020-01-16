@@ -2,7 +2,7 @@ import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
 import keydown from 'react-keydown';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {analytics} from 'app/utils/analytics';
 import {inputStyles} from 'app/styles/input';
@@ -25,6 +25,7 @@ class PlatformPicker extends React.Component {
     setPlatform: PropTypes.func.isRequired,
     platform: PropTypes.string,
     showOther: PropTypes.bool,
+    listClassName: PropTypes.string,
     listProps: PropTypes.object,
     noAutoFilter: PropTypes.bool,
   };
@@ -72,7 +73,7 @@ class PlatformPicker extends React.Component {
 
   render() {
     const platformList = this.platformList;
-    const {setPlatform, listProps} = this.props;
+    const {setPlatform, listProps, listClassName} = this.props;
     const {filter, category} = this.state;
 
     return (
@@ -106,7 +107,7 @@ class PlatformPicker extends React.Component {
             />
           </SearchBar>
         </NavContainer>
-        <PlatformList {...listProps}>
+        <PlatformList className={listClassName} {...listProps}>
           {platformList.map(platform => (
             <PlatformCard
               data-test-id={`platform-${platform.id}`}
@@ -117,7 +118,7 @@ class PlatformPicker extends React.Component {
                 setPlatform('');
                 e.stopPropagation();
               }}
-              onClick={e => {
+              onClick={() => {
                 analytics('platformpicker.select_platform', {platform: platform.id});
                 setPlatform(platform.id);
               }}

@@ -11,6 +11,7 @@ from .vsts import *  # NOQA
 from .vsts_extension import *  # NOQA
 from .bitbucket import *  # NOQA
 from .gitlab import *  # NOQA
+from .google import *  # NOQA
 
 default_manager = IdentityManager()
 all = default_manager.all
@@ -28,3 +29,4 @@ register(VSTSIdentityProvider)  # NOQA
 register(VstsExtensionIdentityProvider)  # NOQA
 register(BitbucketIdentityProvider)  # NOQA
 register(GitlabIdentityProvider)  # NOQA
+register(GoogleIdentityProvider)  # NOQA

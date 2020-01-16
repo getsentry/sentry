@@ -95,8 +95,8 @@ describe('OrganizationRequestsView', function() {
       TestStubs.routerContext()
     );
 
-    expect(wrapper.find('PanelHeader').exists()).toBe(false);
-    expect(trackAnalyticsEvent).not.toHaveBeenCalled();
+    expect(wrapper.find('PanelHeader').exists()).toBe(true);
+    expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
   });
 
   it('can approve access request and remove', async function() {
@@ -147,9 +147,16 @@ describe('OrganizationRequestsView', function() {
       body: [accessRequest],
     });
 
+    const org = TestStubs.Organization({
+      access: ['team:write'],
+      status: {
+        id: 'active',
+      },
+    });
+
     const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper organization={organization} {...defaultProps}>
-        <OrganizationRequestsView organization={organization} {...defaultProps} />
+      <OrganizationMembersWrapper organization={org} {...defaultProps}>
+        <OrganizationRequestsView organization={org} {...defaultProps} />
       </OrganizationMembersWrapper>,
       TestStubs.routerContext()
     );
@@ -174,35 +181,6 @@ describe('OrganizationRequestsView', function() {
     expect(trackAnalyticsEvent).not.toHaveBeenCalled();
   });
 
-  it('does not render invite requests without experiment', function() {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/access-requests/',
-      method: 'GET',
-      body: [accessRequest],
-    });
-
-    const org = TestStubs.Organization({
-      experiments: {ImprovedInvitesExperiment: 'none'},
-      access: ['member:admin', 'org:admin', 'member:write'],
-      status: {
-        id: 'active',
-      },
-    });
-
-    const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper organization={org} {...defaultProps}>
-        <OrganizationRequestsView organization={org} {...defaultProps} />
-      </OrganizationMembersWrapper>,
-      TestStubs.routerContext()
-    );
-
-    expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('StyledBadge[text="1"]').exists()).toBe(true);
-    expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
-
-    expect(trackAnalyticsEvent).not.toHaveBeenCalled();
-  });
-
   it('does not render invite requests without access', function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
@@ -216,7 +194,6 @@ describe('OrganizationRequestsView', function() {
     });
 
     const org = TestStubs.Organization({
-      experiments: {ImprovedInvitesExperiment: 'all'},
       access: [],
       status: {
         id: 'active',
@@ -239,7 +216,6 @@ describe('OrganizationRequestsView', function() {
 
   it('can approve invite request and update', async function() {
     const org = TestStubs.Organization({
-      experiments: {ImprovedInvitesExperiment: 'all'},
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
         id: 'active',
@@ -284,12 +260,6 @@ describe('OrganizationRequestsView', function() {
     expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'invite_request.page_viewed',
-      eventName: 'Invite Request Page Viewed',
-      organization_id: org.id,
-    });
-
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
       eventKey: 'invite_request.approved',
       eventName: 'Invite Request Approved',
       organization_id: org.id,
@@ -300,7 +270,6 @@ describe('OrganizationRequestsView', function() {
 
   it('can deny invite request and remove', async function() {
     const org = TestStubs.Organization({
-      experiments: {ImprovedInvitesExperiment: 'all'},
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
         id: 'active',
@@ -344,12 +313,6 @@ describe('OrganizationRequestsView', function() {
     expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'invite_request.page_viewed',
-      eventName: 'Invite Request Page Viewed',
-      organization_id: org.id,
-    });
-
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
       eventKey: 'invite_request.denied',
       eventName: 'Invite Request Denied',
       organization_id: org.id,
@@ -360,7 +323,6 @@ describe('OrganizationRequestsView', function() {
 
   it('can update invite requests', async function() {
     const org = TestStubs.Organization({
-      experiments: {ImprovedInvitesExperiment: 'all'},
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
         id: 'active',

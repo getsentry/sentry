@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {SEARCH_TYPES} from 'app/constants';
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
@@ -88,9 +88,9 @@ class IssueListSearchBar extends React.Component {
    * with data when ready
    */
   getTagValues = (tag, query) => {
-    const {tagValueLoader} = this.props;
+    const {tagValueLoader, projectIds} = this.props;
 
-    return tagValueLoader(tag.key, query).then(
+    return tagValueLoader(tag.key, query, projectIds).then(
       values => values.map(({value}) => value),
       () => {
         throw new Error('Unable to fetch project tags');

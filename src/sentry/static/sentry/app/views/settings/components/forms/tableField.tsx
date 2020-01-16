@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
-import space from 'app/styles/space';
+import styled from '@emotion/styled';
 
 import {defined, objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import InputField from 'app/views/settings/components/forms/inputField';
 import Input from 'app/views/settings/components/forms/controls/input';
+import InputField from 'app/views/settings/components/forms/inputField';
+import space from 'app/styles/space';
 
 const defaultProps = {
   addButtonText: t('Add Item'),
@@ -135,7 +135,7 @@ export default class TableField extends React.Component<Props> {
                 <RowInput>
                   <Input
                     onChange={v => setValue(rowIndex, fieldKey, v ? v : null)}
-                    value={row[fieldKey]}
+                    value={!defined(row[fieldKey]) ? '' : row[fieldKey]}
                   />
                 </RowInput>
                 {i === mappedKeys.length - 1 && (

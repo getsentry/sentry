@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
@@ -10,14 +10,14 @@ import Link from 'app/components/links/link';
 import EventView, {Field, Sort, isFieldSortable} from './eventView';
 import {MetaType} from './utils';
 
-type Alignments = 'left' | 'right' | undefined;
+export type Alignments = 'left' | 'right' | undefined;
 
 type Props = {
   align: Alignments;
   field: Field;
   location: Location;
   eventView: EventView;
-  tableDataMeta: MetaType;
+  tableDataMeta?: MetaType; // Will not be defined if data is not loaded
 };
 
 class SortLink extends React.Component<Props> {
@@ -26,17 +26,23 @@ class SortLink extends React.Component<Props> {
     field: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
     eventView: PropTypes.object.isRequired,
-    tableDataMeta: PropTypes.object.isRequired,
+    tableDataMeta: PropTypes.object,
   };
 
   isCurrentColumnSorted(): Sort | undefined {
     const {eventView, field, tableDataMeta} = this.props;
+    if (!tableDataMeta) {
+      return undefined;
+    }
 
     return eventView.isFieldSorted(field, tableDataMeta);
   }
 
   getTarget() {
     const {location, field, eventView, tableDataMeta} = this.props;
+    if (!tableDataMeta) {
+      return undefined;
+    }
 
     const nextEventView = eventView.sortOnField(field, tableDataMeta);
     const queryStringObject = nextEventView.generateQueryStringObject();
@@ -65,12 +71,12 @@ class SortLink extends React.Component<Props> {
     const {align, field, tableDataMeta} = this.props;
 
     if (!isFieldSortable(field, tableDataMeta)) {
-      return <StyledNonLink align={align}>{field.title}</StyledNonLink>;
+      return <StyledNonLink align={align}>{field.field}</StyledNonLink>;
     }
 
     return (
       <StyledLink align={align} to={this.getTarget()}>
-        {field.title} {this.renderChevron()}
+        {field.field} {this.renderChevron()}
       </StyledLink>
     );
   }

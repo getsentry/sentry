@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
-import mock
+from sentry.utils.compat import mock
 import pytz
 import six
 from django.utils import timezone
@@ -65,7 +65,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
         assert resp.data["query"] == expected["query"]
         assert resp.data["projects"] == expected["projects"]
         assert resp.data["dateDetected"] == expected["dateDetected"]
-        assert resp.data["dateAdded"] == expected["dateAdded"]
+        assert resp.data["dateCreated"] == expected["dateCreated"]
         assert resp.data["projects"] == expected["projects"]
         assert resp.data["eventStats"] == expected["eventStats"]
         assert resp.data["seenBy"] == seen_by

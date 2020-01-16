@@ -1,5 +1,7 @@
+import Papa from 'papaparse';
 import partial from 'lodash/partial';
 import pick from 'lodash/pick';
+import isString from 'lodash/isString';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
@@ -7,8 +9,18 @@ import {t} from 'app/locale';
 import {Event, Organization} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
+import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {disableMacros} from 'app/views/discover/result/utils';
 import {generateQueryWithTag} from 'app/utils';
+import {
+  COL_WIDTH_UNDEFINED,
+  COL_WIDTH_DEFAULT,
+  COL_WIDTH_BOOLEAN,
+  COL_WIDTH_DATETIME,
+  COL_WIDTH_NUMBER,
+  COL_WIDTH_STRING,
+} from 'app/components/gridEditable';
 
 import {
   AGGREGATE_ALIASES,
@@ -21,13 +33,7 @@ import {
   TRANSACTION_VIEWS,
 } from './data';
 import EventView, {Field as FieldType} from './eventView';
-import {
-  Aggregation,
-  Field,
-  AGGREGATIONS,
-  FIELDS,
-  ColumnValueType,
-} from './eventQueryParams';
+import {Aggregation, Field, AGGREGATIONS, FIELDS} from './eventQueryParams';
 import {TableColumn} from './table/types';
 
 export type EventQuery = {
@@ -53,10 +59,18 @@ function explodeFieldString(field: string): {aggregation: string; field: string}
 
 export function explodeField(
   field: FieldType
-): {aggregation: string; field: string; fieldname: string} {
+): {
+  aggregation: string;
+  field: string;
+  width: number;
+} {
   const results = explodeFieldString(field.field);
 
-  return {aggregation: results.aggregation, field: results.field, fieldname: field.title};
+  return {
+    aggregation: results.aggregation,
+    field: results.field,
+    width: field.width || COL_WIDTH_DEFAULT,
+  };
 }
 
 /**
@@ -118,29 +132,28 @@ export type TagTopValue = {
 };
 
 export type Tag = {
+  key: string;
   topValues: Array<TagTopValue>;
 };
 
 /**
- * Fetches tag distributions for a single tag key
+ * Fetches tag facets for a query
  *
  * @param {Object} api
  * @param {String} orgSlug
- * @param {String} key
  * @param {String} query
  * @returns {Promise<Object>}
  */
-export function fetchTagDistribution(
+export function fetchTagFacets(
   api: Client,
   orgSlug: string,
-  key: string,
   query: EventQuery
-): Promise<Tag> {
+): Promise<Tag[]> {
   const urlParams = pick(query, Object.values(URL_PARAM));
 
-  const queryOption = {...urlParams, key, query: query.query};
+  const queryOption = {...urlParams, query: query.query};
 
-  return api.requestPromise(`/organizations/${orgSlug}/events-distribution/`, {
+  return api.requestPromise(`/organizations/${orgSlug}/events-facets/`, {
     query: queryOption,
   });
 }
@@ -176,6 +189,26 @@ export function fetchTotalCount(
 export type MetaType = {
   [key: string]: FieldTypes;
 };
+
+export function getDefaultWidth(key: Aggregation | Field): number {
+  if (AGGREGATIONS[key]) {
+    return COL_WIDTH_NUMBER;
+  }
+
+  switch (FIELDS[key]) {
+    case 'string':
+      return COL_WIDTH_STRING;
+    case 'boolean':
+      return COL_WIDTH_BOOLEAN;
+    case 'number':
+      return COL_WIDTH_NUMBER;
+    case 'duration':
+    case 'never': // never is usually a timestamp
+      return COL_WIDTH_DATETIME;
+    default:
+      return COL_WIDTH_DEFAULT;
+  }
+}
 
 /**
  * Get the field renderer for the named field and metadata
@@ -225,34 +258,30 @@ export function getAggregateAlias(field: string): string {
 export type QueryWithColumnState =
   | Query
   | {
-      fieldnames: string | string[] | null | undefined;
       field: string | string[] | null | undefined;
       sort: string | string[] | null | undefined;
     };
 
 const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   key: '',
-  name: '',
   aggregation: '',
   field: '',
-  eventViewField: Object.freeze({field: '', title: ''}),
-  isDragging: false,
+  name: '',
+  width: COL_WIDTH_DEFAULT,
 
   type: 'never',
+  isDragging: false,
   isSortable: false,
   isPrimary: false,
+
+  eventViewField: Object.freeze({field: '', width: COL_WIDTH_DEFAULT}),
 };
 
-export function decodeColumnOrder(props: {
-  fieldnames: string[];
-  field: string[];
-  fields: Readonly<FieldType[]>;
-}): TableColumn<React.ReactText>[] {
-  const {fieldnames, field, fields} = props;
-
-  return field.map((f: string, index: number) => {
-    const col = {aggregationField: f, name: fieldnames[index]};
-
+export function decodeColumnOrder(
+  fields: Readonly<FieldType[]>
+): TableColumn<React.ReactText>[] {
+  return fields.map((f: FieldType) => {
+    const col = {aggregationField: f.field, name: f.field, width: f.width};
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
     // "field" will be split into ["field"]
@@ -267,20 +296,19 @@ export function decodeColumnOrder(props: {
       column.aggregation = aggregationField[0] as Aggregation;
       column.field = aggregationField[1] as Field;
     }
-
     column.key = col.aggregationField;
-    column.name = col.name;
-    column.type = (FIELDS[column.field] || 'never') as ColumnValueType;
+    column.type = column.aggregation ? 'number' : FIELDS[column.field];
+    column.width =
+      col.width && col.width !== COL_WIDTH_UNDEFINED
+        ? col.width
+        : getDefaultWidth(aggregationField[0]);
 
+    column.name = column.key;
     column.isSortable = AGGREGATIONS[column.aggregation]
       ? AGGREGATIONS[column.aggregation].isSortable
       : false;
     column.isPrimary = column.field === 'title';
-
-    column.eventViewField = {
-      title: fields[index].title,
-      field: fields[index].field,
-    };
+    column.eventViewField = f;
 
     return column;
   });
@@ -335,4 +363,49 @@ export function getPrebuiltQueries(organization: Organization) {
   }
 
   return views;
+}
+
+export function decodeScalar(
+  value: string[] | string | undefined | null
+): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const unwrapped =
+    Array.isArray(value) && value.length > 0
+      ? value[0]
+      : isString(value)
+      ? value
+      : undefined;
+  return isString(unwrapped) ? unwrapped : undefined;
+}
+
+export function downloadAsCsv(tableData, columnOrder, filename) {
+  const {data} = tableData;
+  const headings = columnOrder.map(column => column.name);
+
+  const csvContent = Papa.unparse({
+    fields: headings,
+    data: data.map(row => {
+      return headings.map(col => {
+        // alias for project doesn't match the table data name
+        if (col === 'project') {
+          col = 'project.name';
+        } else {
+          col = getAggregateAlias(col);
+        }
+        return disableMacros(row[col]);
+      });
+    }),
+  });
+
+  const encodedDataUrl = encodeURI(`data:text/csv;charset=utf8,${csvContent}`);
+
+  // Create a download link then click it, this is so we can get a filename
+  const link = document.createElement('a');
+  const now = new Date();
+  link.setAttribute('href', encodedDataUrl);
+  link.setAttribute('download', `${filename} ${getUtcDateString(now)}.csv`);
+  link.click();
+  link.remove();
 }

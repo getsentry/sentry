@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as ReactRouter from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {MEMBER_ROLES} from 'app/constants';
 import {AccessRequest, Member, Organization, Team} from 'app/types';
@@ -17,8 +17,6 @@ import InviteRequestRow from './inviteRequestRow';
 import OrganizationAccessRequests from './organizationAccessRequests';
 
 type Props = {
-  params: any;
-  router: ReactRouter.InjectedRouter;
   organization: Organization;
   requestList: AccessRequest[];
   inviteRequests: Member[];
@@ -27,7 +25,7 @@ type Props = {
   onRemoveInviteRequest: (id: string) => void;
   onRemoveAccessRequest: (id: string) => void;
   showInviteRequests: boolean;
-};
+} & RouteComponentProps<{orgId: string}, {}>;
 
 type State = AsyncView['state'] & {
   inviteRequestBusy: {[key: string]: boolean};
@@ -57,16 +55,6 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
   componentWillMount() {
     super.componentWillMount();
     this.handleRedirect();
-  }
-
-  componentDidMount() {
-    const {organization, showInviteRequests} = this.props;
-    showInviteRequests &&
-      trackAnalyticsEvent({
-        eventKey: 'invite_request.page_viewed',
-        eventName: 'Invite Request Page Viewed',
-        organization_id: organization.id,
-      });
   }
 
   componentDidUpdate() {

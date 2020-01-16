@@ -16,6 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.rest_framework import ListField
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
+from sentry.lang.native.utils import STORE_CRASH_REPORTS_DEFAULT, convert_crashreport_count
 from sentry.models import (
     AuditLogEntryEvent,
     Authenticator,
@@ -66,8 +67,8 @@ ORG_OPTIONS = (
     (
         "storeCrashReports",
         "sentry:store_crash_reports",
-        bool,
-        org_serializers.STORE_CRASH_REPORTS_DEFAULT,
+        convert_crashreport_count,
+        STORE_CRASH_REPORTS_DEFAULT,
     ),
     (
         "attachmentsRole",
@@ -130,7 +131,7 @@ class OrganizationSerializer(serializers.Serializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    storeCrashReports = serializers.BooleanField(required=False)
+    storeCrashReports = serializers.IntegerField(min_value=-1, max_value=20, required=False)
     attachmentsRole = serializers.CharField(required=True)
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)

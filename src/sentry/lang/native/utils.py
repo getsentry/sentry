@@ -5,8 +5,8 @@ import six
 import logging
 
 from sentry.attachments import attachment_cache
-from sentry.coreapi import cache_key_for_event
 from sentry.stacktraces.processing import find_stacktraces_in_data
+from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,11 @@ NATIVE_IMAGE_TYPES = (
     "macho",  # macOS, iOS
     "pe",  # Windows
 )
+
+# Default disables storing crash reports.
+STORE_CRASH_REPORTS_DEFAULT = 0
+# Do not limit crash report attachments per group.
+STORE_CRASH_REPORTS_ALL = -1
 
 
 def is_native_platform(platform):
@@ -106,5 +111,25 @@ def signal_from_data(data):
 
 def get_event_attachment(data, attachment_type):
     cache_key = cache_key_for_event(data)
-    attachments = attachment_cache.get(cache_key) or []
+    attachments = attachment_cache.get(cache_key)
     return next((a for a in attachments if a.type == attachment_type), None)
+
+
+def convert_crashreport_count(value):
+    """
+    Shim to read both legacy and new `sentry:store_crash_reports` project and
+    organization options.
+
+    The legacy format stored `True` for an unlimited number of crash reports,
+    and `False` for no crash reports.
+
+    The new format stores `-1` for unbounded storage, `0` for no crash reports,
+    and a positive number for a bounded number per group.
+
+    Defaults to `0` (no storage).
+    """
+    if value is True:
+        return STORE_CRASH_REPORTS_ALL
+    if value is None:
+        return STORE_CRASH_REPORTS_DEFAULT
+    return int(value)

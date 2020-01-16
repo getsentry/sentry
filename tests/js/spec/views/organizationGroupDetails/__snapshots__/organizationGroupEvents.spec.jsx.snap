@@ -86,38 +86,7 @@ Array [
               "type": "event.minidump",
             }
           }
-          event={
-            Object {
-              "crashFile": Object {
-                "dateCreated": "2019-05-21T18:01:48.762Z",
-                "headers": Object {
-                  "Content-Type": "application/octet-stream",
-                },
-                "id": "12345",
-                "name": "name.dmp",
-                "sha1": "sha1",
-                "size": 123456,
-                "type": "event.minidump",
-              },
-              "culprit": "",
-              "dateCreated": "2019-05-21T18:00:23Z",
-              "event.type": "error",
-              "eventID": "123456",
-              "groupID": "1",
-              "id": "98654",
-              "location": "main.js",
-              "message": "TestException",
-              "platform": "native",
-              "projectID": "123",
-              "tags": Array [
-                Object {
-                  "key": "production",
-                  "value": "production",
-                },
-              ],
-              "title": "TestException",
-            }
-          }
+          eventId="98654"
           projectId="project-slug"
         >
           <AttachmentUrl
@@ -134,38 +103,7 @@ Array [
                 "type": "event.minidump",
               }
             }
-            event={
-              Object {
-                "crashFile": Object {
-                  "dateCreated": "2019-05-21T18:01:48.762Z",
-                  "headers": Object {
-                    "Content-Type": "application/octet-stream",
-                  },
-                  "id": "12345",
-                  "name": "name.dmp",
-                  "sha1": "sha1",
-                  "size": 123456,
-                  "type": "event.minidump",
-                },
-                "culprit": "",
-                "dateCreated": "2019-05-21T18:00:23Z",
-                "event.type": "error",
-                "eventID": "123456",
-                "groupID": "1",
-                "id": "98654",
-                "location": "main.js",
-                "message": "TestException",
-                "platform": "native",
-                "projectID": "123",
-                "tags": Array [
-                  Object {
-                    "key": "production",
-                    "value": "production",
-                  },
-                ],
-                "title": "TestException",
-              }
-            }
+            eventId="98654"
             organization={
               Object {
                 "access": Array [

@@ -14,6 +14,32 @@ describe('Discover', function() {
     organization = TestStubs.Organization({projects: [project]});
     queryBuilder = createQueryBuilder({}, organization);
     GlobalSelectionStore.reset();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/saved/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/query/',
+      method: 'POST',
+      body: {
+        data: [],
+        timing: {},
+        meta: [],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+      method: 'POST',
+      body: {
+        data: [],
+        timing: {},
+        meta: [],
+      },
+    });
   });
 
   afterEach(function() {
@@ -680,8 +706,8 @@ describe('Discover', function() {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            start: '2017-10-03T02:41:20',
-            end: '2017-10-17T02:41:20',
+            start: '2017-10-03T02:41:20.000',
+            end: '2017-10-17T02:41:20.000',
             utc: false,
           }),
         })
@@ -709,8 +735,8 @@ describe('Discover', function() {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            start: '2017-10-01T04:00:00',
-            end: '2017-10-02T03:59:59',
+            start: '2017-10-01T04:00:00.000',
+            end: '2017-10-02T03:59:59.000',
             utc: false,
           }),
         })
@@ -729,8 +755,8 @@ describe('Discover', function() {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            start: '2017-10-01T00:00:00',
-            end: '2017-10-01T23:59:59',
+            start: '2017-10-01T00:00:00.000',
+            end: '2017-10-01T23:59:59.000',
             utc: true,
           }),
         })
@@ -747,8 +773,8 @@ describe('Discover', function() {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            start: '2017-10-01T04:00:00',
-            end: '2017-10-02T03:59:59',
+            start: '2017-10-01T04:00:00.000',
+            end: '2017-10-02T03:59:59.000',
             utc: false,
           }),
         })

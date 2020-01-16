@@ -64,13 +64,17 @@ class GroupRecordsTestCase(TestCase):
         return self.project.rule_set.all()[0]
 
     def test_success(self):
-        events = [self.create_event(group=self.group) for _ in range(3)]
+        events = [
+            self.store_event(data={"fingerprint": ["group-1"]}, project_id=self.project.id)
+            for i in range(3)
+        ]
+        group = events[0].group
         records = [
             Record(event.event_id, Notification(event, [self.rule]), event.datetime)
             for event in events
         ]
         assert reduce(group_records, records, defaultdict(lambda: defaultdict(list))) == {
-            self.rule: {self.group: records}
+            self.rule: {group: records}
         }
 
 

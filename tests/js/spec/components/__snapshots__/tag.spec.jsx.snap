@@ -8,12 +8,12 @@ exports[`Tag renders 1`] = `
 >
   <Component
     border={true}
-    className="css-1kkbi00-Tag e6q9yfr0"
+    className="css-pt19g0-Tag e6q9yfr0"
     priority="info"
     size="small"
   >
     <div
-      className="css-1kkbi00-Tag e6q9yfr0"
+      className="css-pt19g0-Tag e6q9yfr0"
     >
       Text to Copy
     </div>

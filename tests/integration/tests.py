@@ -6,7 +6,7 @@ import os
 import datetime
 import json
 import logging
-import mock
+from sentry.utils.compat import mock
 import six
 from time import sleep
 import zlib
@@ -24,7 +24,7 @@ from sentry_sdk.integrations.django import DjangoIntegration
 from six import StringIO
 from werkzeug.test import Client as WerkzeugClient
 
-from sentry.models import Group, Event
+from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -176,8 +176,7 @@ class SentryRemoteTest(SnubaTestCase):
         return reverse("sentry-api-store")
 
     def get_event(self, event_id):
-        instance = eventstore.get_event_by_id(self.project.id, event_id, eventstore.full_columns)
-        Event.objects.bind_nodes([instance], "data")
+        instance = eventstore.get_event_by_id(self.project.id, event_id)
         return instance
 
     def test_minimal(self):
@@ -491,6 +490,7 @@ class SentryRemoteTest(SnubaTestCase):
 
 
 class SentryWsgiRemoteTest(TransactionTestCase):
+    @override_settings(ALLOWED_HOSTS=["localhost"])
     def test_traceparent_header_wsgi(self):
         # Assert that posting something to store will not create another
         # (transaction) event under any circumstances.
@@ -614,7 +614,6 @@ class CspReportTest(TestCase, SnubaTestCase):
         )
         assert len(events) == 1
         e = events[0]
-        Event.objects.bind_nodes([e], "data")
         assert output["message"] == e.data["logentry"]["formatted"]
         for key, value in six.iteritems(output["tags"]):
             assert e.get_tag(key) == value

@@ -30,7 +30,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
         Note: This endpoint is experimental and may be removed without notice.
 
-        :qparam bool full: if this is set to true then the event payload will include the full event body, including the stacktrace. Set to 1 to enable.
+        :qparam bool full: if this is set to true then the event payload will
+                           include the full event body, including the stacktrace.
+                           Set to 1 to enable.
 
         :pparam string organization_slug: the slug of the organization the
                                           groups belong to.
@@ -47,12 +49,10 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             )
 
         full = request.GET.get("full", False)
-        cols = None if full else eventstore.full_columns
 
         data_fn = partial(
             eventstore.get_events,
             filter=eventstore.Filter(conditions=conditions, project_ids=[project.id]),
-            additional_columns=cols,
             referrer="api.project-events",
         )
 

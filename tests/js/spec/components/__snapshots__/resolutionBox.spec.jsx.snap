@@ -166,9 +166,9 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
       <strong
         key="0"
       >
-        <Avatar
+        <UserAvatar
           className="avatar"
-          hasTooltip={false}
+          gravatar={false}
           size={20}
           user={
             Object {
@@ -288,9 +288,9 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
       <strong
         key="0"
       >
-        <Avatar
+        <UserAvatar
           className="avatar"
-          hasTooltip={false}
+          gravatar={false}
           size={20}
           user={
             Object {

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Avatar from 'app/components/avatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import DeviceName from 'app/components/deviceName';
 import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';
 import SentryTypes from 'app/sentryTypes';
@@ -127,7 +127,12 @@ export class UserSummary extends React.Component {
     return (
       <div className="context-item user">
         {userTitle ? (
-          <Avatar user={user} size={48} className="context-item-icon" gravatar={false} />
+          <UserAvatar
+            user={user}
+            size={48}
+            className="context-item-icon"
+            gravatar={false}
+          />
         ) : (
           <span className="context-item-icon" />
         )}

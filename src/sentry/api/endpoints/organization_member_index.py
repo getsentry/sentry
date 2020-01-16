@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import six
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, F
 from rest_framework import serializers
 from rest_framework.response import Response
 from django.conf import settings
@@ -22,6 +22,7 @@ from sentry.models import (
     Team,
     TeamStatus,
 )
+from sentry.models.authenticator import available_authenticators
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
 from .organization_member_details import get_allowed_roles
@@ -108,6 +109,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         )
 
         query = request.GET.get("query")
+
         if query:
             tokens = tokenize_query(query)
             for key, value in six.iteritems(tokens):
@@ -123,6 +125,28 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
                 elif key == "role":
                     queryset = queryset.filter(role__in=value)
+
+                elif key == "isInvited":
+                    isInvited = "true" in value
+                    queryset = queryset.filter(user__isnull=isInvited)
+
+                elif key == "ssoLinked":
+                    ssoFlag = OrganizationMember.flags["sso:linked"]
+                    ssoLinked = "true" in value
+                    if ssoLinked:
+                        queryset = queryset.filter(flags=F("flags").bitor(ssoFlag))
+                    else:
+                        queryset = queryset.filter(flags=F("flags").bitand(~ssoFlag))
+
+                elif key == "has2fa":
+                    has2fa = "true" in value
+                    if has2fa:
+                        types = [a.type for a in available_authenticators(ignore_backup=True)]
+                        queryset = queryset.filter(
+                            user__authenticator__isnull=False, user__authenticator__type__in=types
+                        ).distinct()
+                    else:
+                        queryset = queryset.filter(user__authenticator__isnull=True)
 
                 elif key == "query":
                     value = " ".join(value)

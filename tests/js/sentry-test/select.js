@@ -11,8 +11,14 @@ export function getSelector(options = {}) {
 
 export function openMenu(wrapper, options = {}) {
   const selector = getSelector(options);
-  wrapper.find(`${selector} input[role="combobox"]`).simulate('focus');
-  wrapper.find(`${selector} .Select-control`).simulate('mouseDown', {button: 0});
+  wrapper
+    .find(`${selector} input[role="combobox"]`)
+    .at(options.at || 0)
+    .simulate('focus');
+  wrapper
+    .find(`${selector} .Select-control`)
+    .at(options.at || 0)
+    .simulate('mouseDown', {button: 0});
 
   return wrapper;
 }
@@ -34,10 +40,14 @@ export function findOption(wrapper, {value, label} = {}, options) {
 
 export function selectByLabel(wrapper, label, options = {}) {
   openMenu(wrapper, options);
-  findOption(wrapper, {label}, options).simulate('mouseDown');
+  findOption(wrapper, {label}, options)
+    .at(options.at || 0)
+    .simulate('mouseDown');
 }
 
 export function selectByValue(wrapper, value, options = {}) {
   openMenu(wrapper, options);
-  findOption(wrapper, {value}, options).simulate('mouseDown');
+  findOption(wrapper, {value}, options)
+    .at(options.at || 0)
+    .simulate('mouseDown');
 }

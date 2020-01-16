@@ -8,7 +8,7 @@ describe('AvatarList', function() {
     const users = [TestStubs.User({id: '1'}), TestStubs.User({id: '2'})];
 
     const wrapper = mount(<AvatarList users={users} />);
-    expect(wrapper.find('Avatar')).toHaveLength(2);
+    expect(wrapper.find('UserAvatar')).toHaveLength(2);
     expect(wrapper.find('CollapsedUsers')).toHaveLength(0);
     expect(wrapper).toMatchSnapshot();
   });
@@ -24,7 +24,7 @@ describe('AvatarList', function() {
     ];
 
     const wrapper = mount(<AvatarList users={users} />);
-    expect(wrapper.find('Avatar')).toHaveLength(5);
+    expect(wrapper.find('UserAvatar')).toHaveLength(5);
     expect(wrapper.find('CollapsedUsers')).toHaveLength(1);
     expect(wrapper).toMatchSnapshot();
   });

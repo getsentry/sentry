@@ -5,6 +5,12 @@ import ConfigStore from 'app/stores/configStore';
 jest.mock('app/actionCreators/modal');
 
 describe('Query Builder', function() {
+  beforeEach(function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+      method: 'POST',
+    });
+  });
   afterEach(function() {
     jest.clearAllMocks();
   });
@@ -66,6 +72,7 @@ describe('Query Builder', function() {
             orderby: '-count',
             projects: [2],
             range: '90d',
+            turbo: true,
           }),
         })
       );
@@ -110,6 +117,7 @@ describe('Query Builder', function() {
             orderby: '-count',
             projects: [1, 2],
             range: '90d',
+            turbo: true,
           }),
         })
       );
@@ -155,6 +163,7 @@ describe('Query Builder', function() {
             orderby: '-count',
             projects: [1, 2],
             range: '90d',
+            turbo: true,
           }),
         })
       );

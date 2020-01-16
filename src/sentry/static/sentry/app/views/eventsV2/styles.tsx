@@ -1,16 +1,10 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 
 export const QueryLink = styled(Link)`
   ${overflowEllipsis};
-  color: ${p => p.theme.foreground};
-  border-radius: ${p => p.theme.borderRadius};
-  &:hover {
-    color: ${p => p.theme.foreground};
-    background-color: ${p => p.theme.offWhite};
-  }
 `;
 
 export const SectionHeading = styled('h4')`

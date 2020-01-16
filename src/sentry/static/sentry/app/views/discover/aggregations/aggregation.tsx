@@ -46,6 +46,7 @@ export default class AggregationRow extends React.Component<
       {value: 'count', label: 'count'},
       {value: 'uniq', label: 'uniq(...)'},
       {value: 'avg', label: 'avg(...)'},
+      {value: 'sum', label: 'sum(...)'},
     ];
 
     if (input.startsWith('uniq')) {
@@ -66,6 +67,15 @@ export default class AggregationRow extends React.Component<
         }));
     }
 
+    if (input.startsWith('sum')) {
+      optionList = this.props.columns
+        .filter(({type}) => type === 'number')
+        .map(({name}) => ({
+          value: `sum(${name})`,
+          label: `sum(${name})`,
+        }));
+    }
+
     return optionList.filter(({label}) => label.includes(input));
   };
 
@@ -74,7 +84,7 @@ export default class AggregationRow extends React.Component<
   }
 
   handleChange = (option: ReactSelectOption) => {
-    if (option.value === 'uniq' || option.value === 'avg') {
+    if (option.value === 'uniq' || option.value === 'avg' || option.value === 'sum') {
       this.setState({inputValue: option.value}, this.focus);
     } else {
       this.setState({inputValue: option.value, isOpen: false});
@@ -134,7 +144,7 @@ export default class AggregationRow extends React.Component<
     return (
       <div>
         <SelectControl
-          innerRef={(ref: any) => (this.select = ref)}
+          ref={(ref: any) => (this.select = ref)}
           value={getInternal(this.props.value)}
           placeholder={
             <PlaceholderText>{t('Add aggregation function...')}</PlaceholderText>

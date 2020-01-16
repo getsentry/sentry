@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
@@ -33,9 +33,7 @@ class SwitchOrganization extends React.Component {
             <React.Fragment>
               <SwitchOrganizationMenuActor
                 data-test-id="sidebar-switch-org"
-                {...getActorProps({
-                  isStyled: true,
-                })}
+                {...getActorProps()}
                 onClick={e => {
                   // This overwrites `DropdownMenu.getActorProps.onClick` which normally handles clicks on actor
                   // to toggle visibility of menu. Instead, do nothing because it is nested and we only want it
@@ -56,7 +54,7 @@ class SwitchOrganization extends React.Component {
               {isOpen && (
                 <SwitchOrganizationMenu
                   data-test-id="sidebar-switch-org-menu"
-                  {...getMenuProps({isStyled: true})}
+                  {...getMenuProps()}
                 >
                   <OrganizationList>
                     {organizations.map(organization => {

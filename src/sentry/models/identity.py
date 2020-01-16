@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -14,7 +16,11 @@ from sentry.db.models import (
 )
 
 
+logger = logging.getLogger(__name__)
+
 # TODO(dcramer): pull in enum library
+
+
 class IdentityStatus(object):
     UNKNOWN = 0
     VALID = 1
@@ -43,6 +49,11 @@ class IdentityProvider(Model):
         app_label = "sentry"
         db_table = "sentry_identityprovider"
         unique_together = (("type", "external_id"),)
+
+    def get_provider(self):
+        from sentry.identity import get
+
+        return get(self.type)
 
 
 class Identity(Model):
@@ -79,5 +90,21 @@ class Identity(Model):
         """
         lookup = Q(external_id=external_id) | Q(user=user)
         Identity.objects.filter(lookup, idp=idp).delete()
+        logger.info(
+            "deleted-identity",
+            extra={"external_id": external_id, "idp_id": idp.id, "user_id": user.id},
+        )
 
-        return Identity.objects.create(idp=idp, user=user, external_id=external_id, **defaults)
+        identity_model = Identity.objects.create(
+            idp=idp, user=user, external_id=external_id, **defaults
+        )
+        logger.info(
+            "created-identity",
+            extra={
+                "idp_id": idp.id,
+                "external_id": external_id,
+                "object_id": identity_model.id,
+                "user_id": user.id,
+            },
+        )
+        return identity_model

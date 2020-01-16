@@ -470,7 +470,7 @@ export const Incident = PropTypes.shape({
   dateClosed: PropTypes.string,
   dateStarted: PropTypes.string.isRequired,
   dateDetected: PropTypes.string.isRequired,
-  dateAdded: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string.isRequired,
 });
 
 export const IncidentSuspectData = PropTypes.shape({
@@ -517,6 +517,21 @@ export const GlobalSelection = PropTypes.shape({
     end: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     utc: PropTypes.bool,
   }),
+});
+
+export const UserReport = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  eventID: PropTypes.string.isRequired,
+  issue: Group,
+  name: PropTypes.string.isRequired,
+  event: PropTypes.shape({
+    eventID: PropTypes.string.isRequired,
+    id: PropTypes.string.isRequired,
+  }),
+  user: User.isRequired,
+  dateCreated: PropTypes.string.isRequired,
+  comments: PropTypes.string.isRequired,
+  email: PropTypes.string.isRequired,
 });
 
 export const DebugSourceType = PropTypes.oneOf(['http', 's3', 'gcs']);
@@ -1081,6 +1096,7 @@ const SentryTypes = {
   Release,
   Repository,
   User,
+  UserReport,
   SavedSearch,
   SentryApplication,
   Widget,

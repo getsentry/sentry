@@ -1,4 +1,6 @@
 import {Route} from 'react-router';
+
+import {NavigationSection} from 'app/views/settings/types';
 import {
   User,
   Organization,
@@ -45,7 +47,6 @@ export type RouteHooks = {
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:org-members-view': GenericComponentHook;
   'component:header-date-range': GenericComponentHook;
   'component:header-selector-items': GenericComponentHook;
 };
@@ -119,7 +120,7 @@ export type OnboardingHooks = {
  * Settings navigation hooks.
  */
 export type SettingsHooks = {
-  'settings:organization-navigation': GenericOrganizationComponentHook;
+  'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
 };
 
@@ -255,28 +256,26 @@ type MetricsEvent = (
 ) => void;
 
 /**
- * Provides additional setting configurations
- *
- * TODO(ts): The returned object should come from a settings configuration type
- * once we convert settings configurations into typescript.
+ * Provides additional navigation components
  */
-type SettingsConfigHook = (opts: {
-  organization: Organization;
-}) => {
-  name: string;
-  items: object[];
-};
+type OrganizationSettingsHook = (organization: Organization) => React.ReactElement;
+
+/**
+ * Provides additional setting configurations
+ */
+type SettingsConfigHook = (organization: Organization) => NavigationSection;
 
 /**
  * Each sidebar label is wrapped with this hook, to allow sidebar item
  * augmentation.
  */
-type SidebarItemLabelHook = (opts: {
+type SidebarItemLabelHook = () => React.ComponentType<{
   /**
-   * The key of the item label currently being rendered.
+   * The key of the item label currently being rendered. If no id is provided
+   * the hook will have no effect.
    */
-  id: string;
-}) => React.ReactNode;
+  id?: string;
+}>;
 
 /**
  * Returns an additional list of sidebar items.

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.core import mail
-from mock import patch
+from sentry.utils.compat.mock import patch
 from social_auth.models import UserSocialAuth
 
 from sentry.exceptions import InvalidIdentity, PluginError
@@ -9,7 +9,7 @@ from sentry.models import (
     Commit,
     Deploy,
     Integration,
-    LatestRelease,
+    LatestRepoReleaseEnvironment,
     Release,
     ReleaseHeadCommit,
     Repository,
@@ -65,10 +65,12 @@ class FetchCommitsTest(TestCase):
 
         mock_notify_if_ready.assert_called_with(deploy.id, fetch_complete=True)
 
-        latest_release = LatestRelease.objects.get(repository_id=repo.id, environment_id=5)
-        assert latest_release.deploy_id == deploy.id
-        assert latest_release.release_id == release2.id
-        assert latest_release.commit_id == commit_list[0].id
+        latest_repo_release_environment = LatestRepoReleaseEnvironment.objects.get(
+            repository_id=repo.id, environment_id=5
+        )
+        assert latest_repo_release_environment.deploy_id == deploy.id
+        assert latest_repo_release_environment.release_id == release2.id
+        assert latest_repo_release_environment.commit_id == commit_list[0].id
 
     @patch("sentry.tasks.commits.handle_invalid_identity")
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")

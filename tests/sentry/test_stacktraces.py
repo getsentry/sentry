@@ -146,6 +146,13 @@ class FindStacktracesTest(TestCase):
             },
         }
 
+        infos = find_stacktraces_in_data(data, with_exceptions=True)
+        assert len(infos) == 4
+        assert sum(1 for x in infos if x.stacktrace) == 3
+        assert sum(1 for x in infos if x.is_exception) == 4
+        # XXX: The null frame is still part of this stack trace!
+        assert len(infos[3].stacktrace["frames"]) == 3
+
         infos = find_stacktraces_in_data(data)
         assert len(infos) == 1
         # XXX: The null frame is still part of this stack trace!

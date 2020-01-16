@@ -7,7 +7,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Button from 'app/components/button';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import withApi from 'app/utils/withApi';
 
 class OrganizationAccessRequests extends React.Component {
@@ -20,6 +20,7 @@ class OrganizationAccessRequests extends React.Component {
         id: PropTypes.string.isRequired,
         member: SentryTypes.Member,
         team: SentryTypes.Team,
+        requester: SentryTypes.User,
       })
     ),
   };
@@ -88,17 +89,25 @@ class OrganizationAccessRequests extends React.Component {
         <PanelHeader>{t('Pending Team Requests')}</PanelHeader>
 
         <PanelBody>
-          {requestList.map(({id, member, team}) => {
-            const displayName =
+          {requestList.map(({id, member, team, requester}) => {
+            const memberName =
               member.user &&
               (member.user.name || member.user.email || member.user.username);
+            const requesterName =
+              requester && (requester.name || requester.email || requester.username);
             return (
               <StyledPanelItem key={id}>
                 <div data-test-id="request-message">
-                  {tct('[name] requests access to the [team] team.', {
-                    name: <strong>{displayName}</strong>,
-                    team: <strong>#{team.slug}</strong>,
-                  })}
+                  {requesterName
+                    ? tct('[requesterName] requests to add [name] to the [team] team.', {
+                        requesterName,
+                        name: <strong>{memberName}</strong>,
+                        team: <strong>#{team.slug}</strong>,
+                      })
+                    : tct('[name] requests access to the [team] team.', {
+                        name: <strong>{memberName}</strong>,
+                        team: <strong>#{team.slug}</strong>,
+                      })}
                 </div>
                 <div>
                   <StyledButton

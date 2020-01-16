@@ -31,6 +31,7 @@ from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
@@ -90,6 +91,7 @@ from .endpoints.organization_event_details import OrganizationEventDetailsEndpoi
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
 from .endpoints.organization_events_distribution import OrganizationEventsDistributionEndpoint
+from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
@@ -105,9 +107,6 @@ from .endpoints.organization_incident_index import OrganizationIncidentIndexEndp
 from .endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
 from .endpoints.organization_incident_subscription_index import (
     OrganizationIncidentSubscriptionIndexEndpoint,
-)
-from .endpoints.organization_incident_suspects_index import (
-    OrganizationIncidentSuspectsIndexEndpoint,
 )
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
@@ -223,6 +222,7 @@ from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay_details import RelayDetailsEndpoint
 from .endpoints.relay_index import RelayIndexEndpoint
 from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
+from .endpoints.relay_projectids import RelayProjectIdsEndpoint
 from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
 from .endpoints.relay_register import RelayRegisterChallengeEndpoint, RelayRegisterResponseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
@@ -304,7 +304,10 @@ from sentry.incidents.endpoints.organization_alert_rule_trigger_index import (
     OrganizationAlertRuleTriggerIndexEndpoint,
 )
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
-from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
+from sentry.incidents.endpoints.project_alert_rule_index import (
+    ProjectAlertRuleIndexEndpoint,
+    ProjectCombinedRuleIndexEndpoint,
+)
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
@@ -327,6 +330,7 @@ GROUP_URLS = [
         r"^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$",
         GroupUserReportsEndpoint.as_view(),
     ),
+    url(r"^(?P<issue_id>[^\/]+)/attachments/$", GroupAttachmentsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/similar/$", GroupSimilarIssuesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/external-issues/$", GroupExternalIssuesEndpoint.as_view()),
     url(
@@ -363,6 +367,11 @@ urlpatterns = [
                     r"^projectconfigs/$",
                     RelayProjectConfigsEndpoint.as_view(),
                     name="sentry-api-0-relay-projectconfigs",
+                ),
+                url(
+                    r"^projectids/$",
+                    RelayProjectIdsEndpoint.as_view(),
+                    name="sentry-api-0-relay-projectids",
                 ),
                 url(
                     r"^publickeys/$",
@@ -630,11 +639,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-incident-subscription-index",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/suspects/$",
-                    OrganizationIncidentSuspectsIndexEndpoint.as_view(),
-                    name="sentry-api-0-organization-incident-suspect-index",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/chunk-upload/$",
                     ChunkUploadEndpoint.as_view(),
                     name="sentry-api-0-chunk-upload",
@@ -776,6 +780,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-distribution/$",
                     OrganizationEventsDistributionEndpoint.as_view(),
                     name="sentry-api-0-organization-events-distribution",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-facets/$",
+                    OrganizationEventsFacetsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-facets",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
@@ -1116,6 +1125,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/alert-rules/$",
                     ProjectAlertRuleIndexEndpoint.as_view(),
                     name="sentry-api-0-project-alert-rules",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/combined-rules/$",
+                    ProjectCombinedRuleIndexEndpoint.as_view(),
+                    name="sentry-api-0-project-combined-rules",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/avatar/$",

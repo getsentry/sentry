@@ -9,7 +9,6 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
-from sentry import experiments
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
@@ -81,10 +80,6 @@ class AuthLoginView(BaseView):
 
     def get_join_request_link(self, organization):
         if not organization:
-            return None
-
-        variant = experiments.get(org=organization, experiment_name="ImprovedInvitesExperiment")
-        if variant not in ("all", "join_request"):
             return None
 
         if organization.get_option("sentry:join_requests") is False:
@@ -160,7 +155,7 @@ class AuthLoginView(BaseView):
 
             if login_attempt and ratelimiter.is_limited(
                 u"auth:login:username:{}".format(
-                    md5_text(request.POST["username"].lower()).hexdigest()
+                    md5_text(login_form.clean_username(request.POST["username"])).hexdigest()
                 ),
                 limit=10,
                 window=60,  # 10 per minute should be enough for anyone

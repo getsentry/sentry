@@ -1,5 +1,4 @@
 Babel
-datadog
 docker>=3.7.0,<3.8.0
 exam>=0.5.1
 freezegun==0.3.11

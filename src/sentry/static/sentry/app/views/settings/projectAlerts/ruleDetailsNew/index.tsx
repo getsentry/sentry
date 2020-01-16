@@ -16,11 +16,17 @@ import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup'
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 
+type RouteParams = {
+  orgId: string;
+  projectId: string;
+  incidentRuleId: string;
+  ruleId: string; //TODO(ts): Make ruleId optional
+};
+
 type Props = {
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{organizationId: string; projectId: string}, {}> &
-  AsyncView['props'];
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = {
   alertType: string | null;
@@ -32,8 +38,7 @@ type State = {
 
 class RuleDetails extends AsyncView<Props, State> {
   getDefaultState() {
-    const {router} = this.props;
-    const {pathname} = router.location;
+    const {pathname} = this.props.location;
 
     return {
       ...super.getDefaultState(),
@@ -76,17 +81,17 @@ class RuleDetails extends AsyncView<Props, State> {
                 value={this.state.alertType}
                 choices={[
                   [
-                    'issue',
-                    t('Issue Alert'),
-                    t(
-                      'Alert when any issue satisfies a set of conditions. For example, a new issue is seen, an issue occurs more than 100 times, an issue affects more than 100 users.'
-                    ),
-                  ],
-                  [
                     'metric',
                     t('Metric Alert'),
                     t(
                       'Alert on conditions defined over all events in the project. For example, more than 10 users affected by signup-page errors, database errors exceed 10 per minute, errors seen by our largest customers exceed 500 per hour.'
+                    ),
+                  ],
+                  [
+                    'issue',
+                    t('Issue Alert'),
+                    t(
+                      'Alert when any issue satisfies a set of conditions. For example, a new issue is seen, an issue occurs more than 100 times, an issue affects more than 100 users.'
                     ),
                   ],
                 ]}

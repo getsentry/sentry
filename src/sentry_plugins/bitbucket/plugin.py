@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.conf.urls import url
 from rest_framework.response import Response
 
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
@@ -42,7 +43,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
 
     def get_group_urls(self):
         return super(BitbucketPlugin, self).get_group_urls() + [
-            (
+            url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )

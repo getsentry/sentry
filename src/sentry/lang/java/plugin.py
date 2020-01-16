@@ -80,6 +80,24 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 
         return True
 
+    def process_exception(self, exception):
+        ty = exception.get("type")
+        mod = exception.get("module")
+        if not ty or not mod:
+            return False
+
+        key = "%s.%s" % (mod, ty)
+
+        for view in self.mapping_views:
+            original = view.lookup(key)
+            if original != key:
+                new_module, new_cls = original.rsplit(".", 1)
+                exception["module"] = new_module
+                exception["type"] = new_cls
+                return True
+
+        return False
+
     def process_frame(self, processable_frame, processing_task):
         new_module = None
         new_function = None

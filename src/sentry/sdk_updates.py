@@ -263,6 +263,15 @@ SDK_SUPPORTED_MODULES = [
         ),
     },
     {
+        "sdk_name": "sentry.python",
+        "sdk_version_added": "0.13.0",
+        "module_name": "pyspark",
+        "module_version_min": "2.0.0",
+        "suggestion": EnableIntegrationSuggestion(
+            "spark", "https://docs.sentry.io/platforms/python/pyspark/"
+        ),
+    },
+    {
         "sdk_name": "sentry.dotnet",
         "sdk_version_added": "0.0.0",
         "module_name": "Microsoft.AspNetCore.Hosting",

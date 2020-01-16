@@ -19,7 +19,9 @@ def pytest_configure(config):
     warnings.filterwarnings("error", "", Warning, r"^(?!(|kombu|raven|sentry))")
 
     # if we are running any tests for plugins, we need to make sure we install them first
-    if any("tests/sentry_plugins" in s for s in config.getoption("file_or_dir")):
+    # (for `py.test --version` or `py.test --help`, there are no files to test)
+    test_targets = config.getoption("file_or_dir")
+    if test_targets and any("tests/sentry_plugins" in s for s in test_targets):
         install_sentry_plugins()
 
 
@@ -50,8 +52,10 @@ def install_sentry_plugins():
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 
 
-def pytest_collection_modifyitems(items):
+def pytest_collection_modifyitems(config, items):
     for item in items:
         total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
         group_num = int(md5(item.location[0]).hexdigest(), 16) % total_groups
-        item.add_marker(getattr(pytest.mark, "group_%s" % group_num))
+        marker = "group_%s" % group_num
+        config.addinivalue_line("markers", marker)
+        item.add_marker(getattr(pytest.mark, marker))

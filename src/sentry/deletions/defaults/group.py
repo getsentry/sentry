@@ -33,7 +33,7 @@ class EventDataDeletionTask(BaseDeletionTask):
                 ]
             )
 
-        events = eventstore.get_events(
+        events = eventstore.get_unfetched_events(
             filter=eventstore.Filter(
                 conditions=conditions, project_ids=[self.project_id], group_ids=[self.group_id]
             ),
@@ -85,6 +85,7 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupEmailThread,
             models.GroupSubscription,
             models.UserReport,
+            models.EventAttachment,
             IncidentGroup,
         )
 

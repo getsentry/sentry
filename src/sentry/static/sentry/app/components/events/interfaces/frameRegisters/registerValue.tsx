@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -59,7 +59,8 @@ const InlinePre = styled('pre')`
 `;
 
 const FixedWidth = styled('span')`
-  width: 12em;
+  width: 11em;
+  display: inline-block;
   text-align: right;
 `;
 

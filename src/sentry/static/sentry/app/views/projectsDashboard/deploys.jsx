@@ -1,7 +1,7 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex, Box} from 'reflexbox';
 import React from 'react';
 import moment from 'moment-timezone';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -61,7 +61,7 @@ class Deploy extends React.Component {
     const {deploy, organization, project} = this.props;
 
     return (
-      <DeployRow justify="space-between">
+      <DeployRow justifyContent="space-between">
         <Environment>{deploy.environment}</Environment>
         <Version>
           <StyledLink
@@ -72,7 +72,7 @@ class Deploy extends React.Component {
             {deploy.version}
           </StyledLink>
         </Version>
-        <Flex w={90} justify="flex-end">
+        <Flex width={90} justifyContent="flex-end">
           <DeployTimeWrapper>
             {getDynamicText({
               value: moment(deploy.dateFinished).fromNow(),
@@ -124,7 +124,7 @@ class NoDeploys extends React.Component {
   render() {
     return (
       <DeployBox p={2}>
-        <Background align="center" justify="center">
+        <Background alignItems="center" justifyContent="center">
           <Button size="xsmall" href="https://docs.sentry.io/learn/releases/" external>
             {t('Track deploys')}
           </Button>

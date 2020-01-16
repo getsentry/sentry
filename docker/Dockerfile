@@ -101,7 +101,6 @@ COPY --from=sdist /usr/local/bin/gosu /usr/local/bin/tini /usr/local/bin/
 # Sane defaults for pip
 ENV PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_USE_PEP517=off \
     # Sentry config params
     SENTRY_CONF=/etc/sentry \
     SENTRY_FILESTORE_DIR=/var/lib/sentry/files \
@@ -174,16 +173,17 @@ RUN set -x \
     # Fully verify that the C extension is correctly installed, it unfortunately
     # requires a full check into maxminddb.extension.Reader
     && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
-    && mkdir -p $SENTRY_CONF && mkdir -p $SENTRY_FILESTORE_DIR
+    && mkdir -p $SENTRY_CONF
 
 COPY ./docker/docker-entrypoint.sh ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
 
 EXPOSE 9000
-VOLUME /var/lib/sentry/files
+VOLUME /data
 
 ENTRYPOINT exec $SENTRY_CONF/docker-entrypoint.sh $0 $@
 CMD ["run", "web"]
 
 ARG SOURCE_COMMIT
+ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
 LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
 LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"

@@ -1,8 +1,16 @@
 from __future__ import absolute_import
 
-from sentry.utils import json
 from sentry.integrations.client import ApiClient
 from sentry.models import EventCommon
+from sentry.api.serializers import serialize, ExternalEventSerializer
+
+LEVEL_SEVERITY_MAP = {
+    "debug": "info",
+    "info": "info",
+    "warning": "warning",
+    "error": "error",
+    "fatal": "critical",
+}
 
 
 class PagerDutyClient(ApiClient):
@@ -18,25 +26,26 @@ class PagerDutyClient(ApiClient):
         if not headers:
             headers = {"Content-Type": "application/json"}
 
-        # (XXX) Meredith: We stringify the data ahead of time in send_trigger (because reasons)
-        # so we have to pass json=False since True is the default.
-        return self._request(method, path, headers=headers, data=data, params=params, json=False)
+        return self._request(method, path, headers=headers, data=data, params=params)
 
     def send_trigger(self, data):
-        # not sure if this will only been events for now
+        # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
+        # for now, only construct the payload if data is an event
         if isinstance(data, EventCommon):
             source = data.transaction or data.culprit or "<unknown>"
             group = data.group
+            level = data.get_tag("level") or "error"
+            custom_details = serialize(data, None, ExternalEventSerializer())
             payload = {
                 "routing_key": self.integration_key,
                 "event_action": "trigger",
                 "dedup_key": group.qualified_short_id,
                 "payload": {
                     "summary": data.message or data.title,
-                    "severity": "error",
+                    "severity": LEVEL_SEVERITY_MAP[level],
                     "source": source,
                     "component": group.project.slug,
-                    "custom_details": data.as_dict(),
+                    "custom_details": custom_details,
                 },
                 "links": [
                     {
@@ -47,9 +56,7 @@ class PagerDutyClient(ApiClient):
                     }
                 ],
             }
-        # (XXX) Meredith: The 'datetime' property that is included in as_dict doesn't
-        # get properly serializied in the requests library so we stringify it here instead.
-        return self.post("/", data=json.dumps(payload))
+        return self.post("/", data=payload)
 
     def send_acknowledge(self, data):
         pass

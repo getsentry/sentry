@@ -55,7 +55,7 @@ class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
 
     def test_event_stats(self):
         now = datetime.now()
-        with freeze_time(now.replace(day=now.day - 1, hour=12, minute=30, second=25)):
+        with freeze_time((now - timedelta(days=1)).replace(hour=12, minute=30, second=25)):
             for _ in range(2):
                 self.store_event(
                     data={

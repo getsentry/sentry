@@ -5,7 +5,7 @@ import responses
 
 from django.core.urlresolvers import reverse
 from exam import fixture
-from mock import patch
+from sentry.utils.compat.mock import patch
 from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration

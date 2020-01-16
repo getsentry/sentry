@@ -31,6 +31,34 @@ class SnubaTSDB(BaseTSDB):
     will return empty results for unsupported models.
     """
 
+    # ``non_outcomes_query_settings`` are all the query settings for for non outcomes based TSDB models.
+    # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
+    # other models.
+    non_outcomes_query_settings = {
+        TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, None),
+        TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, None),
+        TSDBModel.release: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "tags[sentry:release]", None, None
+        ),
+        TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "group_id", "tags[sentry:user]", None
+        ),
+        TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "project_id", "tags[sentry:user]", None
+        ),
+        TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "group_id", "environment", None
+        ),
+        TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "group_id", "tags[sentry:release]", None
+        ),
+        TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "project_id", "group_id", None
+        ),
+    }
+
+    # ``project_filter_model_query_settings`` and ``outcomes_partial_query_settings`` are all the TSDB models for
+    # outcomes
     project_filter_model_query_settings = {
         model: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes, "project_id", "times_seen", [["reason", "=", reason]]
@@ -38,28 +66,7 @@ class SnubaTSDB(BaseTSDB):
         for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
     }
 
-    # ``model_query_settings`` is a translation of TSDB models into required settings for querying snuba
-    other_model_query_settings = {
-        TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, None),
-        TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "issue", None, None),
-        TSDBModel.release: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "tags[sentry:release]", None, None
-        ),
-        TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "issue", "tags[sentry:user]", None
-        ),
-        TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "tags[sentry:user]", None
-        ),
-        TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "issue", "environment", None
-        ),
-        TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "issue", "tags[sentry:release]", None
-        ),
-        TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "issue", None
-        ),
+    outcomes_partial_query_settings = {
         TSDBModel.organization_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
@@ -116,15 +123,12 @@ class SnubaTSDB(BaseTSDB):
         ),
     }
 
+    # ``model_query_settings`` is a translation of TSDB models into required settings for querying snuba
     model_query_settings = dict(
-        project_filter_model_query_settings.items() + other_model_query_settings.items()
+        project_filter_model_query_settings.items()
+        + outcomes_partial_query_settings.items()
+        + non_outcomes_query_settings.items()
     )
-
-    # ``model_columns_being_upgraded`` are models that currently use Redis but are being
-    # transitioned to use Snuba.
-    model_being_upgraded_query_settings = {}
-
-    model_being_upgraded_query_settings2 = {}
 
     project_filter_model_query_settings_lower_rollup = {
         model: SnubaModelQuerySettings(

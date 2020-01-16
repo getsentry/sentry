@@ -1,10 +1,10 @@
 import React, {ReactText} from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {t} from 'app/locale';
-import {Form, SelectField, TextField} from 'app/components/forms';
+import {Form, SelectField} from 'app/components/forms';
 import InlineSvg from 'app/components/inlineSvg';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
@@ -70,7 +70,6 @@ type TableModalEditColumnFormProps = {
 type TableModalEditColumnFormState = {
   aggregations: Aggregation[];
   fields: Field[];
-  name: string;
 };
 
 class TableModalEditColumnBodyForm extends React.Component<
@@ -87,7 +86,6 @@ class TableModalEditColumnBodyForm extends React.Component<
       this.props.tagKeys,
       this.props.column ? this.props.column.aggregation : ''
     ),
-    name: this.props.column ? this.props.column.name : '',
   };
 
   componentDidMount() {
@@ -106,7 +104,7 @@ class TableModalEditColumnBodyForm extends React.Component<
           eventKey: 'discover_v2.edit_column.open_modal',
           eventName: 'Discoverv2: Opened modal to edit a column',
           index: focusedColumnIndex,
-          organization_id: organization.id,
+          organization_id: parseInt(organization.id, 10),
         });
       }
     } else {
@@ -115,7 +113,7 @@ class TableModalEditColumnBodyForm extends React.Component<
         eventKey: 'discover_v2.add_column.open_modal',
         eventName: 'Discoverv2: Opened modal to add a column',
         index: focusedColumnIndex,
-        organization_id: organization.id,
+        organization_id: parseInt(organization.id, 10),
       });
     }
   }
@@ -128,15 +126,9 @@ class TableModalEditColumnBodyForm extends React.Component<
   };
 
   onChangeField = (value: Field) => {
-    const name = this.state.name === '' ? String(value) : this.state.name;
     this.setState({
       aggregations: filterAggregationByField(this.props.organization, value),
-      name,
     });
-  };
-
-  onChangeName = (value: string) => {
-    this.setState({name: value});
   };
 
   onSubmitForm = (values: any) => {
@@ -172,38 +164,23 @@ class TableModalEditColumnBodyForm extends React.Component<
           initialData={{
             aggregation: column ? column.aggregation : '',
             field: column ? column.field : '',
-            name: this.state.name,
           }}
         >
           <FormRow>
-            <FormRowItemLeft>
-              <SelectField
-                name="aggregation"
-                label={t('Aggregate')}
-                placeholder="Select Aggregate"
-                choices={this.state.aggregations}
-                onChange={this.onChangeAggregation}
-              />
-            </FormRowItemLeft>
-            <FormRowItemRight>
-              <SelectField
-                required
-                name="field"
-                label={t('Column Type')}
-                placeholder="Select Column Type"
-                choices={this.state.fields}
-                onChange={this.onChangeField}
-              />
-            </FormRowItemRight>
-          </FormRow>
-          <FormRow>
-            <TextField
+            <SelectField
+              name="aggregation"
+              label={t('Aggregate')}
+              placeholder="Select Aggregate"
+              choices={this.state.aggregations}
+              onChange={this.onChangeAggregation}
+            />
+            <SelectField
               required
-              name="name"
-              value={this.state.name}
-              label={t('Display Name')}
-              placeholder="Display Name"
-              onChange={this.onChangeName}
+              name="field"
+              label={t('Column Type')}
+              placeholder="Select Column Type"
+              choices={this.state.fields}
+              onChange={this.onChangeField}
             />
           </FormRow>
         </Form>
@@ -230,6 +207,10 @@ function filterAggregationByField(organization: Organization, f?: Field): Aggreg
   if (!organization.features.includes('transaction-events')) {
     functionList = functionList.filter(item => !TRACING_FIELDS.includes(item));
   }
+
+  // sort list in ascending order
+  functionList.sort();
+
   if (!f) {
     return functionList as Aggregation[];
   }
@@ -240,7 +221,7 @@ function filterAggregationByField(organization: Organization, f?: Field): Aggreg
     return [];
   }
 
-  return functionList.reduce(
+  functionList = functionList.reduce(
     (accumulator, a) => {
       if (
         AGGREGATIONS[a].type.includes(fieldType) ||
@@ -254,6 +235,11 @@ function filterAggregationByField(organization: Organization, f?: Field): Aggreg
     },
     [] as Aggregation[]
   );
+
+  // sort list in ascending order
+  functionList.sort();
+
+  return functionList as Aggregation[];
 }
 
 function filterFieldByAggregation(
@@ -269,11 +255,14 @@ function filterFieldByAggregation(
     fieldList = fieldList.filter(item => !TRACING_FIELDS.includes(item));
   }
 
+  // sort list in ascending order
+  fieldList.sort();
+
   if (!a || !AGGREGATIONS[a]) {
     return fieldList as Field[];
   }
 
-  return fieldList.reduce(
+  fieldList = fieldList.reduce(
     (accumulator, f) => {
       // tag keys are all strings, and values not in FIELDS is a tag.
       const fieldType = FIELDS[f] || 'string';
@@ -293,24 +282,18 @@ function filterFieldByAggregation(
     },
     [] as Field[]
   );
+
+  // sort list in ascending order
+  fieldList.sort();
+
+  return fieldList;
 }
 
 const FormRow = styled('div')`
   box-sizing: border-box;
-`;
-const FormRowItem = styled('div')`
-  display: inline-block;
-  padding-right: ${space(1)};
-
-  &:last-child {
-    padding-right: 0;
-  }
-`;
-const FormRowItemLeft = styled(FormRowItem)`
-  width: 35%;
-`;
-const FormRowItemRight = styled(FormRowItem)`
-  width: 65%;
+  display: grid;
+  grid-template-columns: 35% auto;
+  grid-column-gap: ${space(2)};
 `;
 
 const FooterContent = styled('div')`

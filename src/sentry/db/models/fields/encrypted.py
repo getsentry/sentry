@@ -34,11 +34,6 @@ class EncryptedCharField(CharField):
             value = decrypt(value)
         return super(EncryptedCharField, self).to_python(value)
 
-    def get_prep_lookup(self, lookup_type, value):
-        raise NotImplementedError(
-            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
-        )
-
 
 class EncryptedJsonField(JSONField):
     def get_db_prep_value(self, value, *args, **kwargs):
@@ -49,11 +44,6 @@ class EncryptedJsonField(JSONField):
         if value is not None and isinstance(value, six.string_types):
             value = decrypt(value)
         return super(EncryptedJsonField, self).to_python(value)
-
-    def get_prep_lookup(self, lookup_type, value):
-        raise NotImplementedError(
-            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
-        )
 
 
 class EncryptedPickledObjectField(PickledObjectField):
@@ -67,11 +57,6 @@ class EncryptedPickledObjectField(PickledObjectField):
         if value is not None and isinstance(value, six.string_types):
             value = decrypt(value)
         return super(EncryptedPickledObjectField, self).to_python(value)
-
-    def get_prep_lookup(self, lookup_type, value):
-        raise NotImplementedError(
-            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
-        )
 
 
 class EncryptedTextField(TextField):
@@ -91,8 +76,3 @@ class EncryptedTextField(TextField):
         if value is not None and isinstance(value, six.string_types):
             value = decrypt(value)
         return super(EncryptedTextField, self).to_python(value)
-
-    def get_prep_lookup(self, lookup_type, value):
-        raise NotImplementedError(
-            u"{!r} lookup type for {!r} is not supported".format(lookup_type, self)
-        )

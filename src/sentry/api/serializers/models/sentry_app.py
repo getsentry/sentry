@@ -5,6 +5,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.api.serializers import Serializer, register
 from sentry.models import SentryApp
 from sentry.models.sentryapp import MASKED_VALUE
+from sentry.constants import SentryAppStatus
 
 
 @register(SentryApp)
@@ -28,6 +29,9 @@ class SentryAppSerializer(Serializer):
             "overview": obj.overview,
             "allowedOrigins": obj.application.get_allowed_origins(),
         }
+
+        if obj.status == SentryAppStatus.PUBLISHED and obj.date_published:
+            data.update({"datePublished": obj.date_published})
 
         if is_active_superuser(env.request) or (
             hasattr(user, "get_orgs") and obj.owner in user.get_orgs()

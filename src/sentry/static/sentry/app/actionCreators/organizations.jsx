@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 
-import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
 import {Client} from 'app/api';
-import IndicatorStore from 'app/stores/indicatorStore';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
 import OrganizationActions from 'app/actions/organizationActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
 import OrganizationsStore from 'app/stores/organizationsStore';
@@ -39,14 +39,14 @@ export function remove(api, {successMessage, errorMessage, orgId} = {}) {
       OrganizationsActions.removeSuccess(orgId);
 
       if (successMessage) {
-        IndicatorStore.add(successMessage, 'success', {duration: 3000});
+        addSuccessMessage(successMessage);
       }
     })
     .catch(() => {
       OrganizationsActions.removeError();
 
       if (errorMessage) {
-        IndicatorStore.add(errorMessage, 'error', {duration: 3000});
+        addErrorMessage(errorMessage);
       }
     });
 }

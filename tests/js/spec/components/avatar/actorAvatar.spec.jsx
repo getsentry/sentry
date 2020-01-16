@@ -4,10 +4,10 @@ import ActorAvatar from 'app/components/avatar/actorAvatar';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 
-describe('Avatar', function() {
+describe('ActorAvatar', function() {
   const USER = {
     id: '1',
-    name: 'Jane Bloggs',
+    name: 'JanActore Bloggs',
     email: 'janebloggs@example.com',
   };
   const TEAM_1 = {

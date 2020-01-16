@@ -1,7 +1,6 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {
   Panel,
@@ -134,13 +133,13 @@ class LegacyBrowserFilterRow extends React.Component {
             return (
               <FilterGridItemWrapper key={key}>
                 <FilterGridItem>
-                  <Flex align="center" flex="1">
+                  <FilterItem>
                     <FilterGridIcon className={`icon-${subfilter.icon}`} />
                     <div>
                       <FilterTitle>{subfilter.title}</FilterTitle>
                       <FilterDescription>{subfilter.helpText}</FilterDescription>
                     </div>
-                  </Flex>
+                  </FilterItem>
 
                   <Switch
                     isActive={this.state.subfilters.has(key)}
@@ -171,12 +170,20 @@ class ProjectFiltersSettings extends AsyncComponent {
       hooksDisabled: HookStore.get('project:custom-inbound-filters:disabled'),
     };
   }
+
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
     return [
       ['filterList', `/projects/${orgId}/${projectId}/filters/`],
       ['project', `/projects/${orgId}/${projectId}/`],
     ];
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevProps.project !== this.props.project) {
+      this.reloadData();
+    }
+    super.componentDidUpdate(prevProps, prevState);
   }
 
   handleLegacyChange = (onChange, onBlur, _filter, subfilters, e) => {
@@ -338,6 +345,12 @@ const FilterGridItem = styled('div')`
 const FilterGridItemWrapper = styled('div')`
   padding: 12px;
   width: 50%;
+`;
+
+const FilterItem = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
 `;
 
 const FilterGridIcon = styled('div')`

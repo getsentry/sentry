@@ -1,5 +1,5 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
-import {API_SCOPES} from 'app/constants';
+import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
@@ -15,39 +15,79 @@ export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar';
 };
 
-export type LightWeightOrganization = {
+export type Actor = {
   id: string;
-  slug: string;
+  type: 'user' | 'team';
   name: string;
-  access: string[];
-  features: string[];
 };
 
+/**
+ * Organization summaries are sent when you request a
+ * list of all organiations
+ */
+export type OrganizationSummary = {
+  status: {
+    // TODO(ts): Are these fields == `ObjectStatus`?
+    id: string;
+    name: string;
+  };
+  require2FA: boolean;
+  avatar: Avatar;
+  features: string[];
+  name: string;
+  dateCreated: string;
+  id: string;
+  isEarlyAdopter: boolean;
+  slug: string;
+};
+
+/**
+ * Detailed organization (e.g. when requesting details for a single org)
+ *
+ * Lightweight in this case means it does not contain `projects` or `teams`
+ */
+export type LightWeightOrganization = OrganizationSummary & {
+  scrubIPAddresses: boolean;
+  attachmentsRole: string;
+  sensitiveFields: string[];
+  openMembership: boolean;
+  quota: {
+    maxRateInterval: number | null;
+    projectLimit: number | null;
+    accountLimit: number | null;
+    maxRate: number | null;
+  };
+  defaultRole: string;
+  experiments: ActiveExperiments;
+  allowJoinRequests: boolean;
+  scrapeJavaScript: boolean;
+  isDefault: boolean;
+  pendingAccessRequests: number;
+  availableRoles: {id: string; name: string}[];
+  enhancedPrivacy: boolean;
+  safeFields: string[];
+  storeCrashReports: number;
+  access: Scope[];
+  allowSharedIssues: boolean;
+  dataScrubberDefaults: boolean;
+  dataScrubber: boolean;
+  role?: string;
+  onboardingTasks: Array<{
+    status: string;
+    dateCompleted: string;
+    task: number;
+    data: object;
+    user: string | null;
+  }>;
+  trustedRelays: string[];
+};
+
+/**
+ * Full organization details
+ */
 export type Organization = LightWeightOrganization & {
   projects: Project[];
   teams: Team[];
-  avatar: Avatar;
-};
-
-export type OrganizationDetailed = Organization & {
-  isDefault: boolean;
-  defaultRole: string;
-  availableRoles: {id: string; name: string}[];
-  openMembership: boolean;
-  require2FA: boolean;
-  allowSharedIssues: boolean;
-  enhancedPrivacy: boolean;
-  dataScrubber: boolean;
-  dataScrubberDefaults: boolean;
-  sensitiveFields: string[];
-  safeFields: string[];
-  storeCrashReports: boolean;
-  attachmentsRole: string;
-  scrubIPAddresses: boolean;
-  scrapeJavaScript: boolean;
-  trustedRelays: string[];
-  role?: string;
-  experiments: ActiveExperiments;
 };
 
 export type Project = {
@@ -60,12 +100,18 @@ export type Project = {
   isBookmarked: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  platform: string;
+
+  // XXX: These are part of the DetailedProject serializer
+  plugins: Plugin[];
+  processingIssues: number;
 };
 
 export type Team = {
   id: string;
   slug: string;
   isMember: boolean;
+  avatar: Avatar;
 };
 
 export type TeamWithProjects = Team & {projects: Project[]};
@@ -91,6 +137,7 @@ export type EventAttachment = {
   sha1: string;
   size: number;
   type: string;
+  event_id: string;
 };
 
 type EntryType = {
@@ -181,9 +228,11 @@ export type AvatarUser = {
   name: string;
   username: string;
   email: string;
-  avatarUrl: string;
-  avatar: Avatar;
+  avatarUrl?: string;
+  avatar?: Avatar;
   ip_address: string;
+  // Compatibility shim with EventUser serializer
+  ipAddress?: string;
   options?: {
     avatarType: string;
   };
@@ -369,21 +418,25 @@ export type Group = {
 };
 
 export type Member = {
-  id: string;
-  user: User;
-  name: string;
+  dateCreated: string;
   email: string;
-  pending: boolean | undefined;
-  role: string;
-  roleName: string;
+  expired: boolean;
   flags: {
     'sso:linked': boolean;
     'sso:invalid': boolean;
   };
-  dateCreated: string;
+  id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
+  invite_link: string | null;
   inviterName: string | null;
+  isOnlyOwner: boolean;
+  name: string;
+  pending: boolean | undefined;
+  role: string;
+  roleName: string;
+  roles: MemberRole[];
   teams: string[];
+  user: User;
 };
 
 export type AccessRequest = {
@@ -410,7 +463,7 @@ export type IntegrationProvider = {
   canDisable: boolean;
   features: string[];
   aspects: any; //TODO(ts)
-  setupDialog: object; //TODO(ts)
+  setupDialog: {url: string; width: number; height: number};
   metadata: any; //TODO(ts)
 };
 
@@ -421,7 +474,30 @@ export type IntegrationFeature = {
 
 export type WebhookEvent = 'issue' | 'error';
 
-export type Scope = typeof API_SCOPES[number];
+export type Scope = typeof API_ACCESS_SCOPES[number];
+
+export type SentryAppSchemaIssueLink = {
+  type: 'issue-link';
+  create: {
+    uri: string;
+    required_fields: any[];
+    optional_fields?: any[];
+  };
+  link: {
+    uri: string;
+    required_fields: any[];
+    optional_fields?: any[];
+  };
+};
+
+export type SentryAppSchemaStacktraceLink = {
+  type: 'stacktrace-link';
+  uri: string;
+};
+
+export type SentryAppSchemaElement =
+  | SentryAppSchemaIssueLink
+  | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
   status: 'unpublished' | 'published' | 'internal';
@@ -434,13 +510,14 @@ export type SentryApp = {
   author: string;
   events: WebhookEvent[];
   schema: {
-    elements?: object[]; //TODO(ts)
+    elements?: SentryAppSchemaElement[];
   };
   //possible null params
   webhookUrl: string | null;
   redirectUrl: string | null;
   overview: string | null;
   //optional params below
+  datePublished?: string;
   clientId?: string;
   clientSecret?: string;
   owner?: {
@@ -506,6 +583,7 @@ export type SentryAppWebhookRequest = {
     name: string;
   };
   responseCode: number;
+  errorUrl?: string;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
@@ -551,6 +629,12 @@ export type UserReport = {
   id: string;
   eventID: string;
   issue: Group;
+  name: string;
+  event: {eventID: string; id: string};
+  user: User;
+  dateCreated: string;
+  comments: string;
+  email: string;
 };
 
 export type Commit = {
@@ -586,7 +670,6 @@ export type RouterProps = {
 };
 
 export type ActiveExperiments = {
-  ImprovedInvitesExperiment: 'none' | 'all' | 'join_request' | 'invite_request';
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
 };
 
@@ -598,7 +681,7 @@ export type NewQuery = {
   name: string;
   projects: Readonly<number[]>;
   fields: Readonly<string[]>;
-  fieldnames: Readonly<string[]>;
+  widths?: Readonly<string[]>;
   query: string;
   orderby?: string;
   range?: string;
@@ -620,4 +703,44 @@ export type SavedQueryState = {
   savedQueries: SavedQuery[];
   hasError: boolean;
   isLoading: boolean;
+};
+
+export type SelectValue<T> = {
+  label: string;
+  value: T;
+};
+
+/**
+ * The issue config form fields we get are basically the form fields we use in the UI but with some extra information.
+ * Some fields marked optional in the form field are guaranteed to exist so we can mark them as required here
+ */
+
+export type IssueConfigField = Field & {
+  name: string;
+  default?: string;
+  choices?: [number | string, number | string][];
+  url?: string;
+  multiple?: boolean;
+};
+
+export type IntegrationIssueConfig = {
+  status: ObjectStatus;
+  name: string;
+  domainName: string;
+  linkIssueConfig?: IssueConfigField[];
+  createIssueConfig?: IssueConfigField[];
+  provider: IntegrationProvider;
+  icon: string[];
+};
+
+export type OnboardingTask = {
+  task: number;
+  title: string;
+  description: string;
+  detailedDescription?: string;
+  skippable: boolean;
+  prereq: number[];
+  featureLocation: string;
+  location: string | (() => void);
+  display: boolean;
 };

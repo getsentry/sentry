@@ -7,7 +7,7 @@ from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 
 class GroupCommitResolution(Model):
     """
-    When a Group is referenced via a commit, it's association is stored here.
+    When a Group is referenced via a commit, its association is stored here.
     """
 
     __core__ = False

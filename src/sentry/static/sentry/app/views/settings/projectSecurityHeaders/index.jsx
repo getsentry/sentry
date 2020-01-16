@@ -1,7 +1,7 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -10,7 +10,6 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 import ReportUri from 'app/views/settings/projectSecurityHeaders/reportUri';
-import PreviewFeature from 'app/components/previewFeature';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
@@ -60,8 +59,6 @@ export default class ProjectSecurityHeaders extends AsyncView {
       <div>
         <SettingsPageHeader title={t('Security Header Reports')} />
 
-        <PreviewFeature />
-
         <ReportUri keyList={this.state.keyList} params={this.props.params} />
 
         <Panel>
@@ -97,9 +94,9 @@ export default class ProjectSecurityHeaders extends AsyncView {
         <Panel>
           <PanelHeader>{t('Supported Formats')}</PanelHeader>
           <PanelBody>
-            {this.getReports().map(({name, description, url}) => (
-              <PanelItem key={url} p={0} direction="column">
-                <Flex flex="1" p={2} align="center">
+            {this.getReports().map(({name, url}) => (
+              <PanelItem key={url} p={0} flexDirection="column">
+                <Flex flex="1" p={2} alignItems="center">
                   <Box flex="1">
                     <HeaderName>{name}</HeaderName>
                   </Box>

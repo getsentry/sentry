@@ -44,14 +44,44 @@ export type IssueAlertRuleCondition = Omit<
   [key: string]: number | string;
 };
 
-// Issue-based alert rule
-export type IssueAlertRule = {
+export type UnsavedIssueAlertRule = {
   actionMatch: 'all' | 'any';
   actions: IssueAlertRuleAction[];
   conditions: IssueAlertRuleCondition[];
-  dateCreated: string;
   environment: null | string;
   frequency: number;
-  id: string;
   name: string;
+};
+// Issue-based alert rule
+export type IssueAlertRule = UnsavedIssueAlertRule & {
+  dateCreated: string;
+  id: string;
+};
+
+/**
+ * This is an Action that is associated to a Trigger in a Metric Alert Rule
+ */
+export type MetricAction = {
+  /**
+   * The integration type e.g. 'email'
+   */
+  type: string;
+
+  /**
+   * e.g.
+   * - `user` - user id,
+   * - `team` - team id
+   * - `specific` - free text
+   */
+  allowedTargetTypes: Array<'user' | 'team' | 'specific'>;
+
+  /**
+   * Name of the integration. This is a text field that differentiates integrations from the same provider from each other
+   */
+  integrationName: string;
+
+  /**
+   * Integration id for this `type`, should be passed to backend as `integrationId` when creating an action
+   */
+  integrationId: number;
 };

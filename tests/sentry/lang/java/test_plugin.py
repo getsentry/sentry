@@ -81,7 +81,8 @@ class BasicResolvingIntegrationTest(TestCase):
                                 },
                             ]
                         },
-                        "type": "RuntimeException",
+                        "module": "org.a.b",
+                        "type": "g$a",
                         "value": "Shit broke yo",
                     }
                 ]
@@ -105,9 +106,12 @@ class BasicResolvingIntegrationTest(TestCase):
         event_id = json.loads(resp.content)["id"]
 
         event = eventstore.get_event_by_id(self.project.id, event_id)
-        bt = event.interfaces["exception"].values[0].stacktrace
+        exc = event.interfaces["exception"].values[0]
+        bt = exc.stacktrace
         frames = bt.frames
 
+        assert exc.type == "Util$ClassContextSecurityManager"
+        assert exc.module == "org.slf4j.helpers"
         assert frames[0].function == "getClassContext"
         assert frames[0].module == "org.slf4j.helpers.Util$ClassContextSecurityManager"
         assert frames[1].function == "getExtraClassContext"

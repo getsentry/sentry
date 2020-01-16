@@ -109,3 +109,33 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
                 "dateCreated": attachment.file.timestamp,
             }
         )
+
+    def delete(self, request, project, event_id, attachment_id):
+        """
+        Delete an Event Attachment by ID
+        ````````````````````````````````
+
+        Delete an attachment on the given event.
+
+        :pparam string event_id: the identifier of the event.
+        :pparam string attachment_id: the identifier of the attachment.
+        :auth: required
+        """
+        if not features.has(
+            "organizations:event-attachments", project.organization, actor=request.user
+        ):
+            return self.respond(status=404)
+
+        try:
+            attachment = (
+                EventAttachment.objects.filter(
+                    project_id=project.id, event_id=event_id, id=attachment_id
+                )
+                .select_related("file")
+                .get()
+            )
+        except EventAttachment.DoesNotExist:
+            return self.respond({"detail": "Attachment not found"}, status=404)
+
+        attachment.delete()
+        return self.respond(status=204)

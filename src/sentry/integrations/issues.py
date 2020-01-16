@@ -5,15 +5,7 @@ import six
 
 from sentry import features
 from sentry.integrations.exceptions import ApiError, IntegrationError
-from sentry.models import (
-    Activity,
-    Event,
-    ExternalIssue,
-    Group,
-    GroupLink,
-    GroupStatus,
-    Organization,
-)
+from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
@@ -66,8 +58,6 @@ class IssueBasicMixin(object):
         in Jira, VSTS, GitHub, etc
         """
         event = group.get_latest_event()
-        if event is not None:
-            Event.objects.bind_nodes([event], "data")
 
         return [
             {

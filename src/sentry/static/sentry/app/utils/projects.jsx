@@ -46,6 +46,8 @@ class Projects extends React.Component {
     fetching: false,
     isIncomplete: null,
     hasMore: null,
+    prevSearch: null,
+    nextCursor: null,
   };
 
   componentDidMount() {
@@ -167,13 +169,17 @@ class Projects extends React.Component {
     });
 
     try {
-      const {results, hasMore} = await fetchProjects(api, orgId, {limit, allProjects});
+      const {results, hasMore, nextCursor} = await fetchProjects(api, orgId, {
+        limit,
+        allProjects,
+      });
 
       this.setState({
         fetching: false,
         fetchedProjects: results,
         initiallyLoaded: true,
         hasMore,
+        nextCursor,
       });
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
@@ -198,11 +204,18 @@ class Projects extends React.Component {
    */
   handleSearch = async (search, {append} = {}) => {
     const {api, orgId, limit} = this.props;
+    const {prevSearch} = this.state;
+    const cursor = this.state.nextCursor;
 
     this.setState({fetching: true});
 
     try {
-      const {results, hasMore} = await fetchProjects(api, orgId, {search, limit});
+      const {results, hasMore, nextCursor} = await fetchProjects(api, orgId, {
+        search,
+        limit,
+        prevSearch,
+        cursor,
+      });
 
       this.setState(state => {
         let fetchedProjects;
@@ -219,6 +232,8 @@ class Projects extends React.Component {
           fetchedProjects,
           hasMore,
           fetching: false,
+          prevSearch: search,
+          nextCursor,
         };
       });
     } catch (err) {
@@ -268,7 +283,11 @@ class Projects extends React.Component {
 
 export default withProjects(withApi(Projects));
 
-async function fetchProjects(api, orgId, {slugs, search, limit, allProjects} = {}) {
+async function fetchProjects(
+  api,
+  orgId,
+  {slugs, search, limit, prevSearch, cursor, allProjects} = {}
+) {
   const query = {};
 
   if (slugs && slugs.length) {
@@ -277,6 +296,10 @@ async function fetchProjects(api, orgId, {slugs, search, limit, allProjects} = {
 
   if (search) {
     query.query = `${query.query ? `${query.query} ` : ''}${search}`;
+  }
+
+  if (((!prevSearch && !search) || prevSearch === search) && cursor) {
+    query.cursor = cursor;
   }
 
   // "0" shouldn't be a valid value, so this check is fine
@@ -298,6 +321,7 @@ async function fetchProjects(api, orgId, {slugs, search, limit, allProjects} = {
   }
 
   let hasMore = false;
+  let nextCursor = null;
   const [results, _, xhr] = await api.requestPromise(
     `/organizations/${orgId}/projects/`,
     {
@@ -307,12 +331,12 @@ async function fetchProjects(api, orgId, {slugs, search, limit, allProjects} = {
   );
 
   const pageLinks = xhr && xhr.getResponseHeader('Link');
-
   if (pageLinks) {
     const paginationObject = parseLinkHeader(pageLinks);
     hasMore =
       paginationObject &&
       (paginationObject.next.results || paginationObject.previous.results);
+    nextCursor = paginationObject.next.cursor;
   }
 
   // populate the projects store if all projects were fetched
@@ -323,5 +347,6 @@ async function fetchProjects(api, orgId, {slugs, search, limit, allProjects} = {
   return {
     results,
     hasMore,
+    nextCursor,
   };
 }

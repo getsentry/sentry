@@ -5,6 +5,7 @@ import {defined} from 'app/utils';
 import Annotated from 'app/components/events/meta/annotated';
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
+import SentryTypes from 'app/sentryTypes';
 
 class ExceptionContent extends React.Component {
   static propTypes = {
@@ -13,12 +14,12 @@ class ExceptionContent extends React.Component {
     view: PropTypes.string.isRequired,
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
+    event: SentryTypes.Event.isRequired,
   };
 
   render() {
-    const stackView = this.props.view;
-    const newestFirst = this.props.newestFirst;
-    const children = this.props.values.map((exc, excIdx) => {
+    const {newestFirst, event, view: stackView, platform, values} = this.props;
+    const children = values.map((exc, excIdx) => {
       return (
         <div key={excIdx} className="exception">
           <h5 className="break-word" style={{marginBottom: 5}}>
@@ -43,10 +44,13 @@ class ExceptionContent extends React.Component {
                   ? exc.stacktrace
                   : exc.rawStacktrace || exc.stacktrace
               }
-              expandFirstFrame={excIdx === 0}
+              expandFirstFrame={
+                platform === 'csharp' ? excIdx === values.length - 1 : excIdx === 0
+              }
               includeSystemFrames={stackView === 'full'}
               platform={this.props.platform}
               newestFirst={newestFirst}
+              event={event}
             />
           )}
         </div>

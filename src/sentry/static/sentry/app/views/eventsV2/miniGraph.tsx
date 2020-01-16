@@ -1,6 +1,7 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import {Location} from 'history';
+import styled from '@emotion/styled';
 
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
@@ -9,6 +10,8 @@ import EventsRequest from 'app/views/events/utils/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
 import {getInterval} from 'app/components/charts/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingContainer from 'app/components/loading/loadingContainer';
 
 import EventView from './eventView';
 
@@ -34,9 +37,12 @@ class MiniGraph extends React.Component<Props> {
     const {organization, location, eventView} = props;
 
     const apiPayload = eventView.getEventsAPIPayload(location);
+
     const query = apiPayload.query;
-    const start = getUtcToLocalDateObject(apiPayload.start);
-    const end = getUtcToLocalDateObject(apiPayload.end);
+    const start = apiPayload.start
+      ? getUtcToLocalDateObject(apiPayload.start)
+      : undefined;
+    const end = apiPayload.end ? getUtcToLocalDateObject(apiPayload.end) : undefined;
     const period: string | undefined = apiPayload.statsPeriod as any;
 
     return {
@@ -46,12 +52,22 @@ class MiniGraph extends React.Component<Props> {
       start,
       end,
       period,
+      project: eventView.project,
+      environment: eventView.environment,
     };
   }
 
   render() {
-    const {eventView, api} = this.props;
-    const {query, start, end, period, organization} = this.getRefreshProps(this.props);
+    const {api} = this.props;
+    const {
+      query,
+      start,
+      end,
+      period,
+      organization,
+      project,
+      environment,
+    } = this.getRefreshProps(this.props);
 
     return (
       <EventsRequest
@@ -62,13 +78,17 @@ class MiniGraph extends React.Component<Props> {
         end={end}
         period={period}
         interval={getInterval({start, end, period}, true)}
-        project={eventView.project as number[]}
-        environment={eventView.environment as string[]}
+        project={project as number[]}
+        environment={environment as string[]}
         includePrevious={false}
       >
         {({loading, timeseriesData}) => {
           if (loading) {
-            return null;
+            return (
+              <StyledLoadingContainer>
+                <LoadingIndicator mini />
+              </StyledLoadingContainer>
+            );
           }
 
           const data = (timeseriesData || []).map(series => {
@@ -121,5 +141,15 @@ class MiniGraph extends React.Component<Props> {
     );
   }
 }
+
+const StyledLoadingContainer = styled(props => {
+  return <LoadingContainer {...props} maskBackgroundColor="transparent" />;
+})`
+  height: 100px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
 
 export default withApi(MiniGraph);

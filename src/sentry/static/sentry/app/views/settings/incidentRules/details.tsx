@@ -2,11 +2,11 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
-import {Organization, Project} from 'app/types';
+import {Organization} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import RuleForm from 'app/views/settings/incidentRules/ruleForm';
+import recreateRoute from 'app/utils/recreateRoute';
 import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
 
 type RouteParams = {
   orgId: string;
@@ -16,17 +16,21 @@ type RouteParams = {
 
 type Props = {
   organization: Organization;
-  projects: Project[];
-};
+} & RouteComponentProps<RouteParams, {}>;
 
 type State = {
   rule: IncidentRule;
+  actions: Map<string, any>; // This is temp
 } & AsyncView['state'];
 
-class IncidentRulesDetails extends AsyncView<
-  RouteComponentProps<RouteParams, {}> & Props,
-  State
-> {
+class IncidentRulesDetails extends AsyncView<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      actions: new Map(),
+    };
+  }
+
   getEndpoints() {
     const {orgId, incidentRuleId} = this.props.params;
 
@@ -38,15 +42,25 @@ class IncidentRulesDetails extends AsyncView<
     ];
   }
 
+  handleSubmitSuccess = () => {
+    const {params, routes, router, location} = this.props;
+
+    router.push(recreateRoute('', {params, routes, location, stepBack: -2}));
+  };
+
   renderBody() {
-    const {organization, params} = this.props;
-    const {incidentRuleId} = params;
+    const {incidentRuleId} = this.props.params;
     const {rule} = this.state;
 
     return (
-      <RuleForm organization={organization} incidentRuleId={incidentRuleId} rule={rule} />
+      <RuleForm
+        {...this.props}
+        incidentRuleId={incidentRuleId}
+        rule={rule}
+        onSubmitSuccess={this.handleSubmitSuccess}
+      />
     );
   }
 }
 
-export default withProjects(withOrganization(IncidentRulesDetails));
+export default withOrganization(IncidentRulesDetails);

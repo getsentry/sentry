@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
+from selenium.common.exceptions import TimeoutException
 
 from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase
+from sentry.utils.retries import TimedRetryPolicy
 
 
 class OrganizationOnboardingTest(AcceptanceTestCase):
@@ -33,10 +35,16 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
 
         # Select and create node JS project
         self.browser.click('[data-test-id="platform-node"]')
-        self.browser.click('[data-test-id="platform-select-next"]')
+        self.browser.wait_until_not('[data-test-id="platform-select-next"][aria-disabled="true"]')
+        self.browser.wait_until('[data-test-id="platform-select-next"][aria-disabled="false"]')
 
-        # Project getting started
-        self.browser.wait_until('[data-test-id="onboarding-step-get-started"]')
+        @TimedRetryPolicy.wrap(timeout=5, exceptions=((TimeoutException,)))
+        def click_platform_select_name(browser):
+            browser.click('[data-test-id="platform-select-next"]')
+            # Project getting started
+            browser.wait_until('[data-test-id="onboarding-step-get-started"]')
+
+        click_platform_select_name(self.browser)
         self.browser.snapshot(name="onboarding - get started")
 
         # Verify project was created for org
@@ -45,7 +53,9 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         assert project.platform == "node"
 
         self.browser.click('[data-test-id="onboarding-getting-started-invite-members"]')
+        self.browser.wait_until('[name="email"]')
         self.browser.snapshot(name="onboarding - invite members")
 
         self.browser.click('[data-test-id="onboarding-getting-started-learn-more"]')
+        self.browser.wait_until_not('[name="email"]')
         self.browser.snapshot(name="onboarding - learn more")

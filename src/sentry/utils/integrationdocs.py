@@ -6,6 +6,7 @@ import os
 import sys
 import json
 import logging
+import time
 
 import sentry
 
@@ -81,10 +82,20 @@ def get_integration_id(platform_id, integration_id):
     return u"{}-{}".format(platform_id, integration_id)
 
 
+def urlopen_with_retries(url, timeout=5, retries=10):
+    for i in range(retries):
+        try:
+            return urlopen(url, timeout=timeout)
+        except Exception:
+            if i == retries - 1:
+                raise
+            time.sleep(i * 0.01)
+
+
 def sync_docs(quiet=False):
     if not quiet:
         echo("syncing documentation (platform index)")
-    body = urlopen(BASE_URL.format("_index.json")).read().decode("utf-8")
+    body = urlopen_with_retries(BASE_URL.format("_index.json")).read().decode("utf-8")
     data = json.loads(body)
     platform_list = []
     for platform_id, integrations in iteritems(data["platforms"]):
@@ -117,8 +128,17 @@ def sync_integration_docs(platform_id, integration_id, path, quiet=False):
     if not quiet:
         echo("  syncing documentation for %s.%s integration" % (platform_id, integration_id))
 
-    data = json.load(urlopen(BASE_URL.format(path)))
+    data = json.load(urlopen_with_retries(BASE_URL.format(path)))
 
     key = get_integration_id(platform_id, integration_id)
 
     dump_doc(key, {"id": key, "name": data["name"], "html": data["body"], "link": data["doc_link"]})
+
+
+def integration_doc_exists(integration_id):
+    # We use listdir() here as integration_id comes from user data
+    # and using os.path.join() would allow directory traversal vulnerabilities
+    # which we don't want.
+    docs = os.listdir(DOC_FOLDER)
+    filename = u"{}.json".format(integration_id)
+    return filename in docs

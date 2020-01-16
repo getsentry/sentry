@@ -1,4 +1,4 @@
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {Link} from 'react-router';
 import space from 'app/styles/space';
 
@@ -20,7 +20,7 @@ const BackToIssues = styled(Link)`
   z-index: 1;
 
   &:hover {
-    background: ${p => p.theme.offwhite};
+    background: ${p => p.theme.offWhite};
     transform: scale(1.125);
   }
 `;

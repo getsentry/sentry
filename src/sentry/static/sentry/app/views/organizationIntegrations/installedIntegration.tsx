@@ -1,7 +1,6 @@
-import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -123,17 +122,16 @@ export default class InstalledIntegration extends React.Component<Props> {
     return (
       <Access access={['org:integrations']}>
         {({hasAccess}) => (
-          <Flex align="center" key={integration.id} className={className}>
-            <Box flex={1}>
+          <IntegrationFlex key={integration.id} className={className}>
+            <IntegrationItemBox>
               <IntegrationItem compact integration={integration} />
-            </Box>
-            <Box>
+            </IntegrationItemBox>
+            <div>
               {integration.status === 'disabled' && (
                 <AddIntegrationButton
                   size="xsmall"
                   priority="success"
                   provider={provider}
-                  integration={integration}
                   onAddIntegration={this.reinstallIntegration}
                   reinstall
                 />
@@ -157,8 +155,8 @@ export default class InstalledIntegration extends React.Component<Props> {
                   </StyledButton>
                 </Tooltip>
               )}
-            </Box>
-            <Box>
+            </div>
+            <div>
               <Confirm priority="danger" disabled={!hasAccess} {...removeConfirmProps}>
                 <StyledButton
                   disabled={!hasAccess}
@@ -169,8 +167,8 @@ export default class InstalledIntegration extends React.Component<Props> {
                   Uninstall
                 </StyledButton>
               </Confirm>
-            </Box>
-          </Flex>
+            </div>
+          </IntegrationFlex>
         )}
       </Access>
     );
@@ -179,4 +177,13 @@ export default class InstalledIntegration extends React.Component<Props> {
 
 const StyledButton = styled(Button)`
   color: ${p => p.theme.gray2};
+`;
+
+const IntegrationFlex = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const IntegrationItemBox = styled('div')`
+  flex: 1;
 `;

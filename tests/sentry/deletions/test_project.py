@@ -25,8 +25,8 @@ from sentry.testutils import TestCase
 class DeleteProjectTest(TestCase):
     def test_simple(self):
         project = self.create_project(name="test")
-        group = self.create_group(project=project)
-        event = self.create_event(group=group)
+        event = self.store_event(data={}, project_id=project.id)
+        group = event.group
         GroupAssignee.objects.create(group=group, project=project, user=self.user)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         release = Release.objects.create(version="a" * 32, organization_id=project.organization_id)

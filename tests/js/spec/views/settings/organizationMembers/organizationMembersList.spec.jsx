@@ -4,14 +4,29 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
-import OrganizationMembers from 'app/views/settings/organizationMembers/organizationMembersList';
+import OrganizationMembersList from 'app/views/settings/organizationMembers/organizationMembersList';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');
 
-describe('OrganizationMembers', function() {
+const roles = [
+  {
+    id: 'admin',
+    name: 'Admin',
+    desc: 'This is the admin role',
+    allowed: true,
+  },
+  {
+    id: 'member',
+    name: 'Member',
+    desc: 'This is the member role',
+    allowed: true,
+  },
+];
+
+describe('OrganizationMembersList', function() {
   const members = TestStubs.Members();
   const currentUser = members[1];
   const defaultProps = {
@@ -44,6 +59,11 @@ describe('OrganizationMembers', function() {
 
   beforeEach(function() {
     Client.clearMockResponses();
+    Client.addMockResponse({
+      url: '/organizations/org-id/members/me/',
+      method: 'GET',
+      body: {roles},
+    });
     Client.addMockResponse({
       url: '/organizations/org-id/members/',
       method: 'GET',
@@ -94,12 +114,7 @@ describe('OrganizationMembers', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembers
-        {...defaultProps}
-        params={{
-          orgId: 'org-id',
-        }}
-      />,
+      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
 
@@ -129,12 +144,7 @@ describe('OrganizationMembers', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembers
-        {...defaultProps}
-        params={{
-          orgId: 'org-id',
-        }}
-      />,
+      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
 
@@ -163,12 +173,7 @@ describe('OrganizationMembers', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembers
-        {...defaultProps}
-        params={{
-          orgId: 'org-id',
-        }}
-      />,
+      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
 
@@ -204,12 +209,7 @@ describe('OrganizationMembers', function() {
     OrganizationsStore.add(secondOrg);
 
     const wrapper = mountWithTheme(
-      <OrganizationMembers
-        {...defaultProps}
-        params={{
-          orgId: 'org-id',
-        }}
-      />,
+      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
 
@@ -240,12 +240,7 @@ describe('OrganizationMembers', function() {
     });
 
     const wrapper = mountWithTheme(
-      <OrganizationMembers
-        {...defaultProps}
-        params={{
-          orgId: 'org-id',
-        }}
-      />,
+      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
 
@@ -267,7 +262,7 @@ describe('OrganizationMembers', function() {
     expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
 
-  it('can re-send invite to member', async function() {
+  it('can re-send SSO link to member', async function() {
     const inviteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-id/members/${members[0].id}/`,
       method: 'PUT',
@@ -275,22 +270,37 @@ describe('OrganizationMembers', function() {
         id: '1234',
       },
     });
+
     const wrapper = mountWithTheme(
-      <OrganizationMembers
-        {...defaultProps}
-        params={{
-          orgId: 'org-id',
-        }}
-      />,
+      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       TestStubs.routerContext([{organization}])
     );
 
     expect(inviteMock).not.toHaveBeenCalled();
 
-    wrapper
-      .find('ResendInviteButton')
-      .first()
-      .simulate('click');
+    wrapper.find('StyledButton[aria-label="Resend SSO link"]').simulate('click');
+
+    await tick();
+    expect(inviteMock).toHaveBeenCalled();
+  });
+
+  it('can re-send invite to member', async function() {
+    const inviteMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-id/members/${members[1].id}/`,
+      method: 'PUT',
+      body: {
+        id: '1234',
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
+      TestStubs.routerContext([{organization}])
+    );
+
+    expect(inviteMock).not.toHaveBeenCalled();
+
+    wrapper.find('StyledButton[aria-label="Resend invite"]').simulate('click');
 
     await tick();
     expect(inviteMock).toHaveBeenCalled();
@@ -303,12 +313,7 @@ describe('OrganizationMembers', function() {
     });
     const routerContext = TestStubs.routerContext();
     const wrapper = mountWithTheme(
-      <OrganizationMembers
-        {...defaultProps}
-        params={{
-          orgId: 'org-id',
-        }}
-      />,
+      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       routerContext
     );
 
@@ -326,8 +331,68 @@ describe('OrganizationMembers', function() {
       })
     );
 
-    wrapper.find('PanelHeader form').simulate('submit');
+    wrapper.find('SearchWrapper form').simulate('submit');
 
     expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
+  });
+
+  it('can filter members', async function() {
+    const searchMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-id/members/',
+      body: [],
+    });
+    const routerContext = TestStubs.routerContext();
+    const wrapper = mountWithTheme(
+      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
+      routerContext
+    );
+
+    wrapper.find('AsyncComponentSearchInput DropdownMenu Button').simulate('click');
+
+    wrapper
+      .find('AsyncComponentSearchInput [data-test-id="filter-role-member"] input')
+      .simulate('change', {target: {checked: true}});
+
+    expect(searchMock).toHaveBeenLastCalledWith(
+      '/organizations/org-id/members/',
+      expect.objectContaining({
+        method: 'GET',
+        query: {query: 'role:member'},
+      })
+    );
+
+    wrapper
+      .find('AsyncComponentSearchInput [data-test-id="filter-role-member"] input')
+      .simulate('change', {target: {checked: false}});
+
+    for (const filter of ['isInvited', 'has2fa', 'ssoLinked']) {
+      wrapper
+        .find(`AsyncComponentSearchInput [data-test-id="filter-${filter}"] input`)
+        .simulate('change', {target: {checked: true}});
+
+      expect(searchMock).toHaveBeenLastCalledWith(
+        '/organizations/org-id/members/',
+        expect.objectContaining({
+          method: 'GET',
+          query: {query: `${filter}:true`},
+        })
+      );
+
+      wrapper
+        .find(`AsyncComponentSearchInput [data-test-id="filter-${filter}"] Switch`)
+        .simulate('click');
+
+      expect(searchMock).toHaveBeenLastCalledWith(
+        '/organizations/org-id/members/',
+        expect.objectContaining({
+          method: 'GET',
+          query: {query: `${filter}:false`},
+        })
+      );
+
+      wrapper
+        .find(`AsyncComponentSearchInput [data-test-id="filter-${filter}"] input`)
+        .simulate('change', {target: {checked: false}});
+    }
   });
 });

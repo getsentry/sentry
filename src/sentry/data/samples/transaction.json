@@ -70,7 +70,8 @@
          "type": "trace",
          "op": "foobar",
          "trace_id": "a7d67cf796774551a95be6543cacd459",
-         "span_id": "babaae0d4b7512d9"
+         "span_id": "babaae0d4b7512d9",
+         "status": "ok"
       },
       "browser": {
          "version": "2.22",

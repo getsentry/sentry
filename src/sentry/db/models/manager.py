@@ -12,15 +12,16 @@ from django.db import router
 from django.db.models import Model
 from django.db.models.manager import Manager, QuerySet
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
+from django.core.signals import request_finished
 from django.utils.encoding import smart_text
+from celery.signals import task_postrun
 
-from sentry import nodestore
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
 
-__all__ = ("BaseManager",)
+__all__ = ("BaseManager", "OptionManager")
 
 logger = logging.getLogger("sentry")
 
@@ -77,7 +78,7 @@ class BaseManager(Manager):
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop("cache_fields", [])
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
-        self.cache_version = kwargs.pop("cache_version", None)
+        self._cache_version = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
         super(BaseManager, self).__init__(*args, **kwargs)
 
@@ -116,10 +117,13 @@ class BaseManager(Manager):
     def _set_cache(self, value):
         self.__local_cache.value = value
 
-    def _generate_cache_version(self):
-        return md5_text("&".join(sorted(f.attname for f in self.model._meta.fields))).hexdigest()[
-            :3
-        ]
+    @property
+    def cache_version(self):
+        if self._cache_version is None:
+            self._cache_version = md5_text(
+                "&".join(sorted(f.attname for f in self.model._meta.fields))
+            ).hexdigest()[:3]
+        return self._cache_version
 
     __cache = property(_get_cache, _set_cache)
 
@@ -143,9 +147,6 @@ class BaseManager(Manager):
 
         if not self.cache_fields:
             return
-
-        if not self.cache_version:
-            self.cache_version = self._generate_cache_version()
 
         post_init.connect(self.__post_init, sender=sender, weak=False)
         post_save.connect(self.__post_save, sender=sender, weak=False)
@@ -454,27 +455,21 @@ class BaseManager(Manager):
         return self._queryset_class(self.model, using=self._db)
 
 
-class EventManager(BaseManager):
-    # TODO: Remove method in favour of eventstore.bind_nodes
-    def bind_nodes(self, object_list, *node_names):
-        """
-        For a list of Event objects, and a property name where we might find an
-        (unfetched) NodeData on those objects, fetch all the data blobs for
-        those NodeDatas with a single multi-get command to nodestore, and bind
-        the returned blobs to the NodeDatas
-        """
-        object_node_list = []
-        for name in node_names:
-            object_node_list.extend(
-                ((i, getattr(i, name)) for i in object_list if getattr(i, name).id)
-            )
+class OptionManager(BaseManager):
+    @property
+    def _option_cache(self):
+        if not hasattr(_local_cache, "option_cache"):
+            _local_cache.option_cache = {}
+        return _local_cache.option_cache
 
-        node_ids = [n.id for _, n in object_node_list]
-        if not node_ids:
-            return
+    def clear_local_cache(self, **kwargs):
+        self._option_cache.clear()
 
-        node_results = nodestore.get_multi(node_ids)
+    def contribute_to_class(self, model, name):
+        super(OptionManager, self).contribute_to_class(model, name)
+        task_postrun.connect(self.clear_local_cache)
+        request_finished.connect(self.clear_local_cache)
 
-        for item, node in object_node_list:
-            data = node_results.get(node.id) or {}
-            node.bind_data(data, ref=node.get_ref(item))
+    def _make_key(self, instance_id):
+        assert instance_id
+        return u"%s:%s" % (self.model._meta.db_table, instance_id)
