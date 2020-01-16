@@ -8,7 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.constants import ObjectStatus
 
 from sentry.rules.actions.base import EventAction
-from sentry.models import Integration, PagerDutyService
+from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.integrations.exceptions import ApiError
 from .client import PagerDutyClient
 
@@ -124,15 +124,16 @@ class PagerDutyNotifyServiceAction(EventAction):
         return integrations
 
     def get_services(self):
+        organization = self.project.organization
         integrations = Integration.objects.filter(
-            provider="pagerduty",
-            organizations=self.project.organization,
-            status=ObjectStatus.VISIBLE,
+            provider="pagerduty", organizations=organization, status=ObjectStatus.VISIBLE
         )
         services = []
         for integration in integrations:
             service_list = PagerDutyService.objects.filter(
-                organization_integration_id__in=integration.organizationintegration_set.all()
+                organization_integration_id=OrganizationIntegration.objects.get(
+                    organization=organization, integration=integration
+                )
             ).values_list("id", "service_name")
             services += service_list
         return services
