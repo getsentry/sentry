@@ -22,12 +22,12 @@ class OrganizationHealthTest(AcceptanceTestCase):
 
     def test_no_access(self):
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
-        self.browser.snapshot("global events - no access")
+        self.browser.wait_until_not(".loading")
+        self.browser.snapshot("organization health - no access")
 
     def test(self):
         with self.feature(FEATURE_NAME):
-            # data is for now mocked/hardcoded in the UI
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading")
-            self.browser.snapshot("organization health list")
+            # data is for now randomly hardcoded in the UI - this snapshot will always be different, turned off until finished api
+            # self.browser.snapshot("organization health list")
