@@ -2,15 +2,15 @@ import {Box} from 'reflexbox';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import DateTime from 'app/components/dateTime';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Switch from 'app/components/switch';
-import IndicatorStore from 'app/stores/indicatorStore';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
@@ -36,7 +36,7 @@ class AccountSubscriptions extends AsyncView {
     return 'Subscriptions';
   }
 
-  handleToggle = (subscription, index, e) => {
+  handleToggle = (subscription, index, _e) => {
     const subscribed = !subscription.subscribed;
     const oldSubscriptions = this.state.subscriptions;
 
@@ -59,13 +59,13 @@ class AccountSubscriptions extends AsyncView {
         listId: subscription.listId,
         subscribed,
       },
-      success: data => {
-        IndicatorStore.addSuccess(
+      success: () => {
+        addSuccessMessage(
           `${subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
         );
       },
-      error: err => {
-        IndicatorStore.addError(
+      error: () => {
+        addErrorMessage(
           `Unable to ${subscribed ? '' : 'un'}subscribe to ${subscription.listName}`
         );
         this.setState({subscriptions: oldSubscriptions});

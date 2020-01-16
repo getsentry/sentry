@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Client} from 'app/api';
-import IndicatorStore from 'app/stores/indicatorStore';
-import Form from 'app/views/settings/components/forms/form';
+import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
+import Form from 'app/views/settings/components/forms/form';
 
 export default class ApiForm extends React.Component {
   static propTypes = {
@@ -25,16 +25,16 @@ export default class ApiForm extends React.Component {
 
   onSubmit = (data, onSuccess, onError) => {
     this.props.onSubmit && this.props.onSubmit(data);
-    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes..'));
     this.api.request(this.props.apiEndpoint, {
       method: this.props.apiMethod,
       data,
       success: (...args) => {
-        IndicatorStore.remove(loadingIndicator);
+        clearIndicators();
         onSuccess(...args);
       },
       error: (...args) => {
-        IndicatorStore.remove(loadingIndicator);
+        clearIndicators();
         onError(...args);
       },
     });

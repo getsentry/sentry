@@ -1,14 +1,18 @@
-import PropTypes from 'prop-types';
 import {Link} from 'react-router';
+import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Field from 'app/views/settings/components/forms/field';
-import IndicatorStore from 'app/stores/indicatorStore';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Switch from 'app/components/switch';
 import Truncate from 'app/components/truncate';
@@ -67,14 +71,16 @@ export default class ProjectServiceHooks extends AsyncView {
 
   onToggleActive = hook => {
     const {orgId, projectId} = this.props.params;
-    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+
+    addLoadingMessage(t('Saving changes..'));
+
     this.api.request(`/projects/${orgId}/${projectId}/hooks/${hook.id}/`, {
       method: 'PUT',
       data: {
         isActive: hook.status !== 'active',
       },
       success: data => {
-        IndicatorStore.remove(loadingIndicator);
+        clearIndicators();
         const hookList = this.state.hookList.map(h => {
           if (h.id === data.id) {
             return {
@@ -87,14 +93,7 @@ export default class ProjectServiceHooks extends AsyncView {
         this.setState({hookList});
       },
       error: () => {
-        IndicatorStore.remove(loadingIndicator);
-        IndicatorStore.add(
-          t('Unable to remove application. Please try again.'),
-          'error',
-          {
-            duration: 3000,
-          }
-        );
+        addErrorMessage(t('Unable to remove application. Please try again.'));
       },
     });
   };

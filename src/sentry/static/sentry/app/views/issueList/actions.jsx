@@ -6,6 +6,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 
+import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -15,7 +16,6 @@ import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/links/externalLink';
 import GroupStore from 'app/stores/groupStore';
 import IgnoreActions from 'app/components/actions/ignore';
-import IndicatorStore from 'app/stores/indicatorStore';
 import MenuItem from 'app/components/menuItem';
 import Projects from 'app/utils/projects';
 import ResolveActions from 'app/components/actions/resolve';
@@ -236,7 +236,7 @@ const IssueListActions = createReactClass({
   handleUpdate(data) {
     const {selection} = this.props;
     this.actionSelectedGroups(itemIds => {
-      const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+      addLoadingMessage(t('Saving changes..'));
 
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
@@ -258,7 +258,7 @@ const IssueListActions = createReactClass({
         },
         {
           complete: () => {
-            IndicatorStore.remove(loadingIndicator);
+            clearIndicators();
           },
         }
       );
@@ -266,8 +266,9 @@ const IssueListActions = createReactClass({
   },
 
   handleDelete() {
-    const loadingIndicator = IndicatorStore.add(t('Removing events..'));
     const {selection} = this.props;
+
+    addLoadingMessage(t('Removing events..'));
 
     this.actionSelectedGroups(itemIds => {
       this.props.api.bulkDelete(
@@ -281,7 +282,7 @@ const IssueListActions = createReactClass({
         },
         {
           complete: () => {
-            IndicatorStore.remove(loadingIndicator);
+            clearIndicators();
           },
         }
       );
@@ -289,8 +290,9 @@ const IssueListActions = createReactClass({
   },
 
   handleMerge() {
-    const loadingIndicator = IndicatorStore.add(t('Merging events..'));
     const {selection} = this.props;
+
+    addLoadingMessage(t('Merging events..'));
 
     this.actionSelectedGroups(itemIds => {
       this.props.api.merge(
@@ -304,7 +306,7 @@ const IssueListActions = createReactClass({
         },
         {
           complete: () => {
-            IndicatorStore.remove(loadingIndicator);
+            clearIndicators();
           },
         }
       );

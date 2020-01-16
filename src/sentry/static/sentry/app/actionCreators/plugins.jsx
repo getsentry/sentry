@@ -1,7 +1,11 @@
+import {Client} from 'app/api';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import PluginActions from 'app/actions/pluginActions';
-import IndicatorStore from 'app/stores/indicatorStore';
-import {Client} from 'app/api';
 
 const activeFetch = {};
 // PluginsStore always exists, so api client should be independent of component lifecycle
@@ -85,10 +89,10 @@ export function fetchPlugins({orgId, projectId}, options) {
  * @return Promise
  */
 export function enablePlugin(params) {
-  IndicatorStore.add(t('Enabling...'));
+  addLoadingMessage(t('Enabling...'));
   return doUpdate({...params, update: {enabled: true}, method: 'POST'})
-    .then(() => IndicatorStore.addSuccess(t('Plugin was enabled')))
-    .catch(() => IndicatorStore.addError(t('Unable to enable plugin')));
+    .then(() => addSuccessMessage(t('Plugin was enabled')))
+    .catch(() => addErrorMessage(t('Unable to enable plugin')));
 }
 
 /**
@@ -100,8 +104,8 @@ export function enablePlugin(params) {
  * @param {string} params.pluginId Plugin ID
  */
 export function disablePlugin(params) {
-  IndicatorStore.add(t('Disabling...'));
+  addLoadingMessage(t('Disabling...'));
   return doUpdate({...params, update: {enabled: false}, method: 'DELETE'})
-    .then(() => IndicatorStore.addSuccess(t('Plugin was disabled')))
-    .catch(() => IndicatorStore.addError(t('Unable to disable plugin')));
+    .then(() => addSuccessMessage(t('Plugin was disabled')))
+    .catch(() => addErrorMessage(t('Unable to disable plugin')));
 }

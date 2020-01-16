@@ -1,14 +1,18 @@
 import {Flex} from 'reflexbox';
-import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
 import React from 'react';
+import omit from 'lodash/omit';
 
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FileSize from 'app/components/fileSize';
-import IndicatorStore from 'app/stores/indicatorStore';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -75,7 +79,7 @@ class ReleaseArtifacts extends React.Component {
   };
 
   handleRemove(id) {
-    const loadingIndicator = IndicatorStore.add(t('Removing artifact..'));
+    addLoadingMessage(t('Removing artifact..'));
 
     this.props.api.request(this.getFilesEndpoint() + `${id}/`, {
       method: 'DELETE',
@@ -88,17 +92,10 @@ class ReleaseArtifacts extends React.Component {
           fileList,
         });
 
-        IndicatorStore.add(t('Artifact removed.'), 'success', {
-          duration: 4000,
-        });
+        addSuccessMessage(t('Artifact removed.'));
       },
       error: () => {
-        IndicatorStore.add(t('Unable to remove artifact. Please try again.'), 'error', {
-          duration: 4000,
-        });
-      },
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
+        addErrorMessage(t('Unable to remove artifact. Please try again.'));
       },
     });
   }

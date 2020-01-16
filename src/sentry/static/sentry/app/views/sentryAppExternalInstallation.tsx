@@ -1,25 +1,25 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import styled from '@emotion/styled';
+import React from 'react';
 import get from 'lodash/get';
+import styled from '@emotion/styled';
 
-import {t, tct} from 'app/locale';
-import Alert from 'app/components/alert';
-import AsyncView from 'app/views/asyncView';
-import Field from 'app/views/settings/components/forms/field';
-import IndicatorStore from 'app/stores/indicatorStore';
-import NarrowLayout from 'app/components/narrowLayout';
-import SelectControl from 'app/components/forms/selectControl';
-import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
-import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {
   LightWeightOrganization,
   Organization,
   SentryApp,
   SentryAppInstallation,
 } from 'app/types';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
+import {t, tct} from 'app/locale';
+import Alert from 'app/components/alert';
+import AsyncView from 'app/views/asyncView';
+import Field from 'app/views/settings/components/forms/field';
+import NarrowLayout from 'app/components/narrowLayout';
+import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
+import SelectControl from 'app/components/forms/selectControl';
+import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
 
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
@@ -126,9 +126,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
       //all state fields should be set at the same time so analytics in SentryAppDetailsModal works properly
       this.setState({organization, isInstalled, reloading: false});
     } catch (err) {
-      IndicatorStore.addError(
-        t('Failed to retrieve organization or integration details')
-      );
+      addErrorMessage(t('Failed to retrieve organization or integration details'));
       this.setState({reloading: false});
     }
   };
