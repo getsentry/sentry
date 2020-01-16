@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import timedelta
 import logging
 
 from sentry.eventstore.base import EventStorage
@@ -57,6 +57,43 @@ class SnubaEventStorage(EventStorage):
         Get events from Snuba.
         """
         assert filter, "You must provide a filter"
+
+        # This is an optimization for the Group.filter_by_event_id query where we
+        # have a single event ID and want to check all accessible projects for a
+        # direct hit. In this case it's usually faster to go to nodestore first.
+        if (
+            filter.event_ids
+            and filter.project_ids
+            and len(filter.event_ids) * len(filter.project_ids) < limit
+        ):
+            event_list = [
+                Event(project_id=project_id, event_id=event_id)
+                for event_id in filter.event_ids
+                for project_id in filter.project_ids
+            ]
+            self.bind_nodes(event_list)
+
+            events = [event for event in event_list if len(event.data)]
+            event_ids = {event.event_id for event in events}
+            project_ids = {event.project_id for event in events}
+            start = min(event.datetime for event in events)
+            end = max(event.datetime for event in events) + timedelta(seconds=1)
+
+            # TODO: skip the query for transactions
+
+            result = snuba.raw_query(
+                selected_columns=["group_id"],
+                start=start,
+                end=end,
+                filter_keys={"project_id": project_ids, "event_id": event_ids},
+                limit=1,
+                referrer="eventstore.get_event_by_id_nodestore",
+            )
+
+            # TODO: Do something with the result
+
+            return events
+
         cols = self.__get_columns(additional_columns)
         orderby = orderby or DESC_ORDERING
 
@@ -95,14 +132,12 @@ class SnubaEventStorage(EventStorage):
         if len(event.data) == 0:
             return None
 
-        event_time = datetime.fromtimestamp(event.data["timestamp"])
-
         # Load group_id from Snuba if not a transaction
         if event.get_event_type() != "transaction":
             result = snuba.raw_query(
                 selected_columns=["group_id"],
-                start=event_time,
-                end=event_time + timedelta(seconds=1),
+                start=event.datetime,
+                end=event.datetime + timedelta(seconds=1),
                 filter_keys={"project_id": [project_id], "event_id": [event_id]},
                 limit=1,
                 referrer="eventstore.get_event_by_id_nodestore",

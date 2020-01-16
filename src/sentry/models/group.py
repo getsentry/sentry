@@ -215,7 +215,7 @@ class GroupManager(BaseManager):
             filter=eventstore.Filter(
                 event_ids=event_ids, project_ids=project_ids, conditions=conditions
             ),
-            limit=len(project_ids),
+            limit=max(len(project_ids), 100),
             referrer="Group.filter_by_event_id",
         )
 

@@ -86,6 +86,14 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         events = self.eventstore.get_events(filter=Filter(project_ids=[project.id]))
         assert events == []
 
+        # Test with a list of event IDs and project ID filters
+        events = self.eventstore.get_events(
+            filter=Filter(
+                project_ids=[self.project1.id, self.project2.id],
+                event_ids=["a" * 32, "b" * 32, "c" * 32, "x" * 32, "y" * 32, "z" * 32],
+            )
+        )
+
     def test_get_event_by_id(self):
         # Get valid event
         event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
