@@ -5,7 +5,7 @@ import logging
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry.models import ProjectKey
+from sentry.models.projectkey import ProjectKey
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
