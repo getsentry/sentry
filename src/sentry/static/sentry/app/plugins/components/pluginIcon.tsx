@@ -34,7 +34,7 @@ import vsts from 'app/../images/logos/logo-azure.svg';
 import youtrack from 'app/../images/logos/logo-youtrack.svg';
 
 // Map of plugin id -> logo filename
-const DEFAULT_ICON = placeholder;
+export const DEFAULT_ICON = placeholder;
 export const ICON_PATHS = {
   _default: DEFAULT_ICON,
   sentry,
