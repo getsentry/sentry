@@ -49,17 +49,54 @@ class SnubaEventStorage(EventStorage):
     def get_events(
         self,
         filter,
-        additional_columns=None,
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events",
     ):
         """
-        Get events from Snuba.
+        Get events from Snuba, with node data loaded.
         """
-        assert filter, "You must provide a filter"
+        return self.__get_events(
+            filter,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+            should_bind_nodes=True,
+        )
 
+    def get_unfetched_events(
+        self,
+        filter,
+        orderby=None,
+        limit=DEFAULT_LIMIT,
+        offset=DEFAULT_OFFSET,
+        referrer="eventstore.get_unfetched_events",
+    ):
+        """
+        Get events from Snuba, without node data loaded.
+        """
+        return self.__get_events(
+            filter,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+            should_bind_nodes=False,
+        )
+
+    def __get_events(
+        self,
+        filter,
+        orderby=None,
+        limit=DEFAULT_LIMIT,
+        offset=DEFAULT_OFFSET,
+        referrer=None,
+        should_bind_nodes=False,
+    ):
+        assert filter, "You must provide a filter"
+        cols = self.__get_minimal_columns()
         orderby = orderby or DESC_ORDERING
 
         # This is an optimization for the Group.filter_by_event_id query where we
@@ -87,7 +124,7 @@ class SnubaEventStorage(EventStorage):
                 end = max(event.datetime for event in events) + timedelta(seconds=1)
 
                 result = snuba.dataset_query(
-                    selected_columns=self.__get_columns(),
+                    selected_columns=cols,
                     start=start,
                     end=end,
                     conditions=filter.conditions,
@@ -115,8 +152,6 @@ class SnubaEventStorage(EventStorage):
 
             return []
 
-        cols = self.__get_columns(additional_columns)
-
         result = snuba.dataset_query(
             selected_columns=cols,
             start=filter.start,
@@ -131,7 +166,10 @@ class SnubaEventStorage(EventStorage):
         )
 
         if "error" not in result:
-            return [self.__make_event(evt) for evt in result["data"]]
+            events = [self.__make_event(evt) for evt in result["data"]]
+            if should_bind_nodes:
+                self.bind_nodes(events)
+            return events
 
         return []
 
@@ -224,13 +262,8 @@ class SnubaEventStorage(EventStorage):
 
         return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 
-    def __get_columns(self, additional_columns=None):
-        columns = EventStorage.minimal_columns
-
-        if additional_columns:
-            columns = set(columns + additional_columns)
-
-        return [col.value.event_name for col in columns]
+    def __get_minimal_columns(self):
+        return [col.value.event_name for col in EventStorage.minimal_columns]
 
     def __get_event_id_from_filter(self, filter=None, orderby=None):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
