@@ -5,6 +5,7 @@ import logging
 from django.conf import settings
 from django.core.cache import cache
 
+from sentry.models import ProjectKey
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -47,12 +48,17 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
         projects = Project.objects.filter(organization_id=organization_id)
 
     if generate:
-        projectconfig_cache.set_many(
-            {
-                project.id: get_project_config(project, full_config=True).to_dict()
-                for project in projects
-            }
-        )
+        project_keys = {}
+        for key in ProjectKey.objects.filter(project_id__in=[project.id for project in projects]):
+            project_keys.setdefault(key.project_id, []).append(key)
+
+        project_configs = {}
+        for project in projects:
+            project_configs[project.id] = get_project_config(
+                project, project_keys=project_keys.get(project.id, []), full_config=True
+            ).to_dict()
+
+        projectconfig_cache.set_many(project_configs)
     else:
         projectconfig_cache.delete_many([project.id for project in projects])
 
