@@ -177,7 +177,6 @@ class SentryRemoteTest(SnubaTestCase):
 
     def get_event(self, event_id):
         instance = eventstore.get_event_by_id(self.project.id, event_id)
-        instance.bind_node_data()
         return instance
 
     def test_minimal(self):
@@ -615,7 +614,6 @@ class CspReportTest(TestCase, SnubaTestCase):
         )
         assert len(events) == 1
         e = events[0]
-        e.bind_node_data()
         assert output["message"] == e.data["logentry"]["formatted"]
         for key, value in six.iteritems(output["tags"]):
             assert e.get_tag(key) == value
