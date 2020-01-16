@@ -84,7 +84,7 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
             click.echo("User updated: %s" % (email,))
         else:
             click.echo("User: %s exists, use --force-update to force" % (email,))
-            sys.exit(2)
+            sys.exit(3)
     else:
         user.save()
         click.echo("User created: %s" % (email,))
