@@ -3,9 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
-
 import isPropValid from '@emotion/is-prop-valid';
-import pickBy from 'lodash/pickBy';
 
 import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
@@ -34,9 +32,10 @@ type Props = {
   label?: string;
   tooltipProps?: any;
   onClick?: (e: React.MouseEvent) => void;
+  forwardRef?: React.Ref<HTMLElement>;
 };
 
-type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref'> & Props;
+type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props> & Props;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
@@ -85,6 +84,8 @@ class Button extends React.Component<ButtonProps, {}> {
     tooltipProps: PropTypes.object,
 
     onClick: PropTypes.func,
+
+    forwardRef: PropTypes.any,
   };
 
   static defaultProps: ButtonProps = {
@@ -192,7 +193,14 @@ class Button extends React.Component<ButtonProps, {}> {
   }
 }
 
-export default Button;
+const ButtonForwardRef = React.forwardRef<HTMLElement, ButtonProps>((props, ref) => (
+  <Button forwardRef={ref} {...props} />
+));
+
+// Some components use Button's propTypes
+ButtonForwardRef.propTypes = Button.propTypes;
+
+export default ButtonForwardRef;
 
 type StyledButtonProps = ButtonProps & {theme?: any};
 
@@ -263,30 +271,27 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
 };
 
 const StyledButton = styled(
-  // While props is the conventional name, we're using `prop` to trick
-  // eslint as using `props` results in unfixable 'missing proptypes` warnings.
-  React.forwardRef<ButtonElement, ButtonProps>((prop, ref) => {
-    const forwardProps = pickBy(
-      prop,
-      (_value, key) => key !== 'disabled' && isPropValid(key)
-    );
-
+  ({forwardRef, ...props}) => {
     // Get component to use based on existence of `to` or `href` properties
     // Can be react-router `Link`, `a`, or `button`
-    if (prop.to) {
-      return <Link ref={ref} to={prop.to} {...forwardProps} />;
+    if (props.to) {
+      return <Link ref={forwardRef} {...props} />;
     }
 
-    if (!prop.href) {
-      return <button ref={ref} {...forwardProps} />;
+    if (!props.href) {
+      return <button ref={forwardRef} {...props} />;
     }
 
-    if (prop.external && prop.href) {
-      return <ExternalLink ref={ref} href={prop.href} {...forwardProps} />;
+    if (props.external && props.href) {
+      return <ExternalLink ref={forwardRef} {...props} />;
     }
 
-    return <a ref={ref} {...forwardProps} />;
-  })
+    return <a ref={forwardRef} {...props} />;
+  },
+  {
+    shouldForwardProp: prop =>
+      prop === 'forwardRef' || (isPropValid(prop) && prop !== 'disabled'),
+  }
 )<Props>`
   display: inline-block;
   line-height: 1;

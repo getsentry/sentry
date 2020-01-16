@@ -37,9 +37,7 @@ const YAxisSelector = props => {
   );
 };
 
-const StyledDropdownButton = styled(
-  React.forwardRef((prop, ref) => <DropdownButton ref={ref} {...prop} />)
-)`
+const StyledDropdownButton = styled(DropdownButton)`
   border-radius: ${p =>
     p.isOpen && `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   padding: ${space(1)} ${space(2)};
