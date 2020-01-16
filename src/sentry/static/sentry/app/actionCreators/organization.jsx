@@ -20,6 +20,7 @@ import TeamStore from 'app/stores/teamStore';
 export async function fetchOrganizationDetails(api, slug, detailed, silent) {
   if (!silent) {
     OrganizationActions.fetchOrg();
+    ProjectActions.reset();
   }
 
   try {
