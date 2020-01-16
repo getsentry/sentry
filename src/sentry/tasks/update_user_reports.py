@@ -34,7 +34,12 @@ def update_user_reports(**kwargs):
     for project_id, reports in six.iteritems(project_map):
         event_ids = [r.event_id for r in reports]
         report_by_event = {r.event_id: r for r in reports}
-        snuba_filter = eventstore.Filter(project_ids=[project_id], event_ids=event_ids)
+        snuba_filter = eventstore.Filter(
+            project_ids=[project_id],
+            event_ids=event_ids,
+            start=now - timedelta(days=2),
+            end=now + timedelta(minutes=5),  # Just to catch clock skew
+        )
         events = eventstore.get_events(filter=snuba_filter)
 
         for event in events:
