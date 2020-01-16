@@ -12,7 +12,9 @@ try:
 except ImportError:
     has_uwsgi = False
 
+from django import VERSION
 from django.conf import settings
+from django.core.exceptions import MiddlewareNotUsed
 
 logger = logging.getLogger(__name__)
 Z_CHUNK = 1024 * 8
@@ -110,8 +112,6 @@ class GzipDecoder(ZDecoder):
 class SetRemoteAddrFromForwardedFor(object):
     def __init__(self):
         if not getattr(settings, "SENTRY_USE_X_FORWARDED_FOR", True):
-            from django.core.exceptions import MiddlewareNotUsed
-
             raise MiddlewareNotUsed
 
     def _remove_port_number(self, ip_address):
@@ -140,8 +140,6 @@ class SetRemoteAddrFromForwardedFor(object):
 class ChunkedMiddleware(object):
     def __init__(self):
         if not has_uwsgi:
-            from django.core.exceptions import MiddlewareNotUsed
-
             raise MiddlewareNotUsed
 
     def process_request(self, request):
@@ -187,6 +185,11 @@ class ContentLengthHeaderMiddleware(object):
     """
     Ensure that we have a proper Content-Length/Transfer-Encoding header
     """
+
+    def __init__(self):
+        # TODO(joshuarli): we can remove this middleware entirely once we're on 1.11
+        if VERSION[:2] >= (1, 11):
+            raise MiddlewareNotUsed
 
     def process_response(self, request, response):
         if "Transfer-Encoding" in response or "Content-Length" in response:
