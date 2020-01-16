@@ -173,9 +173,7 @@ class Projects extends React.Component<Props, State> {
     const [inStore, notInStore] = partition(slugs, slug => projectsMap.has(slug));
 
     // Get the actual summaries of projects that are in store
-    const projectsFromStore: Project[] = inStore
-      .map(slug => projectsMap.get(slug))
-      .filter(defined);
+    const projectsFromStore = inStore.map(slug => projectsMap.get(slug)).filter(defined);
 
     // Add to queue
     notInStore.forEach(slug => this.fetchQueue.add(slug));
