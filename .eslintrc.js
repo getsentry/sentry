@@ -9,7 +9,16 @@ module.exports = {
     tick: true,
     jest: true,
   },
-  rules: {},
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        name: 'lodash/get',
+        message:
+          'Optional chaining proposal is available and preferred over using `lodash/get`',
+      },
+    ],
+  },
   overrides: [
     {
       files: ['*.ts', '*.tsx'],
