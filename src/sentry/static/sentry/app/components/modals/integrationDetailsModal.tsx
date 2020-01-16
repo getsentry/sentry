@@ -72,7 +72,6 @@ class IntegrationDetailsModal extends React.Component<Props> {
 
   onAddIntegration = (integration: Integration) => {
     this.props.closeModal();
-    console.log('onAddIntegration');
     this.props.onAddIntegration(integration);
   };
 

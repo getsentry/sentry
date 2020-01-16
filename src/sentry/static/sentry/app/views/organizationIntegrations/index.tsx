@@ -175,7 +175,6 @@ class OrganizationIntegrations extends AsyncComponent<
   onDisable = (integration: Integration) => {
     let url: string;
     const [domainName, orgName] = integration.domainName.split('/');
-    console.log('disabled');
 
     if (integration.accountType === 'User') {
       url = `https://${domainName}/settings/installations/`;

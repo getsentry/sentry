@@ -60,7 +60,6 @@ export default class InstalledIntegration extends React.Component<Props> {
   };
 
   handleUninstallClick = () => {
-    console.log('here');
     trackIntegrationEvent(
       {
         eventKey: 'integrations.uninstall_clicked',
