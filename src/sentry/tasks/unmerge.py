@@ -509,12 +509,6 @@ def unmerge(
         orderby=["-timestamp", "-event_id"],
     )
 
-    for event in events:
-        # TODO: We need a better way to deal with this but we need event.message to
-        # be the text-only "search message" here, which matches what is originally
-        # saved into Snuba, not the raw message dict field in nodestore.
-        event.message = event.get_search_message(event.get_event_metadata(), event.culprit)
-
     # If there are no more events to process, we're done with the migration.
     if not events:
         unlock_hashes(project_id, fingerprints)
