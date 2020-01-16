@@ -409,8 +409,7 @@ class Release(Model):
                             defaults=author_data,
                         )
                         if author.name != author_data["name"]:
-                            author.name = author_data["name"]
-                            author.save(update_fields=["name"])
+                            author.update(name=author_data["name"])
                         authors[author_email] = author
                     else:
                         author = authors[author_email]
