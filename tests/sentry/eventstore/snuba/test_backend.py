@@ -90,7 +90,6 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         # Get valid event
         event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
 
-        assert event.id == "a" * 32
         assert event.event_id == "a" * 32
         assert event.project_id == self.project1.id
 
@@ -101,7 +100,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         # Get transaction
         event = self.eventstore.get_event_by_id(self.project2.id, self.transaction_event.event_id)
 
-        assert event.id == "d" * 32
+        assert event.event_id == "d" * 32
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
 

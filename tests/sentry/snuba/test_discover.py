@@ -1126,7 +1126,7 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             project_id=self.project.id,
         )
         reference = discover.ReferenceEvent(
-            self.organization, "{}:{}".format(self.project.slug, self.event.id), ["message"]
+            self.organization, "{}:{}".format(self.project.slug, self.event.event_id), ["message"]
         )
         result = discover.get_pagination_ids(
             self.event,

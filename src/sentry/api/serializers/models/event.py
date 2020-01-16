@@ -360,7 +360,7 @@ class SimpleEventSerializer(EventSerializer):
         user = obj.get_minimal_user()
 
         return {
-            "id": six.text_type(obj.id),
+            "id": six.text_type(obj.event_id),
             "event.type": six.text_type(obj.get_event_type()),
             "groupID": six.text_type(obj.group_id) if obj.group_id else None,
             "eventID": six.text_type(obj.event_id),
