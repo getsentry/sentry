@@ -1120,7 +1120,7 @@ function routes() {
       />
 
       <Route
-        path="/organizations/:orgId/data-export/:dataTag"
+        path="/organizations/:orgId/data-export/:dataId"
         componentPromise={() =>
           import(/* webpackChunkName: "DataDownloadView" */ 'app/views/dataExport/dataDownload')
         }

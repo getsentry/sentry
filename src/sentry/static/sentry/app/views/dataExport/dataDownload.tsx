@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import {Organization} from 'app/types';
+import {Config, Organization} from 'app/types';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import AsyncView from 'app/views/asyncView';
 import withApi from 'app/utils/withApi';
@@ -17,17 +17,18 @@ import Sidebar from 'app/components/sidebar';
 
 type RouteParams = {
   orgId: string;
-  dataTag: string;
+  dataId: string;
 };
 
 type DataAsset = {
-  url: string;
-  expiration: string;
+  storage_url: string;
+  expired_at: string;
 };
 
 type Props = {
   api: Client;
   organization: Organization;
+  config: Config;
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
@@ -39,8 +40,8 @@ class DataDownload extends AsyncView<Props, State> {
     return {
       ...super.getDefaultState(),
       asset: {
-        url: '',
-        expiration: '',
+        storage_url: '',
+        expired_at: '',
       },
     };
   }
@@ -50,19 +51,19 @@ class DataDownload extends AsyncView<Props, State> {
   }
 
   getEndpoints(): [string, string][] {
-    const {orgId, dataTag} = this.props.params;
-    return [['asset', `/organizations/${orgId}/data-export/${dataTag}/`]];
+    const {orgId, dataId} = this.props.params;
+    return [['asset', `/organizations/${orgId}/data-export/${dataId}/`]];
   }
 
   handleDownload(): void {
     const {asset} = this.state;
     // eslint-disable-next-line
-    alert(`Beginning download at ${asset && asset.url}`);
+    alert(`Beginning download at ${asset && asset.storage_url}`);
   }
 
   pingRequest(): void {
     const {config, organization, params} = this.props;
-    const endpoint = `/organizations/${params.orgId}/data-export/${params.dataTag}/`;
+    const endpoint = `/organizations/${params.orgId}/data-export/${params.dataId}/`;
     const {id: user_id} = config.user;
     const {slug: org_id} = organization;
     this.api.request(endpoint, {
@@ -80,7 +81,7 @@ class DataDownload extends AsyncView<Props, State> {
 
   renderBody() {
     const {asset} = this.state;
-    const d = new Date(asset.expiration);
+    const d = new Date(asset.expired_at);
     return (
       <PageContent>
         <Sidebar />

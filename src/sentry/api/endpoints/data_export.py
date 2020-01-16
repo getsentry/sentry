@@ -6,6 +6,8 @@ from sentry.api.base import Endpoint
 
 from sentry.tasks.data_export import create_record
 
+from sentry.models import ExportedData
+
 
 class DataExportEndpoint(Endpoint):
     permission_classes = (IncidentPermission,)
@@ -15,13 +17,8 @@ class DataExportEndpoint(Endpoint):
         Retrieve information about the temporary file record.
         Used to populate page emailed to the user.
         """
-        mock_response = {
-            "url": "https://sentry.s3.us-east-1.amazonaws.com/{}_{}".format(
-                kwargs["organization_slug"], kwargs["data_tag"]
-            ),
-            "expiration": "2020-11-16T23:47:29.999Z",
-        }
-        return self.respond(mock_response)
+        data_record = ExportedData.objects.get(data_id=kwargs["data_id"])
+        return self.respond(data_record.get_storage_info())
 
     def post(self, request, *args, **kwargs):
         """
