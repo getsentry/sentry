@@ -22,7 +22,7 @@ export const getAnalyticsSessionId = () => {
 type ModalOpenEvent = {
   eventKey: 'integrations.install_modal_opened';
   eventName: 'Integrations: Install Modal Opened';
-  already_installed: boolean; //need this install modal events but not later events
+  already_installed: boolean; //need this field for the modal open event but not other events
 };
 
 type OtherSingleIntegrationEvents = {

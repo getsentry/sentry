@@ -547,11 +547,67 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               <AddButton
                 data-test-id="add-button"
                 disabled={false}
+                organization={
+                  Object {
+                    "access": Array [
+                      "org:read",
+                      "org:write",
+                      "org:admin",
+                      "org:integrations",
+                      "project:read",
+                      "project:write",
+                      "project:admin",
+                      "team:read",
+                      "team:write",
+                      "team:admin",
+                    ],
+                    "features": Array [],
+                    "id": "3",
+                    "name": "Organization Name",
+                    "onboardingTasks": Array [],
+                    "projects": Array [],
+                    "scrapeJavaScript": true,
+                    "slug": "org-slug",
+                    "status": Object {
+                      "id": "active",
+                      "name": "active",
+                    },
+                    "teams": Array [],
+                  }
+                }
               >
                 <AddIntegrationButton
                   data-test-id="add-button"
                   disabled={false}
                   onAddIntegration={[Function]}
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
                   priority="primary"
                   provider={
                     Object {
@@ -603,6 +659,34 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                   >
                     <AddIntegration
                       onInstall={[Function]}
+                      organization={
+                        Object {
+                          "access": Array [
+                            "org:read",
+                            "org:write",
+                            "org:admin",
+                            "org:integrations",
+                            "project:read",
+                            "project:write",
+                            "project:admin",
+                            "team:read",
+                            "team:write",
+                            "team:admin",
+                          ],
+                          "features": Array [],
+                          "id": "3",
+                          "name": "Organization Name",
+                          "onboardingTasks": Array [],
+                          "projects": Array [],
+                          "scrapeJavaScript": true,
+                          "slug": "org-slug",
+                          "status": Object {
+                            "id": "active",
+                            "name": "active",
+                          },
+                          "teams": Array [],
+                        }
+                      }
                       provider={
                         Object {
                           "canAdd": true,
