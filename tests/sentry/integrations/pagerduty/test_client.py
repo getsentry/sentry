@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import copy
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.api.serializers import serialize, ExternalEventSerializer
 from sentry.testutils import APITestCase

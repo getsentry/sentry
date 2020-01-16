@@ -24,6 +24,7 @@ export type IntegrationDetailsModalOptions = {
   onAddIntegration: (integration: Integration) => void;
   provider: IntegrationProvider;
   organization: Organization;
+  isInstalled: boolean; //used for analytics
 };
 
 export type SentryAppDetailsModalOptions = {

@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 from django.utils import timezone
-from mock import Mock, patch, ANY
+from sentry.utils.compat.mock import Mock, patch, ANY
 
 from sentry.models import Group, GroupSnooze, GroupStatus, ProjectOwnership
 from sentry.ownership.grammar import Rule, Matcher, Owner, dump_schema

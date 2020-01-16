@@ -6,7 +6,7 @@ from sentry.models import SentryApp, OrganizationMember
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils import json
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 
 class SentryAppDetailsTest(APITestCase):

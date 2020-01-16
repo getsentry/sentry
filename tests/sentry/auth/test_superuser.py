@@ -6,7 +6,7 @@ from datetime import timedelta
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,

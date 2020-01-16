@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch, MagicMock
+from sentry.utils.compat.mock import patch, MagicMock
 
 from sentry.mediators.sentry_apps import InternalCreator
 from sentry.models import AuditLogEntryEvent, SentryApp, SentryAppInstallation

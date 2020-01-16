@@ -11,6 +11,7 @@ describe('SentryAppDetailsModal', function() {
   let isInstalled;
   let closeModal;
   const installButton = 'Button[data-test-id="install"]';
+  let sentryAppInteractionRequest;
 
   function render() {
     return mountWithTheme(
@@ -38,11 +39,30 @@ describe('SentryAppDetailsModal', function() {
       body: [],
     });
 
+    sentryAppInteractionRequest = MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/interaction/`,
+      method: 'POST',
+      statusCode: 200,
+      body: {},
+    });
+
     wrapper = render();
   });
 
   it('renders', () => {
     expect(wrapper.find('Name').text()).toBe(sentryApp.name);
+  });
+
+  it('records interaction request', () => {
+    expect(sentryAppInteractionRequest).toHaveBeenCalledWith(
+      `/sentry-apps/${sentryApp.slug}/interaction/`,
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          tsdbField: 'sentry_app_viewed',
+        },
+      })
+    );
   });
 
   it('displays the Integrations description', () => {
