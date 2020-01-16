@@ -210,7 +210,6 @@ class IssueTrackingPlugin(Plugin):
 
         prefix = self.get_conf_key()
         event = group.get_latest_event()
-        event.bind_node_data()
 
         op = request.POST.get("op", "create")
 

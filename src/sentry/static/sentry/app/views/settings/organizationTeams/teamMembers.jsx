@@ -1,6 +1,6 @@
-import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
+import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
 import {Panel, PanelHeader} from 'app/components/panels';
@@ -17,7 +17,6 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IdBadge from 'app/components/idBadge';
-import IndicatorStore from 'app/stores/indicatorStore';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
@@ -89,15 +88,11 @@ class TeamMembers extends React.Component {
               return m.id !== member.id;
             }),
           });
-          IndicatorStore.add(t('Successfully removed member from team.'), 'success', {
-            duration: 2000,
-          });
+          addSuccessMessage(t('Successfully removed member from team.'));
         },
         error: () => {
-          IndicatorStore.add(
-            t('There was an error while trying to remove a member from the team.'),
-            'error',
-            {duration: 2000}
+          addErrorMessage(
+            t('There was an error while trying to remove a member from the team.')
           );
         },
       }

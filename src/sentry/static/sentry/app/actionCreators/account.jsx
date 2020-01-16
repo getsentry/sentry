@@ -1,6 +1,6 @@
 import {Client} from 'app/api';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import ConfigStore from 'app/stores/configStore';
-import IndicatorStore from 'app/stores/indicatorStore';
 
 export function disconnectIdentity(identity) {
   const api = new Client();
@@ -10,10 +10,10 @@ export function disconnectIdentity(identity) {
 
   request
     .then(() => {
-      IndicatorStore.addSuccess(`Disconnected ${identity.providerLabel}`);
+      addSuccessMessage(`Disconnected ${identity.providerLabel}`);
     })
     .catch(() => {
-      IndicatorStore.addError('Error disconnecting identity');
+      addErrorMessage('Error disconnecting identity');
     });
 
   return request;
