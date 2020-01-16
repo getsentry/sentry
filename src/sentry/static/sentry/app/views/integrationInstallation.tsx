@@ -129,7 +129,10 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization, selectedOrg} = this.state;
-    const choices = this.state.organizations.map(org => [org.slug, org.slug]);
+    const choices = this.state.organizations.map((org: Organization) => [
+      org.slug,
+      org.slug,
+    ]);
 
     const featureListHooks = HookStore.get('integrations:feature-gates');
     const FeatureList = featureListHooks.length

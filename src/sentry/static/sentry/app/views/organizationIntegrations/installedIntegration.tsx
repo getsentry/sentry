@@ -10,12 +10,14 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
-import {IntegrationProvider, Integration} from 'app/types';
+import {IntegrationProvider, Integration, Organization} from 'app/types';
+import SentryTypes from 'app/sentryTypes';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
 export type Props = {
-  orgId: string;
+  organization: Organization;
   provider: IntegrationProvider;
   integration: Integration;
   onRemove: (integration: Integration) => void;
@@ -26,7 +28,7 @@ export type Props = {
 
 export default class InstalledIntegration extends React.Component<Props> {
   static propTypes = {
-    orgId: PropTypes.string.isRequired,
+    organization: SentryTypes.Organization.isRequired,
     provider: PropTypes.object.isRequired,
     integration: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
@@ -57,6 +59,19 @@ export default class InstalledIntegration extends React.Component<Props> {
     this.props.onReinstallIntegration(activeIntegration);
   };
 
+  handleUninstallClick = () => {
+    console.log('here');
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.uninstall_clicked',
+        eventName: 'Integrations: Uninstall Clicked',
+        integration: this.props.provider.key,
+        integration_type: 'first_party',
+      },
+      this.props.organization
+    );
+  };
+
   getRemovalBodyAndText(aspects) {
     if (aspects && aspects.removal_dialog) {
       return {
@@ -71,6 +86,19 @@ export default class InstalledIntegration extends React.Component<Props> {
         actionText: t('Delete'),
       };
     }
+  }
+
+  handleRemove(integration: Integration) {
+    this.props.onRemove(integration);
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.uninstall_completed',
+        eventName: 'Integrations: Uninstall Completed',
+        integration: this.props.provider.key,
+        integration_type: 'first_party',
+      },
+      this.props.organization
+    );
   }
 
   get removeConfirmProps() {
@@ -88,7 +116,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     return {
       message,
       confirmText: actionText,
-      onConfirm: () => this.props.onRemove(integration),
+      onConfirm: () => this.handleRemove(integration),
     };
   }
 
@@ -112,7 +140,7 @@ export default class InstalledIntegration extends React.Component<Props> {
   }
 
   render() {
-    const {className, integration, provider, orgId} = this.props;
+    const {className, integration, provider, organization} = this.props;
 
     const removeConfirmProps =
       integration.status === 'active' && integration.provider.canDisable
@@ -146,7 +174,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                     borderless
                     icon="icon-settings"
                     disabled={!this.hasConfiguration() || !hasAccess}
-                    to={`/settings/${orgId}/integrations/${provider.key}/${
+                    to={`/settings/${organization.id}/integrations/${provider.key}/${
                       integration.id
                     }/`}
                     data-test-id="integration-configure-button"
@@ -157,7 +185,12 @@ export default class InstalledIntegration extends React.Component<Props> {
               )}
             </div>
             <div>
-              <Confirm priority="danger" disabled={!hasAccess} {...removeConfirmProps}>
+              <Confirm
+                priority="danger"
+                onConfirming={this.handleUninstallClick}
+                disabled={!hasAccess}
+                {...removeConfirmProps}
+              >
                 <StyledButton
                   disabled={!hasAccess}
                   borderless
