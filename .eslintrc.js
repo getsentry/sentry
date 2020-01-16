@@ -16,6 +16,11 @@ module.exports = {
     'emotion/no-vanilla': 'error',
     'emotion/import-from-emotion': 'error',
     'emotion/styled-import': 'error',
+    'no-restricted-imports': ['error',
+      {
+        name: 'lodash/get',
+        message: 'Optional chaining proposal is available and preferred over using `lodash/get`'
+      }]
   },
   overrides: [
     {
