@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import get from 'lodash/get';
 import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
 import EventDataSection from 'app/components/events/eventDataSection';
 import plugins from 'app/plugins';
@@ -55,7 +54,7 @@ class ContextChunk extends React.Component {
   componentDidUpdate(prevProps) {
     if (
       prevProps.type !== this.props.type ||
-      get(prevProps, 'group.id') !== get(this.props, 'group.id')
+      prevProps?.group?.id !== this.props?.group?.id
     ) {
       this.syncPlugin();
     }
