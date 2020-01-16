@@ -240,8 +240,8 @@ class SpanTree extends React.Component<PropType> {
           trace={this.props.trace}
           generateBounds={generateBounds}
           treeDepth={treeDepth}
-          numOfSpanChildren={spanChildren.length}
-          renderedSpanChildren={reduced.renderedSpanChildren}
+          numOfSpanChildren={0}
+          renderedSpanChildren={[]}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
           spanBarHatch
         />
