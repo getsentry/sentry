@@ -79,7 +79,7 @@ class LazyServiceWrapper(LazyObject):
         # in our metrics decorator.
         if self._metrics_path and callable(attr) and name in self._base.__all__:
             return metrics.wraps(
-                self._metrics_path, instance=name, tags={"backend": self._backend}
+                self._metrics_path, instance=name, tags={"backend": self._backend, "name": name}
             )(attr)
 
         return attr
