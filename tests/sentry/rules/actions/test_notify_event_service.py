@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import MagicMock, patch
+from sentry.utils.compat.mock import MagicMock, patch
 
 from sentry.testutils.cases import RuleTestCase
 from sentry.rules.actions.notify_event_service import NotifyEventServiceAction

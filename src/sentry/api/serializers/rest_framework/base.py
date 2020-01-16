@@ -26,7 +26,9 @@ def convert_dict_key_case(obj, converter):
     Recursively converts the keys of a dictionary using the provided converter
     param.
     """
-    if not isinstance(obj, dict):
+    if isinstance(obj, list):
+        return [convert_dict_key_case(x, converter) for x in obj]
+    elif not isinstance(obj, dict):
         return obj
 
     obj = obj.copy()

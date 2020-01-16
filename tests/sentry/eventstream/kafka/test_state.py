@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import pytest
-import mock
+from sentry.utils.compat import mock
 from sentry.eventstream.kafka.state import (
     InvalidState,
     InvalidStateTransition,

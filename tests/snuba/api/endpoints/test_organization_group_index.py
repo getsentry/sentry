@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 
 from sentry.models import (
     Activity,
@@ -116,6 +116,18 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(sort_by="date", query="timesSeen:>1k")
         assert response.status_code == 400
         assert "Invalid format for numeric search" in response.data["detail"]
+
+    def test_invalid_search_query(self):
+        now = timezone.now()
+        self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
+        self.login_as(user=self.user)
+
+        response = self.get_response(sort_by="date", query="trace:123")
+        assert response.status_code == 400
+        assert (
+            "Invalid value for the trace condition. Value must be a hexadecimal UUID string."
+            in response.data["detail"]
+        )
 
     def test_simple_pagination(self):
         event1 = self.store_event(

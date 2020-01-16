@@ -269,7 +269,6 @@ class EventView {
   name: string | undefined;
   fields: Readonly<Field[]>;
   sorts: Readonly<Sort[]>;
-  tags: Readonly<string[]>;
   query: string;
   project: Readonly<number[]>;
   start: string | undefined;
@@ -283,7 +282,6 @@ class EventView {
     name: string | undefined;
     fields: Readonly<Field[]>;
     sorts: Readonly<Sort[]>;
-    tags: Readonly<string[]>;
     query: string;
     project: Readonly<number[]>;
     start: string | undefined;
@@ -294,7 +292,6 @@ class EventView {
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
-    const tags = Array.isArray(props.tags) ? props.tags : [];
     const project = Array.isArray(props.project) ? props.project : [];
     const environment = Array.isArray(props.environment) ? props.environment : [];
 
@@ -321,7 +318,6 @@ class EventView {
     this.name = props.name;
     this.fields = fields;
     this.sorts = sorts;
-    this.tags = tags;
     this.query = typeof props.query === 'string' ? props.query : '';
     this.project = project;
     this.start = props.start;
@@ -339,7 +335,6 @@ class EventView {
       name: decodeScalar(location.query.name),
       fields: decodeFields(location),
       sorts: decodeSorts(location),
-      tags: collectQueryStringByKey(location.query, 'tag'),
       query: decodeQuery(location) || '',
       project: decodeProjects(location),
       start: decodeScalar(start),
@@ -405,12 +400,6 @@ class EventView {
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
       sorts: fromSorts(saved.orderby),
-      tags: collectQueryStringByKey(
-        {
-          tags: saved.tags as string[],
-        },
-        'tags'
-      ),
       environment: collectQueryStringByKey(
         {
           environment: saved.environment as string[],
@@ -429,7 +418,6 @@ class EventView {
       'statsPeriod',
       'fields',
       'sorts',
-      'tags',
       'project',
       'environment',
       'yAxis',
@@ -475,7 +463,6 @@ class EventView {
       fields: this.getFields(),
       widths: this.getWidths().map(w => String(w)),
       orderby,
-      tags: this.tags,
       query: this.query || '',
       projects: this.project,
       start: this.start,
@@ -530,7 +517,6 @@ class EventView {
       field: this.getFields(),
       widths: this.getWidths(),
       sort: encodeSorts(this.sorts),
-      tag: this.tags,
       environment: this.environment,
       project: this.project,
       query: this.query,
@@ -589,7 +575,6 @@ class EventView {
       name: this.name,
       fields: this.fields,
       sorts: this.sorts,
-      tags: this.tags,
       query: this.query,
       project: this.project,
       start: this.start,
@@ -827,17 +812,14 @@ class EventView {
     return queryParts.join(' ');
   }
 
-  getTagsAPIPayload(
+  getFacetsAPIPayload(
     location: Location
   ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
     const payload = this.getEventsAPIPayload(location);
 
-    if (payload.sort) {
-      delete payload.sort;
-    }
-
-    if (payload.cursor) {
-      delete payload.cursor;
+    const remove = ['id', 'name', 'per_page', 'sort', 'cursor', 'field'];
+    for (const key of remove) {
+      delete payload[key];
     }
 
     return payload;

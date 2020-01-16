@@ -22,7 +22,6 @@ class DiscoverSavedQuerySerializer(Serializer):
             "end",
             "orderby",
             "limit",
-            "tags",
             "yAxis",
         ]
 

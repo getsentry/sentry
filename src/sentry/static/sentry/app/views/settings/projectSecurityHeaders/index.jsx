@@ -10,7 +10,6 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 import ReportUri from 'app/views/settings/projectSecurityHeaders/reportUri';
-import PreviewFeature from 'app/components/previewFeature';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
@@ -60,8 +59,6 @@ export default class ProjectSecurityHeaders extends AsyncView {
       <div>
         <SettingsPageHeader title={t('Security Header Reports')} />
 
-        <PreviewFeature />
-
         <ReportUri keyList={this.state.keyList} params={this.props.params} />
 
         <Panel>
@@ -97,7 +94,7 @@ export default class ProjectSecurityHeaders extends AsyncView {
         <Panel>
           <PanelHeader>{t('Supported Formats')}</PanelHeader>
           <PanelBody>
-            {this.getReports().map(({name, description, url}) => (
+            {this.getReports().map(({name, url}) => (
               <PanelItem key={url} p={0} flexDirection="column">
                 <Flex flex="1" p={2} alignItems="center">
                   <Box flex="1">

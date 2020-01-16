@@ -343,6 +343,10 @@ class EventCommon(object):
         return data
 
     def bind_node_data(self):
+        # Do not rebind if node_data is already loaded
+        if self.data._node_data:
+            return
+
         node_id = Event.generate_node_id(self.project_id, self.event_id)
         node_data = nodestore.get(node_id) or {}
         ref = self.data.get_ref(self)

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import unittest
-from mock import patch
+from sentry.utils.compat.mock import patch
 from datetime import datetime
 
 import pytz

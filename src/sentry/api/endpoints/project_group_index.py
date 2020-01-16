@@ -5,7 +5,7 @@ import functools
 import six
 from rest_framework.response import Response
 
-from sentry import analytics, eventstore, options, search
+from sentry import analytics, eventstore, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
@@ -151,9 +151,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     pass
                 else:
                     matching_event = eventstore.get_event_by_id(project.id, event_id)
-                    if matching_event is not None:
-                        if not options.get("eventstore.use-nodestore"):
-                            matching_event.bind_node_data()
             elif matching_group is None:
                 matching_group = get_by_short_id(
                     project.organization_id, request.GET.get("shortIdLookup"), query

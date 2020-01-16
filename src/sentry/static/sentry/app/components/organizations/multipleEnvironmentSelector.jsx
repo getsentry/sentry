@@ -272,9 +272,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
                 isOpen={isOpen}
                 hasSelected={value && !!value.length}
                 onClear={this.handleClear}
-                {...getActorProps({
-                  isStyled: true,
-                })}
+                {...getActorProps()}
               >
                 {summary}
               </StyledHeaderItem>

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import json
-import mock
+from sentry.utils.compat import mock
 import responses
 import six
 import pytest
@@ -9,7 +9,7 @@ import copy
 
 from django.core.urlresolvers import reverse
 from exam import fixture
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import (

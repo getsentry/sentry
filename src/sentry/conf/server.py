@@ -552,6 +552,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
+    "sentry.tasks.relay",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -579,6 +580,7 @@ CELERY_QUEUES = [
     Queue("integrations", routing_key="integrations"),
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
+    Queue("relay_config", routing_key="relay_config"),
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
@@ -1040,6 +1042,10 @@ SENTRY_DIGESTS_OPTIONS = {}
 SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS = {}
 
+# Cache for Relay project configs
+SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
+SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
+
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_OPTIONS = {}
@@ -1071,24 +1077,6 @@ SENTRY_SEARCH_OPTIONS = {}
 # Time-series storage backend
 SENTRY_TSDB = "sentry.tsdb.dummy.DummyTSDB"
 SENTRY_TSDB_OPTIONS = {}
-
-# Event storage backend
-SENTRY_EVENTSTORE = "sentry.utils.services.ServiceDelegator"
-SENTRY_EVENTSTORE_OPTIONS = {
-    "backend_base": "sentry.eventstore.base.EventStorage",
-    "backends": {
-        "snuba": {
-            "path": "sentry.eventstore.snuba.SnubaEventStorage",
-            "executor": {"path": "sentry.utils.concurrent.SynchronousExecutor"},
-        },
-        "snuba_discover": {
-            "path": "sentry.eventstore.snuba_discover.SnubaDiscoverEventStorage",
-            "executor": {"path": "sentry.utils.services.ThreadedExecutor"},
-        },
-    },
-    "selector_func": "sentry.eventstore.utils.selector_func",
-    "callback_func": "sentry.eventstore.utils.callback_func",
-}
 
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS = {}

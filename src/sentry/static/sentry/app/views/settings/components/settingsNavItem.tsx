@@ -12,6 +12,7 @@ type Props = {
   badge?: string | number | null;
   index?: boolean;
   id?: string;
+  onClick?: (e: React.MouseEvent) => void;
 };
 
 const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
