@@ -1,11 +1,15 @@
 import React from 'react';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import {disablePlugin, enablePlugin} from 'app/actionCreators/plugins';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
-import IndicatorStore from 'app/stores/indicatorStore';
 import PluginConfig from 'app/components/pluginConfig';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withPlugins from 'app/utils/withPlugins';
@@ -42,18 +46,18 @@ class ProjectPluginDetails extends AsyncView {
 
   handleReset = () => {
     const {projectId, orgId, pluginId} = this.props.params;
-    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+
+    addLoadingMessage(t('Saving changes..'));
     this.api.request(`/projects/${orgId}/${projectId}/plugins/${pluginId}/`, {
       method: 'POST',
       data: {reset: true},
       success: pluginDetails => {
         this.setState({pluginDetails});
-        IndicatorStore.addSuccess(t('Plugin was reset'));
+        addSuccessMessage(t('Plugin was reset'));
       },
       error: () => {
-        IndicatorStore.addError(t('An error occurred'));
+        addErrorMessage(t('An error occurred'));
       },
-      complete: () => IndicatorStore.remove(loadingIndicator),
     });
   };
 

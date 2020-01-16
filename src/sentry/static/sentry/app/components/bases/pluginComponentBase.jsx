@@ -3,7 +3,12 @@ import isFunction from 'lodash/isFunction';
 
 import {Client} from 'app/api';
 import {FormState, GenericField} from 'app/components/forms';
-import IndicatorStore from 'app/stores/indicatorStore';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 
 const callbackWithArgs = function(callback, ...args) {
@@ -74,9 +79,7 @@ class PluginComponentBase extends React.Component {
       },
       callbackWithArgs(callback, ...args)
     );
-    IndicatorStore.add(t('An error occurred.'), 'error', {
-      duration: 3000,
-    });
+    addErrorMessage(t('An error occurred.'));
   }
 
   onSave(callback, ...args) {
@@ -89,7 +92,7 @@ class PluginComponentBase extends React.Component {
         state: FormState.SAVING,
       },
       () => {
-        this._loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+        addLoadingMessage(t('Saving changes..'));
         callback && callback();
       }
     );
@@ -102,9 +105,7 @@ class PluginComponentBase extends React.Component {
       },
       callbackWithArgs(callback, ...args)
     );
-    IndicatorStore.add(t('Success!'), 'success', {
-      duration: 3000,
-    });
+    addSuccessMessage(t('Success!'));
   }
 
   onSaveError(callback, ...args) {
@@ -114,16 +115,14 @@ class PluginComponentBase extends React.Component {
         state: FormState.ERROR,
       },
       () => {
-        IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error', {
-          duration: 3000,
-        });
+        addErrorMessage(t('Unable to save changes. Please try again.'));
         callback && callback();
       }
     );
   }
 
   onSaveComplete(callback, ...args) {
-    IndicatorStore.remove(this._loadingIndicator);
+    clearIndicators();
     callback = callbackWithArgs(callback, ...args);
     callback && callback();
   }
