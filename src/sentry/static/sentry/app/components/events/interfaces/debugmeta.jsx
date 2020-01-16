@@ -106,9 +106,7 @@ class DebugImage extends React.PureComponent {
       return null;
     }
 
-    return `/settings/${orgId}/projects/${projectId}/debug-symbols/?query=${
-      image.debug_id
-    }`;
+    return `/settings/${orgId}/projects/${projectId}/debug-symbols/?query=${image.debug_id}`;
   }
 
   renderStatus(title, status) {

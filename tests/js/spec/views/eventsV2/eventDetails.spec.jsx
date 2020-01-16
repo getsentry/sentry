@@ -69,7 +69,10 @@ describe('EventsV2 > EventDetails', function() {
       url: '/organizations/org-slug/events-stats/',
       method: 'GET',
       body: {
-        data: [[1234561700, [1]], [1234561800, [1]]],
+        data: [
+          [1234561700, [1]],
+          [1234561800, [1]],
+        ],
       },
     });
 

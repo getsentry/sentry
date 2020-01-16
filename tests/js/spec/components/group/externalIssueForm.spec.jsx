@@ -85,7 +85,10 @@ describe('ExternalIssueForm', () => {
             name: 'repo',
             default: 'scefali/test',
             updatesForm: true,
-            choices: [['scefali/test', 'test'], ['scefali/ZeldaBazaar', 'ZeldaBazaar']],
+            choices: [
+              ['scefali/test', 'test'],
+              ['scefali/ZeldaBazaar', 'ZeldaBazaar'],
+            ],
             type: 'select',
             label: 'GitHub Repository',
           },
