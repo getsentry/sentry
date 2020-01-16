@@ -93,6 +93,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
                 event_ids=["a" * 32, "b" * 32, "c" * 32, "x" * 32, "y" * 32, "z" * 32],
             )
         )
+        assert len(events) == 3
 
     def test_get_event_by_id(self):
         # Get valid event
