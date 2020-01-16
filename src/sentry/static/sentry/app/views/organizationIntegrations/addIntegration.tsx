@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import queryString from 'query-string';
 
-import {t} from 'app/locale';
-import IndicatorStore from 'app/stores/indicatorStore';
 import {IntegrationProvider, Integration, Organization} from 'app/types';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
@@ -20,7 +20,7 @@ type Props = {
 };
 
 export default class AddIntegration extends React.Component<Props> {
-  static propTypes: any = {
+  static propTypes = {
     children: PropTypes.func.isRequired,
     provider: PropTypes.object.isRequired,
     onInstall: PropTypes.func.isRequired,
@@ -109,7 +109,7 @@ export default class AddIntegration extends React.Component<Props> {
     this.dialog = null;
 
     if (!success) {
-      IndicatorStore.addError(data.error);
+      addErrorMessage(data.error);
       return;
     }
 
@@ -126,7 +126,7 @@ export default class AddIntegration extends React.Component<Props> {
       },
       this.props.organization
     );
-    IndicatorStore.addSuccess(t(`${this.props.provider.name} added`));
+    addSuccessMessage(t('%s added', this.props.provider.name));
   };
 
   render() {

@@ -23,7 +23,6 @@ from sentry.models import (
     EventAttachment,
 )
 from sentry.similarity import features
-from sentry.snuba.events import Columns
 from sentry.tasks.base import instrumented_task
 from six.moves import reduce
 
@@ -99,7 +98,7 @@ initial_fields = {
     },
     "last_seen": lambda event: event.datetime,
     "level": lambda event: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
-    "message": lambda event: event.message,
+    "message": lambda event: event.search_message,
     "times_seen": lambda event: 0,
 }
 
@@ -505,9 +504,6 @@ def unmerge(
         filter=eventstore.Filter(
             project_ids=[project_id], group_ids=[source.id], conditions=conditions
         ),
-        # We need the text-only "search message" from Snuba, not the raw message
-        # dict field from nodestore.
-        additional_columns=[Columns.MESSAGE],
         limit=batch_size,
         referrer="unmerge",
         orderby=["-timestamp", "-event_id"],
@@ -521,8 +517,6 @@ def unmerge(
             eventstream.end_unmerge(eventstream_state)
 
         return destination_id
-
-    eventstore.bind_nodes(events, "data")
 
     source_events = []
     destination_events = []

@@ -47,17 +47,54 @@ class SnubaEventStorage(EventStorage):
     def get_events(
         self,
         filter,
-        additional_columns=None,
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events",
     ):
         """
-        Get events from Snuba.
+        Get events from Snuba, with node data loaded.
         """
+        return self.__get_events(
+            filter,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+            should_bind_nodes=True,
+        )
+
+    def get_unfetched_events(
+        self,
+        filter,
+        orderby=None,
+        limit=DEFAULT_LIMIT,
+        offset=DEFAULT_OFFSET,
+        referrer="eventstore.get_unfetched_events",
+    ):
+        """
+        Get events from Snuba, without node data loaded.
+        """
+        return self.__get_events(
+            filter,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+            should_bind_nodes=False,
+        )
+
+    def __get_events(
+        self,
+        filter,
+        orderby=None,
+        limit=DEFAULT_LIMIT,
+        offset=DEFAULT_OFFSET,
+        referrer=None,
+        should_bind_nodes=False,
+    ):
         assert filter, "You must provide a filter"
-        cols = self.__get_columns(additional_columns)
+        cols = self.__get_columns()
         orderby = orderby or DESC_ORDERING
 
         result = snuba.dataset_query(
@@ -74,7 +111,10 @@ class SnubaEventStorage(EventStorage):
         )
 
         if "error" not in result:
-            return [self.__make_event(evt) for evt in result["data"]]
+            events = [self.__make_event(evt) for evt in result["data"]]
+            if should_bind_nodes:
+                self.bind_nodes(events)
+            return events
 
         return []
 
@@ -89,7 +129,6 @@ class SnubaEventStorage(EventStorage):
             return None
 
         event = Event(project_id=project_id, event_id=event_id)
-        event.bind_node_data()
 
         # Return None if there was no data in nodestore
         if len(event.data) == 0:
@@ -170,7 +209,7 @@ class SnubaEventStorage(EventStorage):
 
         return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 
-    def __get_columns(self, additional_columns):
+    def __get_columns(self, additional_columns=None):
         columns = EventStorage.minimal_columns
 
         if additional_columns:

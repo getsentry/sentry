@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'app/components/button';
 
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import IndicatorStore from 'app/stores/indicatorStore';
+import {addSuccessMessage} from 'app/actionCreators/indicator';
 
 type Props = {
   installationId: string;
@@ -30,7 +30,7 @@ export default class SplitInstallationIdModal extends React.Component<Props> {
   handleContinue = () => {
     const delay = 2000;
     this.onCopy();
-    IndicatorStore.add('Copied to clipboard', 'success', {duration: delay});
+    addSuccessMessage('Copied to clipboard');
     setTimeout(() => {
       window.open('https://app.split.io/org/admin/integrations');
     }, delay);
