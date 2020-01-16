@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import datetime
-import mock
+from sentry.utils.compat import mock
 import six
 
 from django.core.urlresolvers import reverse

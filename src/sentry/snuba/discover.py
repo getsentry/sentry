@@ -4,6 +4,7 @@ import six
 
 from collections import namedtuple
 from copy import deepcopy
+from datetime import timedelta
 
 from sentry.api.event_search import (
     get_filter,
@@ -42,7 +43,9 @@ __all__ = (
 )
 
 
-ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields"])
+ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields", "start", "end"])
+ReferenceEvent.__new__.__defaults__ = (None, None)
+
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
@@ -67,6 +70,12 @@ def find_reference_event(reference_event):
         project_slug, event_id = reference_event.slug.split(":")
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
+
+    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
+    # We don't need to run a query if there are no columns
+    if not column_names:
+        return None
+
     try:
         project = Project.objects.get(
             slug=project_slug,
@@ -76,15 +85,18 @@ def find_reference_event(reference_event):
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
 
-    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
-
-    # We don't need to run a query if there are no columns
-    if not column_names:
-        return None
+    start = None
+    end = None
+    if reference_event.start:
+        start = reference_event.start - timedelta(seconds=5)
+    if reference_event.end:
+        end = reference_event.end + timedelta(seconds=5)
 
     event = raw_query(
         selected_columns=column_names,
         filter_keys={"project_id": [project.id], "event_id": [event_id]},
+        start=start,
+        end=end,
         dataset=Dataset.Discover,
         limit=1,
         referrer="discover.find_reference_event",
@@ -331,6 +343,9 @@ def query(
     referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     """
+    if not selected_columns:
+        raise InvalidSearchQuery("No fields provided")
+
     snuba_filter = get_filter(query, params)
 
     # TODO(mark) Refactor the need for this translation shim once all of
@@ -341,10 +356,10 @@ def query(
         "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
         "filter_keys": snuba_filter.filter_keys,
+        "having": snuba_filter.having,
         "orderby": orderby,
     }
-    if not selected_columns:
-        raise InvalidSearchQuery("No fields provided")
+
     snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=auto_fields))
 
     if reference_event:
@@ -355,6 +370,16 @@ def query(
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
 
+    # Make sure that any aggregate conditions are also in the selected columns
+    for having_clause in snuba_args.get("having"):
+        found = any(
+            having_clause[0] == agg_clause[-1] for agg_clause in snuba_args.get("aggregations")
+        )
+        if not found:
+            raise InvalidSearchQuery(
+                "Aggregates used in a condition must also be in the selected columns."
+            )
+
     result = raw_query(
         start=snuba_args.get("start"),
         end=snuba_args.get("end"),
@@ -363,6 +388,7 @@ def query(
         aggregations=snuba_args.get("aggregations"),
         selected_columns=snuba_args.get("selected_columns"),
         filter_keys=snuba_args.get("filter_keys"),
+        having=snuba_args.get("having"),
         orderby=snuba_args.get("orderby"),
         dataset=Dataset.Discover,
         limit=limit,
@@ -401,6 +427,7 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
         "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
         "filter_keys": snuba_filter.filter_keys,
+        "having": snuba_filter.having,
     }
     if not snuba_args["start"] and not snuba_args["end"]:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
@@ -425,6 +452,7 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
         aggregations=snuba_args.get("aggregations"),
         conditions=snuba_args.get("conditions"),
         filter_keys=snuba_args.get("filter_keys"),
+        having=snuba_args.get("having"),
         start=snuba_args.get("start"),
         end=snuba_args.get("end"),
         rollup=rollup,
@@ -496,6 +524,7 @@ def get_facets(query, params, limit=10, referrer=None):
         "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
         "filter_keys": snuba_filter.filter_keys,
+        "having": snuba_filter.having,
     }
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
@@ -516,7 +545,7 @@ def get_facets(query, params, limit=10, referrer=None):
         filter_keys=snuba_args.get("filter_keys"),
         orderby=["-count", "tags_key"],
         groupby="tags_key",
-        having=[excluded_tags],
+        having=[excluded_tags] + snuba_args.get("having"),
         dataset=Dataset.Discover,
         limit=limit,
         referrer=referrer,

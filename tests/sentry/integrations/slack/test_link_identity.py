@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import responses
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.models import (
     Identity,

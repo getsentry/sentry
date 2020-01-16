@@ -27,7 +27,7 @@ import pytest
 import requests
 import six
 import types
-import mock
+from sentry.utils.compat import mock
 
 from click.testing import CliRunner
 from datetime import datetime
@@ -43,7 +43,7 @@ from django.test import override_settings, TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from exam import before, fixture, Exam
-from mock import patch
+from sentry.utils.compat.mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
 from six.moves.urllib.parse import urlencode

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.tasks.merge import merge_groups
 from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
@@ -80,12 +80,10 @@ class MergeGroupTest(TestCase):
 
         event1 = eventstore.get_event_by_id(project.id, event1.event_id)
         assert event1.group_id == group2.id
-        event1.bind_node_data()
         assert event1.data["extra"]["foo"] == "bar"
 
         event2 = eventstore.get_event_by_id(project.id, event2.event_id)
         assert event2.group_id == group2.id
-        event2.bind_node_data()
         assert event2.data["extra"]["foo"] == "baz"
 
     def test_merge_creates_redirect(self):

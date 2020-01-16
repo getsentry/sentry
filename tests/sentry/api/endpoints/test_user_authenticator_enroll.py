@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 
 from six.moves.urllib.parse import parse_qsl
 from django.core.urlresolvers import reverse

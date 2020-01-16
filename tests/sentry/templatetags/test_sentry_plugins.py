@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import MagicMock
+from sentry.utils.compat.mock import MagicMock
 from django.template import engines
 
 from sentry.plugins.base.v2 import Plugin2
