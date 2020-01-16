@@ -21,13 +21,9 @@ const StyledIcon = styled('img')<IconProps>`
 
 class Icon extends React.Component<Props> {
   state = {
-    imgSrc: '',
+    imgSrc: this.props.integration.icon,
   };
 
-  componentDidMount() {
-    const {integration} = this.props;
-    this.setState({imgSrc: integration.icon});
-  }
   render() {
     const {integration, size} = this.props;
 
