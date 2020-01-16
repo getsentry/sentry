@@ -5,11 +5,10 @@ import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {Organization, Tag} from 'app/types';
 import withApi from 'app/utils/withApi';
+import withTags from 'app/utils/withTags';
 import Pagination from 'app/components/pagination';
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {extractDatetimeSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
 import EventView, {isAPIPayloadSimilar} from '../eventView';
@@ -21,18 +20,15 @@ type TableProps = {
   location: Location;
   eventView: EventView;
   organization: Organization;
+  tags: {[key: string]: Tag};
 };
 
 type TableState = {
   isLoading: boolean;
   tableFetchID: symbol | undefined;
-  orgTagsFetchID: symbol | undefined;
   error: null | string;
-
   pageLinks: null | string;
-
   tableData: TableData | null | undefined;
-  tagKeys: null | string[];
 };
 
 /**
@@ -47,12 +43,10 @@ class Table extends React.PureComponent<TableProps, TableState> {
   state: TableState = {
     isLoading: true,
     tableFetchID: undefined,
-    orgTagsFetchID: undefined,
     error: null,
 
     pageLinks: null,
     tableData: null,
-    tagKeys: null,
   };
 
   componentDidMount() {
@@ -92,9 +86,8 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const url = `/organizations/${organization.slug}/eventsv2/`;
 
     const tableFetchID = Symbol('tableFetchID');
-    const orgTagsFetchID = Symbol('orgTagsFetchID');
 
-    this.setState({isLoading: true, tableFetchID, orgTagsFetchID});
+    this.setState({isLoading: true, tableFetchID});
 
     const apiPayload = eventView.getEventsAPIPayload(location);
 
@@ -129,32 +122,12 @@ class Table extends React.PureComponent<TableProps, TableState> {
           tableData: null,
         });
       });
-
-    // construct and emulate global selection header from eventview
-    // const {start, end, statsPeriod, utc} = apiPayload;
-    const selection = {
-      projects: eventView.project,
-      datetime: extractDatetimeSelectionParameters(apiPayload),
-    };
-
-    loadOrganizationTags(this.props.api, organization.slug, selection)
-      .then(tags => {
-        if (this.state.orgTagsFetchID !== orgTagsFetchID) {
-          // invariant: a different request was initiated after this request
-          return;
-        }
-
-        this.setState({tagKeys: tags.map(({key}) => key), orgTagsFetchID: undefined});
-      })
-      .catch(() => {
-        this.setState({orgTagsFetchID: undefined});
-        // Do nothing.
-      });
   };
 
   render() {
-    const {eventView} = this.props;
-    const {pageLinks, tableData, tagKeys, isLoading, error} = this.state;
+    const {eventView, tags} = this.props;
+    const {pageLinks, tableData, isLoading, error} = this.state;
+    const tagKeys = Object.values(tags).map(({key}) => key);
 
     return (
       <Container>
@@ -172,7 +145,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
   }
 }
 
-export default withApi(Table);
+export default withApi(withTags(Table));
 
 const Container = styled('div')`
   min-width: 0;

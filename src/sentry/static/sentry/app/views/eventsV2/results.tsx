@@ -142,11 +142,6 @@ class Results extends React.Component<Props, State> {
                 <StyledSearchBar
                   organization={organization}
                   projectIds={eventView.project}
-                  datetime={{
-                    start: eventView.start,
-                    end: eventView.end,
-                    statsPeriod: eventView.statsPeriod,
-                  }}
                   query={query}
                   onSearch={this.handleSearch}
                 />

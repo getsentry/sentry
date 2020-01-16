@@ -29,10 +29,6 @@ const TagStore = Reflux.createStore({
   },
 
   reset() {
-    // track the global header selection on the latest API fetch of the org tags.
-    // If null, this indicates that an API fetch has not occurred.
-    this.selectionOnLatestFetch = null;
-
     // TODO(mitsuhiko): what do we do with translations here?
     this.tags = {
       is: {
@@ -104,14 +100,6 @@ const TagStore = Reflux.createStore({
     this.trigger(this.tags);
   },
 
-  getSelectionOnLatestFetch() {
-    return this.selectionOnLatestFetch;
-  },
-
-  setSelectionOnLatestFetch(selection) {
-    this.selectionOnLatestFetch = selection;
-  },
-
   getTag(tagName) {
     return this.tags[tagName];
   },
@@ -124,7 +112,7 @@ const TagStore = Reflux.createStore({
     return Object.keys(this.tags);
   },
 
-  getTagValues(tagKey, query) {
+  getTagValues(tagKey) {
     return this.tags[tagKey].values || [];
   },
 
@@ -157,7 +145,7 @@ const TagStore = Reflux.createStore({
     this.trigger(this.tags);
   },
 
-  onMemberListStoreChange(members) {
+  onMemberListStoreChange() {
     const assignedTag = this.tags.assigned;
     assignedTag.values = getMemberListStoreUsernames();
     assignedTag.values.unshift('me');

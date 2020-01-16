@@ -1,6 +1,3 @@
-import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
-
 import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 import TagActions from 'app/actions/tagActions';
@@ -64,49 +61,22 @@ function tagFetchSuccess(tags) {
   TagActions.loadTagsSuccess(trimmedTags);
 }
 
-function normalizeSelection(selection) {
-  if (!selection) {
-    return selection;
-  }
-
-  selection = pick(selection, ['projects', 'datetime']);
-
-  if (selection.datetime) {
-    selection.datetime = getParams(selection.datetime);
-  }
-
-  return selection;
-}
-
+/**
+ * Load an organization's tags based on a global selection value.
+ *
+ * @param {Client} api
+ * @param {String} orgId
+ * @param {GlobalSelection} selection
+ */
 export function loadOrganizationTags(api, orgId, selection) {
-  selection = normalizeSelection(selection);
-
-  if (isEqual(normalizeSelection(TagStore.getSelectionOnLatestFetch()), selection)) {
-    const tags = Object.keys(TagStore.getAllTags()).map(key => {
-      return {
-        key,
-      };
-    });
-
-    return Promise.resolve(tags);
-  }
-
   TagStore.reset();
 
   const url = `/organizations/${orgId}/tags/`;
-
   const query = selection.datetime ? {...getParams(selection.datetime)} : {};
 
   if (selection.projects) {
     query.project = selection.projects;
   }
-
-  // NOTE: Organization tags do not depend on environments, since environments
-  //       themselves are also tags. Hence, we do not pass the list of environments
-  //       as part of the query payload.
-
-  TagStore.setSelectionOnLatestFetch(selection);
-
   const promise = api
     .requestPromise(url, {
       method: 'GET',
