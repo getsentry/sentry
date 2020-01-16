@@ -233,7 +233,7 @@ class SpanTree extends React.Component<PropType> {
           eventView={eventView}
           orgId={orgId}
           spanNumber={spanNumber}
-          isLast={isLast}
+          isLast={false}
           continuingTreeDepths={continuingTreeDepths}
           isRoot={isRoot}
           span={spanGap}
