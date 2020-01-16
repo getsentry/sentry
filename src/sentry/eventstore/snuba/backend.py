@@ -80,37 +80,38 @@ class SnubaEventStorage(EventStorage):
 
             events = [event for event in event_list if len(event.data)]
 
-            event_ids = {event.event_id for event in events}
-            project_ids = {event.project_id for event in events}
-            start = min(event.datetime for event in events)
-            end = max(event.datetime for event in events) + timedelta(seconds=1)
+            if events:
+                event_ids = {event.event_id for event in events}
+                project_ids = {event.project_id for event in events}
+                start = min(event.datetime for event in events)
+                end = max(event.datetime for event in events) + timedelta(seconds=1)
 
-            result = snuba.dataset_query(
-                selected_columns=self.__get_columns(),
-                start=start,
-                end=end,
-                conditions=filter.conditions,
-                filter_keys={"project_id": project_ids, "event_id": event_ids},
-                orderby=orderby,
-                limit=len(events),
-                offset=DEFAULT_OFFSET,
-                referrer=referrer,
-                dataset=snuba.Dataset.Events,
-            )
+                result = snuba.dataset_query(
+                    selected_columns=self.__get_columns(),
+                    start=start,
+                    end=end,
+                    conditions=filter.conditions,
+                    filter_keys={"project_id": project_ids, "event_id": event_ids},
+                    orderby=orderby,
+                    limit=len(events),
+                    offset=DEFAULT_OFFSET,
+                    referrer=referrer,
+                    dataset=snuba.Dataset.Events,
+                )
 
-            if "error" not in result:
-                events = [self.__make_event(evt) for evt in result["data"]]
+                if "error" not in result:
+                    events = [self.__make_event(evt) for evt in result["data"]]
 
-                # Bind previously fetched node data
-                for event in events:
-                    node_data = next(
-                        e
-                        for e in events
-                        if event.event_id == e.event_id and event.project_id == e.project_id
-                    ).data.data
-                    event.data.bind_data(node_data)
+                    # Bind previously fetched node data
+                    for event in events:
+                        node_data = next(
+                            e
+                            for e in events
+                            if event.event_id == e.event_id and event.project_id == e.project_id
+                        ).data.data
+                        event.data.bind_data(node_data)
 
-                return events
+                    return events
 
             return []
 
