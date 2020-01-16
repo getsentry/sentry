@@ -187,10 +187,10 @@ class EventStorage(Service):
         For a list of Event objects, and a property name where we might find an
         (unfetched) NodeData on those objects, fetch all the data blobs for
         those NodeDatas with a single multi-get command to nodestore, and bind
-        the returned blobs to the NodeDatas
+        the returned blobs to the NodeDatas.
 
-        For binding a single Event object (most use cases), it's easier to use
-        event.bind_node_data().
+        It's not necessary to bind a single Event object since data will be lazily
+        fetched on any attempt to access a property.
         """
         # Temporarily make bind_nodes noop to prevent unnecessary additional calls
         # to nodestore by the event serializer.
