@@ -117,7 +117,11 @@ class _RedisCluster(object):
         def cluster_factory():
             if config.get("is_redis_cluster", False):
                 return RetryingStrictRedisCluster(
-                    startup_nodes=hosts, decode_responses=True, skip_full_coverage_check=True
+                    startup_nodes=hosts,
+                    decode_responses=True,
+                    skip_full_coverage_check=True,
+                    max_connections=1024,
+                    max_connections_per_node=True,
                 )
             else:
                 host = hosts[0].copy()
