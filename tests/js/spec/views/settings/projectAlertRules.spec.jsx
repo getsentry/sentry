@@ -22,8 +22,7 @@ describe('projectAlertRules', function() {
     MockApiClient.clearMockResponses();
   });
 
-  //eslint-disable-next-line
-  it.skip('deletes', function() {
+  it('deletes', function() {
     const wrapper = mountWithTheme(
       <ProjectAlertRules routes={[]} params={{orgId: 'org1', projectId: 'project1'}} />,
       TestStubs.routerContext()
