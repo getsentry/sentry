@@ -62,10 +62,10 @@ class Filter(object):
 class EventStorage(Service):
     __all__ = (
         "minimal_columns",
-        "full_columns",
         "create_event",
         "get_event_by_id",
         "get_events",
+        "get_unfetched_events",
         "get_prev_event_id",
         "get_next_event_id",
         "get_earliest_event_id",
@@ -79,44 +79,39 @@ class EventStorage(Service):
     # avoid duplicated work.
     minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
 
-    # A list of all useful columns we can get from snuba.
-    full_columns = minimal_columns + [
-        Columns.CULPRIT,
-        Columns.LOCATION,
-        Columns.MESSAGE,
-        Columns.PLATFORM,
-        Columns.TITLE,
-        Columns.TYPE,
-        Columns.TRANSACTION,
-        # Required to provide snuba-only tags
-        Columns.TAGS_KEY,
-        Columns.TAGS_VALUE,
-        # Required to provide snuba-only 'user' interface
-        Columns.USER_EMAIL,
-        Columns.USER_IP_ADDRESS,
-        Columns.USER_ID,
-        Columns.USER_USERNAME,
-    ]
-
     def get_events(
-        self,
-        filter,
-        additional_columns=None,
-        orderby=None,
-        limit=100,
-        offset=0,
-        referrer="eventstore.get_events",
+        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_events"
     ):
         """
         Fetches a list of events given a set of criteria.
 
         Arguments:
         filter (Filter): Filter
-        additional_columns (Sequence[Column]): List of additional columns to fetch - default None
         orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
         referrer (string): Referrer - default "eventstore.get_events"
+        """
+        raise NotImplementedError
+
+    def get_unfetched_events(
+        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_unfetched_events"
+    ):
+        """
+        Same as get_events but returns events without their node datas loaded.
+        Only the event ID, projectID, groupID and timestamp field will be present without
+        an additional fetch to nodestore.
+
+        Used for fetching large volumes of events that do not need data loaded
+        from nodestore. Currently this is just used for event data deletions where
+        we just need the event IDs in order to process the deletions.
+
+        Arguments:
+        filter (Filter): Filter
+        orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
+        limit (int): Query limit - default 100
+        offset (int): Query offset - default 0
+        referrer (string): Referrer - default "eventstore.get_unfetched_events"
         """
         raise NotImplementedError
 
@@ -174,12 +169,12 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def create_event(self, project_id=None, event_id=None, group_id=None, message=None, data=None):
+    def create_event(self, project_id=None, event_id=None, group_id=None, data=None):
         """
         Returns an Event from processed data
         """
         return Event(
-            project_id=project_id, event_id=event_id, group_id=group_id, message=message, data=data
+            project_id=project_id, event_id=event_id, group_id=group_id, data=data
         )
 
     def bind_nodes(self, object_list, node_name="data"):
