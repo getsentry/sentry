@@ -32,6 +32,7 @@ class OrganizationSerializerTest(TestCase):
                 "symbol-sources",
                 "custom-symbol-sources",
                 "tweak-grouping-config",
+                "grouping-info",
             ]
         )
 

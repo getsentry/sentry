@@ -95,7 +95,7 @@ exports[`Project Ownership Input renders 1`] = `
   >
     <BuilderBar>
       <div
-        className="css-1kvuz3c-BuilderBar e1hyuoc75"
+        className="css-1k7bckg-BuilderBar e1hyuoc75"
       >
         <BuilderSelect
           clearable={false}
@@ -126,7 +126,7 @@ exports[`Project Ownership Input renders 1`] = `
           value="path"
         >
           <SelectField
-            className="css-1bclqmz-BuilderSelect e1hyuoc76"
+            className="css-10lzdlx-BuilderSelect e1hyuoc76"
             clearable={false}
             disabled={false}
             hideErrorMessage={false}
@@ -155,7 +155,7 @@ exports[`Project Ownership Input renders 1`] = `
             value="path"
           >
             <div
-              className="css-1bclqmz-BuilderSelect e1hyuoc76"
+              className="css-10lzdlx-BuilderSelect e1hyuoc76"
               style={
                 Object {
                   "width": 140,
@@ -168,7 +168,6 @@ exports[`Project Ownership Input renders 1`] = `
                 <StyledSelectControl
                   clearable={false}
                   disabled={false}
-                  height={36}
                   id="id-select-type"
                   multiple={false}
                   name="select-type"
@@ -188,11 +187,10 @@ exports[`Project Ownership Input renders 1`] = `
                   required={false}
                   value="path"
                 >
-                  <SelectControl
-                    className="css-gr8jfe-StyledSelectControl e1qrhqd00"
+                  <ForwardRef(RefForwardedSelectControl)
+                    className="css-9gm53a-StyledSelectControl e1qrhqd00"
                     clearable={false}
                     disabled={false}
-                    height={36}
                     id="id-select-type"
                     multiple={false}
                     name="select-type"
@@ -212,13 +210,11 @@ exports[`Project Ownership Input renders 1`] = `
                     required={false}
                     value="path"
                   >
-                    <StyledSelect
-                      arrowRenderer={[Function]}
-                      backspaceRemoves={false}
-                      className="css-gr8jfe-StyledSelectControl e1qrhqd00"
+                    <SelectControl
+                      className="css-9gm53a-StyledSelectControl e1qrhqd00"
                       clearable={false}
-                      deleteRemoves={false}
                       disabled={false}
+                      forwardedRef={null}
                       height={36}
                       id="id-select-type"
                       multiple={false}
@@ -239,13 +235,14 @@ exports[`Project Ownership Input renders 1`] = `
                       required={false}
                       value="path"
                     >
-                      <ForwardRef(SelectPicker)
+                      <StyledSelect
                         arrowRenderer={[Function]}
                         backspaceRemoves={false}
-                        className="e1qrhqd00 css-tbbzhr-StyledSelect-StyledSelectControl eho28m20"
+                        className="css-9gm53a-StyledSelectControl e1qrhqd00"
                         clearable={false}
                         deleteRemoves={false}
                         disabled={false}
+                        forwardedRef={null}
                         height={36}
                         id="id-select-type"
                         multiple={false}
@@ -269,7 +266,7 @@ exports[`Project Ownership Input renders 1`] = `
                         <SelectPicker
                           arrowRenderer={[Function]}
                           backspaceRemoves={false}
-                          className="e1qrhqd00 css-tbbzhr-StyledSelect-StyledSelectControl eho28m20"
+                          className="e1qrhqd00 css-j0gflv-StyledSelect-StyledSelectControl eho28m20"
                           clearable={false}
                           deleteRemoves={false}
                           disabled={false}
@@ -299,7 +296,7 @@ exports[`Project Ownership Input renders 1`] = `
                             autosize={true}
                             backspaceRemoves={false}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="e1qrhqd00 css-tbbzhr-StyledSelect-StyledSelectControl eho28m20"
+                            className="e1qrhqd00 css-j0gflv-StyledSelect-StyledSelectControl eho28m20"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -359,7 +356,7 @@ exports[`Project Ownership Input renders 1`] = `
                             valueKey="value"
                           >
                             <div
-                              className="Select e1qrhqd00 css-tbbzhr-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                              className="Select e1qrhqd00 css-j0gflv-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                             >
                               <input
                                 disabled={false}
@@ -477,9 +474,9 @@ exports[`Project Ownership Input renders 1`] = `
                             </div>
                           </Select>
                         </SelectPicker>
-                      </ForwardRef(SelectPicker)>
-                    </StyledSelect>
-                  </SelectControl>
+                      </StyledSelect>
+                    </SelectControl>
+                  </ForwardRef(RefForwardedSelectControl)>
                 </StyledSelectControl>
               </div>
             </div>
@@ -492,7 +489,7 @@ exports[`Project Ownership Input renders 1`] = `
           value=""
         >
           <input
-            className="css-750a38-Input-inputStyles-BuilderInput e1hyuoc77"
+            className="css-n5owx7-Input-BuilderInput e1hyuoc77"
             onChange={[Function]}
             placeholder="src/example/*"
             value=""
@@ -502,11 +499,11 @@ exports[`Project Ownership Input renders 1`] = `
           src="icon-chevron-right"
         >
           <ForwardRef
-            className="css-1ambi4x-InlineSvg-Divider e1hyuoc78"
+            className="css-1qihtir-InlineSvg-Divider e1hyuoc78"
             src="icon-chevron-right"
           >
             <svg
-              className="css-1ambi4x-InlineSvg-Divider e1hyuoc78"
+              className="css-1qihtir-InlineSvg-Divider e1hyuoc78"
               height="1em"
               viewBox={Object {}}
               width="1em"
@@ -518,69 +515,83 @@ exports[`Project Ownership Input renders 1`] = `
             </svg>
           </ForwardRef>
         </Divider>
-        <Flex
-          align="center"
-          flex="1"
-          mr={1}
-        >
-          <Base
-            align="center"
-            className="css-1q48dzo"
-            flex="1"
-            mr={1}
+        <SelectOwnersWrapper>
+          <div
+            className="css-1518iv7-SelectOwnersWrapper e1hyuoc79"
           >
-            <div
-              className="css-1q48dzo"
-              is={null}
+            <SelectOwners
+              onChange={[Function]}
+              organization={
+                Object {
+                  "access": Array [
+                    "org:read",
+                    "org:write",
+                    "org:admin",
+                    "org:integrations",
+                    "project:read",
+                    "project:write",
+                    "project:admin",
+                    "team:read",
+                    "team:write",
+                    "team:admin",
+                  ],
+                  "features": Array [],
+                  "id": "3",
+                  "name": "Organization Name",
+                  "onboardingTasks": Array [],
+                  "projects": Array [],
+                  "scrapeJavaScript": true,
+                  "slug": "org-slug",
+                  "status": Object {
+                    "id": "active",
+                    "name": "active",
+                  },
+                  "teams": Array [],
+                }
+              }
+              project={
+                Object {
+                  "environments": Array [],
+                  "hasAccess": true,
+                  "id": "2",
+                  "isBookmarked": false,
+                  "isMember": true,
+                  "name": "Project Name",
+                  "slug": "project-slug",
+                  "teams": Array [],
+                }
+              }
+              value={Array []}
             >
-              <SelectOwners
+              <EmotionCssPropInternal
+                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                  Object {
+                    "$$typeof": Symbol(react.forward_ref),
+                    "render": [Function],
+                  }
+                }
+                async={true}
+                cache={false}
+                clearable={true}
+                css={
+                  Object {
+                    "name": "fs1hps-SelectOwners",
+                    "styles": "width:200px;;label:SelectOwners;",
+                  }
+                }
+                defaultOptions={true}
+                filterOptions={[Function]}
+                loadOptions={[Function]}
                 onChange={[Function]}
-                organization={
-                  Object {
-                    "access": Array [
-                      "org:read",
-                      "org:write",
-                      "org:admin",
-                      "org:integrations",
-                      "project:read",
-                      "project:write",
-                      "project:admin",
-                      "team:read",
-                      "team:write",
-                      "team:admin",
-                    ],
-                    "features": Array [],
-                    "id": "3",
-                    "name": "Organization Name",
-                    "onboardingTasks": Array [],
-                    "projects": Array [],
-                    "scrapeJavaScript": true,
-                    "slug": "org-slug",
-                    "status": Object {
-                      "id": "active",
-                      "name": "active",
-                    },
-                    "teams": Array [],
-                  }
-                }
-                project={
-                  Object {
-                    "environments": Array [],
-                    "hasAccess": true,
-                    "id": "2",
-                    "isBookmarked": false,
-                    "isMember": true,
-                    "name": "Project Name",
-                    "slug": "project-slug",
-                    "teams": Array [],
-                  }
-                }
+                onInputChange={[Function]}
+                placeholder="owners"
                 value={Array []}
+                valueComponent={[Function]}
               >
                 <ForwardRef(MultiSelectControl)
                   async={true}
                   cache={false}
-                  className="css-1domaf0"
+                  className="css-fs1hps-SelectOwners"
                   clearable={true}
                   defaultOptions={true}
                   filterOptions={[Function]}
@@ -591,15 +602,14 @@ exports[`Project Ownership Input renders 1`] = `
                   value={Array []}
                   valueComponent={[Function]}
                 >
-                  <SelectControl
+                  <ForwardRef(RefForwardedSelectControl)
                     async={true}
                     cache={false}
-                    className="css-1domaf0"
+                    className="css-fs1hps-SelectOwners"
                     clearable={true}
                     defaultOptions={true}
                     filterOptions={[Function]}
                     forwardedRef={[Function]}
-                    height={36}
                     loadOptions={[Function]}
                     multiple={true}
                     onChange={[Function]}
@@ -608,20 +618,16 @@ exports[`Project Ownership Input renders 1`] = `
                     value={Array []}
                     valueComponent={[Function]}
                   >
-                    <StyledSelect
-                      arrowRenderer={[Function]}
+                    <SelectControl
                       async={true}
-                      backspaceRemoves={true}
                       cache={false}
-                      className="css-1domaf0"
+                      className="css-fs1hps-SelectOwners"
                       clearable={true}
                       defaultOptions={true}
-                      deleteRemoves={true}
                       filterOptions={[Function]}
                       forwardedRef={[Function]}
                       height={36}
                       loadOptions={[Function]}
-                      multi={true}
                       multiple={true}
                       onChange={[Function]}
                       onInputChange={[Function]}
@@ -629,12 +635,12 @@ exports[`Project Ownership Input renders 1`] = `
                       value={Array []}
                       valueComponent={[Function]}
                     >
-                      <ForwardRef(SelectPicker)
+                      <StyledSelect
                         arrowRenderer={[Function]}
                         async={true}
                         backspaceRemoves={true}
                         cache={false}
-                        className="css-ovf7gy-StyledSelect eho28m20"
+                        className="css-fs1hps-SelectOwners"
                         clearable={true}
                         defaultOptions={true}
                         deleteRemoves={true}
@@ -655,7 +661,7 @@ exports[`Project Ownership Input renders 1`] = `
                           async={true}
                           backspaceRemoves={true}
                           cache={false}
-                          className="css-ovf7gy-StyledSelect eho28m20"
+                          className="css-gv7e0o-StyledSelect-SelectOwners eho28m20"
                           clearable={true}
                           defaultOptions={true}
                           deleteRemoves={true}
@@ -676,7 +682,7 @@ exports[`Project Ownership Input renders 1`] = `
                             autoload={true}
                             backspaceRemoves={true}
                             cache={false}
-                            className="css-ovf7gy-StyledSelect eho28m20"
+                            className="css-gv7e0o-StyledSelect-SelectOwners eho28m20"
                             clearable={true}
                             defaultOptions={true}
                             deleteRemoves={true}
@@ -703,7 +709,7 @@ exports[`Project Ownership Input renders 1`] = `
                               backspaceRemoves={true}
                               backspaceToRemoveMessage="Press backspace to remove {label}"
                               cache={false}
-                              className="css-ovf7gy-StyledSelect eho28m20"
+                              className="css-gv7e0o-StyledSelect-SelectOwners eho28m20"
                               clearAllText="Clear all"
                               clearRenderer={[Function]}
                               clearValueText="Clear value"
@@ -755,7 +761,7 @@ exports[`Project Ownership Input renders 1`] = `
                               valueKey="value"
                             >
                               <div
-                                className="Select css-ovf7gy-StyledSelect eho28m20 is-clearable is-loading is-searchable Select--multi"
+                                className="Select css-gv7e0o-StyledSelect-SelectOwners eho28m20 is-clearable is-loading is-searchable Select--multi"
                               >
                                 <div
                                   className="Select-control"
@@ -852,14 +858,14 @@ exports[`Project Ownership Input renders 1`] = `
                             </Select>
                           </Async>
                         </SelectPicker>
-                      </ForwardRef(SelectPicker)>
-                    </StyledSelect>
-                  </SelectControl>
+                      </StyledSelect>
+                    </SelectControl>
+                  </ForwardRef(RefForwardedSelectControl)>
                 </ForwardRef(MultiSelectControl)>
-              </SelectOwners>
-            </div>
-          </Base>
-        </Flex>
+              </EmotionCssPropInternal>
+            </SelectOwners>
+          </div>
+        </SelectOwnersWrapper>
         <AddButton
           align="center"
           disabled={true}
@@ -870,7 +876,7 @@ exports[`Project Ownership Input renders 1`] = `
         >
           <Button
             align="center"
-            className="css-8nraqh-AddButton e1hyuoc79"
+            className="css-f6y09s-AddButton e1hyuoc710"
             disabled={true}
             icon="icon-circle-add"
             onClick={[Function]}
@@ -879,7 +885,7 @@ exports[`Project Ownership Input renders 1`] = `
           >
             <StyledButton
               aria-disabled={true}
-              className="css-8nraqh-AddButton e1hyuoc79"
+              className="css-f6y09s-AddButton e1hyuoc710"
               disabled={true}
               onClick={[Function]}
               priority="primary"
@@ -888,7 +894,7 @@ exports[`Project Ownership Input renders 1`] = `
             >
               <ForwardRef
                 aria-disabled={true}
-                className="e1hyuoc79 css-4fecfm-StyledButton-getColors-AddButton edwq9my0"
+                className="e1hyuoc710 css-1vf07fg-StyledButton-AddButton edwq9my0"
                 disabled={true}
                 onClick={[Function]}
                 priority="primary"
@@ -897,7 +903,7 @@ exports[`Project Ownership Input renders 1`] = `
               >
                 <button
                   aria-disabled={true}
-                  className="e1hyuoc79 css-4fecfm-StyledButton-getColors-AddButton edwq9my0"
+                  className="e1hyuoc710 css-1vf07fg-StyledButton-AddButton edwq9my0"
                   onClick={[Function]}
                   role="button"
                   size="small"
@@ -909,24 +915,24 @@ exports[`Project Ownership Input renders 1`] = `
                   >
                     <Component
                       align="center"
-                      className="css-1h693nz-ButtonLabel edwq9my1"
+                      className="css-19gcr2f-ButtonLabel edwq9my1"
                       priority="primary"
                       size="small"
                     >
                       <span
-                        className="css-1h693nz-ButtonLabel edwq9my1"
+                        className="css-19gcr2f-ButtonLabel edwq9my1"
                       >
                         <Icon
                           hasChildren={false}
                           size="small"
                         >
                           <Component
-                            className="css-ljhpxy-Icon edwq9my2"
+                            className="css-heib7e-Icon edwq9my2"
                             hasChildren={false}
                             size="small"
                           >
                             <span
-                              className="css-ljhpxy-Icon edwq9my2"
+                              className="css-heib7e-Icon edwq9my2"
                               size="small"
                             >
                               <StyledInlineSvg
@@ -934,12 +940,12 @@ exports[`Project Ownership Input renders 1`] = `
                                 src="icon-circle-add"
                               >
                                 <ForwardRef
-                                  className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
+                                  className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
                                   size="12px"
                                   src="icon-circle-add"
                                 >
                                   <svg
-                                    className="css-52zz4j-InlineSvg-StyledInlineSvg edwq9my3"
+                                    className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
                                     height="12px"
                                     viewBox={Object {}}
                                     width="12px"
@@ -991,7 +997,7 @@ url:http://example.com/settings/* #product"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        className="css-1qzvln2-StyledTextArea-inputStyles en3n9di2"
+        className="css-2r1wnf-StyledTextArea en3n9di2"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1005,7 +1011,7 @@ url:http://example.com/settings/* #product"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="css-1qzvln2-StyledTextArea-inputStyles en3n9di2"
+          className="css-2r1wnf-StyledTextArea en3n9di2"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1016,85 +1022,78 @@ url:http://example.com/settings/* #product"
         />
       </TextareaAutosize>
     </StyledTextArea>
-    <Flex
-      align="center"
-      justify="space-between"
+    <Styled(div)
+      alignItems="center"
+      justifyContent="space-between"
     >
-      <Base
-        align="center"
-        className="css-v7pzd9"
-        justify="space-between"
+      <div
+        className="css-s3axrf"
       >
-        <div
-          className="css-v7pzd9"
-          is={null}
-        >
-          <div />
-          <SaveButton>
-            <div
-              className="css-5zvod-SaveButton en3n9di1"
+        <div />
+        <SaveButton>
+          <div
+            className="css-q90es8-SaveButton en3n9di1"
+          >
+            <Button
+              align="center"
+              disabled={false}
+              onClick={[Function]}
+              priority="primary"
+              size="small"
             >
-              <Button
-                align="center"
+              <StyledButton
+                aria-disabled={false}
+                aria-label="Save Changes"
                 disabled={false}
                 onClick={[Function]}
                 priority="primary"
+                role="button"
                 size="small"
               >
-                <StyledButton
+                <ForwardRef
                   aria-disabled={false}
                   aria-label="Save Changes"
+                  className="css-z8at1v-StyledButton edwq9my0"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
                   role="button"
                   size="small"
                 >
-                  <ForwardRef
+                  <button
                     aria-disabled={false}
                     aria-label="Save Changes"
-                    className="css-1lua553-StyledButton-getColors edwq9my0"
-                    disabled={false}
+                    className="css-z8at1v-StyledButton edwq9my0"
                     onClick={[Function]}
-                    priority="primary"
                     role="button"
                     size="small"
                   >
-                    <button
-                      aria-disabled={false}
-                      aria-label="Save Changes"
-                      className="css-1lua553-StyledButton-getColors edwq9my0"
-                      onClick={[Function]}
-                      role="button"
+                    <ButtonLabel
+                      align="center"
+                      priority="primary"
                       size="small"
                     >
-                      <ButtonLabel
+                      <Component
                         align="center"
+                        className="css-19gcr2f-ButtonLabel edwq9my1"
                         priority="primary"
                         size="small"
                       >
-                        <Component
-                          align="center"
-                          className="css-1h693nz-ButtonLabel edwq9my1"
-                          priority="primary"
-                          size="small"
+                        <span
+                          className="css-19gcr2f-ButtonLabel edwq9my1"
                         >
-                          <span
-                            className="css-1h693nz-ButtonLabel edwq9my1"
-                          >
-                            Save Changes
-                          </span>
-                        </Component>
-                      </ButtonLabel>
-                    </button>
-                  </ForwardRef>
-                </StyledButton>
-              </Button>
-            </div>
-          </SaveButton>
-        </div>
-      </Base>
-    </Flex>
+                          Save Changes
+                        </span>
+                      </Component>
+                    </ButtonLabel>
+                  </button>
+                </ForwardRef>
+              </StyledButton>
+            </Button>
+          </div>
+        </SaveButton>
+      </div>
+    </Styled(div)>
   </div>
 </OwnerInput>
 `;

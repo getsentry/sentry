@@ -135,15 +135,19 @@ class EventNodeStoreTest(TestCase):
 
         assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
 
+        # Unload node data to force reloading from nodestore
+        event.data._node_data = None
+
         with pytest.raises(NodeIntegrityFailure):
             event.bind_node_data()
 
     def test_accepts_valid_ref(self):
-        event = self.create_event()
+        self.store_event(data={"event_id": "a" * 32}, project_id=self.project.id)
+        event = Event(project_id=self.project.id, event_id="a" * 32)
         event.data.bind_ref(event)
         event.bind_node_data()
         assert event.data.ref == event.project.id
 
     def test_basic_ref_binding(self):
-        event = self.create_event()
+        event = self.store_event(data={}, project_id=self.project.id)
         assert event.data.get_ref(event) == event.project.id

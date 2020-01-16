@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import {t} from 'app/locale';

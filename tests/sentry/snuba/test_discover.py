@@ -1,5 +1,11 @@
 from __future__ import absolute_import
 
+import six
+import pytest
+
+from sentry.utils.compat.mock import patch
+from datetime import datetime, timedelta
+
 from sentry import eventstore
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.snuba import discover
@@ -7,12 +13,6 @@ from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import Dataset
-
-from mock import patch
-from datetime import timedelta
-
-import six
-import pytest
 
 
 class QueryIntegrationTest(SnubaTestCase, TestCase):
@@ -145,24 +145,26 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["message"] == self.event.message
 
     def test_reference_event(self):
+        two_minutes = before_now(minutes=2)
+        five_minutes = before_now(minutes=5)
         self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "oh no",
-                "timestamp": iso_format(before_now(minutes=2)),
-            },
+            data={"event_id": "a" * 32, "message": "oh no", "timestamp": iso_format(two_minutes)},
             project_id=self.project.id,
         )
         self.store_event(
             data={
                 "event_id": "b" * 32,
                 "message": "no match",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": iso_format(two_minutes),
             },
             project_id=self.project.id,
         )
         ref = discover.ReferenceEvent(
-            self.organization, "{}:{}".format(self.project.slug, "a" * 32), ["message", "count()"]
+            self.organization,
+            "{}:{}".format(self.project.slug, "a" * 32),
+            ["message", "count()"],
+            two_minutes,
+            two_minutes,
         )
         result = discover.query(
             selected_columns=["id", "message"],
@@ -173,6 +175,22 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(result["data"]) == 2
         for row in result["data"]:
             assert row["message"] == "oh no"
+
+        # make an invalid reference with old dates
+        ref = discover.ReferenceEvent(
+            self.organization,
+            "{}:{}".format(self.project.slug, "a" * 32),
+            ["message", "count()"],
+            five_minutes,
+            five_minutes,
+        )
+        with pytest.raises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=["id", "message"],
+                query="",
+                reference_event=ref,
+                params={"project_id": [self.project.id]},
+            )
 
 
 class QueryTransformTest(TestCase):
@@ -722,7 +740,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
 
 class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
     def test_bad_slug_format(self):
-        ref = discover.ReferenceEvent(self.organization, "lol", [])
+        ref = discover.ReferenceEvent(self.organization, "lol", ["title"])
         with pytest.raises(InvalidSearchQuery):
             discover.create_reference_event_conditions(ref)
 
@@ -731,7 +749,9 @@ class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
             data={"message": "oh no!", "timestamp": iso_format(before_now(seconds=1))},
             project_id=self.project.id,
         )
-        ref = discover.ReferenceEvent(self.organization, "nope:{}".format(event.event_id), [])
+        ref = discover.ReferenceEvent(
+            self.organization, "nope:{}".format(event.event_id), ["title"]
+        )
         with pytest.raises(InvalidSearchQuery):
             discover.create_reference_event_conditions(ref)
 
@@ -1021,3 +1041,178 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
         assert result.next == "c" * 32
         assert result.oldest == "a" * 32
         assert result.latest == "c" * 32
+
+
+class GetFacetsTest(SnubaTestCase, TestCase):
+    def setUp(self):
+        super(GetFacetsTest, self).setUp()
+
+        self.project = self.create_project()
+        self.min_ago = before_now(minutes=1)
+        self.day_ago = before_now(days=1)
+
+    def test_invalid_query(self):
+        with pytest.raises(InvalidSearchQuery):
+            discover.get_facets(
+                "\n", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+            )
+
+    def test_no_results(self):
+        results = discover.get_facets(
+            "", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
+        )
+        assert results == []
+
+    def test_single_project(self):
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "red", "paying": "1"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "blue", "paying": "0"},
+            },
+            project_id=self.project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("", params)
+        assert len(result) == 5
+        assert {r.key for r in result} == {"color", "paying", "level"}
+        assert {r.value for r in result} == {"red", "blue", "1", "0", "error"}
+        assert {r.count for r in result} == {1, 2}
+
+    def test_project_filter(self):
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        other_project = self.create_project()
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"toy": "train"},
+            },
+            project_id=other_project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("", params)
+        keys = {r.key for r in result}
+        assert keys == {"color", "level"}
+
+        # Query more than one project.
+        params = {
+            "project_id": [self.project.id, other_project.id],
+            "start": self.day_ago,
+            "end": self.min_ago,
+        }
+        result = discover.get_facets("", params)
+        keys = {r.key for r in result}
+        assert keys == {"level", "toy", "color", "project"}
+
+        projects = [f for f in result if f.key == "project"]
+        assert [p.count for p in projects] == [1, 1]
+
+    def test_enviroment_promoted_tag(self):
+        for env in ("prod", "staging", None):
+            self.store_event(
+                data={
+                    "message": "very bad",
+                    "type": "default",
+                    "environment": env,
+                    "timestamp": iso_format(before_now(minutes=2)),
+                },
+                project_id=self.project.id,
+            )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("", params)
+        keys = {r.key for r in result}
+        assert keys == {"environment", "level"}
+        assert {"prod", "staging", None} == {f.value for f in result if f.key == "environment"}
+        assert {1} == {f.count for f in result if f.key == "environment"}
+
+    def test_query_string(self):
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "message": "oh my",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"toy": "train"},
+            },
+            project_id=self.project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("bad", params)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys
+
+        result = discover.get_facets("color:red", params)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys
+
+    def test_date_params(self):
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "message": "oh my",
+                "type": "default",
+                "timestamp": iso_format(before_now(days=2)),
+                "tags": {"toy": "train"},
+            },
+            project_id=self.project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("", params)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys
+
+
+def test_zerofill():
+    results = discover.zerofill(
+        {}, datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, "time"
+    )
+    results_desc = discover.zerofill(
+        {}, datetime(2019, 1, 2, 0, 0), datetime(2019, 1, 9, 23, 59, 59), 86400, "-time"
+    )
+
+    assert results == list(reversed(results_desc))
+
+    # Bucket for the 2, 3, 4, 5, 6, 7, 8, 9
+    assert len(results) == 8
+
+    assert results[0]["time"] == 1546387200
+    assert results[7]["time"] == 1546992000

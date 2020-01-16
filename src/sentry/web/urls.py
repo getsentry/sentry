@@ -22,7 +22,7 @@ from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
-from sentry.auth.providers.saml2 import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
+from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2SLSView, SAML2MetadataView
 from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
 from sentry.web.frontend.organization_integration_setup import OrganizationIntegrationSetupView
@@ -265,11 +265,6 @@ urlpatterns += [
                     ),
                 ),
                 url(
-                    r"^settings/identities/(?P<identity_id>[^\/]+)/disconnect/$",
-                    accounts.disconnect_identity,
-                    name="sentry-account-disconnect-identity",
-                ),
-                url(
                     r"^settings/identities/associate/(?P<organization_slug>[^\/]+)/(?P<provider_key>[^\/]+)/(?P<external_id>[^\/]+)/$",
                     AccountIdentityAssociateView.as_view(),
                     name="sentry-account-associate-identity",
@@ -448,6 +443,11 @@ urlpatterns += [
                     react_page_view,
                     name="sentry-organization-member-settings",
                 ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/auth/$",
+                    react_page_view,
+                    name="sentry-organization-auth-settings",
+                ),
                 url(r"^", react_page_view),
             ]
         ),
@@ -508,11 +508,6 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-api-key-settings",
-                ),
-                url(
-                    r"^(?P<organization_slug>[\w_-]+)/auth/$",
-                    react_page_view,
-                    name="sentry-organization-auth-settings",
                 ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/auth/configure/$",

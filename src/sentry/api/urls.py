@@ -91,6 +91,7 @@ from .endpoints.organization_event_details import OrganizationEventDetailsEndpoi
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
 from .endpoints.organization_events_distribution import OrganizationEventsDistributionEndpoint
+from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
@@ -106,9 +107,6 @@ from .endpoints.organization_incident_index import OrganizationIncidentIndexEndp
 from .endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
 from .endpoints.organization_incident_subscription_index import (
     OrganizationIncidentSubscriptionIndexEndpoint,
-)
-from .endpoints.organization_incident_suspects_index import (
-    OrganizationIncidentSuspectsIndexEndpoint,
 )
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
@@ -641,11 +639,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-incident-subscription-index",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/suspects/$",
-                    OrganizationIncidentSuspectsIndexEndpoint.as_view(),
-                    name="sentry-api-0-organization-incident-suspect-index",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/chunk-upload/$",
                     ChunkUploadEndpoint.as_view(),
                     name="sentry-api-0-chunk-upload",
@@ -787,6 +780,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-distribution/$",
                     OrganizationEventsDistributionEndpoint.as_view(),
                     name="sentry-api-0-organization-events-distribution",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-facets/$",
+                    OrganizationEventsFacetsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-facets",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",

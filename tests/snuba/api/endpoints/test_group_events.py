@@ -18,11 +18,24 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
-        event_1 = self.create_event(event_id="a" * 32, datetime=self.min_ago, group=group)
-        event_2 = self.create_event(event_id="b" * 32, datetime=self.min_ago, group=group)
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "fingerprint": ["1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
 
-        url = u"/api/0/issues/{}/events/".format(group.id)
+        url = u"/api/0/issues/{}/events/".format(event_1.group.id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -33,19 +46,25 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
     def test_tags(self):
         self.login_as(user=self.user)
-
-        group = self.create_group()
-        event_1 = self.create_event(
-            event_id="a" * 32, datetime=self.min_ago, group=group, tags={"foo": "baz", "bar": "buz"}
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["1"],
+                "tags": {"foo": "baz", "bar": "buz"},
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
         )
-        event_2 = self.create_event(
-            event_id="b" * 32,
-            datetime=self.min_ago - timedelta(minutes=1),
-            group=group,
-            tags={"bar": "biz"},
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "fingerprint": ["1"],
+                "tags": {"bar": "biz"},
+                "timestamp": iso_format(before_now(seconds=61)),
+            },
+            project_id=self.project.id,
         )
-
-        url = u"/api/0/issues/{}/events/".format(group.id)
+        url = u"/api/0/issues/{}/events/".format(event_1.group.id)
         response = self.client.get(url + "?query=foo:baz", format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -89,17 +108,29 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url + "?query=!bar:baz", format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]["eventID"] == six.text_type(event_1.event_id)
-        assert response.data[1]["eventID"] == six.text_type(event_2.event_id)
+        assert set([e["eventID"] for e in response.data]) == set(
+            [event_1.event_id, event_2.event_id]
+        )
 
     def test_search_event_by_id(self):
         self.login_as(user=self.user)
-
-        group = self.create_group()
-        event_1 = self.create_event(event_id="a" * 32, datetime=self.min_ago, group=group)
-        self.create_event(event_id="b" * 32, datetime=self.min_ago, group=group)
-
-        url = u"/api/0/issues/{}/events/?query={}".format(group.id, event_1.event_id)
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        url = u"/api/0/issues/{}/events/?query={}".format(event_1.group.id, event_1.event_id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -109,14 +140,26 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
     def test_search_event_by_message(self):
         self.login_as(user=self.user)
 
-        group = self.create_group()
-        event_1 = self.create_event(
-            event_id="a" * 32, datetime=self.min_ago, group=group, message="foo bar hello world"
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["group-1"],
+                "message": "foo bar hello world",
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
         )
-
-        event_2 = self.create_event(
-            event_id="b" * 32, datetime=self.min_ago, group=group, message="this bar hello world "
+        group = event_1.group
+        event_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "fingerprint": ["group-1"],
+                "message": "this bar hello world",
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
         )
+        assert group == event_2.group
 
         query_1 = "foo"
         query_2 = "hello+world"
@@ -186,13 +229,15 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
     def test_filters_based_on_retention(self):
         self.login_as(user=self.user)
-
-        project = self.create_project()
-        group = self.create_group(project=project)
-        self.create_event(
-            event_id="a" * 32, group=group, datetime=timezone.now() - timedelta(days=2)
+        self.store_event(
+            data={"fingerprint": ["group_1"], "timestamp": iso_format(before_now(days=2))},
+            project_id=self.project.id,
         )
-        event_2 = self.create_event(event_id="b" * 32, datetime=self.min_ago, group=group)
+        event_2 = self.store_event(
+            data={"fingerprint": ["group_1"], "timestamp": iso_format(self.min_ago)},
+            project_id=self.project.id,
+        )
+        group = event_2.group
 
         with self.options({"system.event-retention-days": 1}):
             response = self.client.get(u"/api/0/issues/{}/events/".format(group.id))
@@ -205,43 +250,34 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
     def test_search_event_has_tags(self):
         self.login_as(user=self.user)
-
-        group = self.create_group()
-        self.create_event(
-            event_id="a" * 32,
-            datetime=self.min_ago,
-            group=group,
-            message="foo",
-            tags={"logger": "python"},
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(self.min_ago),
+                "message": "foo",
+                "tags": {"logger": "python"},
+            },
+            project_id=self.project.id,
         )
 
-        response = self.client.get(u"/api/0/issues/{}/events/".format(group.id))
+        response = self.client.get(u"/api/0/issues/{}/events/".format(event.group.id))
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["tags"][0]["key"] == "logger"
-        assert response.data[0]["tags"][0]["value"] == "python"
+        assert {"key": "logger", "value": "python"} in response.data[0]["tags"]
 
     @freeze_time()
     def test_date_filters(self):
         self.login_as(user=self.user)
-
-        first_seen = timezone.now() - timedelta(days=5)
-
-        group = self.create_group(first_seen=first_seen)
-        event_1 = self.create_event(
-            event_id="a" * 32,
-            datetime=first_seen,
-            group=group,
-            message="foo",
-            tags={"logger": "python"},
+        event_1 = self.store_event(
+            data={"timestamp": iso_format(before_now(days=5)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
         )
-        event_2 = self.create_event(
-            event_id="b" * 32,
-            datetime=timezone.now() - timedelta(days=1),
-            group=group,
-            message="bar",
+        event_2 = self.store_event(
+            data={"timestamp": iso_format(before_now(days=1)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
         )
+        group = event_1.group
+        assert group == event_2.group
 
         response = self.client.get(
             u"/api/0/issues/{}/events/".format(group.id), data={"statsPeriod": "6d"}

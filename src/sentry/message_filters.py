@@ -264,6 +264,8 @@ _EXTENSION_EXC_SOURCES = re.compile(
             r"^chrome(?:-extension)?:\/\/",
             # Firefox extensions
             r"^moz-extension:\/\/",
+            # Safari extensions
+            r"^safari-extension:\/\/",
             # Cacaoweb
             r"127\.0\.0\.1:4001\/isrunning",
             # Other

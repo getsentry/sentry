@@ -10,6 +10,7 @@ from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import resolve_field_list, InvalidSearchQuery
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.discover.utils import transform_aliases_and_query
 from sentry.snuba import discover
 from sentry.utils import snuba
 from sentry.utils.dates import parse_stats_period
@@ -21,13 +22,25 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             return self.get_v1_results(request, organization)
 
         try:
+            column = request.GET.get("yAxis", "count()")
+            # Backwards compatibility for incidents which uses the old
+            # column aliases as it straddles both versions of events/discover.
+            # We will need these aliases until discover2 flags are enabled for all
+            # users.
+            if column == "user_count":
+                column = "count_unique(user)"
+            elif column == "event_count":
+                column = "count()"
+
             params = self.get_filter_params(request, organization)
             result = discover.timeseries_query(
-                selected_columns=[request.GET.get("yAxis", "count()")],
+                selected_columns=[column],
                 query=request.GET.get("query"),
                 params=params,
                 rollup=self.get_rollup(request),
-                reference_event=self.reference_event(request, organization),
+                reference_event=self.reference_event(
+                    request, organization, params.get("start"), params.get("end")
+                ),
                 referrer="api.organization-event-stats",
             )
         except InvalidSearchQuery as err:
@@ -52,7 +65,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         rollup = self.get_rollup(request)
         snuba_args = self.get_field(request, snuba_args)
 
-        result = snuba.transform_aliases_and_query(
+        result = transform_aliases_and_query(
             aggregations=snuba_args.get("aggregations"),
             conditions=snuba_args.get("conditions"),
             filter_keys=snuba_args.get("filter_keys"),

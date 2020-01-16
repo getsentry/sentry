@@ -167,7 +167,7 @@ class Result extends React.Component<ResultProps, ResultState> {
       `query time: ${getDynamicText({
         value: summaryData.timing.duration_ms,
         fixed: '10',
-      })} ms`,
+      })}ms`,
     ];
     if (this.state.view === 'table') {
       summary.push(getRowsPageRange(baseQuery));
@@ -230,7 +230,7 @@ class Result extends React.Component<ResultProps, ResultState> {
           </HeadingContainer>
           {this.renderToggle()}
         </div>
-        <ResultInnerContainer innerRef={this.setDimensions}>
+        <ResultInnerContainer ref={this.setDimensions}>
           {view === 'table' && (
             <Table
               data={baseQuery.data}

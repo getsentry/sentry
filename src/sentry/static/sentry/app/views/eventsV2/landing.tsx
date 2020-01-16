@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
@@ -203,7 +203,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
               eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: this.props.organization.id,
+              organization_id: parseInt(this.props.organization.id, 10),
               query_name: eventView.name,
             });
           }}
@@ -243,31 +243,36 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   render() {
+    let body;
     const {location, organization} = this.props;
-    const {loading, savedQueries, savedQueriesPageLinks} = this.state;
+    const {loading, savedQueries, savedQueriesPageLinks, error} = this.state;
+    if (loading) {
+      body = this.renderLoading();
+    } else if (error) {
+      body = this.renderError();
+    } else {
+      body = (
+        <PageContent>
+          <StyledPageHeader>{t('Discover')}</StyledPageHeader>
+          {this.renderBanner()}
+          {this.renderActions()}
+          <QueryList
+            pageLinks={savedQueriesPageLinks}
+            savedQueries={savedQueries}
+            savedQuerySearchQuery={this.getSavedQuerySearchQuery()}
+            location={location}
+            organization={organization}
+            onQueryChange={this.handleQueryChange}
+          />
+        </PageContent>
+      );
+    }
 
     return (
       <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
         <React.Fragment>
           <GlobalSelectionHeader organization={organization} />
-          <NoProjectMessage organization={organization}>
-            <PageContent>
-              <StyledPageHeader>{t('Discover')}</StyledPageHeader>
-              {this.renderBanner()}
-              {this.renderActions()}
-              {loading && this.renderLoading()}
-              {!loading && (
-                <QueryList
-                  pageLinks={savedQueriesPageLinks}
-                  savedQueries={savedQueries}
-                  savedQuerySearchQuery={this.getSavedQuerySearchQuery()}
-                  location={location}
-                  organization={organization}
-                  onQueryChange={this.handleQueryChange}
-                />
-              )}
-            </PageContent>
-          </NoProjectMessage>
+          <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
         </React.Fragment>
       </SentryDocumentTitle>
     );

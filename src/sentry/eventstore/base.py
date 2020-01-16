@@ -117,14 +117,13 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_event_by_id(self, project_id, event_id, additional_columns=None):
+    def get_event_by_id(self, project_id, event_id):
         """
         Gets a single event given a project_id and event_id.
 
         Arguments:
         project_id (int): Project ID
         event_id (str): Event ID
-        additional_columns: (Sequence[Column]) - List of addition columns to fetch - default None
         """
         raise NotImplementedError
 
@@ -172,11 +171,13 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def create_event(self, project_id=None, event_id=None, group_id=None, data=None):
+    def create_event(self, project_id=None, event_id=None, group_id=None, message=None, data=None):
         """
         Returns an Event from processed data
         """
-        return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
+        return Event(
+            project_id=project_id, event_id=event_id, group_id=group_id, message=message, data=data
+        )
 
     def bind_nodes(self, object_list, node_name="data"):
         """
@@ -188,8 +189,12 @@ class EventStorage(Service):
         For binding a single Event object (most use cases), it's easier to use
         event.bind_node_data().
         """
+        # Temporarily make bind_nodes noop to prevent unnecessary additional calls
+        # to nodestore by the event serializer.
+        unfetched_object_list = [i for i in object_list if not getattr(i, node_name)._node_data]
+
         object_node_list = [
-            (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
+            (i, getattr(i, node_name)) for i in unfetched_object_list if getattr(i, node_name).id
         ]
 
         node_ids = [n.id for _, n in object_node_list]

@@ -523,6 +523,7 @@ CELERYD_HIJACK_ROOT_LOGGER = False
 CELERY_IMPORTS = (
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
+    "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.beacon",
@@ -534,6 +535,8 @@ CELERY_IMPORTS = (
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.files",
+    "sentry.tasks.integrations",
     "sentry.tasks.members",
     "sentry.tasks.merge",
     "sentry.tasks.options",
@@ -543,14 +546,13 @@ CELERY_IMPORTS = (
     "sentry.tasks.reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.scheduler",
+    "sentry.tasks.sentry_apps",
+    "sentry.tasks.servicehooks",
     "sentry.tasks.signals",
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
-    "sentry.tasks.servicehooks",
-    "sentry.tasks.assemble",
-    "sentry.tasks.integrations",
-    "sentry.tasks.files",
-    "sentry.tasks.sentry_apps",
+    "sentry.tasks.update_user_reports",
+    "sentry.tasks.relay",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -578,6 +580,7 @@ CELERY_QUEUES = [
     Queue("integrations", routing_key="integrations"),
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
+    Queue("relay_config", routing_key="relay_config"),
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
@@ -661,6 +664,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.collect_project_platforms",
         "schedule": timedelta(days=1),
         "options": {"expires": 3600 * 24},
+    },
+    "update-user-reports": {
+        "task": "sentry.tasks.update_user_reports",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 300},
     },
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
@@ -818,11 +826,13 @@ SENTRY_FEATURES = {
     # Enable multi project selection
     "organizations:global-views": False,
     # Turns on grouping info.
-    "organizations:grouping-info": False,
+    "organizations:grouping-info": True,
     # Lets organizations upgrade grouping configs and tweak them
     "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
+    # Enable health feature
+    "organizations:health": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable integration functionality to create and link groups to issues on
@@ -840,7 +850,9 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
-    # Enable the relay functionality, for use with sentry semaphore. See
+    # Enable access to more advanced (alpha) datascrubbing settings.
+    "organizations:datascrubbers-v2": False,
+    # Enable usage of external relays, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
     "organizations:relay": False,
     # Enable basic SSO functionality, providing configurable single sign on
@@ -1030,6 +1042,10 @@ SENTRY_DIGESTS_OPTIONS = {}
 SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS = {}
 
+# Cache for Relay project configs
+SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
+SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
+
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
 SENTRY_RATELIMITER_OPTIONS = {}
@@ -1049,7 +1065,9 @@ SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.Snuba
 SENTRY_TAGSTORE_OPTIONS = {}
 
 # Search backend
-SENTRY_SEARCH = os.environ.get("SENTRY_SEARCH", "sentry.search.snuba.SnubaSearchBackend")
+SENTRY_SEARCH = os.environ.get(
+    "SENTRY_SEARCH", "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
+)
 SENTRY_SEARCH_OPTIONS = {}
 # SENTRY_SEARCH_OPTIONS = {
 #     'urls': ['http://localhost:9200/'],
@@ -1059,24 +1077,6 @@ SENTRY_SEARCH_OPTIONS = {}
 # Time-series storage backend
 SENTRY_TSDB = "sentry.tsdb.dummy.DummyTSDB"
 SENTRY_TSDB_OPTIONS = {}
-
-# Event storage backend
-SENTRY_EVENTSTORE = "sentry.utils.services.ServiceDelegator"
-SENTRY_EVENTSTORE_OPTIONS = {
-    "backend_base": "sentry.eventstore.base.EventStorage",
-    "backends": {
-        "snuba": {
-            "path": "sentry.eventstore.snuba.SnubaEventStorage",
-            "executor": {"path": "sentry.utils.concurrent.SynchronousExecutor"},
-        },
-        "snuba_discover": {
-            "path": "sentry.eventstore.snuba_discover.SnubaDiscoverEventStorage",
-            "executor": {"path": "sentry.utils.services.ThreadedExecutor"},
-        },
-    },
-    "selector_func": "sentry.eventstore.utils.selector_func",
-    "callback_func": "sentry.eventstore.utils.callback_func",
-}
 
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS = {}

@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
@@ -75,11 +75,11 @@ class GroupEventAttachmentsTableRow extends React.Component<Props> {
 }
 
 type TableRowProps = {isDeleted: boolean};
-const TableRow = styled('tr')`
-  opacity: ${(props: TableRowProps) => (props.isDeleted ? 0.3 : 1)};
+
+const TableRow = styled('tr')<TableRowProps>`
+  opacity: ${p => (p.isDeleted ? 0.3 : 1)};
   td {
-    text-decoration: ${(props: TableRowProps) =>
-      props.isDeleted ? 'line-through' : 'normal'};
+    text-decoration: ${p => (p.isDeleted ? 'line-through' : 'normal')};
   }
 `;
 

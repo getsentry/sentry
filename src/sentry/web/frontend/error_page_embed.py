@@ -152,7 +152,6 @@ class ErrorPageEmbedView(View):
             event = eventstore.get_event_by_id(report.project.id, report.event_id)
 
             if event is not None:
-                event.bind_node_data()
                 report.environment = event.get_environment()
                 report.group = event.group
 

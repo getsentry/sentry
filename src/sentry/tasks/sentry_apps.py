@@ -6,6 +6,7 @@ from celery.task import current
 from django.core.urlresolvers import reverse
 from requests.exceptions import RequestException
 
+from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
@@ -22,7 +23,6 @@ from sentry.models import (
     ServiceHook,
     ServiceHookProject,
     SentryApp,
-    SnubaEvent,
 )
 from sentry.models.sentryapp import VALID_EVENTS
 
@@ -39,7 +39,7 @@ TASK_OPTIONS = {
 # Hook events to match what we externally call these primitives.
 RESOURCE_RENAMES = {"Group": "issue"}
 
-TYPES = {"Group": Group, "Error": SnubaEvent}
+TYPES = {"Group": Group, "Error": Event}
 
 
 def _webhook_event_data(event, group_id, project_id):

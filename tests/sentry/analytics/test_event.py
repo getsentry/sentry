@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-from mock import patch
+from sentry.utils.compat.mock import patch
 import pytest
 import pytz
 

@@ -28,7 +28,8 @@ class OrganizationOnboardingTaskTest(TestCase):
     def test_no_existing_task(self):
         now = timezone.now()
         project = self.create_project(first_event=now)
-        first_event_received.send(project=project, event=self.event, sender=type(project))
+        event = self.store_event(data={}, project_id=project.id)
+        first_event_received.send(project=project, event=event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization, task=OnboardingTask.FIRST_EVENT
@@ -50,7 +51,8 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task.status == OnboardingTaskStatus.PENDING
         assert task.project_id == project.id
 
-        first_event_received.send(project=project, event=self.event, sender=type(project))
+        event = self.store_event(data={}, project_id=project.id)
+        first_event_received.send(project=project, event=event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization, task=OnboardingTask.FIRST_EVENT
@@ -69,7 +71,8 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
 
-        first_event_received.send(project=project, event=self.event, sender=type(project))
+        event = self.store_event(data={}, project_id=project.id)
+        first_event_received.send(project=project, event=event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(id=task.id)
         assert task.status == OnboardingTaskStatus.COMPLETE
@@ -184,8 +187,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert second_task is not None
 
-        second_event = self.create_event(
-            project=second_project, platform="python", message="python error message"
+        second_event = self.store_event(
+            data={"platform": "python", "message": "python error message"},
+            project_id=second_project.id,
         )
         first_event_received.send(
             project=second_project, event=second_event, sender=type(second_project)

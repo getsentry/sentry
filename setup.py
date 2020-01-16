@@ -16,8 +16,7 @@ from setuptools.command.develop import develop as DevelopCommand
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
-# add sentry to path so we can import distutils
-# XXX: consequentially, this means sentry must be pip installed with --no-use-pep517
+# add sentry to path so we can import sentry.utils.distutils
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from sentry.utils.distutils import (
@@ -26,7 +25,7 @@ from sentry.utils.distutils import (
     BuildJsSdkRegistryCommand,
 )
 
-VERSION = "10.0.0.dev0"
+VERSION = "10.1.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
@@ -93,7 +92,8 @@ setup(
     author_email="hello@sentry.io",
     url="https://sentry.io",
     description="A realtime logging and aggregation server.",
-    long_description=open(os.path.join(ROOT, "README.rst")).read(),
+    long_description=open(os.path.join(ROOT, "README.md")).read(),
+    long_description_content_type="text/markdown",
     package_dir={"": "src"},
     packages=find_packages("src"),
     zip_safe=False,
@@ -105,6 +105,13 @@ setup(
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],
         "sentry.apps": [
+            # TODO: This can be removed once the getsentry tests no longer check for this app
+            "auth_auth0 = sentry.auth.providers.saml2.auth0",
+            "auth_github = sentry.auth.providers.github",
+            "auth_okta = sentry.auth.providers.saml2.okta",
+            "auth_onelogin = sentry.auth.providers.saml2.onelogin",
+            "auth_rippling = sentry.auth.providers.saml2.rippling",
+            "auth_saml2 = sentry.auth.providers.saml2.generic",
             "jira_ac = sentry_plugins.jira_ac",
             "jira = sentry_plugins.jira",
             "freight = sentry_plugins.freight",

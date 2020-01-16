@@ -1079,6 +1079,10 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    def test_trace_id(self):
+        result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
+        assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
+
 
 class ResolveFieldListTest(unittest.TestCase):
     def test_non_string_field_error(self):
@@ -1112,10 +1116,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
-            ["apdex(duration, 300)", "", "apdex"],
+            ["apdex(duration, 300)", None, "apdex"],
             [
                 "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
-                "",
+                None,
                 "impact",
             ],
             ["quantile(0.75)(duration)", None, "p75"],

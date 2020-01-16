@@ -92,11 +92,12 @@ exports[`KeyValueList renders formatted 1`] = `
     <tr
       key="andthis"
     >
-      <td
+      <TableData
         className="key"
+        wide={false}
       >
         andthis
-      </td>
+      </TableData>
       <td
         className="val"
       >
@@ -108,11 +109,12 @@ exports[`KeyValueList renders formatted 1`] = `
     <tr
       key="plussomeotherstuff"
     >
-      <td
+      <TableData
         className="key"
+        wide={false}
       >
         plussomeotherstuff
-      </td>
+      </TableData>
       <td
         className="val"
       >
@@ -124,11 +126,12 @@ exports[`KeyValueList renders formatted 1`] = `
     <tr
       key="somestuff"
     >
-      <td
+      <TableData
         className="key"
+        wide={false}
       >
         somestuff
-      </td>
+      </TableData>
       <td
         className="val"
       >
@@ -153,11 +156,12 @@ exports[`KeyValueList renders raw 1`] = `
     <tr
       key="andthis"
     >
-      <td
+      <TableData
         className="key"
+        wide={false}
       >
         andthis
-      </td>
+      </TableData>
       <td
         className="val"
       >
@@ -169,11 +173,12 @@ exports[`KeyValueList renders raw 1`] = `
     <tr
       key="plussomeotherstuff"
     >
-      <td
+      <TableData
         className="key"
+        wide={false}
       >
         plussomeotherstuff
-      </td>
+      </TableData>
       <td
         className="val"
       >
@@ -185,11 +190,12 @@ exports[`KeyValueList renders raw 1`] = `
     <tr
       key="somestuff"
     >
-      <td
+      <TableData
         className="key"
+        wide={false}
       >
         somestuff
-      </td>
+      </TableData>
       <td
         className="val"
       >

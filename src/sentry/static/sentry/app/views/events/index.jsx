@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';

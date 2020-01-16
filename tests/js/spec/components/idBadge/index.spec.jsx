@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import IdBadge from 'app/components/idBadge';
 
@@ -24,12 +24,12 @@ describe('IdBadge', function() {
   });
 
   it('renders the correct component when `organization` property is passed', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <IdBadge organization={TestStubs.Organization()} />,
       routerContext
     );
 
-    expect(wrapper.find('OrganizationBadgeContainer')).toHaveLength(1);
+    expect(wrapper.find('OrganizationBadge')).toHaveLength(1);
   });
 
   it('throws when no valid properties are passed', function() {

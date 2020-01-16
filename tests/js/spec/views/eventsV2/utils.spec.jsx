@@ -11,6 +11,7 @@ import {
   decodeColumnOrder,
   pushEventViewToLocation,
 } from 'app/views/eventsV2/utils';
+import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
 
 describe('eventTagSearchUrl()', function() {
   let location;
@@ -238,30 +239,27 @@ describe('getFieldRenderer', function() {
 
 describe('decodeColumnOrder', function() {
   it('can decode 0 elements', function() {
-    const results = decodeColumnOrder({
-      fieldnames: [],
-      field: [],
-    });
+    const results = decodeColumnOrder([]);
 
     expect(Array.isArray(results)).toBeTruthy();
     expect(results).toHaveLength(0);
   });
 
   it('can decode fields', function() {
-    const results = decodeColumnOrder({
-      field: ['title'],
-      fieldnames: ['Event title'],
-      fields: [{field: 'title', title: 'Event title'}],
-    });
+    const results = decodeColumnOrder([{field: 'title', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
 
     expect(results[0]).toEqual({
       key: 'title',
-      name: 'Event title',
+      name: 'title',
       aggregation: '',
       field: 'title',
-      eventViewField: {field: 'title', title: 'Event title'},
+      width: 123,
+      eventViewField: {
+        field: 'title',
+        width: 123,
+      },
       isDragging: false,
       isPrimary: true,
       isSortable: false,
@@ -270,46 +268,43 @@ describe('decodeColumnOrder', function() {
   });
 
   it('can decode aggregate functions with no arguments', function() {
-    const results = decodeColumnOrder({
-      field: ['count()'],
-      fieldnames: ['projects'],
-      fields: [{field: 'count()', title: 'projects'}],
-    });
+    const results = decodeColumnOrder([{field: 'count()', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
 
     expect(results[0]).toEqual({
       key: 'count()',
-      name: 'projects',
+      name: 'count()',
       aggregation: 'count',
       field: '',
-      eventViewField: {field: 'count()', title: 'projects'},
+      width: 123,
+      eventViewField: {
+        field: 'count()',
+        width: 123,
+      },
       isDragging: false,
       isPrimary: false,
       isSortable: true,
-      type: 'never',
+      type: 'number',
     });
   });
 
   it('can decode elements with aggregate functions with arguments', function() {
-    const results = decodeColumnOrder({
-      field: ['avg(transaction.duration)'],
-      fieldnames: ['average'],
-      fields: [{field: 'avg(transaction.duration)', title: 'average'}],
-    });
+    const results = decodeColumnOrder([{field: 'avg(transaction.duration)'}]);
 
     expect(Array.isArray(results)).toBeTruthy();
 
     expect(results[0]).toEqual({
       key: 'avg(transaction.duration)',
-      name: 'average',
+      name: 'avg(transaction.duration)',
       aggregation: 'avg',
       field: 'transaction.duration',
-      eventViewField: {field: 'avg(transaction.duration)', title: 'average'},
+      width: COL_WIDTH_NUMBER,
+      eventViewField: {field: 'avg(transaction.duration)'},
       isDragging: false,
       isPrimary: false,
       isSortable: true,
-      type: 'duration',
+      type: 'number',
     });
   });
 });
@@ -318,12 +313,8 @@ describe('pushEventViewToLocation', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [
-      {field: 'count()', title: 'events'},
-      {field: 'project.id', title: 'project'},
-    ],
+    fields: [{field: 'count()'}, {field: 'project.id'}],
     sorts: [{field: 'count', kind: 'desc'}],
-    tags: ['foo', 'bar'],
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -338,7 +329,7 @@ describe('pushEventViewToLocation', function() {
     },
   };
 
-  it('correct query string objecet pushed to history', function() {
+  it('correct query string object pushed to history', function() {
     const eventView = new EventView(state);
 
     pushEventViewToLocation({
@@ -351,9 +342,8 @@ describe('pushEventViewToLocation', function() {
         id: '1234',
         name: 'best query',
         field: ['count()', 'project.id'],
-        fieldnames: ['events', 'project'],
+        widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
         sort: ['-count'],
-        tag: ['foo', 'bar'],
         query: 'event.type:error',
         project: [42],
         start: '2019-10-01T00:00:00',
@@ -380,9 +370,8 @@ describe('pushEventViewToLocation', function() {
         id: '1234',
         name: 'best query',
         field: ['count()', 'project.id'],
-        fieldnames: ['events', 'project'],
+        widths: [COL_WIDTH_UNDEFINED, COL_WIDTH_UNDEFINED],
         sort: ['-count'],
-        tag: ['foo', 'bar'],
         query: 'event.type:error',
         project: [42],
         start: '2019-10-01T00:00:00',

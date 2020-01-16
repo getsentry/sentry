@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-import mock
+from sentry.utils.compat import mock
 
 from django.core.urlresolvers import reverse
 
@@ -13,7 +13,7 @@ body_plain = "foo bar"
 class TestMailgunInboundWebhookView(TestCase):
     def setUp(self):
         super(TestMailgunInboundWebhookView, self).setUp()
-        self.event = self.create_event(event_id="a" * 32)
+        self.event = self.store_event(data={"event_id": "a" * 32}, project_id=self.project.id)
         self.mailto = group_id_to_email(self.group.pk)
 
     @mock.patch("sentry.web.frontend.mailgun_inbound_webhook.process_inbound_email")

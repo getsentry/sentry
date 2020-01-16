@@ -11,10 +11,10 @@ class DiscoverSavedQuerySerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
 
         query_keys = [
-            "fieldnames",
             "environment",
             "query",
             "fields",
+            "widths",
             "conditions",
             "aggregations",
             "range",
@@ -22,7 +22,6 @@ class DiscoverSavedQuerySerializer(Serializer):
             "end",
             "orderby",
             "limit",
-            "tags",
             "yAxis",
         ]
 

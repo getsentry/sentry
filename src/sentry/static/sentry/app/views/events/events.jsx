@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/browser';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Panel} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -220,13 +220,18 @@ class Events extends AsyncView {
                 </Feature>
               )}
             </RowDisplay>
-            <Pagination pageLinks={eventsPageLinks} className="" />
+
+            <PaginationNoMargin pageLinks={eventsPageLinks} />
           </PaginationWrapper>
         )}
       </React.Fragment>
     );
   }
 }
+
+const PaginationNoMargin = styled(Pagination)`
+  margin: 0;
+`;
 
 const PaginationWrapper = styled('div')`
   display: flex;

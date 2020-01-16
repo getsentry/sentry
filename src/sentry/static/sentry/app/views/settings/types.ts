@@ -1,10 +1,10 @@
-import {Organization, Project} from 'app/types';
+import {Organization, Project, Scope} from 'app/types';
 
 export type NavigationProps = {
   id?: string;
   organization?: Organization;
   project?: Project;
-  access?: Set<string>;
+  access?: Set<Scope>;
   features?: Set<string>;
 };
 
@@ -41,6 +41,10 @@ export type NavigationItem = {
    * Returns the text of the badge to render next to the navigation.
    */
   badge?: (opts: NavigationGroupProps) => string | number | null;
+  /**
+   * Should clicking on the sidebar generate an analytics event
+   */
+  recordAnalytics?: boolean;
 };
 
 export type NavigationSection = {

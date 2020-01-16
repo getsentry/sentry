@@ -1,8 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import moment from 'moment-timezone';
 import isEqual from 'lodash/isEqual';
-import styled, {cx} from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
 import Count from 'app/components/count';
@@ -305,7 +306,7 @@ class StackedBarChart extends React.Component {
           data-test-id="chart-column"
           height={pct + '%'}
           fill={this.state.series[i].color}
-          className={cx(this.props.barClasses[i], 'barchart-rect')}
+          className={classNames(this.props.barClasses[i], 'barchart-rect')}
         >
           {y}
         </rect>

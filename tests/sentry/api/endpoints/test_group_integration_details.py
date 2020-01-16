@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import six
-import mock
+from sentry.utils.compat import mock
 import copy
 
 from sentry.integrations.example.integration import ExampleIntegration

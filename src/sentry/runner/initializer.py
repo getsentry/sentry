@@ -404,7 +404,8 @@ def __model_unpickle_compat(model_id, attrs=None, factory=None):
         attrs = [] if attrs is None else attrs
         factory = django.db.models.base.simple_class_factory if factory is None else factory
         return model_unpickle(model_id, attrs, factory)
-    elif VERSION[:2] == (1, 10):
+    # TODO(joshuarli): unverified on 1.11, but i'm doing this to unblock tests for now
+    elif VERSION[:2] in [(1, 10), (1, 11)]:
         return model_unpickle(model_id)
     else:
         raise NotImplementedError
@@ -570,7 +571,7 @@ def validate_snuba():
         return
 
     has_all_snuba_required_backends = (
-        settings.SENTRY_SEARCH == "sentry.search.snuba.SnubaSearchBackend"
+        settings.SENTRY_SEARCH == "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
         and settings.SENTRY_TAGSTORE == "sentry.tagstore.snuba.SnubaTagStorage"
         and
         # TODO(mattrobenolt): Remove ServiceDelegator check

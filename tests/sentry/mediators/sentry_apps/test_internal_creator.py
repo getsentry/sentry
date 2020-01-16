@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch, MagicMock
+from sentry.utils.compat.mock import patch, MagicMock
 
 from sentry.mediators.sentry_apps import InternalCreator
 from sentry.models import AuditLogEntryEvent, SentryApp, SentryAppInstallation
@@ -22,6 +22,12 @@ class TestInternalCreator(TestCase):
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
         )
+
+    def test_slug(self):
+        sentry_app = self.creator.call()
+        # test slug is the name + a UUID
+        assert sentry_app.slug[:7] == "nulldb-"
+        assert len(sentry_app.slug) == 13
 
     def test_creates_internal_sentry_app(self):
         sentry_app = self.creator.call()

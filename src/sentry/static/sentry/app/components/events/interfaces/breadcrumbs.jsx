@@ -5,6 +5,7 @@ import SentryTypes from 'app/sentryTypes';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Breadcrumb from 'app/components/events/interfaces/breadcrumbs/breadcrumb';
 import {t, tct} from 'app/locale';
+import {PlatformContext} from 'app/components/events/interfaces/breadcrumbs/platformContext';
 
 function Collapsed(props) {
   return (
@@ -219,12 +220,14 @@ class BreadcrumbsInterface extends React.Component {
         title={title}
         wrapTitle={false}
       >
-        <ul className="crumbs">
-          {numCollapsed > 0 && (
-            <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />
-          )}
-          {crumbContent}
-        </ul>
+        <PlatformContext.Provider value={evt.platform}>
+          <ul className="crumbs">
+            {numCollapsed > 0 && (
+              <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />
+            )}
+            {crumbContent}
+          </ul>
+        </PlatformContext.Provider>
       </EventDataSection>
     );
   }

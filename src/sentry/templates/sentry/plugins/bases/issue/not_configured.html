@@ -19,8 +19,7 @@
                 {% endfor %}
             </ul>
         {% else %}
-            {% absolute_uri '/settings/{}/projects/{}/plugins/' project.organization.slug project.slug p.slug as link %}
-            <p>{% blocktrans %}You still need to <a href="{{ link }}">configure this plugin</a>
+            <p>{% blocktrans %}You still need to <a href="{{ plugin_link }}">configure this plugin</a>
                 before you can use it.{% endblocktrans %}
             </p>
         {% endif %}

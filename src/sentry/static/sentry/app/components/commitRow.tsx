@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Commit} from 'app/types';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
@@ -20,7 +20,7 @@ type Props = {
   customAvatar?: React.ReactNode;
 };
 
-export default class CommitRow extends React.Component<Props> {
+class CommitRow extends React.Component<Props> {
   static propTypes = {
     commit: PropTypes.object,
     customAvatar: PropTypes.node,
@@ -65,12 +65,12 @@ export default class CommitRow extends React.Component<Props> {
   }
 
   render() {
-    const {commit, customAvatar} = this.props;
+    const {commit, customAvatar, ...props} = this.props;
     const {id, dateCreated, message, author, repository} = commit;
     const nonMemberEmail = author && author.id === undefined;
 
     return (
-      <PanelItem key={id} align="center">
+      <PanelItem key={id} {...props}>
         {customAvatar ? (
           customAvatar
         ) : nonMemberEmail ? (
@@ -151,4 +151,8 @@ const Meta = styled(TextOverflow)`
   line-height: 1.5;
   margin: 0;
   color: ${p => p.theme.gray3};
+`;
+
+export default styled(CommitRow)`
+  align-items: center;
 `;

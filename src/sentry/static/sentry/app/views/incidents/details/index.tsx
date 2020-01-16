@@ -8,16 +8,10 @@ import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 
-import {
-  IncidentStatus,
-  fetchIncident,
-  updateSubscription,
-  updateStatus,
-  isOpen,
-} from '../utils';
+import {fetchIncident, updateSubscription, updateStatus, isOpen} from '../utils';
 import DetailsBody from './body';
 import DetailsHeader from './header';
-import {Incident} from '../types';
+import {IncidentStatus, Incident} from '../types';
 
 type Props = {
   api: Client;

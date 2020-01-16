@@ -21,13 +21,15 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_params, InvalidParams
 from sentry.models import Group, GroupStatus
-from sentry.search.snuba.backend import SnubaSearchBackend
+from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+from sentry.snuba import discover
 from sentry.utils.validators import normalize_event_id
+
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
 
-search = SnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
+search = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
@@ -175,7 +177,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 environments,
                 {"count_hits": True, "date_to": end, "date_from": start},
             )
-        except ValidationError as exc:
+        except (ValidationError, discover.InvalidSearchQuery) as exc:
             return Response({"detail": six.text_type(exc)}, status=400)
 
         results = list(cursor_result)

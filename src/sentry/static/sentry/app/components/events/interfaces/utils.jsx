@@ -162,3 +162,17 @@ export function getImageRange(image) {
 
   return [startAddress, endAddress];
 }
+
+export function parseAssembly(assembly) {
+  let name, version, culture, publicKeyToken;
+  const pieces = assembly ? assembly.split(',') : [];
+
+  if (pieces.length === 4) {
+    name = pieces[0];
+    version = pieces[1].split('Version=')[1];
+    culture = pieces[2].split('Culture=')[1];
+    publicKeyToken = pieces[3].split('PublicKeyToken=')[1];
+  }
+
+  return {name, version, culture, publicKeyToken};
+}

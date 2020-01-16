@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
 import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';

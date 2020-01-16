@@ -92,7 +92,6 @@ export const FIELDS = {
   last_seen: 'never',
   latest_event: 'never',
 
-  // user
   user: 'string',
   'user.id': 'string',
   'user.email': 'string',

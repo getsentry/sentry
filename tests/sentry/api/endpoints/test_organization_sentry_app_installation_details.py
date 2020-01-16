@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.testutils import APITestCase
 import responses

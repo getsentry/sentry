@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from botocore.client import ClientError
 from exam import fixture
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.testutils import PluginTestCase
 from sentry.utils import json

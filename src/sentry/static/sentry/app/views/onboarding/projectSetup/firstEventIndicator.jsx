@@ -1,8 +1,8 @@
-import {keyframes} from 'emotion';
+import {keyframes} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -113,7 +113,7 @@ const WaitingIndicator = styled(posed.div(indicatorPoses))`
 `;
 
 const PosedReceivedIndicator = posed(
-  React.forwardRef((props, ref) => <InlineSvg {...props} innerRef={ref} />)
+  React.forwardRef((props, ref) => <InlineSvg {...props} ref={ref} />)
 )(indicatorPoses);
 
 const ReceivedIndicator = styled(PosedReceivedIndicator)`

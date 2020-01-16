@@ -33,6 +33,7 @@ from sentry.incidents.models import (
     IncidentType,
     TimeSeriesSnapshot,
 )
+from sentry.snuba.discover import zerofill
 from sentry.models import Commit, Integration, Project, Release
 from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
@@ -42,7 +43,7 @@ from sentry.snuba.subscriptions import (
     query_aggregation_to_snuba,
 )
 from sentry.utils.committers import get_event_file_committers
-from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult, zerofill
+from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
 
@@ -601,6 +602,7 @@ def create_alert_rule(
     threshold_period,
     include_all_projects=False,
     excluded_projects=None,
+    triggers=None,
 ):
     """
     Creates an alert rule for an organization.
@@ -663,6 +665,7 @@ def update_alert_rule(
     threshold_period=None,
     include_all_projects=None,
     excluded_projects=None,
+    triggers=None,
 ):
     """
     Updates an alert rule.
@@ -862,6 +865,7 @@ def create_alert_rule_trigger(
     alert_threshold,
     resolve_threshold=None,
     excluded_projects=None,
+    actions=None,
 ):
     """
     Creates a new AlertRuleTrigger
@@ -907,6 +911,7 @@ def update_alert_rule_trigger(
     alert_threshold=None,
     resolve_threshold=None,
     excluded_projects=None,
+    actions=None,
 ):
     """
     :param trigger: The AlertRuleTrigger to update

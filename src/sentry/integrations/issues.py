@@ -58,8 +58,6 @@ class IssueBasicMixin(object):
         in Jira, VSTS, GitHub, etc
         """
         event = group.get_latest_event()
-        if event is not None:
-            event.bind_node_data()
 
         return [
             {

@@ -3,7 +3,7 @@ import omit from 'lodash/omit';
 import xor from 'lodash/xor';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';

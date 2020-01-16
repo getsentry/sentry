@@ -53,8 +53,16 @@ class PagerDutyPluginTest(PluginTestCase):
         )
         self.plugin.set_option("service_key", "abcdef", self.project)
 
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "warning",
+                "platform": "python",
+                "culprit": "foo.bar",
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -92,7 +100,7 @@ class PagerDutyPluginTest(PluginTestCase):
                 "datetime": event.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             },
             "service_key": "abcdef",
-            "description": event.get_legacy_message(),
+            "description": event.real_message,
         }
 
     def test_no_secrets(self):

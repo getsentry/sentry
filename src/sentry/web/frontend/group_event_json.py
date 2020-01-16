@@ -28,8 +28,6 @@ class GroupEventJsonView(OrganizationView):
         if event is None:
             raise Http404
 
-        event.bind_node_data()
-
         GroupMeta.objects.populate_cache([group])
 
         return HttpResponse(json.dumps(event.as_dict()), content_type="application/json")

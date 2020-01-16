@@ -6,7 +6,7 @@ import {
   DESCRIPTIONS,
   EVENT_CHOICES,
 } from 'app/views/settings/organizationDeveloperSettings/constants';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import Checkbox from 'app/components/checkbox';
 import Tooltip from 'app/components/tooltip';
 import withOrganization from 'app/utils/withOrganization';
@@ -93,7 +93,7 @@ const SubscriptionInfo = styled('div')`
   flex-direction: column;
 `;
 
-const SubscriptionGridItem = styled('div')`
+const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;
   flex-direction: row;
   justify-content: space-between;

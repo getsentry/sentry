@@ -4,7 +4,7 @@ import logging
 import six
 import types
 
-from mock import patch, PropertyMock
+from sentry.utils.compat.mock import patch, PropertyMock
 
 from sentry.mediators import Mediator, Param
 from sentry.models import User

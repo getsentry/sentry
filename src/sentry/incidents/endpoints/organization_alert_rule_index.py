@@ -9,7 +9,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
-from sentry.incidents.endpoints.serializers import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers import UnifiedAlertRuleSerializer
 
 
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
@@ -33,10 +33,11 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
         """
         Create an alert rule
         """
+
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        serializer = AlertRuleSerializer(
+        serializer = UnifiedAlertRuleSerializer(
             context={"organization": organization, "access": request.access}, data=request.data
         )
 
