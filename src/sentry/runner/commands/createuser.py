@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import click
+import sys
 from sentry.runner.decorators import configuration
 
 
@@ -42,9 +43,9 @@ def _get_superuser():
 @click.option("--superuser/--no-superuser", default=None, is_flag=True)
 @click.option("--no-password", default=False, is_flag=True)
 @click.option("--no-input", default=False, is_flag=True)
-@click.option("--force", default=False, is_flag=True)
+@click.option("--force-update", default=False, is_flag=True)
 @configuration
-def createuser(email, password, superuser, no_password, no_input, force):
+def createuser(email, password, superuser, no_password, no_input, force_update):
     "Create a new user."
     if not no_input:
         if not email:
@@ -78,11 +79,12 @@ def createuser(email, password, superuser, no_password, no_input, force):
         user.set_password(password)
 
     if User.objects.filter(username=email).exists():
-        if force:
-            user.save(force_update=True)
+        if force_update:
+            user.save(force_update=force_update)
             click.echo("User updated: %s" % (email,))
         else:
-            click.echo("User: %s exists, use --force to force an update" % (email,))
+            click.echo("User: %s exists, use --force-update to force" % (email,))
+            sys.exit(2)
     else:
         user.save()
         click.echo("User created: %s" % (email,))
