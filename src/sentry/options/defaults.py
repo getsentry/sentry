@@ -175,7 +175,7 @@ register("store.eventstream-per-type-topic", default=False, flags=FLAG_PRIORITIZ
 register("store.lie-about-filter-status", default=False)
 
 # Use Django event
-register("store.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
+register("store.use-django-event", default=True, flags=FLAG_PRIORITIZE_DISK)
 register("eventstream.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
 
 # Symbolicator refactors
