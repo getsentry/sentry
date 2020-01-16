@@ -175,13 +175,6 @@ class EventsChart extends React.Component {
                     return (
                       <React.Fragment>
                         <TransparentLoadingMask visible={reloading} />
-                        {yAxisOptions && (
-                          <YAxisSelector
-                            selected={yAxis}
-                            options={yAxisOptions}
-                            onChange={this.handleYAxisChange}
-                          />
-                        )}
                         <EventsLineChart
                           {...zoomRenderProps}
                           loading={loading}
@@ -192,6 +185,13 @@ class EventsChart extends React.Component {
                           timeseriesData={timeseriesData}
                           previousTimeseriesData={previousTimeseriesData}
                         />
+                        {yAxisOptions && (
+                          <YAxisSelector
+                            selected={yAxis}
+                            options={yAxisOptions}
+                            onChange={this.handleYAxisChange}
+                          />
+                        )}
                       </React.Fragment>
                     );
                   }}

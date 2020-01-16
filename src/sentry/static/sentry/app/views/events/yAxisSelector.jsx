@@ -10,50 +10,39 @@ const YAxisSelector = props => {
   const selectedOption = options.find(opt => selected === opt.value) || options[0];
 
   return (
-    <Container>
-      <DropdownControl
-        menuOffset="29px"
-        button={({isOpen, getActorProps}) => (
-          <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
-            {selectedOption.label}
-          </StyledDropdownButton>
-        )}
-      >
-        {options.map(opt => (
-          <StyledDropdownItem
-            key={opt.value}
-            onSelect={onChange}
-            eventKey={opt.value}
-            isActive={selected === opt.value}
-          >
-            {opt.label}
-          </StyledDropdownItem>
-        ))}
-      </DropdownControl>
-    </Container>
+    <DropdownControl
+      menuOffset="29px"
+      button={({isOpen, getActorProps}) => (
+        <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
+          {selectedOption.label}
+        </StyledDropdownButton>
+      )}
+    >
+      {options.map(opt => (
+        <StyledDropdownItem
+          key={opt.value}
+          onSelect={onChange}
+          eventKey={opt.value}
+          isActive={selected === opt.value}
+        >
+          {opt.label}
+        </StyledDropdownItem>
+      ))}
+    </DropdownControl>
   );
 };
 
 const StyledDropdownButton = styled(
   React.forwardRef((prop, ref) => <DropdownButton ref={ref} {...prop} />)
 )`
-  color: ${p => p.theme.gray2};
-  font-weight: normal;
-  text-transform: capitalize;
-  height: ${space(4)};
-  padding: ${space(0.5)} ${space(1)};
-  background: ${p => p.theme.offWhite};
   border-radius: ${p =>
-    p.isOpen
-      ? `0 ${p.theme.borderRadius} 0 0`
-      : `0 ${p.theme.borderRadius} 0 ${p.theme.borderRadius}`};
+    p.isOpen && `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
+  padding: ${space(1)} ${space(2)};
+  min-width: 200px;
 `;
 
-const Container = styled('div')`
-  position: absolute;
-  /* compensate to have borders overlap */
-  top: -1px;
-  right: -1px;
+const StyledDropdownItem = styled(DropdownItem)`
+  color: inherit;
 `;
 
 YAxisSelector.propTypes = {
@@ -61,9 +50,5 @@ YAxisSelector.propTypes = {
   onChange: PropTypes.func.isRequired,
   selected: PropTypes.string,
 };
-
-const StyledDropdownItem = styled(DropdownItem)`
-  text-transform: capitalize;
-`;
 
 export default YAxisSelector;
