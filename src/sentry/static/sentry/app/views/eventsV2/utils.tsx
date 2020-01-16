@@ -1,3 +1,4 @@
+import Papa from 'papaparse';
 import partial from 'lodash/partial';
 import pick from 'lodash/pick';
 import isString from 'lodash/isString';
@@ -8,7 +9,9 @@ import {t} from 'app/locale';
 import {Event, Organization} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
+import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {disableMacros} from 'app/views/discover/result/utils';
 import {generateQueryWithTag} from 'app/utils';
 import {
   COL_WIDTH_UNDEFINED,
@@ -375,4 +378,34 @@ export function decodeScalar(
       ? value
       : undefined;
   return isString(unwrapped) ? unwrapped : undefined;
+}
+
+export function downloadAsCsv(tableData, columnOrder, filename) {
+  const {data} = tableData;
+  const headings = columnOrder.map(column => column.name);
+
+  const csvContent = Papa.unparse({
+    fields: headings,
+    data: data.map(row => {
+      return headings.map(col => {
+        // alias for project doesn't match the table data name
+        if (col === 'project') {
+          col = 'project.name';
+        } else {
+          col = getAggregateAlias(col);
+        }
+        return disableMacros(row[col]);
+      });
+    }),
+  });
+
+  const encodedDataUrl = encodeURI(`data:text/csv;charset=utf8,${csvContent}`);
+
+  // Create a download link then click it, this is so we can get a filename
+  const link = document.createElement('a');
+  const now = new Date();
+  link.setAttribute('href', encodedDataUrl);
+  link.setAttribute('download', `${filename} ${getUtcDateString(now)}.csv`);
+  link.click();
+  link.remove();
 }

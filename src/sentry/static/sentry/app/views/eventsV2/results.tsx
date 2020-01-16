@@ -111,6 +111,7 @@ class Results extends React.Component<Props, State> {
     const {organization, location, router} = this.props;
     const {eventView} = this.state;
     const query = location.query.query || '';
+    const title = this.getDocumentTitle();
 
     // Make option set and add the default options in.
     const yAxisOptions = uniqBy(
@@ -128,7 +129,7 @@ class Results extends React.Component<Props, State> {
     );
 
     return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
+      <SentryDocumentTitle title={title} objSlug={organization.slug}>
         <React.Fragment>
           <GlobalSelectionHeader organization={organization} />
           <NoProjectMessage organization={organization}>
@@ -169,6 +170,7 @@ class Results extends React.Component<Props, State> {
                   organization={organization}
                   eventView={eventView}
                   location={location}
+                  title={title}
                 />
               </Main>
               <Side eventView={eventView}>{this.renderTagsTable()}</Side>
