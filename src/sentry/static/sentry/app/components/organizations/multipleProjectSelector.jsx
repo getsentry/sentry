@@ -2,6 +2,7 @@ import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {Link} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
@@ -11,6 +12,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectSelector';
 import InlineSvg from 'app/components/inlineSvg';
+import Tooltip from 'app/components/tooltip';
 
 import HeaderItem from 'app/components/organizations/headerItem';
 import {growIn} from 'app/styles/animations';
@@ -133,6 +135,32 @@ export default class MultipleProjectSelector extends React.PureComponent {
     this.setState({hasChanges: true});
   };
 
+  renderProjectName() {
+    const {location} = this.context.router;
+    const {forceProject, multi, organization} = this.props;
+
+    if (forceProject && multi) {
+      return (
+        <Tooltip title={t('Project Issues Stream')} position="bottom">
+          <StyledLink
+            to={{
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {...location.query, project: forceProject.id},
+            }}
+          >
+            {forceProject.slug}
+          </StyledLink>
+        </Tooltip>
+      );
+    }
+
+    if (forceProject) {
+      return forceProject.slug;
+    }
+
+    return '';
+  }
+
   render() {
     const {
       value,
@@ -168,7 +196,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
           forceProject && `/settings/${organization.slug}/projects/${forceProject.slug}/`
         }
       >
-        {forceProject ? forceProject.slug : ''}
+        {this.renderProjectName()}
       </StyledHeaderItem>
     ) : loadingProjects ? (
       <StyledHeaderItem
@@ -329,4 +357,12 @@ const StyledInlineSvg = styled(InlineSvg)`
   height: 18px;
   width: 18px;
   transform: translateY(-2px);
+`;
+
+const StyledLink = styled(Link)`
+  color: ${p => p.theme.gray2};
+
+  &:hover {
+    color: ${p => p.theme.gray2};
+  }
 `;
