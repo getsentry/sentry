@@ -17,7 +17,10 @@ import withOrganization from 'app/utils/withOrganization';
 
 import MonitorModel from './monitorModel';
 
-const SCHEDULE_TYPES = [['crontab', 'Crontab'], ['interval', 'Interval']];
+const SCHEDULE_TYPES = [
+  ['crontab', 'Crontab'],
+  ['interval', 'Interval'],
+];
 
 const MONITOR_TYPES = [['cron_job', 'Cron Job']];
 

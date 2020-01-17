@@ -208,12 +208,12 @@ type SentryEventBase = {
 // This type is incomplete
 export type Event =
   | ({type: string} & SentryEventBase)
-  | {
+  | ({
       type: 'transaction';
       entries: SpanEntry[];
       startTimestamp: number;
       endTimestamp: number;
-    } & SentryEventBase;
+    } & SentryEventBase);
 
 export type EventsStatsData = [number, {count: number}[]][];
 

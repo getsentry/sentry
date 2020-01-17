@@ -27,6 +27,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 
@@ -398,6 +399,8 @@ class Release(Model):
                             re.sub(r"[^a-zA-Z0-9\-_\.]*", "", data["author_name"]).lower()
                             + "@localhost"
                         )
+
+                    author_email = truncatechars(author_email, 75)
 
                     if not author_email:
                         author = None

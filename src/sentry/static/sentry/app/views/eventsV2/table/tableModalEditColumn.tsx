@@ -221,20 +221,17 @@ function filterAggregationByField(organization: Organization, f?: Field): Aggreg
     return [];
   }
 
-  functionList = functionList.reduce(
-    (accumulator, a) => {
-      if (
-        AGGREGATIONS[a].type.includes(fieldType) ||
-        AGGREGATIONS[a].type === '*' ||
-        fieldType === '*'
-      ) {
-        accumulator.push(a as Aggregation);
-      }
+  functionList = functionList.reduce((accumulator, a) => {
+    if (
+      AGGREGATIONS[a].type.includes(fieldType) ||
+      AGGREGATIONS[a].type === '*' ||
+      fieldType === '*'
+    ) {
+      accumulator.push(a as Aggregation);
+    }
 
-      return accumulator;
-    },
-    [] as Aggregation[]
-  );
+    return accumulator;
+  }, [] as Aggregation[]);
 
   // sort list in ascending order
   functionList.sort();
@@ -262,26 +259,23 @@ function filterFieldByAggregation(
     return fieldList as Field[];
   }
 
-  fieldList = fieldList.reduce(
-    (accumulator, f) => {
-      // tag keys are all strings, and values not in FIELDS is a tag.
-      const fieldType = FIELDS[f] || 'string';
-      if (fieldType === 'never') {
-        return accumulator;
-      }
-
-      if (
-        AGGREGATIONS[a].type.includes(fieldType) ||
-        AGGREGATIONS[a].type === '*' ||
-        fieldType === '*'
-      ) {
-        accumulator.push(f as Field);
-      }
-
+  fieldList = fieldList.reduce((accumulator, f) => {
+    // tag keys are all strings, and values not in FIELDS is a tag.
+    const fieldType = FIELDS[f] || 'string';
+    if (fieldType === 'never') {
       return accumulator;
-    },
-    [] as Field[]
-  );
+    }
+
+    if (
+      AGGREGATIONS[a].type.includes(fieldType) ||
+      AGGREGATIONS[a].type === '*' ||
+      fieldType === '*'
+    ) {
+      accumulator.push(f as Field);
+    }
+
+    return accumulator;
+  }, [] as Field[]);
 
   // sort list in ascending order
   fieldList.sort();

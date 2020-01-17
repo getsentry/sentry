@@ -289,18 +289,21 @@ class ContextMenu extends React.Component {
             >
               <ContextMenuButton
                 data-test-id="context-menu"
-                {...getActorProps({
+                {...(getActorProps({
                   onClick: (event: MouseEvent) => {
                     event.stopPropagation();
                     event.preventDefault();
                   },
-                }) as any}
+                }) as any)}
               >
                 <InlineSvg src="icon-ellipsis-filled" />
               </ContextMenuButton>
 
               {isOpen && (
-                <ul {...getMenuProps({}) as any} className={classNames('dropdown-menu')}>
+                <ul
+                  {...(getMenuProps({}) as any)}
+                  className={classNames('dropdown-menu')}
+                >
                   {children}
                 </ul>
               )}

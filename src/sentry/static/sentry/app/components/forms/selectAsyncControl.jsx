@@ -66,7 +66,10 @@ class SelectAsyncControl extends React.Component {
       .requestPromise(url, {
         query: typeof onQuery === 'function' ? onQuery(query) : {query},
       })
-      .then(data => cb(null, data), err => cb(err));
+      .then(
+        data => cb(null, data),
+        err => cb(err)
+      );
   }, 250);
 
   handleLoadOptions = () => {

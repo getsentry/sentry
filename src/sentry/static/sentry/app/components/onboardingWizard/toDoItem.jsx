@@ -51,9 +51,7 @@ class TodoItem extends React.Component {
     const {task} = this.props;
     let learnMoreUrl;
     if (task.featureLocation === 'project') {
-      learnMoreUrl = `/organizations/${org.slug}/projects/choose/?onboarding=1&task=${
-        task.task
-      }`;
+      learnMoreUrl = `/organizations/${org.slug}/projects/choose/?onboarding=1&task=${task.task}`;
     } else if (task.featureLocation === 'organization') {
       learnMoreUrl = `/organizations/${org.slug}/${task.location}`;
     } else if (task.featureLocation === 'absolute') {

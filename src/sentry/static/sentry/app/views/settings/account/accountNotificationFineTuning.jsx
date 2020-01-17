@@ -21,7 +21,11 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
     title: 'Project Alerts',
     description: t('Control alerts that you receive per project.'),
     type: 'select',
-    choices: [[-1, t('Default')], [1, t('On')], [0, t('Off')]],
+    choices: [
+      [-1, t('Default')],
+      [1, t('On')],
+      [0, t('Off')],
+    ],
     defaultValue: -1,
     defaultFieldName: 'subscribeByDefault',
   },
@@ -63,7 +67,10 @@ const ACCOUNT_NOTIFICATION_FIELDS = {
     type: 'select',
     // API only saves organizations that have this disabled, so we should default to "On"
     defaultValue: 1,
-    choices: [[1, t('On')], [0, t('Off')]],
+    choices: [
+      [1, t('On')],
+      [0, t('Off')],
+    ],
     defaultFieldName: 'weeklyReports',
   },
 
