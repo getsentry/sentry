@@ -194,12 +194,12 @@ class ActivityMailDebugView(View):
         data = event_manager.get_data()
         event_type = event_manager.get_event_type()
 
-        group.message = event_manager.get_search_message()
-        group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
-
         event = eventstore.create_event(
             event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
         )
+
+        group.message = event.search_message
+        group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
         activity = Activity(group=group, project=event.project, **self.get_activity(request, event))
 
@@ -244,7 +244,7 @@ def alert(request):
         event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
     event_type = event_manager.get_event_type()
 
-    group.message = event_manager.get_search_message()
+    group.message = event.search_message
     group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
     rule = Rule(label="An example rule")
