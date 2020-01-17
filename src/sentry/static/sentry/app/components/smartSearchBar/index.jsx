@@ -221,6 +221,7 @@ class SmartSearchBar extends React.Component {
 
     this.state = {
       query: props.query !== null ? addSpace(props.query) : props.defaultQuery,
+      previousQuery: undefined,
       noValueQuery: undefined,
 
       searchTerm: '',
@@ -633,6 +634,12 @@ class SmartSearchBar extends React.Component {
 
     const cursor = this.getCursorPosition();
     let query = this.state.query;
+    // Don't continue if the query hasn't changed
+    if (query === this.state.previousQuery) {
+      return;
+    } else {
+      this.setState({previousQuery: query});
+    }
 
     const lastTermIndex = SmartSearchBar.getLastTermIndex(query, cursor);
     const terms = SmartSearchBar.getQueryTerms(query.slice(0, lastTermIndex));
