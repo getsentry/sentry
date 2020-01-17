@@ -6,7 +6,7 @@ import os
 import datetime
 import json
 import logging
-import mock
+from sentry.utils.compat import mock
 import six
 from time import sleep
 import zlib
@@ -176,8 +176,7 @@ class SentryRemoteTest(SnubaTestCase):
         return reverse("sentry-api-store")
 
     def get_event(self, event_id):
-        instance = eventstore.get_event_by_id(self.project.id, event_id, eventstore.full_columns)
-        instance.bind_node_data()
+        instance = eventstore.get_event_by_id(self.project.id, event_id)
         return instance
 
     def test_minimal(self):
@@ -615,7 +614,6 @@ class CspReportTest(TestCase, SnubaTestCase):
         )
         assert len(events) == 1
         e = events[0]
-        e.bind_node_data()
         assert output["message"] == e.data["logentry"]["formatted"]
         for key, value in six.iteritems(output["tags"]):
             assert e.get_tag(key) == value

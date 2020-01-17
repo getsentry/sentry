@@ -265,11 +265,6 @@ urlpatterns += [
                     ),
                 ),
                 url(
-                    r"^settings/identities/(?P<identity_id>[^\/]+)/disconnect/$",
-                    accounts.disconnect_identity,
-                    name="sentry-account-disconnect-identity",
-                ),
-                url(
                     r"^settings/identities/associate/(?P<organization_slug>[^\/]+)/(?P<provider_key>[^\/]+)/(?P<external_id>[^\/]+)/$",
                     AccountIdentityAssociateView.as_view(),
                     name="sentry-account-associate-identity",

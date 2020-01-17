@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.tasks.servicehooks import get_payload_v0, process_service_hook
 from sentry.testutils import TestCase

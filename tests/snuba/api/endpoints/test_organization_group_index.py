@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from mock import patch, Mock
+from sentry.utils.compat.mock import patch, Mock
 
 from sentry.models import (
     Activity,

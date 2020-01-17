@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import logging
-import mock
+from sentry.utils.compat import mock
 import pytest
 import six
 
@@ -20,9 +20,6 @@ class EventStorageTest(TestCase):
 
     def test_minimal_columns(self):
         assert len(self.eventstorage.minimal_columns) == 4
-
-    def test_full_columns(self):
-        assert len(self.eventstorage.full_columns) == 17
 
     def test_bind_nodes(self):
         """
