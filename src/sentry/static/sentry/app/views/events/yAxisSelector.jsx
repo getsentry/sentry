@@ -3,7 +3,9 @@ import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {SectionHeading} from '../eventsV2/styles';
 
 const YAxisSelector = props => {
   const {options, onChange, selected} = props;
@@ -11,6 +13,7 @@ const YAxisSelector = props => {
 
   return (
     <ChartControls>
+      <StyledLabel>{t('Y-Axis')}</StyledLabel>
       <DropdownControl
         menuOffset="29px"
         button={({isOpen, getActorProps}) => (
@@ -41,7 +44,7 @@ const StyledDropdownButton = styled(
     p.isOpen && `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   padding: ${space(1)} ${space(2)};
   font-weight: normal;
-  min-width: 200px;
+  min-width: 180px;
   color: ${p => p.theme.gray4};
 
   &:hover,
@@ -55,6 +58,11 @@ const ChartControls = styled('div')`
   justify-content: flex-end;
   padding: ${space(1)};
   border-top: 1px solid ${p => p.theme.borderLight};
+`;
+
+const StyledLabel = styled(SectionHeading)`
+  padding-right: ${space(1)};
+  line-height: 1.2;
 `;
 
 YAxisSelector.propTypes = {
