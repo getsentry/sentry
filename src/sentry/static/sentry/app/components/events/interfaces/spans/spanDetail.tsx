@@ -144,9 +144,7 @@ class SpanDetail extends React.Component<Props, State> {
         'timestamp',
       ],
       orderby: '-timestamp',
-      query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${
-        span.span_id
-      }`,
+      query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${span.span_id}`,
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
       projects: [],
       version: 2,

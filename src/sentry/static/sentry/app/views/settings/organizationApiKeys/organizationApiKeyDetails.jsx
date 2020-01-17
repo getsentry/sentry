@@ -77,9 +77,7 @@ class OrganizationApiKeyDetails extends AsyncView {
 
         <ApiForm
           apiMethod="PUT"
-          apiEndpoint={`/organizations/${this.props.params.orgId}/api-keys/${
-            this.props.params.apiKey
-          }/`}
+          apiEndpoint={`/organizations/${this.props.params.orgId}/api-keys/${this.props.params.apiKey}/`}
           initialData={this.state.apiKey}
           onSubmitSuccess={this.handleSubmitSuccess}
           onSubmitError={this.handleSubmitError}

@@ -18,6 +18,14 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
     conf_key = slug
     conf_title = title
 
+    def error_message_from_json(self, data):
+        message = data.get("message", "unknown error")
+        errors = data.get("errors", None)
+        if errors:
+            return "%s: %s" % (message, " ".join(errors))
+
+        return message
+
     def is_configured(self, project, **kwargs):
         return bool(self.get_option("service_key", project))
 
@@ -97,4 +105,23 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
             )
             assert response["status"] == "success"
         except Exception as e:
+            # XXX(Meredith): The original logging statement below doesn't seem to be logging in
+            # production so adding a couple other variations to see if it's the payload we are
+            # trying to log or something else. Removed once testing is done.
+            self.logger.info("notification-plugin.notify-failed.pagerduty-failed")
+            self.logger.info(
+                "notification-plugin.notify-failed.pagerduty-error: %s" % six.text_type(e)
+            )
+
+            self.logger.info(
+                "notification-plugin.notify-failed.pagerduty",
+                extra={
+                    "error": six.text_type(e),
+                    # Log out all the required attributes noted https://v2.developer.pagerduty.com/docs/trigger-events
+                    # incase any are missing or blank, except for event_type since we hard code that above to "trigger".
+                    "description": description,
+                    "incident_key": six.text_type(group.id),
+                    "service_key": service_key,
+                },
+            )
             self.raise_error(e)

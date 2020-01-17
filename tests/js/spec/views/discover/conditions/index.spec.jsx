@@ -6,9 +6,15 @@ import Conditions from 'app/views/discover/conditions';
 describe('Conditions', function() {
   let wrapper, onChangeMock, conditions;
   beforeEach(function() {
-    conditions = [['col1', 'IS NOT NULL', null], ['col2', '=', 2]];
+    conditions = [
+      ['col1', 'IS NOT NULL', null],
+      ['col2', '=', 2],
+    ];
     onChangeMock = jest.fn();
-    const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
+    const columns = [
+      {name: 'col1', type: 'string'},
+      {name: 'col2', type: 'number'},
+    ];
     const value = [];
     wrapper = mountWithTheme(
       <Conditions columns={columns} onChange={onChangeMock} value={value} />,
