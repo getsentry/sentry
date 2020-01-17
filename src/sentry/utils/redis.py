@@ -120,7 +120,7 @@ class _RedisCluster(object):
                     startup_nodes=hosts,
                     decode_responses=True,
                     skip_full_coverage_check=True,
-                    max_connections=1024,
+                    max_connections=16,
                     max_connections_per_node=True,
                 )
             else:
