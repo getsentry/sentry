@@ -65,7 +65,6 @@ class EventsLineChart extends React.Component {
         fontSize: '11',
         fontFamily: 'Rubik',
       },
-      imageHeight: 11,
       data: ['Current Period', 'Previous Period'],
     };
 
