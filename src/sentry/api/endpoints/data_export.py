@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from sentry.api.bases.incident import IncidentPermission
 from sentry.api.base import Endpoint
+from django.utils import timezone
 
 
 from sentry.tasks.data_export import create_record
@@ -17,8 +18,16 @@ class DataExportEndpoint(Endpoint):
         Retrieve information about the temporary file record.
         Used to populate page emailed to the user.
         """
-        data_record = ExportedData.objects.get(data_id=kwargs["data_id"])
-        return self.respond(data_record.get_storage_info())
+        try:
+            export_record = ExportedData.objects.get(data_id=kwargs["data_id"])
+            if export_record.finished_at is None:
+                return self.respond({"status": "EARLY"})
+            elif export_record.expired_at < timezone.now():
+                return self.respond({"status": "EXPIRED"})
+            else:
+                return self.respond(export_record.get_storage_info())
+        except ExportedData.DoesNotExist:
+            return self.respond({"status": "INVALID"})
 
     def post(self, request, *args, **kwargs):
         """

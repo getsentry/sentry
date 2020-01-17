@@ -26,6 +26,7 @@ class ExportedData(Model):
     finished_at = models.DateTimeField(null=True)
     expired_at = models.DateTimeField(null=True)
     storage_url = models.CharField(max_length=256, null=True)
+    # TODO(Leander): Implement a standardized query shape
     # query = some custom shape???
 
     class Meta:
@@ -38,9 +39,9 @@ class ExportedData(Model):
     def set_finished_at(self, storage_url):
         self.finished_at = timezone.now()
         self.storage_url = storage_url
+        self.expired_at = timezone.now() + DEFAULT_EXPIRATION
 
     def set_expired_at(self, expire_time):
-        # TODO: Replace this with a parameterized version
-        self.expired_at = timezone.now()
+        self.expired_at = expire_time
 
     __repr__ = sane_repr("data_id")
