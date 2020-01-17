@@ -54,9 +54,10 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
 
         project_configs = {}
         for project in projects:
-            project_configs[project.id] = get_project_config(
+            project_config = get_project_config(
                 project, project_keys=project_keys.get(project.id, []), full_config=True
-            ).to_dict()
+            )
+            project_configs[project.id] = project_config.to_dict()
 
         projectconfig_cache.set_many(project_configs)
     else:
