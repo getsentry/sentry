@@ -6,6 +6,7 @@ from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.eventstore.base import Filter
+
 from sentry.utils.samples import load_data
 
 

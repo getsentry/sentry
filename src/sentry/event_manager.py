@@ -8,6 +8,7 @@ import jsonschema
 import six
 
 from datetime import datetime, timedelta
+from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
@@ -437,6 +438,34 @@ class EventManager(object):
             "location": event_type.get_location(event_metadata),
         }
 
+    def get_search_message(self, event_metadata=None, culprit=None):
+        """This generates the internal event.message attribute which is used
+        for search purposes.  It adds a bunch of data from the metadata and
+        the culprit.
+        """
+        if event_metadata is None:
+            event_metadata = self.get_event_type().get_metadata(self._data)
+        if culprit is None:
+            culprit = self.get_culprit()
+
+        data = self._data
+        message = ""
+
+        if data.get("logentry"):
+            message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
+
+        if event_metadata:
+            for value in six.itervalues(event_metadata):
+                value_u = force_text(value, errors="replace")
+                if value_u not in message:
+                    message = u"{} {}".format(message, value_u)
+
+        if culprit and culprit not in message:
+            culprit_u = force_text(culprit, errors="replace")
+            message = u"{} {}".format(message, culprit_u)
+
+        return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
+
     def save(self, project_id, raw=False, assume_normalized=False):
         """
         We re-insert events with duplicate IDs into Snuba, which is responsible
@@ -586,17 +615,13 @@ class EventManager(object):
         # however the data is dynamically overridden by Event.title and
         # Event.location (See Event.as_dict)
         materialized_metadata = self.materialize_metadata()
+        event_metadata = materialized_metadata["metadata"]
         data.update(materialized_metadata)
         data["culprit"] = culprit
 
         # index components into ``Event.message``
         # See GH-3248
-        # TODO: We temporarily save the search message into the message field to
-        # maintain backward compatibility with the Django event model. Once
-        # "store.use-django-event" is turned off for good, we can just reference
-        # event.search_message everywhere.
-        event.message = event.search_message
-
+        event.message = self.get_search_message(event_metadata, culprit)
         received_timestamp = event.data.get("received") or float(event.datetime.strftime("%s"))
 
         if not issueless_event:

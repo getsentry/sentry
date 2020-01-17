@@ -4,10 +4,8 @@ import six
 import string
 
 from collections import OrderedDict
-from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
 
@@ -29,7 +27,6 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
-from sentry.utils.safe import trim
 
 
 class EventDict(CanonicalKeyDict):
@@ -344,37 +341,6 @@ class EventCommon(object):
         data["location"] = self.location
 
         return data
-
-    @property
-    def search_message(self):
-        """
-        The internal search_message attribute is only used for search purposes.
-        It adds a bunch of data from the metadata and the culprit.
-        """
-        data = self.data
-        culprit = self.culprit
-
-        event_metadata = self.get_event_metadata()
-
-        if event_metadata is None:
-            event_metadata = eventtypes.get(self.get_event_type())().get_metadata(self.data)
-
-        message = ""
-
-        if data.get("logentry"):
-            message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
-
-        if event_metadata:
-            for value in six.itervalues(event_metadata):
-                value_u = force_text(value, errors="replace")
-                if value_u not in message:
-                    message = u"{} {}".format(message, value_u)
-
-        if culprit and culprit not in message:
-            culprit_u = force_text(culprit, errors="replace")
-            message = u"{} {}".format(message, culprit_u)
-
-        return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
 
 def ref_func(x):
