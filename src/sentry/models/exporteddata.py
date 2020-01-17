@@ -11,6 +11,10 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 DEFAULT_EXPIRATION = timedelta(days=7)
 
 
+def generate_data_id():
+    return uuid4().hex
+
+
 class ExportedData(Model):
     """
     Stores references to asynchronous data export jobs being stored
@@ -21,13 +25,13 @@ class ExportedData(Model):
 
     organization = FlexibleForeignKey("sentry.Organization")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
-    data_id = models.CharField(max_length=32, unique=True, default=uuid4().hex)
+    data_id = models.CharField(max_length=32, unique=True, default=generate_data_id)
     created_at = models.DateTimeField(default=timezone.now)
     finished_at = models.DateTimeField(null=True)
     expired_at = models.DateTimeField(null=True)
-    storage_url = models.CharField(max_length=256, null=True)
-    # TODO(Leander): Implement a standardized query shape
-    # query = some custom shape???
+    storage_url = models.URLField(null=True)
+    query_type = models.CharField(max_length=32)  # e.g.: Discover_V1, Billing, IssuesByTag
+    query_info = models.TextField()  # i.e.: sort rules, order-by's, custom settings
 
     class Meta:
         app_label = "sentry"
