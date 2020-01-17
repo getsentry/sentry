@@ -104,4 +104,4 @@ class SearchBar extends React.PureComponent {
   }
 }
 
-export default withTags(withApi(SearchBar));
+export default withApi(withTags(SearchBar));

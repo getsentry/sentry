@@ -33,7 +33,6 @@ const setQuery = async (el, query) => {
 describe('SearchBar', function() {
   let options;
   let tagValuesMock;
-  let tagKeysMock;
   const organization = TestStubs.Organization();
   const props = {
     organization,
@@ -42,7 +41,11 @@ describe('SearchBar', function() {
 
   beforeEach(function() {
     TagStore.reset();
-    TagStore.onLoadTagsSuccess(TestStubs.Tags());
+    TagStore.onLoadTagsSuccess([
+      {count: 3, key: 'gpu', name: 'Gpu'},
+      {count: 3, key: 'mytag', name: 'Mytag'},
+      {count: 0, key: 'browser', name: 'Browser'},
+    ]);
 
     options = TestStubs.routerContext();
 
@@ -61,33 +64,10 @@ describe('SearchBar', function() {
       url: '/organizations/org-slug/tags/gpu/values/',
       body: [{count: 2, name: 'Nvidia 1080ti'}],
     });
-    tagKeysMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [
-        {count: 3, key: 'gpu', name: 'Gpu'},
-        {count: 3, key: 'mytag', name: 'Mytag'},
-        {count: 0, key: 'browser', name: 'Browser'},
-      ],
-    });
   });
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
-  });
-
-  it('fetches organization tags on mountWithTheme', async function() {
-    const wrapper = mountWithTheme(<SearchBar {...props} />, options);
-    await tick();
-    await tick();
-
-    expect(tagKeysMock).toHaveBeenCalledTimes(1);
-
-    expect(wrapper.find('SmartSearchBar').prop('supportedTags')).toEqual(
-      expect.objectContaining({
-        gpu: {key: 'gpu', name: 'Gpu', count: 3, values: []},
-        mytag: {key: 'mytag', name: 'Mytag', count: 3, values: []},
-      })
-    );
   });
 
   it('searches and selects an event field value', async function() {

@@ -4,11 +4,14 @@ import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 import uniqBy from 'lodash/uniqBy';
+import isEqual from 'lodash/isEqual';
 
-import {Organization} from 'app/types';
+import {Organization, GlobalSelection} from 'app/types';
 
+import {Client} from 'app/api';
 import {Panel} from 'app/components/panels';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -21,7 +24,9 @@ import EventsChart from 'app/views/events/eventsChart';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import Table from './table';
 import Tags from './tags';
@@ -35,9 +40,11 @@ const CHART_AXIS_OPTIONS = [
 ];
 
 type Props = {
+  api: Client;
   router: ReactRouter.InjectedRouter;
   location: Location;
   organization: Organization;
+  selection: GlobalSelection;
 };
 
 type State = {
@@ -53,6 +60,21 @@ class Results extends React.Component<Props, State> {
   state = {
     eventView: EventView.fromLocation(this.props.location),
   };
+
+  componentDidMount() {
+    const {api, organization, selection} = this.props;
+    loadOrganizationTags(api, organization.slug, selection);
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    const {api, organization, selection} = this.props;
+    if (
+      !isEqual(prevProps.selection.projects, selection.projects) ||
+      !isEqual(prevProps.selection.datetime, selection.datetime)
+    ) {
+      loadOrganizationTags(api, organization.slug, selection);
+    }
+  }
 
   handleSearch = (query: string) => {
     const {router, location} = this.props;
@@ -226,4 +248,4 @@ export function generateDiscoverResultsRoute(orgSlug: string): string {
   return `/organizations/${orgSlug}/eventsv2/results/`;
 }
 
-export default withOrganization(Results);
+export default withApi(withOrganization(withGlobalSelection(Results)));
