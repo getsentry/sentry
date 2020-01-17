@@ -68,6 +68,7 @@ def test_generate(
     monkeypatch,
     default_project,
     default_organization,
+    default_projectkey,
     task_runner,
     entire_organization,
     redis_cache,
@@ -86,6 +87,14 @@ def test_generate(
 
     assert cfg["organizationId"] == default_organization.id
     assert cfg["projectId"] == default_project.id
+    assert cfg["publicKeys"] == [
+        {
+            "publicKey": default_projectkey.public_key,
+            "isEnabled": True,
+            "numericId": default_projectkey.id,
+            "quotas": [],
+        }
+    ]
 
 
 @pytest.mark.django_db
