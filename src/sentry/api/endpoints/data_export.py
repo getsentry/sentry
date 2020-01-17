@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry import features
 from sentry.api.bases.incident import IncidentPermission
 from sentry.api.base import Endpoint
 from django.utils import timezone
@@ -18,6 +19,8 @@ class DataExportEndpoint(Endpoint):
         Retrieve information about the temporary file record.
         Used to populate page emailed to the user.
         """
+        if not features.has("organizations:data-export"):
+            return self.respond(status=404)
         try:
             export_record = ExportedData.objects.get(data_id=kwargs["data_id"])
             if export_record.finished_at is None:
@@ -34,5 +37,8 @@ class DataExportEndpoint(Endpoint):
         Route to begin the asynchronous creation of raw data
         to export. Used for Async CSV export.
         """
+        if not features.has("organizations:data-export"):
+            return self.respond(status=404)
+
         create_record()
         return self.respond("This endpoint will be used to begin CSV generation.")

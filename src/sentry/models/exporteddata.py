@@ -36,10 +36,10 @@ class ExportedData(Model):
     def get_storage_info(self):
         return {"expired_at": self.expired_at, "storage_url": self.storage_url}
 
-    def set_finished_at(self, storage_url):
+    def set_completion_info(self, storage_url):
+        self.expired_at = timezone.now() + DEFAULT_EXPIRATION
         self.finished_at = timezone.now()
         self.storage_url = storage_url
-        self.expired_at = timezone.now() + DEFAULT_EXPIRATION
 
     def set_expired_at(self, expire_time):
         self.expired_at = expire_time
