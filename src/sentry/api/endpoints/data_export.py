@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from sentry.tasks.data_export import create_record
 
-from sentry.models import ExportedData
+from sentry.models import ExportedData, Organization
 
 
 class DataExportEndpoint(Endpoint):
@@ -19,7 +19,8 @@ class DataExportEndpoint(Endpoint):
         Retrieve information about the temporary file record.
         Used to populate page emailed to the user.
         """
-        if not features.has("organizations:data-export"):
+        organization = Organization.objects.get(slug=kwargs["organization_slug"])
+        if not features.has("organizations:data-export", organization):
             return self.respond(status=404)
         try:
             export_record = ExportedData.objects.get(data_id=kwargs["data_id"])
@@ -37,7 +38,8 @@ class DataExportEndpoint(Endpoint):
         Route to begin the asynchronous creation of raw data
         to export. Used for Async CSV export.
         """
-        if not features.has("organizations:data-export"):
+        organization = Organization.objects.get(slug=kwargs["organization_slug"])
+        if not features.has("organizations:data-export", organization):
             return self.respond(status=404)
 
         create_record()
