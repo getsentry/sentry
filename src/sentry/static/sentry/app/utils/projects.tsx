@@ -207,7 +207,7 @@ class Projects extends React.Component<Props, State> {
       fetching: true,
     });
 
-    let projects = [];
+    let projects: Project[] = [];
     let fetchError = null;
 
     try {
