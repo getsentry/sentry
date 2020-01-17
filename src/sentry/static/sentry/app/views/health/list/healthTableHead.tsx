@@ -4,60 +4,60 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
-  StyledLayout,
-  StyledColumn,
-  StyledCenterAlignedColumn,
-  StyledRightAlignedColumn,
-  StyledChartColumn,
+  Layout,
+  Column,
+  CenterAlignedColumn,
+  RightAlignedColumn,
+  ChartColumn,
 } from 'app/views/health/list/commonLayout';
 import ToolbarHeader from 'app/components/toolbarHeader';
 
 const HealthTableHead: React.FC = () => {
   return (
-    <StyledLayout>
-      <StyledColumn />
-      <StyledColumn>{t('Release')}</StyledColumn>
-      <StyledCenterAlignedColumn>{t('Crash Free Users')}</StyledCenterAlignedColumn>
-      <StyledChartColumn>
-        <StyledChartToggler>
+    <Layout>
+      <Column />
+      <Column>{t('Release')}</Column>
+      <CenterAlignedColumn>{t('Crash Free Users')}</CenterAlignedColumn>
+      <ChartColumn>
+        <ChartToggler>
           <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
-          <StyledChartToggle active onClick={() => {}}>
+          <ChartToggle active onClick={() => {}}>
             {t('24h')}
-          </StyledChartToggle>
+          </ChartToggle>
 
-          <StyledChartToggle active={false} onClick={() => {}}>
+          <ChartToggle active={false} onClick={() => {}}>
             {t('14d')}
-          </StyledChartToggle>
-        </StyledChartToggler>
-      </StyledChartColumn>
-      <StyledCenterAlignedColumn>{t('Active Users')}</StyledCenterAlignedColumn>
-      <StyledChartColumn>
-        <StyledChartToggler>
+          </ChartToggle>
+        </ChartToggler>
+      </ChartColumn>
+      <CenterAlignedColumn>{t('Active Users')}</CenterAlignedColumn>
+      <ChartColumn>
+        <ChartToggler>
           <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
-          <StyledChartToggle active onClick={() => {}}>
+          <ChartToggle active onClick={() => {}}>
             {t('24h')}
-          </StyledChartToggle>
+          </ChartToggle>
 
-          <StyledChartToggle active={false} onClick={() => {}}>
+          <ChartToggle active={false} onClick={() => {}}>
             {t('14d')}
-          </StyledChartToggle>
-        </StyledChartToggler>
-      </StyledChartColumn>
-      <StyledRightAlignedColumn>{t('Crashes')}</StyledRightAlignedColumn>
-      <StyledRightAlignedColumn>{t('Errors')}</StyledRightAlignedColumn>
-      <StyledRightAlignedColumn>{t('Adoption')}</StyledRightAlignedColumn>
-    </StyledLayout>
+          </ChartToggle>
+        </ChartToggler>
+      </ChartColumn>
+      <RightAlignedColumn>{t('Crashes')}</RightAlignedColumn>
+      <RightAlignedColumn>{t('Errors')}</RightAlignedColumn>
+      <RightAlignedColumn>{t('Adoption')}</RightAlignedColumn>
+    </Layout>
   );
 };
 
-const StyledChartToggler = styled('div')`
+const ChartToggler = styled('div')`
   display: flex;
 `;
 const StyledToolbarHeader = styled(ToolbarHeader)`
   flex: 1;
   font-size: 13px;
 `;
-const StyledChartToggle = styled('a')<{active: boolean}>`
+const ChartToggle = styled('a')<{active: boolean}>`
   font-size: 13px;
   padding-left: ${space(1)};
   font-weight: 400;

@@ -10,7 +10,7 @@ import BetaTag from 'app/components/betaTag';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
-import {mockData} from 'app/views/health/list/mock'; // TODO: temporary
+import {mockData} from 'app/views/health/list/mock'; // TODO(health): temporary until api is finished
 import PageHeading from 'app/components/pageHeading';
 import {getQuery} from 'app/views/releases/list/utils';
 import withOrganization from 'app/utils/withOrganization';
@@ -50,7 +50,7 @@ class HealthList extends AsyncView<Props, State> {
 
   getEndpoints(): [string, string, {}][] {
     const {organization, location} = this.props;
-    // TODO: different url once api is finished
+    // TODO(health): different url once api is finished
     return [
       [
         'healthList',

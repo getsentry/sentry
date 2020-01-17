@@ -1,16 +1,14 @@
-/* eslint-disable react/prop-types */
-// TODO: we should probably disable eslint rule react/prop-types for typescript functional components
 import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 import {
-  StyledLayout,
-  StyledColumn,
-  StyledCenterAlignedColumn,
-  StyledRightAlignedColumn,
-  StyledChartColumn,
+  Layout,
+  Column,
+  CenterAlignedColumn,
+  RightAlignedColumn,
+  ChartColumn,
 } from 'app/views/health/list/commonLayout';
 import Version from 'app/components/version';
 import {PanelItem} from 'app/components/panels';
@@ -33,51 +31,51 @@ const HealthTableRow: React.FC<Props> = ({
   errors,
   releaseAdoptionPercent,
   organizationId,
-}) => {
+}: Props) => {
   return (
     <StyledPanelItem key={release.name}>
-      <StyledLayout>
-        <StyledColumn>
+      <Layout>
+        <Column>
           <HealthStatus crashFreePercent={crashFreeUsersPercent} />
-        </StyledColumn>
+        </Column>
 
-        <StyledColumn>
+        <Column>
           <StyledVersion
             orgId={organizationId}
             version={release.name}
             preserveGlobalSelection
           />
           <LatestDeployOrReleaseTime release={release} />
-        </StyledColumn>
+        </Column>
 
-        <StyledCenterAlignedColumn>
-          <StyledCrashFreeUsers percent={crashFreeUsersPercent}>
+        <CenterAlignedColumn>
+          <CrashFreeUsers percent={crashFreeUsersPercent}>
             {crashFreeUsersPercent}%
-          </StyledCrashFreeUsers>
-        </StyledCenterAlignedColumn>
+          </CrashFreeUsers>
+        </CenterAlignedColumn>
 
-        <StyledChartColumn>
+        <ChartColumn>
           <UsersChart statsPeriod="24h" data={graphData} />
-        </StyledChartColumn>
+        </ChartColumn>
 
-        <StyledCenterAlignedColumn>
-          <StyledActiveUsers value={activeUsers || 0} />
-        </StyledCenterAlignedColumn>
+        <CenterAlignedColumn>
+          <StyledCount value={activeUsers || 0} />
+        </CenterAlignedColumn>
 
-        <StyledChartColumn>
+        <ChartColumn>
           <UsersChart statsPeriod="24h" data={graphData} />
-        </StyledChartColumn>
+        </ChartColumn>
 
-        <StyledRightAlignedColumn>
+        <RightAlignedColumn>
           <Count value={crashes || 0} />
-        </StyledRightAlignedColumn>
+        </RightAlignedColumn>
 
-        <StyledRightAlignedColumn>
+        <RightAlignedColumn>
           <Count value={errors || 0} />
-        </StyledRightAlignedColumn>
+        </RightAlignedColumn>
 
-        <StyledRightAlignedColumn>{releaseAdoptionPercent}%</StyledRightAlignedColumn>
-      </StyledLayout>
+        <RightAlignedColumn>{releaseAdoptionPercent}%</RightAlignedColumn>
+      </Layout>
     </StyledPanelItem>
   );
 };
@@ -91,10 +89,10 @@ const StyledVersion = styled(Version)`
   ${overflowEllipsis};
 `;
 
-const StyledCrashFreeUsers = styled('span')<{percent: number}>`
-  font-size: 20px;
+const CrashFreeUsers = styled('span')<{percent: number}>`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.gray4};
-  /*  TODO: this color coated demonstration is turned off for now, waiting for decision
+  /*  TODO(health): this color coated demonstration is turned off for now, waiting for decision
   color: ${p => {
     if (p.percent < 33) {
       return p.theme.red;
@@ -111,8 +109,8 @@ const StyledCrashFreeUsers = styled('span')<{percent: number}>`
   */
 `;
 
-const StyledActiveUsers = styled(Count)`
-  font-size: 20px;
+const StyledCount = styled(Count)`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.gray4};
 `;
 

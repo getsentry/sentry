@@ -75,5 +75,5 @@ describe.skip('HealthList', function() {
     });
   });
 
-  // TODO: test toggle 24h/14d charts
+  // TODO(health): test toggle 24h/14d charts
 });

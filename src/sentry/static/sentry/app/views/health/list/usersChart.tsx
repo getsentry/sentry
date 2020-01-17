@@ -1,4 +1,4 @@
-// TODO: this is very similar to app/components/stream/groupChart, will refactor to reusable component in a follow-up PR
+// TODO(matej): this is very similar to app/components/stream/groupChart, will refactor to reusable component in a follow-up PR
 import React from 'react';
 import LazyLoad from 'react-lazyload';
 

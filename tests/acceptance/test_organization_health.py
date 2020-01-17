@@ -29,5 +29,5 @@ class OrganizationHealthTest(AcceptanceTestCase):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading")
-            # data is for now randomly hardcoded in the UI - this snapshot will always be different, turned off until finished api
+            # TODO(health): data is for now randomly hardcoded in the UI - this snapshot will always be different, turned off until finished api
             # self.browser.snapshot("organization health list")
