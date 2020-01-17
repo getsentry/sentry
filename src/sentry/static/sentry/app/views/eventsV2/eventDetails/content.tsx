@@ -181,7 +181,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             {event.groupID && (
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}
-            <TagsTable tags={event.tags} />
+            <TagsTable tags={event.tags} organization={organization} />
           </div>
         </ContentBox>
       </div>

@@ -105,11 +105,16 @@ class Tags extends React.Component<Props, State> {
   };
 
   renderTag(tag: Tag) {
-    const {location} = this.props;
+    const {organization, location} = this.props;
     const {totalValues} = this.state;
 
     const segments: TagTopValue[] = tag.topValues.map(segment => {
-      segment.url = getEventTagSearchUrl(tag.key, segment.value, location);
+      segment.url = getEventTagSearchUrl(
+        tag.key,
+        segment.value,
+        organization,
+        location.query
+      );
 
       return segment;
     });

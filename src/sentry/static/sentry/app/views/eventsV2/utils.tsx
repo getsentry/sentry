@@ -6,7 +6,7 @@ import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
-import {Event, Organization} from 'app/types';
+import {Event, Organization, OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
@@ -98,27 +98,24 @@ export function isAggregateField(field: string): boolean {
 }
 
 /**
- * Return a location object for the current pathname
+ * Return a location object for the search results pathname
  * with a query string reflected the provided tag.
  *
  * @param {String} tagKey
  * @param {String} tagValue
- * @param {Object} browser location object.
+ * @param {OrganizationSummary} organization
+ * @param {Query} browser location query.
  * @return {Object} router target
  */
 export function getEventTagSearchUrl(
   tagKey: string,
   tagValue: string,
-  location: Location
+  organization: OrganizationSummary,
+  query: Query
 ) {
-  const query = generateQueryWithTag(location.query, {key: tagKey, value: tagValue});
-
-  // Remove the event slug so the user sees new search results.
-  delete query.eventSlug;
-
   return {
-    pathname: location.pathname,
-    query,
+    pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+    query: generateQueryWithTag(query, {key: tagKey, value: tagValue}),
   };
 }
 
