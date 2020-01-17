@@ -10,25 +10,27 @@ const YAxisSelector = props => {
   const selectedOption = options.find(opt => selected === opt.value) || options[0];
 
   return (
-    <DropdownControl
-      menuOffset="29px"
-      button={({isOpen, getActorProps}) => (
-        <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
-          {selectedOption.label}
-        </StyledDropdownButton>
-      )}
-    >
-      {options.map(opt => (
-        <StyledDropdownItem
-          key={opt.value}
-          onSelect={onChange}
-          eventKey={opt.value}
-          isActive={selected === opt.value}
-        >
-          {opt.label}
-        </StyledDropdownItem>
-      ))}
-    </DropdownControl>
+    <ChartControls>
+      <DropdownControl
+        menuOffset="29px"
+        button={({isOpen, getActorProps}) => (
+          <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
+            {selectedOption.label}
+          </StyledDropdownButton>
+        )}
+      >
+        {options.map(opt => (
+          <DropdownItem
+            key={opt.value}
+            onSelect={onChange}
+            eventKey={opt.value}
+            isActive={selected === opt.value}
+          >
+            {opt.label}
+          </DropdownItem>
+        ))}
+      </DropdownControl>
+    </ChartControls>
   );
 };
 
@@ -38,11 +40,15 @@ const StyledDropdownButton = styled(
   border-radius: ${p =>
     p.isOpen && `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   padding: ${space(1)} ${space(2)};
-  min-width: 200px;
+  font-weight: normal;
+  min-width: 180px;
 `;
 
-const StyledDropdownItem = styled(DropdownItem)`
-  color: inherit;
+const ChartControls = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  padding: ${space(1)};
+  border-top: 1px solid ${p => p.theme.borderLight};
 `;
 
 YAxisSelector.propTypes = {
