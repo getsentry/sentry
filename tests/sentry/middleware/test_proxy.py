@@ -1,12 +1,16 @@
 from __future__ import absolute_import
 
 from exam import fixture
+from django import VERSION
 from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
+import pytest
 
 from sentry.testutils import TestCase
 from sentry.middleware.proxy import ContentLengthHeaderMiddleware, SetRemoteAddrFromForwardedFor
 
 
+# TODO(joshuarli): we can remove this entirely once we're on 1.11
+@pytest.mark.skipif(VERSION[:2] >= (1, 11), reason="middleware not used on Django 1.11+")
 class ContentLengthHeaderMiddlewareTest(TestCase):
     middleware = fixture(ContentLengthHeaderMiddleware)
 

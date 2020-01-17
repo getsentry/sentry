@@ -21,6 +21,7 @@ type TableProps = {
   eventView: EventView;
   organization: Organization;
   tags: {[key: string]: Tag};
+  title: string;
 };
 
 type TableState = {

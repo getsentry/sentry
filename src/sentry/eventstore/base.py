@@ -16,6 +16,7 @@ class Filter(object):
     start (DateTime): Start datetime - default None
     end (DateTime): Start datetime - default None
     conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
+    having (Sequence[str, str, Any]]): List of having conditions to filter by - default None
     project_ids (Sequence[int]): List of project IDs to fetch - default None
     group_ids (Sequence[int]): List of group IDs to fetch - defualt None
     event_ids (Sequence[int]): List of event IDs to fetch - default None
@@ -26,6 +27,7 @@ class Filter(object):
         start=None,
         end=None,
         conditions=None,
+        having=None,
         project_ids=None,
         group_ids=None,
         event_ids=None,
@@ -33,6 +35,7 @@ class Filter(object):
         self.start = start
         self.end = end
         self.conditions = conditions
+        self.having = having
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids
@@ -59,10 +62,10 @@ class Filter(object):
 class EventStorage(Service):
     __all__ = (
         "minimal_columns",
-        "full_columns",
         "create_event",
         "get_event_by_id",
         "get_events",
+        "get_unfetched_events",
         "get_prev_event_id",
         "get_next_event_id",
         "get_earliest_event_id",
@@ -76,44 +79,39 @@ class EventStorage(Service):
     # avoid duplicated work.
     minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
 
-    # A list of all useful columns we can get from snuba.
-    full_columns = minimal_columns + [
-        Columns.CULPRIT,
-        Columns.LOCATION,
-        Columns.MESSAGE,
-        Columns.PLATFORM,
-        Columns.TITLE,
-        Columns.TYPE,
-        Columns.TRANSACTION,
-        # Required to provide snuba-only tags
-        Columns.TAGS_KEY,
-        Columns.TAGS_VALUE,
-        # Required to provide snuba-only 'user' interface
-        Columns.USER_EMAIL,
-        Columns.USER_IP_ADDRESS,
-        Columns.USER_ID,
-        Columns.USER_USERNAME,
-    ]
-
     def get_events(
-        self,
-        filter,
-        additional_columns=None,
-        orderby=None,
-        limit=100,
-        offset=0,
-        referrer="eventstore.get_events",
+        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_events"
     ):
         """
         Fetches a list of events given a set of criteria.
 
         Arguments:
         filter (Filter): Filter
-        additional_columns (Sequence[Column]): List of additional columns to fetch - default None
         orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
         referrer (string): Referrer - default "eventstore.get_events"
+        """
+        raise NotImplementedError
+
+    def get_unfetched_events(
+        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_unfetched_events"
+    ):
+        """
+        Same as get_events but returns events without their node datas loaded.
+        Only the event ID, projectID, groupID and timestamp field will be present without
+        an additional fetch to nodestore.
+
+        Used for fetching large volumes of events that do not need data loaded
+        from nodestore. Currently this is just used for event data deletions where
+        we just need the event IDs in order to process the deletions.
+
+        Arguments:
+        filter (Filter): Filter
+        orderby (Sequence[str]): List of fields to order by - default ['-time', '-event_id']
+        limit (int): Query limit - default 100
+        offset (int): Query offset - default 0
+        referrer (string): Referrer - default "eventstore.get_unfetched_events"
         """
         raise NotImplementedError
 
@@ -171,12 +169,12 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def create_event(self, project_id=None, event_id=None, group_id=None, message=None, data=None):
+    def create_event(self, project_id=None, event_id=None, group_id=None, data=None):
         """
         Returns an Event from processed data
         """
         return Event(
-            project_id=project_id, event_id=event_id, group_id=group_id, message=message, data=data
+            project_id=project_id, event_id=event_id, group_id=group_id, data=data
         )
 
     def bind_nodes(self, object_list, node_name="data"):
@@ -184,10 +182,10 @@ class EventStorage(Service):
         For a list of Event objects, and a property name where we might find an
         (unfetched) NodeData on those objects, fetch all the data blobs for
         those NodeDatas with a single multi-get command to nodestore, and bind
-        the returned blobs to the NodeDatas
+        the returned blobs to the NodeDatas.
 
-        For binding a single Event object (most use cases), it's easier to use
-        event.bind_node_data().
+        It's not necessary to bind a single Event object since data will be lazily
+        fetched on any attempt to access a property.
         """
         # Temporarily make bind_nodes noop to prevent unnecessary additional calls
         # to nodestore by the event serializer.

@@ -1,8 +1,8 @@
 import React from 'react';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import IndicatorStore from 'app/stores/indicatorStore';
 import SentryTypes from 'app/sentryTypes';
 import routeTitleGen from 'app/utils/routeTitle';
 
@@ -13,7 +13,7 @@ class OrganizationAuth extends AsyncView {
     organization: SentryTypes.Organization,
   };
 
-  componentWillUpdate(nextProps, nextState) {
+  componentWillUpdate(_nextProps, nextState) {
     const access = this.context.organization.access;
 
     if (nextState.provider && access.includes('org:admin')) {
@@ -34,7 +34,7 @@ class OrganizationAuth extends AsyncView {
     return routeTitleGen(t('Auth Settings'), this.context.organization.slug, false);
   }
 
-  handleSendReminders = provider => {
+  handleSendReminders = _provider => {
     this.setState({sendRemindersBusy: true});
 
     this.api.request(
@@ -42,8 +42,8 @@ class OrganizationAuth extends AsyncView {
       {
         method: 'POST',
         data: {},
-        success: data => IndicatorStore.add(t('Sent reminders to members'), 'success'),
-        error: err => IndicatorStore.add(t('Failed to send reminders'), 'error'),
+        success: () => addSuccessMessage(t('Sent reminders to members')),
+        error: () => addErrorMessage(t('Failed to send reminders')),
         complete: () => this.setState({sendRemindersBusy: false}),
       }
     );
@@ -64,7 +64,7 @@ class OrganizationAuth extends AsyncView {
           window.location.href = data.auth_url;
         }
       },
-      error: err => {
+      error: () => {
         this.setState({busy: false});
       },
     });
@@ -79,13 +79,13 @@ class OrganizationAuth extends AsyncView {
     this.api.request(`/organizations/${this.props.params.orgId}/auth-provider/`, {
       method: 'DELETE',
       data: {provider},
-      success: data => {
+      success: () => {
         this.setState({
           provider: null,
           disableBusy: false,
         });
       },
-      error: err => {
+      error: () => {
         this.setState({disableBusy: false});
       },
     });
