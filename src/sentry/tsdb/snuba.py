@@ -13,10 +13,16 @@ from sentry.utils.dates import to_datetime
 SnubaModelQuerySettings = collections.namedtuple(
     # `dataset` - the dataset in Snuba that we want to query
     # `groupby` - the column in Snuba that we want to put in the group by statement
-    # `aggregate` - the column in Snuba that we want to run the aggregate function on
+    # `aggregate` - AggregateColumn
     # `conditions` - any additional model specific conditions we want to pass in the query
     "SnubaModelSettings",
     ["dataset", "groupby", "aggregate", "conditions"],
+)
+AggregateColumn = collections.namedtuple(
+    # `column` - the column in Snuba that we want to run the aggregate function on
+    # `function` - the name of the aggregate function (i.e., sum, count())
+    "AggregateColumn",
+    ["name", "function"],
 )
 
 
@@ -61,7 +67,10 @@ class SnubaTSDB(BaseTSDB):
     # outcomes
     project_filter_model_query_settings = {
         model: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes, "project_id", "times_seen", [["reason", "=", reason]]
+            snuba.Dataset.Outcomes,
+            "project_id",
+            AggregateColumn("times_seen", "sum"),
+            [["reason", "=", reason]],
         )
         for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
     }
@@ -70,91 +79,91 @@ class SnubaTSDB(BaseTSDB):
         TSDBModel.organization_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
-            "times_seen",
+            AggregateColumn("times_seen", "sum"),
             [["outcome", "!=", outcomes.Outcome.INVALID]],
         ),
         TSDBModel.organization_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
-            "times_seen",
+            AggregateColumn("times_seen", "sum"),
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
         ),
         TSDBModel.organization_total_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
-            "times_seen",
+            AggregateColumn("times_seen", "sum"),
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
         TSDBModel.organization_total_bytes_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
-            "bytes_received",
+            AggregateColumn("bytes_received", "sum"),
             [["outcome", "!=", outcomes.Outcome.INVALID]],
         ),
         TSDBModel.organization_total_bytes_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
-            "bytes_received",
+            AggregateColumn("bytes_received", "sum"),
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
         ),
         TSDBModel.organization_total_bytes_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
-            "bytes_received",
+            AggregateColumn("bytes_received", "sum"),
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
         TSDBModel.project_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
-            "times_seen",
+            AggregateColumn("times_seen", "sum"),
             [["outcome", "!=", outcomes.Outcome.INVALID]],
         ),
         TSDBModel.project_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
-            "times_seen",
+            AggregateColumn("times_seen", "sum"),
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
         ),
         TSDBModel.project_total_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
-            "times_seen",
+            AggregateColumn("times_seen", "sum"),
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
         TSDBModel.project_total_bytes_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
-            "bytes_received",
+            AggregateColumn("bytes_received", "sum"),
             [["outcome", "!=", outcomes.Outcome.INVALID]],
         ),
         TSDBModel.project_total_bytes_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
-            "bytes_received",
+            AggregateColumn("bytes_received", "sum"),
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
         ),
         TSDBModel.project_total_bytes_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
-            "bytes_received",
+            AggregateColumn("bytes_received", "sum"),
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
         TSDBModel.key_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "key_id",
-            "times_seen",
+            AggregateColumn("times_seen", "sum"),
             [["outcome", "!=", outcomes.Outcome.INVALID]],
         ),
         TSDBModel.key_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "key_id",
-            "times_seen",
+            AggregateColumn("times_seen", "sum"),
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
         ),
         TSDBModel.key_total_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "key_id",
-            "times_seen",
+            AggregateColumn("times_seen", "sum"),
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
     }
@@ -191,19 +200,19 @@ class SnubaTSDB(BaseTSDB):
         TSDBModel.organization_total_bytes_received: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw,
             "org_id",
-            "size",
+            AggregateColumn("size", "sum"),
             [["outcome", "!=", outcomes.Outcome.INVALID]],
         ),
         TSDBModel.organization_total_bytes_rejected: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw,
             "org_id",
-            "size",
+            AggregateColumn("size", "sum"),
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
         ),
         TSDBModel.organization_total_bytes_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw,
             "org_id",
-            "size",
+            AggregateColumn("size", "sum"),
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
         TSDBModel.project_total_received: SnubaModelQuerySettings(
@@ -227,19 +236,19 @@ class SnubaTSDB(BaseTSDB):
         TSDBModel.project_total_bytes_received: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw,
             "project_id",
-            "size",
+            AggregateColumn("size", "sum"),
             [["outcome", "!=", outcomes.Outcome.INVALID]],
         ),
         TSDBModel.project_total_bytes_rejected: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw,
             "project_id",
-            "size",
+            AggregateColumn("size", "sum"),
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
         ),
         TSDBModel.project_total_bytes_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw,
             "project_id",
-            "size",
+            AggregateColumn("size", "sum"),
             [["outcome", "=", outcomes.Outcome.FILTERED]],
         ),
         TSDBModel.key_total_received: SnubaModelQuerySettings(
@@ -300,7 +309,10 @@ class SnubaTSDB(BaseTSDB):
             raise Exception(u"Unsupported TSDBModel: {}".format(model.name))
 
         model_group = model_query_settings.groupby
-        model_aggregate = model_query_settings.aggregate
+        model_aggregate = None
+
+        if type(model_query_settings.aggregate) is AggregateColumn:
+            model_aggregate = model_query_settings.aggregate.name
 
         groupby = []
         if group_on_model and model_group is not None:
@@ -313,7 +325,12 @@ class SnubaTSDB(BaseTSDB):
             groupby.append(model_aggregate)
             model_aggregate = None
 
-        columns = (model_query_settings.groupby, model_query_settings.aggregate)
+        columns = (
+            model_query_settings.groupby,
+            model_query_settings.aggregate.name
+            if type(model_query_settings.aggregate) is AggregateColumn
+            else None,
+        )
         keys_map = dict(zip(columns, self.flatten_keys(keys)))
         keys_map = {k: v for k, v in six.iteritems(keys_map) if k is not None and v is not None}
         if environment_ids is not None:
@@ -402,8 +419,8 @@ class SnubaTSDB(BaseTSDB):
 
         assert model_query_settings is not None, u"Unsupported TSDBModel: {}".format(model.name)
 
-        if model_query_settings.dataset == snuba.Dataset.Outcomes:
-            aggregate_function = "sum"
+        if type(model_query_settings.aggregate) is AggregateColumn:
+            aggregate_function = model_query_settings.aggregate.function
         else:
             aggregate_function = "count()"
 

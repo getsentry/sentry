@@ -72,8 +72,8 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 TSDBModel.organization_total_bytes_received,
                 3600,
                 floor_to_hour_epoch,
-                3 * 2048,
-                4 * 2048,
+                3 * 3 * 2048,
+                4 * 3 * 2048,
             ),
             (TSDBModel.organization_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
             (
@@ -96,8 +96,8 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 TSDBModel.organization_total_bytes_received,
                 10,
                 floor_to_10s_epoch,
-                3 * 2048,
-                4 * 2048,
+                3 * 3 * 2048,
+                4 * 3 * 2048,
             ),
             (TSDBModel.organization_total_rejected, 10, floor_to_10s_epoch, 3, 4),
             (
@@ -165,7 +165,13 @@ class SnubaTSDBTest(OutcomesSnubaTest):
 
         for tsdb_model, granularity, floor_func, start_time_count, day_later_count in [
             (TSDBModel.project_total_received, 3600, floor_to_hour_epoch, 3 * 3, 4 * 3),
-            (TSDBModel.project_total_bytes_received, 3600, floor_to_hour_epoch, 3 * 2048, 4 * 2048),
+            (
+                TSDBModel.project_total_bytes_received,
+                3600,
+                floor_to_hour_epoch,
+                3 * 3 * 2048,
+                4 * 3 * 2048,
+            ),
             (TSDBModel.project_total_rejected, 3600, floor_to_hour_epoch, 3, 4),
             (TSDBModel.project_total_bytes_rejected, 3600, floor_to_hour_epoch, 3 * 2048, 4 * 2048),
             (TSDBModel.project_total_blacklisted, 3600, floor_to_hour_epoch, 3, 4),
@@ -177,7 +183,13 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 4 * 2048,
             ),
             (TSDBModel.project_total_received, 10, floor_to_10s_epoch, 3 * 3, 4 * 3),
-            (TSDBModel.project_total_bytes_received, 10, floor_to_10s_epoch, 3 * 2048, 4 * 2048),
+            (
+                TSDBModel.project_total_bytes_received,
+                10,
+                floor_to_10s_epoch,
+                3 * 3 * 2048,
+                4 * 3 * 2048,
+            ),
             (TSDBModel.project_total_rejected, 10, floor_to_10s_epoch, 3, 4),
             (TSDBModel.project_total_bytes_rejected, 10, floor_to_10s_epoch, 3 * 2048, 4 * 2048),
             (TSDBModel.project_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
