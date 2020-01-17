@@ -168,7 +168,10 @@ describe('ProjectsDashboard', function() {
         body: [
           TestStubs.Project({
             teams,
-            stats: [[1517281200, 2], [1517310000, 1]],
+            stats: [
+              [1517281200, 2],
+              [1517310000, 1],
+            ],
           }),
         ],
       });
@@ -246,7 +249,10 @@ describe('ProjectsDashboard', function() {
         url: `/organizations/${org.slug}/projects/`,
         body: projects.map(project => ({
           ...project,
-          stats: [[1517281200, 2], [1517310000, 1]],
+          stats: [
+            [1517281200, 2],
+            [1517310000, 1],
+          ],
         })),
       });
 

@@ -228,9 +228,7 @@ export default function createQueryBuilder(
    */
   function fetch(data = getExternal(), cursor = '0:0:1') {
     const limit = data.limit || 1000;
-    const endpoint = `/organizations/${
-      organization.slug
-    }/discover/query/?per_page=${limit}&cursor=${cursor}`;
+    const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
 
     // Reject immediately if no projects are available
     if (!data.projects.length) {

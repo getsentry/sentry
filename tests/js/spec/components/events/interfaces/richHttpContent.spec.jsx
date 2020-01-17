@@ -40,7 +40,10 @@ describe('RichHttpContent', function() {
 
       // NOTE: displayName is set manually in this class
       expect(out.type.displayName).toEqual('KeyValueList');
-      expect(out.props.data).toEqual([['bar', 'baz'], ['foo', 'bar']]);
+      expect(out.props.data).toEqual([
+        ['bar', 'baz'],
+        ['foo', 'bar'],
+      ]);
     });
 
     it('should return a ContextData element when inferred Content-Type is application/json', function() {

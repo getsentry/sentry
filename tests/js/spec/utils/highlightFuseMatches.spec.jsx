@@ -3,7 +3,11 @@ import highlightFuseMatches, {getFuseMatches} from 'app/utils/highlightFuseMatch
 describe('highlightFuseMatches', function() {
   const matchObj = {
     value: 'Authentication tokens allow you to perform actions',
-    indices: [[4, 6], [12, 13], [15, 16]],
+    indices: [
+      [4, 6],
+      [12, 13],
+      [15, 16],
+    ],
   };
 
   it('handles no matches', function() {
