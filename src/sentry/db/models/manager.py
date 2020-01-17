@@ -76,6 +76,12 @@ class BaseManager(Manager):
     _queryset_class = BaseQuerySet
 
     def __init__(self, *args, **kwargs):
+        #: Model fields for which we should build up a cache to be used with
+        #: Model.objects.get_from_cache(fieldname=value)`.
+        #:
+        #: Note that each field by its own needs to be a potential primary key
+        #: (uniquely identify a row), so for example organization slug is ok,
+        #: project slug is not.
         self.cache_fields = kwargs.pop("cache_fields", [])
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
         self._cache_version = kwargs.pop("cache_version", None)

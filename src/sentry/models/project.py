@@ -106,7 +106,7 @@ class Project(Model, PendingDeletionMixin):
         flags=(("has_releases", "This Project has sent release data"),), default=0, null=True
     )
 
-    objects = ProjectManager(cache_fields=["pk", "slug"])
+    objects = ProjectManager(cache_fields=["pk"])
     platform = models.CharField(max_length=64, null=True)
 
     class Meta:
