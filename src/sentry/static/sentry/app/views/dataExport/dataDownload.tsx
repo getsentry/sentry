@@ -20,9 +20,10 @@ type RouteParams = {
   dataId: string;
 };
 
-type DataAsset = {
-  storage_url: string;
-  expired_at: string;
+type Payload = {
+  storage_url?: string;
+  expired_at?: string;
+  status?: 'EXPIRED' | 'INVALID' | 'VALID' | 'EARLY';
 };
 
 type Props = {
@@ -32,14 +33,14 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  asset: DataAsset;
+  payload: Payload;
 } & AsyncView['state'];
 
 class DataDownload extends AsyncView<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      asset: {
+      payload: {
         storage_url: '',
         expired_at: '',
       },
@@ -52,72 +53,102 @@ class DataDownload extends AsyncView<Props, State> {
 
   getEndpoints(): [string, string][] {
     const {orgId, dataId} = this.props.params;
-    return [['asset', `/organizations/${orgId}/data-export/${dataId}/`]];
+    return [['payload', `/organizations/${orgId}/data-export/${dataId}/`]];
   }
 
   handleDownload(): void {
-    const {asset} = this.state;
-    // eslint-disable-next-line
-    alert(`Beginning download at ${asset && asset.storage_url}`);
+    // TODO(Leander): Implement direct download from Google Cloud Storage
   }
 
-  pingRequest(): void {
-    const {config, organization, params} = this.props;
-    const endpoint = `/organizations/${params.orgId}/data-export/${params.dataId}/`;
-    const {id: user_id} = config.user;
-    const {slug: org_id} = organization;
-    this.api.request(endpoint, {
-      method: 'POST',
-      data: {
-        user_id,
-        org_id,
-      },
-      success(response) {
-        // eslint-disable-next-line
-        alert(response);
-      },
-    });
+  isValidDate(potentialDate): boolean {
+    return potentialDate instanceof Date && !isNaN(potentialDate.getTime());
+  }
+
+  renderExpired(): React.ReactNode {
+    return (
+      <React.Fragment>
+        <h3>{t('Sorry!')}</h3>
+        <p>
+          {t('It seems this link has expired, and your download is no longer available.')}
+        </p>
+        <p>
+          {t(
+            'Feel free to start a new export to get the latest and greatest of your Sentry data.'
+          )}
+        </p>
+      </React.Fragment>
+    );
+  }
+
+  renderInvalid(): React.ReactNode {
+    return (
+      <React.Fragment>
+        <h3>{t('Not Found')}</h3>
+        <p>{t("We couldn't find a file associated with this link.")}</p>
+        <p>{t('Please double check it and try again!')}</p>
+      </React.Fragment>
+    );
+  }
+
+  renderEarly(): React.ReactNode {
+    return (
+      <React.Fragment>
+        <h3>{t("You're Early!")}</h3>
+        <p>{t("We're still preparing your download, so check back in a bit!")}</p>
+        <p>{t("You can close this page, we'll email you when were ready")}</p>
+      </React.Fragment>
+    );
+  }
+
+  renderValid(): React.ReactNode {
+    const {payload} = this.state;
+    const d = new Date(payload.expired_at || '');
+    return (
+      <React.Fragment>
+        <h3>{t('Finally!')}</h3>
+        <p>
+          {t(
+            'We prepared your data for download, you can access it with the link below.'
+          )}
+        </p>
+        <Button
+          priority="primary"
+          icon="icon-download"
+          size="large"
+          borderless
+          onClick={() => this.handleDownload()}
+        >
+          {t('Download CSV')}
+        </Button>
+        <p>{t('Keep in mind, this link will no longer work after:')}</p>
+        <p>
+          <b>{`${d.toLocaleDateString()}, ${d.toLocaleTimeString()}`}</b>
+        </p>
+      </React.Fragment>
+    );
+  }
+
+  renderContent(): React.ReactNode {
+    const {payload} = this.state;
+    switch (payload.status) {
+      case 'EXPIRED':
+        return this.renderExpired();
+      case 'INVALID':
+        return this.renderInvalid();
+      case 'EARLY':
+        return this.renderEarly();
+      case 'VALID':
+      default:
+        return this.renderValid();
+    }
   }
 
   renderBody() {
-    const {asset} = this.state;
-    const d = new Date(asset.expired_at);
     return (
       <PageContent>
         <Sidebar />
         <div className="pattern-bg" />
-        <ContentContainer>
-          <h3>{t('Finally!')}</h3>
-          <p>
-            {t(
-              'We prepared your data for download, you can access it with the link below.'
-            )}
-          </p>
-          <Button
-            priority="primary"
-            icon="icon-download"
-            size="large"
-            borderless
-            onClick={() => this.handleDownload()}
-          >
-            {t('Download CSV')}
-          </Button>
-          <p>{t('Keep in mind, this link will no longer work after:')}</p>
-          <p>
-            <b>{`${d.toLocaleDateString()}, ${d.toLocaleTimeString()}`}</b>
-          </p>
-        </ContentContainer>
-        <ContentContainer>
-          <Button
-            priority="primary"
-            icon="icon-sentry"
-            size="large"
-            borderless
-            onClick={() => this.pingRequest()}
-          >
-            {t('Trigger Task')}
-          </Button>
-        </ContentContainer>
+        <ContentContainer>{this.renderContent()}</ContentContainer>
       </PageContent>
     );
   }
@@ -126,7 +157,7 @@ class DataDownload extends AsyncView<Props, State> {
 const ContentContainer = styled('div')`
   text-align: center;
   margin: 30px auto;
-  width: 300px;
+  width: 350px;
   padding: 30px;
   background: ${p => p.theme.whiteDark};
   border-radius: ${p => p.theme.borderRadius};
