@@ -97,7 +97,7 @@ class SnubaEventStorage(EventStorage):
         cols = self.__get_columns()
         orderby = orderby or DESC_ORDERING
 
-        result = snuba.dataset_query(
+        result = snuba.aliased_query(
             selected_columns=cols,
             start=filter.start,
             end=filter.end,
@@ -224,7 +224,7 @@ class SnubaEventStorage(EventStorage):
             # This query uses the discover dataset to enable
             # getting events across both errors and transactions, which is
             # required when doing pagination in discover
-            result = snuba.dataset_query(
+            result = snuba.aliased_query(
                 selected_columns=columns,
                 conditions=filter.conditions,
                 filter_keys=filter.filter_keys,
