@@ -22,10 +22,6 @@ export default class LineChart extends React.Component {
             ...options,
             name: seriesName,
             data: dataArray || data.map(({value, name}) => [name, value]),
-            color: '#948BCF',
-            areaStyle: {
-              color: '#C4BFE9',
-            },
           });
         })}
       />

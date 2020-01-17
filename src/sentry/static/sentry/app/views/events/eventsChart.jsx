@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
-import LineChart from 'app/components/charts/lineChart';
+import AreaChart from 'app/components/charts/areaChart';
 import LoadingMask from 'app/components/loadingMask';
 import LoadingPanel from 'app/views/events/loadingPanel';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
@@ -69,7 +69,7 @@ class EventsLineChart extends React.Component {
     };
 
     return (
-      <LineChart
+      <AreaChart
         {...props}
         {...zoomRenderProps}
         legend={legend}

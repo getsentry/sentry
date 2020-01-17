@@ -263,7 +263,7 @@ describe('EventsErrors', function() {
       await tick();
       wrapper.update();
 
-      chartRender = jest.spyOn(wrapper.find('LineChart').instance(), 'render');
+      chartRender = jest.spyOn(wrapper.find('AreaChart').instance(), 'render');
 
       doZoom(wrapper.find('EventsChart').first(), chart);
       await tick();

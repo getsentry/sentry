@@ -47,8 +47,8 @@ describe('EventsChart > EventsLineChart', function() {
   it('renders a legend if enabled', function() {
     wrapper.update();
 
-    const lineChart = wrapper.find('LineChart');
-    expect(lineChart.props().legend).toHaveProperty('data');
+    const areaChart = wrapper.find('AreaChart');
+    expect(areaChart.props().legend).toHaveProperty('data');
   });
 
   it('responds to y-axis changes', function() {
