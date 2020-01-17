@@ -41,7 +41,13 @@ const StyledDropdownButton = styled(
     p.isOpen && `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   padding: ${space(1)} ${space(2)};
   font-weight: normal;
-  min-width: 180px;
+  min-width: 200px;
+  color: ${p => p.theme.gray4};
+
+  &:hover,
+  &:focus {
+    color: inherit;
+  }
 `;
 
 const ChartControls = styled('div')`

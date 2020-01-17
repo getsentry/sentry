@@ -57,14 +57,15 @@ class EventsLineChart extends React.Component {
     } = this.props;
 
     const legend = showLegend && {
-      right: 100,
-      top: 10,
+      right: 16,
+      top: 16,
       selectedMode: false,
-      itemWidth: 15,
       icon: 'line',
       textStyle: {
-        lineHeight: 16,
+        fontSize: '11',
+        fontFamily: 'Rubik',
       },
+      imageHeight: 11,
       data: ['Current Period', 'Previous Period'],
     };
 
@@ -79,8 +80,10 @@ class EventsLineChart extends React.Component {
         }}
         previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : null}
         grid={{
-          left: '30px',
-          right: '18px',
+          left: '24px',
+          right: '24px',
+          top: '24px',
+          bottom: '12px',
         }}
       />
     );
