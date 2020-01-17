@@ -10,7 +10,6 @@ import {
   RightAlignedColumn,
   ChartColumn,
 } from 'app/views/health/list/commonLayout';
-import ToolbarHeader from 'app/components/toolbarHeader';
 
 const HealthTableHead: React.FC = () => {
   return (
@@ -20,7 +19,7 @@ const HealthTableHead: React.FC = () => {
       <CenterAlignedColumn>{t('Crash Free Users')}</CenterAlignedColumn>
       <ChartColumn>
         <ChartToggler>
-          <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
+          <ChartTogglerTitle>{t('Graph:')}</ChartTogglerTitle>
           <ChartToggle active onClick={() => {}}>
             {t('24h')}
           </ChartToggle>
@@ -33,7 +32,7 @@ const HealthTableHead: React.FC = () => {
       <CenterAlignedColumn>{t('Active Users')}</CenterAlignedColumn>
       <ChartColumn>
         <ChartToggler>
-          <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
+          <ChartTogglerTitle>{t('Graph:')}</ChartTogglerTitle>
           <ChartToggle active onClick={() => {}}>
             {t('24h')}
           </ChartToggle>
@@ -53,12 +52,10 @@ const HealthTableHead: React.FC = () => {
 const ChartToggler = styled('div')`
   display: flex;
 `;
-const StyledToolbarHeader = styled(ToolbarHeader)`
+const ChartTogglerTitle = styled('div')`
   flex: 1;
-  font-size: 13px;
 `;
 const ChartToggle = styled('a')<{active: boolean}>`
-  font-size: 13px;
   padding-left: ${space(1)};
   font-weight: 400;
 

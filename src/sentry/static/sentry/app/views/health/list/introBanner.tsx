@@ -1,6 +1,8 @@
 import React from 'react';
 
 import {t} from 'app/locale';
+import styled from '@emotion/styled';
+import theme from 'app/utils/theme';
 import Banner from 'app/components/banner';
 import localStorage from 'app/utils/localStorage';
 
@@ -26,13 +28,21 @@ class IntroBanner extends React.Component<{}, State> {
     }
 
     return (
-      <Banner
-        title={t('Health')}
-        subtitle={t('Monitoring the health of your application')}
-        onCloseClick={this.handleBannerCloseClick}
-      />
+      // TODO(health): change to proper thing once finished
+      <Banner title={t('Health')} onCloseClick={this.handleBannerCloseClick}>
+        <TemporaryText>
+          This is an experimental UI page with dummy data not intended for public usage.
+          <br />
+          We’re using it for iterating towards the mobile health deliverable.
+        </TemporaryText>
+      </Banner>
     );
   }
 }
+
+const TemporaryText = styled('h4')`
+  color: ${theme.white};
+  font-size: ${theme.fontSizeLarge};
+`;
 
 export default IntroBanner;
