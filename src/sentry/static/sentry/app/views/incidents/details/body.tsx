@@ -111,10 +111,12 @@ export default class DetailsBody extends React.Component<Props> {
                 <span>{t('Query')}</span>
                 <Feature features={['events-v2']}>
                   <Projects slugs={incident && incident.projects} orgId={params.orgId}>
-                    {({projects, fetching}) => (
+                    {({initiallyLoaded, projects, fetching}) => (
                       <DiscoverLink
-                        disabled={!incident || fetching}
-                        to={this.getDiscoverUrl(projects)}
+                        disabled={!incident || fetching || !initiallyLoaded}
+                        to={this.getDiscoverUrl(
+                          ((initiallyLoaded && projects) as Project[]) || []
+                        )}
                       >
                         <DiscoverIcon src="icon-telescope" />
                         {t('View in Discover')}
