@@ -79,10 +79,10 @@ const Wrapper = styled('div')<WrapperProps>`
   ${p =>
     p.badge &&
     `
-      background-color: ${getColor};
-      border: 1px solid ${getHighlight};
+      background-color: ${getColor(p)};
+      border: 1px solid ${getHighlight(p)};
       border-radius: ${p.theme.borderRadius};
-      padding: ${space(0.5)};
+      padding: ${space(0.25)} ${space(1)};
     `}
 `;
 
