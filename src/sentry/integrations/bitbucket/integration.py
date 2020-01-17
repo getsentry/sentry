@@ -96,11 +96,27 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
                 for repo in resp.get("values", [])
             ]
 
-        full_query = (u'name~"%s"' % (query)).encode("utf-8")
-        resp = self.get_client().search_repositories(self.username, full_query)
-        return [
-            {"identifier": i["full_name"], "name": i["full_name"]} for i in resp.get("values", [])
-        ]
+        exact_query = (u'name="%s"' % (query)).encode("utf-8")
+        fuzzy_query = (u'name~"%s"' % (query)).encode("utf-8")
+
+        exact_search_resp = self.get_client().search_repositories(self.username, exact_query)
+        fuzzy_search_resp = self.get_client().search_repositories(self.username, fuzzy_query)
+
+        if exact_search_resp.get("values", []) == []:
+            return [
+                {"identifier": i["full_name"], "name": i["full_name"]}
+                for i in fuzzy_search_resp.get("values", [])
+            ]
+        else:
+            result = []
+            exact_result = exact_search_resp.get("values")[0]["full_name"]
+            result.append({"identifier": exact_result, "name": exact_result})
+
+            for i in fuzzy_search_resp.get("values", []):
+                if i["full_name"] != exact_result:
+                    result.append({"identifier": i["full_name"], "name": i["full_name"]})
+
+            return result
 
     def has_repo_access(self, repo):
         client = self.get_client()
