@@ -14,9 +14,7 @@ describe('OpenInContextLine', function() {
       type: 'stacktrace-link',
       schema: {
         uri: '/redirection',
-        url: `http://localhost:5000/redirection?installationId=${
-          install.uuid
-        }&projectSlug=${group.project.slug}`,
+        url: `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${group.project.slug}`,
       },
       sentryApp: {
         uuid: 'b468fed3-afba-4917-80d6-bdac99c1ec05',
@@ -51,9 +49,7 @@ describe('OpenInContextLine', function() {
         TestStubs.routerContext()
       );
       expect(wrapper.props().components[0].schema.url).toEqual(
-        `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${
-          group.project.slug
-        }`
+        `http://localhost:5000/redirection?installationId=${install.uuid}&projectSlug=${group.project.slug}`
       );
       const baseUrl = 'http://localhost:5000/redirection';
       const queryParams = {

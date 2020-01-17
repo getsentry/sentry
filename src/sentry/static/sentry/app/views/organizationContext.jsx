@@ -158,7 +158,8 @@ const OrganizationContext = createReactClass({
     return (
       loading ||
       (!error &&
-        (detailed && (!organization || !organization.projects || !organization.teams)))
+        detailed &&
+        (!organization || !organization.projects || !organization.teams))
     );
   },
 

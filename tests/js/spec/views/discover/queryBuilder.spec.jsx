@@ -40,7 +40,10 @@ describe('Query Builder', function() {
         url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
         body: {
-          data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
+          data: [
+            {tags_key: 'tag1', count: 5},
+            {tags_key: 'tag2', count: 1},
+          ],
         },
       });
     });

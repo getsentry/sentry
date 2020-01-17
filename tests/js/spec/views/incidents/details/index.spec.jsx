@@ -45,9 +45,7 @@ describe('IncidentDetails', function() {
       statusCode: 404,
     });
     activitiesList = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/incidents/${
-        mockIncident.identifier
-      }/activity/`,
+      url: `/organizations/${organization.slug}/incidents/${mockIncident.identifier}/activity/`,
       body: [TestStubs.IncidentActivity()],
     });
   });

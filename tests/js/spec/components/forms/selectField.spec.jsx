@@ -8,7 +8,10 @@ describe('SelectField', function() {
   it('renders without form context', function() {
     const wrapper = mountWithTheme(
       <SelectField
-        options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
+        options={[
+          {label: 'a', value: 'a'},
+          {label: 'b', value: 'b'},
+        ]}
         name="fieldName"
         value="a"
       />,
@@ -34,7 +37,11 @@ describe('SelectField', function() {
   it('renders with paired choices', function() {
     const wrapper = shallow(
       <SelectField
-        choices={[['a', 'abc'], ['b', 'bcd'], ['c', 'cde']]}
+        choices={[
+          ['a', 'abc'],
+          ['b', 'bcd'],
+          ['c', 'cde'],
+        ]}
         name="fieldName"
       />,
       {
@@ -56,7 +63,10 @@ describe('SelectField', function() {
     const wrapper = mountWithTheme(
       <Form onSubmit={mock}>
         <SelectField
-          options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
+          options={[
+            {label: 'a', value: 'a'},
+            {label: 'b', value: 'b'},
+          ]}
           name="fieldName"
         />
       </Form>,
@@ -78,7 +88,10 @@ describe('SelectField', function() {
         <Form onSubmit={mock}>
           <SelectField
             multiple
-            options={[{label: 'a', value: 'a'}, {label: 'b', value: 'b'}]}
+            options={[
+              {label: 'a', value: 'a'},
+              {label: 'b', value: 'b'},
+            ]}
             name="fieldName"
           />
         </Form>,

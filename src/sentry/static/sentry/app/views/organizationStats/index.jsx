@@ -255,9 +255,9 @@ class OrganizationStatsContainer extends React.Component {
       <DocumentTitle title={`Stats - ${organization.slug} - Sentry`}>
         <LazyLoad
           component={() =>
-            import(/* webpackChunkName: "organizationStats" */ './organizationStatsDetails').then(
-              mod => mod.default
-            )
+            import(
+              /* webpackChunkName: "organizationStats" */ './organizationStatsDetails'
+            ).then(mod => mod.default)
           }
           organization={organization}
           {...this.state}

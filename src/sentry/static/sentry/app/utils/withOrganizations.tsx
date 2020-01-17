@@ -30,7 +30,7 @@ const withOrganizations = <P extends InjectedOrganizationsProps>(
         <WrappedComponent
           organizationsLoading={!OrganizationsStore.loaded as boolean}
           organizations={this.state.organizations as OrganizationSummary[]}
-          {...this.props as P}
+          {...(this.props as P)}
         />
       );
     },

@@ -53,9 +53,7 @@ class RawExceptionContent extends React.Component {
     const {type, organization, projectId, eventId} = this.props;
 
     const minified = type === 'minified';
-    return `/projects/${
-      organization.slug
-    }/${projectId}/events/${eventId}/apple-crash-report?minified=${minified}`;
+    return `/projects/${organization.slug}/${projectId}/events/${eventId}/apple-crash-report?minified=${minified}`;
   }
 
   fetchAppleCrashReport() {

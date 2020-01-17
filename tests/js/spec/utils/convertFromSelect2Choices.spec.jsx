@@ -19,7 +19,13 @@ describe('convertFromSelect2Choices', function() {
   });
 
   it('changes a paired array of strings into array of {label, value}', function() {
-    expect(convertFromSelect2Choices([['a', 'A'], ['b', 'B'], ['c', 'C']])).toEqual([
+    expect(
+      convertFromSelect2Choices([
+        ['a', 'A'],
+        ['b', 'B'],
+        ['c', 'C'],
+      ])
+    ).toEqual([
       {
         label: 'A',
         value: 'a',

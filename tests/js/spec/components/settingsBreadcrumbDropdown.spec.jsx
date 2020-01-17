@@ -10,7 +10,10 @@ const CLOSE_DELAY = 0;
 describe('Settings Breadcrumb Dropdown', function() {
   let wrapper;
   const selectMock = jest.fn();
-  const items = [{value: '1', label: 'foo'}, {value: '2', label: 'bar'}];
+  const items = [
+    {value: '1', label: 'foo'},
+    {value: '2', label: 'bar'},
+  ];
 
   beforeEach(function() {
     wrapper = mountWithTheme(

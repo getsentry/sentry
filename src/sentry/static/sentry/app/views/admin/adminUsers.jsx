@@ -45,7 +45,10 @@ class AdminUsers extends React.Component {
           filters={{
             status: {
               name: 'Status',
-              options: [['active', 'Active'], ['disabled', 'Disabled']],
+              options: [
+                ['active', 'Active'],
+                ['disabled', 'Disabled'],
+              ],
             },
           }}
           sortOptions={[['date', 'Date Joined']]}

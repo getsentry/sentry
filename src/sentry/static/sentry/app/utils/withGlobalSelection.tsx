@@ -57,7 +57,7 @@ const withGlobalSelection = <P extends InjectedGlobalSelectionProps>(
         <WrappedComponent
           forceUrlSync={!!forceUrlSync}
           selection={selection as GlobalSelection}
-          {...this.props as P}
+          {...(this.props as P)}
         />
       );
     },

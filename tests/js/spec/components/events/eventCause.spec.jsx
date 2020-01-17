@@ -22,9 +22,7 @@ describe('EventCause', function() {
   beforeEach(function() {
     Client.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${project.slug}/events/${
-        event.id
-      }/committers/`,
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
         committers: [
           {
@@ -105,9 +103,7 @@ describe('EventCause', function() {
   it('shows unassociated email warning', async function() {
     Client.addMockResponse({
       method: 'GET',
-      url: `/projects/${organization.slug}/${project.slug}/events/${
-        event.id
-      }/committers/`,
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
         committers: [
           {

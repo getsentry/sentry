@@ -118,9 +118,7 @@ describe('SentryAppExternalInstallation', () => {
       );
 
       expect(window.location.assign).toHaveBeenCalledWith(
-        `https://google.com/?code=${install.code}&installationId=${
-          install.uuid
-        }&orgSlug=${org1.slug}`
+        `https://google.com/?code=${install.code}&installationId=${install.uuid}&orgSlug=${org1.slug}`
       );
       window.location.assign.mockRestore();
     });

@@ -346,8 +346,9 @@ type SupportLinkProps = {
   to: string;
   isCentered?: boolean;
 } & (
-  | {isOnPremise: true} & React.ComponentProps<typeof ExternalLink>
-  | {isOnPremise: false} & React.ComponentProps<typeof HomeLink>);
+  | ({isOnPremise: true} & React.ComponentProps<typeof ExternalLink>)
+  | ({isOnPremise: false} & React.ComponentProps<typeof HomeLink>)
+);
 
 const SupportLinkComponent = ({
   isCentered,

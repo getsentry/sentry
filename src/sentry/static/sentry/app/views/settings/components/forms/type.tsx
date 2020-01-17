@@ -90,7 +90,8 @@ export type Field = (
   | SelectControlType
   | TextareaType
   | RangeType
-  | {type: typeof FieldType[number]}) &
+  | {type: typeof FieldType[number]}
+) &
   BaseField;
 
 export type FieldObject = Field | Function;

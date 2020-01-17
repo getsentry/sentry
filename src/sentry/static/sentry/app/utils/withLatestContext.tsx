@@ -72,7 +72,7 @@ const withLatestContext = <P extends InjectedLatestContextProps>(
             organizations={organizations as OrganizationSummary[]}
             project={project as Project}
             lastRoute={lastRoute as string}
-            {...this.props as P}
+            {...(this.props as P)}
             organization={(this.props.organization || latestOrganization) as Organization}
           />
         );

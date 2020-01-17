@@ -78,9 +78,7 @@ class CreateProject extends React.Component {
         ProjectActions.createSuccess(data);
 
         const platformKey = platform || 'other';
-        const nextUrl = `/${organization.slug}/${
-          data.slug
-        }/getting-started/${platformKey}/`;
+        const nextUrl = `/${organization.slug}/${data.slug}/getting-started/${platformKey}/`;
 
         browserHistory.push(nextUrl);
       },

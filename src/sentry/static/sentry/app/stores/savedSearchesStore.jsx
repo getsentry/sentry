@@ -53,9 +53,9 @@ const SavedSearchesStore = Reflux.createStore({
           !(
             savedSearch.isPinned &&
             savedSearch.type === type &&
-            (!savedSearch.isOrgCustom &&
-              !savedSearch.isGlobal &&
-              savedSearch.id !== existingSearchId)
+            !savedSearch.isOrgCustom &&
+            !savedSearch.isGlobal &&
+            savedSearch.id !== existingSearchId
           )
       )
       .map(savedSearch => {

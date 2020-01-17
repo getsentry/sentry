@@ -54,14 +54,16 @@ export const AGGREGATIONS = {
   */
 } as const;
 
-assert(AGGREGATIONS as Readonly<
-  {
-    [key in keyof typeof AGGREGATIONS]: {
-      type: '*' | Readonly<ColumnValueType[]>;
-      isSortable: boolean;
+assert(
+  AGGREGATIONS as Readonly<
+    {
+      [key in keyof typeof AGGREGATIONS]: {
+        type: '*' | Readonly<ColumnValueType[]>;
+        isSortable: boolean;
+      };
     }
-  }
->);
+  >
+);
 
 export type Aggregation = keyof typeof AGGREGATIONS | '';
 

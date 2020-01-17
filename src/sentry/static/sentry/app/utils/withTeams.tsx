@@ -36,7 +36,9 @@ const withTeams = <P extends InjectedTeamsProps>(
       });
     },
     render() {
-      return <WrappedComponent {...this.props as P} teams={this.state.teams as Team[]} />;
+      return (
+        <WrappedComponent {...(this.props as P)} teams={this.state.teams as Team[]} />
+      );
     },
   });
 export default withTeams;

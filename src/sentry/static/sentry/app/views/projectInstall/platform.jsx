@@ -80,9 +80,7 @@ class ProjectInstallPlatform extends React.Component {
       return <NotFound />;
     }
 
-    const issueStreamLink = `/organizations/${orgId}/issues/?project=${
-      project.id
-    }#welcome`;
+    const issueStreamLink = `/organizations/${orgId}/issues/?project=${project.id}#welcome`;
     const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
 
     return (

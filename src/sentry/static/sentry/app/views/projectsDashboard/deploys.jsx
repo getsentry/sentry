@@ -65,9 +65,7 @@ class Deploy extends React.Component {
         <Environment>{deploy.environment}</Environment>
         <Version>
           <StyledLink
-            to={`/organizations/${organization.slug}/releases/${
-              deploy.version
-            }/?project=${project.id}`}
+            to={`/organizations/${organization.slug}/releases/${deploy.version}/?project=${project.id}`}
           >
             {deploy.version}
           </StyledLink>

@@ -6,9 +6,15 @@ import Aggregations from 'app/views/discover/aggregations';
 describe('Aggregations', function() {
   let wrapper, onChangeMock, aggregations;
   beforeEach(function() {
-    aggregations = [['count()', null, 'count'], ['uniq', 'col1', 'uniq_col1']];
+    aggregations = [
+      ['count()', null, 'count'],
+      ['uniq', 'col1', 'uniq_col1'],
+    ];
     onChangeMock = jest.fn();
-    const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
+    const columns = [
+      {name: 'col1', type: 'string'},
+      {name: 'col2', type: 'number'},
+    ];
     const value = [];
     wrapper = mountWithTheme(
       <Aggregations columns={columns} onChange={onChangeMock} value={value} />,

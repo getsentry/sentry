@@ -30,7 +30,10 @@ describe('parseHtmlMarks', function() {
     expect(parseHtmlMarks(data)).toEqual({
       key: 'title',
       value: 'A string without any marking tags',
-      indices: [[9, 12], [21, 27]],
+      indices: [
+        [9, 12],
+        [21, 27],
+      ],
     });
   });
 

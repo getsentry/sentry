@@ -270,9 +270,7 @@ class EventGroupingInfo extends AsyncComponent {
   getEndpoints() {
     const {organization, event, projectId} = this.props;
 
-    let path = `/projects/${organization.slug}/${projectId}/events/${
-      event.id
-    }/grouping-info/`;
+    let path = `/projects/${organization.slug}/${projectId}/events/${event.id}/grouping-info/`;
     if (this.state && this.state.configOverride) {
       path = `${path}?config=${this.state.configOverride}`;
     }

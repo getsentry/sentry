@@ -345,9 +345,13 @@ const GroupingStore = Reflux.createStore({
 
   // Toggle collapsed state of all fingerprints
   onToggleCollapseFingerprints() {
-    this.setStateForId(this.unmergeState, this.mergedItems.map(({id}) => id), {
-      collapsed: !this.unmergeLastCollapsed,
-    });
+    this.setStateForId(
+      this.unmergeState,
+      this.mergedItems.map(({id}) => id),
+      {
+        collapsed: !this.unmergeLastCollapsed,
+      }
+    );
 
     this.unmergeLastCollapsed = !this.unmergeLastCollapsed;
 

@@ -122,7 +122,13 @@ describe('EventsRequest', function() {
       doEventsRequest.mockImplementation(() =>
         Promise.resolve({
           data: [
-            [new Date(), [{...COUNT_OBJ, count: 321}, {...COUNT_OBJ, count: 79}]],
+            [
+              new Date(),
+              [
+                {...COUNT_OBJ, count: 321},
+                {...COUNT_OBJ, count: 79},
+              ],
+            ],
             [new Date(), [COUNT_OBJ]],
           ],
         })

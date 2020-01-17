@@ -59,7 +59,10 @@ describe('AsyncComponent', function() {
   describe('multi-route component', () => {
     class MultiRouteComponent extends TestAsyncComponent {
       getEndpoints() {
-        return [['data', '/some/path/to/something/'], ['project', '/another/path/here']];
+        return [
+          ['data', '/some/path/to/something/'],
+          ['project', '/another/path/here'],
+        ];
       }
     }
 

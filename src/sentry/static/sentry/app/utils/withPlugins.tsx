@@ -83,7 +83,7 @@ const withPlugins = <P extends InjectedPluginProps>(
         render() {
           return (
             <WrappedComponent
-              {...this.props as P}
+              {...(this.props as P)}
               plugins={this.state.store as Plugin[]}
             />
           );

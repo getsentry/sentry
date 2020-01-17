@@ -9,7 +9,10 @@ const ENDPOINT = '/users/me/authenticators/';
 
 class AccountSecurityWrapper extends AsyncComponent {
   getEndpoints() {
-    return [['authenticators', ENDPOINT], ['organizations', '/organizations/']];
+    return [
+      ['authenticators', ENDPOINT],
+      ['organizations', '/organizations/'],
+    ];
   }
 
   handleDisable = auth => {

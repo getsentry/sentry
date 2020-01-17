@@ -300,11 +300,9 @@ class EventView {
       .map(field => {
         return getSortKeyFromField(field, undefined);
       })
-      .filter(
-        (sortKey): sortKey is string => {
-          return !!sortKey;
-        }
-      );
+      .filter((sortKey): sortKey is string => {
+        return !!sortKey;
+      });
 
     const sort = sorts.find(currentSort => {
       return sortKeys.includes(currentSort.field);

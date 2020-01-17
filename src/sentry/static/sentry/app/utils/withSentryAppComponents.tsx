@@ -37,7 +37,7 @@ const withSentryAppComponents = <P extends InjectedAppComponentsProps>(
           components={
             SentryAppComponentsStore.getComponentByType(componentType) as Component[]
           }
-          {...this.props as P}
+          {...(this.props as P)}
         />
       );
     },

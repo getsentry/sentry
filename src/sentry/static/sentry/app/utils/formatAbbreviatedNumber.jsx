@@ -1,6 +1,10 @@
 import floatFormat from './floatFormat';
 
-const numberFormats = [[1000000000, 'b'], [1000000, 'm'], [1000, 'k']];
+const numberFormats = [
+  [1000000000, 'b'],
+  [1000000, 'm'],
+  [1000, 'k'],
+];
 
 export default function formatNumber(number) {
   let b, x, y, o, p;

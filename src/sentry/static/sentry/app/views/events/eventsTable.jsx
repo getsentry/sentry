@@ -27,9 +27,7 @@ class EventsTableBody extends React.PureComponent {
     return events.map((event, eventIdx) => {
       const project = projectsMap.get(event.projectID);
       const trimmedMessage = event.title || event.message.split('\n')[0].substr(0, 100);
-      const eventLink = `/organizations/${organization.slug}/projects/${
-        project.slug
-      }/events/${event.eventID}/`;
+      const eventLink = `/organizations/${organization.slug}/projects/${project.slug}/events/${event.eventID}/`;
 
       return (
         <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx === 0}>

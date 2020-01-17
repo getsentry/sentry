@@ -19,7 +19,10 @@ describe('EventsChart > EventsLineChart', function() {
       url: `/organizations/${org.slug}/events-stats/`,
       method: 'GET',
       body: {
-        data: [[1543449600, [20, 12]], [1543449601, [10, 5]]],
+        data: [
+          [1543449600, [20, 12]],
+          [1543449601, [10, 5]],
+        ],
       },
     });
 
