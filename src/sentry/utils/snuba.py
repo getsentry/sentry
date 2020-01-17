@@ -742,7 +742,7 @@ def constrain_condition_to_dataset(cond, dataset):
     raise ValueError("Unexpected condition format %s" % cond)
 
 
-def dataset_query(
+def aliased_query(
     start=None,
     end=None,
     groupby=None,
