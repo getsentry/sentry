@@ -67,7 +67,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             </Link>
             <SparkLine incident={incident} />
           </TitleAndSparkLine>
-          <Status incident={incident} />
+          <Status badge incident={incident} />
           <div>
             {started.format('L')}
             <LightDuration seconds={getDynamicText({value: duration, fixed: 1200})} />

@@ -49,12 +49,13 @@ export default class DetailsHeader extends React.Component<Props> {
         <DropdownControl
           data-test-id="status-dropdown"
           label={incident && <Status incident={incident} />}
-          menuWidth="160px"
+          menuWidth="180px"
           alignRight
+          disabled={!isIncidentOpen}
           buttonProps={{size: 'small', disabled: !incident}}
         >
           <StyledMenuItem onSelect={onStatusChange}>
-            {isIncidentOpen ? t('Close this incident') : t('Reopen this incident')}
+            <ResolveIcon src="icon-circle-check" /> {t('Resolve this incident')}
           </StyledMenuItem>
         </DropdownControl>
       </Access>
@@ -241,7 +242,8 @@ const Chevron = styled(InlineSvg)`
 const StyledMenuItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: left;
-  padding: ${space(1)};
+  padding: ${space(1)} 12px; /* To match dropdown */
+  white-space: nowrap;
 `;
 
 const OpenLink = styled(Link)`
@@ -249,4 +251,9 @@ const OpenLink = styled(Link)`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray2};
   margin-left: ${space(1)};
+`;
+
+const ResolveIcon = styled(InlineSvg)`
+  color: ${p => p.theme.greenLight};
+  margin-right: ${space(0.5)};
 `;
