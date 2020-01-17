@@ -57,10 +57,12 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
         if not self.is_configured(group.project):
             return
 
-        # TODO: This should eventually be event.title in line with other plugins.
+        # TODO: This should eventually just be event.title in line with other plugins.
         # However, we should notify users first, since PD alert routing may be
-        # based off the message field.
-        description = (event.real_message or event.message)[:1024]
+        # based off the message field. We default to the title now because it's
+        # possible for `event.message` and `event.real_message` to be "" and the description
+        # is a required field for the PD payload.
+        description = (event.real_message or event.message or event.title)[:1024]
 
         tags = dict(event.tags)
         details = {
@@ -105,23 +107,4 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
             )
             assert response["status"] == "success"
         except Exception as e:
-            # XXX(Meredith): The original logging statement below doesn't seem to be logging in
-            # production so adding a couple other variations to see if it's the payload we are
-            # trying to log or something else. Removed once testing is done.
-            self.logger.info("notification-plugin.notify-failed.pagerduty-failed")
-            self.logger.info(
-                "notification-plugin.notify-failed.pagerduty-error: %s" % six.text_type(e)
-            )
-
-            self.logger.info(
-                "notification-plugin.notify-failed.pagerduty",
-                extra={
-                    "error": six.text_type(e),
-                    # Log out all the required attributes noted https://v2.developer.pagerduty.com/docs/trigger-events
-                    # incase any are missing or blank, except for event_type since we hard code that above to "trigger".
-                    "description": description,
-                    "incident_key": six.text_type(group.id),
-                    "service_key": service_key,
-                },
-            )
             self.raise_error(e)
