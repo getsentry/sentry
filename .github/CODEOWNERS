@@ -11,9 +11,17 @@
 /src/sentry/tsdb/redissnuba.py  @getsentry/owners-snuba
 /src/sentry/search/snuba/       @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/     @getsentry/owners-snuba
-/src/sentry/interfaces/security.py @getsentry/owners-ingest
-/src/sentry/quotas/ @getsentry/owners-ingest
-/src/sentry/relay/ @getsentry/owners-ingest
+
+# Event Ingestion
+/src/sentry/attachments/           @getsentry/owners-ingest
+/src/sentry/coreapi.py             @getsentry/owners-ingest
+/src/sentry/ingest/                @getsentry/owners-ingest
+/src/sentry/interfaces/            @getsentry/owners-ingest
+/src/sentry/message_filters.py     @getsentry/owners-ingest
+/src/sentry/quotas/                @getsentry/owners-ingest
+/src/sentry/relay/                 @getsentry/owners-ingest
+/src/sentry/utils/data_filters.py  @getsentry/owners-ingest
+/src/sentry/web/api.py             @getsentry/owners-ingest
 
 # Security
 /src/sentry/net/  @getsentry/security
