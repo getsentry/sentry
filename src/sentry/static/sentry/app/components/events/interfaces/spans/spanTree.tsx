@@ -233,15 +233,15 @@ class SpanTree extends React.Component<PropType> {
           eventView={eventView}
           orgId={orgId}
           spanNumber={spanNumber}
-          isLast={isLast}
+          isLast={false}
           continuingTreeDepths={continuingTreeDepths}
           isRoot={isRoot}
           span={spanGap}
           trace={this.props.trace}
           generateBounds={generateBounds}
           treeDepth={treeDepth}
-          numOfSpanChildren={spanChildren.length}
-          renderedSpanChildren={reduced.renderedSpanChildren}
+          numOfSpanChildren={0}
+          renderedSpanChildren={[]}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
           spanBarHatch
         />
