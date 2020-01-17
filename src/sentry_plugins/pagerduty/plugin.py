@@ -97,4 +97,15 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
             )
             assert response["status"] == "success"
         except Exception as e:
+            self.logger.info(
+                "notification-plugin.notify-failed.pagerduty",
+                extra={
+                    "error": six.text_type(e),
+                    # Log out all the required attributes noted https://v2.developer.pagerduty.com/docs/trigger-events
+                    # incase any are missing or blank, except for event_type since we hard code that above to "trigger".
+                    "description": description,
+                    "incident_key": six.text_type(group.id),
+                    "service_key": service_key,
+                },
+            )
             self.raise_error(e)
