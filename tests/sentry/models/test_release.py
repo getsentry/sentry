@@ -29,6 +29,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.signals import release_commits_updated
+from sentry.utils.strings import truncatechars
 
 from sentry.testutils import TestCase, SetRefsTestCase
 
@@ -508,6 +509,29 @@ class SetCommitsTestCase(TestCase):
         assert removed == set([removed_commit.id])
 
         release_commits_updated.disconnect(dummy_signal_handler)
+
+    def test_long_email(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org, name="foo")
+
+        repo = Repository.objects.create(organization_id=org.id, name="test/repo")
+
+        release = Release.objects.create(version="abcdabc", organization=org)
+        release.add_project(project)
+        commit_email = "a" * 248 + "@a.com"  # 254 chars long, max valid email.
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": repo.name,
+                    "author_name": "foo bar baz",
+                    "author_email": commit_email,
+                    "message": "i fixed a bug",
+                }
+            ]
+        )
+        commit = Commit.objects.get(repository_id=repo.id, organization_id=org.id, key="a" * 40)
+        assert commit.author.email == truncatechars(commit_email, 75)
 
 
 class SetRefsTest(SetRefsTestCase):
