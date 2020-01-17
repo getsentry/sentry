@@ -87,6 +87,15 @@ class ChunkUploadTest(APITestCase):
         assert file_blobs[0].checksum == checksum1
         assert file_blobs[1].checksum == checksum2
 
+    def test_empty_upload(self):
+        response = self.client.post(
+            self.url, HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token), format="multipart"
+        )
+        assert response.status_code == 200
+
+        file_blobs = FileBlob.objects.all()
+        assert len(file_blobs) == 0
+
     def test_too_many_chunks(self):
         files = []
 
