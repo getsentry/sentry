@@ -17,7 +17,7 @@ import {callIfFunction} from 'app/utils/callIfFunction';
 import EventsRequest from './utils/eventsRequest';
 import YAxisSelector from './yAxisSelector';
 
-class EventsLineChart extends React.Component {
+class EventsAreaChart extends React.Component {
   static propTypes = {
     loading: PropTypes.bool,
     reloading: PropTypes.bool,
@@ -177,7 +177,7 @@ class EventsChart extends React.Component {
                     return (
                       <React.Fragment>
                         <TransparentLoadingMask visible={reloading} />
-                        <EventsLineChart
+                        <EventsAreaChart
                           {...zoomRenderProps}
                           loading={loading}
                           reloading={reloading}
