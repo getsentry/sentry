@@ -208,3 +208,7 @@ register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
 
 # Eventstore uses Nodestore instead of Snuba for get_event_by_id
 register("eventstore.use-nodestore", default=True, flags=FLAG_PRIORITIZE_DISK)
+
+# Node data save rate
+register("nodedata.cache-sample-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
+register("nodedata.cache-on-save", default=False, flags=FLAG_PRIORITIZE_DISK)
