@@ -113,6 +113,7 @@ def export(dest, silent, indent, exclude):
     else:
         exclude = exclude.lower().split(",")
 
+    from django.db.models import get_apps
     from django.core import serializers
 
     def yield_objects():
