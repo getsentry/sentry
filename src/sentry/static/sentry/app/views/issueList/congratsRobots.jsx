@@ -3,11 +3,13 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import video from 'app/../images/congrats-robots/congrats-robots.mp4';
+import video from 'app/../images/spot/congrats-robots.mp4';
 
 const Message = () => (
   <React.Fragment>
-    <h4>{t("We couldn't find any issues that matched your filters.")}</h4>
+    <EmptyMessage>
+      {t("We couldn't find any issues that matched your filters.")}
+    </EmptyMessage>
     <p>{t('Get out there and write some broken code!')}</p>
   </React.Fragment>
 );
@@ -30,7 +32,20 @@ const CongratsRobotsWrapper = styled('div')`
   padding: ${space(4)} ${space(5)};
   flex-direction: column;
   align-items: center;
+  text-align: center;
   color: ${p => p.theme.gray3};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    font-size: ${p => p.theme.fontSizeMedium};
+  }
+`;
+
+const EmptyMessage = styled('div')`
+  font-weight: 600;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    font-size: ${p => p.theme.fontSizeExtraLarge};
+  }
 `;
 
 const AnimatedScene = styled('div')`
@@ -38,8 +53,9 @@ const AnimatedScene = styled('div')`
 `;
 
 const StyledVideo = styled('video')`
+  max-height: 320px;
   max-width: 100%;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(1)};
 `;
 
 export default CongratsRobots;
