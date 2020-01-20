@@ -1295,6 +1295,36 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert "color" in keys
         assert "toy" not in keys
 
+    def test_query_string_with_aggregate_condition(self):
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "message": "oh my",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"toy": "train"},
+            },
+            project_id=self.project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("bad", params)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys
+
+        result = discover.get_facets("color:red p95:>1", params)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys
+
     def test_date_params(self):
         self.store_event(
             data={

@@ -280,6 +280,7 @@ def query(
     reference_event=None,
     referrer=None,
     auto_fields=False,
+    ignore_aggregate_conditions=False,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -328,6 +329,10 @@ def query(
 
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
+
+    # Some queries want to ignore the aggregate conditions (meta/facets)
+    if ignore_aggregate_conditions:
+        snuba_args["having"] = []
 
     # Make sure that any aggregate conditions are also in the selected columns
     for having_clause in snuba_args.get("having"):
@@ -483,7 +488,6 @@ def get_facets(query, params, limit=10, referrer=None):
         "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
         "filter_keys": snuba_filter.filter_keys,
-        "having": snuba_filter.having,
     }
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
@@ -504,7 +508,7 @@ def get_facets(query, params, limit=10, referrer=None):
         filter_keys=snuba_args.get("filter_keys"),
         orderby=["-count", "tags_key"],
         groupby="tags_key",
-        having=[excluded_tags] + snuba_args.get("having"),
+        having=[excluded_tags],
         dataset=Dataset.Discover,
         limit=limit,
         referrer=referrer,

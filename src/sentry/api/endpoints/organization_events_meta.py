@@ -24,6 +24,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 params=params,
                 query=request.query_params.get("query"),
                 referrer="api.organization-events-meta",
+                ignore_aggregate_conditions=True,
             )
         except discover.InvalidSearchQuery as err:
             raise ParseError(detail=six.text_type(err))
