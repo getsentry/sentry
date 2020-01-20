@@ -35,6 +35,7 @@ import {
 import EventView, {Field as FieldType} from './eventView';
 import {Aggregation, Field, AGGREGATIONS, FIELDS} from './eventQueryParams';
 import {TableColumn} from './table/types';
+import {generateDiscoverResultsRoute} from './results';
 
 export type EventQuery = {
   field: string[];
@@ -114,7 +115,7 @@ export function getEventTagSearchUrl(
   query: Query
 ) {
   return {
-    pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+    pathname: generateDiscoverResultsRoute(organization.slug),
     query: generateQueryWithTag(query, {key: tagKey, value: tagValue}),
   };
 }
