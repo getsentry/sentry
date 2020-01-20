@@ -406,3 +406,7 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
   link.click();
   link.remove();
 }
+
+export function generateDiscoverLandingPageRoute(orgSlug: string): string {
+  return `/organizations/${orgSlug}/eventsv2/`;
+}
