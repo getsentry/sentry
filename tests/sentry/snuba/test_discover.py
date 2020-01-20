@@ -350,6 +350,39 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_aggregate_alias_with_brackets(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "p95()"}],
+            "data": [{"transaction": "api.do_things", "p95()": 200}],
+        }
+        discover.query(
+            selected_columns=["transaction", "p95()", "count_unique(transaction)"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                ["quantile(0.95)(duration)", None, "p95"],
+                ["uniq", "transaction", "count_unique_transaction"],
+                ["argMax", ["event_id", "timestamp"], "latest_event"],
+                ["argMax", ["project_id", "timestamp"], "projectid"],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_orderby_limit_offset(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "title"}, {"name": "project.id"}],
@@ -657,6 +690,36 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_alias_aggregate_conditions_with_brackets(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+        discover.query(
+            selected_columns=["transaction", "p95()"],
+            query="http.method:GET p95():>5",
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+        )
+
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            conditions=[["http_method", "=", "GET"]],
+            filter_keys={"project_id": [self.project.id]},
+            groupby=["transaction"],
+            dataset=Dataset.Discover,
+            aggregations=[["quantile(0.95)(duration)", None, "p95"]],
+            having=[["p95", ">", 5]],
+            end=end_time,
+            start=start_time,
+            orderby=None,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_aggregate_date_conditions(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "duration"}],
@@ -780,6 +843,19 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
     def test_field_alias(self):
         result = discover.timeseries_query(
             selected_columns=["p95"],
+            query="event.type:transaction transaction:api.issue.delete",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+
+    def test_field_alias_with_brackets(self):
+        result = discover.timeseries_query(
+            selected_columns=["p95()"],
             query="event.type:transaction transaction:api.issue.delete",
             params={
                 "start": self.day_ago,
