@@ -206,10 +206,6 @@ def resolve_discover_aliases(snuba_args):
     translated_columns = {}
     derived_columns = set()
 
-    translations = resolved.get("translations")
-    if translations:
-        translated_columns = {t[0]: t[1] for t in translations}
-
     selected_columns = resolved.get("selected_columns")
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):

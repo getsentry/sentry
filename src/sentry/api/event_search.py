@@ -609,7 +609,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias):
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
         return [["isNull", [name]], aggregate_filter.operator, 1]
 
-    _, agg_additions, _ = resolve_field(name)
+    _, agg_additions = resolve_field(name)
     if len(agg_additions) > 0:
         name = agg_additions[0][-1]
 
@@ -912,21 +912,20 @@ def resolve_field(field):
 
     sans_parens = field.strip("()")
     if sans_parens in FIELD_ALIASES:
-        translation = (sans_parens, field) if field != sans_parens else []
         special_field = deepcopy(FIELD_ALIASES[sans_parens])
-        return (special_field.get("fields", []), special_field.get("aggregations", []), translation)
+        return (special_field.get("fields", []), special_field.get("aggregations", []))
 
     # Basic fields don't require additional validation. They could be tag
     # names which we have no way of validating at this point.
     match = AGGREGATE_PATTERN.search(field)
     if not match:
-        return ([field], None, None)
+        return ([field], None)
 
     validate_aggregate(field, match)
 
     if match.group("function") == "count":
         # count() is a special function that ignores its column arguments.
-        return (None, [["count", None, get_aggregate_alias(match)]], None)
+        return (None, [["count", None, get_aggregate_alias(match)]])
 
     return (
         None,
@@ -937,7 +936,6 @@ def resolve_field(field):
                 get_aggregate_alias(match),
             ]
         ],
-        None,
     )
 
 
@@ -959,17 +957,13 @@ def resolve_field_list(fields, snuba_args, auto_fields=True):
     aggregations = []
     columns = []
     groupby = []
-    translations = []
     for field in fields:
-        column_additions, agg_additions, translation = resolve_field(field)
+        column_additions, agg_additions = resolve_field(field)
         if column_additions:
             columns.extend(column_additions)
 
         if agg_additions:
             aggregations.extend(agg_additions)
-
-        if translation:
-            translations.append(translation)
 
     rollup = snuba_args.get("rollup")
     if not rollup and auto_fields:
@@ -1005,7 +999,6 @@ def resolve_field_list(fields, snuba_args, auto_fields=True):
         "aggregations": aggregations,
         "groupby": groupby,
         "orderby": orderby,
-        "translations": translations,
     }
 
 

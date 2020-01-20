@@ -451,7 +451,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         assert data[0]["transaction"] == event.transaction
-        assert data[0]["p95()"] == 3000
+        assert data[0]["p95"] == 3000
 
     def test_aggregation_comparison_with_conditions(self):
         self.login_as(user=self.user)
