@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.utils.snuba import Dataset, dataset_query, get_snuba_column_name, get_function_index
+from sentry.utils.snuba import Dataset, aliased_query, get_snuba_column_name, get_function_index
 
 # TODO(mark) Once this import is removed, transform_results should not
 # be exported.
@@ -142,6 +142,6 @@ def transform_aliases_and_query(**kwargs):
     kwargs["arrayjoin"] = arrayjoin_map.get(arrayjoin, arrayjoin)
     kwargs["dataset"] = dataset
 
-    result = dataset_query(**kwargs)
+    result = aliased_query(**kwargs)
 
     return transform_results(result, translated_columns, kwargs)
