@@ -6,7 +6,7 @@ from uuid import uuid1
 
 import pytest
 from exam import before, fixture
-from mock import patch
+from sentry.utils.compat.mock import patch
 from django.core.cache.backends.locmem import LocMemCache
 
 from sentry.models import Option

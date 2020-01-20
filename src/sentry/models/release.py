@@ -27,6 +27,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 
@@ -399,19 +400,19 @@ class Release(Model):
                             + "@localhost"
                         )
 
+                    author_email = truncatechars(author_email, 75)
+
                     if not author_email:
                         author = None
                     elif author_email not in authors:
                         author_data = {"name": data.get("author_name")}
-                        author, created = CommitAuthor.objects.create_or_update(
+                        author, created = CommitAuthor.objects.get_or_create(
                             organization_id=self.organization_id,
                             email=author_email,
-                            values=author_data,
+                            defaults=author_data,
                         )
-                        if not created:
-                            author = CommitAuthor.objects.get(
-                                organization_id=self.organization_id, email=author_email
-                            )
+                        if author.name != author_data["name"]:
+                            author.update(name=author_data["name"])
                         authors[author_email] = author
                     else:
                         author = authors[author_email]

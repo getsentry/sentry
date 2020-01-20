@@ -21,6 +21,7 @@ type TableProps = {
   location: Location;
   eventView: EventView;
   organization: Organization;
+  title: string;
 };
 type TableState = {
   isLoading: boolean;

@@ -86,8 +86,11 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         logger = logging.getLogger("sentry.files")
         logger.info("chunkupload.start")
 
-        files = request.data.getlist("file")
-        files += [GzipChunk(chunk) for chunk in request.data.getlist("file_gzip")]
+        files = []
+        if request.data:
+            files = request.data.getlist("file")
+            files += [GzipChunk(chunk) for chunk in request.data.getlist("file_gzip")]
+
         if len(files) == 0:
             # No files uploaded is ok
             logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})

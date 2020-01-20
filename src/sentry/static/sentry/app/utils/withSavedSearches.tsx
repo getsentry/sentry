@@ -66,7 +66,7 @@ const withSavedSearches = <P extends InjectedSavedSearchesProps>(
           savedSearches={savedSearches as SavedSearch[]}
           savedSearchLoading={isLoading as boolean}
           savedSearch={savedSearch as SavedSearch | null}
-          {...this.props as P}
+          {...(this.props as P)}
         />
       );
     },

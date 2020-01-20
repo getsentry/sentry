@@ -68,7 +68,10 @@ export function fetchOrganizationTags(api, orgId, projectIds = null) {
   TagActions.loadTags();
 
   const url = `/organizations/${orgId}/tags/`;
-  const query = projectIds ? {project: projectIds} : null;
+  const query = {use_cache: 1};
+  if (projectIds) {
+    query.project = projectIds;
+  }
 
   const promise = api
     .requestPromise(url, {

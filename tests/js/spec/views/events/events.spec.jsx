@@ -75,7 +75,10 @@ describe('EventsErrors', function() {
     // Search bar makes this request when mounted
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
-      body: [{count: 1, tag: 'transaction'}, {count: 2, tag: 'mechanism'}],
+      body: [
+        {count: 1, tag: 'transaction'},
+        {count: 2, tag: 'mechanism'},
+      ],
     });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -326,7 +329,10 @@ describe('EventsContainer', function() {
     // Search bar makes this request when mounted
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
-      body: [{count: 1, tag: 'transaction'}, {count: 2, tag: 'mechanism'}],
+      body: [
+        {count: 1, tag: 'transaction'},
+        {count: 2, tag: 'mechanism'},
+      ],
     });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',

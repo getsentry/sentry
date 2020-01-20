@@ -4,7 +4,7 @@ import pytest
 import responses
 
 from time import time
-from mock import Mock
+from sentry.utils.compat.mock import Mock
 from sentry.testutils import TestCase
 
 from sentry.integrations.exceptions import (

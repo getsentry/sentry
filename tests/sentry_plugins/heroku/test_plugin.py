@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from mock import Mock, patch
+from sentry.utils.compat.mock import Mock, patch
 
 from django.utils import timezone
 

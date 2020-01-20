@@ -66,9 +66,7 @@ class EventAttachments extends React.Component<Props, State> {
 
     try {
       const data = await this.props.api.requestPromise(
-        `/projects/${this.props.orgId}/${this.props.projectId}/events/${
-          event.id
-        }/attachments/`
+        `/projects/${this.props.orgId}/${this.props.projectId}/events/${event.id}/attachments/`
       );
 
       this.setState({

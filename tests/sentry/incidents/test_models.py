@@ -8,7 +8,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from exam import patcher
 from freezegun import freeze_time
-from mock import Mock, patch
+from sentry.utils.compat.mock import Mock, patch
 
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
