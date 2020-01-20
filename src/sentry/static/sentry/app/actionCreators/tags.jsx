@@ -73,6 +73,7 @@ export function loadOrganizationTags(api, orgId, selection) {
 
   const url = `/organizations/${orgId}/tags/`;
   const query = selection.datetime ? {...getParams(selection.datetime)} : {};
+  query.use_cache = '1';
 
   if (selection.projects) {
     query.project = selection.projects;
