@@ -6,22 +6,30 @@ import PropTypes from 'prop-types';
 
 import BaseBadge from 'app/components/idBadge/baseBadge';
 import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
+import TeamAvatar from 'app/components/avatar/teamAvatar';
 import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
+import {Team} from 'app/types';
 
-class TeamBadge extends React.Component {
+type Props = {
+  team: Team;
+  className?: string;
+  avatarSize?: TeamAvatar['props']['size'];
+  // If true, will use default max-width, or specify one as a string
+  hideOverflow?: boolean | string;
+  hideAvatar?: boolean;
+};
+
+class TeamBadge extends React.Component<Props> {
   static propTypes = {
     ...BaseBadge.propTypes,
     team: SentryTypes.Team.isRequired,
     avatarSize: PropTypes.number,
-    /**
-     * If true, will use default max-width, or specify one as a string
-     */
     hideOverflow: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
     hideAvatar: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: Partial<Props> = {
     avatarSize: 24,
     hideOverflow: true,
     hideAvatar: false,
@@ -42,12 +50,16 @@ class TeamBadge extends React.Component {
   }
 }
 
-const TeamBadgeContainer = createReactClass({
+type ContainerState = {
+  team: Team;
+};
+
+const TeamBadgeContainer = createReactClass<Props, ContainerState>({
   displayName: 'TeamBadgeContainer',
   propTypes: {
     team: SentryTypes.Team.isRequired,
   },
-  mixins: [Reflux.listenTo(TeamStore, 'onTeamStoreUpdate')],
+  mixins: [Reflux.listenTo(TeamStore, 'onTeamStoreUpdate') as any],
   getInitialState() {
     return {
       team: this.props.team,
@@ -67,7 +79,7 @@ const TeamBadgeContainer = createReactClass({
     });
   },
 
-  onTeamStoreUpdate(updatedTeam) {
+  onTeamStoreUpdate(updatedTeam: Set<string>) {
     if (!updatedTeam.has(this.state.team.id)) {
       return;
     }
@@ -77,13 +89,12 @@ const TeamBadgeContainer = createReactClass({
       return;
     }
 
-    this.setState({
-      team: TeamStore.getById(this.state.team.id),
-    });
+    this.setState({team});
   },
 
   render() {
     return <TeamBadge {...this.props} team={this.state.team} />;
   },
 });
+
 export default TeamBadgeContainer;
