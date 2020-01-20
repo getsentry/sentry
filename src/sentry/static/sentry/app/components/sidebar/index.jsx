@@ -21,6 +21,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withLatestContext from 'app/utils/withLatestContext';
+import {generateDiscoverLandingPageRoute} from 'app/views/eventsV2/utils';
 
 import Broadcasts from './broadcasts';
 import ServiceIncidents from './serviceIncidents';
@@ -289,13 +290,13 @@ class Sidebar extends React.Component {
                       {...sidebarItemProps}
                       onClick={(_id, evt) =>
                         this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/eventsv2/`,
+                          generateDiscoverLandingPageRoute(organization.slug),
                           evt
                         )
                       }
                       icon={<InlineSvg src="icon-telescope" />}
                       label={t('Discover v2')}
-                      to={`/organizations/${organization.slug}/eventsv2/`}
+                      to={generateDiscoverLandingPageRoute(organization.slug)}
                       id="discover-v2"
                     />
                   </Feature>
