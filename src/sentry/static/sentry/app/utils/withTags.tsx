@@ -34,7 +34,7 @@ const withTags = <P extends InjectedTagsProps>(
     },
 
     render() {
-      return <WrappedComponent tags={this.state.tags} {...this.props as P} />;
+      return <WrappedComponent tags={this.state.tags} {...(this.props as P)} />;
     },
   });
 
