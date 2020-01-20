@@ -91,6 +91,7 @@ def create_incident(
         incident = Incident.objects.create(
             organization=organization,
             detection_uuid=detection_uuid,
+            # TODO: Should this function receieve the trigger, and we use the trigger type to set incident status?
             status=IncidentStatus.OPEN.value,
             type=type.value,
             title=title,
@@ -259,13 +260,6 @@ def update_incident_status(incident, status, user=None, comment=None):
         kwargs = {"status": status.value}
         if status == IncidentStatus.CLOSED:
             kwargs["date_closed"] = timezone.now()
-        elif status == IncidentStatus.OPEN:
-            # If we're moving back out of closed status then unset the closed
-            # date
-            kwargs["date_closed"] = None
-            # Remove the snapshot since it's only used after the incident is
-            # closed.
-            IncidentSnapshot.objects.filter(incident=incident).delete()
 
         incident.update(**kwargs)
 

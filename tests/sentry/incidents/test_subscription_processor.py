@@ -200,7 +200,7 @@ class ProcessUpdateTest(TestCase):
         return list(
             Incident.objects.filter(
                 type=IncidentType.ALERT_TRIGGERED.value,
-                status=IncidentStatus.OPEN.value,
+                status=IncidentStatus.WARNING.value,
                 alert_rule=rule,
                 projects=subscription.project,
             )

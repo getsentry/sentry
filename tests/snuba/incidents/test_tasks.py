@@ -131,7 +131,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         def active_incident():
             return Incident.objects.filter(
                 type=IncidentType.ALERT_TRIGGERED.value,
-                status=IncidentStatus.OPEN.value,
+                status=IncidentStatus.WARNING.value,
                 alert_rule=self.rule,
             )
 

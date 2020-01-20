@@ -69,12 +69,15 @@ class SubscriptionProcessor(object):
         if not hasattr(self, "_active_incident"):
             try:
                 # Fetch the active incident if one exists for this alert rule.
-                self._active_incident = Incident.objects.filter(
-                    type=IncidentType.ALERT_TRIGGERED.value,
-                    status=IncidentStatus.OPEN.value,
-                    alert_rule=self.alert_rule,
-                    projects=self.subscription.project,
-                ).order_by("-date_added")[0]
+                self._active_incident = (
+                    Incident.objects.filter(
+                        type=IncidentType.ALERT_TRIGGERED.value,
+                        alert_rule=self.alert_rule,
+                        projects=self.subscription.project,
+                    )
+                    .exclude(status=IncidentStatus.CLOSED.value)
+                    .order_by("-date_added")[0]
+                )
             except IndexError:
                 self._active_incident = None
         return self._active_incident

@@ -165,9 +165,9 @@ class UpdateIncidentStatus(TestCase):
         return IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
 
     def test_status_already_set(self):
-        incident = self.create_incident(status=IncidentStatus.OPEN.value)
+        incident = self.create_incident(status=IncidentStatus.WARNING.value)
         with self.assertRaises(StatusAlreadyChangedError):
-            update_incident_status(incident, IncidentStatus.OPEN)
+            update_incident_status(incident, IncidentStatus.WARNING)
 
     def run_test(self, incident, status, expected_date_closed, user=None, comment=None):
         prev_status = incident.status
@@ -230,7 +230,7 @@ class UpdateIncidentStatus(TestCase):
             before=True,
             after=False,
         ):
-            self.run_test(incident, IncidentStatus.OPEN, None)
+            self.run_test(incident, IncidentStatus.WARNING, None)
 
     def test_all_params(self):
         incident = self.create_incident()
@@ -444,13 +444,13 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
             IncidentActivityType.STATUS_CHANGE,
             user=self.user,
             value=six.text_type(IncidentStatus.CLOSED.value),
-            previous_value=six.text_type(IncidentStatus.OPEN.value),
+            previous_value=six.text_type(IncidentStatus.WARNING.value),
         )
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
         assert activity.user == self.user
         assert activity.value == six.text_type(IncidentStatus.CLOSED.value)
-        assert activity.previous_value == six.text_type(IncidentStatus.OPEN.value)
+        assert activity.previous_value == six.text_type(IncidentStatus.WARNING.value)
         self.assert_notifications_sent(activity)
         assert not self.record_event.called
 
