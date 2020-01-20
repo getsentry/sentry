@@ -23,10 +23,10 @@ from sentry.utils.snuba import (
     SnubaTSResult,
     DISCOVER_COLUMN_MAP,
     QUOTED_LITERAL_RE,
-    get_function_index,
     raw_query,
     to_naive_timestamp,
     naiveify_datetime,
+    resolve_condition,
 )
 
 __all__ = (
@@ -137,6 +137,8 @@ def create_reference_event_conditions(reference_event):
 
 def resolve_column(col):
     """
+    Used as a column resolver in discover queries.
+
     Resolve a public schema name to the discover dataset.
     unknown columns are converted into tags expressions.
     """
@@ -149,49 +151,6 @@ def resolve_column(col):
     if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
         return col
     return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))
-
-
-def resolve_condition(cond):
-    """
-    When conditions have been parsed by the api.event_search module
-    we can end up with conditions that are not valid on the current dataset
-    due to how ap.event_search checks for valid field names without
-    being aware of the dataset.
-
-    We have the dataset context here, so we need to re-scope conditions to the
-    current dataset.
-    """
-    index = get_function_index(cond)
-    if index is not None:
-        # IN conditions are detected as a function but aren't really.
-        if cond[index] == "IN":
-            cond[0] = resolve_column(cond[0])
-            return cond
-
-        func_args = cond[index + 1]
-        for (i, arg) in enumerate(func_args):
-            # Nested function
-            if isinstance(arg, (list, tuple)):
-                func_args[i] = resolve_condition(arg)
-            else:
-                func_args[i] = resolve_column(arg)
-        cond[index + 1] = func_args
-        return cond
-
-    # No function name found
-    if isinstance(cond, (list, tuple)) and len(cond):
-        # Condition is [col, operator, value]
-        if isinstance(cond[0], six.string_types) and len(cond) == 3:
-            cond[0] = resolve_column(cond[0])
-            return cond
-        if isinstance(cond[0], (list, tuple)):
-            if get_function_index(cond[0]) is not None:
-                cond[0] = resolve_condition(cond[0])
-                return cond
-            else:
-                # Nested conditions
-                return [resolve_condition(item) for item in cond]
-    raise ValueError("Unexpected condition format %s" % cond)
 
 
 def resolve_discover_aliases(snuba_args):
@@ -237,7 +196,7 @@ def resolve_discover_aliases(snuba_args):
     conditions = resolved.get("conditions")
     if conditions:
         for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition)
+            replacement = resolve_condition(condition, resolve_column)
             conditions[i] = replacement
         resolved["conditions"] = list(filter(None, conditions))
 
