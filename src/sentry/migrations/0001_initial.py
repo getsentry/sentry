@@ -864,7 +864,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'message',
                 'verbose_name_plural': 'messages',
             },
-            bases=(sentry.models.event.EventCommon, models.Model),
+            bases=(models.Model),
         ),
         migrations.CreateModel(
             name='EventAttachment',
