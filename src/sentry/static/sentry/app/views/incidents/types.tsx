@@ -16,7 +16,7 @@ export type Incident = {
   groups: string[]; // Array of group ids
   query: string;
   organizationId: string;
-  projects: string[];
+  projects: string[]; // Array of slugs
   seenBy: User[];
   status: number;
   title: string;
