@@ -821,7 +821,11 @@ FIELD_ALIASES = {
         "result_type": "number",
         "aggregations": [
             [
-                "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
+                # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
+                # in a format Snuba can parse so query optimizations can be applied.
+                # It has a minimal prefix parser though to bridge the gap between the current state
+                # and when we will have an easier syntax.
+                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
                 None,
                 "impact",
             ]
