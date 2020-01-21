@@ -156,11 +156,9 @@ SEARCH_MAP = {
     "first_seen": "first_seen",
     "last_seen": "last_seen",
     "times_seen": "times_seen",
-    # TODO(mark) figure out how to safelist aggregate functions/field aliases
-    # so they can be used in conditions
 }
-SEARCH_MAP.update(**DATASETS[Dataset.Transactions])
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
+SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
 no_conversion = set(["start", "end"])
 
