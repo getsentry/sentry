@@ -129,19 +129,19 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
-    try:
-        if isinstance(model, Event):
-            # XXX:(Meredith): Passing through the entire event was an intentional choice
-            # to avoid having to query NodeStore again for data we had previously in
-            # post_process. While this is not ideal, changing this will most likely involve
-            # an overhaul of how we do things in post_process, not just this task alone.
-            instance = kwargs.get("instance")
-        else:
+    if isinstance(model, Event):
+        # XXX:(Meredith): Passing through the entire event was an intentional choice
+        # to avoid having to query NodeStore again for data we had previously in
+        # post_process. While this is not ideal, changing this will most likely involve
+        # an overhaul of how we do things in post_process, not just this task alone.
+        instance = kwargs.get("instance")
+    else:
+        try:
             instance = model.objects.get(id=instance_id)
-    except model.DoesNotExist as e:
-        # Explicitly requeue the task, so we don't report this to Sentry until
-        # we hit the max number of retries.
-        return retryer.retry(exc=e)
+        except model.DoesNotExist as e:
+            # Explicitly requeue the task, so we don't report this to Sentry until
+            # we hit the max number of retries.
+            return retryer.retry(exc=e)
 
     event = "{}.{}".format(name, action)
 
