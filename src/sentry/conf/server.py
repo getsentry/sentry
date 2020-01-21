@@ -1396,7 +1396,7 @@ SENTRY_DEVSERVICES = {
             "REDIS_DB": "1",
         },
     },
-    "bigtable": {"image": "mattrobenolt/cbtemulator:0.36.0", "ports": {"8086/tcp": 8086}},
+    "bigtable": {"image": "mattrobenolt/cbtemulator:0.51.0", "ports": {"8086/tcp": 8086}},
     "memcached": {"image": "memcached:1.5-alpine", "ports": {"11211/tcp": 11211}},
     "symbolicator": {
         "image": "us.gcr.io/sentryio/symbolicator:latest",
