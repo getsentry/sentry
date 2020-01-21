@@ -120,10 +120,6 @@ class Event(object):
         return self.datetime.isoformat()
 
     @property
-    def id(self):
-        return self.event_id
-
-    @property
     def tags(self):
         """
         Tags property uses tags from snuba if loaded otherwise falls back to

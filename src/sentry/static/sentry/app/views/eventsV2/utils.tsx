@@ -35,6 +35,7 @@ import {
 import EventView, {Field as FieldType} from './eventView';
 import {Aggregation, Field, AGGREGATIONS, FIELDS} from './eventQueryParams';
 import {TableColumn} from './table/types';
+import {generateDiscoverResultsRoute} from './results';
 
 export type EventQuery = {
   field: string[];
@@ -114,7 +115,7 @@ export function getEventTagSearchUrl(
   query: Query
 ) {
   return {
-    pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+    pathname: generateDiscoverResultsRoute(organization.slug),
     query: generateQueryWithTag(query, {key: tagKey, value: tagValue}),
   };
 }
@@ -405,4 +406,8 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
   link.setAttribute('download', `${filename} ${getUtcDateString(now)}.csv`);
   link.click();
   link.remove();
+}
+
+export function generateDiscoverLandingPageRoute(orgSlug: string): string {
+  return `/organizations/${orgSlug}/eventsv2/`;
 }

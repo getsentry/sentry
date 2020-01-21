@@ -173,7 +173,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         [matching_group],
                         request.user,
                         serializer(
-                            matching_event_id=getattr(matching_event, "id", None),
+                            matching_event_id=getattr(matching_event, "event_id", None),
                             matching_event_environment=matching_event_environment,
                         ),
                     )
