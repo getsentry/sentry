@@ -15,11 +15,15 @@ import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 
+type ProjectPlaceholder = {
+  slug: string;
+};
+
 type State = {
   /**
    * Projects from API
    */
-  fetchedProjects: Project[] | {slug: string}[];
+  fetchedProjects: Project[] | ProjectPlaceholder[];
 
   /**
    * Projects fetched from store
@@ -61,7 +65,7 @@ type RenderProps = {
    * We want to make sure that at the minimum, we return a list of objects with only `slug`
    * while we load actual project data
    */
-  projects: State['fetchedProjects'];
+  projects: Project[] | ProjectPlaceholder[];
 
   /**
    * Calls API and searches for project, accepts a callback function with signature:
@@ -225,7 +229,7 @@ class Projects extends React.Component<Props, State> {
     // For each item in the fetch queue, lookup the project object and in the case
     // where something wrong has happened and we were unable to get project summary from
     // the server, just fill in with an object with only the slug
-    const projectsOrPlaceholder: Project[] | {slug: string}[] = Array.from(
+    const projectsOrPlaceholder: Project[] | ProjectPlaceholder[] = Array.from(
       this.fetchQueue
     ).map(slug => (projectsMap.has(slug) && projectsMap.get(slug)) || {slug});
 
@@ -336,7 +340,7 @@ class Projects extends React.Component<Props, State> {
   render() {
     const {slugs, children} = this.props;
 
-    return children({
+    const renderProps = {
       // We want to make sure that at the minimum, we return a list of objects with only `slug`
       // while we load actual project data
       projects: this.state.initiallyLoaded
@@ -364,7 +368,9 @@ class Projects extends React.Component<Props, State> {
 
       // The error that occurred if fetching failed
       fetchError: this.state.fetchError,
-    });
+    };
+
+    return children(renderProps);
   }
 }
 
