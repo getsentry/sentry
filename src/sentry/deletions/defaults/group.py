@@ -87,8 +87,6 @@ class GroupDeletionTask(ModelDeletionTask):
             models.UserReport,
             models.EventAttachment,
             IncidentGroup,
-            # Event is last as its the most time consuming
-            models.Event,
         )
 
         relations.extend([ModelRelation(m, {"group_id": instance.id}) for m in model_list])
