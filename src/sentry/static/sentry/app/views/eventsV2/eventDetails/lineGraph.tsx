@@ -231,8 +231,10 @@ const LineGraph = (props: LineGraphProps) => {
             tooltip={tooltip}
             xAxis={xAxisOptions}
             grid={{
-              left: '20px',
-              right: '10px',
+              left: '24px',
+              right: '24px',
+              top: '24px',
+              bottom: '12px',
             }}
           />
         )}
@@ -248,7 +250,7 @@ const StyledPanel = styled(Panel)`
     width: 100% !important;
   }
   image {
-    y: 0;
+    y: 0px;
   }
 `;
 

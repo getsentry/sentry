@@ -122,6 +122,9 @@ const DropdownItem = styled(MenuItem)`
   & a:hover {
     background: ${p => p.theme.offWhite};
   }
+  & a:focus {
+    outline: none;
+  }
   &.active a,
   &.active a:hover {
     color: ${p => p.theme.white};

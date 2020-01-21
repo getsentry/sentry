@@ -209,8 +209,6 @@ const StyledPageContent = styled(PageContent)`
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
-    /* HACK(leedongwei): Hardcoded height for search bar and graph */
-    grid-template-rows: 270px auto;
     grid-template-columns: 66% auto;
     grid-column-gap: ${space(3)};
   }
@@ -223,11 +221,8 @@ const StyledPageContent = styled(PageContent)`
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
-const StyledPanel = styled(Panel)`
-  /* HACK(leedongwei): Hardcoded height for graph */
-  height: 200px;
-  margin-bottom: ${space(1.5)};
 
+const StyledPanel = styled(Panel)`
   .echarts-for-react div:first-child {
     width: 100% !important;
   }
