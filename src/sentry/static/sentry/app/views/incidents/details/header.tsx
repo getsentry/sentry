@@ -44,11 +44,13 @@ export default class DetailsHeader extends React.Component<Props> {
     return (
       <Access
         access={['org:write']}
-        renderNoAccessMessage={() => (incident ? <Status incident={incident} /> : null)}
+        renderNoAccessMessage={() =>
+          incident ? <Status isSmall incident={incident} /> : null
+        }
       >
         <DropdownControl
           data-test-id="status-dropdown"
-          label={incident && <Status incident={incident} />}
+          label={incident && <Status isSmall incident={incident} />}
           menuWidth="180px"
           alignRight
           disabled={!isIncidentOpen}

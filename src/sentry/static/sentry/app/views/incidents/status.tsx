@@ -8,47 +8,46 @@ import space from 'app/styles/space';
 import {Incident, IncidentStatus} from './types';
 
 type Props = {
-  badge?: boolean;
   className?: string;
   incident: Incident;
+  isSmall?: boolean;
 };
 
-export default class Status extends React.Component<Props> {
-  render() {
-    const {badge, className, incident} = this.props;
-    const isIncidentOpen = incident.status !== IncidentStatus.CLOSED;
+const Status: React.FC<Props> = ({className, incident, isSmall}: Props) => {
+  const isIncidentOpen = incident.status !== IncidentStatus.CLOSED;
 
-    // TODO(incidents): Make this work
-    const status = !isIncidentOpen
-      ? 'resolved'
-      : incident.status === IncidentStatus.CREATED
-      ? 'critical'
-      : 'warning';
-    const isResolved = status === 'resolved';
-    const isCritical = status === 'critical';
+  // TODO(incidents): Make this work
+  const status = !isIncidentOpen
+    ? 'resolved'
+    : incident.status === IncidentStatus.CREATED
+    ? 'critical'
+    : 'warning';
+  const isResolved = status === 'resolved';
+  const isCritical = status === 'critical';
 
-    const icon = isResolved
-      ? 'icon-circle-check'
-      : isCritical
-      ? 'icon-circle-exclamation'
-      : 'icon-warning-sm';
+  const icon = isResolved
+    ? 'icon-circle-check'
+    : isCritical
+    ? 'icon-circle-exclamation'
+    : 'icon-warning-sm';
 
-    const text = isResolved ? t('Resolved') : isCritical ? t('Critical') : t('Warning');
+  const text = isResolved ? t('Resolved') : isCritical ? t('Critical') : t('Warning');
 
-    return (
-      <Wrapper badge={badge} status={status} className={className}>
-        <Icon src={icon} status={status} isOpen={isIncidentOpen} />
-        {text}
-      </Wrapper>
-    );
-  }
-}
+  return (
+    <Wrapper status={status} className={className} isSmall={!!isSmall}>
+      <Icon src={icon} status={status} isOpen={isIncidentOpen} />
+      {text}
+    </Wrapper>
+  );
+};
+
+export default Status;
 
 type StatusType = 'warning' | 'critical' | 'resolved';
 
-type WrapperProps = {status: StatusType; badge?: boolean};
+type WrapperProps = {status: StatusType};
 
-function getHighlight({theme, status}) {
+function getColor({theme, status}) {
   if (status === 'resolved') {
     return theme.greenDark;
   } else if (status === 'warning') {
@@ -58,36 +57,15 @@ function getHighlight({theme, status}) {
   return theme.redDark;
 }
 
-function getColor({theme, status}) {
-  if (status === 'resolved') {
-    return theme.greenLightest;
-  } else if (status === 'warning') {
-    return theme.yellowLightest;
-  }
-
-  return theme.redLightest;
-}
-
-const Wrapper = styled('div')<WrapperProps>`
+const Wrapper = styled('div')<WrapperProps & {isSmall: boolean}>`
   display: flex;
   align-items: center;
   justify-self: flex-start;
-  color: ${getHighlight};
-  font-size: ${p => p.theme.fontSizeSmall};
-  text-transform: uppercase;
-
-  ${p =>
-    p.badge &&
-    `
-      background-color: ${getColor(p)};
-      border: 1px solid ${getHighlight(p)};
-      border-radius: ${p.theme.borderRadius};
-      padding: ${space(0.25)} ${space(1)};
-    `}
+  ${p => p.isSmall && `font-size: ${p.theme.fontSizeSmall};`};
 `;
 
 const Icon = styled(InlineSvg)<WrapperProps & {isOpen: boolean}>`
-  color: ${getHighlight};
+  color: ${getColor};
   margin-right: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
