@@ -134,9 +134,7 @@ class Events extends AsyncView {
       const project = organization.projects.find(p => p.id === event.projectID);
 
       browserHistory.replace(
-        `/organizations/${organization.slug}/projects/${project.slug}/events/${
-          event.eventID
-        }/`
+        `/organizations/${organization.slug}/projects/${project.slug}/events/${event.eventID}/`
       );
     }
   }

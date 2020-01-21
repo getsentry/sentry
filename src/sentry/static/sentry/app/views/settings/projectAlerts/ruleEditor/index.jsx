@@ -35,7 +35,11 @@ const FREQUENCY_CHOICES = [
   ['43200', t('30 days')],
 ];
 
-const ACTION_MATCH_CHOICES = [['all', t('all')], ['any', t('any')], ['none', t('none')]];
+const ACTION_MATCH_CHOICES = [
+  ['all', t('all')],
+  ['any', t('any')],
+  ['none', t('none')],
+];
 
 const AlertRuleRow = styled('h6')`
   display: flex;

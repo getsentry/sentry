@@ -66,7 +66,10 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
+      fields: [
+        {field: 'count()', width: 123},
+        {field: 'id', width: 456},
+      ],
       sorts: generateSorts(['count']),
       query: 'event.type:transaction',
       project: [123],
@@ -100,7 +103,10 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
+      fields: [
+        {field: 'count()', width: 123},
+        {field: 'id', width: 456},
+      ],
       sorts: generateSorts(['count']),
       query: 'event.type:transaction',
       project: [123],
@@ -132,7 +138,10 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
+      fields: [
+        {field: 'count()', width: 123},
+        {field: 'id', width: 456},
+      ],
       sorts: generateSorts(['count']),
       query: 'event.type:transaction',
       project: [123],
@@ -241,7 +250,10 @@ describe('EventView.fromSavedQuery()', function() {
     const expected = {
       id: '5',
       name: 'foo bar',
-      fields: [{field: 'release', width: 111}, {field: 'count(id)', width: 222}],
+      fields: [
+        {field: 'release', width: 111},
+        {field: 'count(id)', width: 222},
+      ],
       sorts: generateSorts(['count_id']),
       query: '',
       project: [1],
@@ -535,7 +547,10 @@ describe('EventView.generateQueryStringObject()', function() {
     const state = {
       id: '1234',
       name: 'best query',
-      fields: [{field: 'count()', width: 123}, {field: 'project.id', width: 456}],
+      fields: [
+        {field: 'count()', width: 123},
+        {field: 'project.id', width: 456},
+      ],
       sorts: generateSorts(['count']),
       query: 'event.type:error',
       project: [42],
@@ -873,7 +888,10 @@ describe('EventView.toNewQuery()', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()', width: 123}, {field: 'project.id', width: 456}],
+    fields: [
+      {field: 'count()', width: 123},
+      {field: 'project.id', width: 456},
+    ],
     sorts: generateSorts(['count']),
     query: 'event.type:error',
     project: [42],

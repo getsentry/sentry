@@ -17,7 +17,11 @@ export const fields = {
     name: 'workflowNotifications',
     type: 'radio',
     label: t('Send Me Workflow Notifications'),
-    choices: [[0, 'Always'], [1, 'Only On Issues I Subscribe To'], [2, 'Never']],
+    choices: [
+      [0, 'Always'],
+      [1, 'Only On Issues I Subscribe To'],
+      [2, 'Never'],
+    ],
     help: t('E.g. changes in issue assignment, resolution status, and comments.'),
   },
   weeklyReports: {
@@ -32,7 +36,11 @@ export const fields = {
     name: 'deployNotifications',
     type: 'radio',
     label: t('Send Me Deploy Notifications'),
-    choices: [[2, 'Always'], [3, 'Only On Deploys With My Commits'], [4, 'Never']],
+    choices: [
+      [2, 'Always'],
+      [3, 'Only On Deploys With My Commits'],
+      [4, 'Never'],
+    ],
     help: t('Deploy emails include release, environment and commit overviews.'),
   },
   personalActivityNotifications: {

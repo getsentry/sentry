@@ -174,7 +174,7 @@ class AbstractQueryExecutor:
             ]  # ensure stable sort within the same score
             referrer = "search"
 
-        snuba_results = snuba.dataset_query(
+        snuba_results = snuba.aliased_query(
             dataset=self.dataset,
             start=start,
             end=end,

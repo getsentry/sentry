@@ -260,7 +260,10 @@ export default class SelectOwners extends React.Component {
       .requestPromise(`/organizations/${organization.slug}/members/`, {
         query: {query},
       })
-      .then(data => cb(null, data), err => cb(err));
+      .then(
+        data => cb(null, data),
+        err => cb(err)
+      );
   }, 250);
 
   handleLoadOptions = () => {
