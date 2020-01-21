@@ -65,7 +65,7 @@ const getDateTimeString = (
 };
 
 const parseUtcValue = (utc: any) => {
-  if (typeof utc !== 'undefined') {
+  if (defined(utc)) {
     return utc === true || utc === 'true' ? 'true' : 'false';
   }
   return undefined;
