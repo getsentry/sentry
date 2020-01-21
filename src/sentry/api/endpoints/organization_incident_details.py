@@ -43,18 +43,24 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         serializer = IncidentSerializer(data=request.data)
         if serializer.is_valid():
             result = serializer.validated_data
+            if result["status"] == IncidentStatus.CLOSED:
+                try:
+                    incident = update_incident_status(
+                        incident=incident,
+                        status=result["status"],
+                        user=request.user,
+                        comment=result.get("comment"),
+                    )
+                except StatusAlreadyChangedError:
+                    return Response(
+                        "Status is already set to {}".format(result["status"]), status=400
+                    )
 
-            try:
-                incident = update_incident_status(
-                    incident=incident,
-                    status=result["status"],
-                    user=request.user,
-                    comment=result.get("comment"),
+                return Response(
+                    serialize(incident, request.user, DetailedIncidentSerializer()), status=200
                 )
-            except StatusAlreadyChangedError:
-                return Response("Status is already set to {}".format(result["status"]), status=400)
-
-            return Response(
-                serialize(incident, request.user, DetailedIncidentSerializer()), status=200
-            )
+            else:
+                return Response(
+                    "An Incident's status can only be manually set to closed", status=400
+                )
         return Response(serializer.errors, status=400)
