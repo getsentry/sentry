@@ -442,43 +442,5 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def update(self, instance, validated_data):
         validated_data = self._remove_unchanged_fields(instance, validated_data)
-        triggers_data = validated_data.pop("triggers")
         alert_rule = update_alert_rule(instance, **validated_data)
-
-        # Delete triggers we don't have present in the updated data.
-        trigger_ids = [x["id"] for x in triggers_data]
-        AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(id__in=trigger_ids).delete()
-
-        for trigger_data in triggers_data:
-            actions_data = trigger_data.pop("actions")
-            try:
-                if "id" in trigger_data:
-                    trigger_instance = AlertRuleTrigger.objects.get(
-                        alert_rule=alert_rule, id=trigger_data["id"]
-                    )
-                    trigger_data.pop("id")
-                    trigger = update_alert_rule_trigger(trigger_instance, **trigger_data)
-                else:
-                    trigger = create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
-            except AlertRuleTriggerLabelAlreadyUsedError:
-                raise serializers.ValidationError(
-                    "This trigger label is already in use for this alert rule"
-                )
-
-            # Delete actions we don't have present in the updated data.
-            action_ids = [x["id"] for x in actions_data]
-            AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger).exclude(
-                id__in=action_ids
-            ).delete()
-
-            for action_data in actions_data:
-                if "id" in action_data:
-                    action_instance = AlertRuleTriggerAction.objects.get(
-                        alert_rule_trigger=trigger, id=action_data["id"]
-                    )
-                    action_data.pop("id")
-                    update_alert_rule_trigger_action(action_instance, **action_data)
-                else:
-                    create_alert_rule_trigger_action(trigger=trigger, **action_data)
-
         return alert_rule

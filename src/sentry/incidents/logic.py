@@ -799,8 +799,8 @@ def update_alert_rule(
                 DEFAULT_ALERT_RULE_RESOLUTION,
             )
 
-        # Delete triggers we don't have present in the updated data.
-        if triggers:
+        if triggers is not None:
+            # Delete triggers we don't have present in the updated data.
             trigger_ids = [x["id"] for x in triggers]
             AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
                 id__in=trigger_ids
@@ -1010,7 +1010,7 @@ def update_alert_rule_trigger(
             ]
             AlertRuleTriggerExclusion.objects.bulk_create(new_exclusions)
 
-        if actions:
+        if actions is not None:
             # Delete actions we don't have present in the updated data.
             action_ids = [x["id"] for x in actions]
             AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger).exclude(
