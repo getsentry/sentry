@@ -50,13 +50,13 @@ const MemberBadge = ({
   const user = getUser(member);
   const title =
     displayName ||
-    (user.name ||
-      user.email ||
-      user.username ||
-      user.ipAddress ||
-      // Because this can be used to render EventUser models, or User *interface*
-      // objects from serialized Event models. we try both ipAddress and ip_address.
-      user.ip_address);
+    user.name ||
+    user.email ||
+    user.username ||
+    user.ipAddress ||
+    // Because this can be used to render EventUser models, or User *interface*
+    // objects from serialized Event models. we try both ipAddress and ip_address.
+    user.ip_address;
 
   return (
     <StyledUserBadge className={className}>
