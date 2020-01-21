@@ -73,10 +73,6 @@ class Event(EventCommon):
 
     @property
     def message(self):
-        column = self.__get_column_name(Columns.MESSAGE)
-        if column in self._snuba_data:
-            return self._snuba_data[column]
-
         return self.real_message
 
     @property

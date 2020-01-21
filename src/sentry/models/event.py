@@ -323,7 +323,7 @@ class EventCommon(object):
         data["release"] = self.release
         data["dist"] = self.dist
         data["platform"] = self.platform
-        data["message"] = self.real_message
+        data["message"] = self.message
         data["datetime"] = self.datetime
         data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
         for k, v in sorted(six.iteritems(self.data)):
