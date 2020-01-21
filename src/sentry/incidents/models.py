@@ -417,20 +417,6 @@ class AlertRuleTriggerAction(Model):
         db_table = "sentry_alertruletriggeraction"
 
     @property
-    def human_desc(self):
-        # Returns a human readable description to display in the UI
-        if self.type == self.Type.EMAIL.value:
-            if self.target:
-                if self.target_type == self.TargetType.USER.value:
-                    return "Send an email to " + self.target.email
-                elif self.target_type == self.TargetType.TEAM.value:
-                    return "Send an email to members of " + self.target.name
-        elif self.type == self.Type.PAGERDUTY.value:
-            return "Send a PagerDuty notification to " + self.target_display
-        elif self.type == self.Type.SLACK.value:
-            return "Send a Slack notificaiton to " + self.target_display
-
-    @property
     def target(self):
         if self.target_type == self.TargetType.USER.value:
             try:
