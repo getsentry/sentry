@@ -380,7 +380,7 @@ def ref_func(x):
     return x.project_id or x.project.id
 
 
-class Event(EventCommon, Model):
+class Event(Model):
     """
     An event backed by data stored in postgres.
 
