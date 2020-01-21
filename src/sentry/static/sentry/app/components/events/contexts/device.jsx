@@ -81,6 +81,20 @@ class DeviceContextType extends React.Component {
       boot_time,
       timezone,
       device_type,
+      archs,
+      brand,
+      charging,
+      connection_type,
+      id,
+      language,
+      low_memory,
+      manufacturer,
+      online,
+      screen_density,
+      screen_dpi,
+      screen_height_pixels,
+      screen_resolution,
+      screen_width_pixels,
       ...data
     } = this.props.data;
     const memory = this.formatMemory(memory_size, free_memory, usable_memory);
@@ -113,6 +127,20 @@ class DeviceContextType extends React.Component {
           ['?Boot Time', boot_time],
           ['?Timezone', timezone],
           ['?Device Type', device_type],
+          ['?Architectures', archs],
+          ['?Brand', brand],
+          ['?Charging', charging],
+          ['?Connection Type', connection_type],
+          ['?Id', id],
+          ['?Language', language],
+          ['?Low memory', low_memory],
+          ['?Manufacturer', manufacturer],
+          ['?Online', online],
+          ['?Screen density', screen_density],
+          ['?Screen DPI', screen_dpi],
+          ['?Screen height pixels', screen_height_pixels],
+          ['?Screen resolution', screen_resolution],
+          ['?Screen width pixels', screen_width_pixels],
         ]}
         alias={this.props.alias}
       />
