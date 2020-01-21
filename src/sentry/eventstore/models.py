@@ -73,21 +73,11 @@ class Event(EventCommon):
 
     @property
     def message(self):
-        if hasattr(self, "_message"):
-            return self._message
         column = self.__get_column_name(Columns.MESSAGE)
         if column in self._snuba_data:
             return self._snuba_data[column]
 
         return self.real_message
-
-    @message.setter
-    def message(self, value):
-        """
-        This can be removed once Django Event is removed and we no longer need to manually
-        update this field in event_manager.save().
-        """
-        self._message = value
 
     @property
     def datetime(self):

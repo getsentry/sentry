@@ -344,7 +344,7 @@ class EventCommon(object):
 
         return data
 
-    @property
+    @memoize
     def search_message(self):
         """
         The internal search_message attribute is only used for search purposes.
