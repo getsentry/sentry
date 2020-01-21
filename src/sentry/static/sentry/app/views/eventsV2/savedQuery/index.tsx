@@ -16,6 +16,7 @@ import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
 
 import EventView from '../eventView';
+import {generateDiscoverLandingPageRoute} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
 type Props = {
@@ -170,11 +171,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization, eventView} = this.props;
+    const {api, organization, eventView} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
       browserHistory.push({
-        pathname: location.pathname,
+        pathname: generateDiscoverLandingPageRoute(organization.slug),
         query: {},
       });
     });

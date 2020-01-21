@@ -11,6 +11,7 @@ import space from 'app/styles/space';
 
 import EventView from './eventView';
 import {generateDiscoverResultsRoute} from './results';
+import {generateDiscoverLandingPageRoute} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -29,7 +30,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
     const crumbs: React.ReactNode[] = [];
 
     const discoverTarget = {
-      pathname: `/organizations/${organization.slug}/eventsv2/`,
+      pathname: generateDiscoverLandingPageRoute(organization.slug),
       query: {
         ...location.query,
         ...eventView.generateBlankQueryStringObject(),

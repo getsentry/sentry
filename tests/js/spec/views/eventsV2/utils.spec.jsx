@@ -10,6 +10,7 @@ import {
   isAggregateField,
   decodeColumnOrder,
   pushEventViewToLocation,
+  generateDiscoverLandingPageRoute,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
 
@@ -403,5 +404,13 @@ describe('isAggregateField', function() {
     expect(isAggregateField('thing(')).toBe(false);
     expect(isAggregateField('count()')).toBe(true);
     expect(isAggregateField('unique_count(user)')).toBe(true);
+  });
+});
+
+describe('generateDiscoverLandingPageRoute', function() {
+  it('generateDiscoverLandingPageRoute', function() {
+    expect(generateDiscoverLandingPageRoute('sentry')).toBe(
+      '/organizations/sentry/eventsv2/'
+    );
   });
 });
