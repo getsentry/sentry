@@ -295,7 +295,7 @@ class Sidebar extends React.Component {
                         )
                       }
                       icon={<InlineSvg src="icon-telescope" />}
-                      label={t('Discover v2')}
+                      label={t('Discover')}
                       to={generateDiscoverLandingPageRoute(organization.slug)}
                       id="discover-v2"
                     />
