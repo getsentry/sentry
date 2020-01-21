@@ -280,6 +280,7 @@ def query(
     reference_event=None,
     referrer=None,
     auto_fields=False,
+    use_aggregate_conditions=False,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -315,9 +316,12 @@ def query(
         "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
         "filter_keys": snuba_filter.filter_keys,
-        "having": snuba_filter.having,
         "orderby": orderby,
+        "having": [],
     }
+
+    if use_aggregate_conditions:
+        snuba_args["having"] = snuba_filter.having
 
     snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=auto_fields))
 
@@ -411,7 +415,6 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
         aggregations=snuba_args.get("aggregations"),
         conditions=snuba_args.get("conditions"),
         filter_keys=snuba_args.get("filter_keys"),
-        having=snuba_args.get("having"),
         start=snuba_args.get("start"),
         end=snuba_args.get("end"),
         rollup=rollup,
@@ -483,7 +486,6 @@ def get_facets(query, params, limit=10, referrer=None):
         "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
         "filter_keys": snuba_filter.filter_keys,
-        "having": snuba_filter.having,
     }
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
@@ -504,7 +506,7 @@ def get_facets(query, params, limit=10, referrer=None):
         filter_keys=snuba_args.get("filter_keys"),
         orderby=["-count", "tags_key"],
         groupby="tags_key",
-        having=[excluded_tags] + snuba_args.get("having"),
+        having=[excluded_tags],
         dataset=Dataset.Discover,
         limit=limit,
         referrer=referrer,
