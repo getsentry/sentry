@@ -60,7 +60,5 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
                     serialize(incident, request.user, DetailedIncidentSerializer()), status=200
                 )
             else:
-                return Response(
-                    "An Incident's status can only be manually set to closed", status=400
-                )
+                return Response("Status can only be set to closed using this endpoint.", status=400)
         return Response(serializer.errors, status=400)
