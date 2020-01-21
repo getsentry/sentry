@@ -3,10 +3,10 @@ import PropTypes from 'prop-types';
 
 import BaseBadge from 'app/components/idBadge/baseBadge';
 import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
-import {Project} from 'app/types';
+import {AvatarProject} from 'app/types';
 
 type Props = {
-  project: Project;
+  project: AvatarProject;
   // Has a default value in BaseBadge
   avatarSize?: number;
   className?: string;

@@ -120,9 +120,12 @@ export default class DetailsHeader extends React.Component<Props> {
             <ItemValue>
               {project && (
                 <Projects slugs={[project]} orgId={params.orgId}>
-                  {({projects}) => (
-                    <ProjectBadge project={projects && projects.length && projects[0]} />
-                  )}
+                  {({projects}) => {
+                    if (projects && projects.length && projects[0]) {
+                      return <ProjectBadge project={projects[0]} />;
+                    }
+                    return null;
+                  }}
                 </Projects>
               )}
             </ItemValue>
