@@ -1130,6 +1130,37 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == []
 
+    def test_field_alias_duration_expansion_with_brackets(self):
+        fields = [
+            "avg(transaction.duration)",
+            "latest_event()",
+            "last_seen()",
+            "apdex()",
+            "impact()",
+            "p75()",
+            "p95()",
+            "p99()",
+        ]
+        result = resolve_field_list(fields, {})
+
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["avg", "transaction.duration", "avg_transaction_duration"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["max", "timestamp", "last_seen"],
+            ["apdex(duration, 300)", None, "apdex"],
+            [
+                "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
+                None,
+                "impact",
+            ],
+            ["quantile(0.75)(duration)", None, "p75"],
+            ["quantile(0.95)(duration)", None, "p95"],
+            ["quantile(0.99)(duration)", None, "p99"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
     def test_field_alias_expansion(self):
         fields = ["title", "last_seen", "latest_event", "project", "user", "message"]
         result = resolve_field_list(fields, {})
