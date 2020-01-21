@@ -426,7 +426,7 @@ class QueryTransformTest(TestCase):
         }
         discover.query(
             selected_columns=["timestamp", "transaction", "transaction.duration", "count()"],
-            query="transaction.duration:200 sdk.name:python tags[projectid]:123",
+            query="transaction.op:ok transaction.duration:200 sdk.name:python tags[projectid]:123",
             params={"project_id": [self.project.id]},
             orderby=["-timestamp", "-count"],
         )
@@ -434,6 +434,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["timestamp", "transaction", "duration"],
             aggregations=[["count", None, "count"]],
             conditions=[
+                ["transaction_op", "=", "ok"],
                 ["duration", "=", 200],
                 ["sdk_name", "=", "python"],
                 [["ifNull", ["tags[projectid]", "''"]], "=", "123"],
