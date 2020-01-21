@@ -35,8 +35,8 @@ describe('EventsContainer', function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [
-        {count: 1, tag: 'transaction'},
-        {count: 2, tag: 'mechanism'},
+        {count: 1, key: 'transaction', name: 'Transaction'},
+        {count: 2, key: 'mechanism', name: 'Mechanism'},
       ],
     });
 
