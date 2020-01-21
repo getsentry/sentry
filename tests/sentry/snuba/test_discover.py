@@ -704,6 +704,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction", "p95()"],
             query="http.method:GET p95():>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
         )
 
         mock_query.assert_called_with(
