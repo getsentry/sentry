@@ -610,6 +610,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction", "avg(transaction.duration)"],
             query="http.method:GET avg(transaction.duration):>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
@@ -639,6 +640,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction", "p95"],
             query="http.method:GET p95:>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
         )
 
         mock_query.assert_called_with(
@@ -670,6 +672,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
             query="http.method:GET max(time):>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
@@ -704,6 +707,7 @@ class QueryTransformTest(TestCase):
                 selected_columns=["transaction"],
                 query="http.method:GET max(time):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
             )
 
 
@@ -1292,6 +1296,36 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert "toy" not in keys
 
         result = discover.get_facets("color:red", params)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys
+
+    def test_query_string_with_aggregate_condition(self):
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "message": "oh my",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"toy": "train"},
+            },
+            project_id=self.project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("bad", params)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys
+
+        result = discover.get_facets("color:red p95:>1", params)
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
