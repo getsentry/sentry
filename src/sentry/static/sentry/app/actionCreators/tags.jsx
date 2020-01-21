@@ -2,8 +2,9 @@ import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 import TagActions from 'app/actions/tagActions';
 import AlertActions from 'app/actions/alertActions';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
-const MAX_TAGS = 500;
+const MAX_TAGS = 1000;
 
 const BUILTIN_TAGS = [
   'event.type',
@@ -58,6 +59,44 @@ function tagFetchSuccess(tags) {
     });
   }
   TagActions.loadTagsSuccess(trimmedTags);
+}
+
+/**
+ * Load an organization's tags based on a global selection value.
+ *
+ * @param {Client} api
+ * @param {String} orgId
+ * @param {GlobalSelection} selection
+ */
+export function loadOrganizationTags(api, orgId, selection) {
+  TagStore.reset();
+
+  const url = `/organizations/${orgId}/tags/`;
+  const query = selection.datetime ? {...getParams(selection.datetime)} : {};
+  query.use_cache = '1';
+
+  if (selection.projects) {
+    query.project = selection.projects;
+  }
+  const promise = api
+    .requestPromise(url, {
+      method: 'GET',
+      query,
+    })
+    .then(tags => {
+      return [...BUILTIN_TAGS, ...tags];
+    });
+
+  promise.then(
+    results => {
+      tagFetchSuccess(results);
+    },
+    reason => {
+      TagActions.loadTagsError(reason);
+    }
+  );
+
+  return promise;
 }
 
 /**

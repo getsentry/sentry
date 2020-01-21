@@ -744,3 +744,11 @@ export type OnboardingTask = {
   location: string | (() => void);
   display: boolean;
 };
+
+export type Tag = {
+  name: string;
+  key: string;
+  values?: string[];
+  totalValues?: number;
+  predefined?: boolean;
+};

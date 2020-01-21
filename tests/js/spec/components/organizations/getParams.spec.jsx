@@ -4,6 +4,8 @@ describe('getParams', function() {
   it('should return default statsPeriod if it is not provided or is invalid', function() {
     expect(getParams({})).toEqual({statsPeriod: '14d'});
     expect(getParams({statsPeriod: 'invalid'})).toEqual({statsPeriod: '14d'});
+    expect(getParams({statsPeriod: null})).toEqual({statsPeriod: '14d'});
+    expect(getParams({statsPeriod: undefined})).toEqual({statsPeriod: '14d'});
     expect(getParams({statsPeriod: '24f'})).toEqual({statsPeriod: '14d'});
   });
 
@@ -44,8 +46,33 @@ describe('getParams', function() {
     expect(getParams({start: '2019-10-01T00:00:00'})).toEqual({
       statsPeriod: '14d',
     });
+    expect(getParams({start: null})).toEqual({
+      statsPeriod: '14d',
+    });
+    expect(getParams({start: undefined})).toEqual({
+      statsPeriod: '14d',
+    });
 
     expect(getParams({end: '2019-10-01T00:00:00'})).toEqual({
+      statsPeriod: '14d',
+    });
+    expect(getParams({end: null})).toEqual({
+      statsPeriod: '14d',
+    });
+    expect(getParams({end: undefined})).toEqual({
+      statsPeriod: '14d',
+    });
+
+    expect(getParams({start: undefined, end: undefined})).toEqual({
+      statsPeriod: '14d',
+    });
+    expect(getParams({start: null, end: undefined})).toEqual({
+      statsPeriod: '14d',
+    });
+    expect(getParams({start: undefined, end: null})).toEqual({
+      statsPeriod: '14d',
+    });
+    expect(getParams({start: null, end: null})).toEqual({
       statsPeriod: '14d',
     });
 
@@ -71,9 +98,12 @@ describe('getParams', function() {
     ).toEqual({statsPeriod: '14d'});
   });
 
-  it('should parse utc', function() {
+  it('should parse utc when it is defined', function() {
     expect(getParams({utc: 'true'})).toEqual({utc: 'true', statsPeriod: '14d'});
     expect(getParams({utc: 'false'})).toEqual({utc: 'false', statsPeriod: '14d'});
     expect(getParams({utc: 'invalid'})).toEqual({utc: 'false', statsPeriod: '14d'});
+
+    expect(getParams({utc: null})).toEqual({statsPeriod: '14d'});
+    expect(getParams({utc: undefined})).toEqual({statsPeriod: '14d'});
   });
 });

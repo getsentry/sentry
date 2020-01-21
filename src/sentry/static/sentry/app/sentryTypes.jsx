@@ -261,9 +261,8 @@ export const EventError = PropTypes.shape({
 });
 
 export const Tag = PropTypes.shape({
-  id: PropTypes.string.isRequired,
   key: PropTypes.string.isRequired,
-  name: PropTypes.string.isRequired,
+  name: PropTypes.string,
   uniqueValues: PropTypes.number,
 });
 

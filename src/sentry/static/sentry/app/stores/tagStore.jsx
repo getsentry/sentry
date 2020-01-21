@@ -112,7 +112,7 @@ const TagStore = Reflux.createStore({
     return Object.keys(this.tags);
   },
 
-  getTagValues(tagKey, query) {
+  getTagValues(tagKey) {
     return this.tags[tagKey].values || [];
   },
 
@@ -145,7 +145,7 @@ const TagStore = Reflux.createStore({
     this.trigger(this.tags);
   },
 
-  onMemberListStoreChange(members) {
+  onMemberListStoreChange() {
     const assignedTag = this.tags.assigned;
     assignedTag.values = getMemberListStoreUsernames();
     assignedTag.values.unshift('me');
