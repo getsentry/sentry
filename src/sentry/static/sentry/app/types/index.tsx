@@ -208,12 +208,12 @@ type SentryEventBase = {
 // This type is incomplete
 export type Event =
   | ({type: string} & SentryEventBase)
-  | {
+  | ({
       type: 'transaction';
       entries: SpanEntry[];
       startTimestamp: number;
       endTimestamp: number;
-    } & SentryEventBase;
+    } & SentryEventBase);
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -743,4 +743,12 @@ export type OnboardingTask = {
   featureLocation: string;
   location: string | (() => void);
   display: boolean;
+};
+
+export type Tag = {
+  name: string;
+  key: string;
+  values?: string[];
+  totalValues?: number;
+  predefined?: boolean;
 };

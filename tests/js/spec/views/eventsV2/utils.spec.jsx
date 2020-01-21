@@ -14,8 +14,9 @@ import {
 import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
 
 describe('eventTagSearchUrl()', function() {
-  let location;
+  let location, organization;
   beforeEach(function() {
+    organization = TestStubs.Organization();
     location = {
       pathname: '/organization/org-slug/events/',
       query: {},
@@ -23,25 +24,31 @@ describe('eventTagSearchUrl()', function() {
   });
 
   it('adds a query', function() {
-    expect(getEventTagSearchUrl('browser', 'firefox', location)).toEqual({
-      pathname: location.pathname,
+    expect(
+      getEventTagSearchUrl('browser', 'firefox', organization, location.query)
+    ).toEqual({
+      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
       query: {query: 'browser:firefox'},
-    });
-  });
-
-  it('removes eventSlug', function() {
-    location.query.eventSlug = 'project-slug:deadbeef';
-    expect(getEventTagSearchUrl('browser', 'firefox 69', location)).toEqual({
-      pathname: location.pathname,
-      query: {query: 'browser:"firefox 69"'},
     });
   });
 
   it('appends to an existing query', function() {
     location.query.query = 'failure';
-    expect(getEventTagSearchUrl('browser', 'firefox', location)).toEqual({
-      pathname: location.pathname,
+    expect(
+      getEventTagSearchUrl('browser', 'firefox', organization, location.query)
+    ).toEqual({
+      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
       query: {query: 'failure browser:firefox'},
+    });
+  });
+
+  it('quotes tags with spaces', function() {
+    location.query.query = 'failure';
+    expect(
+      getEventTagSearchUrl('browser', 'fire fox', organization, location.query)
+    ).toEqual({
+      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+      query: {query: 'failure browser:"fire fox"'},
     });
   });
 });

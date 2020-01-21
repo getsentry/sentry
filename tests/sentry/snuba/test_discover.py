@@ -350,6 +350,39 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_aggregate_alias_with_brackets(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "p95()"}],
+            "data": [{"transaction": "api.do_things", "p95()": 200}],
+        }
+        discover.query(
+            selected_columns=["transaction", "p95()", "count_unique(transaction)"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                ["quantile(0.95)(duration)", None, "p95"],
+                ["uniq", "transaction", "count_unique_transaction"],
+                ["argMax", ["event_id", "timestamp"], "latest_event"],
+                ["argMax", ["project_id", "timestamp"], "projectid"],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_orderby_limit_offset(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "title"}, {"name": "project.id"}],
@@ -426,7 +459,7 @@ class QueryTransformTest(TestCase):
         }
         discover.query(
             selected_columns=["timestamp", "transaction", "transaction.duration", "count()"],
-            query="transaction.duration:200 sdk.name:python tags[projectid]:123",
+            query="transaction.op:ok transaction.duration:200 sdk.name:python tags[projectid]:123",
             params={"project_id": [self.project.id]},
             orderby=["-timestamp", "-count"],
         )
@@ -434,6 +467,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["timestamp", "transaction", "duration"],
             aggregations=[["count", None, "count"]],
             conditions=[
+                ["transaction_op", "=", "ok"],
                 ["duration", "=", 200],
                 ["sdk_name", "=", "python"],
                 [["ifNull", ["tags[projectid]", "''"]], "=", "123"],
@@ -609,6 +643,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction", "avg(transaction.duration)"],
             query="http.method:GET avg(transaction.duration):>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
@@ -637,6 +672,37 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["transaction", "p95"],
             query="http.method:GET p95:>5",
+            params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
+        )
+
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            conditions=[["http_method", "=", "GET"]],
+            filter_keys={"project_id": [self.project.id]},
+            groupby=["transaction"],
+            dataset=Dataset.Discover,
+            aggregations=[["quantile(0.95)(duration)", None, "p95"]],
+            having=[["p95", ">", 5]],
+            end=end_time,
+            start=start_time,
+            orderby=None,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_alias_aggregate_conditions_with_brackets(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "duration"}],
+            "data": [{"transaction": "api.do_things", "duration": 200}],
+        }
+        start_time = before_now(minutes=10)
+        end_time = before_now(seconds=1)
+        discover.query(
+            selected_columns=["transaction", "p95()"],
+            query="http.method:GET p95():>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
         )
 
@@ -669,6 +735,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
             query="http.method:GET max(time):>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
@@ -703,6 +770,7 @@ class QueryTransformTest(TestCase):
                 selected_columns=["transaction"],
                 query="http.method:GET max(time):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
             )
 
 
@@ -780,6 +848,19 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
     def test_field_alias(self):
         result = discover.timeseries_query(
             selected_columns=["p95"],
+            query="event.type:transaction transaction:api.issue.delete",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+
+    def test_field_alias_with_brackets(self):
+        result = discover.timeseries_query(
+            selected_columns=["p95()"],
             query="event.type:transaction transaction:api.issue.delete",
             params={
                 "start": self.day_ago,
@@ -1291,6 +1372,36 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         assert "toy" not in keys
 
         result = discover.get_facets("color:red", params)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys
+
+    def test_query_string_with_aggregate_condition(self):
+        self.store_event(
+            data={
+                "message": "very bad",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "message": "oh my",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"toy": "train"},
+            },
+            project_id=self.project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("bad", params)
+        keys = {r.key for r in result}
+        assert "color" in keys
+        assert "toy" not in keys
+
+        result = discover.get_facets("color:red p95:>1", params)
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys

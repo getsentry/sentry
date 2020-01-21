@@ -42,9 +42,7 @@ describe('OrganizationAccessRequests', function() {
         .first()
         .text()
         .includes(
-          `${accessRequest.member.user.name} requests access to the #${
-            accessRequest.team.slug
-          } team`
+          `${accessRequest.member.user.name} requests access to the #${accessRequest.team.slug} team`
         )
     ).toBe(true);
     expect(
@@ -53,9 +51,7 @@ describe('OrganizationAccessRequests', function() {
         .last()
         .text()
         .includes(
-          `${requester.name} requests to add ${accessRequest.member.user.name} to the #${
-            accessRequest.team.slug
-          } team`
+          `${requester.name} requests to add ${accessRequest.member.user.name} to the #${accessRequest.team.slug} team`
         )
     ).toBe(true);
   });

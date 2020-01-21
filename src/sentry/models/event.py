@@ -16,9 +16,8 @@ from sentry.interfaces.base import get_interfaces
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
-from sentry.utils.safe import get_path
+from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
-from sentry.utils.safe import trim
 
 
 class EventDict(CanonicalKeyDict):

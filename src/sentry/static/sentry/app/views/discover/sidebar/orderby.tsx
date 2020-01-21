@@ -72,7 +72,10 @@ export default class Orderby extends React.Component<OrderbyProps> {
           <OrderbyValue>
             <SelectControl
               name="orderbyDirection"
-              options={[{value: 'asc', label: 'asc'}, {value: 'desc', label: 'desc'}]}
+              options={[
+                {value: 'asc', label: 'asc'},
+                {value: 'desc', label: 'desc'},
+              ]}
               value={direction}
               onChange={(val: ReactSelectOption) => this.updateDirection(val.value)}
               disabled={disabled}

@@ -42,7 +42,11 @@ describe('SelectControl', function() {
   it('renders with select2 paired "choices"', function() {
     const wrapper = mountWithTheme(
       <SelectControl
-        choices={[['a', 'abc'], ['b', 'bcd'], ['c', 'cde']]}
+        choices={[
+          ['a', 'abc'],
+          ['b', 'bcd'],
+          ['c', 'cde'],
+        ]}
         name="fieldName"
       />
     );
@@ -60,7 +64,10 @@ describe('SelectControl', function() {
 
     const wrapper = mountWithTheme(
       <SelectControl
-        choices={[[{id: 'foo', name: 'Foo'}, Foo], [{id: 'bar', name: 'Bar'}, Bar]]}
+        choices={[
+          [{id: 'foo', name: 'Foo'}, Foo],
+          [{id: 'bar', name: 'Bar'}, Bar],
+        ]}
         name="fieldName"
         onChange={mock}
       />,

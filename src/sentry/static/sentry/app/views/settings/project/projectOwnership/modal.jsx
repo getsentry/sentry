@@ -51,7 +51,10 @@ class ProjectOwnershipModal extends AsyncComponent {
         eventData.entries.find(({type}) => type === 'exception'),
         'data.values[0].stacktrace.frames'
       ) ||
-      get(eventData.entries.find(({type}) => type === 'stacktrace'), 'data.frames') ||
+      get(
+        eventData.entries.find(({type}) => type === 'stacktrace'),
+        'data.frames'
+      ) ||
       [];
 
     //filter frames by inApp unless there would be 0
