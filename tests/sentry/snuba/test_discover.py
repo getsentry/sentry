@@ -609,6 +609,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction", "avg(transaction.duration)"],
             query="http.method:GET avg(transaction.duration):>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
@@ -638,6 +639,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction", "p95"],
             query="http.method:GET p95:>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
         )
 
         mock_query.assert_called_with(
@@ -669,6 +671,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
             query="http.method:GET max(time):>5",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+            use_aggregate_conditions=True,
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
@@ -703,6 +706,7 @@ class QueryTransformTest(TestCase):
                 selected_columns=["transaction"],
                 query="http.method:GET max(time):>5",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
+                use_aggregate_conditions=True,
             )
 
 

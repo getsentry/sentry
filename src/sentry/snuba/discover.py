@@ -280,7 +280,7 @@ def query(
     reference_event=None,
     referrer=None,
     auto_fields=False,
-    ignore_aggregate_conditions=False,
+    use_aggregate_conditions=False,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -316,9 +316,12 @@ def query(
         "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
         "filter_keys": snuba_filter.filter_keys,
-        "having": snuba_filter.having,
         "orderby": orderby,
+        "having": [],
     }
+
+    if use_aggregate_conditions:
+        snuba_args["having"] = snuba_filter.having
 
     snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=auto_fields))
 
@@ -329,10 +332,6 @@ def query(
 
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
-
-    # Some queries want to ignore the aggregate conditions (meta/facets)
-    if ignore_aggregate_conditions:
-        snuba_args["having"] = []
 
     # Make sure that any aggregate conditions are also in the selected columns
     for having_clause in snuba_args.get("having"):
@@ -416,7 +415,6 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
         aggregations=snuba_args.get("aggregations"),
         conditions=snuba_args.get("conditions"),
         filter_keys=snuba_args.get("filter_keys"),
-        having=snuba_args.get("having"),
         start=snuba_args.get("start"),
         end=snuba_args.get("end"),
         rollup=rollup,
