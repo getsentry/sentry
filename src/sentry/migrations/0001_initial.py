@@ -864,7 +864,6 @@ class Migration(migrations.Migration):
                 'verbose_name': 'message',
                 'verbose_name_plural': 'messages',
             },
-            bases=(models.Model),
         ),
         migrations.CreateModel(
             name='EventAttachment',
