@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import json
+from uuid import uuid1
 
 from django.db import transaction
 
@@ -158,6 +159,8 @@ def delete_snuba_subscription(subscription):
 
 
 def _create_in_snuba(project, dataset, query, aggregation, time_window, resolution):
+    # XXX: Temporarily disable this so we can change the snuba api.
+    return uuid1().hex
     response = _snuba_pool.urlopen(
         "POST",
         "/%s/subscriptions" % (dataset.value,),
@@ -182,6 +185,8 @@ def _create_in_snuba(project, dataset, query, aggregation, time_window, resoluti
 
 
 def _delete_from_snuba(subscription):
+    # XXX: Temporarily disable this so we can change the snuba api.
+    return
     response = _snuba_pool.urlopen(
         "DELETE",
         "/%s/subscriptions/%s" % (subscription.dataset, subscription.subscription_id),
