@@ -39,6 +39,8 @@ import {
   COL_WIDTH_DATETIME,
   COL_WIDTH_NUMBER,
   COL_WIDTH_STRING,
+  COL_WIDTH_STRING_LONG,
+  COL_WIDTH_STRING_SHORT,
   ColResizeMetadata,
 } from './utils';
 
@@ -540,6 +542,8 @@ export {
   COL_WIDTH_DATETIME,
   COL_WIDTH_NUMBER,
   COL_WIDTH_STRING,
+  COL_WIDTH_STRING_LONG,
+  COL_WIDTH_STRING_SHORT,
   GridColumn,
   GridColumnHeader,
   GridColumnOrder,

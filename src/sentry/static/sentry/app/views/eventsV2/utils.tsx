@@ -20,6 +20,7 @@ import {
   COL_WIDTH_DATETIME,
   COL_WIDTH_NUMBER,
   COL_WIDTH_STRING,
+  COL_WIDTH_STRING_LONG,
 } from 'app/components/gridEditable';
 
 import {
@@ -191,6 +192,17 @@ export type MetaType = {
 export function getDefaultWidth(key: Aggregation | Field): number {
   if (AGGREGATIONS[key]) {
     return COL_WIDTH_NUMBER;
+  }
+
+  // Some columns have specific lengths due to longer content.
+  switch (key) {
+    case 'title':
+      return COL_WIDTH_STRING_LONG + 50;
+    case 'url':
+    case 'transaction':
+      return COL_WIDTH_STRING_LONG;
+    default:
+      break;
   }
 
   switch (FIELDS[key]) {
