@@ -154,7 +154,12 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     const position = this.getChartPixelForThreshold(trigger[type]);
     const isInverted = thresholdType === AlertRuleThresholdType.BELOW;
 
-    if (typeof position !== 'number' || !this.state.height || !this.chartRef) {
+    if (
+      typeof position !== 'number' ||
+      isNaN(position) ||
+      !this.state.height ||
+      !this.chartRef
+    ) {
       return [];
     }
 
@@ -211,7 +216,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     ];
   };
 
-  getChartPixelForThreshold = (threshold: number | '') =>
+  getChartPixelForThreshold = (threshold: number | '' | null) =>
     this.chartRef && this.chartRef.convertToPixel({yAxisIndex: 0}, `${threshold}`);
 
   render() {
