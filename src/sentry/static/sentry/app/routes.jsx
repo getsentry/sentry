@@ -1119,14 +1119,6 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
 
-      <Route
-        path="/organizations/:orgId/data-export/:dataId"
-        componentPromise={() =>
-          import(/* webpackChunkName: "DataDownloadView" */ 'app/views/dataExport/dataDownload')
-        }
-        component={errorHandler(LazyLoad)}
-      />
-
       <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
         <IndexRedirect to="welcome/" />
         <Route
@@ -1227,6 +1219,15 @@ function routes() {
           <IndexRoute component={errorHandler(IssueListOverview)} />
           <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
         </Route>
+        <Route
+          path="/organizations/:orgId/data-export/:dataId"
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "DataDownloadView" */ 'app/views/dataExport/dataDownload'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
         {/* Once org issues is complete, these routes can be nested under
           /organizations/:orgId/issues */}
         <Route

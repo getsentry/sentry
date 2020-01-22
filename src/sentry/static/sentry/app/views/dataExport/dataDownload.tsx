@@ -1,49 +1,42 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import {Config, Organization} from 'app/types';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import AsyncView from 'app/views/asyncView';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withConfig from 'app/utils/withConfig';
-import withLatestContext from 'app/utils/withLatestContext';
 import {PageContent} from 'app/styles/organization';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 
 import Button from 'app/components/button';
-import Sidebar from 'app/components/sidebar';
+
+enum DownloadStatus {
+  Early = 'EARLY',
+  Valid = 'VALID',
+  Expired = 'EXPIRED',
+}
 
 type RouteParams = {
   orgId: string;
   dataId: string;
 };
 
-type Payload = {
+type Download = {
   storage_url?: string;
   expired_at?: string;
-  status?: 'EXPIRED' | 'INVALID' | 'VALID' | 'EARLY';
+  status?: DownloadStatus;
 };
 
-type Props = {
-  api: Client;
-  organization: Organization;
-  config: Config;
-} & RouteComponentProps<RouteParams, {}>;
+type Props = {} & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  payload: Payload;
+  download: Download;
 } & AsyncView['state'];
 
 class DataDownload extends AsyncView<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      payload: {
-        storage_url: '',
-        expired_at: '',
-      },
+      download: {},
     };
   }
 
@@ -53,15 +46,11 @@ class DataDownload extends AsyncView<Props, State> {
 
   getEndpoints(): [string, string][] {
     const {orgId, dataId} = this.props.params;
-    return [['payload', `/organizations/${orgId}/data-export/${dataId}/`]];
+    return [['download', `/organizations/${orgId}/data-export/${dataId}/`]];
   }
 
   handleDownload(): void {
     // TODO(Leander): Implement direct download from Google Cloud Storage
-  }
-
-  isValidDate(potentialDate): boolean {
-    return potentialDate instanceof Date && !isNaN(potentialDate.getTime());
   }
 
   renderExpired(): React.ReactNode {
@@ -80,16 +69,6 @@ class DataDownload extends AsyncView<Props, State> {
     );
   }
 
-  renderInvalid(): React.ReactNode {
-    return (
-      <React.Fragment>
-        <h3>{t('Not Found')}</h3>
-        <p>{t("We couldn't find a file associated with this link.")}</p>
-        <p>{t('Please double check it and try again!')}</p>
-      </React.Fragment>
-    );
-  }
-
   renderEarly(): React.ReactNode {
     return (
       <React.Fragment>
@@ -101,8 +80,8 @@ class DataDownload extends AsyncView<Props, State> {
   }
 
   renderValid(): React.ReactNode {
-    const {payload} = this.state;
-    const d = new Date(payload.expired_at || '');
+    const {download} = this.state;
+    const d = new Date(download.expired_at || '');
     return (
       <React.Fragment>
         <h3>{t('Finally!')}</h3>
@@ -129,15 +108,12 @@ class DataDownload extends AsyncView<Props, State> {
   }
 
   renderContent(): React.ReactNode {
-    const {payload} = this.state;
-    switch (payload.status) {
-      case 'EXPIRED':
+    const {download} = this.state;
+    switch (download.status) {
+      case DownloadStatus.Expired:
         return this.renderExpired();
-      case 'INVALID':
-        return this.renderInvalid();
-      case 'EARLY':
+      case DownloadStatus.Early:
         return this.renderEarly();
-      case 'VALID':
       default:
         return this.renderValid();
     }
@@ -146,7 +122,6 @@ class DataDownload extends AsyncView<Props, State> {
   renderBody() {
     return (
       <PageContent>
-        <Sidebar />
         <div className="pattern-bg" />
         <ContentContainer>{this.renderContent()}</ContentContainer>
       </PageContent>
@@ -156,16 +131,17 @@ class DataDownload extends AsyncView<Props, State> {
 
 const ContentContainer = styled('div')`
   text-align: center;
-  margin: 30px auto;
+  margin: ${space(4)} auto;
+  /* TODO(Leander): Responsive sizing */
   width: 350px;
-  padding: 30px;
+  padding: ${space(4)};
   background: ${p => p.theme.whiteDark};
   border-radius: ${p => p.theme.borderRadius};
   border: 2px solid ${p => p.theme.borderDark};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   p {
-    margin: 15px;
+    margin: ${space(1.5)};
   }
 `;
 
-export default withLatestContext(withConfig(withApi(withOrganization(DataDownload))));
+export default DataDownload;
