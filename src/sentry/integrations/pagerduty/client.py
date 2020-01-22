@@ -36,12 +36,13 @@ class PagerDutyClient(ApiClient):
             group = data.group
             level = data.get_tag("level") or "error"
             custom_details = serialize(data, None, ExternalEventSerializer())
+            summary = (data.message or data.title)[:1024]
             payload = {
                 "routing_key": self.integration_key,
                 "event_action": "trigger",
                 "dedup_key": group.qualified_short_id,
                 "payload": {
-                    "summary": data.message or data.title,
+                    "summary": summary,
                     "severity": LEVEL_SEVERITY_MAP[level],
                     "source": source,
                     "component": group.project.slug,
