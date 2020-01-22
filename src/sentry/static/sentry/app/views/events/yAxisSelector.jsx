@@ -15,7 +15,7 @@ const YAxisSelector = props => {
     <ChartControls>
       <StyledLabel>{t('Y-Axis')}</StyledLabel>
       <DropdownControl
-        menuWidth="180px"
+        menuWidth="auto"
         alignRight
         button={({isOpen, getActorProps}) => (
           <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
