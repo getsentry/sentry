@@ -74,8 +74,8 @@ export const trackIntegrationEvent = (
   const sessionId = startSession ? startAnalyticsSession() : getAnalyticsSessionId();
   const fullParams = {
     analytics_session_id: sessionId,
-    organization_id: org && org.id,
-    role: org && org.role,
+    organization_id: org?.id,
+    role: org?.role,
     integration_directory_active: false, //TODO: should be configurable
     ...analtyicsParams,
   };
