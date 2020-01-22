@@ -107,10 +107,6 @@ class Event(EventCommon):
             return self._snuba_data[column]
         return self.datetime.isoformat()
 
-    @property
-    def id(self):
-        return self.event_id
-
     # ============================================
     # Snuba-only implementations of properties that
     # would otherwise require nodestore data.

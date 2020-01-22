@@ -11,6 +11,7 @@ import {
   decodeColumnOrder,
   pushEventViewToLocation,
   getExpandedResults,
+  generateDiscoverLandingPageRoute,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
 
@@ -483,5 +484,13 @@ describe('getExpandedResults()', function() {
     const result = getExpandedResults(view, {environment: 'dev'});
     expect(result.query).toEqual('event.type:error');
     expect(result.environment).toEqual(['staging', 'dev']);
+  });
+});
+
+describe('generateDiscoverLandingPageRoute', function() {
+  it('generateDiscoverLandingPageRoute', function() {
+    expect(generateDiscoverLandingPageRoute('sentry')).toBe(
+      '/organizations/sentry/eventsv2/'
+    );
   });
 });

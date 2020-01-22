@@ -33,6 +33,8 @@ const Title = styled('span', {
   color: ${p.theme.placeholderBackground};
   `
       : ''};
+  display: flex;
+  justify-content: space-between;
 `;
 
 export default SideHeader;

@@ -21,6 +21,7 @@ import {
   COL_WIDTH_DATETIME,
   COL_WIDTH_NUMBER,
   COL_WIDTH_STRING,
+  COL_WIDTH_STRING_LONG,
 } from 'app/components/gridEditable';
 
 import {
@@ -36,6 +37,7 @@ import {
 import EventView, {Field as FieldType, Column} from './eventView';
 import {Aggregation, Field, AGGREGATIONS, FIELDS} from './eventQueryParams';
 import {TableColumn, TableDataRow} from './table/types';
+import {generateDiscoverResultsRoute} from './results';
 
 export type EventQuery = {
   field: string[];
@@ -109,7 +111,7 @@ export function getEventTagSearchUrl(
   query: Query
 ) {
   return {
-    pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+    pathname: generateDiscoverResultsRoute(organization.slug),
     query: generateQueryWithTag(query, {key: tagKey, value: tagValue}),
   };
 }
@@ -185,6 +187,17 @@ export type MetaType = {
 export function getDefaultWidth(key: Aggregation | Field): number {
   if (AGGREGATIONS[key]) {
     return COL_WIDTH_NUMBER;
+  }
+
+  // Some columns have specific lengths due to longer content.
+  switch (key) {
+    case 'title':
+      return COL_WIDTH_STRING_LONG + 50;
+    case 'url':
+    case 'transaction':
+      return COL_WIDTH_STRING_LONG;
+    default:
+      break;
   }
 
   switch (FIELDS[key]) {
@@ -462,4 +475,8 @@ export function getExpandedResults(
   });
 
   return nextView;
+}
+
+export function generateDiscoverLandingPageRoute(orgSlug: string): string {
+  return `/organizations/${orgSlug}/eventsv2/`;
 }
