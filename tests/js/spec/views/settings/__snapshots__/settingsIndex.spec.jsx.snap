@@ -33,6 +33,22 @@ exports[`SettingsIndex renders 1`] = `
         "teams": Array [],
       }
     }
+    router={
+      Object {
+        "createHref": [MockFunction],
+        "go": [MockFunction],
+        "goBack": [MockFunction],
+        "goForward": [MockFunction],
+        "isActive": [MockFunction],
+        "listen": [MockFunction],
+        "location": Object {
+          "query": Object {},
+        },
+        "push": [MockFunction],
+        "replace": [MockFunction],
+        "setRouteLeaveHook": [MockFunction],
+      }
+    }
   >
     <GridLayout>
       <GridPanel>

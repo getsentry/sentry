@@ -21,7 +21,7 @@ describe('AccountSettingsLayout', function() {
       url: `/organizations/${organization.slug}/`,
     });
     wrapper = mountWithTheme(
-      <AccountSettingsLayout params={{}} />,
+      <AccountSettingsLayout router={TestStubs.router()} params={{}} />,
       TestStubs.routerContext()
     );
   });

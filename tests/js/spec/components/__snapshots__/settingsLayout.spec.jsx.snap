@@ -4,17 +4,54 @@ exports[`SettingsLayout renders 1`] = `
 <Fragment>
   <SettingsColumn>
     <SettingsHeader>
-      <HeaderContent>
-        <StyledSettingsBreadcrumb
-          route={Object {}}
-          routes={Array []}
-        />
-        <StyledSettingsSearch
-          routes={Array []}
-        />
-      </HeaderContent>
+      <NavMenuToggle
+        align="center"
+        disabled={false}
+        icon="icon-activity"
+        iconSize="16px"
+        onClick={[Function]}
+        priority="link"
+      />
+      <StyledSettingsBreadcrumb
+        route={Object {}}
+        routes={Array []}
+      />
+      <StyledSettingsSearch
+        router={
+          Object {
+            "createHref": [MockFunction],
+            "go": [MockFunction],
+            "goBack": [MockFunction],
+            "goForward": [MockFunction],
+            "isActive": [MockFunction],
+            "listen": [MockFunction] {
+              "calls": Array [
+                Array [
+                  [Function],
+                ],
+              ],
+              "results": Array [
+                Object {
+                  "type": "return",
+                  "value": undefined,
+                },
+              ],
+            },
+            "location": Object {
+              "query": Object {},
+            },
+            "push": [MockFunction],
+            "replace": [MockFunction],
+            "setRouteLeaveHook": [MockFunction],
+          }
+        }
+        routes={Array []}
+      />
     </SettingsHeader>
     <MaxWidthContainer>
+      <NavMask
+        isVisible={false}
+      />
       <Content />
     </MaxWidthContainer>
   </SettingsColumn>
