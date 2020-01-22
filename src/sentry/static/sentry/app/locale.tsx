@@ -321,7 +321,14 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
 
   if (args.length > 0) {
     countArg = (args[0] as number) || 0;
-    args = [countArg.toLocaleString(), ...args.slice(1)];
+
+    // using %d may cause issues - for example if we do `.toLocaleString` on a number higher than 999
+    if ((singular + plural).includes('%d')) {
+      // eslint-disable-next-line no-console
+      console.error('You should not use %d within tn(), use %s instead');
+    } else {
+      args = [countArg.toLocaleString(), ...args.slice(1)];
+    }
   }
 
   // XXX(ts): See XXX in gettext.
