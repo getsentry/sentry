@@ -173,7 +173,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                     borderless
                     icon="icon-settings"
                     disabled={!this.hasConfiguration() || !hasAccess}
-                    to={`/settings/${organization.id}/integrations/${provider.key}/${integration.id}/`}
+                    to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                     data-test-id="integration-configure-button"
                   >
                     Configure
