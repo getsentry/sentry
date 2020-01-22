@@ -5,7 +5,6 @@ import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Organization} from 'app/types';
-import {tn} from 'app/locale';
 
 type Props = {
   organization: Organization;
@@ -16,7 +15,7 @@ const SidebarOrgSummary: React.FC<Props> = ({organization}) => {
   const extra: string[] = [];
 
   if (projects) {
-    extra.push(tn('%d project', '%d projects', projects));
+    extra.push(`${projects} projects`);
   }
 
   return (
