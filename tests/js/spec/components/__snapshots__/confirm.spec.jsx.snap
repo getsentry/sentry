@@ -44,9 +44,7 @@ exports[`Confirm renders 1`] = `
     <div
       className="modal-footer"
     >
-      <Button
-        align="center"
-        disabled={false}
+      <forwardRef<Button>
         onClick={[Function]}
         style={
           Object {
@@ -55,9 +53,8 @@ exports[`Confirm renders 1`] = `
         }
       >
         Cancel
-      </Button>
-      <Button
-        align="center"
+      </forwardRef<Button>>
+      <forwardRef<Button>
         autoFocus={true}
         data-test-id="confirm-button"
         disabled={false}
@@ -65,7 +62,7 @@ exports[`Confirm renders 1`] = `
         priority="primary"
       >
         Confirm
-      </Button>
+      </forwardRef<Button>>
     </div>
   </Modal>
 </Fragment>

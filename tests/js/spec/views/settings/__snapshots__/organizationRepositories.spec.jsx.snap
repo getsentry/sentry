@@ -126,13 +126,11 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
     <Styled(div)
       mb={1}
     >
-      <Button
-        align="center"
-        disabled={false}
+      <forwardRef<Button>
         href="https://docs.sentry.io/learn/releases/"
       >
         Learn more
-      </Button>
+      </forwardRef<Button>>
     </Styled(div)>
   </Panel>
 </div>
@@ -203,13 +201,11 @@ exports[`OrganizationRepositories renders without providers 1`] = `
     <Styled(div)
       mb={1}
     >
-      <Button
-        align="center"
-        disabled={false}
+      <forwardRef<Button>
         href="https://docs.sentry.io/learn/releases/"
       >
         Learn more
-      </Button>
+      </forwardRef<Button>>
     </Styled(div)>
   </Panel>
 </div>

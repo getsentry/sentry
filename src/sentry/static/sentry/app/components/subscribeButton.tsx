@@ -10,7 +10,7 @@ type Props = {
   onClick: (e: React.MouseEvent) => void;
   disabled?: boolean;
   isSubscribed?: boolean;
-  size?: Button['props']['size'];
+  size?: React.ComponentProps<typeof Button>['size'];
 };
 
 export default class SubscribeButton extends React.Component<Props> {
@@ -18,7 +18,8 @@ export default class SubscribeButton extends React.Component<Props> {
     isSubscribed: PropTypes.bool,
     onClick: PropTypes.func.isRequired,
     disabled: PropTypes.bool,
-    size: Button.propTypes.size,
+    // `Object is possibly 'undefined'` if we try to use Button.propTypes.size
+    size: PropTypes.any,
   };
 
   render() {

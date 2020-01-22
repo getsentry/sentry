@@ -40,7 +40,7 @@ type Props = {
   /**
    * Button priority
    */
-  priority: Button['props']['priority'];
+  priority: React.ComponentProps<typeof Button>['priority'];
 
   /**
    * Disables the confirm button

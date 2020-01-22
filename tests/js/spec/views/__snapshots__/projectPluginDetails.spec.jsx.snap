@@ -241,8 +241,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                   <div
                     className="pull-right"
                   >
-                    <Button
-                      align="center"
+                    <ForwardRef
                       disabled={false}
                       onClick={[Function]}
                       size="small"
@@ -253,15 +252,13 @@ exports[`ProjectPluginDetails renders 1`] = `
                       }
                     >
                       Enable Plugin
-                    </Button>
-                    <Button
-                      align="center"
-                      disabled={false}
+                    </ForwardRef>
+                    <ForwardRef
                       onClick={[Function]}
                       size="small"
                     >
                       Reset Configuration
-                    </Button>
+                    </ForwardRef>
                   </div>
                 }
                 noTitleStyles={false}
@@ -272,8 +269,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                     <div
                       className="pull-right"
                     >
-                      <Button
-                        align="center"
+                      <ForwardRef
                         disabled={false}
                         onClick={[Function]}
                         size="small"
@@ -284,15 +280,13 @@ exports[`ProjectPluginDetails renders 1`] = `
                         }
                       >
                         Enable Plugin
-                      </Button>
-                      <Button
-                        align="center"
-                        disabled={false}
+                      </ForwardRef>
+                      <ForwardRef
                         onClick={[Function]}
                         size="small"
                       >
                         Reset Configuration
-                      </Button>
+                      </ForwardRef>
                     </div>
                   }
                   className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
@@ -328,8 +322,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                             <div
                               className="pull-right"
                             >
-                              <Button
-                                align="center"
+                              <forwardRef<Button>
                                 disabled={false}
                                 onClick={[Function]}
                                 size="small"
@@ -339,12 +332,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   }
                                 }
                               >
-                                <StyledButton
-                                  aria-disabled={false}
-                                  aria-label="Enable Plugin"
+                                <Button
+                                  align="center"
                                   disabled={false}
+                                  forwardRef={null}
                                   onClick={[Function]}
-                                  role="button"
                                   size="small"
                                   style={
                                     Object {
@@ -352,11 +344,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     }
                                   }
                                 >
-                                  <ForwardRef
+                                  <StyledButton
                                     aria-disabled={false}
                                     aria-label="Enable Plugin"
-                                    className="css-12ogwys-StyledButton edwq9my0"
                                     disabled={false}
+                                    forwardRef={null}
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
@@ -366,10 +358,11 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       }
                                     }
                                   >
-                                    <button
+                                    <Component
                                       aria-disabled={false}
                                       aria-label="Enable Plugin"
                                       className="css-12ogwys-StyledButton edwq9my0"
+                                      forwardRef={null}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
@@ -379,77 +372,98 @@ exports[`ProjectPluginDetails renders 1`] = `
                                         }
                                       }
                                     >
-                                      <ButtonLabel
-                                        align="center"
+                                      <button
+                                        aria-disabled={false}
+                                        aria-label="Enable Plugin"
+                                        className="css-12ogwys-StyledButton edwq9my0"
+                                        onClick={[Function]}
+                                        role="button"
                                         size="small"
+                                        style={
+                                          Object {
+                                            "marginRight": "6px",
+                                          }
+                                        }
                                       >
-                                        <Component
+                                        <ButtonLabel
                                           align="center"
-                                          className="css-19gcr2f-ButtonLabel edwq9my1"
                                           size="small"
                                         >
-                                          <span
+                                          <Component
+                                            align="center"
                                             className="css-19gcr2f-ButtonLabel edwq9my1"
+                                            size="small"
                                           >
-                                            Enable Plugin
-                                          </span>
-                                        </Component>
-                                      </ButtonLabel>
-                                    </button>
-                                  </ForwardRef>
-                                </StyledButton>
-                              </Button>
-                              <Button
-                                align="center"
-                                disabled={false}
+                                            <span
+                                              className="css-19gcr2f-ButtonLabel edwq9my1"
+                                            >
+                                              Enable Plugin
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </forwardRef<Button>>
+                              <forwardRef<Button>
                                 onClick={[Function]}
                                 size="small"
                               >
-                                <StyledButton
-                                  aria-disabled={false}
-                                  aria-label="Reset Configuration"
+                                <Button
+                                  align="center"
                                   disabled={false}
+                                  forwardRef={null}
                                   onClick={[Function]}
-                                  role="button"
                                   size="small"
                                 >
-                                  <ForwardRef
+                                  <StyledButton
                                     aria-disabled={false}
                                     aria-label="Reset Configuration"
-                                    className="css-12ogwys-StyledButton edwq9my0"
                                     disabled={false}
+                                    forwardRef={null}
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
                                   >
-                                    <button
+                                    <Component
                                       aria-disabled={false}
                                       aria-label="Reset Configuration"
                                       className="css-12ogwys-StyledButton edwq9my0"
+                                      forwardRef={null}
                                       onClick={[Function]}
                                       role="button"
                                       size="small"
                                     >
-                                      <ButtonLabel
-                                        align="center"
+                                      <button
+                                        aria-disabled={false}
+                                        aria-label="Reset Configuration"
+                                        className="css-12ogwys-StyledButton edwq9my0"
+                                        onClick={[Function]}
+                                        role="button"
                                         size="small"
                                       >
-                                        <Component
+                                        <ButtonLabel
                                           align="center"
-                                          className="css-19gcr2f-ButtonLabel edwq9my1"
                                           size="small"
                                         >
-                                          <span
+                                          <Component
+                                            align="center"
                                             className="css-19gcr2f-ButtonLabel edwq9my1"
+                                            size="small"
                                           >
-                                            Reset Configuration
-                                          </span>
-                                        </Component>
-                                      </ButtonLabel>
-                                    </button>
-                                  </ForwardRef>
-                                </StyledButton>
-                              </Button>
+                                            <span
+                                              className="css-19gcr2f-ButtonLabel edwq9my1"
+                                            >
+                                              Reset Configuration
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </forwardRef<Button>>
                             </div>
                           </div>
                         </Action>

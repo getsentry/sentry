@@ -1,12 +1,12 @@
 import React from 'react';
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import Button from 'app/components/button';
 
 describe('Button', function() {
   const routerContext = TestStubs.routerContext();
 
   it('renders', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <Button priority="primary" size="large">
         Button
       </Button>
@@ -15,7 +15,7 @@ describe('Button', function() {
   });
 
   it('renders react-router link', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <Button to="/some/route">Router Link</Button>,
       routerContext
     );
@@ -23,7 +23,7 @@ describe('Button', function() {
   });
 
   it('renders normal link', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <Button href="/some/relative/url">Normal Link</Button>,
       routerContext
     );
@@ -31,7 +31,7 @@ describe('Button', function() {
   });
 
   it('renders disabled normal link', function() {
-    const component = shallow(
+    const component = mountWithTheme(
       <Button href="/some/relative/url">Normal Link</Button>,
       routerContext
     );

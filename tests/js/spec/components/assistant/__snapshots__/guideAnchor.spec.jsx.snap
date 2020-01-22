@@ -30,16 +30,14 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
             />
             <ForwardRef(render)>
               <div>
-                <Button
-                  align="center"
-                  disabled={false}
+                <ForwardRef
                   onClick={[Function]}
                   priority="success"
                   size="small"
                 >
                   Next
                    →
-                </Button>
+                </ForwardRef>
               </div>
             </ForwardRef(render)>
           </ForwardRef(render)>
@@ -285,60 +283,67 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                                   className="css-m56sce-Actions e130o4355"
                                 >
                                   <div>
-                                    <Button
-                                      align="center"
-                                      disabled={false}
+                                    <forwardRef<Button>
                                       onClick={[Function]}
                                       priority="success"
                                       size="small"
                                     >
-                                      <StyledButton
-                                        aria-disabled={false}
+                                      <Button
+                                        align="center"
                                         disabled={false}
+                                        forwardRef={null}
                                         onClick={[Function]}
                                         priority="success"
-                                        role="button"
                                         size="small"
                                       >
-                                        <ForwardRef
+                                        <StyledButton
                                           aria-disabled={false}
-                                          className="css-1a9qzq-StyledButton edwq9my0"
                                           disabled={false}
+                                          forwardRef={null}
                                           onClick={[Function]}
                                           priority="success"
                                           role="button"
                                           size="small"
                                         >
-                                          <button
+                                          <Component
                                             aria-disabled={false}
                                             className="css-1a9qzq-StyledButton edwq9my0"
+                                            forwardRef={null}
                                             onClick={[Function]}
                                             role="button"
                                             size="small"
                                           >
-                                            <ButtonLabel
-                                              align="center"
-                                              priority="success"
+                                            <button
+                                              aria-disabled={false}
+                                              className="css-1a9qzq-StyledButton edwq9my0"
+                                              onClick={[Function]}
+                                              role="button"
                                               size="small"
                                             >
-                                              <Component
+                                              <ButtonLabel
                                                 align="center"
-                                                className="css-19gcr2f-ButtonLabel edwq9my1"
                                                 priority="success"
                                                 size="small"
                                               >
-                                                <span
+                                                <Component
+                                                  align="center"
                                                   className="css-19gcr2f-ButtonLabel edwq9my1"
+                                                  priority="success"
+                                                  size="small"
                                                 >
-                                                  Next
-                                                   →
-                                                </span>
-                                              </Component>
-                                            </ButtonLabel>
-                                          </button>
-                                        </ForwardRef>
-                                      </StyledButton>
-                                    </Button>
+                                                  <span
+                                                    className="css-19gcr2f-ButtonLabel edwq9my1"
+                                                  >
+                                                    Next
+                                                     →
+                                                  </span>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
+                                      </Button>
+                                    </forwardRef<Button>>
                                   </div>
                                 </div>
                               </Actions>
@@ -391,15 +396,13 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
             />
             <ForwardRef(render)>
               <div>
-                <Button
-                  align="center"
-                  disabled={false}
+                <ForwardRef
                   onClick={[Function]}
                   priority="success"
                   size="small"
                 >
                   Done
-                </Button>
+                </ForwardRef>
               </div>
             </ForwardRef(render)>
           </ForwardRef(render)>
@@ -588,62 +591,69 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                                   className="css-m56sce-Actions e130o4355"
                                 >
                                   <div>
-                                    <Button
-                                      align="center"
-                                      disabled={false}
+                                    <forwardRef<Button>
                                       onClick={[Function]}
                                       priority="success"
                                       size="small"
                                     >
-                                      <StyledButton
-                                        aria-disabled={false}
-                                        aria-label="Done"
+                                      <Button
+                                        align="center"
                                         disabled={false}
+                                        forwardRef={null}
                                         onClick={[Function]}
                                         priority="success"
-                                        role="button"
                                         size="small"
                                       >
-                                        <ForwardRef
+                                        <StyledButton
                                           aria-disabled={false}
                                           aria-label="Done"
-                                          className="css-1a9qzq-StyledButton edwq9my0"
                                           disabled={false}
+                                          forwardRef={null}
                                           onClick={[Function]}
                                           priority="success"
                                           role="button"
                                           size="small"
                                         >
-                                          <button
+                                          <Component
                                             aria-disabled={false}
                                             aria-label="Done"
                                             className="css-1a9qzq-StyledButton edwq9my0"
+                                            forwardRef={null}
                                             onClick={[Function]}
                                             role="button"
                                             size="small"
                                           >
-                                            <ButtonLabel
-                                              align="center"
-                                              priority="success"
+                                            <button
+                                              aria-disabled={false}
+                                              aria-label="Done"
+                                              className="css-1a9qzq-StyledButton edwq9my0"
+                                              onClick={[Function]}
+                                              role="button"
                                               size="small"
                                             >
-                                              <Component
+                                              <ButtonLabel
                                                 align="center"
-                                                className="css-19gcr2f-ButtonLabel edwq9my1"
                                                 priority="success"
                                                 size="small"
                                               >
-                                                <span
+                                                <Component
+                                                  align="center"
                                                   className="css-19gcr2f-ButtonLabel edwq9my1"
+                                                  priority="success"
+                                                  size="small"
                                                 >
-                                                  Done
-                                                </span>
-                                              </Component>
-                                            </ButtonLabel>
-                                          </button>
-                                        </ForwardRef>
-                                      </StyledButton>
-                                    </Button>
+                                                  <span
+                                                    className="css-19gcr2f-ButtonLabel edwq9my1"
+                                                  >
+                                                    Done
+                                                  </span>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
+                                      </Button>
+                                    </forwardRef<Button>>
                                   </div>
                                 </div>
                               </Actions>

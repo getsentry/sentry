@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Dashboard} from 'app/views/projectsDashboard';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
@@ -92,6 +92,7 @@ describe('ProjectsDashboard', function() {
         }),
 
         TestStubs.Project({
+          slug: 'project2',
           teams,
           isBookmarked: true,
           firstEvent: true,
@@ -100,7 +101,7 @@ describe('ProjectsDashboard', function() {
 
       const teamsWithTwoProjects = [TestStubs.Team({projects})];
 
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <Dashboard
           teams={teamsWithTwoProjects}
           organization={org}

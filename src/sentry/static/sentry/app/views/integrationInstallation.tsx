@@ -105,7 +105,7 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
     const {organization, reloading} = this.state;
     const {installationId} = this.props.params;
 
-    const AddButton = (p: Button['props']) => (
+    const AddButton = (p: React.ComponentProps<typeof Button>) => (
       <Button priority="primary" busy={reloading} {...p}>
         Install Integration
       </Button>

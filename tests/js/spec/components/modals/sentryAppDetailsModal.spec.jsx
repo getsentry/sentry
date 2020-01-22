@@ -70,7 +70,10 @@ describe('SentryAppDetailsModal', function() {
   });
 
   it('closes when Cancel is clicked', () => {
-    wrapper.find({onClick: closeModal}).simulate('click');
+    wrapper
+      .find({onClick: closeModal})
+      .first()
+      .simulate('click');
     expect(closeModal).toHaveBeenCalled();
   });
 

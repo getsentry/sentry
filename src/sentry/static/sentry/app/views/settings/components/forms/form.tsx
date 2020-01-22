@@ -34,7 +34,7 @@ type Props = {
   cancelLabel?: string;
   submitDisabled?: boolean;
   submitLabel?: string;
-  submitPriority?: Button['props']['priority'];
+  submitPriority?: React.ComponentProps<typeof Button>['priority'];
   footerClass?: string;
   footerStyle?: React.CSSProperties;
   extraButton?: React.ReactNode;

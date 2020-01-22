@@ -134,14 +134,12 @@ exports[`ProjectSecurityHeaders renders 1`] = `
                 Content Security Policy (CSP)
               </HeaderName>
             </Styled(div)>
-            <Button
-              align="center"
-              disabled={false}
+            <forwardRef<Button>
               priority="primary"
               to="csp/"
             >
               Instructions
-            </Button>
+            </forwardRef<Button>>
           </Styled(div)>
         </PanelItem>
         <PanelItem
@@ -161,14 +159,12 @@ exports[`ProjectSecurityHeaders renders 1`] = `
                 Certificate Transparency (Expect-CT)
               </HeaderName>
             </Styled(div)>
-            <Button
-              align="center"
-              disabled={false}
+            <forwardRef<Button>
               priority="primary"
               to="expect-ct/"
             >
               Instructions
-            </Button>
+            </forwardRef<Button>>
           </Styled(div)>
         </PanelItem>
         <PanelItem
@@ -188,14 +184,12 @@ exports[`ProjectSecurityHeaders renders 1`] = `
                 HTTP Public Key Pinning (HPKP)
               </HeaderName>
             </Styled(div)>
-            <Button
-              align="center"
-              disabled={false}
+            <forwardRef<Button>
               priority="primary"
               to="hpkp/"
             >
               Instructions
-            </Button>
+            </forwardRef<Button>>
           </Styled(div)>
         </PanelItem>
       </PanelBody>
