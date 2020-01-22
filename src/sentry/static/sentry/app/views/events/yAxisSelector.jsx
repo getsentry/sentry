@@ -17,8 +17,8 @@ const YAxisSelector = props => {
       <DropdownControl
         menuWidth="auto"
         alignRight
-        button={({isOpen, getActorProps}) => (
-          <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
+        button={({getActorProps}) => (
+          <StyledDropdownButton {...getActorProps()} size="zero" isOpen={false}>
             {selectedOption.label}
           </StyledDropdownButton>
         )}
@@ -46,8 +46,6 @@ const ChartControls = styled('div')`
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
-  border-radius: ${p =>
-    p.isOpen && `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   padding: ${space(1)} ${space(2)};
   font-weight: normal;
   color: ${p => p.theme.gray3};
