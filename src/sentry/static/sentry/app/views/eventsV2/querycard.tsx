@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/links/link';
 
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -38,13 +39,17 @@ class QueryCard extends React.PureComponent<Props> {
     } = this.props;
 
     return (
-      <StyledQueryCard data-test-id={`card-${title}`} onClick={this.handleClick}>
+      <StyledQueryCard
+        data-test-id={`card-${title}`}
+        onClick={this.handleClick}
+        to={this.props.to}
+      >
         <QueryCardHeader>
           <StyledTitle>{title}</StyledTitle>
           <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
-          {starred ? (
+          {starred && (
             <StyledInlineSvg data-test-id="is-saved-query" src="icon-star-small-filled" />
-          ) : null}
+          )}
         </QueryCardHeader>
         <QueryCardBody>{renderGraph()}</QueryCardBody>
         <QueryCardFooter>
@@ -56,7 +61,7 @@ class QueryCard extends React.PureComponent<Props> {
   }
 }
 
-const StyledQueryCard = styled('button')`
+const StyledQueryCard = styled(Link)`
   background: ${p => p.theme.white};
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: ${p => p.theme.borderRadius};

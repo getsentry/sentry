@@ -22,7 +22,7 @@ class Link extends React.Component {
     if (this.context.location && to) {
       return <RouterLink {...this.props} />;
     } else {
-      return <a {...props} href={to || href} />;
+      return <a {...props} href={href || to} />;
     }
   }
 }
