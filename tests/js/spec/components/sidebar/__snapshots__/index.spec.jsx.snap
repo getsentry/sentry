@@ -563,7 +563,6 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                       avatarSize={32}
                       className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
                       hideEmail={false}
-                      useLink={true}
                       user={
                         Object {
                           "email": "foo@example.com",
@@ -725,16 +724,11 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                               <StyledName
                                 hideEmail={false}
                               >
-                                <Component
+                                <span
                                   className="css-19h2nhd-StyledName e31z2f83"
-                                  hideEmail={false}
                                 >
-                                  <span
-                                    className="css-19h2nhd-StyledName e31z2f83"
-                                  >
-                                    Foo Bar
-                                  </span>
-                                </Component>
+                                  Foo Bar
+                                </span>
                               </StyledName>
                               <StyledEmail>
                                 <div
@@ -3286,7 +3280,6 @@ exports[`Sidebar renders without org and router 1`] = `
                       avatarSize={32}
                       className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
                       hideEmail={false}
-                      useLink={true}
                       user={
                         Object {
                           "email": "foo@example.com",
@@ -3448,16 +3441,11 @@ exports[`Sidebar renders without org and router 1`] = `
                               <StyledName
                                 hideEmail={false}
                               >
-                                <Component
+                                <span
                                   className="css-19h2nhd-StyledName e31z2f83"
-                                  hideEmail={false}
                                 >
-                                  <span
-                                    className="css-19h2nhd-StyledName e31z2f83"
-                                  >
-                                    Foo Bar
-                                  </span>
-                                </Component>
+                                  Foo Bar
+                                </span>
                               </StyledName>
                               <StyledEmail>
                                 <div
