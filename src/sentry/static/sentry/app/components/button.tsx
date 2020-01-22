@@ -157,7 +157,6 @@ class Button extends React.Component<ButtonProps, {}> {
         size={size}
         priority={priority}
         borderless={borderless}
-        shouldForwardProp={prop => isPropValid(prop) && prop !== 'disabled'}
         {...buttonProps}
         onClick={this.handleClick}
         role="button"
@@ -210,7 +209,7 @@ ButtonForwardRef.displayName = 'forwardRef<Button>';
 
 export default ButtonForwardRef;
 
-type StyledButtonProps = ButtonProps;
+type StyledButtonProps = ButtonProps & {theme?: any};
 
 function getButtonElement(props: Pick<ButtonProps, 'to' | 'href' | 'external'>) {
   // Get component to use based on existence of `to` or `href` properties
@@ -298,7 +297,7 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
 
 const StyledButton = styled('button', {
   shouldForwardProp: prop => isPropValid(prop) && prop !== 'disabled',
-})<Props>`
+})<StyledButtonProps>`
   display: inline-block;
   line-height: 1;
   border-radius: ${p => p.theme.button.borderRadius};
