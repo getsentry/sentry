@@ -78,7 +78,7 @@ const SeenByWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
 
 const IconWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
   background-color: transparent;
-  color: #493e54;
+  color: ${p => p.theme.foreground};
   height: 28px;
   width: 28px;
   line-height: 26px;
