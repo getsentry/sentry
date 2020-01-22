@@ -935,6 +935,10 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
         assert filter.filter_keys == {}
 
+    def test_wildcard_event_id(self):
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter("id:deadbeef*")
+
     def test_negated_wildcard(self):
         filter = get_filter("!release:3.1.* user.email:*@example.com")
         assert filter.conditions == [
