@@ -416,9 +416,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
         ip_address: data['user.ip'],
       };
 
-      const badge = (
-        <UserBadge useLink={false} user={userObj} hideEmail avatarSize={16} />
-      );
+      const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
 
       if (!data.user) {
         return <Container>{badge}</Container>;
