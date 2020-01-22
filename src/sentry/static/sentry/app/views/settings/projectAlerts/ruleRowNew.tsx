@@ -120,7 +120,7 @@ class RuleRow extends React.Component<Props, State> {
                   <div>
                     {trigger.actions &&
                       trigger.actions.map((action, j) => (
-                        <div key={j}>{action.type}</div>
+                        <div key={j}>{action.desc}</div>
                       ))}
                   </div>
                 </TriggerAndActions>
