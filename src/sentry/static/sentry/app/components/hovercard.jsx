@@ -50,6 +50,10 @@ class Hovercard extends React.Component {
      * Color of the arrow tip
      */
     tipColor: PropTypes.string,
+    /**
+     * Should the hovercard shrink to fit its contents if they're narrower than the default?
+     */
+    shrinkToFit: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -101,6 +105,7 @@ class Hovercard extends React.Component {
       position,
       show,
       tipColor,
+      shrinkToFit,
     } = this.props;
 
     // Maintain the hovercard class name for BC with less styles
@@ -148,6 +153,7 @@ class Hovercard extends React.Component {
                   placement={placement}
                   withHeader={!!header}
                   className={cx}
+                  shrinkToFit={shrinkToFit}
                   {...hoverProps}
                 >
                   {header && <Header>{header}</Header>}
@@ -202,7 +208,10 @@ const StyledHovercard = styled('div')`
   background: #fff;
   background-clip: padding-box;
   box-shadow: 0 0 35px 0 rgba(67, 62, 75, 0.2);
-  width: 295px;
+  ${p => {
+    return p.shrinkToFit ? 'max-width: 295px;' : 'width: 295px;';
+  }}
+
 
   /* The hovercard may appear in different contexts, don't inherit fonts */
   font-family: ${p => p.theme.text.family};
