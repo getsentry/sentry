@@ -39,12 +39,20 @@ storiesOf('UI|IdBadge', module).add(
     const organization = {
       slug: 'organization-slug',
     };
+    const member = {
+      name: 'Pending Member',
+      email: 'member@example.org',
+    };
 
     return (
       <React.Fragment>
         <Header>User Badge</Header>
         <Item>
           <IdBadge user={user} />
+        </Item>
+        <Header>Member Badge</Header>
+        <Item>
+          <IdBadge member={member} />
         </Item>
         <Header>Team Badge</Header>
         <Item>
