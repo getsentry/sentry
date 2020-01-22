@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import io
 import logging
-import six
 import zlib
 
 try:
@@ -12,7 +11,6 @@ try:
 except ImportError:
     has_uwsgi = False
 
-from django import VERSION
 from django.conf import settings
 from django.core.exceptions import MiddlewareNotUsed
 
@@ -179,23 +177,3 @@ class DecompressBodyMiddleware(object):
             # remove the header. Otherwise, LazyData will attempt to re-decode
             # the body.
             del request.META["HTTP_CONTENT_ENCODING"]
-
-
-class ContentLengthHeaderMiddleware(object):
-    """
-    Ensure that we have a proper Content-Length/Transfer-Encoding header
-    """
-
-    def __init__(self):
-        # TODO(joshuarli): we can remove this middleware entirely once we're on 1.11
-        if VERSION[:2] >= (1, 11):
-            raise MiddlewareNotUsed
-
-    def process_response(self, request, response):
-        if "Transfer-Encoding" in response or "Content-Length" in response:
-            return response
-
-        if not response.streaming:
-            response["Content-Length"] = six.text_type(len(response.content))
-
-        return response

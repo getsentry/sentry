@@ -257,7 +257,6 @@ USE_TZ = True
 MIDDLEWARE_CLASSES = (
     "sentry.middleware.proxy.ChunkedMiddleware",
     "sentry.middleware.proxy.DecompressBodyMiddleware",
-    "sentry.middleware.proxy.ContentLengthHeaderMiddleware",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
