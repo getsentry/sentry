@@ -236,6 +236,7 @@ export type AvatarUser = {
   options?: {
     avatarType: string;
   };
+  lastSeen?: string;
 };
 
 export type User = AvatarUser & {
