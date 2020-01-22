@@ -3,15 +3,26 @@ import PropTypes from 'prop-types';
 
 import BaseBadge from 'app/components/idBadge/baseBadge';
 import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
+import {AvatarProject} from 'app/types';
 
-export default class ProjectBadge extends React.PureComponent {
+type Props = {
+  project: AvatarProject;
+  // Has a default value in BaseBadge
+  avatarSize?: number;
+  className?: string;
+  hideAvatar?: boolean;
+  hideName?: boolean;
+  description?: React.ReactNode;
+  avatarClassName?: string | React.CSSProperties;
+  // If true, will use default max-width, or specify one as a string
+  hideOverflow?: boolean | string;
+};
+
+export default class ProjectBadge extends React.PureComponent<Props> {
   static propTypes = {
     ...BaseBadge.propTypes,
     project: BaseBadge.propTypes.project.isRequired,
     avatarSize: PropTypes.number,
-    /**
-     * If true, will use default max-width, or specify one as a string
-     */
     hideOverflow: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
     hideAvatar: PropTypes.bool,
   };
