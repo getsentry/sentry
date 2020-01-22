@@ -6,6 +6,7 @@ import {enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 import InactivePlugins from 'app/components/inactivePlugins';
 import PluginConfig from 'app/components/pluginConfig';
 import {t} from 'app/locale';
+import {Panel, PanelItem} from './panels';
 
 type Props = {
   organization: Organization;
@@ -44,13 +45,11 @@ const PluginList = ({
 
   if (!pluginList.length) {
     return (
-      <div className="panel panel-default">
-        <div className="panel-body p-b-0">
-          <p>
-            {t("Oops! Looks like there aren't any available integrations installed.")}
-          </p>
-        </div>
-      </div>
+      <Panel>
+        <PanelItem>
+          {t("Oops! Looks like there aren't any available integrations installed.")}
+        </PanelItem>
+      </Panel>
     );
   }
 
