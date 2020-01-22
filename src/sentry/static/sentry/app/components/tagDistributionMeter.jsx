@@ -101,19 +101,25 @@ export default class TagDistributionMeter extends React.Component {
             </React.Fragment>
           );
 
+          const segmentProps = {
+            isOther: value.isOther,
+            index,
+          };
+          if (!value.isOther) {
+            segmentProps.to = value.url;
+            segmentProps.onClick = () => {
+              if (onTagClick) {
+                onTagClick(title, value);
+              }
+            };
+          } else {
+            segmentProps.as = 'span';
+          }
+
           return (
             <div key={value.value} style={{width: pct + '%'}}>
               <Tooltip title={tooltipHtml} containerDisplayMode="block">
-                <Segment
-                  to={value.isOther ? null : value.url}
-                  index={index}
-                  isOther={!!value.isOther}
-                  onClick={() => {
-                    if (onTagClick) {
-                      onTagClick(title, value);
-                    }
-                  }}
-                />
+                <Segment {...segmentProps} />
               </Tooltip>
             </div>
           );
