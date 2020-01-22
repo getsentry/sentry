@@ -49,6 +49,9 @@ ReferenceEvent.__new__.__defaults__ = (None, None)
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
+# Conditions with these prefixes are not compatible with event.type=transaction
+INCOMPATIBLE_CONDITION_PREFIXES = ("error.", "stack.")
+
 
 def is_real_column(col):
     """
@@ -153,6 +156,13 @@ def resolve_column(col):
     return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))
 
 
+def resolve_column_with_transaction_type(col):
+    # If the query includes type=transaction, certain other conditions must be excluded
+    if col.startswith(INCOMPATIBLE_CONDITION_PREFIXES):
+        col = "tags[{}]".format(col)
+    return resolve_column(col)
+
+
 def resolve_discover_aliases(snuba_args):
     """
     Resolve the public schema aliases to the discover dataset.
@@ -194,9 +204,14 @@ def resolve_discover_aliases(snuba_args):
     resolved["aggregations"] = aggregations
 
     conditions = resolved.get("conditions")
+    resolve_function = (
+        resolve_column_with_transaction_type
+        if ["event.type", "=", "transaction"] in conditions
+        else resolve_column
+    )
     if conditions:
         for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, resolve_column)
+            replacement = resolve_condition(condition, resolve_function)
             conditions[i] = replacement
         resolved["conditions"] = list(filter(None, conditions))
 
