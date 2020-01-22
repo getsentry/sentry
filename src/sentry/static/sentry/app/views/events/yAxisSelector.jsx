@@ -3,14 +3,17 @@ import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {SectionHeading} from '../eventsV2/styles';
 
 const YAxisSelector = props => {
   const {options, onChange, selected} = props;
   const selectedOption = options.find(opt => selected === opt.value) || options[0];
 
   return (
-    <Container>
+    <ChartControls>
+      <StyledLabel>{t('Y-Axis')}</StyledLabel>
       <DropdownControl
         menuOffset="29px"
         button={({isOpen, getActorProps}) => (
@@ -20,40 +23,44 @@ const YAxisSelector = props => {
         )}
       >
         {options.map(opt => (
-          <StyledDropdownItem
+          <DropdownItem
             key={opt.value}
             onSelect={onChange}
             eventKey={opt.value}
             isActive={selected === opt.value}
           >
             {opt.label}
-          </StyledDropdownItem>
+          </DropdownItem>
         ))}
       </DropdownControl>
-    </Container>
+    </ChartControls>
   );
 };
 
-const StyledDropdownButton = styled(
-  React.forwardRef((prop, ref) => <DropdownButton ref={ref} {...prop} />)
-)`
-  color: ${p => p.theme.gray2};
-  font-weight: normal;
-  text-transform: capitalize;
-  height: ${space(4)};
-  padding: ${space(0.5)} ${space(1)};
-  background: ${p => p.theme.offWhite};
+const StyledDropdownButton = styled(DropdownButton)`
   border-radius: ${p =>
-    p.isOpen
-      ? `0 ${p.theme.borderRadius} 0 0`
-      : `0 ${p.theme.borderRadius} 0 ${p.theme.borderRadius}`};
+    p.isOpen && `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
+  padding: ${space(1)} ${space(2)};
+  font-weight: normal;
+  min-width: 180px;
+  color: ${p => p.theme.gray4};
+
+  &:hover,
+  &:focus {
+    color: inherit;
+  }
 `;
 
-const Container = styled('div')`
-  position: absolute;
-  /* compensate to have borders overlap */
-  top: -1px;
-  right: -1px;
+const ChartControls = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  padding: ${space(1)};
+  border-top: 1px solid ${p => p.theme.borderLight};
+`;
+
+const StyledLabel = styled(SectionHeading)`
+  padding-right: ${space(1)};
+  line-height: 1.2;
 `;
 
 YAxisSelector.propTypes = {
@@ -61,9 +68,5 @@ YAxisSelector.propTypes = {
   onChange: PropTypes.func.isRequired,
   selected: PropTypes.string,
 };
-
-const StyledDropdownItem = styled(DropdownItem)`
-  text-transform: capitalize;
-`;
 
 export default YAxisSelector;

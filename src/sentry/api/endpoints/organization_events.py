@@ -121,6 +121,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 limit=limit,
                 referrer="api.organization-events-v2",
                 auto_fields=True,
+                use_aggregate_conditions=True,
             )
 
         try:
