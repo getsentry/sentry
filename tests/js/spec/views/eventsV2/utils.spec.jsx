@@ -28,7 +28,7 @@ describe('eventTagSearchUrl()', function() {
     expect(
       getEventTagSearchUrl('browser', 'firefox', organization, location.query)
     ).toEqual({
-      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+      pathname: `/organizations/${organization.slug}/discover/results/`,
       query: {query: 'browser:firefox'},
     });
   });
@@ -38,7 +38,7 @@ describe('eventTagSearchUrl()', function() {
     expect(
       getEventTagSearchUrl('browser', 'firefox', organization, location.query)
     ).toEqual({
-      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+      pathname: `/organizations/${organization.slug}/discover/results/`,
       query: {query: 'failure browser:firefox'},
     });
   });
@@ -48,7 +48,7 @@ describe('eventTagSearchUrl()', function() {
     expect(
       getEventTagSearchUrl('browser', 'fire fox', organization, location.query)
     ).toEqual({
-      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+      pathname: `/organizations/${organization.slug}/discover/results/`,
       query: {query: 'failure browser:"fire fox"'},
     });
   });
@@ -160,7 +160,7 @@ describe('getFieldRenderer', function() {
     const value = wrapper.find('OverflowLink');
     expect(value).toHaveLength(1);
     expect(value.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
       query: {},
     });
     expect(value.text()).toEqual(data.transaction);
@@ -174,7 +174,7 @@ describe('getFieldRenderer', function() {
     const value = wrapper.find('OverflowLink');
     expect(value).toHaveLength(1);
     expect(value.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
       query: {},
     });
     expect(value.text()).toEqual(data.title);
@@ -206,7 +206,7 @@ describe('getFieldRenderer', function() {
 
     const link = wrapper.find('OverflowLink');
     expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
       query: {},
     });
     expect(link.text()).toEqual('/example');
@@ -222,7 +222,7 @@ describe('getFieldRenderer', function() {
 
     const link = wrapper.find('OverflowLink');
     expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
       query: {},
     });
     expect(link.find('Count').props().value).toEqual(data.numeric);
@@ -238,7 +238,7 @@ describe('getFieldRenderer', function() {
 
     const link = wrapper.find('OverflowLink');
     expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
       query: {},
     });
     expect(link.find('StyledDateTime').props().date).toEqual(data.createdAt);
@@ -410,7 +410,7 @@ describe('isAggregateField', function() {
 describe('generateDiscoverLandingPageRoute', function() {
   it('generateDiscoverLandingPageRoute', function() {
     expect(generateDiscoverLandingPageRoute('sentry')).toBe(
-      '/organizations/sentry/eventsv2/'
+      '/organizations/sentry/discover/queries/'
     );
   });
 });

@@ -409,5 +409,5 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 }
 
 export function generateDiscoverLandingPageRoute(orgSlug: string): string {
-  return `/organizations/${orgSlug}/eventsv2/`;
+  return `/organizations/${orgSlug}/discover/queries/`;
 }

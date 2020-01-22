@@ -242,7 +242,7 @@ const Side = styled('div')<{eventView: EventView}>`
 `;
 
 export function generateDiscoverResultsRoute(orgSlug: string): string {
-  return `/organizations/${orgSlug}/eventsv2/results/`;
+  return `/organizations/${orgSlug}/discover/results/`;
 }
 
 export default withApi(withOrganization(withGlobalSelection(Results)));

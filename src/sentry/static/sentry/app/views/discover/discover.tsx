@@ -1,13 +1,20 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
+import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
+import ConfigStore from 'app/stores/configStore';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import Feature from 'app/components/acl/feature';
 import PageHeading from 'app/components/pageHeading';
 import {Organization} from 'app/types';
+import space from 'app/styles/space';
+import localStorage from 'app/utils/localStorage';
+import {generateDiscoverLandingPageRoute} from 'app/views/eventsV2/utils';
 
 import {
   DiscoverContainer,
@@ -352,6 +359,17 @@ export default class Discover extends React.Component<Props, State> {
       });
   };
 
+  onGoLegacyDiscover = () => {
+    localStorage.setItem('discover:version', '2');
+    const user = ConfigStore.get('user');
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.opt_in',
+      eventName: 'Discoverv2: Go to discover2',
+      organization_id: parseInt(this.props.organization.id, 10),
+      user_id: parseInt(user.id, 10),
+    });
+  };
+
   renderSidebarNav() {
     const {view} = this.state;
     const views = [
@@ -436,6 +454,14 @@ export default class Discover extends React.Component<Props, State> {
               />
             </QueryPanel>
           )}
+          <Feature features={['organizations:events-v2']} organization={organization}>
+            <SwitchLink
+              href={generateDiscoverLandingPageRoute(organization.slug)}
+              onClick={this.onGoLegacyDiscover}
+            >
+              {t('Go to New Discover')}
+            </SwitchLink>
+          </Feature>
         </Sidebar>
 
         <DiscoverGlobalSelectionHeader
@@ -482,3 +508,9 @@ export default class Discover extends React.Component<Props, State> {
     );
   }
 }
+
+const SwitchLink = styled('a')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-left: ${space(1)};
+  margin-bottom: ${space(1)};
+`;

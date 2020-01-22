@@ -152,7 +152,7 @@ describe('EventsV2 > Results', function() {
 describe('generateDiscoverResultsRoute', function() {
   it('generateDiscoverResultsRoute', function() {
     expect(generateDiscoverResultsRoute('sentry')).toBe(
-      '/organizations/sentry/eventsv2/results/'
+      '/organizations/sentry/discover/results/'
     );
   });
 });
