@@ -45,16 +45,3 @@ export function deleteRule(
     method: 'DELETE',
   });
 }
-
-export function deleteTrigger(
-  api: Client,
-  orgId: string,
-  trigger: Trigger
-): Promise<void> {
-  return api.requestPromise(
-    `/organizations/${orgId}/alert-rules/${trigger.alertRuleId}/triggers/${trigger.id}`,
-    {
-      method: 'DELETE',
-    }
-  );
-}
