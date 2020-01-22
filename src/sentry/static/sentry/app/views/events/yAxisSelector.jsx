@@ -15,9 +15,10 @@ const YAxisSelector = props => {
     <ChartControls>
       <StyledLabel>{t('Y-Axis')}</StyledLabel>
       <DropdownControl
-        menuOffset="29px"
-        button={({isOpen, getActorProps}) => (
-          <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
+        menuWidth="auto"
+        alignRight
+        button={({getActorProps}) => (
+          <StyledDropdownButton {...getActorProps()} size="zero" isOpen={false}>
             {selectedOption.label}
           </StyledDropdownButton>
         )}
@@ -37,25 +38,23 @@ const YAxisSelector = props => {
   );
 };
 
-const StyledDropdownButton = styled(DropdownButton)`
-  border-radius: ${p =>
-    p.isOpen && `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
-  padding: ${space(1)} ${space(2)};
-  font-weight: normal;
-  min-width: 180px;
-  color: ${p => p.theme.gray4};
-
-  &:hover,
-  &:focus {
-    color: inherit;
-  }
-`;
-
 const ChartControls = styled('div')`
   display: flex;
   justify-content: flex-end;
   padding: ${space(1)};
   border-top: 1px solid ${p => p.theme.borderLight};
+`;
+
+const StyledDropdownButton = styled(DropdownButton)`
+  padding: ${space(1)} ${space(2)};
+  font-weight: normal;
+  color: ${p => p.theme.gray3};
+
+  &:hover,
+  &:focus,
+  &:active {
+    color: ${p => p.theme.gray4};
+  }
 `;
 
 const StyledLabel = styled(SectionHeading)`
