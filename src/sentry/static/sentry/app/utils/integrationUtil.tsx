@@ -42,6 +42,7 @@ type OtherSingleIntegrationEvents = {
 
 type SentryAppEvent = {
   integration_type: 'sentry_app';
+  //include the status since people might do weird things testing unpublished integrations
   integration_status: 'published' | 'unpublished' | 'internal';
 };
 
