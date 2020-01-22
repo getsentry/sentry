@@ -13,7 +13,7 @@ from sentry.ingest.ingest_consumer import (
 )
 from sentry.attachments import attachment_cache
 from sentry.event_manager import EventManager
-from sentry.models import Event, EventAttachment, UserReport, EventUser
+from sentry.models import EventAttachment, UserReport, EventUser
 
 
 def get_normalized_event(data, project):
@@ -234,8 +234,6 @@ def test_userreport_reverse_order(default_project, monkeypatch):
     """
     event_id = uuid.uuid4().hex
     start_time = time.time() - 3600
-
-    assert not Event.objects.all()
 
     assert process_userreport(
         {
