@@ -96,4 +96,7 @@ export type Action = {
 
   // How to identify the target. Can be email, slack channel, pagerduty service, user_id, team_id, etc
   targetIdentifier: string | null;
+
+  // Human readable string describing what the action does.
+  desc: string | null;
 };
