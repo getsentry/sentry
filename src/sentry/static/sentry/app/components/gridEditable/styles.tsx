@@ -138,6 +138,9 @@ export const GridHeadCell = styled('th')`
     border-top-right-radius: ${p => p.theme.borderRadius};
     border-right: none;
   }
+  &:hover {
+    border-right: 1px solid ${p => p.theme.borderDark};
+  }
 `;
 export const GridHeadCellButton = styled('div')<GridEditableProps>`
   min-width: 24px; /* Ensure that edit/remove buttons are never hidden */
