@@ -239,8 +239,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
      - `access`: An access object (from `request.access`)
     """
 
-    # XXX: ArrayFields aren't supported automatically until DRF 3.1
-    aggregations = serializers.ListField(child=serializers.IntegerField(), required=False)
     # TODO: These might be slow for many projects, since it will query for each
     # individually. If we find this to be a problem then we can look into batching.
     projects = serializers.ListField(child=ProjectField(), required=False)
@@ -261,7 +259,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "resolve_threshold",
             "threshold_period",
             "aggregation",
-            "aggregations",
             "projects",
             "include_all_projects",
             "excluded_projects",
@@ -283,16 +280,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     def validate_aggregation(self, aggregation):
         try:
             return QueryAggregations(aggregation)
-        except ValueError:
-            raise serializers.ValidationError(
-                "Invalid aggregation, valid values are %s"
-                % [item.value for item in QueryAggregations]
-            )
-
-    def validate_aggregations(self, aggregations):
-        # TODO: Remove this once FE transitions
-        try:
-            return [QueryAggregations(agg) for agg in aggregations]
         except ValueError:
             raise serializers.ValidationError(
                 "Invalid aggregation, valid values are %s"
@@ -386,7 +373,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         else:
             raise serializers.ValidationError("Must include at least one trigger")
 
-        return self._handle_old_fields_transition(data)
+        return data
 
     def _remove_unchanged_fields(self, instance, validated_data):
         for field_name, value in list(six.iteritems(validated_data)):
@@ -412,19 +399,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 value = value.value
             if getattr(instance, field_name) == value:
                 validated_data.pop(field_name)
-        return validated_data
-
-    def _handle_old_fields_transition(self, validated_data):
-        # Temporary methods for transitioning from multiple aggregations to a single
-        # aggregate
-        if "aggregations" in validated_data and "aggregation" not in validated_data:
-            validated_data["aggregation"] = validated_data["aggregations"][0]
-
-        validated_data.pop("aggregations", None)
-        # TODO: Remove after frontend stops using these fields
-        validated_data.pop("threshold_type", None)
-        validated_data.pop("alert_threshold", None)
-        validated_data.pop("resolve_threshold", None)
         return validated_data
 
     def create(self, validated_data):

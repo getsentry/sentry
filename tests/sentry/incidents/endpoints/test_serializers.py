@@ -129,7 +129,7 @@ class TestAlertRuleSerializer(TestCase):
             serializer._remove_unchanged_fields(alert_rule, serializer.validated_data) == expected
         )
 
-    def test_remove_unchanged_fields_meow(self):
+    def test_remove_unchanged_fields(self):
         a_project = self.create_project()
         projects = [self.project, a_project]
 
