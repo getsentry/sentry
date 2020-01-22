@@ -31,7 +31,7 @@ class GitHubIdentityProvider(OAuth2Provider):
     oauth_access_token_url = "https://github.com/login/oauth/access_token"
     oauth_authorize_url = "https://github.com/login/oauth/authorize"
 
-    oauth_scopes = ()
+    oauth_scopes = ("user:email",)
 
     def get_oauth_client_id(self):
         return options.get("github-app.client-id")
