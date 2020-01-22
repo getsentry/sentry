@@ -31,7 +31,6 @@ class PagerDutyClient(ApiClient):
     def send_trigger(self, data):
         # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
         # for now, only construct the payload if data is an event
-
         if isinstance(data, EventCommon):
             source = data.transaction or data.culprit or "<unknown>"
             group = data.group
