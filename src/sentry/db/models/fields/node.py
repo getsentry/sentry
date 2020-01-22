@@ -4,7 +4,6 @@ from base64 import b64encode
 import collections
 import logging
 import six
-import warnings
 from uuid import uuid4
 
 from django.db.models.signals import post_delete
@@ -108,7 +107,6 @@ class NodeData(collections.MutableMapping):
             return self._node_data
 
         elif self.id:
-            warnings.warn("You should populate node data before accessing it.")
             self.bind_data(nodestore.get(self.id) or {})
             return self._node_data
 
