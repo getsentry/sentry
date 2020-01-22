@@ -873,7 +873,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         for subscription in updated_subscriptions:
             assert subscription.query == query
             assert subscription.aggregation == aggregation.value
-            assert subscription.time_window == time_window
+            assert subscription.time_window == int(timedelta(minutes=time_window).total_seconds())
         assert self.alert_rule.query == query
         assert self.alert_rule.aggregation == aggregation.value
         assert self.alert_rule.time_window == time_window
