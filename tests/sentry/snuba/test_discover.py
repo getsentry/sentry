@@ -193,54 +193,28 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             )
 
     def test_query_with_type_transaction_and_stack_condition(self):
-        event_data = load_data("transaction")
-        # Cheat a bit, and create a tag with what the stack conditions will become
-        event_data["tags"].append(["stack.abs_path", "test"])
-        self.store_event(data=event_data, project_id=self.project.id)
-
-        results = discover.query(
-            selected_columns=["count()"],
-            query="stack.abs_path:test event.type:transaction",
-            params={"project_id": [self.project.id]},
-        )
-        assert results["data"][0]["count"] == 1
+        with pytest.raises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=["count()"],
+                query="stack.abs_path:test event.type:transaction",
+                params={"project_id": [self.project.id]},
+            )
 
     def test_query_with_type_transaction_and_error_condition(self):
-        event_data = load_data("transaction")
-        # Cheat a bit, and create a tag with what the stack conditions will become
-        event_data["tags"].append(["error.mechanism", "test"])
-        self.store_event(data=event_data, project_id=self.project.id)
-
-        results = discover.query(
-            selected_columns=["count()"],
-            query="error.mechanism:test event.type:transaction",
-            params={"project_id": [self.project.id]},
-        )
-        assert results["data"][0]["count"] == 1
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=["count()"],
+                query="error.mechanism:test event.type:transaction",
+                params={"project_id": [self.project.id]},
+            )
 
     def test_query_with_type_transaction_and_negated_incompatible_condition(self):
-        event_data = load_data("transaction")
-        self.store_event(data=event_data, project_id=self.project.id)
-
-        results = discover.query(
-            selected_columns=["count()"],
-            query="!error.mechanism:test event.type:transaction",
-            params={"project_id": [self.project.id]},
-        )
-        assert results["data"][0]["count"] == 1
-
-    def test_query_with_type_transaction_and_numeric_incompatible_condition(self):
-        event_data = load_data("transaction")
-        # Cheat a bit, and create a tag with what the stack conditions will become
-        event_data["tags"].append(["stack.stack_level", "1"])
-        self.store_event(data=event_data, project_id=self.project.id)
-
-        results = discover.query(
-            selected_columns=["count()"],
-            query="stack.stack_level:1 event.type:transaction",
-            params={"project_id": [self.project.id]},
-        )
-        assert results["data"][0]["count"] == 1
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=["count()"],
+                query="!error.mechanism:test event.type:transaction",
+                params={"project_id": [self.project.id]},
+            )
 
 
 class QueryTransformTest(TestCase):

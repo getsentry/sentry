@@ -705,8 +705,6 @@ def resolve_condition(cond, column_resolver):
         # Condition is [col, operator, value]
         if isinstance(cond[0], six.string_types) and len(cond) == 3:
             cond[0] = column_resolver(cond[0])
-            if cond[0].startswith("tags["):
-                cond[2] = six.binary_type(cond[2])
             return cond
         if isinstance(cond[0], (list, tuple)):
             if get_function_index(cond[0]) is not None:

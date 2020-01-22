@@ -157,9 +157,9 @@ def resolve_column(col):
 
 
 def resolve_column_with_transaction_type(col):
-    # If the query includes type=transaction, certain other conditions must be excluded
+    # If the query includes type=transaction, certain other conditions are incompatible
     if col.startswith(INCOMPATIBLE_CONDITION_PREFIXES):
-        col = "tags[{}]".format(col)
+        raise InvalidSearchQuery("Combining %s with event.type:transaction has no results" % col)
     return resolve_column(col)
 
 
