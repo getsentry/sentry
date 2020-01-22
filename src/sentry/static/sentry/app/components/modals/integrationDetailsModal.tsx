@@ -75,6 +75,20 @@ class IntegrationDetailsModal extends React.Component<Props> {
     this.props.onAddIntegration(integration);
   };
 
+  handleExternalInstall = () => {
+    const {closeModal, provider, organization} = this.props;
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.installation_start',
+        eventName: 'Integrations: Installation Start',
+        integration: provider.key,
+        integration_type: 'first_party',
+      },
+      organization
+    );
+    closeModal();
+  };
+
   featureTags(features: string[]) {
     return features.map(feature => (
       <StyledTag key={feature}>{feature.replace(/-/g, ' ')}</StyledTag>
@@ -115,7 +129,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
         <Button
           icon="icon-exit"
           href={metadata.aspects.externalInstall.url}
-          onClick={closeModal}
+          onClick={this.handleExternalInstall}
           external
           {...buttonProps}
           {...p}
@@ -189,6 +203,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
                     <AddButton
                       data-test-id="add-button"
                       disabled={disabled || !hasAccess}
+                      organization={organization}
                     />
                   </Tooltip>
                 )}
