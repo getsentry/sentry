@@ -71,7 +71,7 @@ class SocialAuthBackend(object):
     name = ""  # provider name, it's stored in database
     supports_inactive_user = False
 
-    def authenticate(self, *args, **kwargs):
+    def authenticate(self, request, *args, **kwargs):
         """Authenticate user using social credentials
 
         Authentication is made if this is the correct backend, backend
@@ -97,7 +97,7 @@ class SocialAuthBackend(object):
             kwargs["uid"] = self.get_user_id(kwargs["details"], response)
             kwargs["is_new"] = False
 
-        out = self.pipeline(pipeline, *args, **kwargs)
+        out = self.pipeline(pipeline, request, *args, **kwargs)
         if not isinstance(out, dict):
             return out
 
@@ -110,7 +110,7 @@ class SocialAuthBackend(object):
             user.is_new = out.get("is_new")
             return user
 
-    def pipeline(self, pipeline, *args, **kwargs):
+    def pipeline(self, pipeline, request, *args, **kwargs):
         """Pipeline"""
         out = kwargs.copy()
 
@@ -126,7 +126,11 @@ class SocialAuthBackend(object):
             func = getattr(mod, func_name, None)
 
             try:
-                result = func(*args, **out) or {}
+                result = {}
+                if func_name == "save_status_to_session":
+                    result = func(request, *args, **out) or {}
+                else:
+                    result = func(*args, **out) or {}
             except StopPipeline:
                 # Clean partial pipeline on stop
                 if "request" in kwargs:
