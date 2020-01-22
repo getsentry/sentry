@@ -9,6 +9,8 @@ from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.exceptions import ApiError
 from sentry.models import Integration
 
+from django.utils.datastructures import OrderedSet
+
 logger = logging.getLogger("sentry.integrations.bitbucket")
 
 
@@ -56,10 +58,24 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
             )
 
         if field == "repo":
-            full_query = (u'name~"%s"' % (query)).encode("utf-8")
-            resp = installation.get_client().search_repositories(installation.username, full_query)
-            return Response(
-                [{"label": i["full_name"], "value": i["full_name"]} for i in resp.get("values", [])]
+            exact_query = (u'name="%s"' % (query)).encode("utf-8")
+            fuzzy_query = (u'name~"%s"' % (query)).encode("utf-8")
+
+            exact_search_resp = installation.get_client().search_repositories(
+                installation.username, exact_query
             )
+            fuzzy_search_resp = installation.get_client().search_repositories(
+                installation.username, fuzzy_query
+            )
+
+            result = OrderedSet()
+
+            for j in exact_search_resp.get("values", []):
+                result.add(j["full_name"])
+
+            for i in fuzzy_search_resp.get("values", []):
+                result.add(i["full_name"])
+
+            return Response([{"label": full_name, "value": full_name} for full_name in result])
 
         return Response(status=400)

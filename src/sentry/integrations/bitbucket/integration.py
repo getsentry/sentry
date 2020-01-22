@@ -104,20 +104,15 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
         exact_search_resp = self.get_client().search_repositories(self.username, exact_query)
         fuzzy_search_resp = self.get_client().search_repositories(self.username, fuzzy_query)
 
-        if len(exact_search_resp.get("values", [])) == 0:
-            return [
-                {"identifier": i["full_name"], "name": i["full_name"]}
-                for i in fuzzy_search_resp.get("values", [])
-            ]
-        else:
-            result = OrderedSet()
-            exact_result = exact_search_resp.get("values")[0]["full_name"]
-            result.add(exact_result)
+        result = OrderedSet()
 
-            for i in fuzzy_search_resp.get("values", []):
-                result.add(i["full_name"])
+        for j in exact_search_resp.get("values", []):
+            result.add(j["full_name"])
 
-            return [{"identifier": full_name, "name": full_name} for full_name in result]
+        for i in fuzzy_search_resp.get("values", []):
+            result.add(i["full_name"])
+
+        return [{"identifier": full_name, "name": full_name} for full_name in result]
 
     def has_repo_access(self, repo):
         client = self.get_client()
