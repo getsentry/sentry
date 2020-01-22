@@ -243,20 +243,14 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     # individually. If we find this to be a problem then we can look into batching.
     projects = serializers.ListField(child=ProjectField(), required=False)
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
-    threshold_type = serializers.IntegerField(required=False)
-    alert_threshold = serializers.IntegerField(required=False)
-    resolve_threshold = serializers.IntegerField(required=False)
     triggers = AlertRuleTriggerSerializer(many=True, required=True)
 
     class Meta:
         model = AlertRule
         fields = [
             "name",
-            "threshold_type",
             "query",
             "time_window",
-            "alert_threshold",
-            "resolve_threshold",
             "threshold_period",
             "aggregation",
             "projects",
