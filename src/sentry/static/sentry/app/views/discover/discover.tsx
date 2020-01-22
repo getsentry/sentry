@@ -511,6 +511,6 @@ export default class Discover extends React.Component<Props, State> {
 
 const SwitchLink = styled('a')`
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-left: ${space(1)};
+  margin-left: ${space(3)};
   margin-bottom: ${space(1)};
 `;
