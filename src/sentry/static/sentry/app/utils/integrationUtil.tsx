@@ -40,10 +40,19 @@ type OtherSingleIntegrationEvents = {
     | 'Integrations: Uninstall Completed';
 };
 
-type SingleIntegrationEvent = (ModalOpenEvent | OtherSingleIntegrationEvents) & {
-  integration: string; //the slug
-  integration_type: 'sentry_app' | 'plugin' | 'first_party';
+type SentryAppEvent = {
+  integration_type: 'sentry_app';
+  integration_status: 'published' | 'unpublished' | 'internal';
 };
+
+type NonSentryAppEvent = {
+  integration_type: 'plugin' | 'first_party';
+};
+
+type SingleIntegrationEvent = (ModalOpenEvent | OtherSingleIntegrationEvents) &
+  (SentryAppEvent | NonSentryAppEvent) & {
+    integration: string; //the slug
+  };
 
 //TODO(Steve): hook up events
 type MultipleIntegrationsEvent = {
