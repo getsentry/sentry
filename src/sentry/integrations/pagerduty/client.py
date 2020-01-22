@@ -31,17 +31,19 @@ class PagerDutyClient(ApiClient):
     def send_trigger(self, data):
         # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
         # for now, only construct the payload if data is an event
+
         if isinstance(data, EventCommon):
             source = data.transaction or data.culprit or "<unknown>"
             group = data.group
             level = data.get_tag("level") or "error"
             custom_details = serialize(data, None, ExternalEventSerializer())
+            summary = (data.message or data.title)[:1024]
             payload = {
                 "routing_key": self.integration_key,
                 "event_action": "trigger",
                 "dedup_key": group.qualified_short_id,
                 "payload": {
-                    "summary": data.message or data.title,
+                    "summary": summary,
                     "severity": LEVEL_SEVERITY_MAP[level],
                     "source": source,
                     "component": group.project.slug,
