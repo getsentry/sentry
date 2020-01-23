@@ -7,6 +7,7 @@ import Alert from 'app/components/alert';
 import SentryTypes from 'app/sentryTypes';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
+import {isRenderFunc} from 'app/utils/isRenderFunc';
 
 const DEFAULT_NO_ACCESS_MESSAGE = (
   <Alert type="error" icon="icon-circle-info">
@@ -21,11 +22,6 @@ export type ChildRenderProps = {
 };
 
 type ChildFunction = (props: ChildRenderProps) => React.ReactNode;
-
-// Type guard for render func.
-function isRenderFunc(func: React.ReactNode | Function): func is ChildFunction {
-  return typeof func === 'function';
-}
 
 type DefaultProps = {
   /**
@@ -119,7 +115,7 @@ class Access extends React.Component<Props> {
       return DEFAULT_NO_ACCESS_MESSAGE;
     }
 
-    if (isRenderFunc(children)) {
+    if (isRenderFunc<ChildFunction>(children)) {
       return children(renderProps);
     }
 
