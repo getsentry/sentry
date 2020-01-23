@@ -203,17 +203,6 @@ class EventCommon(object):
         return et.get_location(self.get_event_metadata())
 
     @property
-    def real_message(self):
-        # XXX(mitsuhiko): this is a transitional attribute that should be
-        # removed.  `message` will be renamed to `search_message` and this
-        # will become `message`.
-        return (
-            get_path(self.data, "logentry", "formatted")
-            or get_path(self.data, "logentry", "message")
-            or ""
-        )
-
-    @property
     def organization(self):
         return self.project.organization
 

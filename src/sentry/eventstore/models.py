@@ -8,6 +8,7 @@ from dateutil.parser import parse as parse_date
 from sentry.models import EventCommon, EventDict
 from sentry.db.models import NodeData
 from sentry.snuba.events import Columns
+from sentry.utils.safe import get_path
 
 
 def ref_func(x):
@@ -73,7 +74,11 @@ class Event(EventCommon):
 
     @property
     def message(self):
-        return self.real_message
+        return (
+            get_path(self.data, "logentry", "formatted")
+            or get_path(self.data, "logentry", "message")
+            or ""
+        )
 
     @property
     def datetime(self):
