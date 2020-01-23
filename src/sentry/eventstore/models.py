@@ -150,6 +150,35 @@ class Event(object):
             # vs ((tag, foo), (tag, bar))
             return []
 
+    def get_tag(self, key):
+        for t, v in self.tags:
+            if t == key:
+                return v
+        return None
+
+    @property
+    def release(self):
+        return self.get_tag("sentry:release")
+
+    @property
+    def dist(self):
+        return self.get_tag("sentry:dist")
+
+    @property
+    def transaction(self):
+        return self.get_tag("transaction")
+
+    def get_environment(self):
+        from sentry.models import Environment
+
+        if not hasattr(self, "_environment_cache"):
+            self._environment_cache = Environment.objects.get(
+                organization_id=self.project.organization_id,
+                name=Environment.get_name_or_default(self.get_tag("environment")),
+            )
+
+        return self._environment_cache
+
     def get_minimal_user(self):
         """
         A minimal 'User' interface object that gives us enough information
@@ -382,20 +411,6 @@ class Event(object):
     def version(self):
         return self.data.get("version", "5")
 
-    def get_tag(self, key):
-        for t, v in self.tags:
-            if t == key:
-                return v
-        return None
-
-    @property
-    def release(self):
-        return self.get_tag("sentry:release")
-
-    @property
-    def dist(self):
-        return self.get_tag("sentry:dist")
-
     def get_raw_data(self):
         """Returns the internal raw event data dict."""
         return dict(self.data.items())
@@ -403,10 +418,6 @@ class Event(object):
     @property
     def size(self):
         return len(json.dumps(dict(self.data)))
-
-    @property
-    def transaction(self):
-        return self.get_tag("transaction")
 
     def get_email_subject(self):
         template = self.project.get_option("mail:subject_template")
@@ -417,17 +428,6 @@ class Event(object):
         return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128).encode(
             "utf-8"
         )
-
-    def get_environment(self):
-        from sentry.models import Environment
-
-        if not hasattr(self, "_environment_cache"):
-            self._environment_cache = Environment.objects.get(
-                organization_id=self.project.organization_id,
-                name=Environment.get_name_or_default(self.get_tag("environment")),
-            )
-
-        return self._environment_cache
 
     def as_dict(self):
         """Returns the data in normalized form for external consumers."""
