@@ -2,7 +2,6 @@ import isNil from 'lodash/isNil';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import get from 'lodash/get';
 
 import Access from 'app/components/acl/access';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -437,10 +436,8 @@ class DebugMetaInterface extends React.PureComponent {
       </div>
     );
 
-    const frames = get(
-      this.props.event.entries.find(({type}) => type === 'exception'),
-      'data.values[0].stacktrace.frames'
-    );
+    const frames = this.props.event.entries.find(({type}) => type === 'exception')?.data
+      ?.values?.[0]?.stacktrace?.frames;
     const foundFrame = frames
       ? frames.find(frame => frame.instructionAddr === this.state.filter)
       : null;
