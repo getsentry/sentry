@@ -392,10 +392,11 @@ LOGIN_URL = reverse_lazy("sentry-login")
 
 AUTHENTICATION_BACKENDS = (
     "sentry.utils.auth.EmailAuthBackend",
-    # TODO(dcramer): we can't remove these until we rewrite more of social auth
+    # The following authentication backends are used by social auth only.
+    # We don't use them for user authentication.
+    "social_auth.backends.asana.AsanaBackend",
     "social_auth.backends.github.GithubBackend",
     "social_auth.backends.bitbucket.BitbucketBackend",
-    "social_auth.backends.asana.AsanaBackend",
     "social_auth.backends.visualstudio.VisualStudioBackend",
 )
 
@@ -411,13 +412,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = "sentry.User"
-
-SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
-    "social_auth.backends.github.GithubBackend",
-    "social_auth.backends.bitbucket.BitbucketBackend",
-    "social_auth.backends.asana.AsanaBackend",
-    "social_auth.backends.visualstudio.VisualStudioBackend",
-)
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
