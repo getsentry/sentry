@@ -24,7 +24,7 @@ const defaultProps = {
 type DefaultProps = typeof defaultProps;
 
 type Props = {
-  user: AvatarUser | undefined;
+  user?: AvatarUser;
   renderTooltip?: RenderTooltipFunc;
 } & Partial<DefaultProps> &
   Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
