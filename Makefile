@@ -176,6 +176,7 @@ test-symbolicator:
 	@echo ""
 
 test-acceptance: node-version-check
+	echo $(PERCY_PARALLEL_NONCE)
 	sentry init
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
