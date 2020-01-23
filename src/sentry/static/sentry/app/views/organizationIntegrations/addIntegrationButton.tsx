@@ -5,13 +5,15 @@ import {t} from 'app/locale';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
-import {IntegrationProvider, Integration} from 'app/types';
+import {IntegrationProvider, Integration, Organization} from 'app/types';
+import SentryTypes from 'app/sentryTypes';
 
 type Props = {
   provider: IntegrationProvider;
   onAddIntegration: (data: Integration) => void;
   buttonText?: string;
   reinstall?: boolean;
+  organization?: Organization; //for analytics
 } & React.ComponentProps<typeof Button>;
 
 export default class AddIntegrationButton extends React.Component<Props> {
@@ -20,6 +22,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
     onAddIntegration: PropTypes.func.isRequired,
     buttonText: PropTypes.string,
     reinstall: PropTypes.bool,
+    organization: SentryTypes.Organization,
   };
 
   render() {
@@ -27,6 +30,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
       provider,
       buttonText,
       onAddIntegration,
+      organization,
       reinstall,
       ...buttonProps
     } = this.props;
@@ -39,7 +43,11 @@ export default class AddIntegrationButton extends React.Component<Props> {
         disabled={provider.canAdd}
         title={`Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`}
       >
-        <AddIntegration provider={provider} onInstall={onAddIntegration}>
+        <AddIntegration
+          provider={provider}
+          onInstall={onAddIntegration}
+          organization={organization}
+        >
           {onClick => (
             <Button
               disabled={!provider.canAdd}

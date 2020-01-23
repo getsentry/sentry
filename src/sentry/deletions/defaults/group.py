@@ -2,7 +2,8 @@ from __future__ import absolute_import, print_function
 
 import os
 from sentry import eventstore, nodestore
-from sentry.models import Event, EventAttachment, UserReport
+from sentry.eventstore.models import Event
+from sentry.models import EventAttachment, UserReport
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
