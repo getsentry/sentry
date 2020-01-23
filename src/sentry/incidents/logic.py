@@ -91,7 +91,6 @@ def create_incident(
         incident = Incident.objects.create(
             organization=organization,
             detection_uuid=detection_uuid,
-            # TODO: Should this function receieve the trigger, and we use the trigger type to set incident status?
             status=IncidentStatus.OPEN.value,
             type=type.value,
             title=title,
