@@ -148,11 +148,11 @@ matrix:
 
     - <<: *acceptance_default
       name: 'Acceptance (1/2)'
-      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=0 PERCY_PARALLEL_NONCE="$(($(date +%s)/60))" PERCY_PARALLEL_TOTAL=2
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=0 PERCY_PARALLEL_NONCE="$(($(date +%s)))" PERCY_PARALLEL_TOTAL=2
 
     - <<: *acceptance_default
       name: 'Acceptance (2/2)'
-      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=1 PERCY_PARALLEL_NONCE="$(($(date +%s)/60))" PERCY_PARALLEL_TOTAL=2
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=1 PERCY_PARALLEL_NONCE="$(($(date +%s)))" PERCY_PARALLEL_TOTAL=2
 
     - <<: *acceptance_default
       name: 'Plugins'
