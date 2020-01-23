@@ -61,7 +61,11 @@ export const HeaderButton = styled('div')`
 `;
 
 export const HeaderButtonContainer = styled('div')`
-  margin-left: ${space(2)};
+  display: flex;
+  flex-direction: row;
+  & > * {
+    margin-left: ${space(2)};
+  }
 `;
 
 const PanelWithProtectedBorder = styled(Panel)`

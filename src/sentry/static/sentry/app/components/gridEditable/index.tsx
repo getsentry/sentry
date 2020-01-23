@@ -507,19 +507,11 @@ class GridEditable<
       <React.Fragment>
         <Header>
           <HeaderTitle>{t('Results')}</HeaderTitle>
-
-          {/* TODO(leedongwei): This is ugly but I need to move it to work on
-          resizing columns. It will be refactored in a upcoming PR */}
-          <div style={{display: 'flex', flexDirection: 'row'}}>
-            <HeaderButtonContainer>
-              {this.renderDownloadCsvButton()}
-            </HeaderButtonContainer>
-            <HeaderButtonContainer>{this.renderHeaderButton()}</HeaderButtonContainer>
-
-            <HeaderButtonContainer>
-              {isEditable && this.renderGridHeadEditButtons()}
-            </HeaderButtonContainer>
-          </div>
+          <HeaderButtonContainer>
+            {this.renderDownloadCsvButton()}
+            {this.renderHeaderButton()}
+            {isEditable && this.renderGridHeadEditButtons()}
+          </HeaderButtonContainer>
         </Header>
 
         <Body>
