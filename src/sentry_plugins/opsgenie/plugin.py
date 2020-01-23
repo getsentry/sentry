@@ -54,7 +54,7 @@ class OpsGeniePlugin(notify.NotificationPlugin):
 
     def build_payload(self, group, event, triggering_rules):
         payload = {
-            "message": event.message,
+            "message": event.message or event.title,
             "alias": "sentry: %d" % group.id,
             "source": "Sentry",
             "details": {

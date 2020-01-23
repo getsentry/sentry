@@ -795,8 +795,8 @@ def update_alert_rule(
                 existing_subs,
                 alert_rule.query,
                 QueryAggregations(alert_rule.aggregation),
-                alert_rule.time_window,
-                DEFAULT_ALERT_RULE_RESOLUTION,
+                timedelta(minutes=alert_rule.time_window),
+                timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
             )
 
         if triggers is not None:
@@ -835,8 +835,8 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
         QueryDatasets(alert_rule.dataset),
         alert_rule.query,
         QueryAggregations(alert_rule.aggregation),
-        alert_rule.time_window,
-        alert_rule.resolution,
+        timedelta(minutes=alert_rule.time_window),
+        timedelta(minutes=alert_rule.resolution),
     )
     subscription_links = [
         AlertRuleQuerySubscription(query_subscription=subscription, alert_rule=alert_rule)
