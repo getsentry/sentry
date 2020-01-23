@@ -1,6 +1,6 @@
-export type HealthRowData = {
+export type ReleasesV2RowData = {
   organizationId: string;
-  release: HealthRelease;
+  release: ReleasesV2Release;
   crashFreeUsersPercent: number;
   graphData: GraphData;
   activeUsers: number;
@@ -13,7 +13,7 @@ type GraphData = {
   [timePeriod: string]: [number, number][];
 };
 
-type HealthRelease = {
+type ReleasesV2Release = {
   name: string;
   dateCreated: Date;
 };

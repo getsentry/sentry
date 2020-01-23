@@ -9,20 +9,20 @@ import {
   CenterAlignedColumn,
   RightAlignedColumn,
   ChartColumn,
-} from 'app/views/health/list/commonLayout';
-import Version from 'app/components/version';
+} from 'app/views/releasesV2/list/commonLayout';
 import {PanelItem} from 'app/components/panels';
-import UsersChart from 'app/views/health/list/usersChart';
-import {HealthRowData} from 'app/views/health/list/types';
+import UsersChart from 'app/views/releasesV2/list/usersChart';
+import {ReleasesV2RowData} from 'app/views/releasesV2/list/types';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import HealthStatus from 'app/views/health/list/healthStatus';
+import HealthStatus from 'app/views/releasesV2/list/healthStatus';
 import LatestDeployOrReleaseTime from 'app/views/releases/list/latestDeployOrReleaseTime';
+import Version from 'app/views/releasesV2/list/version';
 
-type Props = HealthRowData & {
+type Props = ReleasesV2RowData & {
   organizationId: string;
 };
 
-const HealthTableRow: React.FC<Props> = ({
+const ReleasesV2TableRow: React.FC<Props> = ({
   release,
   crashFreeUsersPercent,
   graphData,
@@ -92,7 +92,7 @@ const StyledVersion = styled(Version)`
 const CrashFreeUsers = styled('span')<{percent: number}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${p => p.theme.gray4};
-  /*  TODO(health): this color coated demonstration is turned off for now, waiting for decision
+  /*  TODO(releasesv2): this color coated demonstration is turned off for now, waiting for decision
   color: ${p => {
     if (p.percent < 33) {
       return p.theme.red;
@@ -114,4 +114,4 @@ const StyledCount = styled(Count)`
   color: ${p => p.theme.gray4};
 `;
 
-export default HealthTableRow;
+export default ReleasesV2TableRow;

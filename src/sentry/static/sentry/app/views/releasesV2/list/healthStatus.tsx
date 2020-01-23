@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-// TODO(health): health status according to crash free percent will be calculated
+// TODO(releasesv2): health status according to crash free percent will be calculated
 // elsewhere (if at all), this is just for demonstration purposes
 
 const HealthStatus = styled('span')<{crashFreePercent: number}>`

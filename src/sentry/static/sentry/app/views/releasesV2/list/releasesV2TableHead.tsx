@@ -9,9 +9,9 @@ import {
   CenterAlignedColumn,
   RightAlignedColumn,
   ChartColumn,
-} from 'app/views/health/list/commonLayout';
+} from 'app/views/releasesV2/list/commonLayout';
 
-const HealthTableHead: React.FC = () => {
+const ReleasesV2TableHead: React.FC = () => {
   return (
     <Layout>
       <Column />
@@ -67,4 +67,4 @@ const ChartToggle = styled('a')<{active: boolean}>`
   }
 `;
 
-export default HealthTableHead;
+export default ReleasesV2TableHead;

@@ -2,13 +2,13 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import HealthList from 'app/views/health/list/';
+import ReleasesV2List from 'app/views/releasesV2/list/';
 
 // waiting for api to be finished
 // eslint-disable-next-line jest/no-disabled-tests
-describe.skip('HealthList', function() {
+describe.skip('ReleasesV2List', function() {
   const {organization, routerContext, router} = initializeOrg({
-    organization: {features: ['health']},
+    organization: {features: ['releases-v2']},
   });
   const props = {
     router,
@@ -30,7 +30,7 @@ describe.skip('HealthList', function() {
       body: [],
     });
 
-    wrapper = mountWithTheme(<HealthList {...props} />, routerContext);
+    wrapper = mountWithTheme(<ReleasesV2List {...props} />, routerContext);
   });
 
   afterEach(function() {
@@ -52,7 +52,7 @@ describe.skip('HealthList', function() {
     });
 
     expect(wrapper.find('StyledPanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('There are no health data');
+    expect(wrapper.text()).toContain('There are no releases.');
   });
 
   it('searches for a release', async function() {
@@ -68,12 +68,12 @@ describe.skip('HealthList', function() {
     input.simulate('change', {target: {value: 'a'}}).simulate('submit');
 
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/health/',
+      pathname: '/organizations/org-slug/releases-v2/',
       query: {
         query: 'a',
       },
     });
   });
 
-  // TODO(health): test toggle 24h/14d charts
+  // TODO(releasesv2): test toggle 24h/14d charts
 });

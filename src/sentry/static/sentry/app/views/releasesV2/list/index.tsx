@@ -10,18 +10,18 @@ import BetaTag from 'app/components/betaTag';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
-import {mockData} from 'app/views/health/list/mock'; // TODO(health): temporary until api is finished
+import {mockData} from 'app/views/releasesV2/list/mock'; // TODO(releasesv2): temporary until api is finished
 import PageHeading from 'app/components/pageHeading';
 import {getQuery} from 'app/views/releases/list/utils';
 import withOrganization from 'app/utils/withOrganization';
-import {HealthRowData} from 'app/views/health/list/types';
-import IntroBanner from 'app/views/health/list/introBanner';
+import {ReleasesV2RowData} from 'app/views/releasesV2/list/types';
+import IntroBanner from 'app/views/releasesV2/list/introBanner';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import HealthTableRow from 'app/views/health/list/healthTableRow';
-import HealthTableHead from 'app/views/health/list/healthTableHead';
+import ReleasesV2TableRow from 'app/views/releasesV2/list/releasesV2TableRow';
+import ReleasesV2TableHead from 'app/views/releasesV2/list/releasesV2TableHead';
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 
@@ -33,27 +33,27 @@ type Props = {
 } & AsyncView['props'];
 
 type State = {
-  dummyHealthList: HealthRowData[];
+  dummyReleasesV2List: ReleasesV2RowData[];
 } & AsyncView['state'];
 
-class HealthList extends AsyncView<Props, State> {
+class ReleasesV2List extends AsyncView<Props, State> {
   getTitle() {
-    return routeTitleGen(t('Health'), this.props.organization.slug, false);
+    return routeTitleGen(t('Releases v2'), this.props.organization.slug, false);
   }
 
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      dummyHealthList: mockData,
+      dummyReleasesV2List: mockData,
     };
   }
 
   getEndpoints(): [string, string, {}][] {
     const {organization, location} = this.props;
-    // TODO(health): different url once api is finished
+    // TODO(releasesv2): different url once api is finished
     return [
       [
-        'healthList',
+        'releasesV2List',
         `/organizations/${organization.slug}/releases/`,
         {query: getQuery(location.query)},
       ],
@@ -64,7 +64,7 @@ class HealthList extends AsyncView<Props, State> {
     const {location, router, params} = this.props;
 
     router.push({
-      pathname: `/organizations/${params.orgId}/health/`,
+      pathname: `/organizations/${params.orgId}/releases-v2/`,
       query: {...location.query, query},
     });
   };
@@ -75,27 +75,25 @@ class HealthList extends AsyncView<Props, State> {
 
   renderInnerBody() {
     const {organization} = this.props;
-    const {loading, dummyHealthList} = this.state;
+    const {loading, dummyReleasesV2List} = this.state;
 
     if (loading) {
       return <LoadingIndicator />;
     }
 
-    if (!dummyHealthList.length) {
-      return (
-        <EmptyStateWarning small>{t('There are no health data.')}</EmptyStateWarning>
-      );
+    if (!dummyReleasesV2List.length) {
+      return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
     }
 
-    return dummyHealthList.map(h => (
-      <HealthTableRow
+    return dummyReleasesV2List.map(h => (
+      <ReleasesV2TableRow
         errors={h.errors}
         crashes={h.crashes}
         release={h.release}
         key={h.release.name}
         graphData={h.graphData}
         activeUsers={h.activeUsers}
-        organizationId={organization.id}
+        organizationId={organization.slug}
         crashFreeUsersPercent={h.crashFreeUsersPercent}
         releaseAdoptionPercent={h.releaseAdoptionPercent}
       />
@@ -113,7 +111,7 @@ class HealthList extends AsyncView<Props, State> {
           <PageContent>
             <PageHeader>
               <PageHeading>
-                {t('Health')} <BetaTag />
+                {t('Releases v2')} <BetaTag />
               </PageHeading>
               <SearchBar
                 placeholder={t('Search for a release')}
@@ -129,11 +127,11 @@ class HealthList extends AsyncView<Props, State> {
             <div>
               <Panel>
                 <PanelHeader>
-                  <HealthTableHead />
+                  <ReleasesV2TableHead />
                 </PanelHeader>
                 <PanelBody>{this.renderInnerBody()}</PanelBody>
               </Panel>
-              <Pagination pageLinks={this.state.healthListPageLinks} />
+              <Pagination pageLinks={this.state.releasesV2ListPageLinks} />
             </div>
           </PageContent>
         </NoProjectMessage>
@@ -142,5 +140,5 @@ class HealthList extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(HealthList);
-export {HealthList};
+export default withOrganization(ReleasesV2List);
+export {ReleasesV2List};
