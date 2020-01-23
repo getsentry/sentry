@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+// TODO(alberto): Refactor out lodash/get, prefer ?. and ??
 import get from 'lodash/get';
 import isFinite from 'lodash/isFinite';
 
