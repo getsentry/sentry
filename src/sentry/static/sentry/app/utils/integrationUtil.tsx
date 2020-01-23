@@ -61,7 +61,6 @@ type SingleIntegrationEvent = (ModalOpenEvent | OtherSingleIntegrationEvents) &
     integration: string; //the slug
   };
 
-//TODO(Steve): hook up events
 type MultipleIntegrationsEvent = {
   eventKey: 'integrations.index_viewed';
   eventName: 'Integrations: Index Page Viewed';
