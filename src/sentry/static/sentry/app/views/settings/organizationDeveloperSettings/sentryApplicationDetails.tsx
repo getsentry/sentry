@@ -2,7 +2,6 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {Observer} from 'mobx-react';
 import omit from 'lodash/omit';
-import get from 'lodash/get';
 import scrollToElement from 'scroll-to-element';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
@@ -50,7 +49,7 @@ const getResourceFromScope = (scope: Scope): Resource | undefined => {
     const allChoices = Object.values(permObj.choices);
 
     const allScopes = allChoices.reduce(
-      (_allScopes: string[], choice) => _allScopes.concat(get(choice, 'scopes', [])),
+      (_allScopes: string[], choice) => _allScopes.concat(choice?.scopes ?? []),
       []
     );
 
@@ -172,7 +171,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   handleSubmitError = err => {
     let errorMessage = t('Unknown Error');
     if (err.status >= 400 && err.status < 500) {
-      errorMessage = get(err, 'responseJSON.detail', errorMessage);
+      errorMessage = err?.responseJSON.detail ?? errorMessage;
     }
     addErrorMessage(errorMessage);
 
