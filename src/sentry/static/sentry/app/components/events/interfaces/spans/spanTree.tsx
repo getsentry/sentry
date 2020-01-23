@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import get from 'lodash/get';
 
 import {t} from 'app/locale';
 import EventView from 'app/views/eventsV2/eventView';
@@ -138,7 +137,7 @@ class SpanTree extends React.Component<PropType> {
     const {orgId, eventView} = this.props;
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
-    const spanChildren: Array<RawSpanType> = get(childSpans, getSpanID(span), []);
+    const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
