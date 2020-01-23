@@ -19,7 +19,7 @@ module.exports = {
     'no-restricted-imports': ['error',
       {
         name: 'lodash/get',
-        message: 'Optional chaining proposal is available and preferred over using `lodash/get`'
+        message: 'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`'
       }]
   },
   overrides: [
