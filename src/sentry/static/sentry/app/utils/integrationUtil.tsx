@@ -87,8 +87,15 @@ export const trackIntegrationEvent = (
     organization_id: org?.id,
     role: org?.role,
     integration_directory_active: false, //TODO: should be configurable
+    integration_status: undefined, //dummy value to get TS to type things correctly
     ...analtyicsParams,
   };
+
+  //Reload expects integration_status even though it's not relevant for non-sentry apps
+  //Passing in a dummy value of published in those cases
+  if (analtyicsParams.integration && analtyicsParams.integration_type !== 'sentry_app') {
+    fullParams.integration_status = 'published';
+  }
 
   //TODO(steve): remove once we pass in org always
   if (!org) {
