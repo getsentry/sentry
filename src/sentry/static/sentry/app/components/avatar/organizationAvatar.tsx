@@ -6,7 +6,7 @@ import BaseAvatar from 'app/components/avatar/baseAvatar';
 import SentryTypes from 'app/sentryTypes';
 
 type Props = {
-  organization: OrganizationSummary;
+  organization?: OrganizationSummary;
 } & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
 class OrganizationAvatar extends React.Component<Props> {
