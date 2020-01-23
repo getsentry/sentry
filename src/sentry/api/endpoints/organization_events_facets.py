@@ -51,9 +51,8 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
             projects = {p.id: p.slug for p in self.get_projects(request, organization)}
             for v in resp["project"]["topValues"]:
                 name = projects[v["value"]]
-                v.update({"name": name, "value": name})
+                v.update({"name": name})
 
-        # TODO(mark) Figure out how to keep the results ordered.
         return Response(resp.values())
 
     def _validate_project_ids(self, request, organization, params):

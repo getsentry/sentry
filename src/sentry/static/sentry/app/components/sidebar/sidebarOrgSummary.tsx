@@ -16,7 +16,7 @@ const SidebarOrgSummary: React.FC<Props> = ({organization}) => {
   const extra: string[] = [];
 
   if (projects) {
-    extra.push(tn('%d project', '%d projects', projects));
+    extra.push(tn('%s project', '%s projects', projects));
   }
 
   return (
