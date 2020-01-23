@@ -82,13 +82,17 @@ export const trackIntegrationEvent = (
 ) => {
   const {startSession} = options || {};
   const sessionId = startSession ? startAnalyticsSession() : getAnalyticsSessionId();
-  const fullParams = {
+  const params = {
     analytics_session_id: sessionId,
     organization_id: org?.id,
     role: org?.role,
     integration_directory_active: false, //TODO: should be configurable
-    integration_status: undefined, //dummy value to get TS to type things correctly
     ...analtyicsParams,
+  };
+
+  //add the integration_status to the type of params so TS doesn't complain about what we do below
+  const fullParams = params as typeof params & {
+    integration_status?: string;
   };
 
   //Reload expects integration_status even though it's not relevant for non-sentry apps
