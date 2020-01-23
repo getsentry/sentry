@@ -28,15 +28,36 @@ class TestAlertRuleSerializer(TestCase):
     @fixture
     def valid_params(self):
         return {
-            "name": "something",
+            "name": "hello",
             "time_window": 10,
-            "query": "hi",
+            "query": "level:error",
             "threshold_type": 0,
             "resolve_threshold": 1,
             "alert_threshold": 0,
             "aggregation": 0,
             "threshold_period": 1,
             "projects": [self.project.slug],
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "resolveThreshold": 100,
+                    "thresholdType": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 150,
+                    "resolveThreshold": 100,
+                    "thresholdType": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
         }
 
     @fixture
@@ -46,6 +67,13 @@ class TestAlertRuleSerializer(TestCase):
     @fixture
     def context(self):
         return {"organization": self.organization, "access": self.access}
+
+    def Any(self, cls):
+        class Any(object):
+            def __eq__(self, other):
+                return isinstance(other, cls)
+
+        return Any()
 
     def run_fail_validation_test(self, params, errors):
         base_params = self.valid_params.copy()
@@ -62,6 +90,7 @@ class TestAlertRuleSerializer(TestCase):
             "name": field_is_required,
             "timeWindow": field_is_required,
             "query": field_is_required,
+            "triggers": field_is_required,
         }
 
     def test_time_window(self):
@@ -86,16 +115,27 @@ class TestAlertRuleSerializer(TestCase):
         self.run_fail_validation_test({"aggregation": 50}, {"aggregation": invalid_values})
 
     def _run_changed_fields_test(self, alert_rule, params, expected):
+        test_params = self.valid_params.copy()
+        test_params.update(params)
+
+        expected.update({"triggers": self.Any(list)})
         serializer = AlertRuleSerializer(
-            context=self.context, instance=alert_rule, data=params, partial=True
+            context=self.context, instance=alert_rule, data=test_params, partial=True
         )
+
         assert serializer.is_valid(), serializer.errors
+
         assert (
             serializer._remove_unchanged_fields(alert_rule, serializer.validated_data) == expected
         )
 
     def test_remove_unchanged_fields(self):
-        projects = [self.project, self.create_project()]
+        a_project = self.create_project()
+        projects = [self.project, a_project]
+
+        test_params = self.valid_params.copy()
+        test_params.update({"projects": [self.project.slug, a_project.slug]})
+
         name = "hello"
         query = "level:error"
         aggregation = QueryAggregations.TOTAL
@@ -103,7 +143,6 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = create_alert_rule(
             self.organization, projects, name, query, aggregation, time_window, 1
         )
-
         self._run_changed_fields_test(
             alert_rule,
             {
@@ -116,31 +155,54 @@ class TestAlertRuleSerializer(TestCase):
             {},
         )
 
-        self._run_changed_fields_test(alert_rule, {"projects": [p.slug for p in projects]}, {})
+        temp_params = test_params.copy()
+        temp_params.update({"projects": [p.slug for p in projects]})
+        self._run_changed_fields_test(alert_rule, temp_params, {})
+
         self._run_changed_fields_test(
             alert_rule, {"projects": [self.project.slug]}, {"projects": [self.project]}
         )
 
-        self._run_changed_fields_test(alert_rule, {"name": name}, {})
-        self._run_changed_fields_test(alert_rule, {"name": "a name"}, {"name": "a name"})
+        temp_params = test_params.copy()
+        temp_params.update({"name": name})
+        self._run_changed_fields_test(alert_rule, temp_params, {})
 
-        self._run_changed_fields_test(alert_rule, {"query": query}, {})
+        temp_params = test_params.copy()
+        temp_params.update({"name": "a name"})
+        self._run_changed_fields_test(alert_rule, temp_params, {"name": "a name"})
+
+        temp_params = test_params.copy()
+        temp_params.update({"query": query})
+        self._run_changed_fields_test(alert_rule, temp_params, {})
+
+        temp_params = test_params.copy()
+        temp_params.update({"query": "level:warning"})
+        self._run_changed_fields_test(alert_rule, temp_params, {"query": "level:warning"})
+
+        temp_params = test_params.copy()
+        temp_params.update({"aggregation": aggregation.value})
+        self._run_changed_fields_test(alert_rule, temp_params, {})
+
+        temp_params = test_params.copy()
+        temp_params.update({"aggregation": 1})
         self._run_changed_fields_test(
-            alert_rule, {"query": "level:warning"}, {"query": "level:warning"}
+            alert_rule, temp_params, {"aggregation": QueryAggregations.UNIQUE_USERS}
         )
 
-        self._run_changed_fields_test(alert_rule, {"aggregation": aggregation.value}, {})
-        self._run_changed_fields_test(
-            alert_rule, {"aggregation": 1}, {"aggregation": QueryAggregations.UNIQUE_USERS}
-        )
+        temp_params = test_params.copy()
+        temp_params.update({"time_window": time_window})
+        self._run_changed_fields_test(alert_rule, temp_params, {})
 
-        self._run_changed_fields_test(alert_rule, {"time_window": time_window}, {})
-        self._run_changed_fields_test(alert_rule, {"time_window": 20}, {"time_window": 20})
+        temp_params = test_params.copy()
+        temp_params.update({"time_window": 20})
+        self._run_changed_fields_test(alert_rule, temp_params, {"time_window": 20})
 
     def test_remove_unchanged_fields_include_all(self):
         projects = [self.project]
         excluded = [self.create_project()]
-        alert_rule = self.create_alert_rule(include_all_projects=True, excluded_projects=excluded)
+        alert_rule = self.create_alert_rule(
+            name="hello", include_all_projects=True, excluded_projects=excluded
+        )
 
         self._run_changed_fields_test(
             alert_rule,

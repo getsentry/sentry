@@ -82,19 +82,28 @@ class AlertRuleCreateEndpointTest(APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-        name = "an alert"
-        query = "hi"
-        aggregation = 0
-        time_window = 10
+        valid_alert_rule = {
+            "aggregation": 0,
+            "aggregations": [0],
+            "query": "",
+            "timeWindow": "300",
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "resolveThreshold": 100,
+                    "thresholdType": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                }
+            ],
+            "projects": [self.project.slug],
+            "name": "JustAValidTestRule",
+        }
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
-                self.organization.slug,
-                self.project.slug,
-                name=name,
-                query=query,
-                aggregation=aggregation,
-                timeWindow=time_window,
-                status_code=201,
+                self.organization.slug, self.project.slug, status_code=201, **valid_alert_rule
             )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
