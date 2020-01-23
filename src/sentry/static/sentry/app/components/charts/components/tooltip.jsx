@@ -54,7 +54,9 @@ function getFormatter({filter, isGroupedByDate, truncate, formatAxisLabel, utc})
     const seriesParams = isAxisItem ? seriesParamsOrParam : [seriesParamsOrParam];
 
     // If axis, timestamp comes from axis, otherwise for a single item it is defined in its data
-    const timestamp = isAxisItem ? seriesParams[0].axisValue : seriesParams[0]?.data[0];
+    const timestamp = isAxisItem
+      ? seriesParams[0].axisValue
+      : seriesParams?.[0]?.data?.[0];
 
     const label =
       seriesParams.length && axisFormatterOrDefault(timestamp, isGroupedByDate, utc);
