@@ -103,6 +103,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
 
         data = deepcopy(request.data)
         data["projects"] = [project.slug]
+
         serializer = AlertRuleSerializer(
             context={"organization": project.organization, "access": request.access}, data=data
         )

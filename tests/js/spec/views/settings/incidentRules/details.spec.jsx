@@ -37,7 +37,7 @@ describe('Incident Rules Details', function() {
     const {organization, routerContext} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     const req = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
       body: rule,
     });
 
@@ -47,7 +47,7 @@ describe('Incident Rules Details', function() {
     });
 
     const editRule = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
       method: 'PUT',
       body: rule,
     });
@@ -58,6 +58,7 @@ describe('Incident Rules Details', function() {
         <IncidentRulesDetails
           params={{
             orgId: organization.slug,
+            projectId: 'project-slug',
             incidentRuleId: rule.id,
           }}
           organization={organization}

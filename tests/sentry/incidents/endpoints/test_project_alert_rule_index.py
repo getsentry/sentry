@@ -96,7 +96,17 @@ class AlertRuleCreateEndpointTest(APITestCase):
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
-                }
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 150,
+                    "resolveThreshold": 100,
+                    "thresholdType": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
             ],
             "projects": [self.project.slug],
             "name": "JustAValidTestRule",

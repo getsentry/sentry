@@ -188,13 +188,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       return;
     }
 
-    const {organization, rule, onSubmitSuccess} = this.props;
+    const {organization, params, rule, onSubmitSuccess} = this.props;
 
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
     try {
       addLoadingMessage(t('Saving alert'));
-      const resp = await addOrUpdateRule(this.api, organization.slug, {
+      const resp = await addOrUpdateRule(this.api, organization.slug, params.projectId, {
         ...rule,
         ...model.getTransformedData(),
         triggers: this.state.triggers,
@@ -278,7 +278,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {query, aggregation, timeWindow, triggers} = this.state;
 
     return (
-      <Access access={['org:write']}>
+      <Access access={['project:write']}>
         {({hasAccess}) => (
           <Form
             apiMethod={incidentRuleId ? 'PUT' : 'POST'}
