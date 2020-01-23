@@ -2,7 +2,6 @@ import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
 import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
-import get from 'lodash/get';
 import {Global, css} from '@emotion/core';
 
 import Cookies from 'js-cookie';
@@ -133,8 +132,8 @@ class App extends React.Component {
         return;
       }
 
-      const code = get(jqXHR, 'responseJSON.detail.code');
-      const extra = get(jqXHR, 'responseJSON.detail.extra');
+      const code = jqXHR?.responseJSON?.detail?.code;
+      const extra = jqXHR?.responseJSON?.detail?.extra;
 
       // 401s can also mean sudo is required or it's a request that is allowed to fail
       // Ignore if these are the cases
