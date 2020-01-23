@@ -17,6 +17,7 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import StatsPeriod
 from sentry.digests import backend as digests
+from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
@@ -30,7 +31,6 @@ from sentry.models import (
     Release,
     UserOption,
     UserReport,
-    DEFAULT_SUBJECT_TEMPLATE,
 )
 from sentry.utils.data_filters import FilterTypes
 
