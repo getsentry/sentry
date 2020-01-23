@@ -112,7 +112,7 @@ const OrganizationContext = createReactClass({
   },
 
   remountComponent() {
-    this.setState(this.getInitialState(), () => this.fetchData(false));
+    this.setState(this.getInitialState(), this.fetchData);
   },
 
   onProjectCreation() {
@@ -133,6 +133,11 @@ const OrganizationContext = createReactClass({
     );
   },
 
+  isOrgChanging() {
+    const {organization} = OrganizationStore.get();
+    return organization && organization.slug !== this.getOrganizationSlug();
+  },
+
   isOrgStorePopulatedCorrectly() {
     const {detailed} = this.props;
     const {organization, dirty} = OrganizationStore.get();
@@ -140,7 +145,7 @@ const OrganizationContext = createReactClass({
     return (
       !dirty &&
       organization &&
-      organization.slug === this.getOrganizationSlug() &&
+      !this.isOrgChanging() &&
       (!detailed || (detailed && organization.projects && organization.teams))
     );
   },
@@ -163,7 +168,7 @@ const OrganizationContext = createReactClass({
     );
   },
 
-  fetchData(isSilent = true) {
+  fetchData() {
     if (!this.getOrganizationSlug()) {
       return;
     }
@@ -171,12 +176,15 @@ const OrganizationContext = createReactClass({
     if (this.isOrgStorePopulatedCorrectly()) {
       return;
     }
+
+    const shouldSilentlyUpdate = !this.isOrgChanging();
+
     metric.mark('organization-details-fetch-start');
     fetchOrganizationDetails(
       this.props.api,
       this.getOrganizationSlug(),
       this.props.detailed,
-      isSilent // silent, if true, will not reset a lightweight org that was fetched
+      shouldSilentlyUpdate // if true, will not reset a lightweight org that was fetched
     );
   },
 
