@@ -214,24 +214,6 @@ class UpdateIncidentStatus(TestCase):
         ):
             self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
 
-    def test_reopened(self):
-        incident = create_incident(
-            self.organization,
-            IncidentType.CREATED,
-            "Test",
-            "",
-            QueryAggregations.TOTAL,
-            timezone.now(),
-            projects=[self.project],
-        )
-        update_incident_status(incident, IncidentStatus.CLOSED)
-        with self.assertChanges(
-            lambda: IncidentSnapshot.objects.filter(incident=incident).exists(),
-            before=True,
-            after=False,
-        ):
-            self.run_test(incident, IncidentStatus.WARNING, None)
-
     def test_all_params(self):
         incident = self.create_incident()
         self.run_test(
