@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
+import pytest
+
 from sentry.nodestore.bigtable.backend import BigtableNodeStorage
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
 
 
+@pytest.mark.skip(reason="Bigtable is not available in CI")
 class BigtableNodeStorageTest(TestCase):
     def setUp(self):
         self.ns = BigtableNodeStorage()
