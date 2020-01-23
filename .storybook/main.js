@@ -27,17 +27,4 @@ module.exports = {
     '@storybook/addon-a11y',
     '@storybook/addon-options',
   ],
-  // webpack: config => {
-
-  // const filteredRules = rules.filter(rule => {
-  // return (
-  // (!rule.loader || !rule.loader.includes('file-loader')) &&
-  // (!Array.isArray(rule.use) ||
-  // !rule.use.find(({loader}) => loader && loader.includes('postcss-loader')))
-  // );
-  // });
-  // console.log('$$$ FILTERED', filteredRules);
-
-  // return newConfig;
-  // },
 };
