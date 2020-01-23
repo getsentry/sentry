@@ -259,6 +259,13 @@ def update_incident_status(incident, status, user=None, comment=None):
         kwargs = {"status": status.value}
         if status == IncidentStatus.CLOSED:
             kwargs["date_closed"] = timezone.now()
+        elif status == IncidentStatus.OPEN:
+            # If we're moving back out of closed status then unset the closed
+            # date
+            kwargs["date_closed"] = None
+            # Remove the snapshot since it's only used after the incident is
+            # closed.
+            IncidentSnapshot.objects.filter(incident=incident).delete()
 
         incident.update(**kwargs)
 
