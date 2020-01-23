@@ -21,8 +21,8 @@ type RouteParams = {
 };
 
 type Download = {
-  storage_url?: string;
-  expired_at?: string;
+  storageUrl?: string;
+  dateExpired?: string;
   status?: DownloadStatus;
 };
 
@@ -81,7 +81,7 @@ class DataDownload extends AsyncView<Props, State> {
 
   renderValid(): React.ReactNode {
     const {download} = this.state;
-    const d = new Date(download.expired_at || '');
+    const d = new Date(download.dateExpired || '');
     return (
       <React.Fragment>
         <h3>{t('Finally!')}</h3>

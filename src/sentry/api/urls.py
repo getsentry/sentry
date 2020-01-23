@@ -19,6 +19,7 @@ from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
 from .endpoints.data_export import DataExportEndpoint
+from .endpoints.data_export_details import DataExportDetailsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
     DebugFilesEndpoint,
@@ -592,9 +593,14 @@ urlpatterns = [
                 ),
                 # Data Export
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/data-export/(?P<data_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/data-export/$",
                     DataExportEndpoint.as_view(),
                     name="sentry-api-0-organization-data-export",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/data-export/(?P<data_id>[^\/]+)/$",
+                    DataExportDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-data-export-details",
                 ),
                 # Incidents
                 url(
