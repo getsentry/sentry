@@ -91,9 +91,9 @@ export const trackIntegrationEvent = (
   };
 
   //add the integration_status to the type of params so TS doesn't complain about what we do below
-  const fullParams = params as typeof params & {
+  const fullParams: typeof params & {
     integration_status?: string;
-  };
+  } = params;
 
   //Reload expects integration_status even though it's not relevant for non-sentry apps
   //Passing in a dummy value of published in those cases
