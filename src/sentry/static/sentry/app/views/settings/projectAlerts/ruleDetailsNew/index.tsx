@@ -84,14 +84,14 @@ class RuleDetails extends AsyncView<Props, State> {
                     'metric',
                     t('Metric Alert'),
                     t(
-                      'Alert on conditions defined over all events in the project. For example, more than 10 users affected by signup-page errors, database errors exceed 10 per minute, errors seen by our largest customers exceed 500 per hour.'
+                      'Metric alerts allow you to filter and set thresholds on errors. They can be used for high-level monitoring of patterns, or fine-grained monitoring of individual events.'
                     ),
                   ],
                   [
                     'issue',
                     t('Issue Alert'),
                     t(
-                      'Alert when any issue satisfies a set of conditions. For example, a new issue is seen, an issue occurs more than 100 times, an issue affects more than 100 users.'
+                      'Issue alerts fire whenever any issue in the project matches your specified criteria, such as a resolved issue re-appearing or an issue affecting many users.'
                     ),
                   ],
                 ]}
