@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import get from 'lodash/get';
 import map from 'lodash/map';
 
 import {t} from 'app/locale';
@@ -237,7 +236,7 @@ class SpanDetail extends React.Component<Props, State> {
               {span.trace_id}
             </Row>
             <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
-            <Row title="Description">{get(span, 'description', '')}</Row>
+            <Row title="Description">{span?.description ?? ''}</Row>
             <Row title="Start Date">
               <React.Fragment>
                 <DateTime date={startTimestamp * 1000} />
@@ -256,7 +255,7 @@ class SpanDetail extends React.Component<Props, State> {
               {String(!!span.same_process_as_parent)}
             </Row>
             <Tags span={span} />
-            {map(get(span, 'data', {}), (value, key) => {
+            {map(span?.data ?? {}, (value, key) => {
               return (
                 <Row title={key} key={key}>
                   {JSON.stringify(value, null, 4) || ''}
@@ -315,7 +314,7 @@ const Row = ({
 };
 
 const Tags = ({span}: {span: RawSpanType}) => {
-  const tags: {[tag_name: string]: string} | undefined = get(span, 'tags');
+  const tags: {[tag_name: string]: string} | undefined = span?.tags;
 
   if (!tags) {
     return null;
