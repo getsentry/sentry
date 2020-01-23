@@ -55,6 +55,20 @@ def get_next_schedule(base_datetime, schedule_type, schedule):
     return next_schedule
 
 
+def get_monitor_context(monitor):
+    config = monitor.config.copy()
+    if "schedule_type" in config:
+        config["schedule_type"] = monitor.get_schedule_type_display()
+
+    return {
+        "id": six.text_type(monitor.guid),
+        "name": monitor.name,
+        "config": monitor.config,
+        "status": monitor.get_status_display(),
+        "type": monitor.get_type_display(),
+    }
+
+
 class MonitorStatus(ObjectStatus):
     OK = 4
     ERROR = 5
@@ -86,6 +100,16 @@ class MonitorType(object):
             (cls.CRON_JOB, "cron_job"),
         )
 
+    @classmethod
+    def get_name(cls, value):
+        return dict(cls.as_choices())[value]
+
+
+class MonitorFailure(object):
+    UNKNOWN = "unknown"
+    MISSED_CHECKIN = "missed_checkin"
+    DURATION = "duration"
+
 
 class ScheduleType(object):
     UNKNOWN = 0
@@ -95,6 +119,10 @@ class ScheduleType(object):
     @classmethod
     def as_choices(cls):
         return ((cls.UNKNOWN, "unknown"), (cls.CRONTAB, "crontab"), (cls.INTERVAL, "interval"))
+
+    @classmethod
+    def get_name(cls, value):
+        return dict(cls.as_choices())[value]
 
 
 class Monitor(Model):
@@ -122,6 +150,9 @@ class Monitor(Model):
 
     __repr__ = sane_repr("guid", "project_id", "name")
 
+    def get_schedule_type_display(self):
+        return ScheduleType.get_name(self.config.get("schedule_type", ScheduleType.CRONTAB))
+
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
@@ -134,7 +165,7 @@ class Monitor(Model):
         next_checkin = get_next_schedule(base_datetime, schedule_type, self.config["schedule"])
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
-    def mark_failed(self, last_checkin=None):
+    def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
         from sentry.coreapi import ClientApiHelper
         from sentry.event_manager import EventManager
         from sentry.models import Project
@@ -162,8 +193,9 @@ class Monitor(Model):
 
         event_manager = EventManager(
             {
-                "logentry": {"message": "Monitor failure: %s" % (self.name,)},
-                "contexts": {"monitor": {"id": six.text_type(self.guid)}},
+                "logentry": {"message": "Monitor failure: %s (%s)" % (self.name, reason)},
+                "contexts": {"monitor": get_monitor_context(self)},
+                "fingerprint": ["monitor", six.text_type(self.guid), reason],
             },
             project=Project(id=self.project_id),
         )
