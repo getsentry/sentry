@@ -13,6 +13,9 @@ import SentryTypes from 'app/sentryTypes';
 import Switch from 'app/components/switch';
 import getDynamicText from 'app/utils/getDynamicText';
 import recreateRoute from 'app/utils/recreateRoute';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 const grayText = css`
   color: #979ba0;
@@ -27,6 +30,17 @@ class ProjectPluginRow extends React.PureComponent {
   handleChange = () => {
     const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
+    trackIntegrationEvent(
+      {
+        eventKey: `integrations.${!enabled ? 'enabled' : 'disabled'}`,
+        eventName: `Integrations: ${!enabled ? 'Enabled' : 'Disabled'}`,
+        integration: id,
+        integration_type: 'plugin',
+        view: 'legacy_integrations',
+        projectId: this.props.project.id,
+      },
+      this.props.organization
+    );
   };
 
   render() {
@@ -93,7 +107,7 @@ class ProjectPluginRow extends React.PureComponent {
   }
 }
 
-export default ProjectPluginRow;
+export default withOrganization(withProject(ProjectPluginRow));
 
 // Includes icon, name, version, configure link
 const PluginInfo = styled('div')`
