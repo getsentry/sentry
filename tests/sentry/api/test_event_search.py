@@ -935,6 +935,10 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
         assert filter.filter_keys == {}
 
+    def test_wildcard_event_id(self):
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter("id:deadbeef*")
+
     def test_negated_wildcard(self):
         filter = get_filter("!release:3.1.* user.email:*@example.com")
         assert filter.conditions == [
@@ -1118,7 +1122,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["avg", "transaction.duration", "avg_transaction_duration"],
             ["apdex(duration, 300)", None, "apdex"],
             [
-                "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
+                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
                 None,
                 "impact",
             ],
@@ -1150,7 +1154,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["max", "timestamp", "last_seen"],
             ["apdex(duration, 300)", None, "apdex"],
             [
-                "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
+                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
                 None,
                 "impact",
             ],

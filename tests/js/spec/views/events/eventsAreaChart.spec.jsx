@@ -5,7 +5,7 @@ import {mockZoomRange} from 'sentry-test/charts';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-describe('EventsChart > EventsLineChart', function() {
+describe('EventsChart > EventsAreaChart', function() {
   const {router, routerContext, org} = initializeOrg();
   let wrapper;
 
@@ -47,8 +47,8 @@ describe('EventsChart > EventsLineChart', function() {
   it('renders a legend if enabled', function() {
     wrapper.update();
 
-    const lineChart = wrapper.find('LineChart');
-    expect(lineChart.props().legend).toHaveProperty('data');
+    const areaChart = wrapper.find('AreaChart');
+    expect(areaChart.props().legend).toHaveProperty('data');
   });
 
   it('responds to y-axis changes', function() {

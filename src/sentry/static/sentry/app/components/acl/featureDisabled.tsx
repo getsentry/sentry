@@ -102,7 +102,7 @@ class FeatureDisabled extends React.Component<Props, State> {
                 }
               )}
             </p>
-            <pre onClick={e => selectText(e.target)}>
+            <pre onClick={e => selectText(e.target as HTMLElement)}>
               <code>{installText(features, featureName)}</code>
             </pre>
           </HelpDescription>

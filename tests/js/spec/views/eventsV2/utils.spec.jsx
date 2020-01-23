@@ -10,6 +10,8 @@ import {
   isAggregateField,
   decodeColumnOrder,
   pushEventViewToLocation,
+  getExpandedResults,
+  generateDiscoverLandingPageRoute,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
 
@@ -403,5 +405,92 @@ describe('isAggregateField', function() {
     expect(isAggregateField('thing(')).toBe(false);
     expect(isAggregateField('count()')).toBe(true);
     expect(isAggregateField('unique_count(user)')).toBe(true);
+  });
+});
+
+describe('getExpandedResults()', function() {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [
+      {field: 'count()'},
+      {field: 'last_seen'},
+      {field: 'title'},
+      {field: 'custom_tag'},
+    ],
+    sorts: [{field: 'count', kind: 'desc'}],
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+  };
+
+  it('removes aggregate fields from result view', () => {
+    const view = new EventView(state);
+    const result = getExpandedResults(view, {}, {});
+
+    expect(result.fields).toEqual([{field: 'title'}, {field: 'custom_tag'}]);
+    expect(result.query).toEqual('event.type:error');
+  });
+
+  it('applies provided conditions', () => {
+    const view = new EventView(state);
+    let result = getExpandedResults(view, {extra: 'condition'}, {});
+    expect(result.query).toEqual('event.type:error extra:condition');
+
+    // quotes value
+    result = getExpandedResults(view, {extra: 'has space'}, {});
+    expect(result.query).toEqual('event.type:error extra:"has space"');
+
+    // appends to existing conditions
+    result = getExpandedResults(view, {'event.type': 'csp'}, {});
+    expect(result.query).toEqual('event.type:error event.type:csp');
+  });
+
+  it('applies conditions from dataRow map structure based on fields', () => {
+    const view = new EventView(state);
+    const result = getExpandedResults(view, {extra: 'condition'}, {title: 'Event title'});
+    expect(result.query).toEqual('event.type:error extra:condition title:"Event title"');
+  });
+
+  it('applies tag key conditions from event data', () => {
+    const view = new EventView(state);
+    const event = {
+      type: 'error',
+      tags: [
+        {key: 'nope', value: 'nope'},
+        {key: 'custom_tag', value: 'tag_value'},
+      ],
+    };
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('event.type:error custom_tag:tag_value');
+  });
+
+  it('applies project condition to project property', () => {
+    const view = new EventView(state);
+    let result = getExpandedResults(view, {project: 1});
+    expect(result.query).toEqual('event.type:error');
+    expect(result.project).toEqual([42, 1]);
+
+    result = getExpandedResults(view, {'project.id': 1});
+    expect(result.query).toEqual('event.type:error');
+    expect(result.project).toEqual([42, 1]);
+  });
+
+  it('applies environment condition to environment property', () => {
+    const view = new EventView(state);
+    const result = getExpandedResults(view, {environment: 'dev'});
+    expect(result.query).toEqual('event.type:error');
+    expect(result.environment).toEqual(['staging', 'dev']);
+  });
+});
+
+describe('generateDiscoverLandingPageRoute', function() {
+  it('generateDiscoverLandingPageRoute', function() {
+    expect(generateDiscoverLandingPageRoute('sentry')).toBe(
+      '/organizations/sentry/eventsv2/'
+    );
   });
 });

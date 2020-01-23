@@ -257,7 +257,6 @@ USE_TZ = True
 MIDDLEWARE_CLASSES = (
     "sentry.middleware.proxy.ChunkedMiddleware",
     "sentry.middleware.proxy.DecompressBodyMiddleware",
-    "sentry.middleware.proxy.ContentLengthHeaderMiddleware",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -274,8 +273,6 @@ MIDDLEWARE_CLASSES = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
-    # TODO(dcramer): kill this once we verify its safe
-    # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     "django.contrib.messages.middleware.MessageMiddleware",
 )
 

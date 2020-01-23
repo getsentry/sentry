@@ -90,9 +90,14 @@ export type Organization = LightWeightOrganization & {
   teams: Team[];
 };
 
+// Minimal project representation for use with avatars.
+export type AvatarProject = {
+  slug: string;
+  platform?: string;
+};
+
 export type Project = {
   id: string;
-  slug: string;
   isMember: boolean;
   teams: Team[];
   features: string[];
@@ -100,12 +105,11 @@ export type Project = {
   isBookmarked: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
-  platform: string;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
-};
+} & AvatarProject;
 
 export type Team = {
   id: string;
@@ -236,6 +240,7 @@ export type AvatarUser = {
   options?: {
     avatarType: string;
   };
+  lastSeen?: string;
 };
 
 export type User = AvatarUser & {
