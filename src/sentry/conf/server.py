@@ -394,7 +394,6 @@ AUTHENTICATION_BACKENDS = (
     "sentry.utils.auth.EmailAuthBackend",
     # TODO(dcramer): we can't remove these until we rewrite more of social auth
     "social_auth.backends.github.GithubBackend",
-    "social_auth.backends.github_apps.GithubAppsBackend",
     "social_auth.backends.bitbucket.BitbucketBackend",
     "social_auth.backends.asana.AsanaBackend",
     "social_auth.backends.visualstudio.VisualStudioBackend",
@@ -417,7 +416,6 @@ SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
     "social_auth.backends.github.GithubBackend",
     "social_auth.backends.bitbucket.BitbucketBackend",
     "social_auth.backends.asana.AsanaBackend",
-    "social_auth.backends.github_apps.GithubAppsBackend",
     "social_auth.backends.visualstudio.VisualStudioBackend",
 )
 
@@ -430,9 +428,6 @@ GOOGLE_OAUTH2_CLIENT_SECRET = ""
 
 GITHUB_APP_ID = ""
 GITHUB_API_SECRET = ""
-
-GITHUB_APPS_APP_ID = ""
-GITHUB_APPS_API_SECRET = ""
 
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
@@ -461,7 +456,6 @@ INITIAL_CUSTOM_USER_MIGRATION = "0108_fix_user"
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     "github": ("GITHUB_APP_ID", "GITHUB_API_SECRET"),
-    "github_apps": ("GITHUB_APPS_APP_ID", "GITHUB_APPS_API_SECRET"),
     "bitbucket": ("BITBUCKET_CONSUMER_KEY", "BITBUCKET_CONSUMER_SECRET"),
     "asana": ("ASANA_CLIENT_ID", "ASANA_CLIENT_SECRET"),
     "visualstudio": (
@@ -473,7 +467,6 @@ AUTH_PROVIDERS = {
 
 AUTH_PROVIDER_LABELS = {
     "github": "GitHub",
-    "github_apps": "GitHub Apps",
     "bitbucket": "Bitbucket",
     "asana": "Asana",
     "visualstudio": "Visual Studio",
