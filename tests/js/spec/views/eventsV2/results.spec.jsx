@@ -2,8 +2,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-
-import Results, {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
+import Results from 'app/views/eventsV2/results';
 
 const FIELDS = [
   {
@@ -146,13 +145,5 @@ describe('EventsV2 > Results', function() {
         statsPeriod: '14d',
       },
     });
-  });
-});
-
-describe('generateDiscoverResultsRoute', function() {
-  it('generateDiscoverResultsRoute', function() {
-    expect(generateDiscoverResultsRoute('sentry')).toBe(
-      '/organizations/sentry/discover/results/'
-    );
   });
 });

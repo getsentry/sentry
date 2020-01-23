@@ -1,33 +1,42 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
-import * as ReactRouter from 'react-router';
 
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {EventTag, OrganizationSummary} from 'app/types';
+import {Event, OrganizationSummary} from 'app/types';
 
-import {getEventTagSearchUrl} from './utils';
+import EventView from './eventView';
+import {getExpandedResults} from './utils';
 import {SectionHeading} from './styles';
 
 type Props = {
   organization: OrganizationSummary;
-  tags: Array<EventTag>;
-} & ReactRouter.WithRouterProps;
+  event: Event;
+  eventView: EventView;
+};
 
 const TagsTable = (props: Props) => {
-  const {location, organization, tags} = props;
+  const {organization, event, eventView} = props;
+  const tags = event.tags;
   return (
     <StyledTagsTable>
       <SectionHeading>{t('Event Tag Details')}</SectionHeading>
       <StyledTable>
         <tbody>
           {tags.map(tag => {
-            const tagInQuery =
-              location.query.query && location.query.query.indexOf(`${tag.key}:`) !== -1;
+            let target;
+            const tagInQuery = eventView.query.includes(`${tag.key}:`);
+            if (!tagInQuery) {
+              const nextView = getExpandedResults(
+                eventView,
+                {[tag.key]: tag.value},
+                event
+              );
+              target = nextView.getResultsViewUrlTarget(organization.slug);
+            }
             return (
               <StyledTr key={tag.key}>
                 <TagKey>{tag.key}</TagKey>
@@ -37,16 +46,7 @@ const TagsTable = (props: Props) => {
                       <span>{tag.value}</span>
                     </Tooltip>
                   ) : (
-                    <Link
-                      to={getEventTagSearchUrl(
-                        tag.key,
-                        tag.value,
-                        organization,
-                        location.query
-                      )}
-                    >
-                      {tag.value}
-                    </Link>
+                    <Link to={target}>{tag.value}</Link>
                   )}
                 </TagValue>
               </StyledTr>
@@ -57,11 +57,6 @@ const TagsTable = (props: Props) => {
     </StyledTagsTable>
   );
 };
-
-TagsTable.propTypes = {
-  tags: PropTypes.array.isRequired,
-  location: PropTypes.object,
-} as any;
 
 const StyledTagsTable = styled('div')`
   margin-bottom: ${space(3)};
@@ -93,4 +88,4 @@ const TagValue = styled(TagKey)`
   ${overflowEllipsis};
 `;
 
-export default ReactRouter.withRouter(TagsTable);
+export default TagsTable;

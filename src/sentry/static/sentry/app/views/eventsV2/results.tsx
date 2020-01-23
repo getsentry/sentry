@@ -241,8 +241,4 @@ const Side = styled('div')<{eventView: EventView}>`
   grid-column: 2/3;
 `;
 
-export function generateDiscoverResultsRoute(orgSlug: string): string {
-  return `/organizations/${orgSlug}/discover/results/`;
-}
-
 export default withApi(withOrganization(withGlobalSelection(Results)));

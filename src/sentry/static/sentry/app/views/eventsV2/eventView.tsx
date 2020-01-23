@@ -865,6 +865,13 @@ class EventView {
     return eventQuery;
   }
 
+  getResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
+    return {
+      pathname: `/organizations/${slug}/discover/results/`,
+      query: this.generateQueryStringObject(),
+    };
+  }
+
   isFieldSorted(field: Field, tableMeta: MetaType): Sort | undefined {
     const needle = this.sorts.find(sort => {
       return isSortEqualToField(sort, field, tableMeta);

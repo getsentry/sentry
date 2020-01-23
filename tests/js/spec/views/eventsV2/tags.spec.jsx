@@ -116,7 +116,7 @@ describe('Tags', function() {
 
     expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/discover/results/',
-      query: {environment: 'abcd123'},
+      query: expect.objectContaining({environment: 'abcd123'}),
     });
   });
 });

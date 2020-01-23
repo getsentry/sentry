@@ -31,7 +31,6 @@ import EventView from './eventView';
 import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
 import {getPrebuiltQueries, decodeScalar} from './utils';
-import {generateDiscoverResultsRoute} from './results';
 
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
@@ -186,13 +185,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-
-    const to = {
-      pathname: generateDiscoverResultsRoute(organization.slug),
-      query: {
-        ...eventView.generateQueryStringObject(),
-      },
-    };
+    const to = eventView.getResultsViewUrlTarget(organization.slug);
 
     return (
       <Banner
@@ -221,13 +214,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     const {location, organization} = this.props;
 
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-
-    const to = {
-      pathname: generateDiscoverResultsRoute(organization.slug),
-      query: {
-        ...eventView.generateQueryStringObject(),
-      },
-    };
+    const to = eventView.getResultsViewUrlTarget(organization.slug);
 
     return (
       <StyledActions>

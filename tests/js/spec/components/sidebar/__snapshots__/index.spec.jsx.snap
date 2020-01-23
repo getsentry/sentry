@@ -1123,38 +1123,35 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
           </StatusList>
         </div>
         <div>
-          <Button
-            align="center"
-            disabled={false}
+          <forwardRef<Button>
             external={true}
             href="https://status.sentry.io"
             size="small"
           >
-            <StyledButton
-              aria-disabled={false}
-              aria-label="Learn more"
+            <Button
+              align="center"
               disabled={false}
               external={true}
+              forwardRef={null}
               href="https://status.sentry.io"
-              onClick={[Function]}
-              role="button"
               size="small"
             >
-              <ForwardRef
+              <StyledButton
                 aria-disabled={false}
                 aria-label="Learn more"
-                className="css-12ogwys-StyledButton edwq9my0"
                 disabled={false}
                 external={true}
+                forwardRef={null}
                 href="https://status.sentry.io"
                 onClick={[Function]}
                 role="button"
                 size="small"
               >
-                <ForwardRef
+                <Component
                   aria-disabled={false}
                   aria-label="Learn more"
                   className="css-12ogwys-StyledButton edwq9my0"
+                  forwardRef={null}
                   href="https://status.sentry.io"
                   onClick={[Function]}
                   role="button"
@@ -1166,10 +1163,8 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                     className="css-12ogwys-StyledButton edwq9my0"
                     href="https://status.sentry.io"
                     onClick={[Function]}
-                    rel="noreferrer noopener"
                     role="button"
                     size="small"
-                    target="_blank"
                   >
                     <ButtonLabel
                       align="center"
@@ -1188,10 +1183,10 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                       </Component>
                     </ButtonLabel>
                   </a>
-                </ForwardRef>
-              </ForwardRef>
-            </StyledButton>
-          </Button>
+                </Component>
+              </StyledButton>
+            </Button>
+          </forwardRef<Button>>
         </div>
       </li>
     </IncidentItem>
@@ -1408,68 +1403,74 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
-                                    align="center"
-                                    disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
-                                    <Button
-                                      align="center"
+                                    <forwardRef<Button>
                                       className="css-13i4fqu-SkipButton e1a4o5477"
-                                      disabled={false}
                                       hide={true}
                                       onClick={[Function]}
                                       size="xsmall"
                                     >
-                                      <StyledButton
-                                        aria-disabled={false}
-                                        aria-label="Skip task"
+                                      <Button
+                                        align="center"
                                         className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
+                                        forwardRef={null}
                                         hide={true}
                                         onClick={[Function]}
-                                        role="button"
                                         size="xsmall"
                                       >
-                                        <ForwardRef
+                                        <StyledButton
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                          className="css-13i4fqu-SkipButton e1a4o5477"
                                           disabled={false}
+                                          forwardRef={null}
                                           hide={true}
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
                                         >
-                                          <button
+                                          <Component
                                             aria-disabled={false}
                                             aria-label="Skip task"
                                             className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                            forwardRef={null}
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
                                           >
-                                            <ButtonLabel
-                                              align="center"
+                                            <button
+                                              aria-disabled={false}
+                                              aria-label="Skip task"
+                                              className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                              onClick={[Function]}
+                                              role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ButtonLabel
                                                 align="center"
-                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
-                                                <span
+                                                <Component
+                                                  align="center"
                                                   className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  size="xsmall"
                                                 >
-                                                  Skip task
-                                                </span>
-                                              </Component>
-                                            </ButtonLabel>
-                                          </button>
-                                        </ForwardRef>
-                                      </StyledButton>
-                                    </Button>
+                                                  <span
+                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  >
+                                                    Skip task
+                                                  </span>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
+                                      </Button>
+                                    </forwardRef<Button>>
                                   </SkipButton>
                                 </div>
                               </Content>
@@ -1529,70 +1530,76 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         </h4>
                                       </Header>
                                       <div>
-                                        <Button
-                                          align="center"
-                                          disabled={false}
+                                        <forwardRef<Button>
                                           priority="link"
                                           to="/settings/org-slug/support/"
                                         >
-                                          <StyledButton
-                                            aria-disabled={false}
-                                            aria-label="Go to Support"
+                                          <Button
+                                            align="center"
                                             disabled={false}
-                                            onClick={[Function]}
+                                            forwardRef={null}
                                             priority="link"
-                                            role="button"
                                             to="/settings/org-slug/support/"
                                           >
-                                            <ForwardRef
+                                            <StyledButton
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
+                                              forwardRef={null}
                                               onClick={[Function]}
                                               priority="link"
                                               role="button"
                                               to="/settings/org-slug/support/"
                                             >
-                                              <Link
+                                              <Component
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
                                                 className="css-1ilrgbi-StyledButton edwq9my0"
+                                                forwardRef={null}
                                                 onClick={[Function]}
-                                                onlyActiveOnIndex={false}
                                                 role="button"
-                                                style={Object {}}
                                                 to="/settings/org-slug/support/"
                                               >
-                                                <a
+                                                <Link
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
                                                   className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
+                                                  onlyActiveOnIndex={false}
                                                   role="button"
                                                   style={Object {}}
+                                                  to="/settings/org-slug/support/"
                                                 >
-                                                  <ButtonLabel
-                                                    align="center"
-                                                    priority="link"
+                                                  <a
+                                                    aria-disabled={false}
+                                                    aria-label="Go to Support"
+                                                    className="css-1ilrgbi-StyledButton edwq9my0"
+                                                    onClick={[Function]}
+                                                    role="button"
+                                                    style={Object {}}
                                                   >
-                                                    <Component
+                                                    <ButtonLabel
                                                       align="center"
-                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
-                                                      <span
+                                                      <Component
+                                                        align="center"
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        priority="link"
                                                       >
-                                                        Go to Support
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </a>
-                                              </Link>
-                                            </ForwardRef>
-                                          </StyledButton>
-                                        </Button>
+                                                        <span
+                                                          className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        >
+                                                          Go to Support
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </a>
+                                                </Link>
+                                              </Component>
+                                            </StyledButton>
+                                          </Button>
+                                        </forwardRef<Button>>
                                          
                                         · 
                                         <a
@@ -1722,68 +1729,74 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
-                                    align="center"
-                                    disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
-                                    <Button
-                                      align="center"
+                                    <forwardRef<Button>
                                       className="css-13i4fqu-SkipButton e1a4o5477"
-                                      disabled={false}
                                       hide={true}
                                       onClick={[Function]}
                                       size="xsmall"
                                     >
-                                      <StyledButton
-                                        aria-disabled={false}
-                                        aria-label="Skip task"
+                                      <Button
+                                        align="center"
                                         className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
+                                        forwardRef={null}
                                         hide={true}
                                         onClick={[Function]}
-                                        role="button"
                                         size="xsmall"
                                       >
-                                        <ForwardRef
+                                        <StyledButton
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                          className="css-13i4fqu-SkipButton e1a4o5477"
                                           disabled={false}
+                                          forwardRef={null}
                                           hide={true}
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
                                         >
-                                          <button
+                                          <Component
                                             aria-disabled={false}
                                             aria-label="Skip task"
                                             className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                            forwardRef={null}
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
                                           >
-                                            <ButtonLabel
-                                              align="center"
+                                            <button
+                                              aria-disabled={false}
+                                              aria-label="Skip task"
+                                              className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                              onClick={[Function]}
+                                              role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ButtonLabel
                                                 align="center"
-                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
-                                                <span
+                                                <Component
+                                                  align="center"
                                                   className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  size="xsmall"
                                                 >
-                                                  Skip task
-                                                </span>
-                                              </Component>
-                                            </ButtonLabel>
-                                          </button>
-                                        </ForwardRef>
-                                      </StyledButton>
-                                    </Button>
+                                                  <span
+                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  >
+                                                    Skip task
+                                                  </span>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
+                                      </Button>
+                                    </forwardRef<Button>>
                                   </SkipButton>
                                 </div>
                               </Content>
@@ -1843,70 +1856,76 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         </h4>
                                       </Header>
                                       <div>
-                                        <Button
-                                          align="center"
-                                          disabled={false}
+                                        <forwardRef<Button>
                                           priority="link"
                                           to="/settings/org-slug/support/"
                                         >
-                                          <StyledButton
-                                            aria-disabled={false}
-                                            aria-label="Go to Support"
+                                          <Button
+                                            align="center"
                                             disabled={false}
-                                            onClick={[Function]}
+                                            forwardRef={null}
                                             priority="link"
-                                            role="button"
                                             to="/settings/org-slug/support/"
                                           >
-                                            <ForwardRef
+                                            <StyledButton
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
+                                              forwardRef={null}
                                               onClick={[Function]}
                                               priority="link"
                                               role="button"
                                               to="/settings/org-slug/support/"
                                             >
-                                              <Link
+                                              <Component
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
                                                 className="css-1ilrgbi-StyledButton edwq9my0"
+                                                forwardRef={null}
                                                 onClick={[Function]}
-                                                onlyActiveOnIndex={false}
                                                 role="button"
-                                                style={Object {}}
                                                 to="/settings/org-slug/support/"
                                               >
-                                                <a
+                                                <Link
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
                                                   className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
+                                                  onlyActiveOnIndex={false}
                                                   role="button"
                                                   style={Object {}}
+                                                  to="/settings/org-slug/support/"
                                                 >
-                                                  <ButtonLabel
-                                                    align="center"
-                                                    priority="link"
+                                                  <a
+                                                    aria-disabled={false}
+                                                    aria-label="Go to Support"
+                                                    className="css-1ilrgbi-StyledButton edwq9my0"
+                                                    onClick={[Function]}
+                                                    role="button"
+                                                    style={Object {}}
                                                   >
-                                                    <Component
+                                                    <ButtonLabel
                                                       align="center"
-                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
-                                                      <span
+                                                      <Component
+                                                        align="center"
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        priority="link"
                                                       >
-                                                        Go to Support
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </a>
-                                              </Link>
-                                            </ForwardRef>
-                                          </StyledButton>
-                                        </Button>
+                                                        <span
+                                                          className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        >
+                                                          Go to Support
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </a>
+                                                </Link>
+                                              </Component>
+                                            </StyledButton>
+                                          </Button>
+                                        </forwardRef<Button>>
                                          
                                         · 
                                         <a
@@ -2032,68 +2051,74 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
-                                    align="center"
-                                    disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
-                                    <Button
-                                      align="center"
+                                    <forwardRef<Button>
                                       className="css-13i4fqu-SkipButton e1a4o5477"
-                                      disabled={false}
                                       hide={true}
                                       onClick={[Function]}
                                       size="xsmall"
                                     >
-                                      <StyledButton
-                                        aria-disabled={false}
-                                        aria-label="Skip task"
+                                      <Button
+                                        align="center"
                                         className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
+                                        forwardRef={null}
                                         hide={true}
                                         onClick={[Function]}
-                                        role="button"
                                         size="xsmall"
                                       >
-                                        <ForwardRef
+                                        <StyledButton
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                          className="css-13i4fqu-SkipButton e1a4o5477"
                                           disabled={false}
+                                          forwardRef={null}
                                           hide={true}
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
                                         >
-                                          <button
+                                          <Component
                                             aria-disabled={false}
                                             aria-label="Skip task"
                                             className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                            forwardRef={null}
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
                                           >
-                                            <ButtonLabel
-                                              align="center"
+                                            <button
+                                              aria-disabled={false}
+                                              aria-label="Skip task"
+                                              className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                              onClick={[Function]}
+                                              role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ButtonLabel
                                                 align="center"
-                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
-                                                <span
+                                                <Component
+                                                  align="center"
                                                   className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  size="xsmall"
                                                 >
-                                                  Skip task
-                                                </span>
-                                              </Component>
-                                            </ButtonLabel>
-                                          </button>
-                                        </ForwardRef>
-                                      </StyledButton>
-                                    </Button>
+                                                  <span
+                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  >
+                                                    Skip task
+                                                  </span>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
+                                      </Button>
+                                    </forwardRef<Button>>
                                   </SkipButton>
                                 </div>
                               </Content>
@@ -2153,70 +2178,76 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         </h4>
                                       </Header>
                                       <div>
-                                        <Button
-                                          align="center"
-                                          disabled={false}
+                                        <forwardRef<Button>
                                           priority="link"
                                           to="/settings/org-slug/support/"
                                         >
-                                          <StyledButton
-                                            aria-disabled={false}
-                                            aria-label="Go to Support"
+                                          <Button
+                                            align="center"
                                             disabled={false}
-                                            onClick={[Function]}
+                                            forwardRef={null}
                                             priority="link"
-                                            role="button"
                                             to="/settings/org-slug/support/"
                                           >
-                                            <ForwardRef
+                                            <StyledButton
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
+                                              forwardRef={null}
                                               onClick={[Function]}
                                               priority="link"
                                               role="button"
                                               to="/settings/org-slug/support/"
                                             >
-                                              <Link
+                                              <Component
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
                                                 className="css-1ilrgbi-StyledButton edwq9my0"
+                                                forwardRef={null}
                                                 onClick={[Function]}
-                                                onlyActiveOnIndex={false}
                                                 role="button"
-                                                style={Object {}}
                                                 to="/settings/org-slug/support/"
                                               >
-                                                <a
+                                                <Link
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
                                                   className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
+                                                  onlyActiveOnIndex={false}
                                                   role="button"
                                                   style={Object {}}
+                                                  to="/settings/org-slug/support/"
                                                 >
-                                                  <ButtonLabel
-                                                    align="center"
-                                                    priority="link"
+                                                  <a
+                                                    aria-disabled={false}
+                                                    aria-label="Go to Support"
+                                                    className="css-1ilrgbi-StyledButton edwq9my0"
+                                                    onClick={[Function]}
+                                                    role="button"
+                                                    style={Object {}}
                                                   >
-                                                    <Component
+                                                    <ButtonLabel
                                                       align="center"
-                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
-                                                      <span
+                                                      <Component
+                                                        align="center"
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        priority="link"
                                                       >
-                                                        Go to Support
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </a>
-                                              </Link>
-                                            </ForwardRef>
-                                          </StyledButton>
-                                        </Button>
+                                                        <span
+                                                          className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        >
+                                                          Go to Support
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </a>
+                                                </Link>
+                                              </Component>
+                                            </StyledButton>
+                                          </Button>
+                                        </forwardRef<Button>>
                                          
                                         · 
                                         <a
@@ -2348,68 +2379,74 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
-                                    align="center"
-                                    disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
-                                    <Button
-                                      align="center"
+                                    <forwardRef<Button>
                                       className="css-13i4fqu-SkipButton e1a4o5477"
-                                      disabled={false}
                                       hide={true}
                                       onClick={[Function]}
                                       size="xsmall"
                                     >
-                                      <StyledButton
-                                        aria-disabled={false}
-                                        aria-label="Skip task"
+                                      <Button
+                                        align="center"
                                         className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
+                                        forwardRef={null}
                                         hide={true}
                                         onClick={[Function]}
-                                        role="button"
                                         size="xsmall"
                                       >
-                                        <ForwardRef
+                                        <StyledButton
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                          className="css-13i4fqu-SkipButton e1a4o5477"
                                           disabled={false}
+                                          forwardRef={null}
                                           hide={true}
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
                                         >
-                                          <button
+                                          <Component
                                             aria-disabled={false}
                                             aria-label="Skip task"
                                             className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                            forwardRef={null}
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
                                           >
-                                            <ButtonLabel
-                                              align="center"
+                                            <button
+                                              aria-disabled={false}
+                                              aria-label="Skip task"
+                                              className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                              onClick={[Function]}
+                                              role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ButtonLabel
                                                 align="center"
-                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
-                                                <span
+                                                <Component
+                                                  align="center"
                                                   className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  size="xsmall"
                                                 >
-                                                  Skip task
-                                                </span>
-                                              </Component>
-                                            </ButtonLabel>
-                                          </button>
-                                        </ForwardRef>
-                                      </StyledButton>
-                                    </Button>
+                                                  <span
+                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  >
+                                                    Skip task
+                                                  </span>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
+                                      </Button>
+                                    </forwardRef<Button>>
                                   </SkipButton>
                                 </div>
                               </Content>
@@ -2469,70 +2506,76 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         </h4>
                                       </Header>
                                       <div>
-                                        <Button
-                                          align="center"
-                                          disabled={false}
+                                        <forwardRef<Button>
                                           priority="link"
                                           to="/settings/org-slug/support/"
                                         >
-                                          <StyledButton
-                                            aria-disabled={false}
-                                            aria-label="Go to Support"
+                                          <Button
+                                            align="center"
                                             disabled={false}
-                                            onClick={[Function]}
+                                            forwardRef={null}
                                             priority="link"
-                                            role="button"
                                             to="/settings/org-slug/support/"
                                           >
-                                            <ForwardRef
+                                            <StyledButton
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
+                                              forwardRef={null}
                                               onClick={[Function]}
                                               priority="link"
                                               role="button"
                                               to="/settings/org-slug/support/"
                                             >
-                                              <Link
+                                              <Component
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
                                                 className="css-1ilrgbi-StyledButton edwq9my0"
+                                                forwardRef={null}
                                                 onClick={[Function]}
-                                                onlyActiveOnIndex={false}
                                                 role="button"
-                                                style={Object {}}
                                                 to="/settings/org-slug/support/"
                                               >
-                                                <a
+                                                <Link
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
                                                   className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
+                                                  onlyActiveOnIndex={false}
                                                   role="button"
                                                   style={Object {}}
+                                                  to="/settings/org-slug/support/"
                                                 >
-                                                  <ButtonLabel
-                                                    align="center"
-                                                    priority="link"
+                                                  <a
+                                                    aria-disabled={false}
+                                                    aria-label="Go to Support"
+                                                    className="css-1ilrgbi-StyledButton edwq9my0"
+                                                    onClick={[Function]}
+                                                    role="button"
+                                                    style={Object {}}
                                                   >
-                                                    <Component
+                                                    <ButtonLabel
                                                       align="center"
-                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
-                                                      <span
+                                                      <Component
+                                                        align="center"
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        priority="link"
                                                       >
-                                                        Go to Support
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </a>
-                                              </Link>
-                                            </ForwardRef>
-                                          </StyledButton>
-                                        </Button>
+                                                        <span
+                                                          className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        >
+                                                          Go to Support
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </a>
+                                                </Link>
+                                              </Component>
+                                            </StyledButton>
+                                          </Button>
+                                        </forwardRef<Button>>
                                          
                                         · 
                                         <a
@@ -2666,68 +2709,74 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
-                                    align="center"
-                                    disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
-                                    <Button
-                                      align="center"
+                                    <forwardRef<Button>
                                       className="css-13i4fqu-SkipButton e1a4o5477"
-                                      disabled={false}
                                       hide={true}
                                       onClick={[Function]}
                                       size="xsmall"
                                     >
-                                      <StyledButton
-                                        aria-disabled={false}
-                                        aria-label="Skip task"
+                                      <Button
+                                        align="center"
                                         className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
+                                        forwardRef={null}
                                         hide={true}
                                         onClick={[Function]}
-                                        role="button"
                                         size="xsmall"
                                       >
-                                        <ForwardRef
+                                        <StyledButton
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                          className="css-13i4fqu-SkipButton e1a4o5477"
                                           disabled={false}
+                                          forwardRef={null}
                                           hide={true}
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
                                         >
-                                          <button
+                                          <Component
                                             aria-disabled={false}
                                             aria-label="Skip task"
                                             className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                            forwardRef={null}
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
                                           >
-                                            <ButtonLabel
-                                              align="center"
+                                            <button
+                                              aria-disabled={false}
+                                              aria-label="Skip task"
+                                              className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                              onClick={[Function]}
+                                              role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ButtonLabel
                                                 align="center"
-                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
-                                                <span
+                                                <Component
+                                                  align="center"
                                                   className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  size="xsmall"
                                                 >
-                                                  Skip task
-                                                </span>
-                                              </Component>
-                                            </ButtonLabel>
-                                          </button>
-                                        </ForwardRef>
-                                      </StyledButton>
-                                    </Button>
+                                                  <span
+                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  >
+                                                    Skip task
+                                                  </span>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
+                                      </Button>
+                                    </forwardRef<Button>>
                                   </SkipButton>
                                 </div>
                               </Content>
@@ -2787,70 +2836,76 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         </h4>
                                       </Header>
                                       <div>
-                                        <Button
-                                          align="center"
-                                          disabled={false}
+                                        <forwardRef<Button>
                                           priority="link"
                                           to="/settings/org-slug/support/"
                                         >
-                                          <StyledButton
-                                            aria-disabled={false}
-                                            aria-label="Go to Support"
+                                          <Button
+                                            align="center"
                                             disabled={false}
-                                            onClick={[Function]}
+                                            forwardRef={null}
                                             priority="link"
-                                            role="button"
                                             to="/settings/org-slug/support/"
                                           >
-                                            <ForwardRef
+                                            <StyledButton
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
+                                              forwardRef={null}
                                               onClick={[Function]}
                                               priority="link"
                                               role="button"
                                               to="/settings/org-slug/support/"
                                             >
-                                              <Link
+                                              <Component
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
                                                 className="css-1ilrgbi-StyledButton edwq9my0"
+                                                forwardRef={null}
                                                 onClick={[Function]}
-                                                onlyActiveOnIndex={false}
                                                 role="button"
-                                                style={Object {}}
                                                 to="/settings/org-slug/support/"
                                               >
-                                                <a
+                                                <Link
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
                                                   className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
+                                                  onlyActiveOnIndex={false}
                                                   role="button"
                                                   style={Object {}}
+                                                  to="/settings/org-slug/support/"
                                                 >
-                                                  <ButtonLabel
-                                                    align="center"
-                                                    priority="link"
+                                                  <a
+                                                    aria-disabled={false}
+                                                    aria-label="Go to Support"
+                                                    className="css-1ilrgbi-StyledButton edwq9my0"
+                                                    onClick={[Function]}
+                                                    role="button"
+                                                    style={Object {}}
                                                   >
-                                                    <Component
+                                                    <ButtonLabel
                                                       align="center"
-                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
-                                                      <span
+                                                      <Component
+                                                        align="center"
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        priority="link"
                                                       >
-                                                        Go to Support
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </a>
-                                              </Link>
-                                            </ForwardRef>
-                                          </StyledButton>
-                                        </Button>
+                                                        <span
+                                                          className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        >
+                                                          Go to Support
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </a>
+                                                </Link>
+                                              </Component>
+                                            </StyledButton>
+                                          </Button>
+                                        </forwardRef<Button>>
                                          
                                         · 
                                         <a
@@ -2984,68 +3039,74 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     </p>
                                   </Description>
                                   <SkipButton
-                                    align="center"
-                                    disabled={false}
                                     hide={true}
                                     onClick={[Function]}
                                     size="xsmall"
                                   >
-                                    <Button
-                                      align="center"
+                                    <forwardRef<Button>
                                       className="css-13i4fqu-SkipButton e1a4o5477"
-                                      disabled={false}
                                       hide={true}
                                       onClick={[Function]}
                                       size="xsmall"
                                     >
-                                      <StyledButton
-                                        aria-disabled={false}
-                                        aria-label="Skip task"
+                                      <Button
+                                        align="center"
                                         className="css-13i4fqu-SkipButton e1a4o5477"
                                         disabled={false}
+                                        forwardRef={null}
                                         hide={true}
                                         onClick={[Function]}
-                                        role="button"
                                         size="xsmall"
                                       >
-                                        <ForwardRef
+                                        <StyledButton
                                           aria-disabled={false}
                                           aria-label="Skip task"
-                                          className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                          className="css-13i4fqu-SkipButton e1a4o5477"
                                           disabled={false}
+                                          forwardRef={null}
                                           hide={true}
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
                                         >
-                                          <button
+                                          <Component
                                             aria-disabled={false}
                                             aria-label="Skip task"
                                             className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                            forwardRef={null}
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
                                           >
-                                            <ButtonLabel
-                                              align="center"
+                                            <button
+                                              aria-disabled={false}
+                                              aria-label="Skip task"
+                                              className="e1a4o5477 css-1gw4trp-StyledButton-SkipButton edwq9my0"
+                                              onClick={[Function]}
+                                              role="button"
                                               size="xsmall"
                                             >
-                                              <Component
+                                              <ButtonLabel
                                                 align="center"
-                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                                 size="xsmall"
                                               >
-                                                <span
+                                                <Component
+                                                  align="center"
                                                   className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  size="xsmall"
                                                 >
-                                                  Skip task
-                                                </span>
-                                              </Component>
-                                            </ButtonLabel>
-                                          </button>
-                                        </ForwardRef>
-                                      </StyledButton>
-                                    </Button>
+                                                  <span
+                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                  >
+                                                    Skip task
+                                                  </span>
+                                                </Component>
+                                              </ButtonLabel>
+                                            </button>
+                                          </Component>
+                                        </StyledButton>
+                                      </Button>
+                                    </forwardRef<Button>>
                                   </SkipButton>
                                 </div>
                               </Content>
@@ -3105,70 +3166,76 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         </h4>
                                       </Header>
                                       <div>
-                                        <Button
-                                          align="center"
-                                          disabled={false}
+                                        <forwardRef<Button>
                                           priority="link"
                                           to="/settings/org-slug/support/"
                                         >
-                                          <StyledButton
-                                            aria-disabled={false}
-                                            aria-label="Go to Support"
+                                          <Button
+                                            align="center"
                                             disabled={false}
-                                            onClick={[Function]}
+                                            forwardRef={null}
                                             priority="link"
-                                            role="button"
                                             to="/settings/org-slug/support/"
                                           >
-                                            <ForwardRef
+                                            <StyledButton
                                               aria-disabled={false}
                                               aria-label="Go to Support"
-                                              className="css-1ilrgbi-StyledButton edwq9my0"
                                               disabled={false}
+                                              forwardRef={null}
                                               onClick={[Function]}
                                               priority="link"
                                               role="button"
                                               to="/settings/org-slug/support/"
                                             >
-                                              <Link
+                                              <Component
                                                 aria-disabled={false}
                                                 aria-label="Go to Support"
                                                 className="css-1ilrgbi-StyledButton edwq9my0"
+                                                forwardRef={null}
                                                 onClick={[Function]}
-                                                onlyActiveOnIndex={false}
                                                 role="button"
-                                                style={Object {}}
                                                 to="/settings/org-slug/support/"
                                               >
-                                                <a
+                                                <Link
                                                   aria-disabled={false}
                                                   aria-label="Go to Support"
                                                   className="css-1ilrgbi-StyledButton edwq9my0"
                                                   onClick={[Function]}
+                                                  onlyActiveOnIndex={false}
                                                   role="button"
                                                   style={Object {}}
+                                                  to="/settings/org-slug/support/"
                                                 >
-                                                  <ButtonLabel
-                                                    align="center"
-                                                    priority="link"
+                                                  <a
+                                                    aria-disabled={false}
+                                                    aria-label="Go to Support"
+                                                    className="css-1ilrgbi-StyledButton edwq9my0"
+                                                    onClick={[Function]}
+                                                    role="button"
+                                                    style={Object {}}
                                                   >
-                                                    <Component
+                                                    <ButtonLabel
                                                       align="center"
-                                                      className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       priority="link"
                                                     >
-                                                      <span
+                                                      <Component
+                                                        align="center"
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        priority="link"
                                                       >
-                                                        Go to Support
-                                                      </span>
-                                                    </Component>
-                                                  </ButtonLabel>
-                                                </a>
-                                              </Link>
-                                            </ForwardRef>
-                                          </StyledButton>
-                                        </Button>
+                                                        <span
+                                                          className="css-1igyjbb-ButtonLabel edwq9my1"
+                                                        >
+                                                          Go to Support
+                                                        </span>
+                                                      </Component>
+                                                    </ButtonLabel>
+                                                  </a>
+                                                </Link>
+                                              </Component>
+                                            </StyledButton>
+                                          </Button>
+                                        </forwardRef<Button>>
                                          
                                         · 
                                         <a

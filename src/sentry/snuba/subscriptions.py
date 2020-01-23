@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import json
-from uuid import uuid1
 
 from django.db import transaction
 
@@ -74,8 +73,8 @@ def create_snuba_subscription(
         dataset=dataset.value,
         query=query,
         aggregation=aggregation.value,
-        time_window=time_window,
-        resolution=resolution,
+        time_window=int(time_window.total_seconds()),
+        resolution=int(resolution.total_seconds()),
     )
 
 
@@ -127,8 +126,8 @@ def update_snuba_subscription(subscription, query, aggregation, time_window, res
         subscription_id=subscription_id,
         query=query,
         aggregation=aggregation.value,
-        time_window=time_window,
-        resolution=resolution,
+        time_window=int(time_window.total_seconds()),
+        resolution=int(resolution.total_seconds()),
     )
     return subscription
 
@@ -159,8 +158,6 @@ def delete_snuba_subscription(subscription):
 
 
 def _create_in_snuba(project, dataset, query, aggregation, time_window, resolution):
-    # XXX: Temporarily disable this so we can change the snuba api.
-    return uuid1().hex
     response = _snuba_pool.urlopen(
         "POST",
         "/%s/subscriptions" % (dataset.value,),
@@ -172,9 +169,9 @@ def _create_in_snuba(project, dataset, query, aggregation, time_window, resoluti
                 # filtering to project and groups. Projects are handled with an
                 # explicit param, and groups can't be queried here.
                 "conditions": get_filter(query).conditions,
-                "aggregates": [query_aggregation_to_snuba[aggregation]],
-                "time_window": time_window,
-                "resolution": resolution,
+                "aggregations": [query_aggregation_to_snuba[aggregation]],
+                "time_window": int(time_window.total_seconds()),
+                "resolution": int(resolution.total_seconds()),
             }
         ),
         retries=False,
@@ -185,8 +182,6 @@ def _create_in_snuba(project, dataset, query, aggregation, time_window, resoluti
 
 
 def _delete_from_snuba(subscription):
-    # XXX: Temporarily disable this so we can change the snuba api.
-    return
     response = _snuba_pool.urlopen(
         "DELETE",
         "/%s/subscriptions/%s" % (subscription.dataset, subscription.subscription_id),

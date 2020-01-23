@@ -231,12 +231,10 @@ describe('EventsV2 > EventDetails', function() {
     // Get the first link as we wrap react-router's link
     const tagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
 
-    // Should remove eventSlug and append new tag value causing
-    // the view to re-render
-    expect(tagLink.props().to).toEqual({
-      pathname: '/organizations/org-slug/discover/results/',
-      query: {query: 'browser:Firefox'},
-    });
+    // Should append tag value and other event attributes to results view query.
+    const target = tagLink.props().to;
+    expect(target.pathname).toEqual('/organizations/org-slug/discover/results/');
+    expect(target.query.query).toEqual('browser:Firefox title:"Oh no something bad"');
   });
 
   it('appends tag value to existing query when clicked', async function() {
@@ -245,9 +243,7 @@ describe('EventsV2 > EventDetails', function() {
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
-          query: {
-            query: 'Dumpster',
-          },
+          query: {},
         },
       },
     });
@@ -255,7 +251,9 @@ describe('EventsV2 > EventDetails', function() {
       <EventDetails
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
-        location={{query: allEventsView.generateQueryStringObject()}}
+        location={{
+          query: {...allEventsView.generateQueryStringObject(), query: 'Dumpster'},
+        }}
       />,
       routerContext
     );
@@ -265,11 +263,11 @@ describe('EventsV2 > EventDetails', function() {
     // Get the first link as we wrap react-router's link
     const tagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
 
-    // Should remove eventSlug and append new tag value causing
-    // the view to re-render
-    expect(tagLink.props().to).toEqual({
-      pathname: '/organizations/org-slug/discover/results/',
-      query: {query: 'Dumpster browser:Firefox'},
-    });
+    // Should append tag value and other event attributes to results view query.
+    const target = tagLink.props().to;
+    expect(target.pathname).toEqual('/organizations/org-slug/discover/results/');
+    expect(target.query.query).toEqual(
+      'Dumpster browser:Firefox title:"Oh no something bad"'
+    );
   });
 });

@@ -7,16 +7,14 @@ exports[`ApiTokens renders empty result 1`] = `
   <div>
     <StyledSettingsPageHeading
       action={
-        <Button
-          align="center"
+        <ForwardRef
           data-test-id="create-token"
-          disabled={false}
           priority="primary"
           size="small"
           to="/settings/account/api/auth-tokens/new-token/"
         >
           Create New Token
-        </Button>
+        </ForwardRef>
       }
       noTitleStyles={false}
       title="Auth Tokens"
@@ -96,16 +94,14 @@ exports[`ApiTokens renders with result 1`] = `
   <div>
     <StyledSettingsPageHeading
       action={
-        <Button
-          align="center"
+        <ForwardRef
           data-test-id="create-token"
-          disabled={false}
           priority="primary"
           size="small"
           to="/settings/account/api/auth-tokens/new-token/"
         >
           Create New Token
-        </Button>
+        </ForwardRef>
       }
       noTitleStyles={false}
       title="Auth Tokens"
