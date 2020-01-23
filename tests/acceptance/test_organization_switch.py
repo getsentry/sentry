@@ -7,89 +7,70 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationSwitchTest, self).setUp()
 
-        self.project_1 = self.create_project(
-            organization=self.organization, teams=[self.team], name="Bengal"
-        )
-        self.project_2 = self.create_project(
-            organization=self.organization, teams=[self.team], name="Sumatra"
-        )
-        self.project_3 = self.create_project(
-            organization=self.organization, teams=[self.team], name="Siberian"
-        )
-        self.PRIMARY_PROJECTS_COUNT = 3
-        self.secondary_org = self.create_organization(owner=self.user, name="Banana Duck")
+        self.primary_projects = [
+            self.create_project(organization=self.organization, teams=[self.team], name=name)
+            for name in ["Bengal", "Sumatra", "Siberian"]
+        ]
+
+        self.secondary_organization = self.create_organization(owner=self.user, name="Banana Duck")
 
         self.secondary_team = self.create_team(
-            organization=self.secondary_org, name="Second", members=[self.user]
+            organization=self.secondary_organization, name="Second", members=[self.user]
         )
 
-        self.project_4 = self.create_project(
-            organization=self.secondary_org, teams=[self.secondary_team], name="Gone Goose"
-        )
-
-        self.project_5 = self.create_project(
-            organization=self.secondary_org, teams=[self.secondary_team], name="Peaceful Platypus"
-        )
-
-        self.SECONDARY_PROJECTS_COUNT = 2
+        self.secondary_projects = [
+            self.create_project(
+                organization=self.secondary_organization, teams=[self.secondary_team], name=name
+            )
+            for name in ["Gone Goose", "Peaceful Platypus"]
+        ]
 
         self.login_as(self.user)
 
     def test_organization_switches(self):
-        issues_url_creator = lambda org_slug: u"organizations/{org_id}/issues/".format(
-            org_id=org_slug
-        )
-        releases_url_creator = lambda org_slug: u"organizations/{org_id}/releases/".format(
-            org_id=org_slug
-        )
-        discover_url_creator = lambda org_slug: u"organizations/{org_id}/discover/".format(
-            org_id=org_slug
-        )
-        user_feedback_url_creator = lambda org_slug: u"organizations/{org_id}/user-feedback/".format(
-            org_id=org_slug
-        )
+        def navigate_to_issues_page_and_select_projects(org_slug):
+            issues_url = OrganizationSwitchTest.url_creator("issues", org_slug)
+            self.browser.get(issues_url)
+            self.browser.wait_until_not(".loading-indicator")
+            self.browser.click_when_visible(
+                selector='[data-test-id="global-header-project-selector"]', timeout=10
+            )
 
-        primary_slug = self.organization.slug
-        secondary_slug = self.secondary_org.slug
-
-        origin_url = issues_url_creator(primary_slug)
-        destination_url = issues_url_creator(secondary_slug)
+        def get_project_elements_from_project_selector_dropdown():
+            return self.browser.driver.find_elements_by_css_selector(
+                '[data-test-id="autocomplete-list"] [data-test-id="badge-display-name"]'
+            )
 
         transition_urls = [
-            url_creator(primary_slug)
-            for url_creator in [
-                issues_url_creator,
-                releases_url_creator,
-                discover_url_creator,
-                user_feedback_url_creator,
-            ]
+            OrganizationSwitchTest.url_creator(page, self.organization.slug)
+            for page in ["issues", "releases" "discover", "user-feedback"]
         ]
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=False), self.feature(
             "organizations:discover"
         ):
             for transition_url in transition_urls:
-                self.browser.get(origin_url)
-                self.browser.wait_until_not(".loading-indicator")
-                self.browser.click_when_visible(
-                    selector='[data-test-id="global-header-project-selector"]', timeout=10
+                navigate_to_issues_page_and_select_projects(self.organization.slug)
+                primary_projects_elements = get_project_elements_from_project_selector_dropdown()
+                OrganizationSwitchTest.expect_projects_element_text_to_match_projects_slug(
+                    primary_projects_elements, self.primary_projects
                 )
-                primary_count = len(
-                    self.browser.driver.find_elements_by_css_selector(
-                        "[data-test-id=badge-display-name]"
-                    )
-                )
-                assert primary_count == self.PRIMARY_PROJECTS_COUNT
 
                 self.browser.get(transition_url)
                 self.browser.wait_until_not(".loading-indicator")
 
-                self.browser.get(destination_url)
-                self.browser.wait_until_not(".loading-indicator")
-                self.browser.click('[data-test-id="global-header-project-selector"]')
-                secondary_count = len(
-                    self.browser.driver.find_elements_by_css_selector(
-                        "[data-test-id=badge-display-name]"
-                    )
+                navigate_to_issues_page_and_select_projects(self.secondary_organization.slug)
+                secondary_projects_elements = get_project_elements_from_project_selector_dropdown()
+
+                OrganizationSwitchTest.expect_projects_element_text_to_match_projects_slug(
+                    secondary_projects_elements, self.secondary_projects
                 )
-                assert secondary_count == self.SECONDARY_PROJECTS_COUNT
+
+    @staticmethod
+    def expect_projects_element_text_to_match_projects_slug(elements, projects):
+        assert len(elements) == len(projects)
+        assert {e.text for e in elements} == {p.slug for p in projects}
+
+    @staticmethod
+    def url_creator(page_path, org_slug):
+        return u"organizations/{org_id}/{page_path}/".format(org_id=org_slug, page_path=page_path)
