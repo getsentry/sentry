@@ -76,11 +76,6 @@ class HerokuReleaseHook(ReleaseHook):
 class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
     author = "Sentry Team"
     author_url = "https://github.com/getsentry"
-    resource_links = (
-        ("Bug Tracker", "https://github.com/getsentry/sentry-heroku/issues"),
-        ("Source", "https://github.com/getsentry/sentry-heroku"),
-    )
-
     title = "Heroku"
     slug = "heroku"
     description = "Integrate Heroku release tracking."

@@ -9,7 +9,7 @@ if [ "${1:0:1}" = '-' ]; then
 fi
 
 case "$1" in
-	celery|cleanup|config|createuser|devserver|django|exec|export|help|import|init|plugins|queues|repair|run|shell|start|tsdb|upgrade)
+	celery|cleanup|config|createuser|devserver|django|exec|export|help|import|init|permissions|plugins|queues|repair|run|shell|start|tsdb|upgrade)
 		set -- sentry "$@"
 	;;
 esac
@@ -17,8 +17,8 @@ esac
 if [ "$1" = 'sentry' ]; then
 	set -- tini -- "$@"
 	if [ "$(id -u)" = '0' ]; then
-		mkdir -p "$SENTRY_FILESTORE_DIR"
-		find "$SENTRY_FILESTORE_DIR" ! -user sentry -exec chown sentry {} \;
+		mkdir -p /data/files
+		find /data ! -user sentry -exec chown sentry {} \;
 		set -- gosu sentry "$@"
 	fi
 fi

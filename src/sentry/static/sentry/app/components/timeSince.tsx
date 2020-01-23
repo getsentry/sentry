@@ -24,11 +24,13 @@ type Props = {
 
   // TODO(ts): This should be "required", but emotion doesn't seem to like its defaultProps
   suffix?: string;
-
-  className?: string;
 };
 
-class TimeSince extends React.PureComponent<Props> {
+type State = {
+  relative: string;
+};
+
+class TimeSince extends React.PureComponent<Props, State> {
   static propTypes = {
     date: PropTypes.any.isRequired,
     suffix: PropTypes.string,
@@ -42,7 +44,9 @@ class TimeSince extends React.PureComponent<Props> {
     relative: '',
   };
 
-  static getDerivedStateFromProps(props: Props) {
+  // TODO(ts) TODO(emotion): defining the props type breaks emotion's typings
+  // See: https://github.com/emotion-js/emotion/pull/1514
+  static getDerivedStateFromProps(props) {
     return {
       relative: getRelativeDate(props.date, props.suffix),
     };
@@ -71,16 +75,17 @@ class TimeSince extends React.PureComponent<Props> {
   };
 
   render() {
-    const date = getDateObj(this.props.date);
+    const {date, suffix: _suffix, ...props} = this.props;
+    const dateObj = getDateObj(date);
     const user = ConfigStore.get('user');
     const options = user ? user.options : {};
     const format = options.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
 
     return (
       <time
-        dateTime={date.toISOString()}
-        title={moment.tz(date, options.timezone).format(format)}
-        className={this.props.className}
+        dateTime={dateObj.toISOString()}
+        title={moment.tz(dateObj, options.timezone).format(format)}
+        {...props}
       >
         {this.state.relative}
       </time>
@@ -97,7 +102,7 @@ function getDateObj(date: RelaxedDateType): Date {
   return date;
 }
 
-function getRelativeDate(currentDateTime: RelaxedDateType, suffix?: string) {
+function getRelativeDate(currentDateTime: RelaxedDateType, suffix?: string): string {
   const date = getDateObj(currentDateTime);
 
   if (!suffix) {

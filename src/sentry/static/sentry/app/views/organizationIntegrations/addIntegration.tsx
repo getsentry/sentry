@@ -2,9 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import queryString from 'query-string';
 
+import {IntegrationProvider, Integration, Organization} from 'app/types';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import IndicatorStore from 'app/stores/indicatorStore';
-import {IntegrationProvider, Integration} from 'app/types';
+import SentryTypes from 'app/sentryTypes';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = {
   children: (
@@ -14,6 +16,7 @@ type Props = {
   onInstall: (data: Integration) => void;
   reinstallId?: string;
   account?: string;
+  organization?: Organization; //for analytics
 };
 
 export default class AddIntegration extends React.Component<Props> {
@@ -23,6 +26,7 @@ export default class AddIntegration extends React.Component<Props> {
     onInstall: PropTypes.func.isRequired,
     reinstallId: PropTypes.string,
     account: PropTypes.string,
+    organization: SentryTypes.Organization,
   };
 
   componentDidMount() {
@@ -62,6 +66,15 @@ export default class AddIntegration extends React.Component<Props> {
   }
 
   openDialog = (urlParams?: {[key: string]: string}) => {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.installation_start',
+        eventName: 'Integrations: Installation Start',
+        integration: this.props.provider.key,
+        integration_type: 'first_party',
+      },
+      this.props.organization
+    );
     const name = 'sentryAddIntegration';
     const {url, width, height} = this.props.provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
@@ -96,7 +109,7 @@ export default class AddIntegration extends React.Component<Props> {
     this.dialog = null;
 
     if (!success) {
-      IndicatorStore.addError(data.error);
+      addErrorMessage(data.error);
       return;
     }
 
@@ -104,7 +117,16 @@ export default class AddIntegration extends React.Component<Props> {
       return;
     }
     this.props.onInstall(data);
-    IndicatorStore.addSuccess(t(`${this.props.provider.name} added`));
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.installation_complete',
+        eventName: 'Integrations: Installation Complete',
+        integration: this.props.provider.key,
+        integration_type: 'first_party',
+      },
+      this.props.organization
+    );
+    addSuccessMessage(t('%s added', this.props.provider.name));
   };
 
   render() {

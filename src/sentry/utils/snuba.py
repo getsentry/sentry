@@ -5,12 +5,14 @@ from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
+import functools
 import os
 import pytz
 import re
 import six
 import time
 import urllib3
+import sentry_sdk
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -52,11 +54,7 @@ OVERRIDE_OPTIONS = {
 SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
 }
-TRANSACTIONS_SENTRY_SNUBA_MAP = {
-    col.value.alias: col.value.transaction_name
-    for col in Columns
-    if col.value.transaction_name is not None
-}
+
 
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
@@ -69,18 +67,13 @@ DISCOVER_COLUMN_MAP = {
 }
 
 
-DATASETS = {
-    Dataset.Events: SENTRY_SNUBA_MAP,
-    Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP,
-    Dataset.Discover: DISCOVER_COLUMN_MAP,
-}
+DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Discover: DISCOVER_COLUMN_MAP}
 
 # Store the internal field names to save work later on.
 # Add `group_id` to the events dataset list as we don't want to publically
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
-    Dataset.Transactions: list(TRANSACTIONS_SENTRY_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
 }
 
@@ -195,9 +188,35 @@ def options_override(overrides):
             OVERRIDE_OPTIONS.pop(k)
 
 
+class RetrySkipTimeout(urllib3.Retry):
+    """
+    urllib3 Retry class does not allow us to retry on read errors but to exclude
+    read timeout. Retrying after a timeout adds useless load to Snuba.
+    """
+
+    def increment(
+        self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
+    ):
+        """
+        Just rely on the parent class unless we have a read timeout. In that case
+        immediately give up
+        """
+        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+            raise six.reraise(type(error), error, _stacktrace)
+
+        return super(RetrySkipTimeout, self).increment(
+            method=method,
+            url=url,
+            response=response,
+            error=error,
+            _pool=_pool,
+            _stacktrace=_stacktrace,
+        )
+
+
 _snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
-    retries=urllib3.Retry(
+    retries=RetrySkipTimeout(
         total=5,
         # Expand our retries to POST since all of
         # our requests are POST and they don't mutate, so they
@@ -222,31 +241,6 @@ def to_naive_timestamp(value):
     return (value - epoch_naive).total_seconds()
 
 
-def zerofill(data, start, end, rollup, orderby):
-    rv = []
-    start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
-    end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
-    data_by_time = {}
-
-    for obj in data:
-        if obj["time"] in data_by_time:
-            data_by_time[obj["time"]].append(obj)
-        else:
-            data_by_time[obj["time"]] = [obj]
-
-    for key in six.moves.xrange(start, end, rollup):
-        if key in data_by_time and len(data_by_time[key]) > 0:
-            rv = rv + data_by_time[key]
-            data_by_time[key] = []
-        else:
-            rv.append({"time": key})
-
-    if "-time" in orderby:
-        return list(reversed(rv))
-
-    return rv
-
-
 def get_snuba_column_name(name, dataset=Dataset.Events):
     """
     Get corresponding Snuba column name from Sentry snuba map, if not found
@@ -262,88 +256,6 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
         return name
 
     return DATASETS[dataset].get(name, u"tags[{}]".format(name))
-
-
-def detect_dataset(query_args, aliased_conditions=False):
-    """
-    Determine the dataset to use based on the conditions, selected_columns,
-    groupby clauses.
-
-    This function operates on the end user field aliases and not the internal column
-    names that have been converted using the field mappings.
-
-    The aliased_conditions parameter switches column detection between
-    the public aliases and the internal names. When query conditions
-    have been pre-parsed by api.event_search set aliased_conditions=True
-    as we need to look for internal names.
-
-    :deprecated: This method and the automatic dataset resolution is deprecated.
-    You should use sentry.snuba.discover instead.
-    """
-    if query_args.get("dataset", None):
-        return query_args["dataset"]
-
-    dataset = Dataset.Events
-    transaction_fields = set(DATASETS[Dataset.Transactions].keys()) - set(
-        DATASETS[Dataset.Events].keys()
-    )
-    condition_fieldset = transaction_fields
-
-    if aliased_conditions:
-        # Release and user are also excluded as they are present on both
-        # datasets and don't trigger usage of transactions.
-        condition_fieldset = (
-            set(DATASET_FIELDS[Dataset.Transactions])
-            - set(DATASET_FIELDS[Dataset.Events])
-            - set(["release", "user"])
-        )
-
-    for condition in query_args.get("conditions") or []:
-        if isinstance(condition[0], six.string_types) and condition[0] in condition_fieldset:
-            return Dataset.Transactions
-        if condition == ["event.type", "=", "transaction"] or condition == [
-            "type",
-            "=",
-            "transaction",
-        ]:
-            return Dataset.Transactions
-
-        if condition == ["event.type", "!=", "transaction"] or condition == [
-            "type",
-            "!=",
-            "transaction",
-        ]:
-            return Dataset.Events
-
-    for field in query_args.get("selected_columns") or []:
-        if isinstance(field, six.string_types) and field in transaction_fields:
-            return Dataset.Transactions
-
-    for field in query_args.get("aggregations") or []:
-        if len(field) != 3:
-            continue
-        # Check field or fields
-        if isinstance(field[1], six.string_types) and field[1] in transaction_fields:
-            return Dataset.Transactions
-        if isinstance(field[1], (list, tuple)):
-            is_transaction = [column for column in field[1] if column in transaction_fields]
-            if is_transaction:
-                return Dataset.Transactions
-        # Check for transaction only field aliases
-        if isinstance(field[2], six.string_types) and field[2] in (
-            "apdex",
-            "impact",
-            "p75",
-            "p95",
-            "p99",
-        ):
-            return Dataset.Transactions
-
-    for field in query_args.get("groupby") or []:
-        if field in transaction_fields:
-            return Dataset.Transactions
-
-    return dataset
 
 
 def get_function_index(column_expr, depth=0):
@@ -383,191 +295,10 @@ def get_function_index(column_expr, depth=0):
         return None
 
 
-def parse_columns_in_functions(col, context=None, index=None, dataset=Dataset.Events):
-    """
-    Checks expressions for arguments that should be considered a column while
-    ignoring strings that represent clickhouse function names
-
-    if col is a list, means the expression has functions and we need
-    to parse for arguments that should be considered column names.
-
-    Assumptions here:
-     * strings that represent clickhouse function names are always followed by a list or tuple
-     * strings that are quoted with single quotes are used as string literals for CH
-     * otherwise we should attempt to get the snuba column name (or custom tag)
-    """
-
-    function_name_index = get_function_index(col)
-
-    if function_name_index is not None:
-        # if this is non zero, that means there are strings before this index
-        # that should be converted to snuba column names
-        # e.g. ['func1', ['column', 'func2', ['arg1']]]
-        if function_name_index > 0:
-            for i in six.moves.xrange(0, function_name_index):
-                if context is not None:
-                    context[i] = get_snuba_column_name(col[i], dataset)
-
-        args = col[function_name_index + 1]
-
-        # check for nested functions in args
-        if get_function_index(args):
-            # look for columns
-            return parse_columns_in_functions(args, args, dataset=dataset)
-
-        # check each argument for column names
-        else:
-            for (i, arg) in enumerate(args):
-                parse_columns_in_functions(arg, args, i, dataset=dataset)
-    else:
-        # probably a column name
-        if context is not None and index is not None:
-            context[index] = get_snuba_column_name(col, dataset)
-
-
 def get_arrayjoin(column):
     match = re.match(r"^(exception_stacks|exception_frames|contexts)\..+$", column)
     if match:
         return match.groups()[0]
-
-
-def valid_orderby(orderby, custom_fields=None, dataset=Dataset.Events):
-    """
-    Check if a field can be used in sorting. We don't allow
-    sorting on fields that would be aliased as tag[foo] because those
-    fields are unlikely to be selected.
-    """
-    if custom_fields is None:
-        custom_fields = []
-    fields = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-    mapping = DATASETS[dataset]
-    for field in fields:
-        field = field.lstrip("-")
-        if field not in mapping and field not in custom_fields:
-            return False
-    return True
-
-
-def transform_aliases_and_query(**kwargs):
-    """
-    Convert aliases in selected_columns, groupby, aggregation, conditions,
-    orderby and arrayjoin fields to their internal Snuba format and post the
-    query to Snuba. Convert back translated aliases before returning snuba
-    results.
-
-    :deprecated: This method is deprecated. You should use sentry.snuba.discover instead.
-    """
-
-    arrayjoin_map = {"error": "exception_stacks", "stack": "exception_frames"}
-
-    translated_columns = {}
-    derived_columns = set()
-
-    selected_columns = kwargs.get("selected_columns")
-    groupby = kwargs.get("groupby")
-    aggregations = kwargs.get("aggregations")
-    conditions = kwargs.get("conditions")
-    filter_keys = kwargs["filter_keys"]
-    arrayjoin = kwargs.get("arrayjoin")
-    orderby = kwargs.get("orderby")
-    having = kwargs.get("having", [])
-    dataset = detect_dataset(kwargs)
-
-    if selected_columns:
-        for (idx, col) in enumerate(selected_columns):
-            if isinstance(col, list):
-                # if list, means there are potentially nested functions and need to
-                # iterate and translate potential columns
-                parse_columns_in_functions(col)
-                selected_columns[idx] = col
-                translated_columns[col[2]] = col[2]
-                derived_columns.add(col[2])
-            else:
-                name = get_snuba_column_name(col, dataset)
-                selected_columns[idx] = name
-                translated_columns[name] = col
-
-    if groupby:
-        for (idx, col) in enumerate(groupby):
-            if col not in derived_columns:
-                name = get_snuba_column_name(col, dataset)
-            else:
-                name = col
-
-            groupby[idx] = name
-            translated_columns[name] = col
-
-    for aggregation in aggregations or []:
-        derived_columns.add(aggregation[2])
-        if isinstance(aggregation[1], six.string_types):
-            aggregation[1] = get_snuba_column_name(aggregation[1], dataset)
-        elif isinstance(aggregation[1], (set, tuple, list)):
-            aggregation[1] = [get_snuba_column_name(col, dataset) for col in aggregation[1]]
-
-    for col in filter_keys.keys():
-        name = get_snuba_column_name(col, dataset)
-        filter_keys[name] = filter_keys.pop(col)
-
-    if conditions:
-        aliased_conditions = []
-        for condition in conditions:
-            field = condition[0]
-            if not isinstance(field, (list, tuple)) and field in derived_columns:
-                having.append(condition)
-            else:
-                aliased_conditions.append(condition)
-        kwargs["conditions"] = aliased_conditions
-
-    if having:
-        kwargs["having"] = having
-
-    if orderby:
-        orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-        translated_orderby = []
-
-        for field_with_order in orderby:
-            field = field_with_order.lstrip("-")
-            translated_orderby.append(
-                u"{}{}".format(
-                    "-" if field_with_order.startswith("-") else "",
-                    field if field in derived_columns else get_snuba_column_name(field, dataset),
-                )
-            )
-
-        kwargs["orderby"] = translated_orderby
-
-    kwargs["arrayjoin"] = arrayjoin_map.get(arrayjoin, arrayjoin)
-    kwargs["dataset"] = dataset
-
-    result = dataset_query(**kwargs)
-
-    return transform_results(result, translated_columns, kwargs)
-
-
-def transform_results(result, translated_columns, snuba_args):
-    """
-    Transform internal names back to the public schema ones.
-
-    When getting timeseries results via rollup, this function will
-    zerofill the output results.
-    """
-    # Translate back columns that were converted to snuba format
-    for col in result["meta"]:
-        col["name"] = translated_columns.get(col["name"], col["name"])
-
-    def get_row(row):
-        return {translated_columns.get(key, key): value for key, value in row.items()}
-
-    if len(translated_columns):
-        result["data"] = [get_row(row) for row in result["data"]]
-
-    rollup = snuba_args.get("rollup")
-    if rollup and rollup > 0:
-        result["data"] = zerofill(
-            result["data"], snuba_args["start"], snuba_args["end"], rollup, snuba_args["orderby"]
-        )
-
-    return result
 
 
 def get_query_params_to_update_for_projects(query_params):
@@ -595,7 +326,7 @@ def get_query_params_to_update_for_projects(query_params):
         )
 
     # any project will do, as they should all be from the same organization
-    organization_id = Project.objects.get(pk=project_ids[0]).organization_id
+    organization_id = Project.objects.get_from_cache(pk=project_ids[0]).organization_id
 
     return organization_id, {"project": project_ids}
 
@@ -638,7 +369,7 @@ def _prepare_query_params(query_params):
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if query_params.dataset in [Dataset.Events, Dataset.Transactions, Dataset.Discover]:
+    if query_params.dataset in [Dataset.Events, Dataset.Discover]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
     elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
@@ -795,13 +526,16 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         query_params, forward, reverse = params
         try:
             with timer("snuba_query"):
-                return (
-                    _snuba_pool.urlopen(
-                        "POST", "/query", body=json.dumps(query_params), headers=headers
-                    ),
-                    forward,
-                    reverse,
-                )
+                body = json.dumps(query_params)
+                with sentry_sdk.start_span(
+                    op="snuba", description=u"query {}".format(body)
+                ) as span:
+                    span.set_tag("referrer", headers.get("referer", "<unknown>"))
+                    return (
+                        _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
+                        forward,
+                        reverse,
+                    )
         except urllib3.exceptions.HTTPError as err:
             raise SnubaError(err)
 
@@ -921,31 +655,21 @@ def nest_groups(data, groups, aggregate_cols):
         )
 
 
-def constrain_column_to_dataset(col, dataset, value=None):
-    """
-    Ensure conditions only reference valid columns on the provided
-    dataset. Return none for conditions to be removed, and convert
-    unknown columns into tags expressions.
-
-    :deprecated: This method and the automatic dataset resolution is deprecated.
-    You should use sentry.snuba.discover instead.
-    """
+def resolve_column(col, dataset):
     if col.startswith("tags["):
         return col
-    # Special case for the type condition as we only want
-    # to drop it when we are querying transactions.
-    if dataset == Dataset.Transactions and col == "event.type" and value == "transaction":
-        return None
+
     if not col or QUOTED_LITERAL_RE.match(col):
         return col
     if col in DATASETS[dataset]:
         return DATASETS[dataset][col]
     if col in DATASET_FIELDS[dataset]:
         return col
+
     return u"tags[{}]".format(col)
 
 
-def constrain_condition_to_dataset(cond, dataset):
+def resolve_condition(cond, column_resolver):
     """
     When conditions have been parsed by the api.event_search module
     we can end up with conditions that are not valid on the current dataset
@@ -955,23 +679,24 @@ def constrain_condition_to_dataset(cond, dataset):
     We have the dataset context here, so we need to re-scope conditions to the
     current dataset.
 
-    :deprecated: This method and the automatic dataset resolution is deprecated.
-    You should use sentry.snuba.discover instead.
+    cond (tuple) Condition to resolve aliases in.
+    column_resolver (Function[string]) Function to resolve column names for the
+                                       current dataset.
     """
     index = get_function_index(cond)
     if index is not None:
         # IN conditions are detected as a function but aren't really.
         if cond[index] == "IN":
-            cond[0] = constrain_column_to_dataset(cond[0], dataset)
+            cond[0] = column_resolver(cond[0])
             return cond
 
         func_args = cond[index + 1]
         for (i, arg) in enumerate(func_args):
             # Nested function
             if isinstance(arg, (list, tuple)):
-                func_args[i] = constrain_condition_to_dataset(arg, dataset)
+                func_args[i] = resolve_condition(arg, column_resolver)
             else:
-                func_args[i] = constrain_column_to_dataset(arg, dataset)
+                func_args[i] = column_resolver(arg)
         cond[index + 1] = func_args
         return cond
 
@@ -979,24 +704,19 @@ def constrain_condition_to_dataset(cond, dataset):
     if isinstance(cond, (list, tuple)) and len(cond):
         # Condition is [col, operator, value]
         if isinstance(cond[0], six.string_types) and len(cond) == 3:
-            # Map column name to current dataset removing
-            # invalid conditions based on the dataset.
-            name = constrain_column_to_dataset(cond[0], dataset, cond[2])
-            if name is None:
-                return None
-            cond[0] = name
+            cond[0] = column_resolver(cond[0])
             return cond
         if isinstance(cond[0], (list, tuple)):
             if get_function_index(cond[0]) is not None:
-                cond[0] = constrain_condition_to_dataset(cond[0], dataset)
+                cond[0] = resolve_condition(cond[0], column_resolver)
                 return cond
             else:
                 # Nested conditions
-                return [constrain_condition_to_dataset(item, dataset) for item in cond]
+                return [resolve_condition(item, column_resolver) for item in cond]
     raise ValueError("Unexpected condition format %s" % cond)
 
 
-def dataset_query(
+def aliased_query(
     start=None,
     end=None,
     groupby=None,
@@ -1013,24 +733,16 @@ def dataset_query(
     """
     Wrapper around raw_query that selects the dataset based on the
     selected_columns, conditions and groupby parameters.
-    Useful for taking arbitrary end user queries and searching
-    either error or transaction events.
+    Useful for taking arbitrary end user queries and running
+    them on one of the snuba datasets.
 
-    This function will also re-alias columns to match the selected dataset
+    This function will also resolve column aliases to match the selected dataset
 
-    :deprecated: This method and the automatic dataset resolution is deprecated.
-    You should use sentry.snuba.discover instead.
+    This method should be used sparingly. Instead prefer to use sentry.eventstore
+    sentry.tagstore, or sentry.snuba.discover instead when reading data.
     """
     if dataset is None:
-        dataset = detect_dataset(
-            dict(
-                dataset=dataset,
-                aggregations=aggregations,
-                conditions=conditions,
-                selected_columns=selected_columns,
-                groupby=groupby,
-            )
-        )
+        raise ValueError("A dataset is required, and is no longer automatically detected.")
 
     derived_columns = []
     if selected_columns:
@@ -1038,7 +750,7 @@ def dataset_query(
             if isinstance(col, (list, tuple)):
                 derived_columns.append(col[2])
             else:
-                selected_columns[i] = constrain_column_to_dataset(col, dataset)
+                selected_columns[i] = resolve_column(col, dataset)
         selected_columns = list(filter(None, selected_columns))
 
     if aggregations:
@@ -1046,8 +758,9 @@ def dataset_query(
             derived_columns.append(aggregation[2])
 
     if conditions:
+        column_resolver = functools.partial(resolve_column, dataset=dataset)
         for (i, condition) in enumerate(conditions):
-            replacement = constrain_condition_to_dataset(condition, dataset)
+            replacement = resolve_condition(condition, column_resolver)
             conditions[i] = replacement
         conditions = list(filter(None, conditions))
 
@@ -1057,7 +770,7 @@ def dataset_query(
         for (i, order) in enumerate(orderby):
             order_field = order.lstrip("-")
             if order_field not in derived_columns:
-                order_field = constrain_column_to_dataset(order_field, dataset)
+                order_field = resolve_column(order_field, dataset)
             updated_order.append(u"{}{}".format("-" if order.startswith("-") else "", order_field))
         orderby = updated_order
 

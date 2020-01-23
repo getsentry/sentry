@@ -18,7 +18,10 @@ describe('Utils', function() {
       {count: 6, uniq_id: 10, 'project.id': 5, environment: 'production'},
     ];
     const query = {
-      aggregations: [['count()', null, 'count'], ['uniq', 'id', 'uniq_id']],
+      aggregations: [
+        ['count()', null, 'count'],
+        ['uniq', 'id', 'uniq_id'],
+      ],
       fields: ['project.id', 'environment'],
     };
 
@@ -58,7 +61,10 @@ describe('Utils', function() {
       {count: 6, uniq_id: 10, 'project.id': 5, environment: 'production'},
     ];
     const query = {
-      aggregations: [['count()', null, 'count'], ['uniq', 'id', 'uniq_id']],
+      aggregations: [
+        ['count()', null, 'count'],
+        ['uniq', 'id', 'uniq_id'],
+      ],
       fields: ['project.id', 'environment'],
     };
 

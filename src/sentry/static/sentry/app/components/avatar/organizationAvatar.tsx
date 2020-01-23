@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {Organization} from 'app/types';
+import {OrganizationSummary} from 'app/types';
 import {explodeSlug} from 'app/utils';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import SentryTypes from 'app/sentryTypes';
 
 type Props = {
-  organization: Organization;
-} & BaseAvatar['props'];
+  organization: OrganizationSummary;
+} & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
 
 class OrganizationAvatar extends React.Component<Props> {
   static propTypes = {

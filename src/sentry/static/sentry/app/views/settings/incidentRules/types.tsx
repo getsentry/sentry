@@ -30,7 +30,7 @@ export type ThresholdControlValue = {
 
 export type SavedTrigger = UnsavedTrigger & {
   id: string;
-  dateAdded: string;
+  dateCreated: string;
 };
 
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
@@ -45,7 +45,7 @@ export type UnsavedIncidentRule = {
 };
 
 export type SavedIncidentRule = UnsavedIncidentRule & {
-  dateAdded: string;
+  dateCreated: string;
   dateModified: string;
   id: string;
   status: number;
@@ -96,4 +96,7 @@ export type Action = {
 
   // How to identify the target. Can be email, slack channel, pagerduty service, user_id, team_id, etc
   targetIdentifier: string | null;
+
+  // Human readable string describing what the action does.
+  desc: string | null;
 };

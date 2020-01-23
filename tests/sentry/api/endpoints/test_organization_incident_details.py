@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
-import mock
+from sentry.utils.compat import mock
 import pytz
 import six
 from django.utils import timezone
@@ -65,7 +65,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
         assert resp.data["query"] == expected["query"]
         assert resp.data["projects"] == expected["projects"]
         assert resp.data["dateDetected"] == expected["dateDetected"]
-        assert resp.data["dateAdded"] == expected["dateAdded"]
+        assert resp.data["dateCreated"] == expected["dateCreated"]
         assert resp.data["projects"] == expected["projects"]
         assert resp.data["eventStats"] == expected["eventStats"]
         assert resp.data["seenBy"] == seen_by
@@ -87,6 +87,15 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
 
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == IncidentStatus.CLOSED.value
+
+    def test_cannot_open(self):
+        incident = self.create_incident()
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(
+                incident.organization.slug, incident.identifier, status=IncidentStatus.OPEN.value
+            )
+            assert resp.status_code == 400
+            assert resp.data.startswith("Status cannot be changed")
 
     def test_comment(self):
         incident = self.create_incident()

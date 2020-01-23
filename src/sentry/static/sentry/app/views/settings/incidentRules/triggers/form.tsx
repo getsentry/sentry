@@ -8,7 +8,6 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {t} from 'app/locale';
 import ActionsPanel from 'app/views/settings/incidentRules/triggers/actionsPanel';
 import Field from 'app/views/settings/components/forms/field';
-import Input from 'app/views/settings/components/forms/controls/input';
 import ThresholdControl from 'app/views/settings/incidentRules/triggers/thresholdControl';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
@@ -23,6 +22,7 @@ type AlertRuleThresholdKey = {
 type Props = {
   api: Client;
   config: Config;
+  disabled: boolean;
   organization: Organization;
 
   /**
@@ -32,6 +32,7 @@ type Props = {
   projects: Project[];
   trigger: Trigger;
   triggerIndex: number;
+  isCritical: boolean;
 
   onChange: (trigger: Trigger) => void;
 };
@@ -118,38 +119,25 @@ class TriggerForm extends React.PureComponent<Props> {
     }
   };
 
-  handleChangeLabel = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const {onChange, trigger} = this.props;
-
-    onChange({...trigger, label: e.target.value});
-  };
-
   render() {
-    const {error, trigger} = this.props;
+    const {disabled, error, trigger, isCritical} = this.props;
+    const triggerLabel = isCritical
+      ? t('Critical Trigger Threshold')
+      : t('Warning Trigger Threshold');
+    const resolutionLabel = isCritical
+      ? t('Critical Resolution Threshold')
+      : t('Warning Resolution Threshold');
 
     return (
       <React.Fragment>
         <Field
-          label={t('Label')}
-          help={t('This will prefix alerts created by this trigger')}
-          required
-          error={error && error.label}
-        >
-          <Input
-            name="label"
-            placeholder={t('SEV-0')}
-            value={trigger.label}
-            required
-            onChange={this.handleChangeLabel}
-          />
-        </Field>
-        <Field
-          label={t('Trigger Threshold')}
+          label={triggerLabel}
           help={t('The threshold that will trigger the associated action(s)')}
           required
           error={error && error.alertThreshold}
         >
           <ThresholdControl
+            disabled={disabled}
             type={AlertRuleThreshold.INCIDENT}
             thresholdType={trigger.thresholdType}
             threshold={trigger.alertThreshold}
@@ -158,11 +146,12 @@ class TriggerForm extends React.PureComponent<Props> {
         </Field>
 
         <Field
-          label={t('Resolution Threshold')}
+          label={resolutionLabel}
           help={t('The threshold that will resolve an alert')}
           error={error && error.resolutionThreshold}
         >
           <ThresholdControl
+            disabled={disabled}
             type={AlertRuleThreshold.RESOLUTION}
             thresholdType={trigger.thresholdType}
             threshold={trigger.resolveThreshold}
@@ -233,7 +222,9 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       availableActions,
       config,
       currentProject,
+      disabled,
       error,
+      isCritical,
       organization,
       trigger,
       triggerIndex,
@@ -245,14 +236,17 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
         <TriggerForm
           api={api}
           config={config}
+          disabled={disabled}
           error={error}
           trigger={trigger}
           organization={organization}
           projects={projects}
           triggerIndex={triggerIndex}
+          isCritical={isCritical}
           onChange={this.handleChangeTrigger}
         />
         <ActionsPanel
+          disabled={disabled}
           loading={availableActions === null}
           error={false}
           availableActions={availableActions}

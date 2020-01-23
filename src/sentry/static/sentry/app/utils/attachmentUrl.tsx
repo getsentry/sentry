@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {OrganizationDetailed, EventAttachment} from 'app/types';
+import {Organization, EventAttachment} from 'app/types';
 import ConfigStore from 'app/stores/configStore';
 import withOrganization from 'app/utils/withOrganization';
 import SentryTypes from 'app/sentryTypes';
 
 type Props = {
-  organization: OrganizationDetailed;
+  organization: Organization;
   projectId: string;
   eventId: string;
   attachment: EventAttachment;
@@ -46,9 +46,7 @@ class AttachmentUrl extends React.PureComponent<Props> {
 
   getDownloadUrl() {
     const {attachment, organization, eventId, projectId} = this.props;
-    return `/api/0/projects/${
-      organization.slug
-    }/${projectId}/events/${eventId}/attachments/${attachment.id}/`;
+    return `/api/0/projects/${organization.slug}/${projectId}/events/${eventId}/attachments/${attachment.id}/`;
   }
 
   render() {

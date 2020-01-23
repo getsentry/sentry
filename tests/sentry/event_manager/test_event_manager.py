@@ -3,7 +3,7 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import mock
+from sentry.utils.compat import mock
 import pytest
 import uuid
 
@@ -15,12 +15,12 @@ from time import time
 from sentry import nodestore
 from sentry.app import tsdb
 from sentry.constants import MAX_VERSION_LENGTH
+from sentry.eventstore.models import Event
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
 from sentry.grouping.utils import hash_from_values
 from sentry.models import (
     Activity,
     Environment,
-    Event,
     ExternalIssue,
     Group,
     GroupEnvironment,

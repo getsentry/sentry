@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import itertools
-import mock
+from sentry.utils.compat import mock
 import pytest
 
 from datetime import datetime, timedelta

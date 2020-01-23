@@ -63,16 +63,3 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
                 assert snuba.OVERRIDE_OPTIONS == {"foo": 2, "consistent": False}
             assert snuba.OVERRIDE_OPTIONS == {"foo": 1, "consistent": False}
         assert snuba.OVERRIDE_OPTIONS == {"consistent": False}
-
-    def test_valid_orderby(self):
-        assert snuba.valid_orderby("event.type")
-        assert snuba.valid_orderby("project.id")
-        assert snuba.valid_orderby(["event.type", "-id"])
-        assert not snuba.valid_orderby("project.name")
-        assert not snuba.valid_orderby("issue_count")
-
-        extra_fields = ["issue_count", "event_count"]
-        assert snuba.valid_orderby(["issue_count", "-timestamp"], extra_fields)
-        assert snuba.valid_orderby("issue_count", extra_fields)
-        assert not snuba.valid_orderby(["invalid", "issue_count"], extra_fields)
-        assert not snuba.valid_orderby(["issue_count", "invalid"], extra_fields)

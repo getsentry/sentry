@@ -75,7 +75,10 @@ describe('EventsErrors', function() {
     // Search bar makes this request when mounted
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
-      body: [{count: 1, tag: 'transaction'}, {count: 2, tag: 'mechanism'}],
+      body: [
+        {count: 1, key: 'transaction', name: 'Transaction'},
+        {count: 2, key: 'mechanism', name: 'Mechanism'},
+      ],
     });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -260,7 +263,7 @@ describe('EventsErrors', function() {
       await tick();
       wrapper.update();
 
-      chartRender = jest.spyOn(wrapper.find('LineChart').instance(), 'render');
+      chartRender = jest.spyOn(wrapper.find('AreaChart').instance(), 'render');
 
       doZoom(wrapper.find('EventsChart').first(), chart);
       await tick();
@@ -326,7 +329,10 @@ describe('EventsContainer', function() {
     // Search bar makes this request when mounted
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
-      body: [{count: 1, tag: 'transaction'}, {count: 2, tag: 'mechanism'}],
+      body: [
+        {count: 1, key: 'transaction', name: 'Transaction'},
+        {count: 2, key: 'mechanism', name: 'Mechanism'},
+      ],
     });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',

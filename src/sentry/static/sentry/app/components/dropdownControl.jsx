@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import DropdownBubble from 'app/components/dropdownBubble';
 import DropdownButton from 'app/components/dropdownButton';
@@ -48,10 +48,7 @@ class DropdownControl extends React.Component {
       return button({isOpen, getActorProps});
     }
     return (
-      <StyledDropdownButton
-        {...getActorProps({...buttonProps, isStyled: true})}
-        isOpen={isOpen}
-      >
+      <StyledDropdownButton {...getActorProps(buttonProps)} isOpen={isOpen}>
         {label}
       </StyledDropdownButton>
     );
@@ -75,7 +72,7 @@ class DropdownControl extends React.Component {
               <React.Fragment>
                 {this.renderButton(isOpen, getActorProps)}
                 <MenuContainer
-                  {...getMenuProps({isStyled: true})}
+                  {...getMenuProps()}
                   alignMenu={alignRight ? 'right' : 'left'}
                   width={menuWidth}
                   menuOffset={menuOffset}
@@ -99,9 +96,7 @@ const Container = styled('div')`
   position: relative;
 `;
 
-const StyledDropdownButton = styled(
-  React.forwardRef((prop, ref) => <DropdownButton innerRef={ref} {...prop} />)
-)`
+const StyledDropdownButton = styled(DropdownButton)`
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   white-space: nowrap;
 `;
@@ -124,6 +119,9 @@ const DropdownItem = styled(MenuItem)`
   }
   & a:hover {
     background: ${p => p.theme.offWhite};
+  }
+  & a:focus {
+    outline: none;
   }
   &.active a,
   &.active a:hover {

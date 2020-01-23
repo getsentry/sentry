@@ -8,6 +8,7 @@ from sentry.incidents.models import IncidentActivityType
 import pytest
 from django.utils.functional import cached_property
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -61,7 +62,14 @@ class Fixtures(object):
 
     @cached_property
     def event(self):
-        return self.create_event(event_id="a" * 32, message="\u3053\u3093\u306b\u3061\u306f")
+        return self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "\u3053\u3093\u306b\u3061\u306f",
+                "timestamp": iso_format(before_now(seconds=1)),
+            },
+            project_id=self.project.id,
+        )
 
     @cached_property
     def activity(self):
@@ -140,21 +148,8 @@ class Fixtures(object):
     def create_useremail(self, *args, **kwargs):
         return Factories.create_useremail(*args, **kwargs)
 
-    def create_event(self, event_id=None, group=None, *args, **kwargs):
-        if group is None:
-            group = self.group
-        return Factories.create_event(event_id=event_id, group=group, *args, **kwargs)
-
-    def create_issueless_event(self, event_id=None, *args, **kwargs):
-        return Factories.create_event(event_id=event_id, group=None, *args, **kwargs)
-
     def store_event(self, *args, **kwargs):
         return Factories.store_event(*args, **kwargs)
-
-    def create_full_event(self, group=None, *args, **kwargs):
-        if group is None:
-            group = self.group
-        return Factories.create_full_event(group=group, *args, **kwargs)
 
     def create_group(self, project=None, *args, **kwargs):
         if project is None:

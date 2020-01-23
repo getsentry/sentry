@@ -1,4 +1,4 @@
-import {shallow} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
 import NoProjectMessage from 'app/components/noProjectMessage';
@@ -6,7 +6,7 @@ import NoProjectMessage from 'app/components/noProjectMessage';
 describe('NoProjectMessage', function() {
   const org = TestStubs.Organization();
   it('shows "Create Project" button when there are no projects', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <NoProjectMessage organization={org} />,
       TestStubs.routerContext()
     );
@@ -16,7 +16,7 @@ describe('NoProjectMessage', function() {
   });
 
   it('"Create Project" is disabled when no access to `project:write`', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <NoProjectMessage organization={TestStubs.Organization({access: []})} />,
       TestStubs.routerContext()
     );
@@ -26,7 +26,7 @@ describe('NoProjectMessage', function() {
   });
 
   it('has "Join a Team" button', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <NoProjectMessage organization={org} />,
       TestStubs.routerContext()
     );
@@ -34,7 +34,7 @@ describe('NoProjectMessage', function() {
   });
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function() {
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <NoProjectMessage organization={TestStubs.Organization({access: []})} />,
       TestStubs.routerContext()
     );
@@ -47,7 +47,7 @@ describe('NoProjectMessage', function() {
     const lightWeightOrg = TestStubs.Organization();
     delete lightWeightOrg.projects;
 
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <NoProjectMessage projects={[]} organization={lightWeightOrg} />,
       TestStubs.routerContext()
     );
@@ -62,7 +62,7 @@ describe('NoProjectMessage', function() {
 
     const child = <div>child</div>;
 
-    const wrapper = shallow(
+    const wrapper = mountWithTheme(
       <NoProjectMessage projects={[]} loadingProjects organization={lightWeightOrg}>
         {child}
       </NoProjectMessage>,

@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {
   IssueAlertRuleAction,
@@ -125,7 +125,7 @@ class RuleNode extends React.Component<Props> {
 
       // If matcher is "is set" or "is not set", then we do not want to show the value input
       // because it is not required
-      if (key === 'value' && (data && (data.match === 'is' || data.match === 'ns'))) {
+      if (key === 'value' && data && (data.match === 'is' || data.match === 'ns')) {
         return null;
       }
 

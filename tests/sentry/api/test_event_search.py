@@ -1079,6 +1079,10 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    def test_trace_id(self):
+        result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
+        assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
+
 
 class ResolveFieldListTest(unittest.TestCase):
     def test_non_string_field_error(self):
@@ -1112,16 +1116,47 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["avg", "transaction.duration", "avg_transaction_duration"],
-            ["apdex(duration, 300)", "", "apdex"],
+            ["apdex(duration, 300)", None, "apdex"],
             [
-                "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
-                "",
+                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+                None,
                 "impact",
             ],
             ["quantile(0.75)(duration)", None, "p75"],
             ["quantile(0.95)(duration)", None, "p95"],
             ["quantile(0.99)(duration)", None, "p99"],
             ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+    def test_field_alias_duration_expansion_with_brackets(self):
+        fields = [
+            "avg(transaction.duration)",
+            "latest_event()",
+            "last_seen()",
+            "apdex()",
+            "impact()",
+            "p75()",
+            "p95()",
+            "p99()",
+        ]
+        result = resolve_field_list(fields, {})
+
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["avg", "transaction.duration", "avg_transaction_duration"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["max", "timestamp", "last_seen"],
+            ["apdex(duration, 300)", None, "apdex"],
+            [
+                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+                None,
+                "impact",
+            ],
+            ["quantile(0.75)(duration)", None, "p75"],
+            ["quantile(0.95)(duration)", None, "p95"],
+            ["quantile(0.99)(duration)", None, "p99"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
         assert result["groupby"] == []

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import re
+import uuid
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime
@@ -94,7 +95,7 @@ boolean_term         = (paren_term / search_term) space? (boolean_operator space
 paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
 key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter
-                       / numeric_filter / has_filter / is_filter / basic_filter)
+                       / numeric_filter / aggregate_filter / aggregate_date_filter / has_filter / is_filter / basic_filter)
                        space?
 raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
@@ -108,16 +109,22 @@ rel_time_filter      = search_key sep rel_date_format
 # exact time filter for dates
 specific_time_filter = search_key sep date_format
 # Numeric comparison filter
-numeric_filter       = search_key sep operator? ~r"[0-9]+(?=\s|$)"
+numeric_filter       = (function_key / search_key) sep operator? numeric_value
+# Aggregate numeric filter
+aggregate_filter        = aggregate_key sep operator? numeric_value
+aggregate_date_filter   = aggregate_key sep operator? (date_format / rel_date_format)
 
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
-tag_filter            = negation? "tags[" search_key "]" sep search_value
+tag_filter           = negation? "tags[" search_key "]" sep search_value
 
+aggregate_key        = key space? open_paren space? key space? closed_paren
+function_key         = key space? open_paren space? closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
+numeric_value        = ~r"[0-9]+(?=\s|$)"
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 # only allow colons in quoted keys
@@ -150,11 +157,9 @@ SEARCH_MAP = {
     "first_seen": "first_seen",
     "last_seen": "last_seen",
     "times_seen": "times_seen",
-    # TODO(mark) figure out how to safelist aggregate functions/field aliases
-    # so they can be used in conditions
 }
-SEARCH_MAP.update(**DATASETS[Dataset.Transactions])
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
+SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
 no_conversion = set(["start", "end"])
 
@@ -193,6 +198,15 @@ class SearchKey(namedtuple("SearchKey", "name")):
         return TAG_KEY_RE.match(self.name) or self.name not in SEARCH_MAP
 
 
+class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
+    def __str__(self):
+        return "".join(map(six.text_type, (self.key.name, self.operator, self.value.raw_value)))
+
+
+class AggregateKey(namedtuple("AggregateKey", "name")):
+    pass
+
+
 class SearchValue(namedtuple("SearchValue", "raw_value")):
     @property
     def value(self):
@@ -225,8 +239,11 @@ class SearchVisitor(NodeVisitor):
             "stack.lineno",
             "stack.stack_level",
             "transaction.duration",
-            # TODO(mark) figure out how to safelist aggregate functions/field aliases
-            # so they can be used in conditions
+            "apdex",
+            "impact",
+            "p75",
+            "p95",
+            "p99",
         ]
     )
     date_keys = set(
@@ -345,6 +362,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
+        search_key = search_key[0] if not isinstance(search_key, Node) else search_key
         operator = operator[0] if not isinstance(operator, Node) else "="
 
         if search_key.name in self.numeric_keys:
@@ -358,6 +376,31 @@ class SearchVisitor(NodeVisitor):
                 operator + search_value.text if operator != "=" else search_value.text
             )
             return self._handle_basic_filter(search_key, "=", search_value)
+
+    def visit_aggregate_filter(self, node, children):
+        (search_key, _, operator, search_value) = children
+        operator = operator[0] if not isinstance(operator, Node) else "="
+        try:
+            search_value = SearchValue(int(search_value.text))
+        except ValueError:
+            raise InvalidSearchQuery("Invalid aggregate query condition: %s" % (search_key,))
+        return AggregateFilter(search_key, operator, search_value)
+
+    def visit_aggregate_date_filter(self, node, children):
+        (search_key, _, operator, search_value) = children
+
+        operator = operator[0] if not isinstance(operator, Node) else "="
+        is_date_aggregate = any(key in search_key.name for key in self.date_keys)
+
+        if is_date_aggregate:
+            try:
+                search_value = parse_datetime_string(search_value)
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(six.text_type(exc))
+            return AggregateFilter(search_key, operator, SearchValue(search_value))
+        else:
+            search_value = operator + search_value if operator != "=" else search_value
+            return AggregateFilter(search_key, "=", SearchValue(search_value))
 
     def visit_time_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -466,6 +509,25 @@ class SearchVisitor(NodeVisitor):
         key = children[0]
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
+    def visit_aggregate_key(self, node, children):
+        children = self.flatten(children)
+        children = self.remove_optional_nodes(children)
+        children = self.remove_space(children)
+
+        key = "".join(children)
+        return AggregateKey(self.key_mappings_lookup.get(key, key))
+
+    def visit_function_key(self, node, children):
+        children = self.flatten(children)
+        children = self.remove_optional_nodes(children)
+        children = self.remove_space(children)
+
+        key = "".join(children)
+        if key.strip("()") in FIELD_ALIASES:
+            key = key.strip("()")
+
+        return SearchKey(self.key_mappings_lookup.get(key, key))
+
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
 
@@ -512,6 +574,8 @@ def convert_search_boolean_to_snuba_query(search_boolean):
     def convert_term(term):
         if isinstance(term, SearchFilter):
             return convert_search_filter_to_snuba_query(term)
+        elif isinstance(term, AggregateFilter):
+            return convert_aggregate_filter_to_snuba_query(term, False)
         elif isinstance(term, SearchBoolean):
             return convert_search_boolean_to_snuba_query(term)
         else:
@@ -528,6 +592,27 @@ def convert_search_boolean_to_snuba_query(search_boolean):
     operator = search_boolean.operator.lower()
 
     return [operator, [left, right]]
+
+
+def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias):
+    name = aggregate_filter.key.name
+    value = aggregate_filter.value.value
+
+    value = (
+        int(to_timestamp(value)) * 1000
+        if isinstance(value, datetime) and name != "timestamp"
+        else value
+    )
+
+    if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
+        return [["isNull", [name]], aggregate_filter.operator, 1]
+
+    _, agg_additions = resolve_field(name)
+    if len(agg_additions) > 0:
+        name = agg_additions[0][-1]
+
+    condition = [name, aggregate_filter.operator, value]
+    return condition
 
 
 def convert_search_filter_to_snuba_query(search_filter):
@@ -584,13 +669,27 @@ def convert_search_filter_to_snuba_query(search_filter):
                 )
             )
         return [name, search_filter.operator, internal_value]
+    elif name == "trace":
+        if not search_filter.value.raw_value:
+            operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
+            return [name, operator, None]
+
+        try:
+            return [
+                name,
+                search_filter.operator,
+                six.text_type(uuid.UUID(search_filter.value.raw_value)),
+            ]
+        except Exception:
+            raise InvalidSearchQuery(
+                "Invalid value for the trace condition. Value must be a hexadecimal UUID string."
+            )
     else:
         value = (
             int(to_timestamp(value)) * 1000
             if isinstance(value, datetime) and name != "timestamp"
             else value
         )
-
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
@@ -643,7 +742,14 @@ def get_filter(query=None, params=None):
         except ParseError as e:
             raise InvalidSearchQuery(u"Parse error: %r (column %d)" % (e.expr.name, e.column()))
 
-    kwargs = {"start": None, "end": None, "conditions": [], "project_ids": [], "group_ids": []}
+    kwargs = {
+        "start": None,
+        "end": None,
+        "conditions": [],
+        "having": [],
+        "project_ids": [],
+        "group_ids": [],
+    }
 
     def get_projects(params):
         return {
@@ -669,10 +775,18 @@ def get_filter(query=None, params=None):
                 kwargs["conditions"].append(condition)
             elif name == "issue.id":
                 kwargs["group_ids"].extend(to_list(term.value.value))
+            elif name in FIELD_ALIASES:
+                converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
+                if converted_filter:
+                    kwargs["having"].append(converted_filter)
             else:
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 if converted_filter:
                     kwargs["conditions"].append(converted_filter)
+        elif isinstance(term, AggregateFilter):
+            converted_filter = convert_aggregate_filter_to_snuba_query(term, False)
+            if converted_filter:
+                kwargs["having"].append(converted_filter)
 
     # Keys included as url params take precedent if same key is included in search
     # They are also considered safe and to have had access rules applied unlike conditions
@@ -702,13 +816,17 @@ FIELD_ALIASES = {
     "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
     # Long term these will become more complex functions but these are
     # field aliases.
-    "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", "", "apdex"]]},
+    "apdex": {"result_type": "number", "aggregations": [["apdex(duration, 300)", None, "apdex"]]},
     "impact": {
         "result_type": "number",
         "aggregations": [
             [
-                "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
-                "",
+                # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
+                # in a format Snuba can parse so query optimizations can be applied.
+                # It has a minimal prefix parser though to bridge the gap between the current state
+                # and when we will have an easier syntax.
+                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+                None,
                 "impact",
             ]
         ],
@@ -790,6 +908,39 @@ def get_aggregate_alias(match):
     return u"{}_{}".format(match.group("function"), column).rstrip("_")
 
 
+def resolve_field(field):
+    if not isinstance(field, six.string_types):
+        raise InvalidSearchQuery("Field names must be strings")
+
+    sans_parens = field.strip("()")
+    if sans_parens in FIELD_ALIASES:
+        special_field = deepcopy(FIELD_ALIASES[sans_parens])
+        return (special_field.get("fields", []), special_field.get("aggregations", []))
+
+    # Basic fields don't require additional validation. They could be tag
+    # names which we have no way of validating at this point.
+    match = AGGREGATE_PATTERN.search(field)
+    if not match:
+        return ([field], None)
+
+    validate_aggregate(field, match)
+
+    if match.group("function") == "count":
+        # count() is a special function that ignores its column arguments.
+        return (None, [["count", None, get_aggregate_alias(match)]])
+
+    return (
+        None,
+        [
+            [
+                VALID_AGGREGATES[match.group("function")]["snuba_name"],
+                match.group("column"),
+                get_aggregate_alias(match),
+            ]
+        ],
+    )
+
+
 def resolve_field_list(fields, snuba_args, auto_fields=True):
     """
     Expand a list of fields based on aliases and aggregate functions.
@@ -806,38 +957,15 @@ def resolve_field_list(fields, snuba_args, auto_fields=True):
             fields.append("project.id")
 
     aggregations = []
-    groupby = []
     columns = []
+    groupby = []
     for field in fields:
-        if not isinstance(field, six.string_types):
-            raise InvalidSearchQuery("Field names must be strings")
+        column_additions, agg_additions = resolve_field(field)
+        if column_additions:
+            columns.extend(column_additions)
 
-        if field in FIELD_ALIASES:
-            special_field = deepcopy(FIELD_ALIASES[field])
-            columns.extend(special_field.get("fields", []))
-            aggregations.extend(special_field.get("aggregations", []))
-            continue
-
-        # Basic fields don't require additional validation. They could be tag
-        # names which we have no way of validating at this point.
-        match = AGGREGATE_PATTERN.search(field)
-        if not match:
-            columns.append(field)
-            continue
-
-        validate_aggregate(field, match)
-
-        if match.group("function") == "count":
-            # count() is a special function that ignores its column arguments.
-            aggregations.append(["count", None, get_aggregate_alias(match)])
-        else:
-            aggregations.append(
-                [
-                    VALID_AGGREGATES[match.group("function")]["snuba_name"],
-                    match.group("column"),
-                    get_aggregate_alias(match),
-                ]
-            )
+        if agg_additions:
+            aggregations.extend(agg_additions)
 
     rollup = snuba_args.get("rollup")
     if not rollup and auto_fields:
@@ -851,7 +979,7 @@ def resolve_field_list(fields, snuba_args, auto_fields=True):
             columns.append("id")
         if not aggregations and "project.id" not in columns:
             columns.append("project.id")
-        if aggregations and "latest_event" not in fields:
+        if aggregations and "latest_event" not in map(lambda a: a[-1], aggregations):
             aggregations.extend(deepcopy(FIELD_ALIASES["latest_event"]["aggregations"]))
         if aggregations and "project.id" not in columns:
             aggregations.append(["argMax", ["project.id", "timestamp"], "projectid"])

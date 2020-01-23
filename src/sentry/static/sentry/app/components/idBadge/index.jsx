@@ -1,8 +1,9 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import ErrorBoundary from 'app/components/errorBoundary';
 import BaseBadge from 'app/components/idBadge/baseBadge';
+import MemberBadge from 'app/components/idBadge/memberBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import TeamBadge from 'app/components/idBadge/teamBadge';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
@@ -11,7 +12,7 @@ import OrganizationBadge from 'app/components/idBadge/organizationBadge';
 const COMPONENT_MAP = new Map([
   ['organization', OrganizationBadge],
   ['project', ProjectBadge],
-  ['member', UserBadge],
+  ['member', MemberBadge],
   ['user', UserBadge],
   ['team', TeamBadge],
 ]);

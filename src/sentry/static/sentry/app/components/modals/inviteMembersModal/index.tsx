@@ -1,5 +1,6 @@
 import React from 'react';
-import styled, {css} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
 import {t, tn, tct} from 'app/locale';
 import {MEMBER_ROLES} from 'app/constants';
@@ -25,6 +26,7 @@ type Props = AsyncComponent['props'] &
     organization: Organization;
     teams: Team[];
     source?: string;
+    initialData?: Partial<InviteRow>[];
   };
 
 type State = AsyncComponent['state'] & {
@@ -46,7 +48,11 @@ type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['child
 
 class InviteMembersModal extends AsyncComponent<Props, State> {
   get inviteTemplate(): InviteRow {
-    return {emails: new Set(), teams: new Set(), role: DEFAULT_ROLE};
+    return {
+      emails: new Set(),
+      teams: new Set(),
+      role: DEFAULT_ROLE,
+    };
   }
 
   /**
@@ -77,9 +83,18 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
   getDefaultState() {
     const state = super.getDefaultState();
+    const {initialData} = this.props;
+
+    const pendingInvites = initialData
+      ? initialData.map(initial => ({
+          ...this.inviteTemplate,
+          ...initial,
+        }))
+      : [this.inviteTemplate];
+
     return {
       ...state,
-      pendingInvites: [this.inviteTemplate],
+      pendingInvites,
       inviteStatus: {},
       complete: false,
       sendingInvites: false,
@@ -336,9 +351,19 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
             teamOptions={allTeams}
             inviteStatus={inviteStatus}
             onRemove={() => this.removeInviteRow(i)}
-            onChangeEmails={opts => this.setEmails(opts.map(v => v.value), i)}
+            onChangeEmails={opts =>
+              this.setEmails(
+                opts.map(v => v.value),
+                i
+              )
+            }
             onChangeRole={({value}) => this.setRole(value, i)}
-            onChangeTeams={opts => this.setTeams(opts.map(v => v.value), i)}
+            onChangeTeams={opts =>
+              this.setTeams(
+                opts.map(v => v.value),
+                i
+              )
+            }
             disableRemove={disableInputs || pendingInvites.length === 1}
           />
         ))}
@@ -476,7 +501,7 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   }
 `;
 
-const modalClassName = css`
+const modalCss = css`
   padding: 50px;
 
   .modal-dialog {
@@ -486,5 +511,6 @@ const modalClassName = css`
     margin: 50px auto;
   }
 `;
-export {modalClassName};
+
+export {modalCss};
 export default withLatestContext(withTeams(InviteMembersModal));

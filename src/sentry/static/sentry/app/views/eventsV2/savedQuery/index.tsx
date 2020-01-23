@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
@@ -16,6 +16,7 @@ import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
 
 import EventView from '../eventView';
+import {generateDiscoverLandingPageRoute} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
 type Props = {
@@ -170,11 +171,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization, eventView} = this.props;
+    const {api, organization, eventView} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
       browserHistory.push({
-        pathname: location.pathname,
+        pathname: generateDiscoverLandingPageRoute(organization.slug),
         query: {},
       });
     });
@@ -199,7 +200,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         button={({isOpen, getActorProps}) => (
           <ButtonSaveAs
             data-test-id="button-save-as"
-            {...getActorProps({isStyled: true})}
+            {...getActorProps()}
             isOpen={isOpen}
             showChevron={false}
           >

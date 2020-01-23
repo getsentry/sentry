@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import uniqBy from 'lodash/uniqBy';
 import flatMap from 'lodash/flatMap';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import CommitRow from 'app/components/commitRow';
 import InlineSvg from 'app/components/inlineSvg';
@@ -56,9 +56,7 @@ class EventCause extends React.Component {
       return;
     }
     this.props.api.request(
-      `/projects/${this.props.orgId}/${this.props.projectId}/events/${
-        event.id
-      }/committers/`,
+      `/projects/${this.props.orgId}/${this.props.projectId}/events/${event.id}/committers/`,
       {
         success: (data, _, jqXHR) => {
           this.setState(data);

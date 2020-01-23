@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {cx} from 'react-emotion';
+import classNames from 'classnames';
+import styled from '@emotion/styled';
 
 const TimePicker = styled(
   class TimePicker extends React.Component {
@@ -20,7 +21,7 @@ const TimePicker = styled(
     render() {
       const {className, start, end, disabled, onChangeStart, onChangeEnd} = this.props;
       return (
-        <div className={cx(className, 'rdrDateDisplay')}>
+        <div className={classNames(className, 'rdrDateDisplay')}>
           <div>
             <Input
               type="time"

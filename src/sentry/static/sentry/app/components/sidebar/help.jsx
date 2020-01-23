@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import SentryTypes from 'app/sentryTypes';
 import {openHelpSearchModal} from 'app/actionCreators/modal';
@@ -32,12 +32,10 @@ class SidebarHelp extends React.Component {
   render() {
     return (
       <DropdownMenu>
-        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+        {({isOpen, getActorProps, getMenuProps}) => {
           return (
             <HelpRoot>
-              <HelpActor
-                {...getActorProps({onClick: this.handleActorClick, isStyled: true})}
-              >
+              <HelpActor {...getActorProps({onClick: this.handleActorClick})}>
                 <SidebarItem
                   orientation={this.props.orientation}
                   collapsed={this.props.collapsed}
@@ -49,7 +47,7 @@ class SidebarHelp extends React.Component {
               </HelpActor>
 
               {isOpen && (
-                <HelpMenu {...getMenuProps({isStyled: true})}>
+                <HelpMenu {...getMenuProps()}>
                   <Hook name="sidebar:help-menu" organization={this.props.organization} />
                   <SidebarMenuItem onClick={this.handleSearchClick}>
                     {t('Search Docs and FAQs')}

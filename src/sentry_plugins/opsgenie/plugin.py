@@ -37,11 +37,6 @@ class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
 class OpsGeniePlugin(notify.NotificationPlugin):
     author = "Sentry Team"
     author_url = "https://github.com/getsentry"
-    resource_links = (
-        ("Bug Tracker", "https://github.com/getsentry/sentry-opsgenie/issues"),
-        ("Source", "https://github.com/getsentry/sentry-opsgenie"),
-    )
-
     title = "OpsGenie"
     slug = "opsgenie"
     description = "Create OpsGenie alerts out of notifications."
@@ -59,7 +54,7 @@ class OpsGeniePlugin(notify.NotificationPlugin):
 
     def build_payload(self, group, event, triggering_rules):
         payload = {
-            "message": event.message,
+            "message": event.message or event.title,
             "alias": "sentry: %d" % group.id,
             "source": "Sentry",
             "details": {

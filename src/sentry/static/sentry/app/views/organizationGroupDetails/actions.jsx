@@ -3,25 +3,32 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
 import {openModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
+import {uniqueId} from 'app/utils/guid';
 import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
+import EventView from 'app/views/eventsV2/eventView';
+import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
-import IndicatorStore from 'app/stores/indicatorStore';
+import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
 import ResolveActions from 'app/components/actions/resolve';
 import SentryTypes from 'app/sentryTypes';
 import ShareIssue from 'app/components/shareIssue';
 import space from 'app/styles/space';
-import {uniqueId} from 'app/utils/guid';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 class DeleteActions extends React.Component {
@@ -133,9 +140,33 @@ const GroupDetailsActions = createReactClass({
     return `${protocol}//${host}${path}`;
   },
 
+  getDiscoverUrl() {
+    const {group, project, organization} = this.props;
+
+    const discoverQuery = {
+      id: undefined,
+      name: group.title || group.type,
+      fields: ['title', 'url', 'count(id)', 'project', 'last_seen'],
+      widths: [400, 200, -1, 200, -1],
+      orderby: '-count_id',
+      query: `issue.id:${group.id}`,
+      tags: ['environment', 'release', 'event.type', 'user.email'],
+      projects: [project.id],
+      version: 2,
+      range: '24h',
+    };
+
+    const discoverView = EventView.fromSavedQuery(discoverQuery);
+
+    return {
+      pathname: generateDiscoverResultsRoute(organization.slug),
+      query: discoverView.generateQueryStringObject(),
+    };
+  },
+
   onDelete() {
     const {group, project, organization} = this.props;
-    const loadingIndicator = IndicatorStore.add(t('Delete event..'));
+    addLoadingMessage(t('Delete event..'));
 
     this.props.api.bulkDelete(
       {
@@ -145,7 +176,7 @@ const GroupDetailsActions = createReactClass({
       },
       {
         complete: () => {
-          IndicatorStore.remove(loadingIndicator);
+          clearIndicators();
 
           browserHistory.push(`/${organization.slug}/${project.slug}/`);
         },
@@ -155,7 +186,7 @@ const GroupDetailsActions = createReactClass({
 
   onUpdate(data) {
     const {group, project, organization} = this.props;
-    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes..'));
 
     this.props.api.bulkUpdate(
       {
@@ -166,7 +197,7 @@ const GroupDetailsActions = createReactClass({
       },
       {
         complete: () => {
-          IndicatorStore.remove(loadingIndicator);
+          clearIndicators();
         },
       }
     );
@@ -188,7 +219,7 @@ const GroupDetailsActions = createReactClass({
       },
       {
         error: () => {
-          IndicatorStore.add(t('Error sharing'), 'error');
+          addErrorMessage(t('Error sharing'));
         },
         complete: () => {
           this.setState({shareBusy: false});
@@ -208,7 +239,7 @@ const GroupDetailsActions = createReactClass({
   onDiscard() {
     const {group, project, organization} = this.props;
     const id = uniqueId();
-    const loadingIndicator = IndicatorStore.add(t('Discarding event..'));
+    addLoadingMessage(t('Discarding event..'));
 
     GroupActions.discard(id, group.id);
 
@@ -223,7 +254,7 @@ const GroupDetailsActions = createReactClass({
         GroupActions.discardError(id, group.id, error);
       },
       complete: () => {
-        IndicatorStore.remove(loadingIndicator);
+        clearIndicators();
       },
     });
   },
@@ -232,7 +263,8 @@ const GroupDetailsActions = createReactClass({
     const {group, project, organization} = this.props;
     const orgFeatures = new Set(organization.features);
 
-    let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
+    const buttonClassName = 'btn btn-default btn-sm';
+    let bookmarkClassName = `group-bookmark ${buttonClassName}`;
     if (group.isBookmarked) {
       bookmarkClassName += ' active';
     }
@@ -253,17 +285,19 @@ const GroupDetailsActions = createReactClass({
           isResolved={isResolved}
           isAutoResolved={isResolved && group.statusDetails.autoResolved}
         />
+
         <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
 
         <div className="btn-group">
-          <a
+          <div
             className={bookmarkClassName}
             title={t('Bookmark')}
             onClick={this.onToggleBookmark}
           >
             <span className="icon-star-solid" />
-          </a>
+          </div>
         </div>
+
         <DeleteActions
           organization={organization}
           project={project}
@@ -281,6 +315,18 @@ const GroupDetailsActions = createReactClass({
               onShare={() => this.onShare(true)}
               busy={this.state.shareBusy}
             />
+          </div>
+        )}
+
+        {orgFeatures.has('events-v2') && (
+          <div className="btn-group">
+            <Link
+              className={buttonClassName}
+              title={t('Open in Discover')}
+              to={this.getDiscoverUrl()}
+            >
+              {t('Open in Discover')}
+            </Link>
           </div>
         )}
       </div>

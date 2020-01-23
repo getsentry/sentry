@@ -1,7 +1,7 @@
+import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import {Client} from 'app/api';
 import {MetricAction} from 'app/types/alerts';
 import {Organization, Project, Config} from 'app/types';
 import {
@@ -13,28 +13,35 @@ import {
 import {createDefaultTrigger} from 'app/views/settings/incidentRules/constants';
 import {defined} from 'app/utils';
 import {t} from 'app/locale';
+import {fetchOrganizationTags} from 'app/actionCreators/tags';
+import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import Form from 'app/views/settings/components/forms/form';
 import RuleNameForm from 'app/views/settings/incidentRules/ruleNameForm';
 import Triggers from 'app/views/settings/incidentRules/triggers';
 import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
-import withApi from 'app/utils/withApi';
+import recreateRoute from 'app/utils/recreateRoute';
 import withConfig from 'app/utils/withConfig';
 import withProject from 'app/utils/withProject';
 
 import {AlertRuleAggregations, IncidentRule, Trigger} from '../types';
-import RuleConditionsForm from '../ruleConditionsForm';
-import FormModel from '../../components/forms/model';
 import {addOrUpdateRule} from '../actions';
+import FormModel from '../../components/forms/model';
+import RuleConditionsForm from '../ruleConditionsForm';
 
 type Props = {
-  api: Client;
   config: Config;
   organization: Organization;
   project: Project;
+  routes: PlainRoute[];
   rule: IncidentRule;
   incidentRuleId?: string;
-} & Pick<RouteComponentProps<{orgId: string; projectId: string}, {}>, 'params'> & {
+} & RouteComponentProps<
+  {orgId: string; projectId: string; incidentRuleId: string},
+  {}
+> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   } & AsyncComponent['props'];
 
@@ -56,6 +63,12 @@ type State = {
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
 class RuleFormContainer extends AsyncComponent<Props, State> {
+  componentDidMount() {
+    const {organization, project} = this.props;
+    // SearchBar gets its tags from Reflux.
+    fetchOrganizationTags(this.api, organization.slug, [project.id]);
+  }
+
   getDefaultState(): State {
     const {rule} = this.props;
 
@@ -84,6 +97,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         `/organizations/${params.orgId}/alert-rules/available-actions/`,
       ],
     ];
+  }
+
+  goBack() {
+    const {router, routes, params, location} = this.props;
+
+    router.replace(recreateRoute('', {routes, params, location, stepBack: -2}));
   }
 
   validateFieldInTrigger({errors, triggerIndex, field, message, isValid}) {
@@ -169,13 +188,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       return;
     }
 
-    const {api, organization, rule, onSubmitSuccess} = this.props;
+    const {organization, rule, onSubmitSuccess} = this.props;
 
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
     try {
       addLoadingMessage(t('Saving alert'));
-      const resp = await addOrUpdateRule(api, organization.slug, {
+      const resp = await addOrUpdateRule(this.api, organization.slug, {
         ...rule,
         ...model.getTransformedData(),
         triggers: this.state.triggers,
@@ -194,7 +213,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
    */
   handleAddTrigger = () => {
     this.setState(({triggers}) => ({
-      triggers: [...triggers, createDefaultTrigger()],
+      triggers: [...triggers, {...createDefaultTrigger(), label: 'warning'}],
     }));
   };
 
@@ -222,13 +241,33 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     });
   };
 
+  handleDeleteRule = async () => {
+    const {params} = this.props;
+    const {orgId, projectId, incidentRuleId} = params;
+
+    try {
+      await this.api.requestPromise(
+        `/projects/${orgId}/${projectId}/alert-rules/${incidentRuleId}/`,
+        {
+          method: 'DELETE',
+        }
+      );
+      this.goBack();
+    } catch (_err) {
+      addErrorMessage(t('Error deleting rule'));
+    }
+  };
+
+  handleCancel = () => {
+    this.goBack();
+  };
+
   renderLoading() {
     return this.renderBody();
   }
 
   renderBody() {
     const {
-      api,
       config,
       organization,
       incidentRuleId,
@@ -239,52 +278,76 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {query, aggregation, timeWindow, triggers} = this.state;
 
     return (
-      <Form
-        apiMethod={incidentRuleId ? 'PUT' : 'POST'}
-        apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
-          incidentRuleId ? `${incidentRuleId}/` : ''
-        }`}
-        initialData={{
-          name: rule.name || '',
-          aggregation: rule.aggregation,
-          query: rule.query || '',
-          timeWindow: rule.timeWindow,
-        }}
-        saveOnBlur={false}
-        onSubmit={this.handleSubmit}
-        onSubmitSuccess={onSubmitSuccess}
-        onFieldChange={this.handleFieldChange}
-      >
-        <TriggersChart
-          api={api}
-          config={config}
-          organization={organization}
-          projects={this.state.projects}
-          triggers={triggers}
-          query={query}
-          aggregation={aggregation}
-          timeWindow={timeWindow}
-        />
+      <Access access={['org:write']}>
+        {({hasAccess}) => (
+          <Form
+            apiMethod={incidentRuleId ? 'PUT' : 'POST'}
+            apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
+              incidentRuleId ? `${incidentRuleId}/` : ''
+            }`}
+            submitDisabled={!hasAccess}
+            initialData={{
+              name: rule.name || '',
+              aggregation: rule.aggregation,
+              query: rule.query || '',
+              timeWindow: rule.timeWindow,
+            }}
+            saveOnBlur={false}
+            onSubmit={this.handleSubmit}
+            onSubmitSuccess={onSubmitSuccess}
+            onCancel={this.handleCancel}
+            onFieldChange={this.handleFieldChange}
+            extraButton={
+              !!rule.id ? (
+                <Confirm
+                  disabled={!hasAccess}
+                  message={t('Are you sure you want to delete this alert rule?')}
+                  header={t('Delete Alert Rule?')}
+                  priority="danger"
+                  confirmText={t('Delete Rule')}
+                  onConfirm={this.handleDeleteRule}
+                >
+                  <Button type="button" priority="danger">
+                    {t('Delete Rule')}
+                  </Button>
+                </Confirm>
+              ) : null
+            }
+            submitLabel={t('Save Rule')}
+          >
+            <TriggersChart
+              api={this.api}
+              config={config}
+              organization={organization}
+              projects={this.state.projects}
+              triggers={triggers}
+              query={query}
+              aggregation={aggregation}
+              timeWindow={timeWindow}
+            />
 
-        <RuleConditionsForm organization={organization} />
+            <RuleConditionsForm organization={organization} disabled={!hasAccess} />
 
-        <Triggers
-          projects={this.state.projects}
-          errors={this.state.triggerErrors}
-          triggers={triggers}
-          currentProject={params.projectId}
-          organization={organization}
-          incidentRuleId={incidentRuleId}
-          availableActions={this.state.availableActions}
-          onChange={this.handleChangeTriggers}
-          onAdd={this.handleAddTrigger}
-        />
+            <Triggers
+              disabled={!hasAccess}
+              projects={this.state.projects}
+              errors={this.state.triggerErrors}
+              triggers={triggers}
+              currentProject={params.projectId}
+              organization={organization}
+              incidentRuleId={incidentRuleId}
+              availableActions={this.state.availableActions}
+              onChange={this.handleChangeTriggers}
+              onAdd={this.handleAddTrigger}
+            />
 
-        <RuleNameForm />
-      </Form>
+            <RuleNameForm disabled={!hasAccess} />
+          </Form>
+        )}
+      </Access>
     );
   }
 }
 
 export {RuleFormContainer};
-export default withConfig(withApi(withProject(RuleFormContainer)));
+export default withConfig(withProject(RuleFormContainer));

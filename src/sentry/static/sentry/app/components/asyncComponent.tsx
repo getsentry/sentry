@@ -1,8 +1,8 @@
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Location} from 'history';
 import * as Sentry from '@sentry/browser';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Client} from 'app/api';
 import {metric} from 'app/utils/analytics';
@@ -15,15 +15,11 @@ import RouteError from 'app/views/routeError';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 type AsyncComponentProps = {
-  location?: Location;
-  router?: any;
-  params?: any;
-
   // optional sentry APM profiling
   // Note we don't decorate `AsyncComponent` but rather the subclass
   // so we can get its component name
   finishProfile?: () => void;
-};
+} & Partial<RouteComponentProps<{}, {}>>;
 
 type AsyncComponentState = {
   loading: boolean;
@@ -114,8 +110,8 @@ export default class AsyncComponent<
     this._measurement = {
       hasMeasured: false,
     };
-    if (props.router && props.router.routes) {
-      metric.mark(`async-component-${getRouteStringFromRoutes(props.router.routes)}`);
+    if (props.routes && props.routes) {
+      metric.mark(`async-component-${getRouteStringFromRoutes(props.routes)}`);
     }
   }
 
@@ -155,10 +151,9 @@ export default class AsyncComponent<
     if (
       !this._measurement.hasMeasured &&
       this._measurement.finished &&
-      this.props.router &&
-      this.props.router.routes
+      this.props.routes
     ) {
-      const routeString = getRouteStringFromRoutes(this.props.router.routes);
+      const routeString = getRouteStringFromRoutes(this.props.routes);
       metric.measure({
         name: 'app.component.async-component',
         start: `async-component-${routeString}`,
@@ -297,23 +292,35 @@ export default class AsyncComponent<
     // Allow children to implement this
   }
 
+  onLoadAllEndpointsSuccess() {
+    // Allow children to implement this
+  }
+
   handleRequestSuccess({stateKey, data, jqXHR}, initialRequest?: boolean) {
-    this.setState(prevState => {
-      const state = {
-        [stateKey]: data,
-        // TODO(billy): This currently fails if this request is retried by SudoModal
-        [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
-      };
+    this.setState(
+      prevState => {
+        const state = {
+          [stateKey]: data,
+          // TODO(billy): This currently fails if this request is retried by SudoModal
+          [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
+        };
 
-      if (initialRequest) {
-        state.remainingRequests = prevState.remainingRequests! - 1;
-        state.loading = prevState.remainingRequests! > 1;
-        state.reloading = prevState.reloading && state.loading;
-        this.markShouldMeasure({remainingRequests: state.remainingRequests});
+        if (initialRequest) {
+          state.remainingRequests = prevState.remainingRequests! - 1;
+          state.loading = prevState.remainingRequests! > 1;
+          state.reloading = prevState.reloading && state.loading;
+          this.markShouldMeasure({remainingRequests: state.remainingRequests});
+        }
+
+        return state;
+      },
+      () => {
+        //if everything is loaded and we don't have an error, call the callback
+        if (this.state.remainingRequests === 0 && !this.state.error) {
+          this.onLoadAllEndpointsSuccess();
+        }
       }
-
-      return state;
-    });
+    );
     this.onRequestSuccess({stateKey, data, jqXHR});
   }
 

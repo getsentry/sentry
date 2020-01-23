@@ -64,4 +64,44 @@ storiesOf('UI|Alerts/AlertLink', module)
         I am saying nothing, ok?
       </AlertLink>,
     ])
+  )
+  .add(
+    'small',
+    withInfo('You can optionally pass an icon src')(() => [
+      <AlertLink to="/settings/account/notifications" size="small" key="1">
+        Check out the notifications settings panel.
+      </AlertLink>,
+      <AlertLink
+        to="/settings/account/notifications"
+        priority="error"
+        size="small"
+        key="2"
+      >
+        Do not forget to read the docs ya dum dum!
+      </AlertLink>,
+      <AlertLink
+        to="/settings/account/notifications"
+        priority="info"
+        size="small"
+        key="3"
+      >
+        Install this thing or else!
+      </AlertLink>,
+      <AlertLink
+        to="/settings/account/notifications"
+        priority="success"
+        size="small"
+        key="4"
+      >
+        Gj you did it. Now go here.
+      </AlertLink>,
+      <AlertLink
+        to="/settings/account/notifications"
+        priority="muted"
+        size="small"
+        key="5"
+      >
+        I am saying nothing, ok?
+      </AlertLink>,
+    ])
   );

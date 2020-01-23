@@ -54,8 +54,26 @@ class VictorOpsPluginTest(PluginTestCase):
         self.plugin.set_option("api_key", "secret-api-key", self.project)
         self.plugin.set_option("routing_key", "everyone", self.project)
 
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "warning",
+                "culprit": "foo.bar",
+                "platform": "python",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "filename": "sentry/models/foo.py",
+                            "context_line": "                        string_max_length=self.string_max_length)",
+                            "function": "build_msg",
+                            "lineno": 29,
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
@@ -79,8 +97,10 @@ class VictorOpsPluginTest(PluginTestCase):
         } == payload
 
     def test_build_description_unicode(self):
-        group = self.create_group(message=u"Message", culprit=u"foo.bar")
-        event = self.create_event(group=group, message=u"Messages", tags={u"level": u"error"})
+        event = self.store_event(
+            data={"message": u"abcd\xde\xb4", "culprit": "foo.bar", "level": "error"},
+            project_id=self.project.id,
+        )
         event.interfaces = {
             u"Message": UnicodeTestInterface(u"abcd\xde\xb4", u"\xdc\xea\x80\x80abcd\xde\xb4")
         }

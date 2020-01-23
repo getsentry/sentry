@@ -85,7 +85,10 @@ describe('Aggregation', function() {
   describe('handleChange()', function() {
     let wrapper, focusSpy;
     beforeEach(function() {
-      const cols = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
+      const cols = [
+        {name: 'col1', type: 'string'},
+        {name: 'col2', type: 'number'},
+      ];
       focusSpy = jest.spyOn(Aggregation.prototype, 'focus');
 
       wrapper = mountWithTheme(

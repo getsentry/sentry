@@ -2,7 +2,7 @@ import isString from 'lodash/isString';
 import moment from 'moment';
 
 import CHART_PALETTE from 'app/constants/chartPalette';
-import {ParsedTraceType, SpanType} from './types';
+import {ParsedTraceType, ProcessedSpanType, GapSpanType, RawSpanType} from './types';
 
 type Rect = {
   // x and y are left/top coords respectively
@@ -303,8 +303,8 @@ export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValue
   return previousValues;
 };
 
-export function generateRootSpan(trace: ParsedTraceType): SpanType {
-  const rootSpan: SpanType = {
+export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
+  const rootSpan: RawSpanType = {
     trace_id: trace.traceID,
     span_id: trace.rootSpanID,
     parent_span_id: trace.parentSpanID,
@@ -336,4 +336,41 @@ export function getTraceDateTimeRange(input: {
     start,
     end,
   };
+}
+
+export function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
+  // @ts-ignore
+  return span.type === 'gap';
+}
+
+export function getSpanID(span: ProcessedSpanType, defaultSpanID: string = ''): string {
+  if (isGapSpan(span)) {
+    return defaultSpanID;
+  }
+
+  return span.span_id;
+}
+
+export function getSpanOperation(span: ProcessedSpanType): string | undefined {
+  if (isGapSpan(span)) {
+    return undefined;
+  }
+
+  return span.op;
+}
+
+export function getSpanTraceID(span: ProcessedSpanType): string {
+  if (isGapSpan(span)) {
+    return 'gap-span';
+  }
+
+  return span.trace_id;
+}
+
+export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined {
+  if (isGapSpan(span)) {
+    return 'gap-span';
+  }
+
+  return span.parent_span_id;
 }

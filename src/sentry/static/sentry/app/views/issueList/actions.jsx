@@ -4,9 +4,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
-import {openCreateIncidentModal} from 'app/actionCreators/modal';
+import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -14,11 +14,8 @@ import ActionLink from 'app/components/actions/actionLink';
 import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/links/externalLink';
-import Feature from 'app/components/acl/feature';
 import GroupStore from 'app/stores/groupStore';
 import IgnoreActions from 'app/components/actions/ignore';
-import IndicatorStore from 'app/stores/indicatorStore';
-import InlineSvg from 'app/components/inlineSvg';
 import MenuItem from 'app/components/menuItem';
 import Projects from 'app/utils/projects';
 import ResolveActions from 'app/components/actions/resolve';
@@ -156,7 +153,6 @@ const IssueListActions = createReactClass({
     statsPeriod: PropTypes.string.isRequired,
     query: PropTypes.string.isRequired,
     queryCount: PropTypes.number,
-    organization: SentryTypes.Organization,
   },
 
   mixins: [Reflux.listenTo(SelectedGroupStore, 'handleSelectedGroupChange')],
@@ -240,7 +236,7 @@ const IssueListActions = createReactClass({
   handleUpdate(data) {
     const {selection} = this.props;
     this.actionSelectedGroups(itemIds => {
-      const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+      addLoadingMessage(t('Saving changes..'));
 
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
@@ -262,7 +258,7 @@ const IssueListActions = createReactClass({
         },
         {
           complete: () => {
-            IndicatorStore.remove(loadingIndicator);
+            clearIndicators();
           },
         }
       );
@@ -270,8 +266,9 @@ const IssueListActions = createReactClass({
   },
 
   handleDelete() {
-    const loadingIndicator = IndicatorStore.add(t('Removing events..'));
     const {selection} = this.props;
+
+    addLoadingMessage(t('Removing events..'));
 
     this.actionSelectedGroups(itemIds => {
       this.props.api.bulkDelete(
@@ -285,7 +282,7 @@ const IssueListActions = createReactClass({
         },
         {
           complete: () => {
-            IndicatorStore.remove(loadingIndicator);
+            clearIndicators();
           },
         }
       );
@@ -293,8 +290,9 @@ const IssueListActions = createReactClass({
   },
 
   handleMerge() {
-    const loadingIndicator = IndicatorStore.add(t('Merging events..'));
     const {selection} = this.props;
+
+    addLoadingMessage(t('Merging events..'));
 
     this.actionSelectedGroups(itemIds => {
       this.props.api.merge(
@@ -308,17 +306,11 @@ const IssueListActions = createReactClass({
         },
         {
           complete: () => {
-            IndicatorStore.remove(loadingIndicator);
+            clearIndicators();
           },
         }
       );
     });
-  },
-
-  handleCreateIncident() {
-    const {organization} = this.props;
-    const issues = this.state.selectedIds;
-    openCreateIncidentModal({organization, issues: Array.from(issues)});
   },
 
   handleSelectAll() {
@@ -404,7 +396,6 @@ const IssueListActions = createReactClass({
     // merges require a single project to be active in an org context
     // selectedProjectSlug is null when 0 or >1 projects are selected.
     const mergeDisabled = !(multiSelected && selectedProjectSlug);
-    const createNewIncidentDisabled = !anySelected || allInQuerySelected;
 
     return (
       <Sticky>
@@ -457,25 +448,6 @@ const IssueListActions = createReactClass({
                 {t('Merge')}
               </ActionLink>
             </div>
-            <Feature features={['incidents']}>
-              <div className="btn-group hidden-xs">
-                <ActionLink
-                  className="btn btn-default btn-sm hidden-md hidden-sm hidden-xs"
-                  title={t('Create new incident')}
-                  disabled={createNewIncidentDisabled}
-                  onAction={this.handleCreateIncident}
-                >
-                  <IncidentLabel>
-                    <IncidentIcon
-                      data-test-id="create-incident"
-                      size="16"
-                      src="icon-siren-add"
-                    />
-                    <CreateIncidentText>{t('Create Incident')}</CreateIncidentText>
-                  </IncidentLabel>
-                </ActionLink>
-              </div>
-            </Feature>
             <div className="btn-group">
               <DropdownLink
                 key="actions"
@@ -495,17 +467,6 @@ const IssueListActions = createReactClass({
                     title={t('Merge Selected Issues')}
                   >
                     {t('Merge')}
-                  </ActionLink>
-                </MenuItem>
-                <MenuItem divider className="hidden-lg hidden-xl" />
-                <MenuItem noAnchor>
-                  <ActionLink
-                    className="hidden-lg hidden-xl"
-                    disabled={createNewIncidentDisabled}
-                    onAction={this.handleCreateIncident}
-                    title={t('Create new incident')}
-                  >
-                    {t('Create Incident')}
                   </ActionLink>
                 </MenuItem>
                 <MenuItem divider className="hidden-lg hidden-xl" />
@@ -747,18 +708,6 @@ const AssigneesLabel = styled('div')`
   width: 80px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
-`;
-
-const IncidentLabel = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-const IncidentIcon = styled(InlineSvg)`
-  position: relative;
-  top: -1px;
-`;
-const CreateIncidentText = styled('span')`
-  margin-left: 5px; /* consistent with other items in bar */
 `;
 
 export {IssueListActions};

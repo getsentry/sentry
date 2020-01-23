@@ -5,7 +5,7 @@ import six
 import pytest
 import pytz
 import time
-from mock import patch
+from sentry.utils.compat.mock import patch
 from datetime import timedelta
 
 from six.moves.urllib.parse import urlencode
@@ -25,7 +25,6 @@ def all_events_query(**kwargs):
         "field": ["title", "event.type", "project", "user", "timestamp"],
         "tag": ["event.type", "release", "project.name", "user.email", "user.ip", "environment"],
         "name": ["All Events"],
-        "fieldnames": ["title", "type", "project", "user", "time"],
     }
     options.update(kwargs)
 
@@ -36,7 +35,6 @@ def errors_query(**kwargs):
     options = {
         "sort": ["-last_seen", "-title"],
         "name": ["Errors"],
-        "fieldnames": ["error", "events", "users", "project", "last seen"],
         "field": ["title", "count(id)", "count_unique(user)", "project", "last_seen"],
         "tag": ["error.type", "project.name"],
         "query": ["event.type:error"],
@@ -50,7 +48,6 @@ def transactions_query(**kwargs):
     options = {
         "sort": ["-count"],
         "name": ["Transactions"],
-        "fieldnames": ["transaction", "project", "volume"],
         "field": ["transaction", "project", "count()"],
         "tag": ["release", "project.name", "user.email", "user.ip", "environment"],
         "statsPeriod": ["14d"],
@@ -83,21 +80,21 @@ def generate_transaction():
     parent_span_id = reference_span["parent_span_id"]
 
     span_tree_blueprint = {
-        "a": {"aa": {"aaa": {"aaaa": "aaaaa"}}},
-        "b": {},
+        "a": {},
+        "b": {"bb": {"bbb": {"bbbb": "bbbbb"}}},
         "c": {},
         "d": {},
         "e": {},
     }
 
     time_offsets = {
-        "a": (timedelta(), timedelta(milliseconds=250)),
-        "aa": (timedelta(milliseconds=10), timedelta(milliseconds=20)),
-        "aaa": (timedelta(milliseconds=15), timedelta(milliseconds=30)),
-        "aaaa": (timedelta(milliseconds=20), timedelta(milliseconds=50)),
-        "aaaaa": (timedelta(milliseconds=25), timedelta(milliseconds=50)),
-        "b": (timedelta(milliseconds=100), timedelta(milliseconds=100)),
-        "c": (timedelta(milliseconds=350), timedelta(milliseconds=50)),
+        "a": (timedelta(), timedelta(milliseconds=10)),
+        "b": (timedelta(milliseconds=120), timedelta(milliseconds=250)),
+        "bb": (timedelta(milliseconds=130), timedelta(milliseconds=10)),
+        "bbb": (timedelta(milliseconds=140), timedelta(milliseconds=10)),
+        "bbbb": (timedelta(milliseconds=150), timedelta(milliseconds=10)),
+        "bbbbb": (timedelta(milliseconds=160), timedelta(milliseconds=90)),
+        "c": (timedelta(milliseconds=260), timedelta(milliseconds=100)),
         "d": (timedelta(milliseconds=375), timedelta(milliseconds=50)),
         "e": (timedelta(milliseconds=400), timedelta(milliseconds=100)),
     }
@@ -215,7 +212,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "events-v2 - errors query - empty state - querybuilder - column edit state"
             )
 
-            self.browser.click_when_visible('[data-test-id="grid-add-column-right-end"]')
+            self.browser.click_when_visible('[data-test-id="grid-add-column"]')
             self.browser.snapshot(
                 "events-v2 - errors query - empty state - querybuilder - add column"
             )
@@ -380,11 +377,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
     def test_create_saved_query(self):
         # Simulate a custom query
-        query = {
-            "fieldnames": ["project", "count"],
-            "field": ["project.id", "count()"],
-            "query": "event.type:error",
-        }
+        query = {"field": ["project.id", "count()"], "query": "event.type:error"}
         query_name = "A new custom query"
         with self.feature(FEATURE_NAMES):
             # Go directly to the query builder view

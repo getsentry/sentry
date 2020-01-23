@@ -7,15 +7,13 @@ import ipaddress
 import jsonschema
 import six
 
-from datetime import datetime, timedelta
-from django.conf import settings
+from datetime import timedelta
 from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
-from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventtypes, eventstream, tsdb
+from sentry import buffer, eventstore, eventtypes, eventstream, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -46,7 +44,6 @@ from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity,
     Environment,
-    Event,
     EventDict,
     EventError,
     EventUser,
@@ -381,22 +378,12 @@ class EventManager(object):
     def _get_event_instance(self, project_id=None):
         data = self._data
         event_id = data.get("event_id")
-        platform = data.get("platform")
 
-        recorded_timestamp = data.get("timestamp")
-        date = datetime.fromtimestamp(recorded_timestamp)
-        date = date.replace(tzinfo=timezone.utc)
-        time_spent = data.get("time_spent")
-
-        data["node_id"] = Event.generate_node_id(project_id, event_id)
-
-        return Event(
+        return eventstore.create_event(
             project_id=project_id or self._project.id,
             event_id=event_id,
+            group_id=None,
             data=EventDict(data, skip_renormalization=True),
-            time_spent=time_spent,
-            datetime=date,
-            platform=platform,
         )
 
     def get_culprit(self):
@@ -426,34 +413,6 @@ class EventManager(object):
             "title": event_type.get_title(event_metadata),
             "location": event_type.get_location(event_metadata),
         }
-
-    def get_search_message(self, event_metadata=None, culprit=None):
-        """This generates the internal event.message attribute which is used
-        for search purposes.  It adds a bunch of data from the metadata and
-        the culprit.
-        """
-        if event_metadata is None:
-            event_metadata = self.get_event_type().get_metadata(self._data)
-        if culprit is None:
-            culprit = self.get_culprit()
-
-        data = self._data
-        message = ""
-
-        if data.get("logentry"):
-            message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
-
-        if event_metadata:
-            for value in six.itervalues(event_metadata):
-                value_u = force_text(value, errors="replace")
-                if value_u not in message:
-                    message = u"{} {}".format(message, value_u)
-
-        if culprit and culprit not in message:
-            culprit_u = force_text(culprit, errors="replace")
-            message = u"{} {}".format(message, culprit_u)
-
-        return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     def save(self, project_id, raw=False, assume_normalized=False):
         """
@@ -604,13 +563,17 @@ class EventManager(object):
         # however the data is dynamically overridden by Event.title and
         # Event.location (See Event.as_dict)
         materialized_metadata = self.materialize_metadata()
-        event_metadata = materialized_metadata["metadata"]
         data.update(materialized_metadata)
         data["culprit"] = culprit
 
         # index components into ``Event.message``
         # See GH-3248
-        event.message = self.get_search_message(event_metadata, culprit)
+        # TODO: We temporarily save the search message into the message field to
+        # maintain backward compatibility with the Django event model. Once
+        # "store.use-django-event" is turned off for good, we can just reference
+        # event.search_message everywhere.
+        event.message = event.search_message
+
         received_timestamp = event.data.get("received") or float(event.datetime.strftime("%s"))
 
         if not issueless_event:

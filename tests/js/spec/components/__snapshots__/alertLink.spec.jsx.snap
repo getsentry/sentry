@@ -3,6 +3,7 @@
 exports[`AlertLink renders 1`] = `
 <StyledLink
   priority="warning"
+  size="normal"
   to="/settings/accounts/notifications"
 >
   <AlertLinkText>
@@ -17,12 +18,13 @@ exports[`AlertLink renders 1`] = `
 
 exports[`AlertLink renders with icon 1`] = `
 <StyledLink
-  icon="icon-mail"
   priority="warning"
+  size="normal"
   to="/settings/accounts/notifications"
 >
   <StyledInlineSvg
     size="1.5em"
+    spacingSize="normal"
     src="icon-mail"
   />
   <AlertLinkText>

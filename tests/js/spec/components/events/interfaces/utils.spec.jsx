@@ -11,7 +11,10 @@ describe('components/interfaces/utils', function() {
     it('should convert an http request object to an equivalent unix curl command string', function() {
       expect(
         getCurlCommand({
-          cookies: [['foo', 'bar'], ['biz', 'baz']],
+          cookies: [
+            ['foo', 'bar'],
+            ['biz', 'baz'],
+          ],
           url: 'http://example.com/foo',
           headers: [
             ['Referer', 'http://example.com'],
@@ -97,7 +100,10 @@ describe('components/interfaces/utils', function() {
       // Escape escaped strings.
       expect(
         getCurlCommand({
-          cookies: [['foo', 'bar'], ['biz', 'baz']],
+          cookies: [
+            ['foo', 'bar'],
+            ['biz', 'baz'],
+          ],
           url: 'http://example.com/foo',
           headers: [
             ['Referer', 'http://example.com'],
@@ -166,7 +172,10 @@ describe('components/interfaces/utils', function() {
         objectToSortedTupleArray({
           foo: ['bar', 'baz'],
         })
-      ).toEqual([['foo', 'bar'], ['foo', 'baz']]);
+      ).toEqual([
+        ['foo', 'bar'],
+        ['foo', 'baz'],
+      ]);
     });
   });
 

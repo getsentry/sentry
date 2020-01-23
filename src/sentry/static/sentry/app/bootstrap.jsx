@@ -32,7 +32,7 @@ if (window.__initialData) {
 // SDK INIT  --------------------------------------------------------
 const config = ConfigStore.getConfig();
 // Only enable self-tracing when isApmDataSamplingEnabled is true
-const tracesSampleRate = config && config.isApmDataSamplingEnabled ? 1 : 0;
+const tracesSampleRate = config ? config.apmSampling : 0;
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
   integrations: [
@@ -86,7 +86,9 @@ const render = Component => {
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load
 // it on demand.
 async function loadPasswordStrength(callback) {
-  const module = await import(/* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength');
+  const module = await import(
+    /* webpackChunkName: "passwordStrength" */ 'app/components/passwordStrength'
+  );
   callback(module);
 }
 

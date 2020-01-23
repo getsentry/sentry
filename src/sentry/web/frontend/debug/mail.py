@@ -16,6 +16,7 @@ from django.views.generic import View
 from loremipsum import Generator
 from random import Random
 
+from sentry import eventstore
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
@@ -32,7 +33,6 @@ from sentry.models import (
     Project,
     Release,
     Rule,
-    SnubaEvent,
     Team,
 )
 from sentry.event_manager import EventManager
@@ -194,19 +194,12 @@ class ActivityMailDebugView(View):
         data = event_manager.get_data()
         event_type = event_manager.get_event_type()
 
-        group.message = event_manager.get_search_message()
-        group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
-
-        event = SnubaEvent(
-            {
-                "event_id": "a" * 32,
-                "project_id": project.id,
-                "group_id": group.id,
-                "message": event_manager.get_search_message(),
-                "data": data.data,
-                "timestamp": data["timestamp"],
-            }
+        event = eventstore.create_event(
+            event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
         )
+
+        group.message = event.search_message
+        group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
         activity = Activity(group=group, project=event.project, **self.get_activity(request, event))
 
@@ -245,10 +238,10 @@ def alert(request):
     data = event_manager.get_data()
     event = event_manager.save(project.id)
     # Prevent Percy screenshot from constantly changing
-    event.datetime = datetime(2017, 9, 6, 0, 0)
+    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
     event_type = event_manager.get_event_type()
 
-    group.message = event_manager.get_search_message()
+    group.message = event.search_message
     group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
     rule = Rule(label="An example rule")
@@ -353,21 +346,13 @@ def digest(request):
             event_manager.normalize()
             data = event_manager.get_data()
 
-            timestamp = to_datetime(
-                random.randint(to_timestamp(group.first_seen), to_timestamp(group.last_seen))
+            data["timestamp"] = random.randint(
+                to_timestamp(group.first_seen), to_timestamp(group.last_seen)
             )
 
-            event = SnubaEvent(
-                {
-                    "event_id": uuid.uuid4().hex,
-                    "project_id": project.id,
-                    "group_id": group.id,
-                    "message": group.message,
-                    "data": data.data,
-                    "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                }
+            event = eventstore.create_event(
+                event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data.data
             )
-            event.group = group
 
             records.append(
                 Record(
@@ -525,7 +510,7 @@ def report(request):
 
 @login_required
 def request_access(request):
-    org = Organization(id=1, slug="example", name="Example")
+    org = Organization(id=1, slug="sentry", name="Sentry org")
     team = Team(id=1, slug="example", name="Example", organization=org)
 
     return MailPreview(
@@ -537,9 +522,33 @@ def request_access(request):
             "organization": org,
             "team": team,
             "url": absolute_uri(
-                reverse("sentry-organization-members", kwargs={"organization_slug": org.slug})
-                + "?ref=access-requests"
+                reverse(
+                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
+                )
             ),
+        },
+    ).render(request)
+
+
+@login_required
+def request_access_for_another_member(request):
+    org = Organization(id=1, slug="sentry", name="Sentry org")
+    team = Team(id=1, slug="example", name="Example", organization=org)
+
+    return MailPreview(
+        html_template="sentry/emails/request-team-access.html",
+        text_template="sentry/emails/request-team-access.txt",
+        context={
+            "email": "foo@example.com",
+            "name": "Username",
+            "organization": org,
+            "team": team,
+            "url": absolute_uri(
+                reverse(
+                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
+                )
+            ),
+            "requester": request.user.get_display_name(),
         },
     ).render(request)
 

@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/browser';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {inputStyles} from 'app/styles/input';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
@@ -78,9 +78,7 @@ class CreateProject extends React.Component {
         ProjectActions.createSuccess(data);
 
         const platformKey = platform || 'other';
-        const nextUrl = `/${organization.slug}/${
-          data.slug
-        }/getting-started/${platformKey}/`;
+        const nextUrl = `/${organization.slug}/${data.slug}/getting-started/${platformKey}/`;
 
         browserHistory.push(nextUrl);
       },

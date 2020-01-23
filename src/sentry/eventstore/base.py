@@ -5,6 +5,8 @@ from sentry import nodestore
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
 
+from .models import Event
+
 
 class Filter(object):
     """
@@ -14,6 +16,7 @@ class Filter(object):
     start (DateTime): Start datetime - default None
     end (DateTime): Start datetime - default None
     conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
+    having (Sequence[str, str, Any]]): List of having conditions to filter by - default None
     project_ids (Sequence[int]): List of project IDs to fetch - default None
     group_ids (Sequence[int]): List of group IDs to fetch - defualt None
     event_ids (Sequence[int]): List of event IDs to fetch - default None
@@ -24,6 +27,7 @@ class Filter(object):
         start=None,
         end=None,
         conditions=None,
+        having=None,
         project_ids=None,
         group_ids=None,
         event_ids=None,
@@ -31,6 +35,7 @@ class Filter(object):
         self.start = start
         self.end = end
         self.conditions = conditions
+        self.having = having
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids
@@ -58,6 +63,7 @@ class EventStorage(Service):
     __all__ = (
         "minimal_columns",
         "full_columns",
+        "create_event",
         "get_event_by_id",
         "get_events",
         "get_prev_event_id",
@@ -114,14 +120,13 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_event_by_id(self, project_id, event_id, additional_columns=None):
+    def get_event_by_id(self, project_id, event_id):
         """
         Gets a single event given a project_id and event_id.
 
         Arguments:
         project_id (int): Project ID
         event_id (str): Event ID
-        additional_columns: (Sequence[Column]) - List of addition columns to fetch - default None
         """
         raise NotImplementedError
 
@@ -169,18 +174,28 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
+    def create_event(self, project_id=None, event_id=None, group_id=None, data=None):
+        """
+        Returns an Event from processed data
+        """
+        return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
+
     def bind_nodes(self, object_list, node_name="data"):
         """
         For a list of Event objects, and a property name where we might find an
         (unfetched) NodeData on those objects, fetch all the data blobs for
         those NodeDatas with a single multi-get command to nodestore, and bind
-        the returned blobs to the NodeDatas
+        the returned blobs to the NodeDatas.
 
-        For binding a single Event object (most use cases), it's easier to use
-        event.bind_node_data().
+        It's not necessary to bind a single Event object since data will be lazily
+        fetched on any attempt to access a property.
         """
+        # Temporarily make bind_nodes noop to prevent unnecessary additional calls
+        # to nodestore by the event serializer.
+        unfetched_object_list = [i for i in object_list if not getattr(i, node_name)._node_data]
+
         object_node_list = [
-            (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
+            (i, getattr(i, node_name)) for i in unfetched_object_list if getattr(i, node_name).id
         ]
 
         node_ids = [n.id for _, n in object_node_list]

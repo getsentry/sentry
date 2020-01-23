@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Action, ActionType, TargetType} from 'app/views/settings/incidentRules/types';
 import {MetricAction} from 'app/types/alerts';
@@ -33,6 +33,7 @@ type Props = {
   currentProject: string;
   organization: Organization;
   projects: Project[];
+  disabled: boolean;
   loading: boolean;
   error: boolean;
 
@@ -52,6 +53,15 @@ class ActionsPanel extends React.PureComponent<Props> {
     };
 
     onChange(replaceAtArrayIndex(actions, index, newAction));
+  }
+
+  getFullActionTitle({
+    type,
+    integrationName,
+  }: Pick<MetricAction, 'type'> & {
+    integrationName?: MetricAction['integrationName'] | null;
+  }) {
+    return `${ActionLabel[type]}${integrationName ? ` - ${integrationName}` : ''}`;
   }
 
   handleAddAction = (value: {label: string; value: Action['type']}) => {
@@ -90,6 +100,7 @@ class ActionsPanel extends React.PureComponent<Props> {
       actions,
       availableActions,
       currentProject,
+      disabled,
       loading,
       organization,
       projects,
@@ -97,9 +108,9 @@ class ActionsPanel extends React.PureComponent<Props> {
 
     const items =
       availableActions &&
-      availableActions.map(({type: value}) => ({
+      availableActions.map(({type: value, integrationName}) => ({
         value,
-        label: ActionLabel[value],
+        label: this.getFullActionTitle({type: value, integrationName}),
       }));
 
     return (
@@ -117,11 +128,14 @@ class ActionsPanel extends React.PureComponent<Props> {
 
               return (
                 <PanelItemGrid key={i}>
-                  {ActionLabel[action.type]}
+                  {this.getFullActionTitle({
+                    type: action.type,
+                    integrationName: availableAction && availableAction.integrationName,
+                  })}
 
                   {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
                     <SelectControl
-                      disabled={loading}
+                      disabled={disabled || loading}
                       value={action.targetType}
                       options={
                         availableAction &&
@@ -138,6 +152,7 @@ class ActionsPanel extends React.PureComponent<Props> {
 
                   {isUser || isTeam ? (
                     <SelectMembers
+                      disabled={disabled}
                       key={isTeam ? 'team' : 'member'}
                       showTeam={isTeam}
                       project={projects.find(({slug}) => slug === currentProject)}
@@ -147,13 +162,18 @@ class ActionsPanel extends React.PureComponent<Props> {
                     />
                   ) : (
                     <Input
+                      disabled={disabled}
                       key={action.type}
                       value={action.targetIdentifier}
                       onChange={this.handleChangeSpecificTargetIdentifier.bind(this, i)}
                       placeholder="Channel or user i.e. #critical"
                     />
                   )}
-                  <DeleteActionButton index={i} onClick={this.handleDeleteAction} />
+                  <DeleteActionButton
+                    index={i}
+                    onClick={this.handleDeleteAction}
+                    disabled={disabled}
+                  />
                 </PanelItemGrid>
               );
             })}
@@ -161,7 +181,7 @@ class ActionsPanel extends React.PureComponent<Props> {
             <StyledSelectControl
               name="add-action"
               aria-label={t('Add an Action')}
-              disabled={loading}
+              disabled={disabled || loading}
               placeholder={t('Add an Action')}
               onChange={this.handleAddAction}
               options={items}

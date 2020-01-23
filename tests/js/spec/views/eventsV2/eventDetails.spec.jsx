@@ -14,6 +14,11 @@ describe('EventsV2 > EventDetails', function() {
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
@@ -64,7 +69,10 @@ describe('EventsV2 > EventDetails', function() {
       url: '/organizations/org-slug/events-stats/',
       method: 'GET',
       body: {
-        data: [[1234561700, [1]], [1234561800, [1]]],
+        data: [
+          [1234561700, [1]],
+          [1234561800, [1]],
+        ],
       },
     });
 
@@ -204,10 +212,8 @@ describe('EventsV2 > EventDetails', function() {
       organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
       router: {
         location: {
-          pathname: '/organizations/org-slug/events/',
-          query: {
-            eventSlug: 'project-slug:deadbeef',
-          },
+          pathname: '/organizations/org-slug/eventsv2/project-slug:deadbeef',
+          query: {},
         },
       },
     });
@@ -228,7 +234,7 @@ describe('EventsV2 > EventDetails', function() {
     // Should remove eventSlug and append new tag value causing
     // the view to re-render
     expect(tagLink.props().to).toEqual({
-      pathname: '/organizations/org-slug/events/',
+      pathname: '/organizations/org-slug/eventsv2/results/',
       query: {query: 'browser:Firefox'},
     });
   });
@@ -238,10 +244,9 @@ describe('EventsV2 > EventDetails', function() {
       organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
       router: {
         location: {
-          pathname: '/organizations/org-slug/events/',
+          pathname: '/organizations/org-slug/eventsv2/project-slug:deadbeef',
           query: {
             query: 'Dumpster',
-            eventSlug: 'project-slug:deadbeef',
           },
         },
       },
@@ -263,7 +268,7 @@ describe('EventsV2 > EventDetails', function() {
     // Should remove eventSlug and append new tag value causing
     // the view to re-render
     expect(tagLink.props().to).toEqual({
-      pathname: '/organizations/org-slug/events/',
+      pathname: '/organizations/org-slug/eventsv2/results/',
       query: {query: 'Dumpster browser:Firefox'},
     });
   });

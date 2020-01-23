@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 from uuid import uuid4
 
 from sentry.models import (
-    Event,
     EventAttachment,
     File,
     Group,
@@ -16,6 +15,7 @@ from sentry.models import (
 )
 from sentry import nodestore
 from sentry.deletions.defaults.group import EventDataDeletionTask
+from sentry.eventstore.models import Event
 from sentry.tasks.deletion import delete_groups
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now

@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 import logging
 import six
+import uuid
 from functools import partial
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 
 from semaphore.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
@@ -12,6 +14,7 @@ from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
 from sentry import eventstore, features
+from sentry.snuba import discover
 from sentry.utils import snuba
 from sentry.models.project import Project
 
@@ -28,7 +31,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 request,
                 query,
                 self.get_filter_params(request, organization),
-                "api.organization-events",
+                "api.organization-events-direct-hit",
             )
         except (OrganizationEventsError, NoProjects):
             pass
@@ -94,29 +97,32 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
 
         try:
             params = self.get_filter_params(request, organization)
-            snuba_args = self.get_snuba_query_args(request, organization, params)
-            if not snuba_args.get("selected_columns") and not snuba_args.get("aggregations"):
-                return Response({"detail": "No fields provided"}, status=400)
-
         except OrganizationEventsError as exc:
-            return Response({"detail": exc.message}, status=400)
+            raise ParseError(detail=six.text_type(exc))
         except NoProjects:
             return Response([])
 
-        filters = snuba_args.get("filter_keys", {})
         has_global_views = features.has(
             "organizations:global-views", organization, actor=request.user
         )
-        if not has_global_views and len(filters.get("project_id", [])) > 1:
-            return Response(
-                {"detail": "You cannot view events from multiple projects."}, status=400
-            )
+        if not has_global_views and len(params.get("project_id", [])) > 1:
+            raise ParseError(detail="You cannot view events from multiple projects.")
 
-        data_fn = partial(
-            lambda **kwargs: snuba.transform_aliases_and_query(**kwargs),
-            referrer="api.organization-events-v2",
-            **snuba_args
-        )
+        def data_fn(offset, limit):
+            return discover.query(
+                selected_columns=request.GET.getlist("field")[:],
+                query=request.GET.get("query"),
+                params=params,
+                reference_event=self.reference_event(
+                    request, organization, params.get("start"), params.get("end")
+                ),
+                orderby=self.get_orderby(request),
+                offset=offset,
+                limit=limit,
+                referrer="api.organization-events-v2",
+                auto_fields=True,
+                use_aggregate_conditions=True,
+            )
 
         try:
             return self.paginate(
@@ -126,6 +132,8 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                     request, organization, params["project_id"], results
                 ),
             )
+        except discover.InvalidSearchQuery as error:
+            raise ParseError(detail=six.text_type(error))
         except snuba.SnubaError as error:
             logger.info(
                 "organization.events.snuba-error",
@@ -135,7 +143,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                     "error": six.text_type(error),
                 },
             )
-            return Response({"detail": "Invalid query."}, status=400)
+            raise ParseError(detail="Invalid query.")
 
     def handle_results_with_meta(self, request, organization, project_ids, results):
         data = self.handle_data(request, organization, project_ids, results.get("data"))
@@ -160,9 +168,19 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
 
         # TODO(mark) move all of this result formatting into discover.query()
         # once those APIs are used across the application.
-        if "transaction.status" in first_row:
+        tests = {
+            "transaction.status": "transaction.status" in first_row,
+            "trace": "trace" in first_row,
+        }
+        if any(tests.values()):
             for row in results:
-                row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
+                if tests["transaction.status"]:
+                    row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
+                        row["transaction.status"]
+                    )
+                if tests["trace"]:
+                    row["trace"] = uuid.UUID(row["trace"]).hex
+
         if not ("project.id" in first_row or "projectid" in first_row):
             return results
         fields = request.GET.getlist("field")

@@ -2,8 +2,9 @@ import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 import TagActions from 'app/actions/tagActions';
 import AlertActions from 'app/actions/alertActions';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
-const MAX_TAGS = 500;
+const MAX_TAGS = 1000;
 
 const BUILTIN_TAGS = [
   'event.type',
@@ -61,6 +62,44 @@ function tagFetchSuccess(tags) {
 }
 
 /**
+ * Load an organization's tags based on a global selection value.
+ *
+ * @param {Client} api
+ * @param {String} orgId
+ * @param {GlobalSelection} selection
+ */
+export function loadOrganizationTags(api, orgId, selection) {
+  TagStore.reset();
+
+  const url = `/organizations/${orgId}/tags/`;
+  const query = selection.datetime ? {...getParams(selection.datetime)} : {};
+  query.use_cache = '1';
+
+  if (selection.projects) {
+    query.project = selection.projects;
+  }
+  const promise = api
+    .requestPromise(url, {
+      method: 'GET',
+      query,
+    })
+    .then(tags => {
+      return [...BUILTIN_TAGS, ...tags];
+    });
+
+  promise.then(
+    results => {
+      tagFetchSuccess(results);
+    },
+    reason => {
+      TagActions.loadTagsError(reason);
+    }
+  );
+
+  return promise;
+}
+
+/**
  * Fetch tags for an organization or a subset or projects.
  */
 export function fetchOrganizationTags(api, orgId, projectIds = null) {
@@ -68,7 +107,10 @@ export function fetchOrganizationTags(api, orgId, projectIds = null) {
   TagActions.loadTags();
 
   const url = `/organizations/${orgId}/tags/`;
-  const query = projectIds ? {project: projectIds} : null;
+  const query = {use_cache: 1};
+  if (projectIds) {
+    query.project = projectIds;
+  }
 
   const promise = api
     .requestPromise(url, {
@@ -87,7 +129,14 @@ export function fetchOrganizationTags(api, orgId, projectIds = null) {
  * Fetch tag values for an organization.
  * The `projectIds` argument can be used to subset projects.
  */
-export function fetchTagValues(api, orgId, tagKey, search = null, projectIds = null) {
+export function fetchTagValues(
+  api,
+  orgId,
+  tagKey,
+  search = null,
+  projectIds = null,
+  endpointParams = null
+) {
   const url = `/organizations/${orgId}/tags/${tagKey}/values/`;
 
   const query = {};
@@ -96,6 +145,17 @@ export function fetchTagValues(api, orgId, tagKey, search = null, projectIds = n
   }
   if (projectIds) {
     query.project = projectIds;
+  }
+  if (endpointParams) {
+    if (endpointParams.start) {
+      query.start = endpointParams.start;
+    }
+    if (endpointParams.end) {
+      query.end = endpointParams.end;
+    }
+    if (endpointParams.statsPeriod) {
+      query.statsPeriod = endpointParams.statsPeriod;
+    }
   }
 
   return api.requestPromise(url, {

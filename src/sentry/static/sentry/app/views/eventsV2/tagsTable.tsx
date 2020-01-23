@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 import * as ReactRouter from 'react-router';
 
@@ -8,17 +8,18 @@ import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {EventTag} from 'app/types';
+import {EventTag, OrganizationSummary} from 'app/types';
 
 import {getEventTagSearchUrl} from './utils';
 import {SectionHeading} from './styles';
 
 type Props = {
+  organization: OrganizationSummary;
   tags: Array<EventTag>;
 } & ReactRouter.WithRouterProps;
 
 const TagsTable = (props: Props) => {
-  const {location, tags} = props;
+  const {location, organization, tags} = props;
   return (
     <StyledTagsTable>
       <SectionHeading>{t('Event Tag Details')}</SectionHeading>
@@ -36,7 +37,14 @@ const TagsTable = (props: Props) => {
                       <span>{tag.value}</span>
                     </Tooltip>
                   ) : (
-                    <Link to={getEventTagSearchUrl(tag.key, tag.value, location)}>
+                    <Link
+                      to={getEventTagSearchUrl(
+                        tag.key,
+                        tag.value,
+                        organization,
+                        location.query
+                      )}
+                    >
                       {tag.value}
                     </Link>
                   )}

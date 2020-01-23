@@ -10,7 +10,7 @@ import six
 from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
-from mock import call, Mock
+from sentry.utils.compat.mock import call, Mock
 
 from sentry.incidents.logic import (
     create_alert_rule,

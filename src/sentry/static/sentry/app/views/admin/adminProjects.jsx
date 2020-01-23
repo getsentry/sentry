@@ -44,7 +44,10 @@ class AdminProjects extends React.Component {
           filters={{
             status: {
               name: 'Status',
-              options: [['active', 'Active'], ['deleted', 'Deleted']],
+              options: [
+                ['active', 'Active'],
+                ['deleted', 'Deleted'],
+              ],
             },
           }}
           sortOptions={[['date', 'Date Created']]}

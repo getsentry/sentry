@@ -8,10 +8,11 @@ from semaphore import meta_with_chunks
 
 from sentry import eventstore
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Event, EventError, EventAttachment, Release, UserReport, SnubaEvent
+from sentry.models import EventAttachment, EventError, Release, UserReport
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.utils.safe import get_path
 from sentry.sdk_updates import get_suggested_updates, SdkSetupState
+from sentry.eventstore.models import Event
 
 
 CRASH_FILE_TYPES = set(["event.minidump"])
@@ -28,7 +29,6 @@ def get_crash_files(events):
     return rv
 
 
-@register(SnubaEvent)
 @register(Event)
 class EventSerializer(Serializer):
     _reserved_keys = frozenset(["user", "sdk", "device", "contexts"])
@@ -359,7 +359,7 @@ class SimpleEventSerializer(EventSerializer):
         user = obj.get_minimal_user()
 
         return {
-            "id": six.text_type(obj.id),
+            "id": six.text_type(obj.event_id),
             "event.type": six.text_type(obj.get_event_type()),
             "groupID": six.text_type(obj.group_id) if obj.group_id else None,
             "eventID": six.text_type(obj.event_id),

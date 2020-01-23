@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -96,7 +96,7 @@ export default class SavedSearchSelector extends React.Component {
           menuWidth="35vw"
           blendWithActor
           button={({isOpen, getActorProps}) => (
-            <StyledDropdownButton {...getActorProps({isStyled: true})} isOpen={isOpen}>
+            <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
               <ButtonTitle>{this.getTitle()}</ButtonTitle>
             </StyledDropdownButton>
           )}
@@ -113,9 +113,7 @@ const Container = styled('div')`
   display: block;
 `;
 
-const StyledDropdownButton = styled(
-  React.forwardRef((prop, ref) => <DropdownButton innerRef={ref} {...prop} />)
-)`
+const StyledDropdownButton = styled(DropdownButton)`
   border-right: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   border-radius: ${p =>

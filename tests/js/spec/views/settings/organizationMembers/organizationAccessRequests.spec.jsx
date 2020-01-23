@@ -6,7 +6,13 @@ import OrganizationAccessRequests from 'app/views/settings/organizationMembers/o
 describe('OrganizationAccessRequests', function() {
   const orgId = 'org-slug';
   const accessRequest = TestStubs.AccessRequest();
-  const requestList = [accessRequest];
+  const requester = TestStubs.User({
+    id: '9',
+    username: 'requester@example.com',
+    email: 'requester@example.com',
+    name: 'Requester',
+  });
+  const requestList = [accessRequest, TestStubs.AccessRequest({id: '4', requester})];
 
   it('renders empty', function() {
     const wrapper = mountWithTheme(
@@ -33,11 +39,19 @@ describe('OrganizationAccessRequests', function() {
     expect(
       wrapper
         .find('StyledPanelItem')
+        .first()
         .text()
         .includes(
-          `${accessRequest.member.user.name} requests access to the #${
-            accessRequest.team.slug
-          } team`
+          `${accessRequest.member.user.name} requests access to the #${accessRequest.team.slug} team`
+        )
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('StyledPanelItem')
+        .last()
+        .text()
+        .includes(
+          `${requester.name} requests to add ${accessRequest.member.user.name} to the #${accessRequest.team.slug} team`
         )
     ).toBe(true);
   });
@@ -57,7 +71,10 @@ describe('OrganizationAccessRequests', function() {
       />
     );
 
-    wrapper.find('button[aria-label="Approve"]').simulate('click');
+    wrapper
+      .find('button[aria-label="Approve"]')
+      .first()
+      .simulate('click');
 
     await tick();
 
@@ -87,7 +104,10 @@ describe('OrganizationAccessRequests', function() {
       />
     );
 
-    wrapper.find('button[aria-label="Deny"]').simulate('click');
+    wrapper
+      .find('button[aria-label="Deny"]')
+      .first()
+      .simulate('click');
 
     await tick();
 

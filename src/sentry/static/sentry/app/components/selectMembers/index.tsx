@@ -1,7 +1,7 @@
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {Member, Organization, Project, Team, User} from 'app/types';
@@ -268,7 +268,10 @@ class SelectMembers extends React.Component<Props> {
       .requestPromise(`/organizations/${organization.slug}/members/`, {
         query: {query},
       })
-      .then((data: Member[]) => cb(null, data), err => cb(err));
+      .then(
+        (data: Member[]) => cb(null, data),
+        err => cb(err)
+      );
   }, 250);
 
   handleLoadOptions = (): Promise<{options: any[]}> => {
@@ -314,7 +317,7 @@ class SelectMembers extends React.Component<Props> {
 
     return (
       <StyledSelectControl
-        innerRef={this.selectRef}
+        ref={this.selectRef}
         filterOptions={(options, filterText) =>
           options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1)
         }

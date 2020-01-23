@@ -254,7 +254,6 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                               <Container
                                 aria-describedby="tooltip-123456"
                                 containerDisplayMode="block"
-                                innerRef={[Function]}
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -262,7 +261,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                               >
                                 <span
                                   aria-describedby="tooltip-123456"
-                                  className="css-1v55bsv-Container eowlwvy0"
+                                  className="css-11k874n-Container eowlwvy0"
                                   onBlur={[Function]}
                                   onFocus={[Function]}
                                   onMouseEnter={[Function]}
@@ -363,7 +362,6 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                               <Container
                                 aria-describedby="tooltip-123456"
                                 containerDisplayMode="block"
-                                innerRef={[Function]}
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -371,7 +369,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                               >
                                 <span
                                   aria-describedby="tooltip-123456"
-                                  className="css-1v55bsv-Container eowlwvy0"
+                                  className="css-11k874n-Container eowlwvy0"
                                   onBlur={[Function]}
                                   onFocus={[Function]}
                                   onMouseEnter={[Function]}
@@ -472,7 +470,6 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                               <Container
                                 aria-describedby="tooltip-123456"
                                 containerDisplayMode="block"
-                                innerRef={[Function]}
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -480,7 +477,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                               >
                                 <span
                                   aria-describedby="tooltip-123456"
-                                  className="css-1v55bsv-Container eowlwvy0"
+                                  className="css-11k874n-Container eowlwvy0"
                                   onBlur={[Function]}
                                   onFocus={[Function]}
                                   onMouseEnter={[Function]}
@@ -500,7 +497,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                                       onClick={[Function]}
                                     >
                                       <a
-                                        className="css-19ecu88-ActionLinkAnchor ehtyk0g0"
+                                        className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
                                         data-test-id="action-link"
                                         disabled={false}
                                         onClick={[Function]}
@@ -634,7 +631,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
             >
               <a
                 aria-label="Resolve"
-                className="btn btn-default btn-sm css-19ecu88-ActionLinkAnchor ehtyk0g0"
+                className="btn btn-default btn-sm css-1lugp7w-ActionLinkAnchor ehtyk0g0"
                 data-test-id="action-link-resolve"
                 disabled={false}
                 onClick={[Function]}
@@ -725,7 +722,6 @@ exports[`ResolveActions without confirmation renders 1`] = `
                               <Container
                                 aria-describedby="tooltip-123456"
                                 containerDisplayMode="block"
-                                innerRef={[Function]}
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -733,7 +729,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                               >
                                 <span
                                   aria-describedby="tooltip-123456"
-                                  className="css-1v55bsv-Container eowlwvy0"
+                                  className="css-11k874n-Container eowlwvy0"
                                   onBlur={[Function]}
                                   onFocus={[Function]}
                                   onMouseEnter={[Function]}
@@ -752,7 +748,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                       onClick={[Function]}
                                     >
                                       <a
-                                        className="css-19ecu88-ActionLinkAnchor ehtyk0g0"
+                                        className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
                                         data-test-id="action-link"
                                         disabled={false}
                                         onClick={[Function]}
@@ -780,7 +776,6 @@ exports[`ResolveActions without confirmation renders 1`] = `
                               <Container
                                 aria-describedby="tooltip-123456"
                                 containerDisplayMode="block"
-                                innerRef={[Function]}
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -788,7 +783,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                               >
                                 <span
                                   aria-describedby="tooltip-123456"
-                                  className="css-1v55bsv-Container eowlwvy0"
+                                  className="css-11k874n-Container eowlwvy0"
                                   onBlur={[Function]}
                                   onFocus={[Function]}
                                   onMouseEnter={[Function]}
@@ -807,7 +802,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                       onClick={[Function]}
                                     >
                                       <a
-                                        className="css-19ecu88-ActionLinkAnchor ehtyk0g0"
+                                        className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
                                         data-test-id="action-link"
                                         disabled={false}
                                         onClick={[Function]}
@@ -835,7 +830,6 @@ exports[`ResolveActions without confirmation renders 1`] = `
                               <Container
                                 aria-describedby="tooltip-123456"
                                 containerDisplayMode="block"
-                                innerRef={[Function]}
                                 onBlur={[Function]}
                                 onFocus={[Function]}
                                 onMouseEnter={[Function]}
@@ -843,7 +837,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                               >
                                 <span
                                   aria-describedby="tooltip-123456"
-                                  className="css-1v55bsv-Container eowlwvy0"
+                                  className="css-11k874n-Container eowlwvy0"
                                   onBlur={[Function]}
                                   onFocus={[Function]}
                                   onMouseEnter={[Function]}
@@ -862,7 +856,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                       onClick={[Function]}
                                     >
                                       <a
-                                        className="css-19ecu88-ActionLinkAnchor ehtyk0g0"
+                                        className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
                                         data-test-id="action-link"
                                         disabled={false}
                                         onClick={[Function]}

@@ -24,8 +24,6 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         if event is None:
             raise ResourceDoesNotExist
 
-        event.bind_node_data()
-
         if event.platform not in ("cocoa", "native"):
             return HttpResponse(
                 {"message": "Only cocoa events can return an apple crash report"}, status=403

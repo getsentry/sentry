@@ -1,7 +1,8 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled, {css, keyframes} from 'react-emotion';
+import styled from '@emotion/styled';
+import {css, keyframes} from '@emotion/core';
 import * as Sentry from '@sentry/browser';
 
 import {t, tct} from 'app/locale';
@@ -50,9 +51,7 @@ class TodoItem extends React.Component {
     const {task} = this.props;
     let learnMoreUrl;
     if (task.featureLocation === 'project') {
-      learnMoreUrl = `/organizations/${org.slug}/projects/choose/?onboarding=1&task=${
-        task.task
-      }`;
+      learnMoreUrl = `/organizations/${org.slug}/projects/choose/?onboarding=1&task=${task.task}`;
     } else if (task.featureLocation === 'organization') {
       learnMoreUrl = `/organizations/${org.slug}/${task.location}`;
     } else if (task.featureLocation === 'absolute') {

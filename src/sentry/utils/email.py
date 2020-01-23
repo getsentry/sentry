@@ -24,7 +24,7 @@ from django.utils.encoding import force_bytes, force_str, force_text
 
 from sentry import options
 from sentry.logging import LoggingFormat
-from sentry.models import Activity, Event, Group, GroupEmailThread, Project, User, UserOption
+from sentry.models import Activity, Group, GroupEmailThread, Project, User, UserOption
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
@@ -240,7 +240,6 @@ default_list_type_handlers = {
     Activity: attrgetter("project.slug", "project.organization.slug"),
     Project: attrgetter("slug", "organization.slug"),
     Group: attrgetter("project.slug", "organization.slug"),
-    Event: attrgetter("project.slug", "organization.slug"),
 }
 
 make_listid_from_instance = ListResolver(

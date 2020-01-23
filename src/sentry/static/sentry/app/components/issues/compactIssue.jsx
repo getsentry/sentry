@@ -2,15 +2,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
+import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import DropdownLink from 'app/components/dropdownLink';
 import ErrorLevel from 'app/components/events/errorLevel';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupStore from 'app/stores/groupStore';
-import IndicatorStore from 'app/stores/indicatorStore';
 import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import SnoozeAction from 'app/components/issues/snoozeAction';
@@ -166,7 +166,7 @@ const CompactIssue = createReactClass({
 
   onUpdate(data) {
     const issue = this.state.issue;
-    const loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes..'));
 
     this.props.api.bulkUpdate(
       {
@@ -177,7 +177,7 @@ const CompactIssue = createReactClass({
       },
       {
         complete: () => {
-          IndicatorStore.remove(loadingIndicator);
+          clearIndicators();
         },
       }
     );
@@ -211,7 +211,7 @@ const CompactIssue = createReactClass({
       <PanelItem
         className={className}
         onClick={this.toggleSelect}
-        direction="column"
+        flexDirection="column"
         style={{paddingTop: '12px', paddingBottom: '6px'}}
       >
         <CompactIssueHeader

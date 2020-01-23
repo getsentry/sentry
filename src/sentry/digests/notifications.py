@@ -29,18 +29,13 @@ def unsplit_key(plugin, project):
     return u"{plugin.slug}:p:{project.id}".format(plugin=plugin, project=project)
 
 
-def strip_for_serialization(instance):
-    cls = type(instance)
-    return cls(**{field.attname: getattr(instance, field.attname) for field in cls._meta.fields})
-
-
 def event_to_record(event, rules):
     if not rules:
         logger.warning("Creating record for %r that does not contain any rules!", event)
 
     return Record(
         event.event_id,
-        Notification(strip_for_serialization(event), [rule.id for rule in rules]),
+        Notification(event, [rule.id for rule in rules]),
         to_timestamp(event.datetime),
     )
 
@@ -71,6 +66,8 @@ def attach_state(project, groups, rules, event_counts, user_counts):
     for id, group in six.iteritems(groups):
         assert group.project_id == project.id, "Group must belong to Project"
         group.project = project
+        group.event_count = 0
+        group.user_count = 0
 
     for id, rule in six.iteritems(rules):
         assert rule.project_id == project.id, "Rule must belong to Project"

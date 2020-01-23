@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
@@ -111,7 +111,10 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
             optionRenderer={this.optionRenderer}
             value={currentQuery.fields}
             onChange={(val: ReactSelectOption[]) =>
-              onUpdateField('fields', val.map(({value}) => value))
+              onUpdateField(
+                'fields',
+                val.map(({value}) => value)
+              )
             }
             clearable
             disabled={isLoading}

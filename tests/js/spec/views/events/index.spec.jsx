@@ -29,8 +29,15 @@ describe('EventsContainer', function() {
 
   beforeAll(async function() {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
-      body: [{count: 1, tag: 'transaction'}, {count: 2, tag: 'mechanism'}],
+      body: [
+        {count: 1, key: 'transaction', name: 'Transaction'},
+        {count: 2, key: 'mechanism', name: 'Mechanism'},
+      ],
     });
 
     setActiveOrganization(organization);

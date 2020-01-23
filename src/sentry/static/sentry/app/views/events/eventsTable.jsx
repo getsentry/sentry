@@ -1,7 +1,7 @@
 import {withRouter, Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {PanelBody, Panel, PanelHeader} from 'app/components/panels';
@@ -27,9 +27,7 @@ class EventsTableBody extends React.PureComponent {
     return events.map((event, eventIdx) => {
       const project = projectsMap.get(event.projectID);
       const trimmedMessage = event.title || event.message.split('\n')[0].substr(0, 100);
-      const eventLink = `/organizations/${organization.slug}/projects/${
-        project.slug
-      }/events/${event.eventID}/`;
+      const eventLink = `/organizations/${organization.slug}/projects/${project.slug}/events/${event.eventID}/`;
 
       return (
         <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx === 0}>

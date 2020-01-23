@@ -37,7 +37,7 @@ const withConfig = <P extends InjectedConfigProps>(
 
     render() {
       return (
-        <WrappedComponent config={this.state.config as Config} {...this.props as P} />
+        <WrappedComponent config={this.state.config as Config} {...(this.props as P)} />
       );
     },
   });

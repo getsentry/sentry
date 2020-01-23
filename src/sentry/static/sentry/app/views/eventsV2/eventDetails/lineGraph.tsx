@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -231,8 +231,10 @@ const LineGraph = (props: LineGraphProps) => {
             tooltip={tooltip}
             xAxis={xAxisOptions}
             grid={{
-              left: '20px',
-              right: '10px',
+              left: '24px',
+              right: '24px',
+              top: '24px',
+              bottom: '12px',
             }}
           />
         )}
@@ -248,7 +250,7 @@ const StyledPanel = styled(Panel)`
     width: 100% !important;
   }
   image {
-    y: 0;
+    y: 0px;
   }
 `;
 

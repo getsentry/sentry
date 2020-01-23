@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import isObject from 'lodash/isObject';
 import AsyncComponent from 'app/components/asyncComponent';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
@@ -270,9 +270,7 @@ class EventGroupingInfo extends AsyncComponent {
   getEndpoints() {
     const {organization, event, projectId} = this.props;
 
-    let path = `/projects/${organization.slug}/${projectId}/events/${
-      event.id
-    }/grouping-info/`;
+    let path = `/projects/${organization.slug}/${projectId}/events/${event.id}/grouping-info/`;
     if (this.state && this.state.configOverride) {
       path = `${path}?config=${this.state.configOverride}`;
     }

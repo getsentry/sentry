@@ -39,7 +39,11 @@ export default class IgnoreActions extends React.Component {
   }
 
   getIgnoreWindows() {
-    return [[60, 'per hour'], [24 * 60, 'per day'], [24 * 7 * 60, 'per week']];
+    return [
+      [60, 'per hour'],
+      [24 * 60, 'per day'],
+      [24 * 7 * 60, 'per week'],
+    ];
   }
 
   onCustomIgnore(statusDetails) {
@@ -116,7 +120,7 @@ export default class IgnoreActions extends React.Component {
           onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
           label={t('Ignore this issue until it affects an additional\u2026')}
-          countLabel={t('Numbers of users')}
+          countLabel={t('Number of users')}
           countName="ignoreUserCount"
           windowName="ignoreUserWindow"
           windowChoices={this.getIgnoreWindows()}

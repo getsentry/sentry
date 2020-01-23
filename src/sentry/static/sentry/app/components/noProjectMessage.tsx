@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
@@ -11,7 +11,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import ConfigStore from 'app/stores/configStore';
 /* TODO: replace with I/O when finished */
-import img from '../../images/dashboard/hair-on-fire.svg';
+import img from '../../images/spot/hair-on-fire.svg';
 
 type Props = {
   organization: LightWeightOrganization | Organization;

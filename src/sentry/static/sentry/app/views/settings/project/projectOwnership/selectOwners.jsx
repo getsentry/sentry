@@ -1,10 +1,10 @@
 import debounce from 'lodash/debounce';
-import {Flex} from 'grid-emotion';
+import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
@@ -137,7 +137,7 @@ export default class SelectOwners extends React.Component {
       ...this.createMentionableTeam(team),
       disabled: true,
       label: (
-        <Flex justify="space-between">
+        <Flex justifyContent="space-between">
           <DisabledLabel>
             <Tooltip
               position="left"
@@ -260,7 +260,10 @@ export default class SelectOwners extends React.Component {
       .requestPromise(`/organizations/${organization.slug}/members/`, {
         query: {query},
       })
-      .then(data => cb(null, data), err => cb(err));
+      .then(
+        data => cb(null, data),
+        err => cb(err)
+      );
   }, 250);
 
   handleLoadOptions = () => {

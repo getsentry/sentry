@@ -1,7 +1,7 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
@@ -18,6 +18,7 @@ import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
+import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -31,7 +32,7 @@ import EventInterfaces from './eventInterfaces';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 import {SectionHeading} from '../styles';
-import EventBreakdown from './transaction/eventBreakdown';
+import OpsBreakdown from './transaction/opsBreakdown';
 
 const slugValidator = function(
   props: {[key: string]: any},
@@ -119,7 +120,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       eventKey: 'discover_v2.event_details',
       eventName: 'Discoverv2: Opened Event Details',
       event_type: event.type,
-      organization_id: organization.id,
+      organization_id: parseInt(organization.id, 10),
     });
 
     // Having an aggregate field means we want to show pagination/graphs
@@ -171,16 +172,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             />
           </div>
           <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>
-            <EventBreakdown event={event} />
             <EventMetadata
               event={event}
               organization={organization}
               projectId={this.projectId}
             />
+            <OpsBreakdown event={event} />
             {event.groupID && (
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}
-            <TagsTable tags={event.tags} />
+            <TagsTable tags={event.tags} organization={organization} />
           </div>
         </ContentBox>
       </div>
@@ -191,9 +192,17 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const notFound = Object.values(this.state.errors).find(
       resp => resp && resp.status === 404
     );
+    const permissionDenied = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 403
+    );
 
     if (notFound) {
       return this.renderWrapper(<NotFound />);
+    }
+    if (permissionDenied) {
+      return this.renderWrapper(
+        <LoadingError message={t('You do not have permission to view that event.')} />
+      );
     }
 
     return this.renderWrapper(super.renderError(error, true, true));
@@ -275,9 +284,7 @@ const EventMetadata = (props: {
 }) => {
   const {event, organization, projectId} = props;
 
-  const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${
-    event.eventID
-  }/json/`;
+  const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${event.eventID}/json/`;
 
   return (
     <MetaDataID>
@@ -350,7 +357,7 @@ const StyledTitle = styled('span')`
 `;
 
 const MetaDataID = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 `;
 
 const MetadataContainer = styled('div')`

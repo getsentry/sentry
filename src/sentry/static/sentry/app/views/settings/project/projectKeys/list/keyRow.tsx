@@ -1,7 +1,7 @@
 import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -13,13 +13,14 @@ import Confirm from 'app/components/confirm';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
+import {Scope} from 'app/types';
 
 type Props = {
   api: Client;
   orgId: string;
   projectId: string;
   data: ProjectKey;
-  access: Set<string>;
+  access: Set<Scope>;
   onToggle: (isActive: boolean, data: ProjectKey) => void;
   onRemove: (data: ProjectKey) => void;
 } & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;

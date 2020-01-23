@@ -2,7 +2,7 @@ import compact from 'lodash/compact';
 import groupBy from 'lodash/groupBy';
 import keyBy from 'lodash/keyBy';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {
   Organization,
@@ -16,7 +16,7 @@ import {
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {RequestOptions} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {analytics} from 'app/utils/analytics';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
@@ -69,10 +69,28 @@ class OrganizationIntegrations extends AsyncComponent<
     organization: SentryTypes.Organization,
   };
 
-  componentDidMount() {
-    analytics('integrations.index_viewed', {
-      org_id: parseInt(this.props.organization.id, 10),
+  onLoadAllEndpointsSuccess() {
+    //count the number of installed apps
+    const {integrations, publishedApps} = this.state;
+    const integrationsInstalled = new Set();
+    //add installed integrations
+    integrations.forEach((integration: Integration) => {
+      integrationsInstalled.add(integration.provider.key);
     });
+    //add sentry apps
+    publishedApps.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
+      integrationsInstalled.add(sentryApp.slug);
+    });
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.index_viewed',
+        eventName: 'Integrations: Index Page Viewed',
+        integrations_installed: integrationsInstalled.size,
+        view: 'integrations_page',
+      },
+      this.props.organization,
+      {startSession: true}
+    );
   }
 
   getEndpoints(): ([string, string, any] | [string, string])[] {

@@ -23,8 +23,9 @@ class WebHooksPluginTest(TestCase):
     @responses.activate
     def test_simple_notification(self):
         responses.add(responses.POST, "http://example.com")
-        group = self.create_group(message="Hello world")
-        event = self.create_event(group=group, message="Hello world", tags={"level": "warning"})
+        event = self.store_event(
+            data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
+        )
         rule = Rule.objects.create(project=self.project, label="my rule")
         notification = Notification(event=event, rule=rule)
         self.project.update_option("webhooks:urls", "http://example.com")

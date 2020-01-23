@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
-from mock import patch
+from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
 import pytest
 
 from sentry import nodestore
 from sentry.constants import ObjectStatus
+from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
     ApiApplication,
@@ -18,7 +19,6 @@ from sentry.models import (
     CommitAuthor,
     Environment,
     EnvironmentProject,
-    Event,
     Group,
     GroupAssignee,
     GroupHash,
@@ -217,7 +217,6 @@ class DeleteGroupTest(TestCase):
         with self.tasks():
             delete_groups(object_ids=[group.id])
 
-        assert not Event.objects.filter(event_id=event.event_id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()

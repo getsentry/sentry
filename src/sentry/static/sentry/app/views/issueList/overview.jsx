@@ -22,7 +22,7 @@ import {
 } from 'app/actionCreators/savedSearches';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
-import {fetchOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
+import {loadOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
 import {getUtcDateString} from 'app/utils/dates';
 import CursorPoller from 'app/utils/cursorPoller';
 import GroupStore from 'app/stores/groupStore';
@@ -275,7 +275,7 @@ const IssueListOverview = createReactClass({
 
   fetchTags() {
     const {organization, selection} = this.props;
-    fetchOrganizationTags(this.api, organization.slug, selection.projects);
+    loadOrganizationTags(this.api, organization.slug, selection);
   },
 
   fetchData() {
@@ -597,8 +597,9 @@ const IssueListOverview = createReactClass({
   tagValueLoader(key, search) {
     const {orgId} = this.props.params;
     const projectIds = this.getGlobalSearchProjects().map(p => p.id);
+    const endpointParams = this.getEndpointParams();
 
-    return fetchTagValues(this.api, orgId, key, search, projectIds);
+    return fetchTagValues(this.api, orgId, key, search, projectIds, endpointParams);
   },
 
   render() {

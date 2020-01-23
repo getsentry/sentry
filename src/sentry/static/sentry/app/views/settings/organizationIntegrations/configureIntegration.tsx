@@ -1,7 +1,6 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
@@ -15,15 +14,15 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
 import {Organization, Integration, IntegrationProvider} from 'app/types';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type RouteParams = {
   orgId: string;
   integrationId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}> &
-  AsyncView['props'] & {
-    organization: Organization;
-  };
+type Props = RouteComponentProps<RouteParams, {}> & {
+  organization: Organization;
+};
 type State = AsyncView['state'] & {
   config: {providers: IntegrationProvider[]};
   integration: Integration;
@@ -42,10 +41,15 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     if (stateKey !== 'integration') {
       return;
     }
-    analytics('integrations.details_viewed', {
-      org_id: parseInt(this.props.organization.id, 10),
-      integration: data.provider.key,
-    });
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.details_viewed',
+        eventName: 'Integrations: Details Viewed',
+        integration: data.provider.key,
+        integration_type: 'first_party',
+      },
+      this.props.organization
+    );
   }
 
   getTitle() {

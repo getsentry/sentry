@@ -259,7 +259,7 @@ let appConfig = {
         use: [ExtractTextPlugin.loader, 'css-loader', 'less-loader'],
       },
       {
-        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+        test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
         exclude: /app\/icons\/.*\.svg$/,
         use: [
           {
@@ -322,6 +322,13 @@ let appConfig = {
   resolve: {
     alias: {
       app: path.join(staticPrefix, 'app'),
+      '@emotion/styled': path.join(staticPrefix, 'app', 'styled'),
+      '@original-emotion/styled': path.join(
+        __dirname,
+        'node_modules',
+        '@emotion',
+        'styled'
+      ),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved

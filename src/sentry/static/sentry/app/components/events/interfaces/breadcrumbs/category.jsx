@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import overflowEllipsisLeft from 'app/styles/overflowEllipsisLeft';
+import {PlatformContext} from 'app/components/events/interfaces/breadcrumbs/platformContext';
 
 class Category extends React.Component {
   static propTypes = {
@@ -11,8 +13,11 @@ class Category extends React.Component {
     title: PropTypes.string,
     hideIfEmpty: PropTypes.bool,
   };
+  static contextType = PlatformContext;
 
   render() {
+    const platform = this.context;
+    const ellipsisFromLeft = platform === 'csharp';
     let value = this.props.value;
     if (!value) {
       value = 'generic';
@@ -32,11 +37,16 @@ class Category extends React.Component {
     if (title.length > 10) {
       return (
         <Tooltip title={title} containerDisplayMode="block">
-          <CrumbCategory>{title}</CrumbCategory>
+          <CrumbCategory ellipsisFromLeft={ellipsisFromLeft}>{title}</CrumbCategory>
         </Tooltip>
       );
     }
-    return <CrumbCategory title={title}>{title}</CrumbCategory>;
+
+    return (
+      <CrumbCategory title={title} ellipsisFromLeft={ellipsisFromLeft}>
+        {title}
+      </CrumbCategory>
+    );
   }
 }
 
@@ -49,5 +59,5 @@ const CrumbCategory = styled('span')`
   padding-right: 10px;
   color: ${p => p.theme.gray5};
 
-  ${overflowEllipsis}
+  ${p => (p.ellipsisFromLeft ? overflowEllipsisLeft : overflowEllipsis)}
 `;

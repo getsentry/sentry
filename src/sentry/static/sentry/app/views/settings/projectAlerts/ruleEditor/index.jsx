@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -35,7 +35,11 @@ const FREQUENCY_CHOICES = [
   ['43200', t('30 days')],
 ];
 
-const ACTION_MATCH_CHOICES = [['all', t('all')], ['any', t('any')], ['none', t('none')]];
+const ACTION_MATCH_CHOICES = [
+  ['all', t('all')],
+  ['any', t('any')],
+  ['none', t('none')],
+];
 
 const AlertRuleRow = styled('h6')`
   display: flex;

@@ -4,12 +4,11 @@ import omit from 'lodash/omit';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import moment from 'moment';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import AlertLink from 'app/components/alertLink';
+import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
@@ -70,7 +69,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           </TitleAndSparkLine>
           <Status incident={incident} />
           <div>
-            {started.format('LL')}
+            {started.format('L')}
             <LightDuration seconds={getDynamicText({value: duration, fixed: 1200})} />
           </div>
           <NumericColumn>
@@ -104,9 +103,12 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         <Panel>
           <PanelHeader>
             <TableLayout>
-              <div>{t('Incident')}</div>
+              <TitleAndSparkLine>
+                <div>{t('Alert')}</div>
+                <div>{t('Trend')}</div>
+              </TitleAndSparkLine>
               <div>{t('Status')}</div>
-              <div>{t('Started')}</div>
+              <div>{t('Start time (duration)')}</div>
               <NumericColumn>{t('Users affected')}</NumericColumn>
               <NumericColumn>{t('Total events')}</NumericColumn>
             </TableLayout>
@@ -141,11 +143,11 @@ class IncidentsListContainer extends React.Component<Props> {
     const status = query.status === undefined ? DEFAULT_QUERY_STATUS : query.status;
 
     return (
-      <DocumentTitle title={`Incidents - ${orgId} - Sentry`}>
+      <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>
           <PageHeader>
             <PageHeading>
-              {t('Incidents')} <BetaTag />
+              {t('Alerts')} <BetaTag />
             </PageHeading>
 
             <Actions>
@@ -174,17 +176,6 @@ class IncidentsListContainer extends React.Component<Props> {
               </div>
             </Actions>
           </PageHeader>
-
-          <AlertLink
-            priority="info"
-            to={`/organizations/${orgId}/issues/`}
-            icon="icon-circle-info"
-          >
-            {tct(
-              'To create a new Incident, select one or more issues from the Issues view. Then, click the [create:Create Incident] button.',
-              {create: <em />}
-            )}
-          </AlertLink>
 
           <IncidentsList {...this.props} />
         </PageContent>

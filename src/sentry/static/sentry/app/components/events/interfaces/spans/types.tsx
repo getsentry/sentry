@@ -1,4 +1,11 @@
-export type SpanType = {
+export type GapSpanType = {
+  type: 'gap';
+  start_timestamp: number;
+  timestamp: number; // this is essentially end_timestamp
+  description?: string;
+};
+
+export type RawSpanType = {
   trace_id: string;
   parent_span_id?: string;
   span_id: string;
@@ -11,18 +18,23 @@ export type SpanType = {
   tags?: {[key: string]: string};
 };
 
+export type ProcessedSpanType = RawSpanType | GapSpanType;
+
 export type SpanEntry = {
   type: 'spans';
-  data: Array<SpanType>;
+  data: Array<RawSpanType>;
 };
 
 export type SentryTransactionEvent = {
   entries: Array<SpanEntry>;
   startTimestamp: number;
   endTimestamp: number;
+  sdk?: {
+    name?: string;
+  };
 };
 
-export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
+export type SpanChildrenLookupType = {[span_id: string]: Array<RawSpanType>};
 
 export type ParsedTraceType = {
   op: string;
@@ -33,7 +45,7 @@ export type ParsedTraceType = {
   traceStartTimestamp: number;
   traceEndTimestamp: number;
   numOfSpans: number;
-  spans: SpanType[];
+  spans: RawSpanType[];
 };
 
 export enum TickAlignment {

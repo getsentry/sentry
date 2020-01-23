@@ -2,7 +2,7 @@ import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 
 import {IssueAlertRule} from 'app/types/alerts';
 import {PanelItem} from 'app/components/panels';
@@ -120,7 +120,7 @@ class RuleRow extends React.Component<Props, State> {
                   <div>
                     {trigger.actions &&
                       trigger.actions.map((action, j) => (
-                        <div key={j}>{action.type}</div>
+                        <div key={j}>{action.desc}</div>
                       ))}
                   </div>
                 </TriggerAndActions>

@@ -71,6 +71,11 @@ describe('IssueList,', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/processingissues/',
       method: 'GET',
       body: [
@@ -900,7 +905,8 @@ describe('IssueList,', function() {
         wrapper
           .find('Pagination a')
           .first()
-          .prop('disabled')
+          .prop('className')
+          .includes('disabled')
       ).toBe(true);
 
       issuesRequest = MockApiClient.addMockResponse({
@@ -937,7 +943,8 @@ describe('IssueList,', function() {
         wrapper
           .find('Pagination a')
           .first()
-          .prop('disabled')
+          .prop('className')
+          .includes('disabled')
       ).toBe(false);
 
       // Click next again
@@ -1637,9 +1644,5 @@ describe('IssueList,', function() {
 
       expect(wrapper.find(ErrorRobot)).toHaveLength(0);
     });
-  });
-
-  describe('Incidents', function() {
-    it.todo('creates an incident by selecting issues from stream');
   });
 });

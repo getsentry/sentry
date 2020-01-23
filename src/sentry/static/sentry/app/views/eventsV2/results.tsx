@@ -1,14 +1,17 @@
 import React from 'react';
-import styled from 'react-emotion';
+import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 import uniqBy from 'lodash/uniqBy';
+import isEqual from 'lodash/isEqual';
 
-import {Organization} from 'app/types';
+import {Organization, GlobalSelection} from 'app/types';
 
+import {Client} from 'app/api';
 import {Panel} from 'app/components/panels';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -21,7 +24,9 @@ import EventsChart from 'app/views/events/eventsChart';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import Table from './table';
 import Tags from './tags';
@@ -30,14 +35,16 @@ import EventView, {Field} from './eventView';
 import {generateTitle} from './utils';
 
 const CHART_AXIS_OPTIONS = [
-  {label: 'count', value: 'count(id)'},
-  {label: 'users', value: 'count_unique(user)'},
+  {label: 'count(id)', value: 'count(id)'},
+  {label: 'count_unique(users)', value: 'count_unique(user)'},
 ];
 
 type Props = {
+  api: Client;
   router: ReactRouter.InjectedRouter;
   location: Location;
   organization: Organization;
+  selection: GlobalSelection;
 };
 
 type State = {
@@ -53,6 +60,21 @@ class Results extends React.Component<Props, State> {
   state = {
     eventView: EventView.fromLocation(this.props.location),
   };
+
+  componentDidMount() {
+    const {api, organization, selection} = this.props;
+    loadOrganizationTags(api, organization.slug, selection);
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    const {api, organization, selection} = this.props;
+    if (
+      !isEqual(prevProps.selection.projects, selection.projects) ||
+      !isEqual(prevProps.selection.datetime, selection.datetime)
+    ) {
+      loadOrganizationTags(api, organization.slug, selection);
+    }
+  }
 
   handleSearch = (query: string) => {
     const {router, location} = this.props;
@@ -87,7 +109,7 @@ class Results extends React.Component<Props, State> {
     trackAnalyticsEvent({
       eventKey: 'discover_v2.y_axis_change',
       eventName: "Discoverv2: Change chart's y axis",
-      organization_id: this.props.organization.id,
+      organization_id: parseInt(this.props.organization.id, 10),
       y_axis_value: value,
     });
   };
@@ -104,10 +126,6 @@ class Results extends React.Component<Props, State> {
     const {organization, location} = this.props;
     const {eventView} = this.state;
 
-    if (eventView.tags.length <= 0) {
-      return null;
-    }
-
     return <Tags eventView={eventView} organization={organization} location={location} />;
   };
 
@@ -115,6 +133,7 @@ class Results extends React.Component<Props, State> {
     const {organization, location, router} = this.props;
     const {eventView} = this.state;
     const query = location.query.query || '';
+    const title = this.getDocumentTitle();
 
     // Make option set and add the default options in.
     const yAxisOptions = uniqBy(
@@ -125,14 +144,14 @@ class Results extends React.Component<Props, State> {
           (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
         )
         .map((field: Field) => {
-          return {label: field.title, value: field.field};
+          return {label: field.field, value: field.field};
         })
         .concat(CHART_AXIS_OPTIONS),
       'value'
     );
 
     return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
+      <SentryDocumentTitle title={title} objSlug={organization.slug}>
         <React.Fragment>
           <GlobalSelectionHeader organization={organization} />
           <NoProjectMessage organization={organization}>
@@ -141,7 +160,7 @@ class Results extends React.Component<Props, State> {
               location={location}
               eventView={eventView}
             />
-            <ContentBox>
+            <StyledPageContent>
               <Top>
                 <StyledSearchBar
                   organization={organization}
@@ -173,16 +192,31 @@ class Results extends React.Component<Props, State> {
                   organization={organization}
                   eventView={eventView}
                   location={location}
+                  title={title}
                 />
               </Main>
               <Side eventView={eventView}>{this.renderTagsTable()}</Side>
-            </ContentBox>
+            </StyledPageContent>
           </NoProjectMessage>
         </React.Fragment>
       </SentryDocumentTitle>
     );
   }
 }
+
+const StyledPageContent = styled(PageContent)`
+  margin: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: grid;
+    grid-template-columns: 66% auto;
+    grid-column-gap: ${space(3)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: auto 325px;
+  }
+`;
 
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
@@ -198,33 +232,17 @@ const Top = styled('div')`
   grid-column: 1/3;
   flex-grow: 0;
 `;
-
 const Main = styled('div')<{eventView: EventView}>`
-  grid-column: ${p => (p.eventView.tags.length <= 0 ? '1/3' : '1/2')};
+  grid-column: 1/2;
+  max-width: 100%;
+  overflow: hidden;
 `;
-
 const Side = styled('div')<{eventView: EventView}>`
-  display: ${p => (p.eventView.tags.length <= 0 ? 'none' : 'initial')};
   grid-column: 2/3;
-`;
-
-const ContentBox = styled(PageContent)`
-  margin: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: grid;
-    grid-template-rows: 1fr auto;
-    grid-template-columns: 65% auto;
-    grid-column-gap: ${space(3)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 325px;
-  }
 `;
 
 export function generateDiscoverResultsRoute(orgSlug: string): string {
   return `/organizations/${orgSlug}/eventsv2/results/`;
 }
 
-export default withOrganization(Results);
+export default withApi(withOrganization(withGlobalSelection(Results)));

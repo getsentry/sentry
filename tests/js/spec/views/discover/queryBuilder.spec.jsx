@@ -5,6 +5,12 @@ import ConfigStore from 'app/stores/configStore';
 jest.mock('app/actionCreators/modal');
 
 describe('Query Builder', function() {
+  beforeEach(function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+      method: 'POST',
+    });
+  });
   afterEach(function() {
     jest.clearAllMocks();
   });
@@ -34,7 +40,10 @@ describe('Query Builder', function() {
         url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
         body: {
-          data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
+          data: [
+            {tags_key: 'tag1', count: 5},
+            {tags_key: 'tag2', count: 1},
+          ],
         },
       });
     });
@@ -65,7 +74,7 @@ describe('Query Builder', function() {
             aggregations: [['count()', null, 'count']],
             orderby: '-count',
             projects: [2],
-            range: '14d',
+            range: '90d',
             turbo: true,
           }),
         })
@@ -110,7 +119,7 @@ describe('Query Builder', function() {
             aggregations: [['count()', null, 'count']],
             orderby: '-count',
             projects: [1, 2],
-            range: '14d',
+            range: '90d',
             turbo: true,
           }),
         })
@@ -156,7 +165,7 @@ describe('Query Builder', function() {
             aggregations: [['count()', null, 'count']],
             orderby: '-count',
             projects: [1, 2],
-            range: '14d',
+            range: '90d',
             turbo: true,
           }),
         })

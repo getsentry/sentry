@@ -3,26 +3,22 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import Results from 'app/views/eventsV2/results';
+import Results, {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 
 const FIELDS = [
   {
     field: 'title',
-    title: 'Custom Title',
   },
   {
     field: 'timestamp',
-    title: 'Custom Time',
   },
   {
     field: 'user',
-    title: 'Custom User',
   },
 ];
 
 const generateFields = () => {
   return {
-    fieldnames: FIELDS.map(i => i.title),
     field: FIELDS.map(i => i.field),
   };
 };
@@ -32,6 +28,31 @@ describe('EventsV2 > Results', function() {
   const features = ['events-v2'];
 
   beforeEach(function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: [[123, []]]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
@@ -73,6 +94,10 @@ describe('EventsV2 > Results', function() {
         tags: [{key: 'browser', value: 'Firefox'}],
       },
     });
+  });
+
+  afterEach(function() {
+    MockApiClient.clearMockResponses();
   });
 
   it('pagination cursor should be cleared when making a search', function() {
@@ -121,5 +146,13 @@ describe('EventsV2 > Results', function() {
         statsPeriod: '14d',
       },
     });
+  });
+});
+
+describe('generateDiscoverResultsRoute', function() {
+  it('generateDiscoverResultsRoute', function() {
+    expect(generateDiscoverResultsRoute('sentry')).toBe(
+      '/organizations/sentry/eventsv2/results/'
+    );
   });
 });

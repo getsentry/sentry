@@ -28,17 +28,9 @@ class SplunkPluginTest(PluginTestCase):
         self.plugin.set_option("index", "main", self.project)
         self.plugin.set_option("instance", "https://splunk.example.com:8088", self.project)
 
-        group = self.create_group(message="Hello world", culprit="foo.bar")
-        event = self.create_event(
-            group=group,
-            data={
-                "sentry.interfaces.Exception": {"type": "ValueError", "value": "foo bar"},
-                "sentry.interfaces.User": {"id": "1", "email": "foo@example.com"},
-                "type": "error",
-            },
-            tags={"level": "warning"},
+        event = self.store_event(
+            data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
-
         with self.options({"system.url-prefix": "http://example.com"}):
             self.plugin.post_process(event)
 
@@ -54,15 +46,15 @@ class SplunkPluginTest(PluginTestCase):
         assert headers["Authorization"] == "Splunk 12345678-1234-1234-1234-1234567890AB"
 
     def test_http_payload(self):
-        event = self.create_event(
-            group=self.group,
+        event = self.store_event(
             data={
-                "sentry.interfaces.Http": {
+                "request": {
                     "url": "http://example.com",
                     "method": "POST",
                     "headers": {"Referer": "http://example.com/foo"},
                 }
             },
+            project_id=self.project.id,
         )
 
         result = self.plugin.get_event_payload(event)
@@ -71,14 +63,12 @@ class SplunkPluginTest(PluginTestCase):
         assert result["request_referer"] == "http://example.com/foo"
 
     def test_error_payload(self):
-        event = self.create_event(
-            group=self.group,
+        event = self.store_event(
             data={
-                "sentry.interfaces.Exception": {
-                    "values": [{"type": "ValueError", "value": "foo bar"}]
-                },
+                "exception": {"values": [{"type": "ValueError", "value": "foo bar"}]},
                 "type": "error",
             },
+            project_id=self.project.id,
         )
 
         result = self.plugin.get_event_payload(event)
@@ -87,8 +77,7 @@ class SplunkPluginTest(PluginTestCase):
         assert result["exception_value"] == "foo bar"
 
     def test_csp_payload(self):
-        event = self.create_event(
-            group=self.group,
+        event = self.store_event(
             data={
                 "csp": {
                     "document_uri": "http://example.com/",
@@ -98,6 +87,7 @@ class SplunkPluginTest(PluginTestCase):
                 },
                 "type": "csp",
             },
+            project_id=self.project.id,
         )
 
         result = self.plugin.get_event_payload(event)
@@ -108,15 +98,9 @@ class SplunkPluginTest(PluginTestCase):
         assert result["csp_effective_directive"] == "style-src"
 
     def test_user_payload(self):
-        event = self.create_event(
-            group=self.group,
-            data={
-                "sentry.interfaces.User": {
-                    "id": "1",
-                    "email": "foo@example.com",
-                    "ip_address": "127.0.0.1",
-                }
-            },
+        event = self.store_event(
+            data={"user": {"id": "1", "email": "foo@example.com", "ip_address": "127.0.0.1"}},
+            project_id=self.project.id,
         )
 
         result = self.plugin.get_event_payload(event)
