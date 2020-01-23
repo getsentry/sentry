@@ -6,13 +6,12 @@ import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
-import {Event, Organization, OrganizationSummary} from 'app/types';
+import {Event, Organization} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
-import {generateQueryWithTag} from 'app/utils';
 import {appendTagCondition} from 'app/utils/queryString';
 import {
   COL_WIDTH_UNDEFINED,
@@ -37,7 +36,6 @@ import {
 import EventView, {Field as FieldType, Column} from './eventView';
 import {Aggregation, Field, AGGREGATIONS, FIELDS} from './eventQueryParams';
 import {TableColumn, TableDataRow} from './table/types';
-import {generateDiscoverResultsRoute} from './results';
 
 export type EventQuery = {
   field: string[];
