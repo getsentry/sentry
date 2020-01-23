@@ -124,3 +124,11 @@ class DjangoNodeStorageTest(TestCase):
             with mock.patch.object(Node.objects, "get") as mock_get:
                 assert self.ns.get(node_1[0]) == new_value
                 assert mock_get.call_count == 0
+
+            # Missing rows are never cached
+            assert self.ns.get("node_4") is None
+            with mock.patch.object(Node.objects, "get") as mock_get:
+                mock_get.side_effect = Node.DoesNotExist
+                self.ns.get("node_4")
+                self.ns.get("node_4")
+                assert mock_get.call_count == 2

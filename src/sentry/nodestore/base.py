@@ -105,14 +105,15 @@ class NodeStorage(local, Service):
         return {}
 
     def _set_cache_item(self, id, data):
-        if self.cache:
+        if self.cache and data:
             if random.random() < self.sample_rate:
                 self.cache.set(id, data)
 
     def _set_cache_items(self, items):
+        cacheable_items = {k: v for k, v in six.iteritems(items) if v}
         if self.cache:
             if random.random() < self.sample_rate:
-                self.cache.set_many(items)
+                self.cache.set_many(cacheable_items)
 
     def _delete_cache_item(self, id):
         if self.cache:

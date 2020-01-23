@@ -99,3 +99,11 @@ class BigtableNodeStorageTest(TestCase):
             with mock.patch.object(self.ns.connection, "read_row") as mock_read_row:
                 assert self.ns.get(node_1[0]) == new_value
                 assert mock_read_row.call_count == 0
+
+            # Missing rows are never cached
+            assert self.ns.get("node_4") is None
+            with mock.patch.object(self.ns.connection, "read_row") as mock_read_row:
+                mock_read_row.return_value = None
+                self.ns.get("node_4")
+                self.ns.get("node_4")
+                assert mock_read_row.call_count == 2
