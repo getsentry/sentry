@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.utils import timezone
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
 
@@ -17,7 +16,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
         self.project_3 = self.create_project(
             organization=self.organization, teams=[self.team], name="Siberian"
         )
-        self.PRIMARY_PROJECTS_COUNT = 4
+        self.PRIMARY_PROJECTS_COUNT = 3
         self.secondary_org = self.create_organization(owner=self.user, name="Banana Duck")
 
         self.secondary_team = self.create_team(
@@ -69,7 +68,6 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
         with self.settings(SENTRY_SINGLE_ORGANIZATION=False), self.feature(
             "organizations:discover"
         ):
-            self.project.update(first_event=timezone.now())
             for transition_url in transition_urls:
                 self.browser.get(origin_url)
                 self.browser.wait_until_not(".loading-indicator")
