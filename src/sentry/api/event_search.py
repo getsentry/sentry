@@ -621,6 +621,8 @@ def convert_search_filter_to_snuba_query(search_filter):
 
     if name in no_conversion:
         return
+    elif name == "id" and search_filter.value.is_wildcard():
+        raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
     elif name == "environment":
         # conditions added to env_conditions are OR'd
         env_conditions = []
