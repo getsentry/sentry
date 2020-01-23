@@ -108,7 +108,7 @@ class Incident(Model):
     identifier = models.IntegerField()
     # Identifier used to match incoming events from the detection algorithm
     detection_uuid = UUIDField(null=True, db_index=True)
-    status = models.PositiveSmallIntegerField(default=IncidentStatus.CLOSED.value)
+    status = models.PositiveSmallIntegerField(default=IncidentStatus.OPEN.value)
     type = models.PositiveSmallIntegerField(default=IncidentType.CREATED.value)
     aggregation = models.PositiveSmallIntegerField(default=QueryAggregations.TOTAL.value)
     title = models.TextField()

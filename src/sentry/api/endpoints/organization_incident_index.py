@@ -74,6 +74,8 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             incidents = incidents.filter(status=IncidentStatus.WARNING.value)
         elif query_status == "closed":
             incidents = incidents.filter(status=IncidentStatus.CLOSED.value)
+        elif query_status == "open":
+            incidents = incidents.exclude(status=IncidentStatus.CLOSED.value)
 
         return self.paginate(
             request,
