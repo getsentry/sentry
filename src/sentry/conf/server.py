@@ -397,7 +397,6 @@ AUTHENTICATION_BACKENDS = (
     "social_auth.backends.github_apps.GithubAppsBackend",
     "social_auth.backends.bitbucket.BitbucketBackend",
     "social_auth.backends.asana.AsanaBackend",
-    "social_auth.backends.slack.SlackBackend",
     "social_auth.backends.visualstudio.VisualStudioBackend",
 )
 
@@ -418,7 +417,6 @@ SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
     "social_auth.backends.github.GithubBackend",
     "social_auth.backends.bitbucket.BitbucketBackend",
     "social_auth.backends.asana.AsanaBackend",
-    "social_auth.backends.slack.SlackBackend",
     "social_auth.backends.github_apps.GithubAppsBackend",
     "social_auth.backends.visualstudio.VisualStudioBackend",
 )
@@ -466,7 +464,6 @@ AUTH_PROVIDERS = {
     "github_apps": ("GITHUB_APPS_APP_ID", "GITHUB_APPS_API_SECRET"),
     "bitbucket": ("BITBUCKET_CONSUMER_KEY", "BITBUCKET_CONSUMER_SECRET"),
     "asana": ("ASANA_CLIENT_ID", "ASANA_CLIENT_SECRET"),
-    "slack": ("SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET"),
     "visualstudio": (
         "VISUALSTUDIO_APP_ID",
         "VISUALSTUDIO_APP_SECRET",
@@ -479,7 +476,6 @@ AUTH_PROVIDER_LABELS = {
     "github_apps": "GitHub Apps",
     "bitbucket": "Bitbucket",
     "asana": "Asana",
-    "slack": "Slack",
     "visualstudio": "Visual Studio",
 }
 
