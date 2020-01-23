@@ -141,7 +141,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
 
     if (forceProject && multi) {
       return (
-        <Tooltip title={t('Project Issues Stream')} position="bottom">
+        <Tooltip title={t('Issues Stream')} position="bottom">
           <StyledLink
             to={{
               pathname: `/organizations/${organization.slug}/issues/`,
