@@ -86,9 +86,12 @@ class BigtableNodeStorageTest(TestCase):
 
             # Deletion clars cache
             self.ns.delete(node_1[0])
-            assert self.ns.get_multi([node_1[0], node_2[0]]) == {node_2[0]: node_2[1]}
+            assert self.ns.get_multi([node_1[0], node_2[0]]) == {
+                node_1[0]: None,
+                node_2[0]: node_2[1],
+            }
             self.ns.delete_multi([node_1[0], node_2[0]])
-            assert self.ns.get_multi([node_1[0], node_2[0]]) == {}
+            assert self.ns.get_multi([node_1[0], node_2[0]]) == {node_1[0]: None, node_2[0]: None}
 
             # Setting the item updates cache
             new_value = {"event_id": "d" * 32}
