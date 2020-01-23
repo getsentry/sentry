@@ -2,25 +2,23 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-# from sentry import features
-from sentry.api.base import Endpoint
-from sentry.api.bases.incident import IncidentPermission
+from sentry import features
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
 from sentry.api.serializers import serialize
 from sentry.models import ExportedData
 
 
-class DataExportDetailsEndpoint(Endpoint):
-    permission_classes = (IncidentPermission,)
+class DataExportDetailsEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationEventPermission,)
 
-    def get(self, request, **kwargs):
+    def get(self, request, organization, **kwargs):
         """
         Retrieve information about the temporary file record.
         Used to populate page emailed to the user.
         """
 
-        # TODO(Leander): Hide behind a feature flag
-        # if not features.has("organizations:data-export", organization):
-        #     return Response(status=404)
+        if not features.has("organizations:data-export", organization):
+            return Response(status=404)
 
         try:
             data = ExportedData.objects.get(id=kwargs["data_id"])

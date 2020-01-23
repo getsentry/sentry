@@ -28,5 +28,6 @@ class ExportedDataSerializer(Serializer):
             "dateFinished": obj.date_finished,
             "dateExpired": obj.date_expired,
             "storageUrl": obj.storage_url,
-            "query": {"type": obj.query_type},
+            "query": {"type": obj.query_type, "info": obj.query_info},
+            "status": obj.status,
         }

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from datetime import timedelta
 from enum import Enum
 
@@ -12,7 +13,7 @@ from sentry.db.models import FlexibleForeignKey, JSONField, Model, sane_repr
 DEFAULT_EXPIRATION = timedelta(days=7)
 
 
-class ExportStatus(Enum):
+class ExportStatus(six.binary_type, Enum):
     Early = "EARLY"  # The download is being prepared
     Valid = "VALID"  # The download is ready for the user
     Expired = "EXPIRED"  # The download has been deleted
