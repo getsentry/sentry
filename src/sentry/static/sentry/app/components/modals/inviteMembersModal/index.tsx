@@ -255,7 +255,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
       const sentCount = statuses.filter(i => i.sent).length;
       const errorCount = statuses.filter(i => i.error).length;
 
-      const invites = <strong>{tn('%d invite', '%d invites', sentCount)}</strong>;
+      const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
       const tctComponents = {
         invites,
         failed: errorCount,
@@ -290,8 +290,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   get inviteButtonLabel() {
     if (this.invites.length > 0) {
       return this.willInvite
-        ? tn('Send invite', 'Send invites (%d)', this.invites.length)
-        : tn('Send invite request', 'Send invite requests (%d)', this.invites.length);
+        ? tn('Send invite', 'Send invites (%s)', this.invites.length)
+        : tn('Send invite request', 'Send invite requests (%s)', this.invites.length);
     }
 
     return this.willInvite ? t('Send invite') : t('Send invite request');
