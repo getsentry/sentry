@@ -81,7 +81,15 @@ export const trackIntegrationEvent = (
   options?: {startSession: boolean}
 ) => {
   const {startSession} = options || {};
-  const sessionId = startSession ? startAnalyticsSession() : getAnalyticsSessionId();
+  let sessionId = startSession ? startAnalyticsSession() : getAnalyticsSessionId();
+
+  //we should always have a session id but if we don't, we should generate one
+  if (!sessionId) {
+    // eslint-disable-next-line no-console
+    console.warn(`analytics_session_id absent from event ${analtyicsParams.eventName}`);
+    sessionId = startAnalyticsSession();
+  }
+
   const params = {
     analytics_session_id: sessionId,
     organization_id: org?.id,
