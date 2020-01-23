@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import get from 'lodash/get';
 import 'intersection-observer'; // this is a polyfill
 
 import {t} from 'app/locale';
@@ -384,7 +383,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     ) : (
       ''
     );
-    const description = get(span, 'description', getSpanID(span));
+    const description = span?.description ?? getSpanID(span);
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
