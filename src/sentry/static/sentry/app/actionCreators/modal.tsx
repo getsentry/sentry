@@ -24,6 +24,7 @@ export type IntegrationDetailsModalOptions = {
   onAddIntegration: (integration: Integration) => void;
   provider: IntegrationProvider;
   organization: Organization;
+  isInstalled: boolean; //used for analytics
 };
 
 export type SentryAppDetailsModalOptions = {
@@ -31,6 +32,12 @@ export type SentryAppDetailsModalOptions = {
   isInstalled: boolean;
   onInstall: () => void;
   organization: Organization;
+};
+
+export type TeamAccessRequestModalOptions = {
+  memberId: string;
+  teamId: string;
+  orgId: string;
 };
 
 /**
@@ -108,7 +115,9 @@ export function openDiffModal(options: ModalOptions) {
  * we may add a project selection inside of the modal flow
  */
 export function openCreateTeamModal(options: ModalOptions = {}) {
-  import(/* webpackChunkName: "CreateTeamModal" */ 'app/components/modals/createTeamModal')
+  import(
+    /* webpackChunkName: "CreateTeamModal" */ 'app/components/modals/createTeamModal'
+  )
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} {...options} />, {
@@ -122,7 +131,9 @@ export function openCreateTeamModal(options: ModalOptions = {}) {
  * @param Object options.project The project to create a rules for
  */
 export function openCreateOwnershipRule(options: ModalOptions = {}) {
-  import(/* webpackChunkName: "CreateOwnershipRuleModal" */ 'app/components/modals/createOwnershipRuleModal')
+  import(
+    /* webpackChunkName: "CreateOwnershipRuleModal" */ 'app/components/modals/createOwnershipRuleModal'
+  )
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} {...options} />, {
@@ -142,11 +153,25 @@ export function openCommandPalette(options: ModalOptions = {}) {
 }
 
 export function openRecoveryOptions(options: ModalOptions = {}) {
-  import(/* webpackChunkName: "RecoveryOptionsModal" */ 'app/components/modals/recoveryOptionsModal')
+  import(
+    /* webpackChunkName: "RecoveryOptionsModal" */ 'app/components/modals/recoveryOptionsModal'
+  )
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} {...options} />, {
         modalClassName: 'recovery-options',
+      });
+    });
+}
+
+export function openTeamAccessRequestModal(options: TeamAccessRequestModalOptions) {
+  import(
+    /* webpackChunkName: "TeamAccessRequestModal" */ 'app/components/modals/teamAccessRequestModal'
+  )
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'confirm-team-request',
       });
     });
 }
@@ -156,7 +181,9 @@ export function openRecoveryOptions(options: ModalOptions = {}) {
  * @param Function options.onAddIntegration Called after a new integration is added
  */
 export function openIntegrationDetails(options: IntegrationDetailsModalOptions) {
-  import(/* webpackChunkName: "IntegrationDetailsModal" */ 'app/components/modals/integrationDetailsModal')
+  import(
+    /* webpackChunkName: "IntegrationDetailsModal" */ 'app/components/modals/integrationDetailsModal'
+  )
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} {...options} />);
@@ -164,7 +191,9 @@ export function openIntegrationDetails(options: IntegrationDetailsModalOptions) 
 }
 
 export function redirectToProject(newProjectSlug: string) {
-  import(/* webpackChunkName: "RedirectToProjectModal" */ 'app/components/modals/redirectToProject')
+  import(
+    /* webpackChunkName: "RedirectToProjectModal" */ 'app/components/modals/redirectToProject'
+  )
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
@@ -172,7 +201,9 @@ export function redirectToProject(newProjectSlug: string) {
 }
 
 export function openHelpSearchModal() {
-  import(/* webpackChunkName: "HelpSearchModal" */ 'app/components/modals/helpSearchModal')
+  import(
+    /* webpackChunkName: "HelpSearchModal" */ 'app/components/modals/helpSearchModal'
+  )
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} />, {
@@ -182,7 +213,9 @@ export function openHelpSearchModal() {
 }
 
 export function openSentryAppDetailsModal(options: SentryAppDetailsModalOptions) {
-  import(/* webpackChunkName: "SentryAppDetailsModal" */ 'app/components/modals/sentryAppDetailsModal')
+  import(
+    /* webpackChunkName: "SentryAppDetailsModal" */ 'app/components/modals/sentryAppDetailsModal'
+  )
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} {...options} />);
@@ -190,7 +223,9 @@ export function openSentryAppDetailsModal(options: SentryAppDetailsModalOptions)
 }
 
 export function openDebugFileSourceModal(options: ModalOptions = {}) {
-  import(/* webpackChunkName: "DebugFileSourceModal" */ 'app/components/modals/debugFileSourceModal')
+  import(
+    /* webpackChunkName: "DebugFileSourceModal" */ 'app/components/modals/debugFileSourceModal'
+  )
     .then(mod => mod.default)
     .then(Modal => {
       openModal(deps => <Modal {...deps} {...options} />, {
@@ -200,7 +235,9 @@ export function openDebugFileSourceModal(options: ModalOptions = {}) {
 }
 
 export async function openInviteMembersModal(options = {}) {
-  const mod = await import(/* webpackChunkName: "InviteMembersModal" */ 'app/components/modals/inviteMembersModal');
+  const mod = await import(
+    /* webpackChunkName: "InviteMembersModal" */ 'app/components/modals/inviteMembersModal'
+  );
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});

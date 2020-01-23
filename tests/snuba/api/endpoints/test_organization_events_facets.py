@@ -229,7 +229,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)
         url = reverse(
-            "sentry-api-0-organization-events-distribution", kwargs={"organization_slug": org.slug}
+            "sentry-api-0-organization-events-facets", kwargs={"organization_slug": org.slug}
         )
         with self.feature("organizations:events-v2"):
             response = self.client.get(url, format="json")
@@ -305,8 +305,8 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         expected = [
-            {"count": 3, "name": self.project.slug, "value": self.project.slug},
-            {"count": 1, "name": self.project2.slug, "value": self.project2.slug},
+            {"count": 3, "name": self.project.slug, "value": self.project.id},
+            {"count": 1, "name": self.project2.slug, "value": self.project2.id},
         ]
         self.assert_facet(response, "project", expected)
 

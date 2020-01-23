@@ -76,7 +76,12 @@ export default class ProviderRow extends React.Component<Props> {
     const organization = this.context.organization;
     const provider = this.props.provider;
     const onAddIntegration = this.props.onInstall;
-    openIntegrationDetails({provider, organization, onAddIntegration});
+    openIntegrationDetails({
+      provider,
+      organization,
+      onAddIntegration,
+      isInstalled: this.isEnabled,
+    });
   };
 
   // Rendering
@@ -98,7 +103,7 @@ export default class ProviderRow extends React.Component<Props> {
     return this.integrations.map(integration => (
       <StyledInstalledIntegration
         key={integration.id}
-        orgId={this.props.orgId}
+        organization={this.context.organization}
         provider={this.props.provider}
         integration={integration}
         onRemove={this.props.onRemove}

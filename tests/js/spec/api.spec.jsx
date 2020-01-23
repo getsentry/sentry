@@ -114,7 +114,10 @@ describe('api', function() {
   it('does not call success callback if 302 was returned because of a project slug change', function() {
     const successCb = jest.fn();
     api.activeRequests = {id: {alive: true}};
-    api.wrapCallback('id', successCb)({
+    api.wrapCallback(
+      'id',
+      successCb
+    )({
       responseJSON: {
         detail: {
           code: PROJECT_MOVED,

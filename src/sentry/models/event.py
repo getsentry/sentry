@@ -4,28 +4,19 @@ import six
 import string
 
 from collections import OrderedDict
-from django.db import models
-from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
+from django.utils.encoding import force_text
 from hashlib import md5
 
 from semaphore.processing import StoreNormalizer
 
-from sentry import eventtypes, nodestore
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    BoundedIntegerField,
-    Model,
-    NodeData,
-    NodeField,
-    sane_repr,
-)
-from sentry.db.models.manager import BaseManager
+from sentry import eventtypes
+from sentry.db.models import NodeData
 from sentry.interfaces.base import get_interfaces
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
-from sentry.utils.safe import get_path
+from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
 
@@ -342,70 +333,36 @@ class EventCommon(object):
 
         return data
 
-    def bind_node_data(self):
-        # Do not rebind if node_data is already loaded
-        if self.data._node_data:
-            return
+    @property
+    def search_message(self):
+        """
+        The internal search_message attribute is only used for search purposes.
+        It adds a bunch of data from the metadata and the culprit.
+        """
+        data = self.data
+        culprit = self.culprit
 
-        node_id = Event.generate_node_id(self.project_id, self.event_id)
-        node_data = nodestore.get(node_id) or {}
-        ref = self.data.get_ref(self)
-        self.data.bind_data(node_data, ref=ref)
+        event_metadata = self.get_event_metadata()
 
+        if event_metadata is None:
+            event_metadata = eventtypes.get(self.get_event_type())().get_metadata(self.data)
 
-def ref_func(x):
-    return x.project_id or x.project.id
+        message = ""
 
+        if data.get("logentry"):
+            message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
 
-class Event(EventCommon, Model):
-    """
-    An event backed by data stored in postgres.
+        if event_metadata:
+            for value in six.itervalues(event_metadata):
+                value_u = force_text(value, errors="replace")
+                if value_u not in message:
+                    message = u"{} {}".format(message, value_u)
 
-    """
+        if culprit and culprit not in message:
+            culprit_u = force_text(culprit, errors="replace")
+            message = u"{} {}".format(message, culprit_u)
 
-    __core__ = False
-
-    group_id = BoundedBigIntegerField(blank=True, null=True)
-    event_id = models.CharField(max_length=32, null=True, db_column="message_id")
-    project_id = BoundedBigIntegerField(blank=True, null=True)
-    message = models.TextField()
-    platform = models.CharField(max_length=64, null=True)
-    datetime = models.DateTimeField(default=timezone.now, db_index=True)
-    time_spent = BoundedIntegerField(null=True)
-    data = NodeField(
-        blank=True,
-        null=True,
-        ref_func=ref_func,
-        ref_version=2,
-        wrapper=EventDict,
-        skip_nodestore_save=True,
-    )
-
-    objects = BaseManager()
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_message"
-        verbose_name = _("message")
-        verbose_name_plural = _("messages")
-        unique_together = (("project_id", "event_id"),)
-        index_together = (("group_id", "datetime"),)
-
-    __repr__ = sane_repr("project_id", "group_id")
-
-    def __getstate__(self):
-        state = Model.__getstate__(self)
-
-        # do not pickle cached info.  We want to fetch this on demand
-        # again.  In particular if we were to pickle interfaces we would
-        # pickle a CanonicalKeyView which old sentry workers do not know
-        # about
-        state.pop("_project_cache", None)
-        state.pop("_environment_cache", None)
-        state.pop("_group_cache", None)
-        state.pop("interfaces", None)
-
-        return state
+        return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
 
 class EventSubjectTemplate(string.Template):

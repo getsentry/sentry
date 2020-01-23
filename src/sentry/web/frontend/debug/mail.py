@@ -16,7 +16,7 @@ from django.views.generic import View
 from loremipsum import Generator
 from random import Random
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
@@ -194,12 +194,12 @@ class ActivityMailDebugView(View):
         data = event_manager.get_data()
         event_type = event_manager.get_event_type()
 
-        group.message = event_manager.get_search_message()
-        group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
-
         event = eventstore.create_event(
             event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
         )
+
+        group.message = event.search_message
+        group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
         activity = Activity(group=group, project=event.project, **self.get_activity(request, event))
 
@@ -238,13 +238,10 @@ def alert(request):
     data = event_manager.get_data()
     event = event_manager.save(project.id)
     # Prevent Percy screenshot from constantly changing
-    if options.get("store.use-django-event"):
-        event.datetime = datetime(2017, 9, 6, 0, 0)
-    else:
-        event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
     event_type = event_manager.get_event_type()
 
-    group.message = event_manager.get_search_message()
+    group.message = event.search_message
     group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
     rule = Rule(label="An example rule")
@@ -513,7 +510,7 @@ def report(request):
 
 @login_required
 def request_access(request):
-    org = Organization(id=1, slug="example", name="Example")
+    org = Organization(id=1, slug="sentry", name="Sentry org")
     team = Team(id=1, slug="example", name="Example", organization=org)
 
     return MailPreview(
@@ -525,9 +522,33 @@ def request_access(request):
             "organization": org,
             "team": team,
             "url": absolute_uri(
-                reverse("sentry-organization-members", kwargs={"organization_slug": org.slug})
-                + "?ref=access-requests"
+                reverse(
+                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
+                )
             ),
+        },
+    ).render(request)
+
+
+@login_required
+def request_access_for_another_member(request):
+    org = Organization(id=1, slug="sentry", name="Sentry org")
+    team = Team(id=1, slug="example", name="Example", organization=org)
+
+    return MailPreview(
+        html_template="sentry/emails/request-team-access.html",
+        text_template="sentry/emails/request-team-access.txt",
+        context={
+            "email": "foo@example.com",
+            "name": "Username",
+            "organization": org,
+            "team": team,
+            "url": absolute_uri(
+                reverse(
+                    "sentry-organization-members-requests", kwargs={"organization_slug": org.slug}
+                )
+            ),
+            "requester": request.user.get_display_name(),
         },
     ).render(request)
 

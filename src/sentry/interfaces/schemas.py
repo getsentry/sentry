@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from functools32 import lru_cache
+from sentry.utils.compat import functools
 from itertools import groupby
 import jsonschema
 import six
@@ -585,7 +585,7 @@ INTERFACE_SCHEMAS = {
 }
 
 
-@lru_cache(maxsize=100)
+@functools.lru_cache(maxsize=100)
 def validator_for_interface(name):
     if name not in INTERFACE_SCHEMAS:
         return None

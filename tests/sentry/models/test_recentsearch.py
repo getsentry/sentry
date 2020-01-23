@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import timedelta
 
 from django.utils import timezone
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.testutils import TestCase
 from sentry.models.recentsearch import RecentSearch, remove_excess_recent_searches

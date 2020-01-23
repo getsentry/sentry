@@ -368,7 +368,7 @@ export function downloadAsCsv(result: SnubaResult) {
   window.location.assign(encodedDataUrl);
 }
 
-function disableMacros(value: string | null | boolean | number) {
+export function disableMacros(value: string | null | boolean | number) {
   const unsafeCharacterRegex = /^[\=\+\-\@]/;
 
   if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {

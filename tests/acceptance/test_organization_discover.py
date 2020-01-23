@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import pytz
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now

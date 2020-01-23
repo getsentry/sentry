@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {analytics} from 'app/utils/analytics';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
@@ -57,10 +57,17 @@ class IntegrationDetailsModal extends React.Component<Props> {
   };
 
   componentDidMount() {
-    analytics('integrations.install_modal_opened', {
-      org_id: parseInt(this.props.organization.id, 10),
-      integration: this.props.provider.key,
-    });
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.install_modal_opened',
+        eventName: 'Integrations: Install Modal Opened',
+        integration_type: 'first_party',
+        integration: this.props.provider.key,
+        already_installed: this.props.isInstalled,
+        view: 'integrations_page',
+      },
+      this.props.organization
+    );
   }
 
   onAddIntegration = (integration: Integration) => {
@@ -68,7 +75,21 @@ class IntegrationDetailsModal extends React.Component<Props> {
     this.props.onAddIntegration(integration);
   };
 
-  featureTags(features) {
+  handleExternalInstall = () => {
+    const {closeModal, provider, organization} = this.props;
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.installation_start',
+        eventName: 'Integrations: Installation Start',
+        integration: provider.key,
+        integration_type: 'first_party',
+      },
+      organization
+    );
+    closeModal();
+  };
+
+  featureTags(features: string[]) {
     return features.map(feature => (
       <StyledTag key={feature}>{feature.replace(/-/g, ' ')}</StyledTag>
     ));
@@ -108,7 +129,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
         <Button
           icon="icon-exit"
           href={metadata.aspects.externalInstall.url}
-          onClick={closeModal}
+          onClick={this.handleExternalInstall}
           external
           {...buttonProps}
           {...p}
@@ -182,6 +203,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
                     <AddButton
                       data-test-id="add-button"
                       disabled={disabled || !hasAccess}
+                      organization={organization}
                     />
                   </Tooltip>
                 )}

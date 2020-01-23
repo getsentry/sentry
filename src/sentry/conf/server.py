@@ -249,10 +249,14 @@ USE_L10N = True
 
 USE_TZ = True
 
+# CAVEAT: If you're adding a middleware that modifies a response's content,
+# and appears before CommonMiddleware, you must either reorder your middleware
+# so that responses aren't modified after Content-Length is set, or have the
+# response modifying middleware reset the Content-Length header.
+# This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE_CLASSES = (
     "sentry.middleware.proxy.ChunkedMiddleware",
     "sentry.middleware.proxy.DecompressBodyMiddleware",
-    "sentry.middleware.proxy.ContentLengthHeaderMiddleware",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -552,6 +556,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
+    "sentry.tasks.relay",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -579,6 +584,7 @@ CELERY_QUEUES = [
     Queue("integrations", routing_key="integrations"),
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
+    Queue("relay_config", routing_key="relay_config"),
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
@@ -829,6 +835,8 @@ SENTRY_FEATURES = {
     "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
+    # Enable health feature
+    "organizations:health": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable integration functionality to create and link groups to issues on
@@ -1037,6 +1045,10 @@ SENTRY_DIGESTS_OPTIONS = {}
 # Quota backend
 SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS = {}
+
+# Cache for Relay project configs
+SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
+SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
 
 # Rate limiting backend
 SENTRY_RATELIMITER = "sentry.ratelimits.base.RateLimiter"
@@ -1383,7 +1395,7 @@ SENTRY_DEVSERVICES = {
             "REDIS_DB": "1",
         },
     },
-    "bigtable": {"image": "mattrobenolt/cbtemulator:0.36.0", "ports": {"8086/tcp": 8086}},
+    "bigtable": {"image": "mattrobenolt/cbtemulator:0.51.0", "ports": {"8086/tcp": 8086}},
     "memcached": {"image": "memcached:1.5-alpine", "ports": {"11211/tcp": 11211}},
     "symbolicator": {
         "image": "us.gcr.io/sentryio/symbolicator:latest",
@@ -1457,6 +1469,9 @@ EMAIL_HOST_PASSWORD = DEAD
 EMAIL_USE_TLS = DEAD
 SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
+
+GITHUB_APP_ID = DEAD
+GITHUB_API_SECRET = DEAD
 
 SUDO_URL = "sentry-sudo"
 

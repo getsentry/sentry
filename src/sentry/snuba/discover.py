@@ -4,6 +4,7 @@ import six
 
 from collections import namedtuple
 from copy import deepcopy
+from datetime import timedelta
 
 from sentry.api.event_search import (
     get_filter,
@@ -22,10 +23,10 @@ from sentry.utils.snuba import (
     SnubaTSResult,
     DISCOVER_COLUMN_MAP,
     QUOTED_LITERAL_RE,
-    get_function_index,
     raw_query,
-    transform_results,
-    zerofill,
+    to_naive_timestamp,
+    naiveify_datetime,
+    resolve_condition,
 )
 
 __all__ = (
@@ -37,10 +38,14 @@ __all__ = (
     "timeseries_query",
     "get_pagination_ids",
     "get_facets",
+    "transform_results",
+    "zerofill",
 )
 
 
-ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields"])
+ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields", "start", "end"])
+ReferenceEvent.__new__.__defaults__ = (None, None)
+
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
@@ -50,7 +55,7 @@ def is_real_column(col):
     Return true if col corresponds to an actual column to be fetched
     (not an aggregate function or field alias)
     """
-    if col in FIELD_ALIASES:
+    if col in FIELD_ALIASES or col.strip("()") in FIELD_ALIASES:
         return False
 
     match = AGGREGATE_PATTERN.search(col)
@@ -65,6 +70,12 @@ def find_reference_event(reference_event):
         project_slug, event_id = reference_event.slug.split(":")
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
+
+    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
+    # We don't need to run a query if there are no columns
+    if not column_names:
+        return None
+
     try:
         project = Project.objects.get(
             slug=project_slug,
@@ -74,15 +85,18 @@ def find_reference_event(reference_event):
     except Project.DoesNotExist:
         raise InvalidSearchQuery("Invalid reference event")
 
-    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
-
-    # We don't need to run a query if there are no columns
-    if not column_names:
-        return None
+    start = None
+    end = None
+    if reference_event.start:
+        start = reference_event.start - timedelta(seconds=5)
+    if reference_event.end:
+        end = reference_event.end + timedelta(seconds=5)
 
     event = raw_query(
         selected_columns=column_names,
         filter_keys={"project_id": [project.id], "event_id": [event_id]},
+        start=start,
+        end=end,
         dataset=Dataset.Discover,
         limit=1,
         referrer="discover.find_reference_event",
@@ -123,6 +137,8 @@ def create_reference_event_conditions(reference_event):
 
 def resolve_column(col):
     """
+    Used as a column resolver in discover queries.
+
     Resolve a public schema name to the discover dataset.
     unknown columns are converted into tags expressions.
     """
@@ -135,49 +151,6 @@ def resolve_column(col):
     if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
         return col
     return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))
-
-
-def resolve_condition(cond):
-    """
-    When conditions have been parsed by the api.event_search module
-    we can end up with conditions that are not valid on the current dataset
-    due to how ap.event_search checks for valid field names without
-    being aware of the dataset.
-
-    We have the dataset context here, so we need to re-scope conditions to the
-    current dataset.
-    """
-    index = get_function_index(cond)
-    if index is not None:
-        # IN conditions are detected as a function but aren't really.
-        if cond[index] == "IN":
-            cond[0] = resolve_column(cond[0])
-            return cond
-
-        func_args = cond[index + 1]
-        for (i, arg) in enumerate(func_args):
-            # Nested function
-            if isinstance(arg, (list, tuple)):
-                func_args[i] = resolve_condition(arg)
-            else:
-                func_args[i] = resolve_column(arg)
-        cond[index + 1] = func_args
-        return cond
-
-    # No function name found
-    if isinstance(cond, (list, tuple)) and len(cond):
-        # Condition is [col, operator, value]
-        if isinstance(cond[0], six.string_types) and len(cond) == 3:
-            cond[0] = resolve_column(cond[0])
-            return cond
-        if isinstance(cond[0], (list, tuple)):
-            if get_function_index(cond[0]) is not None:
-                cond[0] = resolve_condition(cond[0])
-                return cond
-            else:
-                # Nested conditions
-                return [resolve_condition(item) for item in cond]
-    raise ValueError("Unexpected condition format %s" % cond)
 
 
 def resolve_discover_aliases(snuba_args):
@@ -223,7 +196,7 @@ def resolve_discover_aliases(snuba_args):
     conditions = resolved.get("conditions")
     if conditions:
         for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition)
+            replacement = resolve_condition(condition, resolve_column)
             conditions[i] = replacement
         resolved["conditions"] = list(filter(None, conditions))
 
@@ -246,6 +219,57 @@ def resolve_discover_aliases(snuba_args):
     return resolved, translated_columns
 
 
+def zerofill(data, start, end, rollup, orderby):
+    rv = []
+    start = int(to_naive_timestamp(naiveify_datetime(start)) / rollup) * rollup
+    end = (int(to_naive_timestamp(naiveify_datetime(end)) / rollup) * rollup) + rollup
+    data_by_time = {}
+
+    for obj in data:
+        if obj["time"] in data_by_time:
+            data_by_time[obj["time"]].append(obj)
+        else:
+            data_by_time[obj["time"]] = [obj]
+
+    for key in six.moves.xrange(start, end, rollup):
+        if key in data_by_time and len(data_by_time[key]) > 0:
+            rv = rv + data_by_time[key]
+            data_by_time[key] = []
+        else:
+            rv.append({"time": key})
+
+    if "-time" in orderby:
+        return list(reversed(rv))
+
+    return rv
+
+
+def transform_results(result, translated_columns, snuba_args):
+    """
+    Transform internal names back to the public schema ones.
+
+    When getting timeseries results via rollup, this function will
+    zerofill the output results.
+    """
+    # Translate back columns that were converted to snuba format
+    for col in result["meta"]:
+        col["name"] = translated_columns.get(col["name"], col["name"])
+
+    def get_row(row):
+        return {translated_columns.get(key, key): value for key, value in row.items()}
+
+    if len(translated_columns):
+        result["data"] = [get_row(row) for row in result["data"]]
+
+    rollup = snuba_args.get("rollup")
+    if rollup and rollup > 0:
+        result["data"] = zerofill(
+            result["data"], snuba_args["start"], snuba_args["end"], rollup, snuba_args["orderby"]
+        )
+
+    return result
+
+
 def query(
     selected_columns,
     query,
@@ -256,6 +280,7 @@ def query(
     reference_event=None,
     referrer=None,
     auto_fields=False,
+    use_aggregate_conditions=False,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -278,6 +303,9 @@ def query(
     referrer (str|None) A referrer string to help locate the origin of this query.
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     """
+    if not selected_columns:
+        raise InvalidSearchQuery("No fields provided")
+
     snuba_filter = get_filter(query, params)
 
     # TODO(mark) Refactor the need for this translation shim once all of
@@ -289,9 +317,12 @@ def query(
         "conditions": snuba_filter.conditions,
         "filter_keys": snuba_filter.filter_keys,
         "orderby": orderby,
+        "having": [],
     }
-    if not selected_columns:
-        raise InvalidSearchQuery("No fields provided")
+
+    if use_aggregate_conditions:
+        snuba_args["having"] = snuba_filter.having
+
     snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=auto_fields))
 
     if reference_event:
@@ -302,6 +333,16 @@ def query(
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
 
+    # Make sure that any aggregate conditions are also in the selected columns
+    for having_clause in snuba_args.get("having"):
+        found = any(
+            having_clause[0] == agg_clause[-1] for agg_clause in snuba_args.get("aggregations")
+        )
+        if not found:
+            raise InvalidSearchQuery(
+                "Aggregates used in a condition must also be in the selected columns."
+            )
+
     result = raw_query(
         start=snuba_args.get("start"),
         end=snuba_args.get("end"),
@@ -310,6 +351,7 @@ def query(
         aggregations=snuba_args.get("aggregations"),
         selected_columns=snuba_args.get("selected_columns"),
         filter_keys=snuba_args.get("filter_keys"),
+        having=snuba_args.get("having"),
         orderby=snuba_args.get("orderby"),
         dataset=Dataset.Discover,
         limit=limit,
@@ -348,6 +390,7 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
         "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
         "filter_keys": snuba_filter.filter_keys,
+        "having": snuba_filter.having,
     }
     if not snuba_args["start"] and not snuba_args["end"]:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
@@ -474,9 +517,12 @@ def get_facets(query, params, limit=10, referrer=None):
         return []
 
     # TODO(mark) Make the sampling rate scale based on the result size and scaling factor in
-    # sentry.options.
-    # To test the lowest acceptable sampling rate, we use turbo mode.
-    turbo_values = key_names["data"][0]["count"] > 10000
+    # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
+    # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
+    # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
+    sample_rate = 0.1 if key_names["data"][0]["count"] > 10000 else None
+    # Rescale the results if we're sampling
+    multiplier = 1 / sample_rate if sample_rate is not None else 1
 
     fetch_projects = False
     if len(params.get("project_id", [])) > 1:
@@ -496,10 +542,13 @@ def get_facets(query, params, limit=10, referrer=None):
             orderby="-count",
             dataset=Dataset.Discover,
             referrer=referrer,
-            turbo=turbo_values,
+            sample=sample_rate,
         )
         results.extend(
-            [FacetResult("project", r["project_id"], r["count"]) for r in project_values["data"]]
+            [
+                FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
+                for r in project_values["data"]
+            ]
         )
 
     # Get tag counts for our top tags. Fetching them individually
@@ -518,8 +567,13 @@ def get_facets(query, params, limit=10, referrer=None):
             limit=TOP_VALUES_DEFAULT_LIMIT,
             dataset=Dataset.Discover,
             referrer=referrer,
-            turbo=turbo_values,
+            sample=sample_rate,
         )
-        results.extend([FacetResult(tag_name, r[tag], int(r["count"])) for r in tag_values["data"]])
+        results.extend(
+            [
+                FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
+                for r in tag_values["data"]
+            ]
+        )
 
     return results

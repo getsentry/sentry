@@ -117,7 +117,11 @@ class _RedisCluster(object):
         def cluster_factory():
             if config.get("is_redis_cluster", False):
                 return RetryingStrictRedisCluster(
-                    startup_nodes=hosts, decode_responses=True, skip_full_coverage_check=True
+                    startup_nodes=hosts,
+                    decode_responses=True,
+                    skip_full_coverage_check=True,
+                    max_connections=16,
+                    max_connections_per_node=True,
                 )
             else:
                 host = hosts[0].copy()
@@ -196,6 +200,28 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
         cluster = cluster_manager.get(options.pop(cluster_option_name, default_cluster_name))
 
     return cluster, options
+
+
+def get_dynamic_cluster_from_options(setting, config):
+    cluster_name = config.get("cluster", "default")
+    cluster_opts = options.default_manager.get("redis.clusters").get(cluster_name)
+    if cluster_opts is not None and cluster_opts.get("is_redis_cluster"):
+        # RedisCluster
+        return True, redis_clusters.get(cluster_name), config
+
+    # RBCluster
+    return (False,) + get_cluster_from_options(setting, config)
+
+
+def validate_dynamic_cluster(is_redis_cluster, cluster):
+    try:
+        if is_redis_cluster:
+            cluster.ping()
+        else:
+            with cluster.all() as client:
+                client.ping()
+    except Exception as e:
+        raise InvalidConfiguration(six.text_type(e))
 
 
 def check_cluster_versions(cluster, required, recommended=None, label=None):

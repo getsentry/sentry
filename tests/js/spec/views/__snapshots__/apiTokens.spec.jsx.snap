@@ -7,20 +7,25 @@ exports[`ApiTokens renders empty result 1`] = `
   <div>
     <StyledSettingsPageHeading
       action={
-        <Button
-          align="center"
+        <ForwardRef
           data-test-id="create-token"
-          disabled={false}
           priority="primary"
           size="small"
           to="/settings/account/api/auth-tokens/new-token/"
         >
           Create New Token
-        </Button>
+        </ForwardRef>
       }
       noTitleStyles={false}
       title="Auth Tokens"
     />
+    <AlertLink
+      priority="warning"
+      size="normal"
+      to="/settings/org-slug/developer-settings/new-internal"
+    >
+      Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using internal integrations to create/manage tokens tied to the organization instead.
+    </AlertLink>
     <TextBlock>
       Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
     </TextBlock>
@@ -89,20 +94,25 @@ exports[`ApiTokens renders with result 1`] = `
   <div>
     <StyledSettingsPageHeading
       action={
-        <Button
-          align="center"
+        <ForwardRef
           data-test-id="create-token"
-          disabled={false}
           priority="primary"
           size="small"
           to="/settings/account/api/auth-tokens/new-token/"
         >
           Create New Token
-        </Button>
+        </ForwardRef>
       }
       noTitleStyles={false}
       title="Auth Tokens"
     />
+    <AlertLink
+      priority="warning"
+      size="normal"
+      to="/settings/org-slug/developer-settings/new-internal"
+    >
+      Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using internal integrations to create/manage tokens tied to the organization instead.
+    </AlertLink>
     <TextBlock>
       Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
     </TextBlock>

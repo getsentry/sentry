@@ -60,6 +60,10 @@ export const HeaderButton = styled('div')`
   }
 `;
 
+export const HeaderButtonContainer = styled('div')`
+  margin-left: ${space(2)};
+`;
+
 const PanelWithProtectedBorder = styled(Panel)`
   overflow: hidden;
   z-index: ${Z_INDEX_PANEL};
@@ -133,6 +137,9 @@ export const GridHeadCell = styled('th')`
   &:last-child {
     border-top-right-radius: ${p => p.theme.borderRadius};
     border-right: none;
+  }
+  &:hover {
+    border-right: 1px solid ${p => p.theme.borderDark};
   }
 `;
 export const GridHeadCellButton = styled('div')<GridEditableProps>`

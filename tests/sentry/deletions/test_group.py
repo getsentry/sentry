@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import mock
+from sentry.utils.compat import mock
 from uuid import uuid4
 
 from sentry.models import (

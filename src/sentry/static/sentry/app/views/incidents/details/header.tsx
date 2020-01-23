@@ -128,11 +128,6 @@ export default class DetailsHeader extends React.Component<Props> {
             </ItemValue>
             {incident && (
               <ItemValue>
-                <Duration seconds={getDynamicText({value: duration || 0, fixed: 1200})} />
-              </ItemValue>
-            )}
-            {incident && (
-              <ItemValue>
                 <Count value={incident.uniqueUsers} />
               </ItemValue>
             )}
@@ -142,6 +137,11 @@ export default class DetailsHeader extends React.Component<Props> {
                 <OpenLink to={eventLink}>
                   <InlineSvg src="icon-open" size="14" />
                 </OpenLink>
+              </ItemValue>
+            )}
+            {incident && (
+              <ItemValue>
+                <Duration seconds={getDynamicText({value: duration || 0, fixed: 1200})} />
               </ItemValue>
             )}
             <ItemValue>

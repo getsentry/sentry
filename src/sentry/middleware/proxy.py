@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import io
 import logging
-import six
 import zlib
 
 try:
@@ -13,6 +12,7 @@ except ImportError:
     has_uwsgi = False
 
 from django.conf import settings
+from django.core.exceptions import MiddlewareNotUsed
 
 logger = logging.getLogger(__name__)
 Z_CHUNK = 1024 * 8
@@ -110,8 +110,6 @@ class GzipDecoder(ZDecoder):
 class SetRemoteAddrFromForwardedFor(object):
     def __init__(self):
         if not getattr(settings, "SENTRY_USE_X_FORWARDED_FOR", True):
-            from django.core.exceptions import MiddlewareNotUsed
-
             raise MiddlewareNotUsed
 
     def _remove_port_number(self, ip_address):
@@ -140,8 +138,6 @@ class SetRemoteAddrFromForwardedFor(object):
 class ChunkedMiddleware(object):
     def __init__(self):
         if not has_uwsgi:
-            from django.core.exceptions import MiddlewareNotUsed
-
             raise MiddlewareNotUsed
 
     def process_request(self, request):
@@ -181,18 +177,3 @@ class DecompressBodyMiddleware(object):
             # remove the header. Otherwise, LazyData will attempt to re-decode
             # the body.
             del request.META["HTTP_CONTENT_ENCODING"]
-
-
-class ContentLengthHeaderMiddleware(object):
-    """
-    Ensure that we have a proper Content-Length/Transfer-Encoding header
-    """
-
-    def process_response(self, request, response):
-        if "Transfer-Encoding" in response or "Content-Length" in response:
-            return response
-
-        if not response.streaming:
-            response["Content-Length"] = six.text_type(len(response.content))
-
-        return response
