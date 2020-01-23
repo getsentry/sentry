@@ -13,6 +13,8 @@ import ExternalLink from 'app/components/links/externalLink';
 import PluginConfig from 'app/components/pluginConfig';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withPlugins from 'app/utils/withPlugins';
+import withOrganization from 'app/utils/withOrganization';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 import {DEPRECATED_PLUGINS} from './constants';
 
@@ -26,6 +28,31 @@ import {DEPRECATED_PLUGINS} from './constants';
  *    PluginsStore
  */
 class ProjectPluginDetails extends AsyncView {
+  componentDidUpdate(prevProps) {
+    if (prevProps.params.pluginId !== this.props.params.pluginId) {
+      this.recordDetailsViewed();
+    }
+  }
+  componentDidMount() {
+    this.recordDetailsViewed();
+  }
+
+  recordDetailsViewed() {
+    const {projectId, pluginId} = this.props.params;
+
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.details_viewed',
+        eventName: 'Integrations: Details Viewed',
+        integration: pluginId,
+        integration_type: 'plugin',
+        view: 'plugin_details',
+        projectId,
+      },
+      this.props.organization
+    );
+  }
+
   getTitle() {
     const {plugin} = this.state;
     if (plugin && plugin.name) {
@@ -48,12 +75,35 @@ class ProjectPluginDetails extends AsyncView {
     const {projectId, orgId, pluginId} = this.props.params;
 
     addLoadingMessage(t('Saving changes..'));
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.uninstall_clicked',
+        eventName: 'Integrations: Uninstall Clicked',
+        integration: pluginId,
+        integration_type: 'plugin',
+        view: 'plugin_details',
+        projectId,
+      },
+      this.props.organization
+    );
+
     this.api.request(`/projects/${orgId}/${projectId}/plugins/${pluginId}/`, {
       method: 'POST',
       data: {reset: true},
       success: pluginDetails => {
         this.setState({pluginDetails});
         addSuccessMessage(t('Plugin was reset'));
+        trackIntegrationEvent(
+          {
+            eventKey: 'integrations.uninstall_complete',
+            eventName: 'Integrations: Uninstall Complete',
+            integration: pluginId,
+            integration_type: 'plugin',
+            view: 'plugin_details',
+            projectId,
+          },
+          this.props.organization
+        );
       },
       error: () => {
         addErrorMessage(t('An error occurred'));
@@ -63,10 +113,27 @@ class ProjectPluginDetails extends AsyncView {
 
   handleEnable = () => {
     enablePlugin(this.props.params);
+    this.analyticsChangeEnableStatus(true);
   };
 
   handleDisable = () => {
     disablePlugin(this.props.params);
+    this.analyticsChangeEnableStatus(false);
+  };
+
+  analyticsChangeEnableStatus = enabled => {
+    const {projectId, pluginId} = this.props.params;
+    trackIntegrationEvent(
+      {
+        eventKey: `integrations.${enabled ? 'enabled' : 'disabled'}`,
+        eventName: `Integrations: ${enabled ? 'Enabled' : 'Disabled'}`,
+        integration: pluginId,
+        integration_type: 'plugin',
+        view: 'plugin_details',
+        projectId,
+      },
+      this.props.organization
+    );
   };
 
   // Enabled state is handled via PluginsStore and not via plugins detail
@@ -192,4 +259,4 @@ class ProjectPluginDetails extends AsyncView {
 
 export {ProjectPluginDetails};
 
-export default withPlugins(ProjectPluginDetails);
+export default withPlugins(withOrganization(ProjectPluginDetails));

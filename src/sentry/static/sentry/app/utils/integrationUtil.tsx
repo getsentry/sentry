@@ -31,13 +31,19 @@ type OtherSingleIntegrationEvents = {
     | 'integrations.installation_complete'
     | 'integrations.details_viewed'
     | 'integrations.uninstall_clicked'
-    | 'integrations.uninstall_completed';
+    | 'integrations.uninstall_completed'
+    | 'integrations.enabled'
+    | 'integrations.disabled'
+    | 'integrations.config_saved';
   eventName:
     | 'Integrations: Installation Start'
     | 'Integrations: Installation Complete'
     | 'Integrations: Details Viewed'
     | 'Integrations: Uninstall Clicked'
-    | 'Integrations: Uninstall Completed';
+    | 'Integrations: Uninstall Completed'
+    | 'Integrations: Enabled'
+    | 'Integrations: Disabled'
+    | 'Integrations: Config Saved';
 };
 
 type SentryAppEvent = {
@@ -67,7 +73,9 @@ type IntegrationsEventParams = (MultipleIntegrationsEvent | SingleIntegrationEve
     | 'external_install'
     | 'integrations_page'
     | 'legacy_integrations'
+    | 'plugin_details'
     | 'integrations_directory';
+  project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 
 /**
