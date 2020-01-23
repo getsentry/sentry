@@ -76,7 +76,7 @@ type IntegrationsEventParams = (MultipleIntegrationsEvent | SingleIntegrationEve
  * Uses the current session ID or generates a new one if startSession == true
  */
 export const trackIntegrationEvent = (
-  analtyicsParams: IntegrationsEventParams,
+  analyticsParams: IntegrationsEventParams,
   org?: Organization, //we should pass in org whenever we can but not every place guarantees this
   options?: {startSession: boolean}
 ) => {
@@ -86,7 +86,7 @@ export const trackIntegrationEvent = (
   //we should always have a session id but if we don't, we should generate one
   if (!sessionId) {
     // eslint-disable-next-line no-console
-    console.warn(`analytics_session_id absent from event ${analtyicsParams.eventName}`);
+    console.warn(`analytics_session_id absent from event ${analyticsParams.eventName}`);
     sessionId = startAnalyticsSession();
   }
 
@@ -95,7 +95,7 @@ export const trackIntegrationEvent = (
     organization_id: org?.id,
     role: org?.role,
     integration_directory_active: false, //TODO: should be configurable
-    ...analtyicsParams,
+    ...analyticsParams,
   };
 
   //add the integration_status to the type of params so TS doesn't complain about what we do below
@@ -105,14 +105,14 @@ export const trackIntegrationEvent = (
 
   //Reload expects integration_status even though it's not relevant for non-sentry apps
   //Passing in a dummy value of published in those cases
-  if (analtyicsParams.integration && analtyicsParams.integration_type !== 'sentry_app') {
+  if (analyticsParams.integration && analyticsParams.integration_type !== 'sentry_app') {
     fullParams.integration_status = 'published';
   }
 
   //TODO(steve): remove once we pass in org always
   if (!org) {
     // eslint-disable-next-line no-console
-    console.warn(`Organization absent from event ${analtyicsParams.eventName}`);
+    console.warn(`Organization absent from event ${analyticsParams.eventName}`);
   }
 
   //could put this into a debug method or for the main trackAnalyticsEvent event
