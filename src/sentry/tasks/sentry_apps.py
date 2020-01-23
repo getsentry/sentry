@@ -15,7 +15,6 @@ from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 from sentry.api.serializers import serialize, AppPlatformEvent
 from sentry.models import (
     SentryAppInstallation,
-    EventCommon,
     Group,
     Project,
     Organization,
@@ -112,7 +111,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     model = TYPES[sender]
     # The Event model has different hooks for the different event types. The sender
     # determines which type eg. Error and therefore the 'name' eg. error
-    if issubclass(model, EventCommon):
+    if issubclass(model, Event):
         if not kwargs.get("instance"):
             extra = {"sender": sender, "action": action, "event_id": instance_id}
             logger.info("process_resource_change.event_missing_event", extra=extra)
@@ -131,7 +130,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
     try:
-        if issubclass(model, EventCommon):
+        if issubclass(model, Event):
             # XXX:(Meredith): Passing through the entire event was an intentional choice
             # to avoid having to query NodeStore again for data we had previously in
             # post_process. While this is not ideal, changing this will most likely involve
@@ -151,7 +150,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     org = None
 
-    if isinstance(instance, Group) or issubclass(model, EventCommon):
+    if isinstance(instance, Group) or isinstance(instance, Event):
         org = Organization.objects.get_from_cache(
             id=Project.objects.get_from_cache(id=instance.project_id).organization_id
         )
@@ -163,7 +162,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     for installation in installations:
         data = {}
-        if issubclass(model, EventCommon):
+        if isinstance(instance, Event):
             data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
             send_webhooks(installation, event, data=data)
         else:
