@@ -7,10 +7,10 @@ export const fields = {
   subscribeByDefault: {
     name: 'subscribeByDefault',
     type: 'boolean',
-    label: t('Send Me Project Alerts'),
+    label: t('Send Me Alerts'),
     // TODO(billy): Make this a real link
-    help: tct('Alerts are defined in [locationPath]', {
-      locationPath: '[Project] » Project Settings » Alerts » Rules.',
+    help: tct('Alerts are defined in [locationPath]. Disable this to not receive alerts sent to teams you are in. You will continue to receive alerts sent directly to you.', {
+      locationPath: '[Project] » Project Settings » Alerts',
     }),
   },
   workflowNotifications: {
