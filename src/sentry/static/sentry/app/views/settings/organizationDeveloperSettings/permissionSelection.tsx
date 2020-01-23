@@ -3,7 +3,6 @@ import React from 'react';
 
 import find from 'lodash/find';
 import flatMap from 'lodash/flatMap';
-import get from 'lodash/get';
 
 import {t} from 'app/locale';
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';
@@ -119,8 +118,9 @@ export default class PermissionSelection extends React.Component<Props, State> {
   permissionStateToList() {
     const {permissions} = this.state;
     const findResource = r => find(SENTRY_APP_PERMISSIONS, ['resource', r]);
-    return flatMap(Object.entries(permissions), ([r, p]) =>
-      get(findResource(r), `choices[${p}].scopes`)
+    return flatMap(
+      Object.entries(permissions),
+      ([r, p]) => findResource(r)?.choices?.[p]?.scopes
     );
   }
 
