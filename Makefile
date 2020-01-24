@@ -1,11 +1,4 @@
-ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
-	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
-endif
-ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
-	LDFLAGS += -L/usr/local/opt/openssl/lib
-endif
-
-PIP := LDFLAGS="$(LDFLAGS)" python -m pip --disable-pip-version-check
+PIP := python -m pip --disable-pip-version-check
 # Note: this has to be synced with the pip version in .travis.yml.
 PIP_VERSION := 19.2.3
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
