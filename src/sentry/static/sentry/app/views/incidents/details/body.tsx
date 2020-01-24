@@ -162,7 +162,7 @@ export default class DetailsBody extends React.Component<Props> {
 
                 <SideHeaderLink
                   to={{
-                    pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts-v2/metric-rules/${incident?.identifier}/`,
+                    pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts-v2/metric-rules/${incident?.alertRule.id}/`,
                   }}
                 >
                   <InlineSvg src="icon-edit" size="14px" />
