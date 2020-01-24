@@ -251,6 +251,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "name",
             "query",
             "time_window",
+            "environments",
             "threshold_period",
             "aggregation",
             "projects",
