@@ -31,6 +31,13 @@ import SidebarDropdown from './sidebarDropdown';
 import SidebarHelp from './help';
 import SidebarItem from './sidebarItem';
 
+function getDiscoverUrl(organization) {
+  if (organization.features.includes('discover-query')) {
+    return generateDiscoverLandingPageRoute(organization.slug);
+  }
+  return `/organizations/${organization.slug}/eventsv2/results/`;
+}
+
 class Sidebar extends React.Component {
   static propTypes = {
     router: PropTypes.object,
@@ -300,13 +307,13 @@ class Sidebar extends React.Component {
                         {...sidebarItemProps}
                         onClick={(_id, evt) =>
                           this.navigateWithGlobalSelection(
-                            generateDiscoverLandingPageRoute(organization.slug),
+                            getDiscoverUrl(organization),
                             evt
                           )
                         }
                         icon={<InlineSvg src="icon-telescope" />}
                         label={t('Discover')}
-                        to={generateDiscoverLandingPageRoute(organization.slug)}
+                        to={getDiscoverUrl(organization)}
                         id="discover-v2"
                       />
                     </Feature>

@@ -43,12 +43,24 @@ export const HeaderTitle = styled('h4')`
   color: ${p => p.theme.gray3};
 `;
 
-export const HeaderButton = styled('div')`
+export const HeaderButtonContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+
+  /* Hovercard anchor element when features are disabled. */
+  & > span {
+    display: flex;
+    flex-direction: row;
+  }
+`;
+
+export const HeaderButton = styled('div')<{disabled?: boolean}>`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray3};
-  cursor: pointer;
+  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
+  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   font-size: ${p => p.theme.fontSizeSmall};
+  margin-left: ${space(2)};
 
   > svg {
     margin-right: ${space(0.5)};
@@ -56,15 +68,7 @@ export const HeaderButton = styled('div')`
 
   &:hover,
   &:active {
-    color: ${p => p.theme.gray4};
-  }
-`;
-
-export const HeaderButtonContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  & > * {
-    margin-left: ${space(2)};
+    color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray4)};
   }
 `;
 

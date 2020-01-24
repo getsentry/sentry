@@ -4,6 +4,9 @@ import {t} from 'app/locale';
 import {openModal} from 'app/actionCreators/modal';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
+import Hovercard from 'app/components/hovercard';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
@@ -48,8 +51,14 @@ type GridEditableProps<DataRow, ColumnKey> = {
   onToggleEdit?: (nextValue: boolean) => void;
 
   gridHeadCellButtonProps?: {[prop: string]: any};
+  /**
+   * This is currently required as we only have one usage of
+   * this component in the future. If we have more this could be
+   * made optional. You will need to update renderHeaderButtons() though.
+   */
+  editFeatures: string[];
+  noEditMessage?: string;
 
-  isEditable?: boolean;
   isLoading?: boolean;
   isColumnDragging: boolean;
   error?: React.ReactNode | null;
@@ -67,7 +76,6 @@ type GridEditableProps<DataRow, ColumnKey> = {
   columnOrder: GridColumnOrder<ColumnKey>[];
   columnSortBy: GridColumnSortBy<ColumnKey>[];
   data: DataRow[];
-  downloadAsCsv: () => void;
 
   /**
    * GridEditable allows the parent component to determine how to display the
@@ -116,6 +124,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
       indexFrom: number
     ) => void;
     deleteColumn: (index: number) => void;
+    downloadAsCsv: () => void;
   };
 };
 
@@ -128,10 +137,6 @@ class GridEditable<
   DataRow extends {[key: string]: any},
   ColumnKey extends ObjectKey
 > extends React.Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
-  static defaultProps = {
-    isEditable: false,
-  };
-
   // Static methods do not allow the use of generics bounded to the parent class
   // For more info: https://github.com/microsoft/TypeScript/issues/14600
   static getDerivedStateFromProps(
@@ -235,7 +240,7 @@ class GridEditable<
     window.requestAnimationFrame(() => this.resizeGridColumn(e, resizeMetadata));
   };
 
-  toggleEdit = () => {
+  handleToggleEdit = () => {
     const nextValue = !this.state.isEditing;
 
     if (this.props.onToggleEdit) {
@@ -273,7 +278,7 @@ class GridEditable<
     ));
   };
 
-  resizeGridColumn = (e: MouseEvent, metadata: ColResizeMetadata) => {
+  resizeGridColumn(e: MouseEvent, metadata: ColResizeMetadata) {
     const grid = this.refGrid.current;
     if (!grid) {
       return;
@@ -292,7 +297,7 @@ class GridEditable<
       metadata.columnIndex,
       metadata.columnWidth + e.clientX - metadata.cursorX
     );
-  };
+  }
 
   /**
    * Recalculate the dimensions of Grid and Columns and redraws them
@@ -338,43 +343,75 @@ class GridEditable<
     grid.style.gridTemplateColumns = columnWidths.join(' ');
   }
 
-  renderHeaderButton = () => {
-    if (!this.props.isEditable) {
-      return null;
-    }
+  renderHeaderButtons() {
+    const {noEditMessage, editFeatures} = this.props;
+    const renderDisabled = p => (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            features={p.features}
+            hideHelpToggle
+            message={noEditMessage}
+            featureName={noEditMessage}
+          />
+        }
+      >
+        {p.children(p)}
+      </Hovercard>
+    );
 
     return (
-      <HeaderButton
-        onClick={() => this.openModalAddColumnAt()}
-        data-test-id="grid-add-column"
+      <Feature
+        hookName="feature-disabled:grid-editable-actions"
+        renderDisabled={renderDisabled}
+        features={editFeatures}
       >
+        {({hasFeature}) => (
+          <React.Fragment>
+            {this.renderDownloadCsvButton(hasFeature)}
+            {this.renderAddColumnButton(hasFeature)}
+            {this.renderEditButtons(hasFeature)}
+          </React.Fragment>
+        )}
+      </Feature>
+    );
+  }
+
+  renderAddColumnButton(canEdit: boolean) {
+    const onClick = canEdit ? () => this.openModalAddColumnAt() : undefined;
+    return (
+      <HeaderButton disabled={!canEdit} onClick={onClick} data-test-id="grid-add-column">
         <InlineSvg src="icon-circle-add" />
         {t('Add Column')}
       </HeaderButton>
     );
-  };
+  }
 
-  renderDownloadCsvButton = () => {
-    if (this.props.isLoading) {
-      return null;
-    }
+  renderDownloadCsvButton(canEdit: boolean) {
+    const disabled = this.props.isLoading || canEdit === false;
+    const onClick = disabled ? undefined : this.props.actions.downloadAsCsv;
 
     return (
-      <HeaderButton onClick={this.props.downloadAsCsv} data-test-id="grid-download-csv">
+      <HeaderButton
+        disabled={disabled}
+        onClick={onClick}
+        data-test-id="grid-download-csv"
+      >
         <InlineSvg src="icon-download" />
         {t('Download CSV')}
       </HeaderButton>
     );
-  };
+  }
 
-  renderGridHeadEditButtons = () => {
-    if (!this.props.isEditable) {
-      return null;
-    }
-
+  renderEditButtons(canEdit: boolean) {
+    const onClick = canEdit ? this.handleToggleEdit : undefined;
     if (!this.state.isEditing) {
       return (
-        <HeaderButton onClick={this.toggleEdit} data-test-id="grid-edit-enable">
+        <HeaderButton
+          disabled={!canEdit}
+          onClick={onClick}
+          data-test-id="grid-edit-enable"
+        >
           <InlineSvg src="icon-edit-pencil" />
           {t('Edit Columns')}
         </HeaderButton>
@@ -382,14 +419,14 @@ class GridEditable<
     }
 
     return (
-      <HeaderButton onClick={this.toggleEdit} data-test-id="grid-edit-disable">
+      <HeaderButton onClick={onClick} data-test-id="grid-edit-disable">
         <InlineSvg src="icon-circle-check" />
         {t('Save & Close')}
       </HeaderButton>
     );
-  };
+  }
 
-  renderGridHead = () => {
+  renderGridHead() {
     const {error, isLoading, columnOrder, actions, grid, data} = this.props;
     const {isEditing} = this.state;
 
@@ -430,9 +467,9 @@ class GridEditable<
         ))}
       </GridRow>
     );
-  };
+  }
 
-  renderGridBody = () => {
+  renderGridBody() {
     const {data, error, isLoading} = this.props;
 
     if (error) {
@@ -448,7 +485,7 @@ class GridEditable<
     }
 
     return data.map(this.renderGridBodyRow);
-  };
+  }
 
   renderGridBodyRow = (dataRow: DataRow, row: number) => {
     const {columnOrder, grid} = this.props;
@@ -464,7 +501,7 @@ class GridEditable<
     );
   };
 
-  renderError = () => {
+  renderError() {
     const {error} = this.props;
 
     return (
@@ -476,9 +513,9 @@ class GridEditable<
         </GridBodyCellStatus>
       </GridRow>
     );
-  };
+  }
 
-  renderLoading = () => {
+  renderLoading() {
     return (
       <GridRow>
         <GridBodyCellStatus>
@@ -486,9 +523,9 @@ class GridEditable<
         </GridBodyCellStatus>
       </GridRow>
     );
-  };
+  }
 
-  renderEmptyData = () => {
+  renderEmptyData() {
     return (
       <GridRow>
         <GridBodyCellStatus>
@@ -498,20 +535,14 @@ class GridEditable<
         </GridBodyCellStatus>
       </GridRow>
     );
-  };
+  }
 
   render() {
-    const {isEditable} = this.props;
-
     return (
       <React.Fragment>
         <Header>
           <HeaderTitle>{t('Results')}</HeaderTitle>
-          <HeaderButtonContainer>
-            {this.renderDownloadCsvButton()}
-            {this.renderHeaderButton()}
-            {isEditable && this.renderGridHeadEditButtons()}
-          </HeaderButtonContainer>
+          <HeaderButtonContainer>{this.renderHeaderButtons()}</HeaderButtonContainer>
         </Header>
 
         <Body>
