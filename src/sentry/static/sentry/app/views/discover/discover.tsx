@@ -454,7 +454,10 @@ export default class Discover extends React.Component<Props, State> {
               />
             </QueryPanel>
           )}
-          <Feature features={['organizations:events-v2']} organization={organization}>
+          <Feature
+            features={['organizations:discover-basic']}
+            organization={organization}
+          >
             <SwitchLink
               href={generateDiscoverLandingPageRoute(organization.slug)}
               onClick={this.onGoLegacyDiscover}

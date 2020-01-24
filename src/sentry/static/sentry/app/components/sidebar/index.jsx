@@ -229,7 +229,7 @@ class Sidebar extends React.Component {
     // access to and default to '2' if they have neither.
     let discoverVersion = localStorage.getItem('discover:version');
     if (discoverVersion === null && organization && organization.features) {
-      discoverVersion = organization.features.includes('events-v2')
+      discoverVersion = organization.features.includes('discover-basic')
         ? '2'
         : organization.features.includes('discover')
         ? '1'
@@ -276,25 +276,27 @@ class Sidebar extends React.Component {
                     id="issues"
                   />
 
-                  <Feature
-                    features={['events']}
-                    hookName="feature-disabled:events-sidebar-item"
-                    organization={organization}
-                  >
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/events/`,
-                          evt
-                        )
-                      }
-                      icon={<InlineSvg src="icon-stack" />}
-                      label={t('Events')}
-                      to={`/organizations/${organization.slug}/events/`}
-                      id="events"
-                    />
-                  </Feature>
+                  {discoverVersion !== '2' && (
+                    <Feature
+                      features={['events']}
+                      hookName="feature-disabled:events-sidebar-item"
+                      organization={organization}
+                    >
+                      <SidebarItem
+                        {...sidebarItemProps}
+                        onClick={(_id, evt) =>
+                          this.navigateWithGlobalSelection(
+                            `/organizations/${organization.slug}/events/`,
+                            evt
+                          )
+                        }
+                        icon={<InlineSvg src="icon-stack" />}
+                        label={t('Events')}
+                        to={`/organizations/${organization.slug}/events/`}
+                        id="events"
+                      />
+                    </Feature>
+                  )}
 
                   {discoverVersion === '2' && (
                     <Feature features={['discover-basic']} organization={organization}>
