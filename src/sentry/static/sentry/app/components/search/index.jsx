@@ -89,8 +89,8 @@ class Search extends React.Component {
       eventKey: `${this.props.entryPoint}.select`,
       eventName: `${this.props.entryPoint} Select`,
       query: state && state.inputValue,
-      resultType: item.resultType,
-      sourceType: item.sourceType,
+      result_type: item.resultType,
+      source_type: item.sourceType,
     });
 
     const {to, action} = item;
