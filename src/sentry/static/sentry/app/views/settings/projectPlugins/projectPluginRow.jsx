@@ -37,7 +37,7 @@ class ProjectPluginRow extends React.PureComponent {
         integration: id,
         integration_type: 'plugin',
         view: 'legacy_integrations',
-        projectId: this.props.project.id,
+        project_id: this.props.project.id,
       },
       this.props.organization
     );

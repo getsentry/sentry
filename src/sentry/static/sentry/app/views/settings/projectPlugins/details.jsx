@@ -14,6 +14,7 @@ import PluginConfig from 'app/components/pluginConfig';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withPlugins from 'app/utils/withPlugins';
 import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 import {DEPRECATED_PLUGINS} from './constants';
@@ -38,7 +39,7 @@ class ProjectPluginDetails extends AsyncView {
   }
 
   recordDetailsViewed() {
-    const {projectId, pluginId} = this.props.params;
+    const {pluginId} = this.props.params;
 
     trackIntegrationEvent(
       {
@@ -47,7 +48,7 @@ class ProjectPluginDetails extends AsyncView {
         integration: pluginId,
         integration_type: 'plugin',
         view: 'plugin_details',
-        projectId,
+        project_id: this.props.project.id,
       },
       this.props.organization
     );
@@ -82,7 +83,7 @@ class ProjectPluginDetails extends AsyncView {
         integration: pluginId,
         integration_type: 'plugin',
         view: 'plugin_details',
-        projectId,
+        project_id: this.props.project.id,
       },
       this.props.organization
     );
@@ -100,7 +101,7 @@ class ProjectPluginDetails extends AsyncView {
             integration: pluginId,
             integration_type: 'plugin',
             view: 'plugin_details',
-            projectId,
+            project_id: this.props.project.id,
           },
           this.props.organization
         );
@@ -122,7 +123,7 @@ class ProjectPluginDetails extends AsyncView {
   };
 
   analyticsChangeEnableStatus = enabled => {
-    const {projectId, pluginId} = this.props.params;
+    const {pluginId} = this.props.params;
     trackIntegrationEvent(
       {
         eventKey: `integrations.${enabled ? 'enabled' : 'disabled'}`,
@@ -130,7 +131,7 @@ class ProjectPluginDetails extends AsyncView {
         integration: pluginId,
         integration_type: 'plugin',
         view: 'plugin_details',
-        projectId,
+        project_id: this.props.project.id,
       },
       this.props.organization
     );
@@ -259,4 +260,4 @@ class ProjectPluginDetails extends AsyncView {
 
 export {ProjectPluginDetails};
 
-export default withPlugins(withOrganization(ProjectPluginDetails));
+export default withProject(withPlugins(withOrganization(ProjectPluginDetails)));

@@ -124,7 +124,7 @@ export default function getConfiguration({project}: ConfigParams): NavigationSec
           path: `${pathPrefix}/plugins/${plugin.id}/`,
           title: plugin.name,
           show: ({access}) => access.has('project:write'),
-          id: 'plugin',
+          id: 'plugin_details',
           recordAnalytics: true,
         })),
       ],
