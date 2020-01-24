@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+from hashlib import md5
 
 from base64 import b64encode
 from threading import local
@@ -10,7 +11,6 @@ from django.core.cache import caches, InvalidCacheBackendError
 
 from sentry.utils.cache import memoize
 from sentry.utils.services import Service
-from sentry.utils.validators import normalize_event_id
 
 
 class NodeStorage(local, Service):
@@ -136,7 +136,4 @@ class NodeStorage(local, Service):
         return options.get("nodedata.cache-sample-rate", 0.0)
 
     def should_cache(self, id):
-        event_id = normalize_event_id(id)
-        if not event_id:
-            return False
-        return (int(event_id, 16) / float(int("f" * 32, 16))) < self.sample_rate
+        return (int(md5(id).hexdigest(), 16) / float(int("f" * 32, 16))) < self.sample_rate
