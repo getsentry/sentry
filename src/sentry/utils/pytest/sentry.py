@@ -94,7 +94,10 @@ def pytest_configure(config):
 
     settings.DISABLE_RAVEN = True
 
-    settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+    settings.CACHES = {
+        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+        "nodedata": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    }
 
     if os.environ.get("USE_SNUBA", False):
         settings.SENTRY_SEARCH = "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
