@@ -76,7 +76,7 @@ setup-git: ensure-latest-pip
 node-version-check:
 	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/creationix/nvm'; exit 1)
 
-install-yarn-pkgs:
+install-yarn-pkgs: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
 	@command -v $(YARN) 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
