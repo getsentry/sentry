@@ -598,7 +598,7 @@ urlpatterns = [
                     name="sentry-api-0-organization-data-export",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/data-export/(?P<data_id>[^\/]+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/data-export/(?P<data_export_id>[^\/]+)/$",
                     DataExportDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-data-export-details",
                 ),

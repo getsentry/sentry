@@ -21,7 +21,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         try:
-            data_export = ExportedData.objects.get(id=kwargs["data_id"])
+            data_export = ExportedData.objects.get(id=kwargs["data_export_id"])
             return Response(serialize(data_export, request.user))
         except ExportedData.DoesNotExist:
             return Response(status=404)
