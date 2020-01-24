@@ -5,10 +5,9 @@ ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
 	LDFLAGS += -L/usr/local/opt/openssl/lib
 endif
 
-PIP := LDFLAGS="$(LDFLAGS)" python -m pip
+PIP := LDFLAGS="$(LDFLAGS)" python -m pip --disable-pip-version-check
 # Note: this has to be synced with the pip version in .travis.yml.
 PIP_VERSION := 19.2.3
-PIP_OPTS := --disable-pip-version-check
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
 YARN := ./bin/yarn
 
@@ -67,7 +66,7 @@ setup-git:
 	git config branch.autosetuprebase always
 	git config core.ignorecase false
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
-	$(PIP) install "pre-commit==1.18.2" $(PIP_OPTS)
+	$(PIP) install "pre-commit==1.18.2"
 	pre-commit install --install-hooks
 	@echo ""
 
@@ -87,7 +86,7 @@ install-yarn-pkgs: node-version-check
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
-	$(PIP) install -e ".[dev]" $(PIP_OPTS)
+	$(PIP) install -e ".[dev]"
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -102,7 +101,7 @@ locale: build-js-po
 	cd src/sentry && sentry django compilemessages
 
 update-transifex: build-js-po
-	$(PIP) install transifex-client $(PIP_OPTS)
+	$(PIP) install transifex-client
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
 	tx push -s
@@ -245,7 +244,7 @@ travis-test-dist:
 .PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
-	$(PIP) install safety $(PIP_OPTS)
+	$(PIP) install safety
 	bin/scan
 	@echo ""
 
