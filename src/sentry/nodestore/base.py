@@ -136,4 +136,4 @@ class NodeStorage(local, Service):
         return options.get("nodedata.cache-sample-rate", 0.0)
 
     def should_cache(self, id):
-        return (int(md5(id).hexdigest(), 16) / float(int("f" * 32, 16))) < self.sample_rate
+        return (int(md5(id).hexdigest(), 16) % 1000) / 1000.0 < self.sample_rate
