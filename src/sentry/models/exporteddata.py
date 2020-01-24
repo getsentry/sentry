@@ -7,17 +7,20 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, JSONField, Model, sane_repr
+from sentry.constants import ExportQueryType
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    JSONField,
+    Model,
+    sane_repr,
+)
 
 
 class ExportStatus(six.binary_type, Enum):
     Early = "EARLY"  # The download is being prepared
     Valid = "VALID"  # The download is ready for the user
     Expired = "EXPIRED"  # The download has been deleted
-
-
-# TODO(Leander): Connect PostiveSmallIntegerField to enum
-# class ExportQueryType(Enum):
 
 
 class ExportedData(Model):
@@ -34,9 +37,9 @@ class ExportedData(Model):
     date_finished = models.DateTimeField(null=True)
     date_expired = models.DateTimeField(null=True)
     storage_url = models.URLField(null=True)
-    query_type = models.PositiveSmallIntegerField()
+    query_type = BoundedPositiveIntegerField(choices=ExportQueryType.as_choices())
     # TODO(Leander): Define a jsonschema to enforce query shape
-    query_info = JSONField()  # i.e.: sort rules, order-by's, custom settings
+    query_info = JSONField()
 
     @property
     def status(self):

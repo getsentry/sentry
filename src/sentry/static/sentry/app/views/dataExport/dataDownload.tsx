@@ -21,9 +21,21 @@ type RouteParams = {
 };
 
 type Download = {
-  storageUrl?: string;
+  id: number;
+  user: {
+    id: number;
+    email: string;
+    username: string;
+  };
+  dateCreated: string;
+  dateFinished?: string;
   dateExpired?: string;
-  status?: DownloadStatus;
+  storageUrl?: string;
+  query: {
+    type: number;
+    info: object;
+  };
+  status: DownloadStatus;
 };
 
 type Props = {} & RouteComponentProps<RouteParams, {}>;
@@ -33,13 +45,6 @@ type State = {
 } & AsyncView['state'];
 
 class DataDownload extends AsyncView<Props, State> {
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      download: {},
-    };
-  }
-
   getTitle(): string {
     return t('Download Center');
   }
@@ -81,6 +86,7 @@ class DataDownload extends AsyncView<Props, State> {
 
   renderValid(): React.ReactNode {
     const {download} = this.state;
+    // TODO(Leander): Fix this default fallback behavior
     const d = new Date(download.dateExpired || '');
     return (
       <React.Fragment>
