@@ -30,6 +30,7 @@ import {DEPRECATED_PLUGINS} from './constants';
  */
 class ProjectPluginDetails extends AsyncView {
   componentDidUpdate(prevProps) {
+    super.componentDidUpdate(...arguments);
     if (prevProps.params.pluginId !== this.props.params.pluginId) {
       this.recordDetailsViewed();
     }
@@ -96,8 +97,8 @@ class ProjectPluginDetails extends AsyncView {
         addSuccessMessage(t('Plugin was reset'));
         trackIntegrationEvent(
           {
-            eventKey: 'integrations.uninstall_complete',
-            eventName: 'Integrations: Uninstall Complete',
+            eventKey: 'integrations.uninstall_completed',
+            eventName: 'Integrations: Uninstall Completed',
             integration: pluginId,
             integration_type: 'plugin',
             view: 'plugin_details',
