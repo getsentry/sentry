@@ -1,4 +1,3 @@
-import {Box, Flex} from 'reflexbox';
 import {withTheme} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -12,7 +11,6 @@ import CircleIndicator from 'app/components/circleIndicator';
 import InstalledIntegration, {
   Props as InstalledIntegrationProps,
 } from 'app/views/organizationIntegrations/installedIntegration';
-import Link from 'app/components/links/link';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -32,10 +30,6 @@ type Props = {
 };
 
 export default class ProviderRow extends React.Component<Props> {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   static propTypes = {
     provider: PropTypes.object.isRequired,
     integrations: PropTypes.array.isRequired,
@@ -46,6 +40,10 @@ export default class ProviderRow extends React.Component<Props> {
     onReinstall: PropTypes.func.isRequired,
     enabledPlugins: PropTypes.array,
     newlyInstalledIntegrationId: PropTypes.string,
+  };
+
+  static contextTypes = {
+    organization: SentryTypes.Organization,
   };
 
   static defaultProps = {
@@ -91,11 +89,7 @@ export default class ProviderRow extends React.Component<Props> {
 
     return {
       icon: upgradeable ? 'icon-upgrade' : 'icon-circle-add',
-      children: this.isEnabled
-        ? t('Add Another')
-        : upgradeable
-        ? t('Update')
-        : t('Install'),
+      children: this.isEnabled ? t('Add Configuration') : t('Install'),
     };
   }
 
@@ -118,24 +112,26 @@ export default class ProviderRow extends React.Component<Props> {
   render() {
     return (
       <PanelItem p={0} flexDirection="column" data-test-id={this.props.provider.key}>
-        <Flex alignItems="center" p={2}>
+        <Flex style={{alignItems: 'center', padding: '16px'}}>
           <PluginIcon size={36} pluginId={this.props.provider.key} />
-          <Box px={2} flex={1}>
+          <div style={{flex: '1', padding: '0 16px'}}>
             <ProviderName>{this.props.provider.name}</ProviderName>
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
-              <StyledLink onClick={this.openModal}>Learn More</StyledLink>
             </ProviderDetails>
-          </Box>
-          <Box>
+          </div>
+          <div>
             <Button size="small" onClick={this.openModal} {...this.buttonProps} />
-          </Box>
+          </div>
         </Flex>
-        {this.renderIntegrations()}
       </PanelItem>
     );
   }
 }
+
+const Flex = styled('div')`
+  display: flex;
+`;
 
 const ProviderName = styled('div')`
   font-weight: bold;
@@ -169,12 +165,6 @@ const Status = styled(
 )`
   color: ${(p: StatusProps) => (p.enabled ? p.theme.success : p.theme.gray2)};
   margin-left: ${space(0.5)};
-  &:after {
-    content: '|';
-    color: ${p => p.theme.gray1};
-    margin-left: ${space(0.75)};
-    font-weight: normal;
-  }
   margin-right: ${space(0.75)};
 `;
 
@@ -204,8 +194,4 @@ const StyledInstalledIntegration = styled(
   padding-left: 0;
   margin-left: 68px;
   border-top: 1px dashed ${p => p.theme.borderLight};
-`;
-
-const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray2};
 `;

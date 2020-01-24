@@ -24,7 +24,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
-import ProviderRow from 'app/views/organizationIntegrations/providerRow';
+import ProviderRow from 'app/views/organizationIntegrations/integrationProviderRow';
 import SentryAppInstallationDetail from 'app/views/organizationIntegrations/sentryAppInstallationDetail';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -32,6 +32,7 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import SearchInput from 'app/components/forms/searchInput';
 
 type AppOrProvider = SentryApp | IntegrationProvider;
 
@@ -316,16 +317,14 @@ class OrganizationIntegrations extends AsyncComponent<
       (publicApps as AppOrProvider[]).concat(this.providers)
     );
 
-    const unpublishedApps = this.sortIntegrations(
-      orgOwned.filter(a => a.status === 'unpublished')
-    );
-
-    const orgOwnedInternal = this.sortIntegrations(
-      orgOwned.filter(a => a.status === 'internal')
-    );
-
     const title = t('Integrations');
-
+    const tags = [
+      'Source Control',
+      'Ticketing',
+      'Data Forwarding',
+      'Release Management',
+      'Notifications',
+    ];
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
@@ -337,7 +336,16 @@ class OrganizationIntegrations extends AsyncComponent<
           providers={this.providers}
           onInstall={this.onInstall}
         />
-
+        <SearchInput
+          value=""
+          onChange={() => {}}
+          placeholder="Find a new integration, or one you already use."
+        />
+        <TagsContainer>
+          {tags.map(tag => (
+            <Tag key={tag}>{tag}</Tag>
+          ))}
+        </TagsContainer>
         <Panel>
           <PanelHeader disablePadding>
             <Heading>{t('Integrations')}</Heading>
@@ -345,26 +353,6 @@ class OrganizationIntegrations extends AsyncComponent<
           </PanelHeader>
           <PanelBody>{publicIntegrations.map(this.renderIntegration)}</PanelBody>
         </Panel>
-
-        {unpublishedApps.length > 0 && (
-          <Panel>
-            <PanelHeader disablePadding>
-              <Heading>{t('Unpublished Integrations')}</Heading>
-              {reloading && <StyledLoadingIndicator mini />}
-            </PanelHeader>
-            <PanelBody>{unpublishedApps.map(this.renderIntegration)}</PanelBody>
-          </Panel>
-        )}
-
-        {orgOwnedInternal.length > 0 && (
-          <Panel>
-            <PanelHeader disablePadding>
-              <Heading>{t('Internal Integrations')}</Heading>
-              {reloading && <StyledLoadingIndicator mini />}
-            </PanelHeader>
-            <PanelBody>{orgOwnedInternal.map(this.renderIntegration)}</PanelBody>
-          </Panel>
-        )}
       </React.Fragment>
     );
   }
@@ -381,6 +369,39 @@ const Heading = styled('div')`
   flex: 1;
   padding-left: ${space(2)};
   padding-right: ${space(2)};
+`;
+
+const TagsContainer = styled('div')`
+  flex: 1;
+  padding-top: ${space(3)};
+  padding-bottom: ${space(3)};
+`;
+
+const Tag = styled('span')`
+  transition: border-color 0.15s ease;
+  font-size: 14px;
+  width: 260px;
+  line-height: 1;
+  padding: ${space(1)};
+  margin: 0 ${space(1)};
+  border: 1px solid ${p => p.theme.borderDark};
+  border-radius: 30px;
+  height: 28px;
+  box-shadow: inset ${p => p.theme.dropShadowLight};
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border: 1px solid ${p => p.theme.gray1};
+  }
+
+  &::placeholder {
+    color: ${p => p.theme.gray2};
+  }
+
+  &:nth-child(1) {
+    margin: 0 ${space(1)} 0 0;
+  }
 `;
 
 export default withOrganization(OrganizationIntegrations);
