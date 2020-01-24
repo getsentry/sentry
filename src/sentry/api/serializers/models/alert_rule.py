@@ -38,6 +38,7 @@ class AlertRuleSerializer(Serializer):
             "aggregation": obj.aggregation,
             "aggregations": [obj.aggregation],
             "timeWindow": obj.time_window,
+            "environments": obj.environments,
             "resolution": obj.resolution,
             # TODO: Remove when frontend isn't using
             "alertThreshold": 0,
