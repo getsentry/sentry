@@ -10,6 +10,7 @@ from django.conf import settings
 from django.db import transaction
 
 from sentry.incidents.logic import create_incident, update_incident_status
+from sentry.incidents.endpoints.serializers import WARNING_TRIGGER_LABEL, CRITICAL_TRIGGER_LABEL
 from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
     AlertRule,
@@ -196,6 +197,7 @@ class SubscriptionProcessor(object):
                     alert_rule_trigger=trigger,
                     status=TriggerStatus.ACTIVE.value,
                 )
+            self.handle_incident_severity_update()
             self.handle_trigger_actions(incident_trigger)
             self.incident_triggers[trigger.id] = incident_trigger
 
@@ -234,6 +236,7 @@ class SubscriptionProcessor(object):
             incident_trigger.status = TriggerStatus.RESOLVED.value
             incident_trigger.save()
             self.handle_trigger_actions(incident_trigger)
+            self.handle_incident_severity_update()
 
             if self.check_triggers_resolved():
                 update_incident_status(self.active_incident, IncidentStatus.CLOSED)
@@ -254,6 +257,23 @@ class SubscriptionProcessor(object):
                 },
                 countdown=5,
             )
+
+    def handle_incident_severity_update(self):
+        if self.active_incident:
+            active_incident_triggers = IncidentTrigger.objects.filter(
+                incident=self.active_incident, status=TriggerStatus.ACTIVE.value
+            )
+            severity = None
+            for active_incident_trigger in active_incident_triggers:
+                trigger = active_incident_trigger.alert_rule_trigger
+                if trigger.label == CRITICAL_TRIGGER_LABEL:
+                    severity = IncidentStatus.CRITICAL
+                    break
+                elif trigger.label == WARNING_TRIGGER_LABEL:
+                    severity = IncidentStatus.WARNING
+
+            if severity:
+                update_incident_status(self.active_incident, severity)
 
     def update_alert_rule_stats(self):
         """
