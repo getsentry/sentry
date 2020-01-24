@@ -18,6 +18,5 @@ coverage:
   - src/sentry/debug/.*
   - src/.*?/migrations/.*
   - src/bitfield/.*
-  - src/social_auth/.*
   - src/sentry/static/sentry/app/routes.jsx
 comment: false
