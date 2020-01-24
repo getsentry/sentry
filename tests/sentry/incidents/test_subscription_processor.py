@@ -200,10 +200,9 @@ class ProcessUpdateTest(TestCase):
         return list(
             Incident.objects.filter(
                 type=IncidentType.ALERT_TRIGGERED.value,
-                status=IncidentStatus.WARNING.value,
                 alert_rule=rule,
                 projects=subscription.project,
-            )
+            ).exclude(status=IncidentStatus.CLOSED.value)
         )
 
     def assert_trigger_counts(self, processor, trigger, alert_triggers=0, resolve_triggers=0):
