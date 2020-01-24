@@ -22,7 +22,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import localStorage from 'app/utils/localStorage';
 import withLatestContext from 'app/utils/withLatestContext';
-import {generateDiscoverLandingPageRoute} from 'app/views/eventsV2/utils';
+import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
 
 import Broadcasts from './broadcasts';
 import ServiceIncidents from './serviceIncidents';
@@ -30,13 +30,6 @@ import OnboardingStatus from './onboardingStatus';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarHelp from './help';
 import SidebarItem from './sidebarItem';
-
-function getDiscoverUrl(organization) {
-  if (organization.features.includes('discover-query')) {
-    return generateDiscoverLandingPageRoute(organization.slug);
-  }
-  return `/organizations/${organization.slug}/eventsv2/results/`;
-}
 
 class Sidebar extends React.Component {
   static propTypes = {
@@ -307,13 +300,13 @@ class Sidebar extends React.Component {
                         {...sidebarItemProps}
                         onClick={(_id, evt) =>
                           this.navigateWithGlobalSelection(
-                            getDiscoverUrl(organization),
+                            getDiscoverLandingUrl(organization),
                             evt
                           )
                         }
                         icon={<InlineSvg src="icon-telescope" />}
                         label={t('Discover')}
-                        to={getDiscoverUrl(organization)}
+                        to={getDiscoverLandingUrl(organization)}
                         id="discover-v2"
                       />
                     </Feature>
