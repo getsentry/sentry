@@ -3,7 +3,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Organization} from 'app/types';
 import {Hooks} from 'app/types/hooks';
 
-const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'integrationsAnalyticsSession';
+const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION';
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();

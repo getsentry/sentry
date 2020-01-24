@@ -11,11 +11,13 @@ type UninstallButtonProps = {
   install: SentryAppInstallation;
   app: SentryApp;
   onClickUninstall?: (install: SentryAppInstallation) => void;
+  onUninstallModalOpen?: () => void; //used for analytics
 };
 export const UninstallButton = ({
   install,
   app,
   onClickUninstall,
+  onUninstallModalOpen,
 }: UninstallButtonProps) => {
   const message = t(`Are you sure you want to remove the ${app.slug} installation?`);
 
@@ -24,6 +26,7 @@ export const UninstallButton = ({
       message={message}
       priority="danger"
       onConfirm={() => onClickUninstall && install && onClickUninstall(install)}
+      onConfirming={onUninstallModalOpen}
     >
       <StyledButton borderless icon="icon-trash" data-test-id="sentry-app-uninstall">
         {t('Uninstall')}

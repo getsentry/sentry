@@ -57,6 +57,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     onInstall: PropTypes.func.isRequired,
     isInstalled: PropTypes.bool.isRequired,
     closeModal: PropTypes.func.isRequired,
+    onCloseModal: PropTypes.func,
     view: PropTypes.string.isRequired,
   };
 
@@ -73,6 +74,10 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
 
   componentDidMount() {
     this.trackOpened();
+  }
+
+  componentWillUnmount() {
+    this.props.onCloseModal?.();
   }
 
   trackOpened() {
@@ -110,9 +115,13 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     return toPermissions(this.props.sentryApp.scopes);
   }
 
-  onInstall() {
+  async onInstall() {
     const {onInstall, closeModal, view} = this.props;
-    onInstall();
+    try {
+      await onInstall();
+    } catch (_err) {
+      /* stylelint-disable-next-line no-empty-block */
+    }
     // let onInstall handle redirection post install on the external install flow
     view !== 'external_install' && closeModal();
   }
