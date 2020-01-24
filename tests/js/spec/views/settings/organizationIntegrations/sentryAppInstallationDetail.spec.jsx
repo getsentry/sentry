@@ -59,7 +59,7 @@ describe('Sentry App Installations', function() {
 
     it('install button opens permissions modal', () => {
       wrapper = mountWithTheme(<SentryAppInstallationDetail {...props} />, routerContext);
-      wrapper.find('[icon="icon-circle-add"]').simulate('click');
+      wrapper.find('Button[icon="icon-circle-add"]').simulate('click');
       expect(openSentryAppDetailsModal).toHaveBeenCalledWith(
         expect.objectContaining({
           sentryApp,
@@ -86,7 +86,7 @@ describe('Sentry App Installations', function() {
       window.location.assign = jest.fn();
       wrapper = mountWithTheme(<SentryAppInstallationDetail {...props} />, routerContext);
 
-      wrapper.find('[icon="icon-circle-add"]').simulate('click');
+      wrapper.find('Button[icon="icon-circle-add"]').simulate('click');
       expect(openSentryAppDetailsModal).toHaveBeenCalledWith(
         expect.objectContaining({
           sentryApp,
@@ -113,7 +113,7 @@ describe('Sentry App Installations', function() {
         routerContext
       );
 
-      wrapper.find('[icon="icon-circle-add"]').simulate('click');
+      wrapper.find('Button[icon="icon-circle-add"]').simulate('click');
       wrapper.instance().handleInstall(sentryAppWithQuery);
       await tick();
       expect(window.location.assign).toHaveBeenCalledWith(

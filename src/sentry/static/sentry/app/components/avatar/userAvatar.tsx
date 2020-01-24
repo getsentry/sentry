@@ -5,13 +5,9 @@ import {AvatarUser} from 'app/types';
 import {userDisplayName} from 'app/utils/formatters';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import SentryTypes from 'app/sentryTypes';
+import {isRenderFunc} from 'app/utils/isRenderFunc';
 
 type RenderTooltipFunc = (user: AvatarUser) => React.ReactNode;
-
-// Type Guard for render prop
-function isRenderFunc(func: any): func is RenderTooltipFunc {
-  return typeof func === 'function';
-}
 
 const defaultProps = {
   // Default gravatar to false in order to support transparent avatars
@@ -24,7 +20,7 @@ const defaultProps = {
 type DefaultProps = typeof defaultProps;
 
 type Props = {
-  user: AvatarUser | undefined;
+  user?: AvatarUser;
   renderTooltip?: RenderTooltipFunc;
 } & Partial<DefaultProps> &
   Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
@@ -59,7 +55,7 @@ class UserAvatar extends React.Component<Props> {
 
     const type = this.getType(user, gravatar);
     let tooltip: React.ReactNode = null;
-    if (isRenderFunc(renderTooltip)) {
+    if (isRenderFunc<RenderTooltipFunc>(renderTooltip)) {
       tooltip = renderTooltip(user);
     } else if (props.tooltip) {
       tooltip = props.tooltip;

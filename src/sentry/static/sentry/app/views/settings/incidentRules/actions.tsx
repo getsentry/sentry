@@ -15,10 +15,11 @@ function isSavedRule(rule: IncidentRule): rule is SavedIncidentRule {
 export async function addOrUpdateRule(
   api: Client,
   orgId: string,
+  projectId: string,
   rule: IncidentRule
 ): Promise<unknown[]> {
   const isExisting = isSavedRule(rule);
-  const endpoint = `/organizations/${orgId}/alert-rules/${
+  const endpoint = `/projects/${orgId}/${projectId}/alert-rules/${
     isSavedRule(rule) ? `${rule.id}/` : ''
   }`;
   const method = isExisting ? 'PUT' : 'POST';

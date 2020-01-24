@@ -55,7 +55,7 @@ def is_real_column(col):
     Return true if col corresponds to an actual column to be fetched
     (not an aggregate function or field alias)
     """
-    if col in FIELD_ALIASES:
+    if col in FIELD_ALIASES or col.strip("()") in FIELD_ALIASES:
         return False
 
     match = AGGREGATE_PATTERN.search(col)
