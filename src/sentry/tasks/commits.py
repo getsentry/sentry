@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 def generate_invalid_identity_email(identity, commit_failure=False):
     new_context = {
         "identity": identity,
-        "auth_url": absolute_uri(reverse("socialauth_associate", args=[identity.provider])),
+        "auth_url": absolute_uri(reverse("social:begin", args=[identity.provider])),
         "commit_failure": commit_failure,
     }
 

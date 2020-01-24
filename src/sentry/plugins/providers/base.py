@@ -68,7 +68,7 @@ class ProviderMixin(object):
         if self.auth_provider is None:
             return
 
-        return reverse("socialauth_associate", args=[self.auth_provider])
+        return reverse("social:begin", args=[self.auth_provider])
 
     def needs_auth(self, user, **kwargs):
         """
@@ -126,7 +126,7 @@ class ProviderMixin(object):
                 context.update(
                     {
                         "error_type": "auth",
-                        "auth_url": reverse("socialauth_associate", args=[self.auth_provider]),
+                        "auth_url": reverse("social:begin", args=[self.auth_provider]),
                     }
                 )
             status = 400

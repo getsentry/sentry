@@ -43,7 +43,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         except PluginIdentityRequired as e:
             context = serialize(plugin, request.user, PluginSerializer(project))
             context["config_error"] = e.message
-            context["auth_url"] = reverse("socialauth_associate", args=[plugin.slug])
+            context["auth_url"] = reverse("social:begin", args=[plugin.slug])
 
         return Response(context)
 
