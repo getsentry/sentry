@@ -14,12 +14,13 @@ import TeamStore from 'app/stores/teamStore';
  * @param {String} slug The organization slug
  * @param {boolean} detailed Whether or not the detailed org details should be
  *                           retrieved
- * @param {boolean} silent Should we silenty update the organization (do not
+ * @param {boolean} silent Should we silently update the organization (do not
  *                         clear the current organization in the store)
  */
 export async function fetchOrganizationDetails(api, slug, detailed, silent) {
   if (!silent) {
     OrganizationActions.fetchOrg();
+    ProjectActions.reset();
   }
 
   try {

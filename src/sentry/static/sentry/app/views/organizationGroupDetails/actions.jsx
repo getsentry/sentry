@@ -313,7 +313,7 @@ const GroupDetailsActions = createReactClass({
           </div>
         )}
 
-        {orgFeatures.has('events-v2') && (
+        {orgFeatures.has('discover-basic') && (
           <div className="btn-group">
             <Link
               className={buttonClassName}

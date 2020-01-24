@@ -24,7 +24,7 @@ const generateFields = () => {
 
 describe('EventsV2 > Results', function() {
   const eventTitle = 'Oh no something bad';
-  const features = ['events-v2'];
+  const features = ['discover-basic'];
 
   beforeEach(function() {
     MockApiClient.addMockResponse({

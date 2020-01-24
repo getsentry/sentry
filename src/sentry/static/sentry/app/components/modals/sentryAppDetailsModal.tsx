@@ -87,6 +87,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
         integration: sentryApp.slug,
         already_installed: isInstalled,
         view,
+        integration_status: sentryApp.status,
       },
       organization,
       {startSession: view === 'external_install'} //new session on external installs

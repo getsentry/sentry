@@ -1211,6 +1211,14 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         />
+        <Route
+          path="/organizations/:orgId/issues/"
+          component={errorHandler(IssueListContainer)}
+        >
+          <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
+          <IndexRoute component={errorHandler(IssueListOverview)} />
+          <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
+        </Route>
         {/* Once org issues is complete, these routes can be nested under
           /organizations/:orgId/issues */}
         <Route
@@ -1545,17 +1553,6 @@ function routes() {
             path="/organizations/:orgId/projects/:projectId/events/:eventId/"
             component={errorHandler(ProjectEventRedirect)}
           />
-          <Route
-            path="/organizations/:orgId/issues/"
-            component={errorHandler(IssueListContainer)}
-          >
-            <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
-            <IndexRoute component={errorHandler(IssueListOverview)} />
-            <Route
-              path="searches/:searchId/"
-              component={errorHandler(IssueListOverview)}
-            />
-          </Route>
           <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>

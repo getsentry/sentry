@@ -252,21 +252,12 @@ const IssueListOverview = createReactClass({
     return new Set(this.props.organization.features);
   },
 
-  /**
-   * Get the projects that are selected in the global filters
-   */
-  getGlobalSearchProjects() {
-    let {projects} = this.props.selection;
-
-    // Not sure how this worked before for "omits null values" test
-    projects = (projects && projects.map(p => p.toString())) || [];
-
-    return this.props.organization.projects.filter(p => projects.indexOf(p.id) > -1);
+  getGlobalSearchProjectIds() {
+    return this.props.selection.projects;
   },
 
   fetchMemberList() {
-    const projects = this.getGlobalSearchProjects();
-    const projectIds = projects.map(p => p.id);
+    const projectIds = this.getGlobalSearchProjectIds();
 
     fetchOrgMembers(this.api, this.props.organization.slug, projectIds).then(members => {
       this.setState({memberList: indexMembersByProject(members)});
@@ -545,7 +536,6 @@ const IssueListOverview = createReactClass({
 
   renderStreamBody() {
     let body;
-
     if (this.state.issuesLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {
@@ -596,7 +586,7 @@ const IssueListOverview = createReactClass({
 
   tagValueLoader(key, search) {
     const {orgId} = this.props.params;
-    const projectIds = this.getGlobalSearchProjects().map(p => p.id);
+    const projectIds = this.getGlobalSearchProjectIds();
     const endpointParams = this.getEndpointParams();
 
     return fetchTagValues(this.api, orgId, key, search, projectIds, endpointParams);

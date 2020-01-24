@@ -8,6 +8,7 @@ import {parseRepo} from 'app/utils';
 import {t, tct} from 'app/locale';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginComponentBase from 'app/components/bases/pluginComponentBase';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 class PluginSettings extends PluginComponentBase {
   constructor(props, context) {
@@ -64,6 +65,16 @@ class PluginSettings extends PluginComponentBase {
           initialData,
           errors: {},
         });
+        trackIntegrationEvent(
+          {
+            eventKey: 'integrations.config_saved',
+            eventName: 'Integrations: Config Saved',
+            integration: this.props.plugin.id,
+            view: 'plugin_details',
+            project_id: this.props.project.id,
+          },
+          this.props.organization
+        );
       }),
       error: this.onSaveError.bind(this, error => {
         this.setState({

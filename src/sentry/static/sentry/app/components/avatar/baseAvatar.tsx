@@ -48,7 +48,7 @@ type Props = {
    * Default gravatar to display
    */
   default?: string;
-  uploadPath: 'avatar' | 'team-avatar' | 'organization-avatar' | 'project-avatar';
+  uploadPath?: 'avatar' | 'team-avatar' | 'organization-avatar' | 'project-avatar';
   uploadId?: string | null | undefined;
   gravatarId?: string;
   letterId?: string;

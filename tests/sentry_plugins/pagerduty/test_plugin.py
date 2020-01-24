@@ -100,7 +100,7 @@ class PagerDutyPluginTest(PluginTestCase):
                 "datetime": event.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             },
             "service_key": "abcdef",
-            "description": event.real_message,
+            "description": event.message,
         }
 
     def test_no_secrets(self):
