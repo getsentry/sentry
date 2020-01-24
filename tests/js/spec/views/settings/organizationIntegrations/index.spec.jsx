@@ -7,7 +7,7 @@ import {
   openIntegrationDetails,
   openSentryAppDetailsModal,
 } from 'app/actionCreators/modal';
-import {OrganizationIntegrations} from 'app/views/organizationIntegrations';
+import {OrganizationIntegrations} from 'app/views/organizationIntegrations/integrationListView';
 
 jest.mock('app/actionCreators/modal', () => ({
   openIntegrationDetails: jest.fn(),

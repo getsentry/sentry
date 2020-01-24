@@ -1,4 +1,3 @@
-import {Box, Flex} from 'reflexbox';
 import {withTheme} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -29,13 +28,10 @@ type Props = {
   enabledPlugins: string[];
   newlyInstalledIntegrationId: string;
   integrations: Integration[];
+  hideLearnMore?: boolean;
 };
 
 export default class ProviderRow extends React.Component<Props> {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   static propTypes = {
     provider: PropTypes.object.isRequired,
     integrations: PropTypes.array.isRequired,
@@ -46,10 +42,16 @@ export default class ProviderRow extends React.Component<Props> {
     onReinstall: PropTypes.func.isRequired,
     enabledPlugins: PropTypes.array,
     newlyInstalledIntegrationId: PropTypes.string,
+    hideLearnMore: PropTypes.bool,
+  };
+
+  static contextTypes = {
+    organization: SentryTypes.Organization,
   };
 
   static defaultProps = {
     enabledPlugins: [],
+    hideLearnMore: false,
   };
 
   static upgradableIntegrations = ['vsts', 'bitbucket', 'github', 'github_enterprise'];
@@ -118,24 +120,30 @@ export default class ProviderRow extends React.Component<Props> {
   render() {
     return (
       <PanelItem p={0} flexDirection="column" data-test-id={this.props.provider.key}>
-        <Flex alignItems="center" p={2}>
+        <Flex style={{alignItems: 'center', padding: '16px'}}>
           <PluginIcon size={36} pluginId={this.props.provider.key} />
-          <Box px={2} flex={1}>
+          <div style={{flex: '1', padding: '0 16px'}}>
             <ProviderName>{this.props.provider.name}</ProviderName>
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
-              <StyledLink onClick={this.openModal}>Learn More</StyledLink>
+              {this.props.hideLearnMore ? null : (
+                <StyledLink onClick={this.openModal}>Learn More</StyledLink>
+              )}
             </ProviderDetails>
-          </Box>
-          <Box>
+          </div>
+          <div>
             <Button size="small" onClick={this.openModal} {...this.buttonProps} />
-          </Box>
+          </div>
         </Flex>
         {this.renderIntegrations()}
       </PanelItem>
     );
   }
 }
+
+const Flex = styled('div')`
+  display: flex;
+`;
 
 const ProviderName = styled('div')`
   font-weight: bold;
@@ -169,12 +177,6 @@ const Status = styled(
 )`
   color: ${(p: StatusProps) => (p.enabled ? p.theme.success : p.theme.gray2)};
   margin-left: ${space(0.5)};
-  &:after {
-    content: '|';
-    color: ${p => p.theme.gray1};
-    margin-left: ${space(0.75)};
-    font-weight: normal;
-  }
   margin-right: ${space(0.75)};
 `;
 
@@ -208,4 +210,10 @@ const StyledInstalledIntegration = styled(
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.gray2};
+  &:before {
+    content: '|';
+    color: ${p => p.theme.gray1};
+    margin-right: ${space(0.75)};
+    font-weight: normal;
+  }
 `;
