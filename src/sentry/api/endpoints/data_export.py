@@ -14,7 +14,10 @@ from sentry.tasks.data_export import compile_data
 
 
 class ExportedDataSerializer(serializers.Serializer):
-    query_type = serializers.CharField(max_length=32, required=True)
+    query_type = serializers.IntegerField(
+        required=True, min_value=0, max_value=32767
+    )  # Correponds to PositiveSmallIntegerField
+    query_info = serializers.JSONField(required=True)
     # TODO(Leander): Implement query_info validation with jsonschema
 
 
