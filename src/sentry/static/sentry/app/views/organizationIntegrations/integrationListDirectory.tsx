@@ -120,11 +120,6 @@ class OrganizationIntegrations extends AsyncComponent<
 
   // State
 
-  get enabledPlugins() {
-    // List of slugs for each Plugin the Org/Project has currently enabled.
-    return compact(this.state.plugins.map(plugin => plugin.enabled && plugin.slug));
-  }
-
   get unmigratableReposByOrg() {
     // Group by [GitHub|BitBucket|VSTS] Org name
     return groupBy(this.state.unmigratableRepos, repo => repo.name.split('/')[0]);
@@ -245,7 +240,6 @@ class OrganizationIntegrations extends AsyncComponent<
         onRemove={this.onRemove}
         onDisable={this.onDisable}
         onReinstall={this.onInstall}
-        enabledPlugins={this.enabledPlugins}
         newlyInstalledIntegrationId={this.state.newlyInstalledIntegrationId}
       />
     );

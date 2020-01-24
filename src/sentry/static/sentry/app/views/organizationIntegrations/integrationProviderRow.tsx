@@ -24,7 +24,6 @@ type Props = {
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
   onReinstall: (integration: Integration) => void;
-  enabledPlugins: string[];
   newlyInstalledIntegrationId: string;
   integrations: Integration[];
 };
@@ -38,16 +37,11 @@ export default class ProviderRow extends React.Component<Props> {
     onRemove: PropTypes.func.isRequired,
     onDisable: PropTypes.func.isRequired,
     onReinstall: PropTypes.func.isRequired,
-    enabledPlugins: PropTypes.array,
     newlyInstalledIntegrationId: PropTypes.string,
   };
 
   static contextTypes = {
     organization: SentryTypes.Organization,
-  };
-
-  static defaultProps = {
-    enabledPlugins: [],
   };
 
   static upgradableIntegrations = ['vsts', 'bitbucket', 'github', 'github_enterprise'];
@@ -58,14 +52,6 @@ export default class ProviderRow extends React.Component<Props> {
 
   get isEnabled() {
     return this.integrations.length > 0;
-  }
-
-  get isEnabledPlugin() {
-    return this.props.enabledPlugins.includes(this.props.provider.key);
-  }
-
-  get isUpgradable() {
-    return ProviderRow.upgradableIntegrations.includes(this.props.provider.key);
   }
 
   // Actions
@@ -85,10 +71,8 @@ export default class ProviderRow extends React.Component<Props> {
   // Rendering
 
   get buttonProps() {
-    const upgradeable = !this.isEnabled && this.isEnabledPlugin && this.isUpgradable;
-
     return {
-      icon: upgradeable ? 'icon-upgrade' : 'icon-circle-add',
+      icon: 'icon-circle-add',
       children: this.isEnabled ? t('Add Configuration') : t('Install'),
     };
   }
