@@ -25,9 +25,7 @@ endif
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
-develop: ensure-venv setup-git develop-only
-
-develop-only: ensure-venv install-yarn-pkgs install-sentry-dev
+develop: ensure-venv setup-git install-yarn-pkgs install-sentry-dev
 
 init-config:
 	sentry init --dev
@@ -216,7 +214,7 @@ publish:
 	python setup.py sdist bdist_wheel upload
 
 
-.PHONY: develop develop-only build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
 
 
 ############################
