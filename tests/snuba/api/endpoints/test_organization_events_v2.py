@@ -367,6 +367,70 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["transaction"] == event.transaction
         assert data[0]["error_rate"] == 0.75
 
+    def test_aggregation(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_1"],
+                "user": {"email": "foo@example.com"},
+                "environment": "prod",
+                "tags": {"sub_customer.is-enterprise": "1"},
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "foo@example.com"},
+                "environment": "staging",
+                "tags": {"sub_customer.is-enterprise": "1"},
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "foo@example.com"},
+                "environment": "prod",
+                "tags": {"sub_customer.is-enterprise": "0"},
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "foo@example.com"},
+                "environment": "prod",
+                "tags": {"sub_customer.is-enterprise": "1"},
+            },
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["sub_customer.is-enterprise", "count(sub_customer.is-enterprise)"],
+                    "orderby": "sub_customer.is-enterprise",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert data[0]["count_sub_customer_is-enterprise"] == 1
+        assert data[1]["count_sub_customer_is-enterprise"] == 3
+
     def test_aggregation_comparison(self):
         self.login_as(user=self.user)
         project = self.create_project()
