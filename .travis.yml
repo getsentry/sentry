@@ -38,8 +38,7 @@ env:
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - NODE_OPTIONS=--max-old-space-size=4096
-    - PERCY_PARALLEL_NONCE2="$(($(date +%s)))"
-    - PERCY_PARALLEL_NONCE3="$TRAVIS_BUILD_ID.$(($(date +%s)))"
+    - PERCY_PARALLEL_NONCE="$TRAVIS_BUILD_ID.$(($(date +%s)))"
 
 before_install:
   - &pip_install pip install "pip==${PYTHON_PIP_VERSION}"
@@ -150,11 +149,11 @@ matrix:
 
     - <<: *acceptance_default
       name: 'Acceptance (1/2)'
-      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=0 PERCY_PARALLEL_NONCE="$(($(date +%s)))" PERCY_PARALLEL_TOTAL=2
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=0 PERCY_PARALLEL_TOTAL=2
 
     - <<: *acceptance_default
       name: 'Acceptance (2/2)'
-      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=1 PERCY_PARALLEL_NONCE="$(($(date +%s)))" PERCY_PARALLEL_TOTAL=2
+      env: TEST_SUITE=acceptance USE_SNUBA=1 TOTAL_TEST_GROUPS=2 TEST_GROUP=1 PERCY_PARALLEL_TOTAL=2
 
     - <<: *acceptance_default
       name: 'Plugins'
