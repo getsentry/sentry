@@ -89,7 +89,7 @@ describe('OrganizationContext', function() {
       true,
       true
     );
-    expect(GlobalSelectionStore.loadInitialData).toHaveBeenCalledWith(org, {});
+    expect(GlobalSelectionStore.loadInitialData).toHaveBeenCalledWith(org, {}, {api});
   });
 
   it('fetches new org when router params change', async function() {

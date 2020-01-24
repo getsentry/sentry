@@ -133,6 +133,11 @@ const OrganizationContext = createReactClass({
     );
   },
 
+  isOrgChanging() {
+    const {organization} = OrganizationStore.get();
+    return organization && organization.slug !== this.getOrganizationSlug();
+  },
+
   isOrgStorePopulatedCorrectly() {
     const {detailed} = this.props;
     const {organization, dirty} = OrganizationStore.get();
@@ -140,7 +145,7 @@ const OrganizationContext = createReactClass({
     return (
       !dirty &&
       organization &&
-      organization.slug === this.getOrganizationSlug() &&
+      !this.isOrgChanging() &&
       (!detailed || (detailed && organization.projects && organization.teams))
     );
   },
@@ -163,7 +168,7 @@ const OrganizationContext = createReactClass({
     );
   },
 
-  async fetchData() {
+  fetchData() {
     if (!this.getOrganizationSlug()) {
       return;
     }
@@ -171,12 +176,13 @@ const OrganizationContext = createReactClass({
     if (this.isOrgStorePopulatedCorrectly()) {
       return;
     }
+
     metric.mark('organization-details-fetch-start');
     fetchOrganizationDetails(
       this.props.api,
       this.getOrganizationSlug(),
       this.props.detailed,
-      true // silent, to not reset a lightweight org that was fetched
+      !this.isOrgChanging() // if true, will preserve a lightweight org that was fetched
     );
   },
 
@@ -197,13 +203,13 @@ const OrganizationContext = createReactClass({
       // We do not want to load the user's last used env/project in this case, otherwise will
       // lead to very confusing behavior.
       if (
-        this.props.detailed &&
-        organization.projects &&
         !this.props.routes.find(
           ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
         )
       ) {
-        GlobalSelectionStore.loadInitialData(organization, this.props.location.query);
+        GlobalSelectionStore.loadInitialData(organization, this.props.location.query, {
+          api: this.props.api,
+        });
       }
     } else if (error) {
       // If user is superuser, open sudo window

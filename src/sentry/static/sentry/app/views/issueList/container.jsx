@@ -3,7 +3,7 @@ import DocumentTitle from 'react-document-title';
 
 import {PageContent} from 'app/styles/organization';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import NoProjectMessage from 'app/components/noProjectMessage';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -25,7 +25,9 @@ class IssueListContainer extends React.Component {
           <GlobalSelectionHeader organization={organization} />
 
           <PageContent>
-            <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+            <LightWeightNoProjectMessage organization={organization}>
+              {children}
+            </LightWeightNoProjectMessage>
           </PageContent>
         </React.Fragment>
       </DocumentTitle>

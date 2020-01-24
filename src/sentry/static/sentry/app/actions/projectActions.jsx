@@ -17,6 +17,7 @@ export default Reflux.createActions([
   'removeTeam',
   'removeTeamError',
   'removeTeamSuccess',
+  'reset',
   'setActive',
   'update',
   'updateError',
