@@ -102,7 +102,10 @@ class BigtableNodeStorage(NodeStorage):
         item_from_cache = self._get_cache_item(id)
         if item_from_cache:
             return item_from_cache
-        return self.decode_row(self.connection.read_row(id))
+
+        data = self.decode_row(self.connection.read_row(id))
+        self._set_cache_item(id, data)
+        return data
 
     def get_multi(self, id_list):
         if len(id_list) == 1:
