@@ -177,14 +177,12 @@ const OrganizationContext = createReactClass({
       return;
     }
 
-    const shouldSilentlyUpdate = !this.isOrgChanging();
-
     metric.mark('organization-details-fetch-start');
     fetchOrganizationDetails(
       this.props.api,
       this.getOrganizationSlug(),
       this.props.detailed,
-      shouldSilentlyUpdate // if true, will not reset a lightweight org that was fetched
+      !this.isOrgChanging() // if true, will preserve a lightweight org that was fetched
     );
   },
 
