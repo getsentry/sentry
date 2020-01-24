@@ -16,7 +16,7 @@ from sentry.utils.samples import load_data
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-FEATURE_NAMES = ["organizations:events-v2", "organizations:transaction-events"]
+FEATURE_NAMES = ["organizations:discover-basic", "organizations:transaction-events"]
 
 
 def all_events_query(**kwargs):

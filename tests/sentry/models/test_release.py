@@ -349,6 +349,27 @@ class SetCommitsTestCase(TestCase):
         assert release.authors == [six.text_type(author.id)]
         assert release.last_commit_id == latest_commit.id
 
+    @patch("sentry.models.Commit.update")
+    @freeze_time()
+    def test_multiple_releases_only_updates_once(self, mock_update):
+        org = self.create_organization()
+        project = self.create_project(organization=org, name="foo")
+
+        repo = Repository.objects.create(organization_id=org.id, name="test/repo")
+
+        release = Release.objects.create(version="abcdabc", organization=org)
+        release.add_project(project)
+
+        release.set_commits([{"id": "b" * 40, "repository": repo.name, "message": "old message"}])
+
+        # Setting the exact same commits, shouldn't call update
+        release.set_commits([{"id": "b" * 40, "repository": repo.name, "message": "old message"}])
+        assert mock_update.call_count == 0
+
+        # Setting a different commit message, should call update
+        release.set_commits([{"id": "b" * 40, "repository": repo.name, "message": "new message"}])
+        assert mock_update.call_count == 1
+
     def test_resolution_support_full_featured(self):
         org = self.create_organization(owner=self.user)
         project = self.create_project(organization=org, name="foo")

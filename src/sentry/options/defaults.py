@@ -174,10 +174,6 @@ register("store.eventstream-per-type-topic", default=False, flags=FLAG_PRIORITIZ
 # regards to filter responses.
 register("store.lie-about-filter-status", default=False)
 
-# Use Django event
-register("store.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
-register("eventstream.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
-
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
 register("symbolicator.minidump-refactor-projects-opt-in", type=Sequence, default=[])  # unused
@@ -205,9 +201,6 @@ register("transaction-events.force-disable-internal-project", default=False)
 # Moving signals and TSDB into outcomes consumer
 register("outcomes.signals-in-consumer-sample-rate", default=0.0)
 register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
-
-# Eventstore uses Nodestore instead of Snuba for get_event_by_id
-register("eventstore.use-nodestore", default=True, flags=FLAG_PRIORITIZE_DISK)
 
 # Node data save rate
 register("nodedata.cache-sample-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
