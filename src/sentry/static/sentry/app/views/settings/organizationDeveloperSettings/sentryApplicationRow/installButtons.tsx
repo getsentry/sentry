@@ -25,8 +25,8 @@ export const UninstallButton = ({
     <Confirm
       message={message}
       priority="danger"
-      onConfirm={() => onClickUninstall && install && onClickUninstall(install)}
-      onConfirming={onUninstallModalOpen}
+      onConfirm={() => onClickUninstall && install && onClickUninstall(install)} //called when the user confirms the action
+      onConfirming={onUninstallModalOpen} //called when the confirm modal opens
     >
       <StyledButton borderless icon="icon-trash" data-test-id="sentry-app-uninstall">
         {t('Uninstall')}

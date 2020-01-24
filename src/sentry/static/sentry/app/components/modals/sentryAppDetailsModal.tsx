@@ -117,6 +117,8 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
 
   async onInstall() {
     const {onInstall, closeModal, view} = this.props;
+    //we want to make sure install finishes before we close the modal
+    //and we should close the modal if there is an error as well
     try {
       await onInstall();
     } catch (_err) {
