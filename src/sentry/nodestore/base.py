@@ -96,12 +96,13 @@ class NodeStorage(local, Service):
         raise NotImplementedError
 
     def _get_cache_item(self, id):
-        if self.cache and self.sample_rate != 0.0:
+        if self.cache and self.should_cache(id):
             return self.cache.get(id)
 
     def _get_cache_items(self, id_list):
+        cacheable_ids = [id for id in id_list if self.should_cache(id)]
         if self.cache and self.sample_rate != 0.0:
-            return self.cache.get_many(id_list)
+            return self.cache.get_many(cacheable_ids)
         return {}
 
     def _set_cache_item(self, id, data):
