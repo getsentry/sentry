@@ -285,7 +285,7 @@ class Sidebar extends React.Component {
                     />
                   </Feature>
 
-                  <Feature features={['events-v2']} organization={organization}>
+                  <Feature features={['discover-basic']} organization={organization}>
                     <SidebarItem
                       {...sidebarItemProps}
                       onClick={(_id, evt) =>

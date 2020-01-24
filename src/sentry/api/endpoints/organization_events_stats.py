@@ -18,7 +18,7 @@ from sentry.utils.dates import parse_stats_period
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        if not features.has("organizations:events-v2", organization, actor=request.user):
+        if not features.has("organizations:discover-basic", organization, actor=request.user):
             return self.get_v1_results(request, organization)
 
         try:

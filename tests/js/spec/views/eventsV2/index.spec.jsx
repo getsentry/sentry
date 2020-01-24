@@ -5,7 +5,7 @@ import {DiscoverLanding} from 'app/views/eventsV2/landing';
 
 describe('EventsV2 > Landing', function() {
   const eventTitle = 'Oh no something bad';
-  const features = ['events-v2'];
+  const features = ['discover-basic'];
 
   beforeEach(function() {
     MockApiClient.addMockResponse({

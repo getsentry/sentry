@@ -14,7 +14,7 @@ from sentry.api.serializers import serialize
 
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization, project_slug, event_id):
-        if not features.has("organizations:events-v2", organization, actor=request.user):
+        if not features.has("organizations:discover-basic", organization, actor=request.user):
             return Response(status=404)
 
         try:

@@ -825,6 +825,10 @@ SENTRY_FEATURES = {
     "organizations:events": False,
     # Enable events v2 instead of the events stream
     "organizations:events-v2": False,
+    # Enable discover 2 basic functions
+    "organizations:discover-basic": False,
+    # Enable discover 2 custom queries and saved queries
+    "organizations:discover-query": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Turns on grouping info.

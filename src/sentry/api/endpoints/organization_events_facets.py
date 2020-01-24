@@ -13,7 +13,7 @@ from sentry import features, tagstore
 
 class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        if not features.has("organizations:events-v2", organization, actor=request.user):
+        if not features.has("organizations:discover-basic", organization, actor=request.user):
             return Response(status=404)
         try:
             params = self.get_filter_params(request, organization)
