@@ -4,6 +4,7 @@ import {Organization} from 'app/types';
 import {Hooks} from 'app/types/hooks';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'integrationsAnalyticsSession';
+const USE_INTEGRATION_DIRECTORY = 'USE_INTEGRATION_DIRECTORY';
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
@@ -17,6 +18,13 @@ export const clearAnalyticsSession = () => {
 
 export const getAnalyticsSessionId = () => {
   return window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
+};
+
+export const isIntegrationDirectoryActive = () => {
+  if (localStorage.getItem(USE_INTEGRATION_DIRECTORY) === '1') {
+    return true;
+  }
+  return false;
 };
 
 type ModalOpenEvent = {
@@ -94,7 +102,7 @@ export const trackIntegrationEvent = (
     analytics_session_id: sessionId,
     organization_id: org?.id,
     role: org?.role,
-    integration_directory_active: false, //TODO: should be configurable
+    integration_directory_active: isIntegrationDirectoryActive(),
     ...analyticsParams,
   };
 

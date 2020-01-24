@@ -1,9 +1,12 @@
 import React from 'react';
+
+import {isIntegrationDirectoryActive} from 'app/utils/integrationUtil.tsx';
+
 import Control from './index';
 import Test from './integrationListDirectory';
 
 export default function IntegrationViewController(props) {
-  if (localStorage.getItem('USE_INTEGRATION_DIRECTORY') === '1') {
+  if (isIntegrationDirectoryActive()) {
     return <Test {...props} />;
   }
   return <Control {...props} />;
