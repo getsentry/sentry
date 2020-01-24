@@ -14,7 +14,7 @@ YARN := ./bin/yarn
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
-develop: ensure-venv setup-git install-yarn-pkgs install-sentry-dev
+develop: ensure-venv ensure-pinned-pip setup-git install-yarn-pkgs install-sentry-dev
 
 clean:
 	@echo "--> Cleaning static cache"
@@ -59,10 +59,10 @@ reset-db: drop-db create-db apply-migrations
 ensure-venv:
 	@./scripts/ensure-venv.sh
 
-ensure-latest-pip:
+ensure-pinned-pip:
 	$(PIP) install "pip==$(PIP_VERSION)"
 
-setup-git: ensure-latest-pip
+setup-git:
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
 	git config core.ignorecase false
