@@ -12,6 +12,27 @@ PIP_OPTS := --disable-pip-version-check
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
 YARN := ./bin/yarn
 
+bootstrap: develop init-config run-dependent-services create-db apply-migrations
+
+develop: ensure-venv setup-git install-yarn-pkgs install-sentry-dev
+
+clean:
+	@echo "--> Cleaning static cache"
+	rm -rf dist/* static/dist/*
+	@echo "--> Cleaning integration docs cache"
+	rm -rf src/sentry/integration-docs
+	@echo "--> Cleaning pyc files"
+	find . -name "*.pyc" -delete
+	@echo "--> Cleaning python build artifacts"
+	rm -rf build/ dist/ src/sentry/assets.json
+	@echo ""
+
+init-config:
+	sentry init --dev
+
+run-dependent-services:
+	sentry devservices up
+
 DROPDB := $(shell command -v dropdb 2> /dev/null)
 ifndef DROPDB
 	DROPDB = docker exec sentry_postgres dropdb
@@ -20,18 +41,6 @@ CREATEDB := $(shell command -v createdb 2> /dev/null)
 ifndef CREATEDB
 	CREATEDB = docker exec sentry_postgres createdb
 endif
-
-bootstrap: develop init-config run-dependent-services create-db apply-migrations
-
-develop: ensure-venv setup-git install-yarn-pkgs install-sentry-dev
-
-init-config:
-	sentry init --dev
-
-run-dependent-services:
-	sentry devservices up
-
-build: locale
 
 drop-db:
 	@echo "--> Dropping existing 'sentry' database"
@@ -46,17 +55,6 @@ apply-migrations:
 	sentry upgrade
 
 reset-db: drop-db create-db apply-migrations
-
-clean:
-	@echo "--> Cleaning static cache"
-	rm -rf dist/* static/dist/*
-	@echo "--> Cleaning integration docs cache"
-	rm -rf src/sentry/integration-docs
-	@echo "--> Cleaning pyc files"
-	find . -name "*.pyc" -delete
-	@echo "--> Cleaning python build artifacts"
-	rm -rf build/ dist/ src/sentry/assets.json
-	@echo ""
 
 ensure-venv:
 	@./scripts/ensure-venv.sh
@@ -94,6 +92,8 @@ install-sentry-dev:
 build-js-po: node-version-check
 	mkdir -p build
 	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
+
+build: locale
 
 locale: build-js-po
 	cd src/sentry && sentry django makemessages -i static -l en
