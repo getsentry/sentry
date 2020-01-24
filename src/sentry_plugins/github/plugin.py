@@ -2,12 +2,11 @@ from __future__ import absolute_import
 
 import logging
 import six
+from uuid import uuid4
 
 from django.conf.urls import url
 from rest_framework.response import Response
-from uuid import uuid4
-
-from social_auth.models import UserSocialAuth
+from social_django.models import UserSocialAuth
 
 from sentry import options
 from sentry.app import locks
