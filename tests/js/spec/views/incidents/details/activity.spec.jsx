@@ -13,9 +13,7 @@ describe('IncidentDetails -> Activity', function() {
 
   beforeAll(function() {
     activitiesList = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/incidents/${
-        incident.identifier
-      }/activity/`,
+      url: `/organizations/${organization.slug}/incidents/${incident.identifier}/activity/`,
       body: [activity],
     });
   });
@@ -55,9 +53,7 @@ describe('IncidentDetails -> Activity', function() {
 
   it('creates a new note', async function() {
     const createComment = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/incidents/${
-        incident.identifier
-      }/comments/`,
+      url: `/organizations/${organization.slug}/incidents/${incident.identifier}/comments/`,
       method: 'POST',
       body: TestStubs.IncidentActivity({
         id: '234',
@@ -82,9 +78,7 @@ describe('IncidentDetails -> Activity', function() {
   it('updates an existing note', async function() {
     const newComment = 'edited comment';
     const updateComment = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/incidents/${
-        incident.identifier
-      }/comments/${activity.id}/`,
+      url: `/organizations/${organization.slug}/incidents/${incident.identifier}/comments/${activity.id}/`,
       method: 'PUT',
       body: {
         ...activity,
@@ -129,9 +123,7 @@ describe('IncidentDetails -> Activity', function() {
   it('fails to update an existing note', async function() {
     const newComment = 'edited comment';
     const updateComment = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/incidents/${
-        incident.identifier
-      }/comments/${activity.id}/`,
+      url: `/organizations/${organization.slug}/incidents/${incident.identifier}/comments/${activity.id}/`,
       method: 'PUT',
       statusCode: 400,
     });
@@ -165,9 +157,7 @@ describe('IncidentDetails -> Activity', function() {
 
   it('deletes a note', async function() {
     const deleteComment = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/incidents/${
-        incident.identifier
-      }/comments/${activity.id}/`,
+      url: `/organizations/${organization.slug}/incidents/${incident.identifier}/comments/${activity.id}/`,
       method: 'DELETE',
       body: {},
     });
@@ -191,9 +181,7 @@ describe('IncidentDetails -> Activity', function() {
 
   it('fails to delete a note', async function() {
     const deleteComment = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/incidents/${
-        incident.identifier
-      }/comments/${activity.id}/`,
+      url: `/organizations/${organization.slug}/incidents/${incident.identifier}/comments/${activity.id}/`,
       method: 'DELETE',
       statusCode: 400,
     });

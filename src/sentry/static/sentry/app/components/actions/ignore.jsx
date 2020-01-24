@@ -39,7 +39,11 @@ export default class IgnoreActions extends React.Component {
   }
 
   getIgnoreWindows() {
-    return [[60, 'per hour'], [24 * 60, 'per day'], [24 * 7 * 60, 'per week']];
+    return [
+      [60, 'per hour'],
+      [24 * 60, 'per day'],
+      [24 * 7 * 60, 'per week'],
+    ];
   }
 
   onCustomIgnore(statusDetails) {

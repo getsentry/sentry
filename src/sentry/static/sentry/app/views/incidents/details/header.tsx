@@ -44,17 +44,20 @@ export default class DetailsHeader extends React.Component<Props> {
     return (
       <Access
         access={['org:write']}
-        renderNoAccessMessage={() => (incident ? <Status incident={incident} /> : null)}
+        renderNoAccessMessage={() =>
+          incident ? <Status isSmall incident={incident} /> : null
+        }
       >
         <DropdownControl
           data-test-id="status-dropdown"
-          label={incident && <Status incident={incident} />}
-          menuWidth="160px"
+          label={incident && <Status isSmall incident={incident} />}
+          menuWidth="180px"
           alignRight
+          disabled={!isIncidentOpen}
           buttonProps={{size: 'small', disabled: !incident}}
         >
           <StyledMenuItem onSelect={onStatusChange}>
-            {isIncidentOpen ? t('Close this incident') : t('Reopen this incident')}
+            <ResolveIcon src="icon-circle-check" /> {t('Resolve this incident')}
           </StyledMenuItem>
         </DropdownControl>
       </Access>
@@ -128,11 +131,6 @@ export default class DetailsHeader extends React.Component<Props> {
             </ItemValue>
             {incident && (
               <ItemValue>
-                <Duration seconds={getDynamicText({value: duration || 0, fixed: 1200})} />
-              </ItemValue>
-            )}
-            {incident && (
-              <ItemValue>
                 <Count value={incident.uniqueUsers} />
               </ItemValue>
             )}
@@ -142,6 +140,11 @@ export default class DetailsHeader extends React.Component<Props> {
                 <OpenLink to={eventLink}>
                   <InlineSvg src="icon-open" size="14" />
                 </OpenLink>
+              </ItemValue>
+            )}
+            {incident && (
+              <ItemValue>
+                <Duration seconds={getDynamicText({value: duration || 0, fixed: 1200})} />
               </ItemValue>
             )}
             <ItemValue>
@@ -241,7 +244,8 @@ const Chevron = styled(InlineSvg)`
 const StyledMenuItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: left;
-  padding: ${space(1)};
+  padding: ${space(1)} 12px; /* To match dropdown */
+  white-space: nowrap;
 `;
 
 const OpenLink = styled(Link)`
@@ -249,4 +253,9 @@ const OpenLink = styled(Link)`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray2};
   margin-left: ${space(1)};
+`;
+
+const ResolveIcon = styled(InlineSvg)`
+  color: ${p => p.theme.greenLight};
+  margin-right: ${space(0.5)};
 `;

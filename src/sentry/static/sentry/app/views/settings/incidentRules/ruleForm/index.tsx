@@ -2,7 +2,6 @@ import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import {Client} from 'app/api';
 import {MetricAction} from 'app/types/alerts';
 import {Organization, Project, Config} from 'app/types';
 import {
@@ -14,6 +13,7 @@ import {
 import {createDefaultTrigger} from 'app/views/settings/incidentRules/constants';
 import {defined} from 'app/utils';
 import {t} from 'app/locale';
+import {fetchOrganizationTags} from 'app/actionCreators/tags';
 import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
@@ -23,7 +23,6 @@ import RuleNameForm from 'app/views/settings/incidentRules/ruleNameForm';
 import Triggers from 'app/views/settings/incidentRules/triggers';
 import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
 import recreateRoute from 'app/utils/recreateRoute';
-import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 import withProject from 'app/utils/withProject';
 
@@ -33,7 +32,6 @@ import FormModel from '../../components/forms/model';
 import RuleConditionsForm from '../ruleConditionsForm';
 
 type Props = {
-  api: Client;
   config: Config;
   organization: Organization;
   project: Project;
@@ -65,6 +63,12 @@ type State = {
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
 class RuleFormContainer extends AsyncComponent<Props, State> {
+  componentDidMount() {
+    const {organization, project} = this.props;
+    // SearchBar gets its tags from Reflux.
+    fetchOrganizationTags(this.api, organization.slug, [project.id]);
+  }
+
   getDefaultState(): State {
     const {rule} = this.props;
 
@@ -184,13 +188,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       return;
     }
 
-    const {api, organization, rule, onSubmitSuccess} = this.props;
+    const {organization, params, rule, onSubmitSuccess} = this.props;
 
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
     try {
       addLoadingMessage(t('Saving alert'));
-      const resp = await addOrUpdateRule(api, organization.slug, {
+      const resp = await addOrUpdateRule(this.api, organization.slug, params.projectId, {
         ...rule,
         ...model.getTransformedData(),
         triggers: this.state.triggers,
@@ -238,11 +242,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   };
 
   handleDeleteRule = async () => {
-    const {api, params} = this.props;
+    const {params} = this.props;
     const {orgId, projectId, incidentRuleId} = params;
 
     try {
-      await api.requestPromise(
+      await this.api.requestPromise(
         `/projects/${orgId}/${projectId}/alert-rules/${incidentRuleId}/`,
         {
           method: 'DELETE',
@@ -264,7 +268,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {
-      api,
       config,
       organization,
       incidentRuleId,
@@ -275,7 +278,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {query, aggregation, timeWindow, triggers} = this.state;
 
     return (
-      <Access access={['org:write']}>
+      <Access access={['project:write']}>
         {({hasAccess}) => (
           <Form
             apiMethod={incidentRuleId ? 'PUT' : 'POST'}
@@ -313,7 +316,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             submitLabel={t('Save Rule')}
           >
             <TriggersChart
-              api={api}
+              api={this.api}
               config={config}
               organization={organization}
               projects={this.state.projects}
@@ -347,4 +350,4 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 }
 
 export {RuleFormContainer};
-export default withConfig(withApi(withProject(RuleFormContainer)));
+export default withConfig(withProject(RuleFormContainer));

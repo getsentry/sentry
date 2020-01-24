@@ -257,7 +257,6 @@ USE_TZ = True
 MIDDLEWARE_CLASSES = (
     "sentry.middleware.proxy.ChunkedMiddleware",
     "sentry.middleware.proxy.DecompressBodyMiddleware",
-    "sentry.middleware.proxy.ContentLengthHeaderMiddleware",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -274,8 +273,6 @@ MIDDLEWARE_CLASSES = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
-    # TODO(dcramer): kill this once we verify its safe
-    # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     "django.contrib.messages.middleware.MessageMiddleware",
 )
 
@@ -1396,7 +1393,7 @@ SENTRY_DEVSERVICES = {
             "REDIS_DB": "1",
         },
     },
-    "bigtable": {"image": "mattrobenolt/cbtemulator:0.36.0", "ports": {"8086/tcp": 8086}},
+    "bigtable": {"image": "mattrobenolt/cbtemulator:0.51.0", "ports": {"8086/tcp": 8086}},
     "memcached": {"image": "memcached:1.5-alpine", "ports": {"11211/tcp": 11211}},
     "symbolicator": {
         "image": "us.gcr.io/sentryio/symbolicator:latest",
@@ -1470,6 +1467,9 @@ EMAIL_HOST_PASSWORD = DEAD
 EMAIL_USE_TLS = DEAD
 SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
+
+GITHUB_APP_ID = DEAD
+GITHUB_API_SECRET = DEAD
 
 SUDO_URL = "sentry-sudo"
 

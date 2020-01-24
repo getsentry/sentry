@@ -103,7 +103,7 @@ export default class ProviderRow extends React.Component<Props> {
     return this.integrations.map(integration => (
       <StyledInstalledIntegration
         key={integration.id}
-        orgId={this.props.orgId}
+        organization={this.context.organization}
         provider={this.props.provider}
         integration={integration}
         onRemove={this.props.onRemove}

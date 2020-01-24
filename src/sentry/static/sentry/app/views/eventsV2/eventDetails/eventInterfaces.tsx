@@ -143,7 +143,8 @@ class EventInterfaces extends React.Component<
             if (
               objectIsEmpty(event[section]) ||
               (section === 'contexts' &&
-                (objectIsEmpty(event.contexts) && objectIsEmpty(event.user)))
+                objectIsEmpty(event.contexts) &&
+                objectIsEmpty(event.user))
             ) {
               return null;
             }

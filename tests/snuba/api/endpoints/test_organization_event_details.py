@@ -348,3 +348,85 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["nextEventID"] == "d" * 32
         assert response.data["previousEventID"] == "f" * 32
+
+    def test_event_links_with_transaction_events_aggregate_fields(self):
+        prototype = {
+            "type": "transaction",
+            "transaction": "api.issue.delete",
+            "spans": [],
+            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
+            "tags": {"important": "yes"},
+        }
+        fixtures = (
+            ("d" * 32, before_now(minutes=1)),
+            ("e" * 32, before_now(minutes=2)),
+            ("f" * 32, before_now(minutes=3)),
+        )
+        for fixture in fixtures:
+            data = prototype.copy()
+            data["event_id"] = fixture[0]
+            data["timestamp"] = iso_format(fixture[1])
+            data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=5))
+            self.store_event(data=data, project_id=self.project.id)
+
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "e" * 32,
+            },
+        )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "field": ["important", "count()", "p95()"],
+                    "query": "transaction.duration:>2",
+                },
+            )
+        assert response.status_code == 200
+        assert response.data["nextEventID"] == "d" * 32
+        assert response.data["previousEventID"] == "f" * 32
+
+    def test_event_links_with_transaction_events_aggregate_conditions(self):
+        prototype = {
+            "type": "transaction",
+            "transaction": "api.issue.delete",
+            "spans": [],
+            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
+            "tags": {"important": "yes"},
+        }
+        fixtures = (
+            ("d" * 32, before_now(minutes=1)),
+            ("e" * 32, before_now(minutes=2)),
+            ("f" * 32, before_now(minutes=3)),
+        )
+        for fixture in fixtures:
+            data = prototype.copy()
+            data["event_id"] = fixture[0]
+            data["timestamp"] = iso_format(fixture[1])
+            data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=5))
+            self.store_event(data=data, project_id=self.project.id)
+
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "e" * 32,
+            },
+        )
+        with self.feature("organizations:events-v2"):
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "field": ["important", "count()", "p95()"],
+                    "query": "transaction.duration:>2 p95():>0",
+                },
+            )
+        assert response.status_code == 200
+        assert response.data["nextEventID"] == "d" * 32
+        assert response.data["previousEventID"] == "f" * 32

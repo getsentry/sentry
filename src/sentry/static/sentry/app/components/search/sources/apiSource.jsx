@@ -130,9 +130,7 @@ async function createShortIdLookupResult(shortIdLookupPromise) {
       model: shortIdLookup.group,
       sourceType: 'issue',
       resultType: 'issue',
-      to: `/${shortIdLookup.organizationSlug}/${shortIdLookup.projectSlug}/issues/${
-        shortIdLookup.groupId
-      }/`,
+      to: `/${shortIdLookup.organizationSlug}/${shortIdLookup.projectSlug}/issues/${shortIdLookup.groupId}/`,
     },
   };
 }
@@ -150,9 +148,7 @@ async function createEventIdLookupResult(eventIdLookupPromise) {
       description: `${event && event.metadata && event.metadata.value}`,
       sourceType: 'event',
       resultType: 'event',
-      to: `/${eventIdLookup.organizationSlug}/${eventIdLookup.projectSlug}/issues/${
-        eventIdLookup.groupId
-      }/events/${eventIdLookup.eventId}/`,
+      to: `/${eventIdLookup.organizationSlug}/${eventIdLookup.projectSlug}/issues/${eventIdLookup.groupId}/events/${eventIdLookup.eventId}/`,
     },
   };
 }
@@ -207,7 +203,8 @@ class ApiSource extends React.Component {
       (nextProps.query.length <= 2 &&
         nextProps.query.substr(0, 2) !== this.props.query.substr(0, 2)) ||
       // Also trigger a search if next query value satisfies an eventid/shortid query
-      (shouldSearchShortIds(nextProps.query) || shouldSearchEventIds(nextProps.query))
+      shouldSearchShortIds(nextProps.query) ||
+      shouldSearchEventIds(nextProps.query)
     ) {
       this.setState({loading: true});
       this.doSearch(nextProps.query);
@@ -357,10 +354,12 @@ class ApiSource extends React.Component {
   async getDirectResults(requests, query) {
     const [shortIdLookup, eventIdLookup] = requests;
 
-    const directResults = (await Promise.all([
-      createShortIdLookupResult(shortIdLookup),
-      createEventIdLookupResult(eventIdLookup),
-    ])).filter(result => !!result);
+    const directResults = (
+      await Promise.all([
+        createShortIdLookupResult(shortIdLookup),
+        createEventIdLookupResult(eventIdLookup),
+      ])
+    ).filter(result => !!result);
 
     if (!directResults.length) {
       return [];

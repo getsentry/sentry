@@ -14,7 +14,10 @@ describe('ProjectCard', function() {
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
-          stats: [[1525042800, 1], [1525046400, 2]],
+          stats: [
+            [1525042800, 1],
+            [1525046400, 2],
+          ],
           platform: 'javascript',
         })}
         params={{orgId: 'org-slug'}}
@@ -54,7 +57,10 @@ describe('ProjectCard', function() {
       <ProjectCard
         organization={TestStubs.Organization()}
         project={TestStubs.Project({
-          stats: [[1525042800, 1], [1525046400, 2]],
+          stats: [
+            [1525042800, 1],
+            [1525046400, 2],
+          ],
           platform: 'javascript',
           latestDeploys,
         })}
