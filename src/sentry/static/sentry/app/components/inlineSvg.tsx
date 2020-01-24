@@ -11,7 +11,7 @@ type Props = {
   height?: string;
 };
 
-type InlineSvgProps = Omit<React.HTMLProps<SVGSVGElement>, keyof Props> & Props;
+type InlineSvgProps = React.ComponentProps<'svg'> & Props;
 
 const InlineSvg = styled(
   React.forwardRef<SVGSVGElement, InlineSvgProps>(

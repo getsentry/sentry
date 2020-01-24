@@ -57,7 +57,7 @@ type Props = {
   round?: boolean;
 };
 
-type LetterAvatarProps = Omit<React.HTMLProps<SVGSVGElement>, keyof Props> & Props;
+type LetterAvatarProps = React.ComponentProps<'svg'> & Props;
 
 /**
  * Also see avatar.py. Anything changed in this file (how colors are selected,

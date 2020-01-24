@@ -7,7 +7,7 @@ import {number, boolean, text} from '@storybook/addon-knobs';
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
 
-storiesOf('Charts|Utilities').add(
+storiesOf('Charts|Utilities', module).add(
   'Chart Zoom',
   withInfo(`This is a strongly opinionated component that takes a render prop through "children".
     It requires the Global Selection Header and will update the date range selector when zooming. It also
