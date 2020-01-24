@@ -39,7 +39,7 @@ env:
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - NODE_OPTIONS=--max-old-space-size=4096
     - PERCY_PARALLEL_NONCE2="$(($(date +%s)))"
-    - PERCY_PARALLEL_NONCE3="$(TRAVIS_BUILD_NUMBER).$(($(date +%s)))"
+    - PERCY_PARALLEL_NONCE3="$TRAVIS_BUILD_ID.$(($(date +%s)))"
 
 before_install:
   - &pip_install pip install "pip==${PYTHON_PIP_VERSION}"
