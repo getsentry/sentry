@@ -25,6 +25,8 @@ from .repository import BitbucketRepositoryProvider
 from .client import BitbucketApiClient
 from .issues import BitbucketIssueBasicMixin
 
+from django.utils.datastructures import OrderedSet
+
 DESCRIPTION = """
 Connect your Sentry organization to Bitbucket, enabling the following features:
 """
@@ -96,11 +98,21 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
                 for repo in resp.get("values", [])
             ]
 
-        full_query = (u'name~"%s"' % (query)).encode("utf-8")
-        resp = self.get_client().search_repositories(self.username, full_query)
-        return [
-            {"identifier": i["full_name"], "name": i["full_name"]} for i in resp.get("values", [])
-        ]
+        exact_query = (u'name="%s"' % (query)).encode("utf-8")
+        fuzzy_query = (u'name~"%s"' % (query)).encode("utf-8")
+
+        exact_search_resp = self.get_client().search_repositories(self.username, exact_query)
+        fuzzy_search_resp = self.get_client().search_repositories(self.username, fuzzy_query)
+
+        result = OrderedSet()
+
+        for j in exact_search_resp.get("values", []):
+            result.add(j["full_name"])
+
+        for i in fuzzy_search_resp.get("values", []):
+            result.add(i["full_name"])
+
+        return [{"identifier": full_name, "name": full_name} for full_name in result]
 
     def has_repo_access(self, repo):
         client = self.get_client()
