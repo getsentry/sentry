@@ -20,12 +20,8 @@ export const getAnalyticsSessionId = () => {
   return window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 };
 
-export const isIntegrationDirectoryActive = () => {
-  if (localStorage.getItem(USE_INTEGRATION_DIRECTORY) === '1') {
-    return true;
-  }
-  return false;
-};
+export const isIntegrationDirectoryActive = () =>
+  localStorage.getItem(USE_INTEGRATION_DIRECTORY) === '1';
 
 type ModalOpenEvent = {
   eventKey: 'integrations.install_modal_opened';
