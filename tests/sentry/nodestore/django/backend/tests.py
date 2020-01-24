@@ -81,9 +81,9 @@ class DjangoNodeStorageTest(TestCase):
 
     def test_cache(self):
         with self.options({"nodedata.cache-sample-rate": 1.0, "nodedata.cache-on-save": True}):
-            node_1 = ("node_1", {"foo": "a"})
-            node_2 = ("node_2", {"foo": "b"})
-            node_3 = ("node_3", {"foo": "c"})
+            node_1 = ("a" * 32, {"foo": "a"})
+            node_2 = ("b" * 32, {"foo": "b"})
+            node_3 = ("c" * 32, {"foo": "c"})
 
             for node_id, data in [node_1, node_2, node_3]:
                 Node.objects.create(id=node_id, data=data)

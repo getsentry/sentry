@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import random
 import six
 
 from base64 import b64encode
@@ -11,6 +10,7 @@ from django.core.cache import caches, InvalidCacheBackendError
 
 from sentry.utils.cache import memoize
 from sentry.utils.services import Service
+from sentry.utils.validators import normalize_event_id
 
 
 class NodeStorage(local, Service):
@@ -106,14 +106,13 @@ class NodeStorage(local, Service):
 
     def _set_cache_item(self, id, data):
         if self.cache and data:
-            if random.random() < self.sample_rate:
+            if self.should_cache(id):
                 self.cache.set(id, data)
 
     def _set_cache_items(self, items):
-        cacheable_items = {k: v for k, v in six.iteritems(items) if v}
+        cacheable_items = {k: v for k, v in six.iteritems(items) if v and self.should_cache(k)}
         if self.cache:
-            if random.random() < self.sample_rate:
-                self.cache.set_many(cacheable_items)
+            self.cache.set_many(cacheable_items)
 
     def _delete_cache_item(self, id):
         if self.cache:
@@ -135,3 +134,9 @@ class NodeStorage(local, Service):
         from sentry import options
 
         return options.get("nodedata.cache-sample-rate", 0.0)
+
+    def should_cache(self, id):
+        event_id = normalize_event_id(id)
+        if not event_id:
+            return False
+        return (int(event_id, 16) / int("f" * 32, 16)) < self.sample_rate
