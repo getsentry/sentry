@@ -1,3 +1,4 @@
+import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {User, Repository} from 'app/types';
 
 type Data = [number, {count: number}[]][];
@@ -22,6 +23,7 @@ export type Incident = {
   title: string;
   totalEvents: number;
   uniqueUsers: number;
+  alertRule: IncidentRule;
 };
 
 export type IncidentSuspect = {

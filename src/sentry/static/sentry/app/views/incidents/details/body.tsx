@@ -2,9 +2,12 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
 import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
+import {defined} from 'app/utils';
 import {t} from 'app/locale';
+import Duration from 'app/components/duration';
 import EventView from 'app/views/eventsV2/eventView';
 import Feature from 'app/components/acl/feature';
 import InlineSvg from 'app/components/inlineSvg';
@@ -52,6 +55,67 @@ export default class DetailsBody extends React.Component<Props> {
     return discoverView.getResultsViewUrlTarget(orgId);
   }
 
+  /**
+   * Return a string describing the threshold based on the threshold and the type
+   */
+  getThresholdText(
+    trigger: Trigger | undefined,
+    key: 'alertThreshold' | 'resolveThreshold'
+  ) {
+    if (!trigger || !trigger[key]) {
+      return '';
+    }
+
+    const direction = trigger.thresholdType === AlertRuleThresholdType.ABOVE ? '>' : '<';
+
+    return `${direction} ${trigger[key]}`;
+  }
+
+  renderRuleDetails() {
+    const {incident} = this.props;
+
+    const criticalTrigger = incident?.alertRule.triggers.find(
+      ({label}) => label === 'critical'
+    );
+    const warningTrigger = incident?.alertRule.triggers.find(
+      ({label}) => label === 'warning'
+    );
+
+    return (
+      <RuleDetails>
+        <span>{t('Metric')}</span>
+        <span>{incident?.alertRule.dataset}</span>
+
+        <span>{t('Critical Threshold')}</span>
+        <span>{this.getThresholdText(criticalTrigger, 'alertThreshold')}</span>
+
+        {defined(criticalTrigger?.resolveThreshold) && (
+          <React.Fragment>
+            <span>{t('Critical Resolution')}</span>
+            <span>{this.getThresholdText(criticalTrigger, 'resolveThreshold')}</span>
+          </React.Fragment>
+        )}
+
+        {defined(warningTrigger) && (
+          <React.Fragment>
+            <span>{t('Warning Threshold')}</span>
+            <span>{this.getThresholdText(warningTrigger, 'alertThreshold')}</span>
+
+            {defined(warningTrigger?.resolveThreshold) && (
+              <React.Fragment>
+                <span>{t('Warning Resolution')}</span>
+                <span>{this.getThresholdText(warningTrigger, 'resolveThreshold')}</span>
+              </React.Fragment>
+            )}
+          </React.Fragment>
+        )}
+
+        <span>{t('Time Window')}</span>
+        <span>{incident && <Duration seconds={incident.alertRule.timeWindow} />}</span>
+      </RuleDetails>
+    );
+  }
+
   render() {
     const {params, incident} = this.props;
 
@@ -93,41 +157,40 @@ export default class DetailsBody extends React.Component<Props> {
           </ActivityPageContent>
           <Sidebar>
             <PageContent>
-              <RuleDetails>
-                <SideHeader>{t('Metric')}</SideHeader>
-                <SideHeader>{t('Threshold')}</SideHeader>
-                <SideHeader>{t('Time Interval')}</SideHeader>
+              <SideHeader>
+                <span>{t('Alert Rule')}</span>
 
-                <span>Events</span>
-                <span>> 1000</span>
-                <span>1 hour</span>
-              </RuleDetails>
+                <SideHeaderLink
+                  to={{
+                    pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts-v2/metric-rules/${incident?.identifier}/`,
+                  }}
+                >
+                  <InlineSvg src="icon-edit" size="14px" />
+                  {t('Edit alert rule')}
+                </SideHeaderLink>
+              </SideHeader>
 
+              {this.renderRuleDetails()}
               <SideHeader>
                 <span>{t('Query')}</span>
                 <Feature features={['discover-basic']}>
                   <Projects slugs={incident && incident.projects} orgId={params.orgId}>
                     {({initiallyLoaded, projects, fetching}) => (
-                      <DiscoverLink
+                      <SideHeaderLink
                         disabled={!incident || fetching || !initiallyLoaded}
                         to={this.getDiscoverUrl(
                           ((initiallyLoaded && projects) as Project[]) || []
                         )}
                       >
-                        <DiscoverIcon src="icon-telescope" />
+                        <InlineSvg src="icon-telescope" />
                         {t('View in Discover')}
-                      </DiscoverLink>
+                      </SideHeaderLink>
                     )}
                   </Projects>
                 </Feature>
               </SideHeader>
 
               <Query>user.username:"Jane Doe" server:web-8 example error</Query>
-
-              <EditRuleLink to="#">
-                <InlineSvg src="icon-edit" size="14px" />
-                {t('Edit alert rule')}
-              </EditRuleLink>
             </PageContent>
           </Sidebar>
         </Main>
@@ -173,12 +236,12 @@ const Sidebar = styled('div')`
   }
 `;
 
-const DiscoverLink = styled(Link)`
+const SideHeaderLink = styled(Link)`
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  grid-gap: ${space(0.5)};
   text-transform: none;
-`;
-
-const DiscoverIcon = styled(InlineSvg)`
-  margin-right: ${space(0.5)};
 `;
 
 const StyledPageContent = styled(PageContent)`
@@ -210,10 +273,22 @@ const StyledSeenByList = styled(SeenByList)`
 
 const RuleDetails = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
+  grid-template-columns: auto max-content;
   margin-bottom: ${space(2)};
+
+  & > span {
+    padding: ${space(0.25)} ${space(1)};
+  }
+
+  & > span:nth-child(2n + 2) {
+    text-align: right;
+  }
+
+  & > span:nth-child(4n + 1),
+  & > span:nth-child(4n + 2) {
+    background-color: ${p => p.theme.offWhite2};
+  }
 `;
 
 const Query = styled('div')`
@@ -223,13 +298,4 @@ const Query = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(0.5)} ${space(1)};
   color: ${p => p.theme.gray4};
-`;
-
-const EditRuleLink = styled(Link)`
-  display: grid;
-  grid-auto-flow: column;
-  align-items: center;
-  justify-content: flex-start;
-  grid-gap: ${space(0.5)};
-  margin-top: ${space(2)};
 `;
