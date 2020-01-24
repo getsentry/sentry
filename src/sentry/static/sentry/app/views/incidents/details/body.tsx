@@ -157,40 +157,48 @@ export default class DetailsBody extends React.Component<Props> {
           </ActivityPageContent>
           <Sidebar>
             <PageContent>
-              <SideHeader>
-                <span>{t('Alert Rule')}</span>
+              {incident?.alertRule && (
+                <React.Fragment>
+                  <SideHeader>
+                    <span>{t('Alert Rule')}</span>
 
-                <SideHeaderLink
-                  to={{
-                    pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts-v2/metric-rules/${incident?.alertRule.id}/`,
-                  }}
-                >
-                  <InlineSvg src="icon-edit" size="14px" />
-                  {t('Edit alert rule')}
-                </SideHeaderLink>
-              </SideHeader>
+                    <SideHeaderLink
+                      to={{
+                        pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts-v2/metric-rules/${incident?.alertRule.id}/`,
+                      }}
+                    >
+                      <InlineSvg src="icon-edit" size="14px" />
+                      {t('Edit alert rule')}
+                    </SideHeaderLink>
+                  </SideHeader>
 
-              {this.renderRuleDetails()}
-              <SideHeader>
-                <span>{t('Query')}</span>
-                <Feature features={['discover-basic']}>
-                  <Projects slugs={incident && incident.projects} orgId={params.orgId}>
-                    {({initiallyLoaded, projects, fetching}) => (
-                      <SideHeaderLink
-                        disabled={!incident || fetching || !initiallyLoaded}
-                        to={this.getDiscoverUrl(
-                          ((initiallyLoaded && projects) as Project[]) || []
-                        )}
+                  {this.renderRuleDetails()}
+
+                  <SideHeader>
+                    <span>{t('Query')}</span>
+                    <Feature features={['discover-basic']}>
+                      <Projects
+                        slugs={incident && incident.projects}
+                        orgId={params.orgId}
                       >
-                        <InlineSvg src="icon-telescope" />
-                        {t('View in Discover')}
-                      </SideHeaderLink>
-                    )}
-                  </Projects>
-                </Feature>
-              </SideHeader>
+                        {({initiallyLoaded, projects, fetching}) => (
+                          <SideHeaderLink
+                            disabled={!incident || fetching || !initiallyLoaded}
+                            to={this.getDiscoverUrl(
+                              ((initiallyLoaded && projects) as Project[]) || []
+                            )}
+                          >
+                            <InlineSvg src="icon-telescope" />
+                            {t('View in Discover')}
+                          </SideHeaderLink>
+                        )}
+                      </Projects>
+                    </Feature>
+                  </SideHeader>
 
-              <Query>user.username:"Jane Doe" server:web-8 example error</Query>
+                  <Query>{incident?.alertRule.query || '""'}</Query>
+                </React.Fragment>
+              )}
             </PageContent>
           </Sidebar>
         </Main>
