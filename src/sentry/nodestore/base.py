@@ -139,4 +139,4 @@ class NodeStorage(local, Service):
         event_id = normalize_event_id(id)
         if not event_id:
             return False
-        return (int(event_id, 16) / int("f" * 32, 16)) < self.sample_rate
+        return (int(event_id, 16) / float(int("f" * 32, 16))) < self.sample_rate
