@@ -60,9 +60,9 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
         # TODO: This should eventually just be event.title in line with other plugins.
         # However, we should notify users first, since PD alert routing may be
         # based off the message field. We default to the title now because it's
-        # possible for `event.message` and `event.real_message` to be "" and the description
+        # possible for `event.message` to be "" and the description
         # is a required field for the PD payload.
-        description = (event.real_message or event.message or event.title)[:1024]
+        description = (event.message or event.title)[:1024]
 
         tags = dict(event.tags)
         details = {

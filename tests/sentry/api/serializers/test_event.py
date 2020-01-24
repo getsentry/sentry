@@ -115,22 +115,6 @@ class EventSerializerTest(TestCase):
         assert result["message"] == "baz"
         assert result["_meta"]["message"] == {"": {"err": ["some error"]}}
 
-    def test_message_legacy(self):
-        event = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "logentry": {"formatted": None},
-            },
-            project_id=self.project.id,
-            assert_no_errors=False,
-        )
-
-        event.message = "search message"
-
-        result = serialize(event)
-        assert result["message"] == "search message"
-
     def test_tags_tuples(self):
         event = self.store_event(
             data={

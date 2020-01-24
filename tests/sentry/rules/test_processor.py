@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry.models import GroupRuleStatus, Rule
 from sentry.plugins.base import plugins
 from sentry.testutils import TestCase
-from sentry.rules.processor import EventCompatibilityProxy, RuleProcessor
+from sentry.rules.processor import RuleProcessor
 
 
 class RuleProcessorTest(TestCase):
@@ -50,16 +50,3 @@ class RuleProcessorTest(TestCase):
 
         results = list(rp.apply())
         assert len(results) == 1
-
-
-class EventCompatibilityProxyTest(TestCase):
-    def test_simple(self):
-        event = self.store_event(
-            data={
-                "message": "biz baz",
-                "logentry": {"message": "biz baz", "formatted": "foo bar", "params": ["bar"]},
-            },
-            project_id=self.project.id,
-        )
-        event_proxy = EventCompatibilityProxy(event)
-        assert event_proxy.message == "foo bar"

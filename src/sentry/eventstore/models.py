@@ -85,21 +85,11 @@ class Event(object):
 
     @property
     def message(self):
-        if hasattr(self, "_message"):
-            return self._message
-        column = self.__get_column_name(Columns.MESSAGE)
-        if column in self._snuba_data:
-            return self._snuba_data[column]
-
-        return self.real_message
-
-    @message.setter
-    def message(self, value):
-        """
-        This can be removed once Django Event is removed and we no longer need to manually
-        update this field in event_manager.save().
-        """
-        self._message = value
+        return (
+            get_path(self.data, "logentry", "formatted")
+            or get_path(self.data, "logentry", "message")
+            or ""
+        )
 
     @property
     def datetime(self):
@@ -393,17 +383,6 @@ class Event(object):
         return self.get_hashes()[0]
 
     @property
-    def real_message(self):
-        # XXX(mitsuhiko): this is a transitional attribute that should be
-        # removed.  `message` will be renamed to `search_message` and this
-        # will become `message`.
-        return (
-            get_path(self.data, "logentry", "formatted")
-            or get_path(self.data, "logentry", "message")
-            or ""
-        )
-
-    @property
     def organization(self):
         return self.project.organization
 
@@ -438,7 +417,7 @@ class Event(object):
         data["release"] = self.release
         data["dist"] = self.dist
         data["platform"] = self.platform
-        data["message"] = self.real_message
+        data["message"] = self.message
         data["datetime"] = self.datetime
         data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
         for k, v in sorted(six.iteritems(self.data)):
@@ -459,7 +438,7 @@ class Event(object):
 
         return data
 
-    @property
+    @memoize
     def search_message(self):
         """
         The internal search_message attribute is only used for search purposes.

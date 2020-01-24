@@ -16,35 +16,11 @@ from sentry.utils.safe import safe_execute
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
-# TODO(dcramer): come up with a clean way to kill this either by renaming
-# the Event.message attribute or updating all plugins (former is better)
-class EventCompatibilityProxy(object):
-    """
-    A proxy which manages the 'message' attribute on an event to safely
-    upgrade legacy notifications.
-    """
-
-    __class__ = property(lambda x: x._event.__class__)
-
-    # TODO: this goes away once message has been renamed to search_message
-    # and real_message to message
-
-    def __init__(self, event):
-        self._event = event
-
-    def __getattr__(self, attr):
-        return getattr(self._event, attr)
-
-    @property
-    def message(self):
-        return self._event.real_message
-
-
 class RuleProcessor(object):
     logger = logging.getLogger("sentry.rules")
 
     def __init__(self, event, is_new, is_regression, is_new_group_environment, has_reappeared):
-        self.event = EventCompatibilityProxy(event)
+        self.event = event
         self.group = event.group
         self.project = event.project
 
