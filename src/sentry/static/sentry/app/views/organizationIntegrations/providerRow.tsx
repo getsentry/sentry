@@ -29,6 +29,8 @@ type Props = {
   newlyInstalledIntegrationId: string;
   integrations: Integration[];
   hideLearnMore?: boolean;
+  showConfigurationCount?: boolean;
+  hideIntegrationDetails?: boolean;
 };
 
 export default class ProviderRow extends React.Component<Props> {
@@ -43,6 +45,8 @@ export default class ProviderRow extends React.Component<Props> {
     enabledPlugins: PropTypes.array,
     newlyInstalledIntegrationId: PropTypes.string,
     hideLearnMore: PropTypes.bool,
+    showConfigurationCount: PropTypes.bool,
+    hideIntegrationDetails: PropTypes.bool,
   };
 
   static contextTypes = {
@@ -52,6 +56,8 @@ export default class ProviderRow extends React.Component<Props> {
   static defaultProps = {
     enabledPlugins: [],
     hideLearnMore: false,
+    showConfigurationCount: false,
+    hideIntegrationDetails: false,
   };
 
   static upgradableIntegrations = ['vsts', 'bitbucket', 'github', 'github_enterprise'];
@@ -93,11 +99,14 @@ export default class ProviderRow extends React.Component<Props> {
 
     return {
       icon: upgradeable ? 'icon-upgrade' : 'icon-circle-add',
-      children: this.isEnabled
-        ? t('Add Another')
-        : upgradeable
-        ? t('Update')
-        : t('Install'),
+      children:
+        this.isEnabled && this.props.showConfigurationCount
+          ? t('Add Configuration')
+          : this.isEnabled && !this.props.showConfigurationCount
+          ? t('Add Another')
+          : upgradeable
+          ? t('Update')
+          : t('Install'),
     };
   }
 
@@ -129,13 +138,16 @@ export default class ProviderRow extends React.Component<Props> {
               {this.props.hideLearnMore ? null : (
                 <StyledLink onClick={this.openModal}>Learn More</StyledLink>
               )}
+              {this.props.showConfigurationCount && this.isEnabled ? (
+                <StyledLink>{`${this.props.integrations.length} Configurations`}</StyledLink>
+              ) : null}
             </ProviderDetails>
           </div>
           <div>
             <Button size="small" onClick={this.openModal} {...this.buttonProps} />
           </div>
         </Flex>
-        {this.renderIntegrations()}
+        {this.props.hideIntegrationDetails ? null : this.renderIntegrations()}
       </PanelItem>
     );
   }

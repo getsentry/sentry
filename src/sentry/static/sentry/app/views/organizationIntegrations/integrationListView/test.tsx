@@ -248,6 +248,8 @@ class OrganizationIntegrations extends AsyncComponent<
         enabledPlugins={this.enabledPlugins}
         newlyInstalledIntegrationId={this.state.newlyInstalledIntegrationId}
         hideLearnMore
+        showConfigurationCount
+        hideIntegrationDetails
       />
     );
   };
