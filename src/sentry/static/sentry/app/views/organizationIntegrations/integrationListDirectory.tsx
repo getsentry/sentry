@@ -366,18 +366,18 @@ const Heading = styled('div')`
 `;
 
 const TagsContainer = styled('div')`
-  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
   padding-top: ${space(3)};
-  padding-bottom: ${space(3)};
+  padding-bottom: ${space(1)};
 `;
 
 const Tag = styled('span')`
   transition: border-color 0.15s ease;
   font-size: 14px;
-  width: 260px;
   line-height: 1;
   padding: ${space(1)};
-  margin: 0 ${space(1)};
+  margin: 0 ${space(1)} ${space(1)} 0;
   border: 1px solid ${p => p.theme.borderDark};
   border-radius: 30px;
   height: 28px;
@@ -391,10 +391,6 @@ const Tag = styled('span')`
 
   &::placeholder {
     color: ${p => p.theme.gray2};
-  }
-
-  &:nth-child(1) {
-    margin: 0 ${space(1)} 0 0;
   }
 `;
 

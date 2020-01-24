@@ -2,7 +2,7 @@ import {withTheme} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-
+import Link from 'app/components/links/link';
 import {openIntegrationDetails} from 'app/actionCreators/modal';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -43,8 +43,6 @@ export default class ProviderRow extends React.Component<Props> {
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
-
-  static upgradableIntegrations = ['vsts', 'bitbucket', 'github', 'github_enterprise'];
 
   get integrations() {
     return this.props.integrations;
@@ -102,6 +100,7 @@ export default class ProviderRow extends React.Component<Props> {
             <ProviderName>{this.props.provider.name}</ProviderName>
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
+              <StyledLink>{`${this.props.integrations.length} Configurations`}</StyledLink>
             </ProviderDetails>
           </div>
           <div>
@@ -150,6 +149,12 @@ const Status = styled(
   color: ${(p: StatusProps) => (p.enabled ? p.theme.success : p.theme.gray2)};
   margin-left: ${space(0.5)};
   margin-right: ${space(0.75)};
+  &:after {
+    content: '|';
+    color: ${p => p.theme.gray1};
+    margin-left: ${space(0.75)};
+    font-weight: normal;
+  }
 `;
 
 const StatusWrapper = styled('div')`
@@ -178,4 +183,8 @@ const StyledInstalledIntegration = styled(
   padding-left: 0;
   margin-left: 68px;
   border-top: 1px dashed ${p => p.theme.borderLight};
+`;
+
+const StyledLink = styled(Link)`
+  color: ${p => p.theme.gray2};
 `;
