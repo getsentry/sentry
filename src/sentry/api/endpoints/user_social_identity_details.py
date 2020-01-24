@@ -3,9 +3,10 @@ from __future__ import absolute_import
 import logging
 import six
 
+from django.conf import settings
 from rest_framework.response import Response
-from social_auth.backends import get_backend
-from social_auth.models import UserSocialAuth
+from social_core.backends.utils import get_backend
+from social_django.models import UserSocialAuth
 
 from sentry.api.bases.user import UserEndpoint
 
@@ -29,7 +30,7 @@ class UserSocialIdentityDetailsEndpoint(UserEndpoint):
         except UserSocialAuth.DoesNotExist:
             return Response(status=404)
 
-        backend = get_backend(auth.provider, request, "/")
+        backend = get_backend(settings.AUTHENTICATION_BACKENDS, auth.provider)
         if backend is None:
             raise Exception(u"Backend was not found for request: {}".format(auth.provider))
 

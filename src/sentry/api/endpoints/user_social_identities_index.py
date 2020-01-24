@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
-from social_auth.models import UserSocialAuth
+from social_django.models import UserSocialAuth
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize

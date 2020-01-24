@@ -71,6 +71,7 @@ sentry-sdk>=0.13.5
 setproctitle>=1.1.7,<1.2.0
 simplejson>=3.2.0,<3.9.0
 six>=1.10.0,<1.11.0
+social-auth-app-django==3.1.0
 sqlparse>=0.2.0,<0.3.0
 statsd>=3.1.0,<3.2.0
 strict-rfc3339>=0.7

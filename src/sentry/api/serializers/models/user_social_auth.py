@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from django.conf import settings
-from social_auth.models import UserSocialAuth
+from social_django.models import UserSocialAuth
 
 from sentry.api.serializers import Serializer, register
 

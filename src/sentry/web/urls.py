@@ -5,6 +5,9 @@ from django.conf.urls import include, url
 from django.http import HttpResponse
 from django.views.generic import RedirectView
 
+from social_django.views import auth as SocialAuthAssociationView
+from social_django.views import complete as SocialAuthAssociationCompleteView
+
 from sentry.web import api
 from sentry.web.frontend import accounts, generic
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -317,7 +320,16 @@ urlpatterns += [
                     r"^remove/$",
                     RedirectView.as_view(pattern_name="sentry-remove-account", permanent=False),
                 ),
-                url(r"^settings/social/", include("social_auth.urls")),
+                url(
+                    r"^settings/social/associate/(?P<backend>[^/]+)/$",
+                    SocialAuthAssociationView,
+                    name="socialauth_associate",
+                ),
+                url(
+                    r"^settings/social/associate/complete/(?P<backend>[^/]+)/$",
+                    SocialAuthAssociationCompleteView,
+                    name="socialauth_associate_complete",
+                ),
                 url(r"^", generic_react_page_view),
             ]
         ),

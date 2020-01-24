@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from rest_framework.response import Response
-from social_auth.models import UserSocialAuth
+from social_django.models import UserSocialAuth
 
 from django.conf import settings
 from django.conf.urls import url

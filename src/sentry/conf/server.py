@@ -297,10 +297,8 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.csrf",
                 "django.template.context_processors.request",
-                "social_auth.context_processors.social_auth_by_name_backends",
-                "social_auth.context_processors.social_auth_backends",
-                "social_auth.context_processors.social_auth_by_type_backends",
-                "social_auth.context_processors.social_auth_login_redirect",
+                "social_django.context_processors.backends",
+                "social_django.context_processors.login_redirect",
             ]
         },
     }
@@ -331,7 +329,7 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
-    "social_auth",
+    "social_django",
     "sudo",
     "sentry.eventstream",
     "sentry.auth.providers.google.apps.Config",
@@ -392,10 +390,9 @@ AUTHENTICATION_BACKENDS = (
     "sentry.utils.auth.EmailAuthBackend",
     # The following authentication backends are used by social auth only.
     # We don't use them for user authentication.
-    "social_auth.backends.asana.AsanaBackend",
-    "social_auth.backends.github.GithubBackend",
-    "social_auth.backends.bitbucket.BitbucketBackend",
-    "social_auth.backends.visualstudio.VisualStudioBackend",
+    "social_core.backends.asana.AsanaOAuth2",
+    "social_core.backends.github.GithubOAuth2",
+    "social_core.backends.bitbucket.BitbucketOAuth2",
 )
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -408,8 +405,6 @@ AUTH_PASSWORD_VALIDATORS = [
         "OPTIONS": {"max_length": 256},
     },
 ]
-
-SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = "sentry.User"
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
@@ -427,24 +422,22 @@ BITBUCKET_CONSUMER_SECRET = ""
 ASANA_CLIENT_ID = ""
 ASANA_CLIENT_SECRET = ""
 
-VISUALSTUDIO_APP_ID = ""
-VISUALSTUDIO_APP_SECRET = ""
-VISUALSTUDIO_CLIENT_SECRET = ""
-VISUALSTUDIO_SCOPES = ["vso.work_write", "vso.project", "vso.code", "vso.release"]
-
+SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = "sentry.User"
 SOCIAL_AUTH_PIPELINE = (
-    "social_auth.backends.pipeline.user.get_username",
-    "social_auth.backends.pipeline.social.social_auth_user",
-    "social_auth.backends.pipeline.associate.associate_by_email",
-    "social_auth.backends.pipeline.misc.save_status_to_session",
-    "social_auth.backends.pipeline.social.associate_user",
-    "social_auth.backends.pipeline.social.load_extra_data",
-    "social_auth.backends.pipeline.user.update_user_details",
-    "social_auth.backends.pipeline.misc.save_status_to_session",
+    "social_core.pipeline.user.get_username",
+    "social_core.pipeline.social_auth.social_user",
+    "social_core.pipeline.social_auth.associate_by_email",
+    # "social_auth.backends.pipeline.misc.save_status_to_session",
+    "social_core.pipeline.social_auth.associate_user",
+    "social_core.pipeline.social_auth.load_extra_data",
+    "social_core.pipeline.user.user_details",
+    # "social_auth.backends.pipeline.misc.save_status_to_session",
 )
 SOCIAL_AUTH_REVOKE_TOKENS_ON_DISCONNECT = True
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = "/account/settings/identities/"
 SOCIAL_AUTH_ASSOCIATE_ERROR_URL = SOCIAL_AUTH_LOGIN_REDIRECT_URL
+SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
+SOCIAL_AUTH_POSTGRES_JSONFIELD = True
 
 INITIAL_CUSTOM_USER_MIGRATION = "0108_fix_user"
 
@@ -453,29 +446,9 @@ AUTH_PROVIDERS = {
     "github": ("GITHUB_APP_ID", "GITHUB_API_SECRET"),
     "bitbucket": ("BITBUCKET_CONSUMER_KEY", "BITBUCKET_CONSUMER_SECRET"),
     "asana": ("ASANA_CLIENT_ID", "ASANA_CLIENT_SECRET"),
-    "visualstudio": (
-        "VISUALSTUDIO_APP_ID",
-        "VISUALSTUDIO_APP_SECRET",
-        "VISUALSTUDIO_CLIENT_SECRET",
-    ),
 }
 
-AUTH_PROVIDER_LABELS = {
-    "github": "GitHub",
-    "bitbucket": "Bitbucket",
-    "asana": "Asana",
-    "visualstudio": "Visual Studio",
-}
-
-import random
-
-
-def SOCIAL_AUTH_DEFAULT_USERNAME():
-    return random.choice(["Darth Vader", "Obi-Wan Kenobi", "R2-D2", "C-3PO", "Yoda"])
-
-
-SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
-SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
+AUTH_PROVIDER_LABELS = {"github": "GitHub", "bitbucket": "Bitbucket", "asana": "Asana"}
 
 # Queue configuration
 from kombu import Exchange, Queue
