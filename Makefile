@@ -27,7 +27,7 @@ bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
 develop: ensure-venv setup-git develop-only
 
-develop-only: ensure-venv update-submodules install-yarn-pkgs install-sentry-dev
+develop-only: ensure-venv install-yarn-pkgs install-sentry-dev
 
 init-config:
 	sentry init --dev
@@ -77,12 +77,6 @@ setup-git: ensure-latest-pip
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
 	$(PIP) install "pre-commit==1.18.2" $(PIP_OPTS)
 	pre-commit install --install-hooks
-	@echo ""
-
-update-submodules:
-	@echo "--> Updating git submodules"
-	git submodule init
-	git submodule update
 	@echo ""
 
 node-version-check:
@@ -224,7 +218,7 @@ publish:
 	python setup.py sdist bdist_wheel upload
 
 
-.PHONY: develop develop-only test build test reset-db clean setup-git update-submodules node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
+.PHONY: develop develop-only test build test reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
 
 
 ############################
