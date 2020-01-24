@@ -6,7 +6,7 @@ from sentry.models import ExportedData, User
 
 @register(ExportedData)
 class ExportedDataSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwagrs):
+    def get_attrs(self, item_list, user, **kwargs):
         attrs = {}
         for item in item_list:
             user = User.objects.get(id=item.user_id)
