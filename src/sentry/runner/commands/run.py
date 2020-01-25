@@ -307,7 +307,7 @@ def cron(**options):
     "--event-type",
     default=None,
     type=click.Choice(["event", "transaction"]),
-    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
+    help="Event type this post processor listens to. Different event types may have different parameters like the topic.",
 )
 @log_options()
 @configuration

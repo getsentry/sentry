@@ -64,6 +64,12 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def requires_post_process_forwarder(self):
         return True
 
+    def __get_topic_for_event_type(self, event_type):
+        topic_config = settings.SENTRY_EVENTSTREAM_TOPICS.get(
+            event_type, settings.SENTRY_EVENTSTREAM_DEFAULT_TOPIC
+        )
+        return settings.KAFKA_TOPICS[topic_config]["topic"]
+
     def run_post_process_forwarder(
         self,
         consumer_group,
@@ -74,13 +80,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         event_type=None,
     ):
         logger.debug("Starting post-process forwarder...")
-
-        topic_config = None
-
-        topic_config = settings.SENTRY_EVENTSTREAM_TOPICS.get(
-            event_type, settings.SENTRY_EVENTSTREAM_DEFAULT_TOPIC
-        )
-        topic_name = settings.KAFKA_TOPICS[topic_config]["topic"]
 
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
         bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
@@ -163,7 +162,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 )
                 commit(offsets_to_commit)
 
-        consumer.subscribe([topic_name], on_assign=on_assign, on_revoke=on_revoke)
+        consumer.subscribe(
+            [self.__get_topic_for_event_type(event_type)], on_assign=on_assign, on_revoke=on_revoke
+        )
 
         def commit_offsets():
             offsets_to_commit = []
