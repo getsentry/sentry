@@ -203,6 +203,7 @@ const OrganizationContext = createReactClass({
       // We do not want to load the user's last used env/project in this case, otherwise will
       // lead to very confusing behavior.
       if (
+        organization.projects &&
         !this.props.routes.find(
           ({path}) => path && path.includes('/organizations/:orgId/issues/:groupId/')
         )
