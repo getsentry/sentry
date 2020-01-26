@@ -31,6 +31,9 @@ class EventStream(Service):
         "run_post_process_forwarder",
     )
 
+    def __init__(self, **options):
+        pass
+
     def _dispatch_post_process_group_task(
         self,
         event,

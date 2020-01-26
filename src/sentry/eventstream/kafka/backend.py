@@ -7,6 +7,7 @@ from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
 from django.utils.functional import cached_property
 
+from sentry import options
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.eventstream.snuba import SnubaProtocolEventStream
@@ -17,6 +18,15 @@ logger = logging.getLogger(__name__)
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
+    def __init__(self, **options):
+        kafka_options = options.pop("kafka", {})
+        # We have to assume this config may not exists during the rollout phase
+        # otherwise we could enforce the two parameters are there.
+        self.__default_topic_config = kafka_options.get(
+            "default_topic_config", settings.KAFKA_EVENTS
+        )
+        self.__eventstream_topics = kafka_options.get("eventstream_topics", {})
+
     @cached_property
     def producer(self):
         return kafka.producers.get(settings.KAFKA_EVENTS)
@@ -24,6 +34,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def delivery_callback(self, error, message):
         if error is not None:
             logger.warning("Could not publish message (error: %s): %r", error, message)
+
+    def __get_topic_for_event_type(self, event_type):
+        if not options.get("store.eventstream-per-type-topic", False):
+            topic_config = self.__eventstream_topics.get(event_type, self.__default_topic_config)
+        else:
+            topic_config = settings.KAFKA_EVENTS
+        return settings.KAFKA_TOPICS[topic_config]["topic"]
 
     def _send(self, project_id, _type, extra_data=(), asynchronous=True):
         # Polling the producer is required to ensure callbacks are fired. This
@@ -42,13 +59,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
         key = six.text_type(project_id)
 
         event_type = get_path(extra_data, 0, "data", "type")
-        topic_config = settings.SENTRY_EVENTSTREAM_TOPICS.get(
-            event_type, settings.SENTRY_EVENTSTREAM_DEFAULT_TOPIC
-        )
-        topic = settings.KAFKA_TOPICS[topic_config]["topic"]
+        topic_name = self.__get_topic_for_event_type(event_type)
         try:
             self.producer.produce(
-                topic=topic,
+                topic=topic_name,
                 key=key.encode("utf-8"),
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
@@ -64,12 +78,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def requires_post_process_forwarder(self):
         return True
 
-    def __get_topic_for_event_type(self, event_type):
-        topic_config = settings.SENTRY_EVENTSTREAM_TOPICS.get(
-            event_type, settings.SENTRY_EVENTSTREAM_DEFAULT_TOPIC
-        )
-        return settings.KAFKA_TOPICS[topic_config]["topic"]
-
     def run_post_process_forwarder(
         self,
         consumer_group,
@@ -77,7 +85,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
         synchronize_commit_group,
         commit_batch_size=100,
         initial_offset_reset="latest",
-        event_type=None,
+        # We do not pass the event type here because this script
+        # only cares where to consumer from. From a topic it can consume
+        # many types of events.
+        topic_config=None,
     ):
         logger.debug("Starting post-process forwarder...")
 
@@ -162,9 +173,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 )
                 commit(offsets_to_commit)
 
-        consumer.subscribe(
-            [self.__get_topic_for_event_type(event_type)], on_assign=on_assign, on_revoke=on_revoke
-        )
+        topic_name = settings.KAFKA_TOPICS[topic_config or settings.KAFKA_EVENTS]["topic"]
+        consumer.subscribe([topic_name], on_assign=on_assign, on_revoke=on_revoke)
 
         def commit_offsets():
             offsets_to_commit = []

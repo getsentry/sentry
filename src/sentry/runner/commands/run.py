@@ -304,10 +304,10 @@ def cron(**options):
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
 @click.option(
-    "--event-type",
+    "--topic-config",
     default=None,
-    type=click.Choice(["event", "transaction"]),
-    help="Event type this post processor listens to. Different event types may have different parameters like the topic.",
+    type=click.Choice(["events", "transactions"]),
+    help="The topic to subscribe to. This is the key of the config in KAFKA_TOPICS settings",
 )
 @log_options()
 @configuration
@@ -322,7 +322,7 @@ def post_process_forwarder(**options):
             synchronize_commit_group=options["synchronize_commit_group"],
             commit_batch_size=options["commit_batch_size"],
             initial_offset_reset=options["initial_offset_reset"],
-            event_type=options["event_type"],
+            topic_config=options["topic_config"],
         )
     except ForwarderNotRequired:
         sys.stdout.write(

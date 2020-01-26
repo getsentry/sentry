@@ -156,15 +156,27 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
         if eventstream.requires_post_process_forwarder():
             daemons += [
                 (
-                    "relay",
+                    "relay_events",
                     [
                         "sentry",
                         "run",
                         "post-process-forwarder",
                         "--loglevel=debug",
                         "--commit-batch-size=1",
+                        "--topic-config=events",
                     ],
-                )
+                ),
+                (
+                    "relay_transactions",
+                    [
+                        "sentry",
+                        "run",
+                        "post-process-forwarder",
+                        "--loglevel=debug",
+                        "--commit-batch-size=1",
+                        "--topic-config=transactions",
+                    ],
+                ),
             ]
 
     if needs_https and has_https:

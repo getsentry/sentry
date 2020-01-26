@@ -1085,9 +1085,6 @@ SENTRY_TSDB_OPTIONS = {}
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS = {}
 
-SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
-SENTRY_EVENTSTREAM_OPTIONS = {}
-
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
     # (time in seconds, samples to keep)
@@ -1692,10 +1689,16 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
 }
 
-# Kafka topics configuration for eventstream
-SENTRY_EVENTSTREAM_DEFAULT_TOPIC = KAFKA_EVENTS
-# Mapping between event type and topic. Those not defined here fallback to deault.
-SENTRY_EVENTSTREAM_TOPICS = {}
+SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
+SENTRY_EVENTSTREAM_OPTIONS = {
+    "kafka": {
+        # Kafka topics configuration for eventstream
+        "default_topic": KAFKA_EVENTS,
+        # Mapping between event type and topic. Those not defined here fallback to deault.
+        "eventstream_topics": {},
+    }
+}
+
 
 # Enable this to use the legacy Slack Workspace Token apps. You will likely
 # never need to switch this unless you created a workspace app before slack
