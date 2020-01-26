@@ -147,7 +147,8 @@ class IncidentsListContainer extends React.Component<Props> {
         <PageContent>
           <PageHeader>
             <PageHeading>
-              {t('Alerts')} <BetaTag />
+              {t('Alerts')}{' '}
+              <BetaTag title={t('Alert stream only shows metric alerts while in beta')} />
             </PageHeading>
 
             <Actions>
