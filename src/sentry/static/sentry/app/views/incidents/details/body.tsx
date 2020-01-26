@@ -209,6 +209,7 @@ export default class DetailsBody extends React.Component<Props> {
 
 const Main = styled('div')`
   display: flex;
+  flex: 1;
   border-top: 1px solid ${p => p.theme.borderLight};
   background-color: ${p => p.theme.white};
 
