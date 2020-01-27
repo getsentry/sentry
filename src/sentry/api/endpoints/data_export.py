@@ -15,9 +15,7 @@ from sentry.tasks.data_export import compile_data
 
 class ExportedDataSerializer(serializers.Serializer):
     max_value = len(ExportQueryType.as_choices()) - 1
-    query_type = serializers.IntegerField(
-        required=True, min_value=0, max_value=max_value
-    )  # Correponds to PositiveSmallIntegerField
+    query_type = serializers.IntegerField(required=True, min_value=0, max_value=max_value)
     query_info = serializers.JSONField(required=True)
     # TODO(Leander): Implement query_info validation with jsonschema
 
