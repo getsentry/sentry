@@ -12,6 +12,7 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
     slug = "segment"
     description = "Send Sentry events into Segment."
     conf_key = "segment"
+    required_field = "write_key"
 
     endpoint = "https://api.segment.io/v1/track"
 

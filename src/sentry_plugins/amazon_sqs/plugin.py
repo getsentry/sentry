@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def get_regions():
     public_region_list = boto3.session.Session().get_available_regions("sqs")
-    cn_region_list = boto3.session.Session().get_available_regions("sqs", partition_name='aws-cn')
+    cn_region_list = boto3.session.Session().get_available_regions("sqs", partition_name="aws-cn")
     return public_region_list + cn_region_list
 
 
@@ -23,6 +23,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
     slug = "amazon-sqs"
     description = "Forward Sentry events to Amazon SQS."
     conf_key = "amazon-sqs"
+    required_field = "queue_url"
 
     def get_config(self, project, **kwargs):
         return [

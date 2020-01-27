@@ -108,6 +108,7 @@ class TwilioPlugin(NotificationPlugin):
     title = _("Twilio (SMS)")
     conf_title = title
     conf_key = "twilio"
+    required_field = "account_sid"
     project_conf_form = TwilioConfigurationForm
 
     def is_configured(self, project, **kwargs):

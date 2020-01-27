@@ -21,6 +21,7 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
     title = "Clubhouse"
     conf_title = title
     conf_key = "clubhouse"
+    required_field = "token"
 
     issue_fields = frozenset(["id", "title", "url"])
 

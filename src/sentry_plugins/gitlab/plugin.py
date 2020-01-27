@@ -16,6 +16,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
     title = "GitLab"
     conf_title = title
     conf_key = "gitlab"
+    required_field = "gitlab_url"
 
     def is_configured(self, request, project, **kwargs):
         return bool(

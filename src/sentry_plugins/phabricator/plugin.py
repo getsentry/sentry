@@ -33,6 +33,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
     title = "Phabricator"
     conf_title = "Phabricator"
     conf_key = "phabricator"
+    required_field = "host"
 
     def get_api(self, project):
         return phabricator.Phabricator(

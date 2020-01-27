@@ -79,6 +79,7 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
     title = "Heroku"
     slug = "heroku"
     description = "Integrate Heroku release tracking."
+    required_field = "repository"
 
     def configure(self, project, request):
         return react_plugin_config(self, project, request)

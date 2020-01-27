@@ -43,6 +43,7 @@ class OpsGeniePlugin(notify.NotificationPlugin):
     conf_key = "opsgenie"
     version = sentry.VERSION
     project_conf_form = OpsGenieOptionsForm
+    required_field = "api_key"
 
     logger = logging.getLogger("sentry.plugins.opsgenie")
 

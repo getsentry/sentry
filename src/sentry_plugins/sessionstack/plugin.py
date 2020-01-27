@@ -30,6 +30,7 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
     slug = "sessionstack"
     conf_title = title
     conf_key = slug
+    required_field = "account_email"
 
     sessionstack_resource_links = [
         ("Documentation", "http://docs.sessionstack.com/integrations/sentry/")

@@ -39,6 +39,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
     title = "JIRA"
     conf_title = title
     conf_key = slug
+    required_field = "username"
 
     def get_group_urls(self):
         _patterns = super(JiraPlugin, self).get_group_urls()
