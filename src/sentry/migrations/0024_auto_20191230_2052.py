@@ -52,6 +52,26 @@ def backfill_eventstream(apps, schema_editor):
             event.group = groups.get(event.group_id)
         eventstore.bind_nodes(_events, "data")
 
+    def _get_grouping_variants(event):
+        from sentry.grouping.api import get_grouping_variants_for_event, load_grouping_config
+        from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+
+        config = event.data.get("grouping_config")
+        config = load_grouping_config(config)
+        return get_grouping_variants_for_event(event, config)
+
+    def _get_hashes(event):
+        hashes = event.data.get("hashes")
+        if hashes is not None:
+            return hashes
+
+        return filter(
+            None, [x.get_hash() for x in _get_grouping_variants(event).values()]
+        )
+
+    def _get_primary_hash(event):
+        return  _get_hashes(event)[0]
+
     if skip_backfill:
         print("Skipping backfill.\n")
         return
@@ -67,7 +87,7 @@ def backfill_eventstream(apps, schema_editor):
 
     processed = 0
     for event in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
-        primary_hash = event.get_primary_hash()
+        primary_hash = _get_primary_hash(event)
         if event.project is None or event.group is None:
             print("Skipped {} as group or project information is invalid.\n".format(event))
             continue
