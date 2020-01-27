@@ -304,14 +304,15 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group_id, = set(e.group.id for e in events)
 
         group = Group.objects.get(id=group_id)
-        group.times_seen = 5
-        group.first_seen = self.week_ago
+        group.times_seen = 3
+        group.first_seen = self.week_ago - timedelta(days=5)
+        group.last_seen = self.week_ago
         group.save()
 
         # should use group columns when no environments arg passed
         result = serialize(group, serializer=GroupSerializerSnuba(environment_ids=[]))
-        assert result["count"] == "5"
-        assert result["lastSeen"] == group.last_seen
+        assert result["count"] == "3"
+        assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
         assert result["firstSeen"] == group.first_seen
 
         # update this to something different to make sure it's being used

@@ -568,21 +568,15 @@ class GroupSerializerSnuba(GroupSerializerBase):
             end=self.end,
         )
 
-        first_seen = {}
-        last_seen = {}
-        times_seen = {}
+        seen_data = tagstore.get_group_seen_values_for_environments(
+            project_ids, group_ids, self.environment_ids, start=self.start, end=self.end
+        )
+        last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
         if not self.environment_ids:
-            # use issue fields
-            for item in item_list:
-                first_seen[item.id] = item.first_seen
-                last_seen[item.id] = item.last_seen
-                times_seen[item.id] = item.times_seen
+            first_seen = {item.id: item.first_seen for item in item_list}
+            times_seen = {item.id: item.times_seen for item in item_list}
         else:
-            seen_data = tagstore.get_group_seen_values_for_environments(
-                project_ids, group_ids, self.environment_ids, start=self.start, end=self.end
-            )
-
-            first_seen_data = {
+            first_seen = {
                 ge["group_id"]: ge["first_seen__min"]
                 for ge in GroupEnvironment.objects.filter(
                     group_id__in=[item.id for item in item_list],
@@ -591,11 +585,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 .values("group_id")
                 .annotate(Min("first_seen"))
             }
-
-            for item_id, value in seen_data.items():
-                first_seen[item_id] = first_seen_data.get(item_id)
-                last_seen[item_id] = value["last_seen"]
-                times_seen[item_id] = value["times_seen"]
+            times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
 
         attrs = {}
         for item in item_list:
