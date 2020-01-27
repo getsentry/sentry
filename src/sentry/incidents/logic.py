@@ -601,7 +601,7 @@ def create_alert_rule(
     aggregation,
     time_window,
     threshold_period,
-    environments=None,
+    environment=None,
     include_all_projects=False,
     excluded_projects=None,
     triggers=None,
@@ -617,7 +617,7 @@ def create_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: A QueryAggregation to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes
-    :param environments: List of environment IDs that this rule applies to
+    :param environment: List of environment IDs that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -641,7 +641,7 @@ def create_alert_rule(
             query=query,
             aggregation=aggregation.value,
             time_window=time_window,
-            environments=environments,
+            environment=environment,
             resolution=resolution,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
@@ -673,7 +673,7 @@ def update_alert_rule(
     query=None,
     aggregation=None,
     time_window=None,
-    environments=None,
+    environment=None,
     threshold_period=None,
     include_all_projects=None,
     excluded_projects=None,
@@ -690,7 +690,7 @@ def update_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: An AlertRuleAggregation that we want to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes.
-    :param environments: List of environment IDs that this rule applies to
+    :param environment: List of environment IDs that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -716,8 +716,8 @@ def update_alert_rule(
         updated_fields["aggregation"] = aggregation.value
     if time_window:
         updated_fields["time_window"] = time_window
-    if environments:
-        updated_fields["environments"] = environments
+    if environment:
+        updated_fields["environment"] = environment
     if threshold_period:
         updated_fields["threshold_period"] = threshold_period
     if include_all_projects is not None:
