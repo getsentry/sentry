@@ -513,7 +513,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
-    "sentry.tasks.data_export",
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
@@ -545,7 +544,6 @@ CELERY_QUEUES = [
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
     Queue("commits", routing_key="commits"),
     Queue("cleanup", routing_key="cleanup"),
-    Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
@@ -794,8 +792,6 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Enable the 'data-export' interface.
-    "organizations:data-export": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
