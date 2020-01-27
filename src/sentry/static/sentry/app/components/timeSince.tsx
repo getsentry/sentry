@@ -24,6 +24,8 @@ type Props = {
 
   // TODO(ts): This should be "required", but emotion doesn't seem to like its defaultProps
   suffix?: string;
+
+  className?: string;
 };
 
 type State = {
@@ -75,7 +77,7 @@ class TimeSince extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {date, suffix: _suffix, ...props} = this.props;
+    const {date, suffix: _suffix, className, ...props} = this.props;
     const dateObj = getDateObj(date);
     const user = ConfigStore.get('user');
     const options = user ? user.options : {};
@@ -85,6 +87,7 @@ class TimeSince extends React.PureComponent<Props, State> {
       <time
         dateTime={dateObj.toISOString()}
         title={moment.tz(dateObj, options.timezone).format(format)}
+        className={className}
         {...props}
       >
         {this.state.relative}
