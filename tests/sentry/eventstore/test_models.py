@@ -230,7 +230,7 @@ class EventTest(TestCase):
 
 @pytest.mark.django_db
 def test_renormalization(monkeypatch, factories, task_runner, default_project):
-    from semaphore.processing import StoreNormalizer
+    from sentry_relay.processing import StoreNormalizer
 
     old_normalize = StoreNormalizer.normalize_event
     normalize_mock_calls = []
