@@ -38,7 +38,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         serialized_plugins = []
         for slug, plugin in six.iteritems(all_plugins):
             serialized_plugin = serialize(plugin, request.user, PluginSerializer())
-            serialized_plugin["count"] = (
+            serialized_plugin["projectCount"] = (
                 len(projects_by_plugin[slug]) if slug in projects_by_plugin else 0
             )
             serialized_plugins.append(serialized_plugin)

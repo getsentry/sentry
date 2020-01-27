@@ -44,7 +44,7 @@ class OrganizationPluginsTest(APITestCase):
 
         assert response.status_code == 200, (response.status_code, response.content)
 
-        assert filter(lambda x: x["slug"] == "webhooks", response.data)[0]["count"] == 1
-        assert filter(lambda x: x["slug"] == "trello", response.data)[0]["count"] == 2
-        assert filter(lambda x: x["slug"] == "opsgenie", response.data)[0]["count"] == 2
-        assert filter(lambda x: x["slug"] == "asana", response.data)[0]["count"] == 0
+        assert filter(lambda x: x["slug"] == "webhooks", response.data)[0]["projectCount"] == 1
+        assert filter(lambda x: x["slug"] == "trello", response.data)[0]["projectCount"] == 2
+        assert filter(lambda x: x["slug"] == "opsgenie", response.data)[0]["projectCount"] == 2
+        assert filter(lambda x: x["slug"] == "asana", response.data)[0]["projectCount"] == 0
