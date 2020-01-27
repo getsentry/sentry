@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {t} from 'app/locale';
+import { t } from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
-import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
+import { isStacktraceNewestFirst } from 'app/components/events/interfaces/stacktrace';
 import CrashHeader from 'app/components/events/interfaces/crashHeader';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 
@@ -34,8 +34,8 @@ class ExceptionInterface extends React.Component {
   };
 
   render() {
-    const {projectId, event, data, hideGuide, type} = this.props;
-    const {stackView, stackType, newestFirst} = this.state;
+    const { projectId, event, data, hideGuide, type } = this.props;
+    const { stackView, stackType, newestFirst } = this.state;
 
     // in case there are threads in the event data, we don't render the
     // exception block.  Instead the exception is contained within the

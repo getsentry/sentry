@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactSelect, {Async, Creatable, AsyncCreatable} from 'react-select';
+import ReactSelect, { Async, Creatable, AsyncCreatable } from 'react-select-legacy';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
+import { css } from '@emotion/core';
 
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
@@ -48,7 +48,7 @@ class SelectControl extends React.Component {
   };
 
   render() {
-    const {async, creatable, options, choices, clearable, noMenu, ...props} = this.props;
+    const { async, creatable, options, choices, clearable, noMenu, ...props } = this.props;
 
     // Compatibility with old select2 API
     const choicesOrOptions =
@@ -60,7 +60,7 @@ class SelectControl extends React.Component {
       arrowRenderer: () => null,
       menuRenderer: () => null,
       openOnClick: false,
-      menuContainerStyle: {display: 'none'},
+      menuContainerStyle: { display: 'none' },
     };
 
     // "-Removes" props should match `clearable` unless explicitly defined in props
@@ -83,7 +83,7 @@ class SelectControl extends React.Component {
   }
 }
 
-const SelectPicker = ({async, creatable, forwardedRef, ...props}) => {
+const SelectPicker = ({ async, creatable, forwardedRef, ...props }) => {
   // Pick the right component to use
   let Component;
   if (async && creatable) {
@@ -167,7 +167,7 @@ const StyledSelect = styled(SelectPicker)`
     z-index: ${p => p.theme.zIndex.dropdown};
   }
 
-  ${({noMenu}) =>
+  ${({ noMenu }) =>
     noMenu &&
     css`
       &.Select.is-focused.is-open > .Select-control {

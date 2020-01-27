@@ -1,8 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import Tooltip from 'app/components/tooltip';
+import Flex from 'app/components/flex';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import styled from '@emotion/styled';
+
+const StyledContainer = styled(Flex)({
+  marginBottom: 20,
+});
 
 class CrashHeader extends React.Component {
   static propTypes = {
@@ -88,7 +94,7 @@ class CrashHeader extends React.Component {
     const {title, beforeTitle, hideGuide, stackView, stackType, newestFirst} = this.props;
 
     let titleNode = (
-      <h3 className="pull-left">
+      <h3 className="pull-left" style={{marginBottom: 0}}>
         {title}
         <small style={{marginLeft: 5}}>
           (
@@ -111,9 +117,11 @@ class CrashHeader extends React.Component {
     }
 
     return (
-      <div className="crash-title">
-        {beforeTitle}
-        {titleNode}
+      <StyledContainer alignItems="center">
+        <Flex flexGrow={1} flexShrink={1}>
+          {beforeTitle}
+          {titleNode}
+        </Flex>
         <div className="btn-group" style={{marginLeft: 10}}>
           {this.hasSystemFrames() && (
             <a
@@ -160,7 +168,7 @@ class CrashHeader extends React.Component {
             </a>,
           ]}
         </div>
-      </div>
+      </StyledContainer>
     );
   }
 }
