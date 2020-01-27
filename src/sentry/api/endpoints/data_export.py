@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 
-from django.db import IntegrityError, transaction
+from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -44,16 +44,16 @@ class DataExportEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
 
         try:
-            with transaction.atomic():
-                # TODO(Leander): Prevent repeated requests for identical queries per organization, if one is in progress
-                data_export = ExportedData.objects.create(
-                    organization=organization,
-                    user=request.user,
-                    query_type=data["query_type"],
-                    query_info=data["query_info"],
-                )
-        except IntegrityError:
-            return Response("This exact export is already in progress.", status=409)
+            # TODO(Leander): Prevent repeated requests for identical queries per organization, if one is in progress
+            data_export = ExportedData.objects.create(
+                organization=organization,
+                user=request.user,
+                query_type=data["query_type"],
+                query_info=data["query_info"],
+            )
+        except ValidationError as e:
+            # This will handle invalid JSON requests
+            return Response({"detail": e.message}, status=400)
 
         compile_data.delay(data_export=data_export)
         return Response(serialize(data_export, request.user), status=201)
