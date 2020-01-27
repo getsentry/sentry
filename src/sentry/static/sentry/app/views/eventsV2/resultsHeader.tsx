@@ -7,6 +7,9 @@ import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
+import Hovercard from 'app/components/hovercard';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
@@ -59,6 +62,28 @@ class ResultsHeader extends React.Component<Props, State> {
     const {organization, location, eventView} = this.props;
     const {savedQuery, loading} = this.state;
 
+    const renderDisabled = p => (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            features={p.features}
+            hideHelpToggle
+            message={t('Discover queries are disabled')}
+            featureName={t('Discover queries')}
+          />
+        }
+      >
+        <SavedQueryButtonGroup
+          location={location}
+          organization={organization}
+          eventView={eventView}
+          savedQuery={savedQuery}
+          savedQueryLoading={loading}
+          disabled
+        />
+      </Hovercard>
+    );
+
     return (
       <HeaderBox>
         <DiscoverBreadcrumb
@@ -72,7 +97,12 @@ class ResultsHeader extends React.Component<Props, State> {
           eventView={eventView}
         />
         <Controller>
-          <Feature organization={organization} features={['discover-query']}>
+          <Feature
+            organization={organization}
+            features={['discover-query']}
+            hookName="feature-disabled:discover-saved-query-create"
+            renderDisabled={renderDisabled}
+          >
             <SavedQueryButtonGroup
               location={location}
               organization={organization}
