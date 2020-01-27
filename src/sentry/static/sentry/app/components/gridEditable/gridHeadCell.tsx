@@ -6,7 +6,6 @@ import {
   GridHeadCell as GridHeadCellWrapper,
   GridHeadCellButton,
   GridHeadCellButtonHover,
-  GridHeadCellButtonHoverBackground,
   GridHeadCellButtonHoverButton,
   GridHeadCellButtonHoverDraggable,
 } from './styles';
@@ -80,7 +79,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     this.props.actions.onDragStart(event, fromColumn);
   };
 
-  renderButtonHoverDraggable(children: React.ReactNode) {
+  renderButtonHoverDraggable() {
     const {isHovering} = this.state;
     const {isEditing, isColumnDragging} = this.props;
 
@@ -93,8 +92,6 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
         {/* Ensure that background is always at the top. The background must be
             independent because it has <100% opacity, but the elements on top
             of it must be 100% opacity */}
-        <GridHeadCellButtonHoverBackground>{children}</GridHeadCellButtonHoverBackground>
-
         <GridHeadCellButtonHover>
           <GridHeadCellButtonHoverDraggable
             src="icon-grabbable"
@@ -133,7 +130,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
           onMouseLeave={() => this.setHovering(false)}
         >
           {children}
-          {this.renderButtonHoverDraggable(children)}
+          {this.renderButtonHoverDraggable()}
         </GridHeadCellButton>
       </GridHeadCellWrapper>
     );
