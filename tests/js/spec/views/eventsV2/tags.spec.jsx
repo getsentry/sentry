@@ -115,8 +115,8 @@ describe('Tags', function() {
     wrapper.update();
 
     expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/eventsv2/results/',
-      query: {environment: 'abcd123'},
+      pathname: '/organizations/org-slug/discover/results/',
+      query: expect.objectContaining({environment: 'abcd123'}),
     });
   });
 });

@@ -35,7 +35,7 @@ const TagsTable = (props: Props) => {
                 {[tag.key]: tag.value},
                 event
               );
-              target = nextView.getResultsViewUrlTarget(organization);
+              target = nextView.getResultsViewUrlTarget(organization.slug);
             }
             return (
               <StyledTr key={tag.key}>
