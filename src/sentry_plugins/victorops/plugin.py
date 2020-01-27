@@ -24,6 +24,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
     title = "VictorOps"
     conf_key = slug
     conf_title = title
+    required_field = "api_key"
 
     def is_configured(self, project, **kwargs):
         return bool(self.get_option("api_key", project))
