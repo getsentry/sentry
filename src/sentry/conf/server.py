@@ -390,13 +390,11 @@ LOGIN_URL = reverse_lazy("sentry-login")
 
 AUTHENTICATION_BACKENDS = (
     "sentry.utils.auth.EmailAuthBackend",
-    # TODO(dcramer): we can't remove these until we rewrite more of social auth
-    "social_auth.backends.github.GithubBackend",
-    "social_auth.backends.github_apps.GithubAppsBackend",
-    "social_auth.backends.bitbucket.BitbucketBackend",
-    "social_auth.backends.trello.TrelloBackend",
+    # The following authentication backends are used by social auth only.
+    # We don't use them for user authentication.
     "social_auth.backends.asana.AsanaBackend",
-    "social_auth.backends.slack.SlackBackend",
+    "social_auth.backends.github.GithubBackend",
+    "social_auth.backends.bitbucket.BitbucketBackend",
     "social_auth.backends.visualstudio.VisualStudioBackend",
 )
 
@@ -413,16 +411,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = "sentry.User"
 
-SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
-    "social_auth.backends.github.GithubBackend",
-    "social_auth.backends.bitbucket.BitbucketBackend",
-    "social_auth.backends.trello.TrelloBackend",
-    "social_auth.backends.asana.AsanaBackend",
-    "social_auth.backends.slack.SlackBackend",
-    "social_auth.backends.github_apps.GithubAppsBackend",
-    "social_auth.backends.visualstudio.VisualStudioBackend",
-)
-
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
 SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
@@ -433,14 +421,11 @@ GOOGLE_OAUTH2_CLIENT_SECRET = ""
 GITHUB_APP_ID = ""
 GITHUB_API_SECRET = ""
 
-GITHUB_APPS_APP_ID = ""
-GITHUB_APPS_API_SECRET = ""
-
-TRELLO_API_KEY = ""
-TRELLO_API_SECRET = ""
-
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
+
+ASANA_CLIENT_ID = ""
+ASANA_CLIENT_SECRET = ""
 
 VISUALSTUDIO_APP_ID = ""
 VISUALSTUDIO_APP_SECRET = ""
@@ -466,11 +451,8 @@ INITIAL_CUSTOM_USER_MIGRATION = "0108_fix_user"
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     "github": ("GITHUB_APP_ID", "GITHUB_API_SECRET"),
-    "github_apps": ("GITHUB_APPS_APP_ID", "GITHUB_APPS_API_SECRET"),
-    "trello": ("TRELLO_API_KEY", "TRELLO_API_SECRET"),
     "bitbucket": ("BITBUCKET_CONSUMER_KEY", "BITBUCKET_CONSUMER_SECRET"),
     "asana": ("ASANA_CLIENT_ID", "ASANA_CLIENT_SECRET"),
-    "slack": ("SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET"),
     "visualstudio": (
         "VISUALSTUDIO_APP_ID",
         "VISUALSTUDIO_APP_SECRET",
@@ -480,11 +462,8 @@ AUTH_PROVIDERS = {
 
 AUTH_PROVIDER_LABELS = {
     "github": "GitHub",
-    "github_apps": "GitHub Apps",
-    "trello": "Trello",
     "bitbucket": "Bitbucket",
     "asana": "Asana",
-    "slack": "Slack",
     "visualstudio": "Visual Studio",
 }
 
