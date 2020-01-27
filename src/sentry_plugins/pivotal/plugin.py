@@ -22,6 +22,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
     title = "Pivotal Tracker"
     conf_title = title
     conf_key = "pivotal"
+    required_field = "token"
 
     def get_group_urls(self):
         return super(PivotalPlugin, self).get_group_urls() + [

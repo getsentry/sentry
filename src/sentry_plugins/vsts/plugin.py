@@ -16,6 +16,7 @@ class VstsPlugin(VisualStudioMixin, IssueTrackingPlugin2):
     slug = "vsts"
     conf_key = slug
     auth_provider = "visualstudio"
+    required_field = "instance"
 
     issue_fields = frozenset(["id", "title", "url"])
 

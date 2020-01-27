@@ -17,6 +17,7 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
     title = "Pushover"
     conf_title = "Pushover"
     conf_key = "pushover"
+    required_field = "apikey"
 
     def is_configured(self, project):
         return all(self.get_option(key, project) for key in ("userkey", "apikey"))
