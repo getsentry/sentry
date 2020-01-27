@@ -95,7 +95,6 @@ class MessageBuilderTest(TestCase):
         user_b = User.objects.create(email="bar@example.com")
         user_c = User.objects.create(email="baz@example.com")
 
-        UserOption.objects.create(user=user_b, key="alert_email", value="fizzle@example.com")
         UserOption.objects.create(
             user=user_c, project=project, key="mail:email", value="bazzer@example.com"
         )
@@ -109,8 +108,8 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 3
 
         assert sorted([out.to[0] for out in mail.outbox]) == [
+            "bar@example.com",
             "bazzer@example.com",
-            "fizzle@example.com",
             "foo@example.com",
         ]
 
@@ -121,9 +120,6 @@ class MessageBuilderTest(TestCase):
         user_b = User.objects.create(email=create_fake_email("bar", "fake"))
         user_c = User.objects.create(email=create_fake_email("baz", "fake"))
 
-        UserOption.objects.create(
-            user=user_b, key="alert_email", value=create_fake_email("fizzle", "fake")
-        )
         UserOption.objects.create(
             user=user_c,
             project=project,

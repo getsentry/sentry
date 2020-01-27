@@ -170,12 +170,6 @@ def get_email_addresses(user_ids, project=None):
             pending.discard(option.user_id)
 
     if pending:
-        queryset = UserOption.objects.filter(user__in=pending, key="alert_email")
-        for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
-            results[option.user_id] = option.value
-            pending.discard(option.user_id)
-
-    if pending:
         queryset = User.objects.filter(pk__in=pending, is_active=True)
         for (user_id, email) in queryset.values_list("id", "email"):
             if email and not is_fake_email(email):

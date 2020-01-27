@@ -158,11 +158,6 @@ class UserEmailsEndpoint(UserEndpoint):
                 status=400,
             )
 
-        # update notification settings for those set to primary email with new primary email
-        alert_email = UserOption.objects.get_value(user=user, key="alert_email")
-        if alert_email == old_email:
-            UserOption.objects.set_value(user=user, key="alert_email", value=new_email)
-
         options = UserOption.objects.filter(user=user, key="mail:email")
         for option in options:
             if option.value != old_email:
