@@ -40,7 +40,6 @@ class EventExtraData extends React.Component<Props, State> {
     return (
       <div className="extra-data">
         <EventDataSection
-          event={this.props.event}
           type="extra"
           title={t('Additional Data')}
           toggleRaw={this.toggleRaw}
