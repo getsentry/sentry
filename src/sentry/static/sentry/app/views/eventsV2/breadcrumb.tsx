@@ -10,7 +10,6 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 import EventView from './eventView';
-import {generateDiscoverResultsRoute} from './results';
 import {generateDiscoverLandingPageRoute} from './utils';
 
 type Props = {
@@ -45,11 +44,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
     );
 
     if (eventView && eventView.isValid()) {
-      const eventTarget = {
-        pathname: generateDiscoverResultsRoute(organization.slug),
-        query: eventView.generateQueryStringObject(),
-      };
-
+      const eventTarget = eventView.getResultsViewUrlTarget(organization.slug);
       crumbs.push(
         <span key="eventview-sep">
           <StyledIcon src="icon-chevron-right" />

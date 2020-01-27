@@ -51,7 +51,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   componentDidMount() {
-    const {location, eventView} = this.props;
+    const {location, organization, eventView} = this.props;
 
     if (!eventView.isValid()) {
       const nextEventView = EventView.fromNewQueryWithLocation(
@@ -59,10 +59,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
         location
       );
 
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: nextEventView.generateQueryStringObject(),
-      });
+      browserHistory.replace(nextEventView.getResultsViewUrlTarget(organization.slug));
       return;
     }
 

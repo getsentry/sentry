@@ -68,10 +68,7 @@ class EventInputName extends React.Component<Props> {
         const renamedEventView = eventView.clone();
         renamedEventView.name = nextQueryName;
 
-        browserHistory.push({
-          pathname: location.pathname,
-          query: renamedEventView.generateQueryStringObject(),
-        });
+        browserHistory.push(renamedEventView.getResultsViewUrlTarget(organization.slug));
       }
     );
   };
