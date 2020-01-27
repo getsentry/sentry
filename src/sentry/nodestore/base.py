@@ -1,11 +1,15 @@
 from __future__ import absolute_import
 
 import six
+from hashlib import md5
 
 from base64 import b64encode
 from threading import local
 from uuid import uuid4
 
+from django.core.cache import caches, InvalidCacheBackendError
+
+from sentry.utils.cache import memoize
 from sentry.utils.services import Service
 
 
@@ -21,6 +25,11 @@ class NodeStorage(local, Service):
         "generate_id",
         "cleanup",
         "validate",
+        "_get_cache_item",
+        "_get_cache_items",
+        "_set_cache_item",
+        "_delete_cache_item",
+        "_delete_cache_items",
     )
 
     def create(self, data):
@@ -85,3 +94,47 @@ class NodeStorage(local, Service):
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
+
+    def _get_cache_item(self, id):
+        if self.cache and self.should_cache(id):
+            return self.cache.get(id)
+
+    def _get_cache_items(self, id_list):
+        cacheable_ids = [id for id in id_list if self.should_cache(id)]
+        if self.cache and self.sample_rate != 0.0:
+            return self.cache.get_many(cacheable_ids)
+        return {}
+
+    def _set_cache_item(self, id, data):
+        if self.cache and data:
+            if self.should_cache(id):
+                self.cache.set(id, data)
+
+    def _set_cache_items(self, items):
+        cacheable_items = {k: v for k, v in six.iteritems(items) if v and self.should_cache(k)}
+        if self.cache:
+            self.cache.set_many(cacheable_items)
+
+    def _delete_cache_item(self, id):
+        if self.cache:
+            self.cache.delete(id)
+
+    def _delete_cache_items(self, id_list):
+        if self.cache:
+            self.cache.delete_many(id_list)
+
+    @memoize
+    def cache(self):
+        try:
+            return caches["nodedata"]
+        except InvalidCacheBackendError:
+            return None
+
+    @memoize
+    def sample_rate(self):
+        from sentry import options
+
+        return options.get("nodedata.cache-sample-rate", 0.0)
+
+    def should_cache(self, id):
+        return (int(md5(id).hexdigest(), 16) % 1000) / 1000.0 < self.sample_rate

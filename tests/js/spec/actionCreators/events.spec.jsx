@@ -17,7 +17,16 @@ describe('Events ActionCreator', function() {
     MockApiClient.clearMockResponses();
     mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {data: [[123, []], [123, []], [123, []], [123, []], [123, []], [123, []]]},
+      body: {
+        data: [
+          [123, []],
+          [123, []],
+          [123, []],
+          [123, []],
+          [123, []],
+          [123, []],
+        ],
+      },
     });
   });
 

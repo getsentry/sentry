@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from collections import defaultdict
 from datetime import timedelta
+from rest_framework import serializers
 from uuid import uuid4
 
 import pytz
@@ -621,6 +622,8 @@ def create_alert_rule(
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`.
+    :param actions: A list of alert rule triggers for this for this rule
+
     :return: The created `AlertRule`
     """
     dataset = QueryDatasets.EVENTS
@@ -652,6 +655,11 @@ def create_alert_rule(
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
         subscribe_projects_to_alert_rule(alert_rule, projects)
+
+        if triggers:
+            for trigger_data in triggers:
+                create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+
     return alert_rule
 
 
@@ -787,9 +795,31 @@ def update_alert_rule(
                 existing_subs,
                 alert_rule.query,
                 QueryAggregations(alert_rule.aggregation),
-                alert_rule.time_window,
-                DEFAULT_ALERT_RULE_RESOLUTION,
+                timedelta(minutes=alert_rule.time_window),
+                timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
             )
+
+        if triggers is not None:
+            # Delete triggers we don't have present in the updated data.
+            trigger_ids = [x["id"] for x in triggers if "id" in x]
+            AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
+                id__in=trigger_ids
+            ).delete()
+
+            for trigger_data in triggers:
+                try:
+                    if "id" in trigger_data:
+                        trigger_instance = AlertRuleTrigger.objects.get(
+                            alert_rule=alert_rule, id=trigger_data["id"]
+                        )
+                        trigger_data.pop("id")
+                        update_alert_rule_trigger(trigger_instance, **trigger_data)
+                    else:
+                        create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+                except AlertRuleTriggerLabelAlreadyUsedError:
+                    raise serializers.ValidationError(
+                        "This trigger label is already in use for this alert rule"
+                    )
 
     return alert_rule
 
@@ -805,8 +835,8 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
         QueryDatasets(alert_rule.dataset),
         alert_rule.query,
         QueryAggregations(alert_rule.aggregation),
-        alert_rule.time_window,
-        alert_rule.resolution,
+        timedelta(minutes=alert_rule.time_window),
+        timedelta(minutes=alert_rule.resolution),
     )
     subscription_links = [
         AlertRuleQuerySubscription(query_subscription=subscription, alert_rule=alert_rule)
@@ -878,6 +908,7 @@ def create_alert_rule_trigger(
     resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
+    :param actions: A list of alert rule trigger actions for this trigger
     :return: The created AlertRuleTrigger
     """
     if AlertRuleTrigger.objects.filter(alert_rule=alert_rule, label=label).exists():
@@ -901,6 +932,11 @@ def create_alert_rule_trigger(
                 for sub in excluded_subs
             ]
             AlertRuleTriggerExclusion.objects.bulk_create(new_exclusions)
+
+        if actions:
+            for action_data in actions:
+                create_alert_rule_trigger_action(trigger=trigger, **action_data)
+
     return trigger
 
 
@@ -923,6 +959,7 @@ def update_alert_rule_trigger(
     resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
+    :param actions: A list of alert rule trigger actions for this trigger
     :return: The updated AlertRuleTrigger
     """
 
@@ -973,6 +1010,22 @@ def update_alert_rule_trigger(
             ]
             AlertRuleTriggerExclusion.objects.bulk_create(new_exclusions)
 
+        if actions is not None:
+            # Delete actions we don't have present in the updated data.
+            action_ids = [x["id"] for x in actions if "id" in x]
+            AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger).exclude(
+                id__in=action_ids
+            ).delete()
+
+            for action_data in actions:
+                if "id" in action_data:
+                    action_instance = AlertRuleTriggerAction.objects.get(
+                        alert_rule_trigger=trigger, id=action_data["id"]
+                    )
+                    action_data.pop("id")
+                    update_alert_rule_trigger_action(action_instance, **action_data)
+                else:
+                    create_alert_rule_trigger_action(trigger=trigger, **action_data)
     return trigger
 
 

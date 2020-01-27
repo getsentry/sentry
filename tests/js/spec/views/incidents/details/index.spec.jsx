@@ -45,9 +45,7 @@ describe('IncidentDetails', function() {
       statusCode: 404,
     });
     activitiesList = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/incidents/${
-        mockIncident.identifier
-      }/activity/`,
+      url: `/organizations/${organization.slug}/incidents/${mockIncident.identifier}/activity/`,
       body: [TestStubs.IncidentActivity()],
     });
   });
@@ -72,15 +70,21 @@ describe('IncidentDetails', function() {
     expect(
       wrapper
         .find('ItemValue')
-        .at(4)
+        .at(2)
         .text()
-    ).toBe('100');
+    ).toBe('20');
     expect(
       wrapper
         .find('ItemValue')
         .at(3)
         .text()
-    ).toBe('20');
+    ).toBe('100');
+    expect(
+      wrapper
+        .find('ItemValue')
+        .at(4)
+        .text()
+    ).toBe('2 weeks');
   });
 
   it('handles invalid incident', async function() {

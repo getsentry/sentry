@@ -210,9 +210,7 @@ describe('TeamMembers', function() {
 
   it('can remove member from team', async function() {
     const deleteMock = Client.addMockResponse({
-      url: `/organizations/${organization.slug}/members/${members[0].id}/teams/${
-        team.slug
-      }/`,
+      url: `/organizations/${organization.slug}/members/${members[0].id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
     const wrapper = mountWithTheme(

@@ -13,7 +13,7 @@ from sentry import features, tagstore
 
 class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        if not features.has("organizations:events-v2", organization, actor=request.user):
+        if not features.has("organizations:discover-basic", organization, actor=request.user):
             return Response(status=404)
         try:
             params = self.get_filter_params(request, organization)
@@ -51,9 +51,8 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
             projects = {p.id: p.slug for p in self.get_projects(request, organization)}
             for v in resp["project"]["topValues"]:
                 name = projects[v["value"]]
-                v.update({"name": name, "value": name})
+                v.update({"name": name})
 
-        # TODO(mark) Figure out how to keep the results ordered.
         return Response(resp.values())
 
     def _validate_project_ids(self, request, organization, params):

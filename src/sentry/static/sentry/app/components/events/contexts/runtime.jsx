@@ -14,7 +14,10 @@ class RuntimeContextType extends React.Component {
     return (
       <ContextBlock
         data={data}
-        knownData={[['Name', name], ['Version', version + (build ? ` (${build})` : '')]]}
+        knownData={[
+          ['Name', name],
+          ['Version', version + (build ? ` (${build})` : '')],
+        ]}
         alias={this.props.alias}
       />
     );

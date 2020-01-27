@@ -1,4 +1,4 @@
-import {Location, Query} from 'history';
+import {Location, LocationDescriptor, Query} from 'history';
 import isString from 'lodash/isString';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
-import {SavedQuery, NewQuery} from 'app/types';
+import {OrganizationSummary, SavedQuery, NewQuery} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
@@ -300,11 +300,9 @@ class EventView {
       .map(field => {
         return getSortKeyFromField(field, undefined);
       })
-      .filter(
-        (sortKey): sortKey is string => {
-          return !!sortKey;
-        }
-      );
+      .filter((sortKey): sortKey is string => {
+        return !!sortKey;
+      });
 
     const sort = sorts.find(currentSort => {
       return sortKeys.includes(currentSort.field);
@@ -865,6 +863,13 @@ class EventView {
     }
 
     return eventQuery;
+  }
+
+  getResultsViewUrlTarget(organization: OrganizationSummary): LocationDescriptor {
+    return {
+      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+      query: this.generateQueryStringObject(),
+    };
   }
 
   isFieldSorted(field: Field, tableMeta: MetaType): Sort | undefined {

@@ -46,14 +46,14 @@ def install_sentry_plugins():
     settings.BITBUCKET_CONSUMER_SECRET = "123"
     settings.GITHUB_APP_ID = "abc"
     settings.GITHUB_API_SECRET = "123"
-    settings.GITHUB_APPS_APP_ID = "abc"
-    settings.GITHUB_APPS_API_SECRET = "123"
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 
 
-def pytest_collection_modifyitems(items):
+def pytest_collection_modifyitems(config, items):
     for item in items:
         total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
         group_num = int(md5(item.location[0]).hexdigest(), 16) % total_groups
-        item.add_marker(getattr(pytest.mark, "group_%s" % group_num))
+        marker = "group_%s" % group_num
+        config.addinivalue_line("markers", marker)
+        item.add_marker(getattr(pytest.mark, marker))

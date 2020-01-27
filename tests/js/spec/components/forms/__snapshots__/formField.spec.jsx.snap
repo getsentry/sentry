@@ -277,63 +277,71 @@ exports[`FormField + model renders with Form 1`] = `
             className="css-1utgghf-DefaultButtons e1r1zmbj1"
           >
             <Observer>
-              <Button
-                align="center"
+              <forwardRef<Button>
                 data-test-id="form-submit"
                 disabled={false}
                 priority="primary"
                 type="submit"
               >
-                <StyledButton
-                  aria-disabled={false}
-                  aria-label="Save Changes"
+                <Button
+                  align="center"
                   data-test-id="form-submit"
                   disabled={false}
-                  onClick={[Function]}
+                  forwardRef={null}
                   priority="primary"
-                  role="button"
                   type="submit"
                 >
-                  <ForwardRef
+                  <StyledButton
                     aria-disabled={false}
                     aria-label="Save Changes"
-                    className="css-1e05jtd-StyledButton edwq9my0"
                     data-test-id="form-submit"
                     disabled={false}
+                    forwardRef={null}
                     onClick={[Function]}
                     priority="primary"
                     role="button"
                     type="submit"
                   >
-                    <button
+                    <Component
                       aria-disabled={false}
                       aria-label="Save Changes"
                       className="css-1e05jtd-StyledButton edwq9my0"
                       data-test-id="form-submit"
+                      forwardRef={null}
                       onClick={[Function]}
                       role="button"
                       type="submit"
                     >
-                      <ButtonLabel
-                        align="center"
-                        priority="primary"
+                      <button
+                        aria-disabled={false}
+                        aria-label="Save Changes"
+                        className="css-1e05jtd-StyledButton edwq9my0"
+                        data-test-id="form-submit"
+                        onClick={[Function]}
+                        role="button"
+                        type="submit"
                       >
-                        <Component
+                        <ButtonLabel
                           align="center"
-                          className="css-zmpclt-ButtonLabel edwq9my1"
                           priority="primary"
                         >
-                          <span
+                          <Component
+                            align="center"
                             className="css-zmpclt-ButtonLabel edwq9my1"
+                            priority="primary"
                           >
-                            Save Changes
-                          </span>
-                        </Component>
-                      </ButtonLabel>
-                    </button>
-                  </ForwardRef>
-                </StyledButton>
-              </Button>
+                            <span
+                              className="css-zmpclt-ButtonLabel edwq9my1"
+                            >
+                              Save Changes
+                            </span>
+                          </Component>
+                        </ButtonLabel>
+                      </button>
+                    </Component>
+                  </StyledButton>
+                </Button>
+              </forwardRef<Button>>
             </Observer>
           </div>
         </DefaultButtons>

@@ -336,10 +336,11 @@ export class Client {
           );
         },
         complete: (jqXHR: JQueryXHR, textStatus: string) => {
-          return this.wrapCallback<[JQueryXHR, string]>(id, options.complete, true)(
-            jqXHR,
-            textStatus
-          );
+          return this.wrapCallback<[JQueryXHR, string]>(
+            id,
+            options.complete,
+            true
+          )(jqXHR, textStatus);
         },
       })
     );
@@ -391,11 +392,9 @@ export class Client {
   }
 
   _chain<Args extends any[]>(...funcs: Array<((...args: Args) => any) | undefined>) {
-    const filteredFuncs = funcs.filter(
-      (f): f is (...args: Args) => any => {
-        return typeof f === 'function';
-      }
-    );
+    const filteredFuncs = funcs.filter((f): f is (...args: Args) => any => {
+      return typeof f === 'function';
+    });
     return (...args: Args): void => {
       filteredFuncs.forEach(func => {
         func.apply(funcs, args);

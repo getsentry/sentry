@@ -3,7 +3,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import Results from 'app/views/eventsV2/results';
+import Results, {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 
 const FIELDS = [
   {
@@ -25,7 +25,7 @@ const generateFields = () => {
 
 describe('EventsV2 > Results', function() {
   const eventTitle = 'Oh no something bad';
-  const features = ['events-v2'];
+  const features = ['discover-basic'];
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
@@ -146,5 +146,13 @@ describe('EventsV2 > Results', function() {
         statsPeriod: '14d',
       },
     });
+  });
+});
+
+describe('generateDiscoverResultsRoute', function() {
+  it('generateDiscoverResultsRoute', function() {
+    expect(generateDiscoverResultsRoute('sentry')).toBe(
+      '/organizations/sentry/eventsv2/results/'
+    );
   });
 });

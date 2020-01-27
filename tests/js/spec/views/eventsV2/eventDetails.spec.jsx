@@ -69,7 +69,10 @@ describe('EventsV2 > EventDetails', function() {
       url: '/organizations/org-slug/events-stats/',
       method: 'GET',
       body: {
-        data: [[1234561700, [1]], [1234561800, [1]]],
+        data: [
+          [1234561700, [1]],
+          [1234561800, [1]],
+        ],
       },
     });
 
@@ -209,10 +212,8 @@ describe('EventsV2 > EventDetails', function() {
       organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
       router: {
         location: {
-          pathname: '/organizations/org-slug/events/',
-          query: {
-            eventSlug: 'project-slug:deadbeef',
-          },
+          pathname: '/organizations/org-slug/eventsv2/project-slug:deadbeef',
+          query: {},
         },
       },
     });
@@ -230,12 +231,10 @@ describe('EventsV2 > EventDetails', function() {
     // Get the first link as we wrap react-router's link
     const tagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
 
-    // Should remove eventSlug and append new tag value causing
-    // the view to re-render
-    expect(tagLink.props().to).toEqual({
-      pathname: '/organizations/org-slug/events/',
-      query: {query: 'browser:Firefox'},
-    });
+    // Should append tag value and other event attributes to results view query.
+    const target = tagLink.props().to;
+    expect(target.pathname).toEqual('/organizations/org-slug/eventsv2/results/');
+    expect(target.query.query).toEqual('browser:Firefox title:"Oh no something bad"');
   });
 
   it('appends tag value to existing query when clicked', async function() {
@@ -243,11 +242,8 @@ describe('EventsV2 > EventDetails', function() {
       organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
       router: {
         location: {
-          pathname: '/organizations/org-slug/events/',
-          query: {
-            query: 'Dumpster',
-            eventSlug: 'project-slug:deadbeef',
-          },
+          pathname: '/organizations/org-slug/eventsv2/project-slug:deadbeef',
+          query: {},
         },
       },
     });
@@ -255,7 +251,9 @@ describe('EventsV2 > EventDetails', function() {
       <EventDetails
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
-        location={{query: allEventsView.generateQueryStringObject()}}
+        location={{
+          query: {...allEventsView.generateQueryStringObject(), query: 'Dumpster'},
+        }}
       />,
       routerContext
     );
@@ -265,11 +263,11 @@ describe('EventsV2 > EventDetails', function() {
     // Get the first link as we wrap react-router's link
     const tagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
 
-    // Should remove eventSlug and append new tag value causing
-    // the view to re-render
-    expect(tagLink.props().to).toEqual({
-      pathname: '/organizations/org-slug/events/',
-      query: {query: 'Dumpster browser:Firefox'},
-    });
+    // Should append tag value and other event attributes to results view query.
+    const target = tagLink.props().to;
+    expect(target.pathname).toEqual('/organizations/org-slug/eventsv2/results/');
+    expect(target.query.query).toEqual(
+      'Dumpster browser:Firefox title:"Oh no something bad"'
+    );
   });
 });

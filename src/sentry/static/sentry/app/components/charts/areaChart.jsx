@@ -16,13 +16,17 @@ class AreaChart extends React.Component {
     return (
       <BaseChart
         {...props}
-        series={series.map(({seriesName, data, ...otherSeriesProps}, i) =>
+        series={series.map(({seriesName, data, ...otherSeriesProps}) =>
           AreaSeries({
             stack: stacked ? 'area' : false,
-            areaStyle: {opacity: 1.0},
             ...otherSeriesProps,
             name: seriesName,
             data: data.map(({name, value}) => [name, value]),
+            color: '#948BCF',
+            areaStyle: {
+              color: '#C4BFE9',
+              opacity: 1.0,
+            },
           })
         )}
       />

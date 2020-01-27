@@ -63,9 +63,7 @@ describe('SentryAppExternalIssueForm', () => {
     });
 
     it('submits to the New External Issue endpoint', () => {
-      const url = `/sentry-app-installations/${
-        sentryAppInstallation.uuid
-      }/external-issues/`;
+      const url = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`;
       expect(wrapper.find('Form').prop('apiEndpoint')).toEqual(url);
       expect(wrapper.find('Form').prop('apiMethod')).toEqual('POST');
     });
@@ -126,9 +124,7 @@ describe('SentryAppExternalIssueForm', () => {
     });
 
     it('submits to the New External Issue endpoint', () => {
-      const url = `/sentry-app-installations/${
-        sentryAppInstallation.uuid
-      }/external-issues/`;
+      const url = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`;
       expect(wrapper.find('Form').prop('apiEndpoint')).toEqual(url);
       expect(wrapper.find('Form').prop('apiMethod')).toEqual('POST');
     });
@@ -194,7 +190,10 @@ describe('SentryAppExternalIssueForm Async Field', () => {
         url:
           '/sentry-app-installations/d950595e-cba2-46f6-8a94-b79e42806f98/external-requests/',
         body: {
-          choices: [[1, 'Issue 1'], [2, 'Issue 2']],
+          choices: [
+            [1, 'Issue 1'],
+            [2, 'Issue 2'],
+          ],
         },
       });
 

@@ -13,6 +13,41 @@ class AlertRuleDetailsBase(object):
     endpoint = "sentry-api-0-project-alert-rule-details"
 
     @fixture
+    def valid_params(self):
+        return {
+            "name": "hello",
+            "time_window": 10,
+            "query": "level:error",
+            "threshold_type": 0,
+            "resolve_threshold": 1,
+            "alert_threshold": 0,
+            "aggregation": 0,
+            "threshold_period": 1,
+            "projects": [self.project.slug],
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 200,
+                    "resolveThreshold": 100,
+                    "thresholdType": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                },
+                {
+                    "label": "warning",
+                    "alertThreshold": 150,
+                    "resolveThreshold": 100,
+                    "thresholdType": 0,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                    ],
+                },
+            ],
+        }
+
+    @fixture
     def organization(self):
         return self.create_organization()
 
@@ -83,10 +118,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
 
+        test_params = self.valid_params.copy()
+        test_params.update({"name": "what"})
+
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
-                self.organization.slug, self.project.slug, self.alert_rule.id, name="what"
+                self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
 
         self.alert_rule.name = "what"
@@ -94,6 +132,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data["name"] == "what"
 
     def test_not_updated_fields(self):
+        test_params = self.valid_params.copy()
+        test_params.update({"aggregation": self.alert_rule.aggregation})
+
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
@@ -101,10 +142,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
-                self.organization.slug,
-                self.project.slug,
-                self.alert_rule.id,
-                aggregation=self.alert_rule.aggregation,
+                self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
 
         existing_sub = self.alert_rule.query_subscriptions.first()

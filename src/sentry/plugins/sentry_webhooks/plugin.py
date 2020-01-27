@@ -85,7 +85,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             "logger": event.get_tag("logger"),
             "level": event.get_tag("level"),
             "culprit": group.culprit,
-            "message": event.real_message,
+            "message": event.message,
             "url": group.get_absolute_url(params={"referrer": "webhooks_plugin"}),
             "triggering_rules": triggering_rules,
         }

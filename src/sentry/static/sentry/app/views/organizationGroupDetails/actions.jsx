@@ -15,6 +15,7 @@ import {uniqueId} from 'app/utils/guid';
 import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
 import EventView from 'app/views/eventsV2/eventView';
+import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
@@ -158,7 +159,7 @@ const GroupDetailsActions = createReactClass({
     const discoverView = EventView.fromSavedQuery(discoverQuery);
 
     return {
-      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+      pathname: generateDiscoverResultsRoute(organization.slug),
       query: discoverView.generateQueryStringObject(),
     };
   },
@@ -317,7 +318,7 @@ const GroupDetailsActions = createReactClass({
           </div>
         )}
 
-        {orgFeatures.has('events-v2') && (
+        {orgFeatures.has('discover-basic') && (
           <div className="btn-group">
             <Link
               className={buttonClassName}

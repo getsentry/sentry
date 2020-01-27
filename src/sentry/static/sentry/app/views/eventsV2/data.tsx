@@ -50,8 +50,8 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
       'project',
       'count(id)',
       'avg(transaction.duration)',
-      'p75',
-      'p95',
+      'p75()',
+      'p95()',
     ],
     orderby: '-count_id',
     query: 'event.type:transaction',
@@ -416,9 +416,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
         ip_address: data['user.ip'],
       };
 
-      const badge = (
-        <UserBadge useLink={false} user={userObj} hideEmail avatarSize={16} />
-      );
+      const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
 
       if (!data.user) {
         return <Container>{badge}</Container>;

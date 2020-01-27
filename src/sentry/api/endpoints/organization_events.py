@@ -92,7 +92,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
 class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        if not features.has("organizations:events-v2", organization, actor=request.user):
+        if not features.has("organizations:discover-basic", organization, actor=request.user):
             return Response(status=404)
 
         try:
@@ -121,6 +121,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 limit=limit,
                 referrer="api.organization-events-v2",
                 auto_fields=True,
+                use_aggregate_conditions=True,
             )
 
         try:

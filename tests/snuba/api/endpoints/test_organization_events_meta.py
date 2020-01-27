@@ -98,3 +98,29 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
+
+    def test_transaction_event_with_last_seen(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = {
+            "event_id": "a" * 32,
+            "type": "transaction",
+            "transaction": "api.issue.delete",
+            "spans": [],
+            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
+            "tags": {"important": "yes"},
+            "timestamp": iso_format(before_now(minutes=1)),
+            "start_timestamp": iso_format(before_now(minutes=1, seconds=3)),
+        }
+        self.store_event(data=data, project_id=project.id)
+        url = reverse(
+            "sentry-api-0-organization-events-meta",
+            kwargs={"organization_slug": project.organization.slug},
+        )
+        response = self.client.get(
+            url, {"query": "event.type:transaction last_seen:>2012-12-31"}, format="json"
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["count"] == 1

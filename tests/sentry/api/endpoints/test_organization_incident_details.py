@@ -88,6 +88,15 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == IncidentStatus.CLOSED.value
 
+    def test_cannot_open(self):
+        incident = self.create_incident()
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(
+                incident.organization.slug, incident.identifier, status=IncidentStatus.OPEN.value
+            )
+            assert resp.status_code == 400
+            assert resp.data.startswith("Status cannot be changed")
+
     def test_comment(self):
         incident = self.create_incident()
         status = IncidentStatus.CLOSED.value

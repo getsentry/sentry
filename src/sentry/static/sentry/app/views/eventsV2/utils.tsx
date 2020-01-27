@@ -6,13 +6,14 @@ import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
-import {Event, Organization} from 'app/types';
+import {Event, Organization, OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
 import {generateQueryWithTag} from 'app/utils';
+import {appendTagCondition} from 'app/utils/queryString';
 import {
   COL_WIDTH_UNDEFINED,
   COL_WIDTH_DEFAULT,
@@ -20,6 +21,7 @@ import {
   COL_WIDTH_DATETIME,
   COL_WIDTH_NUMBER,
   COL_WIDTH_STRING,
+  COL_WIDTH_STRING_LONG,
 } from 'app/components/gridEditable';
 
 import {
@@ -32,9 +34,10 @@ import {
   ALL_VIEWS,
   TRANSACTION_VIEWS,
 } from './data';
-import EventView, {Field as FieldType} from './eventView';
+import EventView, {Field as FieldType, Column} from './eventView';
 import {Aggregation, Field, AGGREGATIONS, FIELDS} from './eventQueryParams';
-import {TableColumn} from './table/types';
+import {TableColumn, TableDataRow} from './table/types';
+import {generateDiscoverResultsRoute} from './results';
 
 export type EventQuery = {
   field: string[];
@@ -57,13 +60,7 @@ function explodeFieldString(field: string): {aggregation: string; field: string}
   return {aggregation: '', field};
 }
 
-export function explodeField(
-  field: FieldType
-): {
-  aggregation: string;
-  field: string;
-  width: number;
-} {
+export function explodeField(field: FieldType): Column {
   const results = explodeFieldString(field.field);
 
   return {
@@ -98,27 +95,24 @@ export function isAggregateField(field: string): boolean {
 }
 
 /**
- * Return a location object for the current pathname
+ * Return a location object for the search results pathname
  * with a query string reflected the provided tag.
  *
  * @param {String} tagKey
  * @param {String} tagValue
- * @param {Object} browser location object.
+ * @param {OrganizationSummary} organization
+ * @param {Query} browser location query.
  * @return {Object} router target
  */
 export function getEventTagSearchUrl(
   tagKey: string,
   tagValue: string,
-  location: Location
+  organization: OrganizationSummary,
+  query: Query
 ) {
-  const query = generateQueryWithTag(location.query, {key: tagKey, value: tagValue});
-
-  // Remove the event slug so the user sees new search results.
-  delete query.eventSlug;
-
   return {
-    pathname: location.pathname,
-    query,
+    pathname: generateDiscoverResultsRoute(organization.slug),
+    query: generateQueryWithTag(query, {key: tagKey, value: tagValue}),
   };
 }
 
@@ -193,6 +187,17 @@ export type MetaType = {
 export function getDefaultWidth(key: Aggregation | Field): number {
   if (AGGREGATIONS[key]) {
     return COL_WIDTH_NUMBER;
+  }
+
+  // Some columns have specific lengths due to longer content.
+  switch (key) {
+    case 'title':
+      return COL_WIDTH_STRING_LONG + 50;
+    case 'url':
+    case 'transaction':
+      return COL_WIDTH_STRING_LONG;
+    default:
+      break;
   }
 
   switch (FIELDS[key]) {
@@ -408,4 +413,70 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
   link.setAttribute('download', `${filename} ${getUtcDateString(now)}.csv`);
   link.click();
   link.remove();
+}
+
+export function getExpandedResults(
+  eventView: EventView,
+  additionalConditions: {[key: string]: string},
+  dataRow?: TableDataRow | Event
+): EventView {
+  let nextView = eventView.clone();
+  const fieldsToRemove: number[] = [];
+
+  // Workaround around readonly typing
+  const aggregateAliases: string[] = [...AGGREGATE_ALIASES];
+
+  nextView.fields.forEach((field: FieldType, index: number) => {
+    const column = explodeField(field);
+
+    // Remove aggregates as the expanded results have no aggregates.
+    if (column.aggregation || aggregateAliases.includes(column.field)) {
+      fieldsToRemove.push(index);
+      return;
+    }
+
+    const dataKey = getAggregateAlias(field.field);
+    // Append the current field as a condition if it exists in the dataRow
+    // Or is a simple key in the event. More complex deeply nested fields are
+    // more challenging to get at as their location in the structure does not
+    // match their name.
+    if (dataRow) {
+      if (dataRow[dataKey]) {
+        additionalConditions[column.field] = String(dataRow[dataKey]).trim();
+      }
+      // If we have an event, check tags as well.
+      if (dataRow && dataRow.tags && dataRow.tags instanceof Array) {
+        const tagIndex = dataRow.tags.findIndex(item => item.key === dataKey);
+        if (tagIndex > -1) {
+          additionalConditions[column.field] = dataRow.tags[tagIndex].value;
+        }
+      }
+    }
+  });
+
+  // Remove fields from view largest index to smallest to not
+  // disturbe lower indexes until the end.
+  fieldsToRemove.reverse().forEach((i: number) => {
+    nextView = nextView.withDeletedColumn(i, undefined);
+  });
+
+  // Tokenize conditions and append additional conditions provided + generated.
+  Object.keys(additionalConditions).forEach(key => {
+    if (key === 'project' || key === 'project.id') {
+      nextView.project = [...nextView.project, parseInt(additionalConditions[key], 10)];
+      return;
+    }
+    if (key === 'environment') {
+      nextView.environment = [...nextView.environment, additionalConditions[key]];
+      return;
+    }
+
+    nextView.query = appendTagCondition(nextView.query, key, additionalConditions[key]);
+  });
+
+  return nextView;
+}
+
+export function generateDiscoverLandingPageRoute(orgSlug: string): string {
+  return `/organizations/${orgSlug}/eventsv2/`;
 }

@@ -32,7 +32,7 @@ exports[`ProjectPlugins renders 1`] = `
       key="amazon-sqs"
       p={2}
     >
-      <ProjectPluginRow
+      <WithOrganizationMockWrapper
         assets={Array []}
         author={
           Object {
@@ -60,7 +60,7 @@ exports[`ProjectPlugins renders 1`] = `
       key="github"
       p={2}
     >
-      <ProjectPluginRow
+      <WithOrganizationMockWrapper
         assets={Array []}
         author={
           Object {
