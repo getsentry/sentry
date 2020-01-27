@@ -27,6 +27,7 @@ class OrganizationPluginsTest(APITestCase):
 
         plugins.get("opsgenie").set_option("api_key", "another_value", self.projectA)
         plugins.get("opsgenie").set_option("api_key", None, self.projectB)
+        plugins.get("opsgenie").disable(self.projectB)
         plugins.get("opsgenie").set_option("api_key", "another_value", self.projectC)
 
         self.login_as(user=self.user)
