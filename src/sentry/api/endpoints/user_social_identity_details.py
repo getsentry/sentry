@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
 from django.conf import settings
 from rest_framework.response import Response
 from social_core.backends.utils import get_backend
+from social_core.actions import do_disconnect
 from social_django.models import UserSocialAuth
 
 from sentry.api.bases.user import UserEndpoint
@@ -34,16 +34,7 @@ class UserSocialIdentityDetailsEndpoint(UserEndpoint):
         if backend is None:
             raise Exception(u"Backend was not found for request: {}".format(auth.provider))
 
-        # stop this from bubbling up errors to social-auth's middleware
-        # XXX(dcramer): IM SO MAD ABOUT THIS
-        try:
-            backend.disconnect(user, identity_id)
-        except Exception as exc:
-            import sys
-
-            exc_tb = sys.exc_info()[2]
-            six.reraise(Exception, exc, exc_tb)
-            del exc_tb
+        do_disconnect(backend, user)
 
         # XXX(dcramer): we experienced an issue where the identity still existed,
         # and given that this is a cheap query, lets error hard in that case
