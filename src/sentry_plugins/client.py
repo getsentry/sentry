@@ -231,7 +231,12 @@ class AuthApiClient(ApiClient):
         return kwargs
 
     def bind_auth(self, **kwargs):
-        token = self.auth.tokens["access_token"]
+        # TODO(joshuarli): Unsure at the moment how to port refresh_token.
+        # This blocks http://localhost:8000/settings/sentry/projects/internal/plugins/asana/ from rendering.
+        # self.auth.tokens is now just a unicode string, not sure which token it is.
+        # Will also need to port over things like our has_auth.
+        # token = self.auth.tokens["access_token"]
+        token = self.auth.access_token
         kwargs["headers"]["Authorization"] = "Bearer {}".format(token)
         return kwargs
 
@@ -251,10 +256,11 @@ class AuthApiClient(ApiClient):
             if not self.auth:
                 raise
 
+        # TODO(joshuarli): Unsure at the moment how to port refresh_token.
         # refresh token
-        self.logger.info(
-            "token.refresh", extra={"auth_id": self.auth.id, "provider": self.auth.provider}
-        )
-        self.auth.refresh_token()
+        # self.logger.info(
+        #    "token.refresh", extra={"auth_id": self.auth.id, "provider": self.auth.provider}
+        # )
+        # self.auth.refresh_token()
         kwargs = self.bind_auth(**kwargs)
         return ApiClient._request(self, method, path, **kwargs)
