@@ -17,7 +17,7 @@ enum DownloadStatus {
 
 type RouteParams = {
   orgId: string;
-  dataId: string;
+  dataExportId: string;
 };
 
 type Download = {
@@ -50,8 +50,8 @@ class DataDownload extends AsyncView<Props, State> {
   }
 
   getEndpoints(): [string, string][] {
-    const {orgId, dataId} = this.props.params;
-    return [['download', `/organizations/${orgId}/data-export/${dataId}/`]];
+    const {orgId, dataExportId} = this.props.params;
+    return [['download', `/organizations/${orgId}/data-export/${dataExportId}/`]];
   }
 
   handleDownload(): void {

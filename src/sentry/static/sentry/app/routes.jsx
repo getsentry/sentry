@@ -1220,7 +1220,7 @@ function routes() {
           <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
         </Route>
         <Route
-          path="/organizations/:orgId/data-export/:dataId"
+          path="/organizations/:orgId/data-export/:dataExportId"
           componentPromise={() =>
             import(
               /* webpackChunkName: "DataDownloadView" */ 'app/views/dataExport/dataDownload'
