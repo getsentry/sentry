@@ -25,13 +25,15 @@ export type IntegrationDetailsModalOptions = {
   provider: IntegrationProvider;
   organization: Organization;
   isInstalled: boolean; //used for analytics
+  onCloseModal?: () => void; //used for analytics
 };
 
 export type SentryAppDetailsModalOptions = {
   sentryApp: SentryApp;
   isInstalled: boolean;
-  onInstall: () => void;
+  onInstall: () => Promise<void>;
   organization: Organization;
+  onCloseModal?: () => void; //used for analytics
 };
 
 export type TeamAccessRequestModalOptions = {

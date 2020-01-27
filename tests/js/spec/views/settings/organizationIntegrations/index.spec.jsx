@@ -230,6 +230,7 @@ describe('OrganizationIntegrations', () => {
           sentryApp,
           isInstalled: false,
           onInstall: expect.any(Function),
+          onCloseModal: expect.any(Function),
           organization: org,
         });
       });
@@ -240,6 +241,7 @@ describe('OrganizationIntegrations', () => {
           onAddIntegration: wrapper.instance().onInstall,
           organization: routerContext.context.organization,
           isInstalled: false,
+          onCloseModal: expect.any(Function),
         };
 
         wrapper

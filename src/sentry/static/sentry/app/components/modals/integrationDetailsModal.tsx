@@ -54,6 +54,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
     onAddIntegration: PropTypes.func.isRequired,
     provider: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
+    onCloseModal: PropTypes.func,
   };
 
   componentDidMount() {
@@ -68,6 +69,10 @@ class IntegrationDetailsModal extends React.Component<Props> {
       },
       this.props.organization
     );
+  }
+
+  componentWillUnmount() {
+    this.props.onCloseModal?.();
   }
 
   onAddIntegration = (integration: Integration) => {

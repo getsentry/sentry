@@ -26,9 +26,11 @@ type Props = {
   app: SentryApp;
   organization: Organization;
   install?: SentryAppInstallation;
-  onInstall?: () => void;
+  onInstall?: () => Promise<void>;
   onUninstall?: (install: SentryAppInstallation) => void;
   onRemoveApp?: (app: SentryApp) => void;
+  onCloseModal?: () => void; //used for analytics
+  onUninstallModalOpen?: () => void; //used for analytics
   isOnIntegrationPage: boolean;
   ['data-test-id']?: string;
 };
@@ -41,6 +43,8 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
     onInstall: PropTypes.func,
     onUninstall: PropTypes.func,
     onRemoveApp: PropTypes.func,
+    onCloseModal: PropTypes.func,
+    onUninstallModalOpen: PropTypes.func,
     isOnIntegrationPage: PropTypes.bool,
   };
 
@@ -96,7 +100,7 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
   }
 
   openLearnMore = () => {
-    const {app, onInstall, organization} = this.props;
+    const {app, onInstall, organization, onCloseModal} = this.props;
     const isInstalled = !!this.isInstalled;
 
     onInstall &&
@@ -105,6 +109,7 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
         isInstalled,
         onInstall,
         organization,
+        onCloseModal,
       });
   };
 
@@ -123,6 +128,7 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
       isOnIntegrationPage,
       onUninstall,
       onRemoveApp,
+      onUninstallModalOpen,
     } = this.props;
     return (
       <SentryAppItem data-test-id={app.slug}>
@@ -153,6 +159,7 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
               onClickUninstall={onUninstall}
               onClickRemove={onRemoveApp}
               onClickPublish={this.handlePublish}
+              onUninstallModalOpen={onUninstallModalOpen}
             />
           </Box>
         </StyledFlex>

@@ -19,6 +19,8 @@ type Props = {
 
   onClickRemove?: (app: SentryApp) => void;
   onClickPublish?: () => void;
+
+  onUninstallModalOpen?: () => void;
 };
 
 const SentryApplicationRowButtons = ({
@@ -28,9 +30,9 @@ const SentryApplicationRowButtons = ({
   isOnIntegrationPage,
   onClickInstall,
   onClickUninstall,
-
   onClickRemove,
   onClickPublish,
+  onUninstallModalOpen,
 }: Props) => {
   const isInternal = app.status === 'internal';
 
@@ -42,7 +44,12 @@ const SentryApplicationRowButtons = ({
     }
     //if installed, render the uninstall button and if installed, render install button
     return !!install ? (
-      <UninstallButton install={install} app={app} onClickUninstall={onClickUninstall} />
+      <UninstallButton
+        install={install}
+        app={app}
+        onClickUninstall={onClickUninstall}
+        onUninstallModalOpen={onUninstallModalOpen}
+      />
     ) : (
       <InstallButton onClickInstall={onClickInstall} />
     );

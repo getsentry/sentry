@@ -23,6 +23,7 @@ type Props = {
   app: SentryApp;
   onAppUninstall: () => void;
   onAppInstall: (install: SentryAppInstallation) => void;
+  onCloseModal?: () => void; //used for analytics
 };
 
 class SentryAppInstallationDetail extends React.Component<Props> {
@@ -33,38 +34,11 @@ class SentryAppInstallationDetail extends React.Component<Props> {
     app: PropTypes.object.isRequired,
     onAppUninstall: PropTypes.func.isRequired,
     onAppInstall: PropTypes.func.isRequired,
+    onCloseModal: PropTypes.func,
   };
 
   redirectUser = (install: SentryAppInstallation) => {
     const {organization, app} = this.props;
-
-    trackIntegrationEvent(
-      {
-        eventKey: 'integrations.installation_start',
-        eventName: 'Integrations: Installation Start',
-        integration_type: 'sentry_app',
-        integration: app.slug,
-        view: 'integrations_page',
-        integration_status: app.status,
-      },
-      this.props.organization
-    );
-
-    //installation is complete if the status is installed
-    if (install.status === 'installed') {
-      trackIntegrationEvent(
-        {
-          eventKey: 'integrations.installation_complete',
-          eventName: 'Integrations: Installation Complete',
-          integration_type: 'sentry_app',
-          integration: app.slug,
-          view: 'integrations_page',
-          integration_status: app.status,
-        },
-        this.props.organization
-      );
-    }
-
     if (!app.redirectUrl) {
       addSuccessMessage(t(`${app.slug} successfully installed.`));
       this.props.onAppInstall(install);
@@ -87,10 +61,36 @@ class SentryAppInstallationDetail extends React.Component<Props> {
     }
   };
 
-  handleInstall = () => {
+  handleInstall = async () => {
     const {organization, api, app} = this.props;
-    installSentryApp(api, organization.slug, app).then(
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.installation_start',
+        eventName: 'Integrations: Installation Start',
+        integration_type: 'sentry_app',
+        integration: app.slug,
+        view: 'integrations_page',
+        integration_status: app.status,
+      },
+      organization
+    );
+
+    return installSentryApp(api, organization.slug, app).then(
       install => {
+        //installation is complete if the status is installed
+        if (install.status === 'installed') {
+          trackIntegrationEvent(
+            {
+              eventKey: 'integrations.installation_complete',
+              eventName: 'Integrations: Installation Complete',
+              integration_type: 'sentry_app',
+              integration: app.slug,
+              view: 'integrations_page',
+              integration_status: app.status,
+            },
+            organization
+          );
+        }
         this.redirectUser(install);
       },
       () => {}
@@ -98,18 +98,7 @@ class SentryAppInstallationDetail extends React.Component<Props> {
   };
 
   handleUninstall = (install: SentryAppInstallation) => {
-    const {api, app} = this.props;
-    trackIntegrationEvent(
-      {
-        eventKey: 'integrations.uninstall_clicked',
-        eventName: 'Integrations: Uninstall Clicked',
-        integration: app.slug,
-        integration_type: 'sentry_app',
-        integration_status: app.status,
-      },
-      this.props.organization
-    );
-
+    const {api, app, onCloseModal} = this.props;
     uninstallSentryApp(api, install).then(
       () => {
         this.props.onAppUninstall();
@@ -123,15 +112,31 @@ class SentryAppInstallationDetail extends React.Component<Props> {
           },
           this.props.organization
         );
+        onCloseModal?.();
       },
       () => {
         addErrorMessage(t(`Unable to uninstall ${app.name}`));
+        onCloseModal?.();
       }
     );
   };
 
+  recordUninstallClicked = () => {
+    const {app} = this.props;
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.uninstall_clicked',
+        eventName: 'Integrations: Uninstall Clicked',
+        integration: app.slug,
+        integration_type: 'sentry_app',
+        integration_status: app.status,
+      },
+      this.props.organization
+    );
+  };
+
   render() {
-    const {organization, install, app} = this.props;
+    const {organization, install, app, onCloseModal} = this.props;
 
     return (
       <React.Fragment>
@@ -140,6 +145,8 @@ class SentryAppInstallationDetail extends React.Component<Props> {
           organization={organization}
           onInstall={this.handleInstall}
           onUninstall={this.handleUninstall}
+          onCloseModal={onCloseModal}
+          onUninstallModalOpen={this.recordUninstallClicked}
           install={install}
           isOnIntegrationPage
         />
