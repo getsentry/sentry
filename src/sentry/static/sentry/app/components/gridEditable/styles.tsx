@@ -26,7 +26,6 @@ type GridEditableProps = {
   numColumn?: number;
   isEditable?: boolean;
   isEditing?: boolean;
-  isPrimary?: boolean;
   isDragging?: boolean;
 };
 
@@ -208,6 +207,31 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   }
 
   user-select: none;
+`;
+
+/**
+ * Create spacing/padding similar to GridHeadCellWrapper but
+ * without interactive aspects.
+ */
+export const GridHeadCellStatic = styled('th')`
+  height: ${GRID_HEAD_ROW_HEIGHT}px;
+  min-width: 24px;
+  display: block;
+  padding: ${space(2)};
+  background-color: ${p => p.theme.offWhite};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+
+  &:first-child {
+    border-top-left-radius: ${p => p.theme.borderRadius};
+  }
 `;
 
 /**
