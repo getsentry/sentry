@@ -1,5 +1,5 @@
 import {Client} from 'app/api';
-import {SavedIncidentRule, IncidentRule, Trigger} from './types';
+import {SavedIncidentRule, IncidentRule} from './types';
 
 function isSavedRule(rule: IncidentRule): rule is SavedIncidentRule {
   return !!rule.id;
@@ -45,17 +45,4 @@ export function deleteRule(
   return api.requestPromise(`/organizations/${orgId}/alert-rules/${rule.id}/`, {
     method: 'DELETE',
   });
-}
-
-export function deleteTrigger(
-  api: Client,
-  orgId: string,
-  trigger: Trigger
-): Promise<void> {
-  return api.requestPromise(
-    `/organizations/${orgId}/alert-rules/${trigger.alertRuleId}/triggers/${trigger.id}`,
-    {
-      method: 'DELETE',
-    }
-  );
 }
