@@ -160,7 +160,7 @@ class IncidentsListContainer extends React.Component<Props> {
             <Actions>
               <Button
                 onClick={this.handleNavigateToSettings}
-                href={`/settings/${orgId}/`}
+                href="#"
                 size="small"
                 icon="icon-settings"
               >
