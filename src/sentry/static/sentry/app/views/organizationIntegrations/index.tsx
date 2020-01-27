@@ -70,6 +70,10 @@ class OrganizationIntegrations extends AsyncComponent<
   };
 
   onLoadAllEndpointsSuccess() {
+    this.recordIndexPageViewed();
+  }
+
+  recordIndexPageViewed = () => {
     //count the number of installed apps
     const {integrations, publishedApps} = this.state;
     const integrationsInstalled = new Set();
@@ -91,7 +95,7 @@ class OrganizationIntegrations extends AsyncComponent<
       this.props.organization,
       {startSession: true}
     );
-  }
+  };
 
   getEndpoints(): ([string, string, any] | [string, string])[] {
     const {orgId} = this.props.params;
@@ -246,6 +250,7 @@ class OrganizationIntegrations extends AsyncComponent<
         onReinstall={this.onInstall}
         enabledPlugins={this.enabledPlugins}
         newlyInstalledIntegrationId={this.state.newlyInstalledIntegrationId}
+        onCloseModal={this.recordIndexPageViewed}
       />
     );
   };
@@ -277,6 +282,7 @@ class OrganizationIntegrations extends AsyncComponent<
         install={this.getAppInstall(app)}
         onAppUninstall={() => this.handleRemoveAppInstallation(app)}
         onAppInstall={this.handleAppInstallation}
+        onCloseModal={this.recordIndexPageViewed}
         app={app}
       />
     );
