@@ -571,26 +571,6 @@ urlpatterns = [
                     OrganizationAlertRuleIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-alert-rules",
                 ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/$",
-                    OrganizationAlertRuleTriggerDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-alert-rule-trigger-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/$",
-                    OrganizationAlertRuleTriggerIndexEndpoint.as_view(),
-                    name="sentry-api-0-organization-alert-rules-triggers",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/actions/(?P<alert_rule_trigger_action_id>[^\/]+)/$",
-                    OrganizationAlertRuleTriggerActionDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-alert-rule-trigger-action-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/actions/$",
-                    OrganizationAlertRuleTriggerActionIndexEndpoint.as_view(),
-                    name="sentry-api-0-organization-alert-rules-trigger-actions",
-                ),
                 # Data Export
                 url(
                     r"^(?P<organization_slug>[^\/]+)/data-export/$",
