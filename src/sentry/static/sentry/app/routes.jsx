@@ -833,7 +833,7 @@ function routes() {
         <IndexRoute
           componentPromise={() =>
             import(
-              /* webpackChunkName: "OrganizationIntegrations" */ 'app/views/organizationIntegrations'
+              /* webpackChunkName: "OrganizationIntegrations" */ 'app/views/organizationIntegrations/integrationViewController'
             )
           }
           component={errorHandler(LazyLoad)}
