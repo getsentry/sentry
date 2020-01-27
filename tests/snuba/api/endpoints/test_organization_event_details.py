@@ -57,7 +57,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             },
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -86,7 +86,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             },
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 url,
                 data={"field": ["title", "count_unique(user)"], "statsPeriod": "24h"},
@@ -122,7 +122,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": event.event_id,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
         assert response.status_code == 200
 
@@ -159,7 +159,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 
@@ -167,7 +167,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
@@ -181,7 +181,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             },
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
 
         assert response.status_code == 404, response.content
@@ -222,7 +222,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json", data={"field": ["message", "count()"]})
         assert response.data["eventID"] == "b" * 32
         assert response.data["nextEventID"] == "c" * 32, "c is newer & matches message"
@@ -251,7 +251,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 url, format="json", data={"field": ["message", "count()"], "statsPeriod": "7d"}
             )
@@ -303,7 +303,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "1" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json", data={"field": ["important", "count()"]})
         assert response.data["eventID"] == "1" * 32
         assert response.data["previousEventID"] is None, "no matching tags"
@@ -339,7 +339,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "e" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 url,
                 format="json",
@@ -377,7 +377,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "e" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 url,
                 format="json",
@@ -418,7 +418,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "e" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 url,
                 format="json",

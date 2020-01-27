@@ -24,9 +24,9 @@ type Props = {
 
 type State = {} & AsyncView['state'];
 
-class HealthDetail extends AsyncView<Props, State> {
+class ReleasesV2Detail extends AsyncView<Props, State> {
   getTitle() {
-    return routeTitleGen(t('Health Detail'), this.props.organization.slug, false);
+    return routeTitleGen(t('Releases v2 Detail'), this.props.organization.slug, false);
   }
 
   getDefaultState() {
@@ -44,11 +44,7 @@ class HealthDetail extends AsyncView<Props, State> {
   }
 
   renderEmpty() {
-    return (
-      <EmptyStateWarning small>
-        {t('There are no dummy health something.')}
-      </EmptyStateWarning>
-    );
+    return <EmptyStateWarning small>{t('There are no data.')}</EmptyStateWarning>;
   }
 
   renderInnerBody() {
@@ -82,7 +78,7 @@ class HealthDetail extends AsyncView<Props, State> {
           <PageContent>
             <PageHeader>
               <PageHeading withMargins>
-                {t('Health Detail')} {this.props.params.healthSlug}
+                {t('Releases v2 Detail')} {this.props.params.releaseSlug}
               </PageHeading>
             </PageHeader>
 
@@ -94,5 +90,5 @@ class HealthDetail extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(HealthDetail);
-export {HealthDetail};
+export default withOrganization(ReleasesV2Detail);
+export {ReleasesV2Detail};

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import InlineSvg from 'app/components/inlineSvg';
 import TimeSince from 'app/components/timeSince';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -12,8 +13,13 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
  * Renders the first & last seen times for a group or event with
  * a clock icon.
  */
-const Times = props => {
-  const {lastSeen, firstSeen} = props;
+
+type Props = {
+  lastSeen: string;
+  firstSeen: string;
+};
+
+const Times = ({lastSeen, firstSeen}: Props) => {
   return (
     <Container>
       <div
@@ -50,8 +56,8 @@ const Container = styled('div')`
 const GroupTimeIcon = styled(InlineSvg)`
   /* this is solely for optics, since TimeSince always begins
   with a number, and numbers do not have descenders */
-  font-size: 11px;
-  margin-right: 4px;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  margin-right: ${space(0.5)};
 `;
 
 export default Times;
