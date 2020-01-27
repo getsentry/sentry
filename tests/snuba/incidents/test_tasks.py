@@ -130,10 +130,8 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         def active_incident():
             return Incident.objects.filter(
-                type=IncidentType.ALERT_TRIGGERED.value,
-                status=IncidentStatus.WARNING.value,
-                alert_rule=self.rule,
-            )
+                type=IncidentType.ALERT_TRIGGERED.value, alert_rule=self.rule
+            ).exclude(status=IncidentStatus.CLOSED.value)
 
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
         with self.assertChanges(
