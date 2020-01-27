@@ -5,16 +5,19 @@ import moment from 'moment';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
+import {Location} from 'history';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {navigateTo} from 'app/actionCreators/navigation';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
@@ -197,6 +200,16 @@ class IncidentsListContainer extends React.Component<Props> {
               </div>
             </Actions>
           </PageHeader>
+
+          <Alert type="info">
+            {tct('Feature request or feedback? Email [emailAddress]', {
+              emailAddress: (
+                <ExternalLink href="mailto:alerts@sentry.io">
+                  alerts@sentry.io
+                </ExternalLink>
+              ),
+            })}
+          </Alert>
 
           <IncidentsList {...this.props} />
         </PageContent>
