@@ -435,6 +435,34 @@ class SentryAppInstallationStatus(object):
             return cls.INSTALLED_STR
 
 
+class ExportQueryType(object):
+    DISCOVER_V1 = 0
+    BILLING_REPORT = 1
+    ISSUE_BY_TAG = 2
+    # Add additional query types here...
+    DISCOVER_V1_STR = "DISCOVER_V1"
+    BILLING_REPORT_STR = "BILLING_REPORT"
+    ISSUE_BY_TAG_STR = "ISSUE_BY_TAG"
+    # Add their corresponding strings (sent from browser) here...
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (cls.DISCOVER_V1, cls.DISCOVER_V1_STR),
+            (cls.BILLING_REPORT, cls.BILLING_REPORT_STR),
+            (cls.ISSUE_BY_TAG, cls.ISSUE_BY_TAG_STR),
+        )
+
+    @classmethod
+    def as_str(cls, status):
+        if status == cls.DISCOVER_V1:
+            return cls.DISCOVER_V1_STR
+        elif status == cls.BILLING_REPORT:
+            return cls.BILLING_REPORT_STR
+        elif status == cls.ISSUE_BY_TAG:
+            return cls.ISSUE_BY_TAG_STR
+
+
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(("sentry:project-rate-limit", "sentry:account-rate-limit"))
