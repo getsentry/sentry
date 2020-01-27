@@ -377,7 +377,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group_1"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
-                "tags": {"sub_customer.is-enterprise": "1"},
+                "tags": {"sub_customer.is-enterprise)": "1"},
             },
             project_id=project.id,
         )
@@ -388,7 +388,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "staging",
-                "tags": {"sub_customer.is-enterprise": "1"},
+                "tags": {"sub_customer.is-enterprise)": "1"},
             },
             project_id=project.id,
         )
@@ -399,7 +399,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
-                "tags": {"sub_customer.is-enterprise": "0"},
+                "tags": {"sub_customer.is-enterprise)": "0"},
             },
             project_id=project.id,
         )
@@ -410,7 +410,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
-                "tags": {"sub_customer.is-enterprise": "1"},
+                "tags": {"sub_customer.is-enterprise)": "1"},
             },
             project_id=project.id,
         )
@@ -420,8 +420,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["sub_customer.is-enterprise", "count(sub_customer.is-enterprise)"],
-                    "orderby": "sub_customer.is-enterprise",
+                    "field": ["sub_customer.is-enterprise)", "count(sub_customer.is-enterprise))"],
+                    "orderby": "sub_customer.is-enterprise)",
                 },
             )
 
