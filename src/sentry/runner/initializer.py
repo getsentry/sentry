@@ -60,6 +60,23 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
             pass
 
 
+def unregister_plugins(settings):
+    from pkg_resources import iter_entry_points
+    from sentry.plugins.base import plugins
+    from sentry import integrations
+    from sentry.utils.imports import import_string
+
+    # reverse the registrations that happen in register_plugins
+
+    for ep in iter_entry_points("sentry.plugins"):
+        plugin = ep.load()
+        plugins.unregister(plugin)
+
+    for integration_path in settings.SENTRY_DEFAULT_INTEGRATIONS:
+        integration_cls = import_string(integration_path)
+        integrations.unregister(integration_cls)
+
+
 def init_plugin(plugin):
     from sentry.plugins.base import bindings
 
