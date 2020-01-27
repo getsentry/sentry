@@ -44,6 +44,7 @@ export type EventQuery = {
   per_page?: number;
 };
 
+// edit this
 const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
 const ROUND_BRACKETS_PATTERN = /[\(\)]/;
 
