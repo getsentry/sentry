@@ -226,14 +226,10 @@ class Sidebar extends React.Component {
     };
     const hasOrganization = !!organization;
     // If the user has not opted either way on discover 1/2 prefer the one they have
-    // access to and default to '2' if they have neither.
+    // access to and default to '1' if they have neither so events tab displays.
     let discoverVersion = localStorage.getItem('discover:version');
     if (discoverVersion === null && organization && organization.features) {
-      discoverVersion = organization.features.includes('discover-basic')
-        ? '2'
-        : organization.features.includes('discover')
-        ? '1'
-        : '2';
+      discoverVersion = organization.features.includes('discover-basic') ? '2' : '1';
     }
 
     return (
