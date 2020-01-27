@@ -14,7 +14,7 @@ import PageHeading from 'app/components/pageHeading';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import localStorage from 'app/utils/localStorage';
-import {generateDiscoverLandingPageRoute} from 'app/views/eventsV2/utils';
+import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
 
 import {
   DiscoverContainer,
@@ -459,7 +459,7 @@ export default class Discover extends React.Component<Props, State> {
             organization={organization}
           >
             <SwitchLink
-              href={generateDiscoverLandingPageRoute(organization.slug)}
+              href={getDiscoverLandingUrl(organization)}
               onClick={this.onGoLegacyDiscover}
             >
               {t('Go to New Discover')}

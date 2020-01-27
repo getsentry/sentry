@@ -6,7 +6,7 @@ import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
 import {t} from 'app/locale';
-import {Event, Organization} from 'app/types';
+import {Event, Organization, OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
@@ -453,6 +453,9 @@ export function getExpandedResults(
   return nextView;
 }
 
-export function generateDiscoverLandingPageRoute(orgSlug: string): string {
-  return `/organizations/${orgSlug}/discover/queries/`;
+export function getDiscoverLandingUrl(organization: OrganizationSummary): string {
+  if (organization.features.includes('discover-query')) {
+    return `/organizations/${organization.slug}/discover/queries/`;
+  }
+  return `/organizations/${organization.slug}/discover/results/`;
 }

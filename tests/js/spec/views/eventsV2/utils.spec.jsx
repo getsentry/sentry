@@ -10,7 +10,7 @@ import {
   decodeColumnOrder,
   pushEventViewToLocation,
   getExpandedResults,
-  generateDiscoverLandingPageRoute,
+  getDiscoverLandingUrl,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
 
@@ -446,10 +446,14 @@ describe('getExpandedResults()', function() {
   });
 });
 
-describe('generateDiscoverLandingPageRoute', function() {
-  it('generateDiscoverLandingPageRoute', function() {
-    expect(generateDiscoverLandingPageRoute('sentry')).toBe(
-      '/organizations/sentry/discover/queries/'
-    );
+describe('getDiscoverLandingUrl', function() {
+  it('is correct for with discover-query and discover-basic features', function() {
+    const org = TestStubs.Organization({features: ['discover-query', 'discover-basic']});
+    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/queries/');
+  });
+
+  it('is correct for with only discover-basic feature', function() {
+    const org = TestStubs.Organization({features: ['discover-basic']});
+    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/results/');
   });
 });

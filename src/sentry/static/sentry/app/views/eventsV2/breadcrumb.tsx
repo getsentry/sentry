@@ -10,7 +10,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 import EventView from './eventView';
-import {generateDiscoverLandingPageRoute} from './utils';
+import {getDiscoverLandingUrl} from './utils';
 
 type Props = {
   eventView: EventView;
@@ -28,14 +28,16 @@ class DiscoverBreadcrumb extends React.Component<Props> {
     const {eventView, event, organization, location} = this.props;
     const crumbs: React.ReactNode[] = [];
 
-    const discoverTarget = {
-      pathname: generateDiscoverLandingPageRoute(organization.slug),
-      query: {
-        ...location.query,
-        ...eventView.generateBlankQueryStringObject(),
-        ...eventView.getGlobalSelection(),
-      },
-    };
+    const discoverTarget = organization.features.includes('discover-query')
+      ? {
+          pathname: getDiscoverLandingUrl(organization),
+          query: {
+            ...location.query,
+            ...eventView.generateBlankQueryStringObject(),
+            ...eventView.getGlobalSelection(),
+          },
+        }
+      : null;
 
     crumbs.push(
       <BreadcrumbItem to={discoverTarget} key="eventview-home">

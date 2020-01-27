@@ -19,7 +19,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
     def has_feature(self, organization, request):
         return features.has(
             "organizations:discover", organization, actor=request.user
-        ) or features.has("organizations:discover-basic", organization, actor=request.user)
+        ) or features.has("organizations:discover-query", organization, actor=request.user)
 
     def get(self, request, organization):
         """

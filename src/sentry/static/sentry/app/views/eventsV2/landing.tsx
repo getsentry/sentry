@@ -12,6 +12,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
 import {Organization, SavedQuery} from 'app/types';
 import localStorage from 'app/utils/localStorage';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -243,6 +244,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     });
   };
 
+  renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
+
   render() {
     let body;
     const {location, organization} = this.props;
@@ -281,12 +290,18 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     }
 
     return (
-      <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
-        <React.Fragment>
-          <GlobalSelectionHeader organization={organization} />
-          <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
-        </React.Fragment>
-      </SentryDocumentTitle>
+      <Feature
+        organization={organization}
+        features={['discover-query']}
+        renderDisabled={this.renderNoAccess}
+      >
+        <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
+          <React.Fragment>
+            <GlobalSelectionHeader organization={organization} />
+            <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
+          </React.Fragment>
+        </SentryDocumentTitle>
+      </Feature>
     );
   }
 }
