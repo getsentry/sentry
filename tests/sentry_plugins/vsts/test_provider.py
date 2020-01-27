@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import responses
 
 from exam import fixture
-from social_auth.models import UserSocialAuth
+from social_django.models import UserSocialAuth
 from sentry.testutils import PluginTestCase
 from sentry.models import Repository
 

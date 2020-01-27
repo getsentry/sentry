@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from sentry.utils.compat import mock
 
-from social_auth.models import UserSocialAuth
+from social_django.models import UserSocialAuth
 
 from sentry.models import User
 from sentry.plugins.bases import IssueTrackingPlugin

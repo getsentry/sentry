@@ -4,7 +4,7 @@ import responses
 
 from exam import fixture
 from sentry.utils.compat.mock import patch
-from social_auth.models import UserSocialAuth
+from social_django.models import UserSocialAuth
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.testutils import PluginTestCase
 from sentry.utils import json

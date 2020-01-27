@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import json
 from sentry.utils.compat import mock
 
-from social_auth.models import UserSocialAuth
+from social_django.models import UserSocialAuth
 
 from sentry.models import GroupMeta, User
 from sentry.plugins.base import plugins
