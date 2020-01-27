@@ -1,7 +1,18 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-class Truncate extends React.Component {
+type Props = {
+  value: string;
+  maxLength: number;
+  leftTrim: boolean;
+  className?: string;
+};
+
+type State = {
+  isExpanded: boolean;
+};
+
+class Truncate extends React.Component<Props, State> {
   static propTypes = {
     value: PropTypes.string.isRequired,
     leftTrim: PropTypes.bool,
@@ -9,18 +20,15 @@ class Truncate extends React.Component {
   };
 
   static defaultProps = {
-    leftTrim: false,
     maxLength: 50,
+    leftTrim: false,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      isExpanded: false,
-    };
-  }
+  state = {
+    isExpanded: false,
+  };
 
-  onFocus = e => {
+  onFocus = () => {
     const {value, maxLength} = this.props;
     if (value.length <= maxLength) {
       return;
@@ -28,7 +36,7 @@ class Truncate extends React.Component {
     this.setState({isExpanded: true});
   };
 
-  onBlur = e => {
+  onBlur = () => {
     if (this.state.isExpanded) {
       this.setState({isExpanded: false});
     }
@@ -37,7 +45,7 @@ class Truncate extends React.Component {
   render() {
     const {leftTrim, maxLength, value} = this.props;
     const isTruncated = value.length > maxLength;
-    let shortValue = '';
+    let shortValue: React.ReactNode = '';
 
     if (isTruncated) {
       if (leftTrim) {
