@@ -16,9 +16,8 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
 
         # find all the keys that will tell us if a plugin is enabled OR configured
         keys_to_check = []
-        for slug in all_plugins.keys():
+        for slug, plugin in six.iteritems(all_plugins):
             keys_to_check.append("%s:enabled" % slug)
-            plugin = all_plugins[slug]
             if plugin.required_field:
                 keys_to_check.append("%s:%s" % (slug, plugin.required_field))
 
