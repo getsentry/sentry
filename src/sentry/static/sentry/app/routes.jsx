@@ -1478,22 +1478,26 @@ function routes() {
             />
           </Route>
           <Route
-            path="/organizations/:orgId/health/"
+            path="/organizations/:orgId/releases-v2/"
             componentPromise={() =>
-              import(/* webpackChunkName: "HealthContainer" */ 'app/views/health')
+              import(/* webpackChunkName: "ReleasesV2Container" */ 'app/views/releasesV2')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "HealthLanding" */ 'app/views/health/landing')
+                import(
+                  /* webpackChunkName: "ReleasesV2List" */ 'app/views/releasesV2/list'
+                )
               }
               component={errorHandler(LazyLoad)}
             />
             <Route
-              path=":healthSlug/"
+              path=":releaseSlug/"
               componentPromise={() =>
-                import(/* webpackChunkName: "HealthDetail" */ 'app/views/health/detail')
+                import(
+                  /* webpackChunkName: "ReleasesV2Detail" */ 'app/views/releasesV2/detail'
+                )
               }
               component={errorHandler(LazyLoad)}
             />
