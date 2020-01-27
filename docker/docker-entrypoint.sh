@@ -8,13 +8,9 @@ if [ "${1:0:1}" = '-' ]; then
 	set -- sentry "$@"
 fi
 
-VALID_COMMANDS=$(python -c 'import pkgutil; import os.path; import sentry.runner.commands as c; print("|".join([name for _, name, _ in pkgutil.iter_modules([os.path.dirname(c
-.__file__)])]))')
-case "$1" in
-	"$VALID_COMMANDS")
-		set -- sentry "$@"
-	;;
-esac
+if [ "$1" != "__init__" ] && [ -f "/usr/local/lib/python2.7/site-packages/sentry/runner/commands/$1.py" ]; then
+	set -- sentry "$@";
+fi
 
 if [ "$1" = 'sentry' ]; then
 	set -- tini -- "$@"
