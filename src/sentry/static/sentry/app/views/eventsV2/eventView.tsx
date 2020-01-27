@@ -1,4 +1,4 @@
-import {Location, LocationDescriptor, Query} from 'history';
+import {Location, Query} from 'history';
 import isString from 'lodash/isString';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
-import {OrganizationSummary, SavedQuery, NewQuery} from 'app/types';
+import {SavedQuery, NewQuery} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
@@ -865,9 +865,9 @@ class EventView {
     return eventQuery;
   }
 
-  getResultsViewUrlTarget(organization: OrganizationSummary): LocationDescriptor {
+  getResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
     return {
-      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
+      pathname: `/organizations/${slug}/discover/results/`,
       query: this.generateQueryStringObject(),
     };
   }

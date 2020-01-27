@@ -46,7 +46,7 @@ describe('EventsV2 > QueryList', function() {
     });
 
     location = {
-      pathname: '/organizations/org-slug/eventsV2',
+      pathname: '/organizations/org-slug/discover/queries/',
       query: {cursor: '0:1:1', statsPeriod: '14d'},
     };
     queryChangeMock = jest.fn();

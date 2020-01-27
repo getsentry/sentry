@@ -13,16 +13,11 @@ import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
+import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {SectionHeading} from './styles';
 
-import {
-  fetchTagFacets,
-  fetchTotalCount,
-  getEventTagSearchUrl,
-  Tag,
-  TagTopValue,
-} from './utils';
+import {fetchTagFacets, fetchTotalCount, Tag, TagTopValue} from './utils';
 import EventView, {isAPIPayloadSimilar} from './eventView';
 
 type Props = {
@@ -105,16 +100,16 @@ class Tags extends React.Component<Props, State> {
   };
 
   renderTag(tag: Tag) {
-    const {organization, location} = this.props;
+    const {organization, eventView} = this.props;
     const {totalValues} = this.state;
 
     const segments: TagTopValue[] = tag.topValues.map(segment => {
-      segment.url = getEventTagSearchUrl(
-        tag.key,
-        segment.value,
-        organization,
-        location.query
-      );
+      const url = eventView.getResultsViewUrlTarget(organization.slug);
+      url.query = generateQueryWithTag(url.query, {
+        key: tag.key,
+        value: segment.value,
+      });
+      segment.url = url;
 
       return segment;
     });

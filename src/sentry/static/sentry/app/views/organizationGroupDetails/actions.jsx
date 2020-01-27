@@ -15,7 +15,6 @@ import {uniqueId} from 'app/utils/guid';
 import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
 import EventView from 'app/views/eventsV2/eventView';
-import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
@@ -157,11 +156,7 @@ const GroupDetailsActions = createReactClass({
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
-
-    return {
-      pathname: generateDiscoverResultsRoute(organization.slug),
-      query: discoverView.generateQueryStringObject(),
-    };
+    return discoverView.getResultsViewUrlTarget(organization.slug);
   },
 
   onDelete() {

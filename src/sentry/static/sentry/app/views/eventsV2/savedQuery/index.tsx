@@ -125,7 +125,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization, eventView} = this.props;
+    const {api, organization, eventView} = this.props;
 
     if (!this.state.queryName) {
       return;
@@ -143,10 +143,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         const view = EventView.fromSavedQuery(savedQuery);
 
         this.setState({queryName: ''});
-        browserHistory.push({
-          pathname: location.pathname,
-          query: view.generateQueryStringObject(),
-        });
+        browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
       }
     );
   };
@@ -160,10 +157,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     handleUpdateQuery(api, organization, eventView).then((savedQuery: SavedQuery) => {
       const view = EventView.fromSavedQuery(savedQuery);
       this.setState({queryName: ''});
-      browserHistory.push({
-        pathname: location.pathname,
-        query: view.generateQueryStringObject(),
-      });
+      browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
     });
   };
 

@@ -49,11 +49,7 @@ export default class DetailsBody extends React.Component<Props> {
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
-
-    return {
-      pathname: `/organizations/${orgId}/eventsv2/results/`,
-      query: discoverView.generateQueryStringObject(),
-    };
+    return discoverView.getResultsViewUrlTarget(orgId);
   }
 
   render() {
