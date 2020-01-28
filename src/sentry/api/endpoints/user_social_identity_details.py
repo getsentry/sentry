@@ -3,9 +3,6 @@ from __future__ import absolute_import
 import logging
 
 from rest_framework.response import Response
-from social_core.actions import do_disconnect
-
-from social_django.utils import load_strategy
 from social_django.models import UserSocialAuth
 
 from sentry.api.bases.user import UserEndpoint
@@ -30,11 +27,7 @@ class UserSocialIdentityDetailsEndpoint(UserEndpoint):
         except UserSocialAuth.DoesNotExist:
             return Response(status=404)
 
-        backend = auth.get_backend(load_strategy())
-        if backend is None:
-            raise Exception(u"Backend was not found for request: {}".format(auth.provider))
-
-        do_disconnect(backend, user)
+        auth.delete()
 
         # XXX(dcramer): we experienced an issue where the identity still existed,
         # and given that this is a cheap query, lets error hard in that case
