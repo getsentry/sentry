@@ -17,7 +17,6 @@ export type GridHeadCellProps<Column> = {
   isLast: boolean;
 
   isEditing: boolean;
-  isPrimary: boolean;
 
   indexColumnOrder: number;
   column: Column;
@@ -50,7 +49,6 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
 > {
   static defaultProps = {
     isEditing: false,
-    isPrimary: false,
   };
 
   state = {

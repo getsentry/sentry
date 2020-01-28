@@ -208,3 +208,6 @@ register("nodedata.cache-on-save", default=False, flags=FLAG_PRIORITIZE_DISK)
 
 # Use nodestore for eventstore.get_events
 register("eventstore.use-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
+
+# Discover2 incremental rollout rate. Tied to feature handlers in getsentry
+register("discover2.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
