@@ -79,7 +79,7 @@ const BannerTitle = styled('h1')`
 
   @media (min-width: ${theme.breakpoints[1]}) {
     margin-top: ${space(2)};
-    margin-bottom: ${space(1)};
+    margin-bottom: ${space(0.5)};
     font-size: 48px;
   }
 `;

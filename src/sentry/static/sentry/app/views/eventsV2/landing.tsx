@@ -191,7 +191,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     return (
       <Banner
         title={t('Discover Trends')}
-        subtitle={t('Customize your queries by search bar, columns or tags')}
+        subtitle={t(
+          'Customize and save queries by search conditions, event fields, and tags'
+        )}
         onCloseClick={this.handleClick}
       >
         <StarterButton
