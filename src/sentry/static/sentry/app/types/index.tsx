@@ -188,7 +188,8 @@ type SentryEventBase = {
   culprit: string;
   metadata: EventMetadata;
   contexts: EventContexts;
-  context?: any; // TODO(ts)
+  context?: {[key: string]: any};
+  packages?: {[key: string]: string};
   user: EventUser;
   message: string;
   platform?: string;
