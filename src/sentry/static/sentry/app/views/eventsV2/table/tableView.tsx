@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Organization} from 'app/types';
@@ -220,7 +221,7 @@ class TableView extends React.Component<TableViewProps> {
     rowIndex?: number
   ): React.ReactNode[] => {
     if (isHeader) {
-      return [<InlineSvg key="header-icon" src="icon-stack" size="14px" />];
+      return [<StyledIconStack key="header-icon" src="icon-stack" size="14px" />];
     }
     const {organization, location} = this.props;
     const eventSlug = generateEventSlug(dataRow);
@@ -484,5 +485,10 @@ const ExpandAggregateRow = (props: {
 
   return <React.Fragment>{children({willExpand: false})}</React.Fragment>;
 };
+
+const StyledIconStack = styled(InlineSvg)`
+  margin-bottom: 8px;
+  color: ${p => p.theme.gray3};
+`;
 
 export default TableView;
