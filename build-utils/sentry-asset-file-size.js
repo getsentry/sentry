@@ -2,7 +2,7 @@
 /*eslint import/no-nodejs-modules:0 */
 class SentryAssetFileSize {
   constructor() {
-    if (!!process.env.SENTRY_MEASURE_WEBPACK_DSN) {
+    if (!!process.env.SENTRY_MEASURE_WEBPACK_DSN && process.env.TEST_SUITE === 'js') {
       this.Sentry = require('@sentry/node');
       require('@sentry/apm');
 
@@ -18,6 +18,10 @@ class SentryAssetFileSize {
         done();
         return;
       }
+
+      this.Sentry.setTag('travis_branch', process.env.TRAVIS_BRANCH);
+      this.Sentry.setTag('travis_build_url', process.env.TRAVIS_BUILD_WEB_URL);
+      this.Sentry.setTag('travis_commit', process.env.TRAVIS_COMMIT);
 
       const hub = this.Sentry.getCurrentHub();
       const transaction = hub.startSpan({
