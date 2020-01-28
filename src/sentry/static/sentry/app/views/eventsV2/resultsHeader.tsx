@@ -6,6 +6,7 @@ import {Organization, SavedQuery} from 'app/types';
 import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
 
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
@@ -71,13 +72,15 @@ class ResultsHeader extends React.Component<Props, State> {
           eventView={eventView}
         />
         <Controller>
-          <SavedQueryButtonGroup
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            savedQuery={savedQuery}
-            savedQueryLoading={loading}
-          />
+          <Feature organization={organization} features={['discover-query']}>
+            <SavedQueryButtonGroup
+              location={location}
+              organization={organization}
+              eventView={eventView}
+              savedQuery={savedQuery}
+              savedQueryLoading={loading}
+            />
+          </Feature>
         </Controller>
       </HeaderBox>
     );

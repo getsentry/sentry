@@ -447,9 +447,6 @@ export class Frame extends React.Component {
     if (func.match(/^@objc\s/)) {
       return [t('Objective-C -> Swift shim frame'), warningType];
     }
-    if (func === '<redacted>') {
-      return [t('Unknown system frame. Usually from beta SDKs'), warningType];
-    }
     if (func.match(/^__?hidden#\d+/)) {
       return [t('Hidden function from bitcode build'), errorType];
     }
@@ -458,7 +455,10 @@ export class Frame extends React.Component {
       return [t('No function name was supplied by the client SDK.'), warningType];
     }
 
-    if (func === '<unknown>') {
+    if (
+      func === '<unknown>' ||
+      (func === '<redacted>' && symbolicatorStatus === SymbolicatorStatus.MISSING_SYMBOL)
+    ) {
       switch (symbolicatorStatus) {
         case SymbolicatorStatus.MISSING_SYMBOL:
           return [t('The symbol was not found within the debug file.'), warningType];
@@ -473,6 +473,10 @@ export class Frame extends React.Component {
           return [t('The retrieved debug file could not be processed.'), errorType];
         default:
       }
+    }
+
+    if (func === '<redacted>') {
+      return [t('Unknown system frame. Usually from beta SDKs'), warningType];
     }
 
     return [null, null];

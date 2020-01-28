@@ -59,6 +59,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
     timeout = getattr(settings, "SENTRY_WEBHOOK_TIMEOUT", 3)
     logger = logging.getLogger("sentry.plugins.webhooks")
     user_agent = "sentry-webhooks/%s" % version
+    required_field = "urls"
 
     def is_configured(self, project, **kwargs):
         return bool(self.get_option("urls", project))
