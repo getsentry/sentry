@@ -25,7 +25,7 @@ describe('IncidentDetails -> Activity', function() {
   const createWrapper = props =>
     mountWithTheme(
       <IncidentActivity
-        params={{incidentId: incident.identifier, orgId: organization.slug}}
+        params={{alertId: incident.identifier, orgId: organization.slug}}
         {...props}
       />,
       routerContext

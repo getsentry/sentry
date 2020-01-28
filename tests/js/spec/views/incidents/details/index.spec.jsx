@@ -6,7 +6,7 @@ import IncidentDetails from 'app/views/alerts/details';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentDetails', function() {
-  const params = {orgId: 'org-slug', incidentId: '123'};
+  const params = {orgId: 'org-slug', alertId: '123'};
   const {organization, project, routerContext} = initializeOrg({
     router: {
       params,
@@ -88,7 +88,7 @@ describe('IncidentDetails', function() {
   });
 
   it('handles invalid incident', async function() {
-    const wrapper = createWrapper({params: {orgId: 'org-slug', incidentId: '456'}});
+    const wrapper = createWrapper({params: {orgId: 'org-slug', alertId: '456'}});
     await tick();
     wrapper.update();
 

@@ -27,7 +27,7 @@ import SideHeader from './sideHeader';
 
 type Props = {
   incident?: Incident;
-} & RouteComponentProps<{incidentId: string; orgId: string}, {}>;
+} & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
   getDiscoverUrl(projects: Project[]) {
