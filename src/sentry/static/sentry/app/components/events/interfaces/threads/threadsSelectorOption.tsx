@@ -69,10 +69,10 @@ const ThreadsSelectorOption: React.FC<Props> = ({thread, event, selected = false
         {selected ? (
           <StyledTextOverflow>
             {threadDetails?.filename ? (
-              <>
+              <React.Fragment>
                 {`Thread: ${thread.name} - `}
                 <StyledFileName>{threadDetails?.filename}</StyledFileName>
-              </>
+              </React.Fragment>
             ) : (
               thread.name
             )}

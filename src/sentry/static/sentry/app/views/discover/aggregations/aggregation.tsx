@@ -1,13 +1,13 @@
 import React from 'react';
-import { Value } from 'react-select-legacy';
+import {Value} from 'react-select-legacy';
 
-import { t } from 'app/locale';
+import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
-import { getInternal, getExternal } from './utils';
-import { Aggregation, DiscoverBaseProps, ReactSelectOption } from '../types';
-import { PlaceholderText } from '../styles';
-import { ARRAY_FIELD_PREFIXES } from '../data';
+import {getInternal, getExternal} from './utils';
+import {Aggregation, DiscoverBaseProps, ReactSelectOption} from '../types';
+import {PlaceholderText} from '../styles';
+import {ARRAY_FIELD_PREFIXES} from '../data';
 
 type AggregationProps = DiscoverBaseProps & {
   value: Aggregation;
@@ -27,7 +27,7 @@ const initalState = {
 export default class AggregationRow extends React.Component<
   AggregationProps,
   AggregationState
-  > {
+> {
   state = initalState;
 
   // This is the ref of the inner react-select component
@@ -36,23 +36,23 @@ export default class AggregationRow extends React.Component<
   getOptions() {
     const currentValue = getInternal(this.props.value);
     const shouldDisplayValue = currentValue || this.state.inputValue;
-    return shouldDisplayValue ? [{ label: currentValue, value: currentValue }] : [];
+    return shouldDisplayValue ? [{label: currentValue, value: currentValue}] : [];
   }
 
   filterOptions = () => {
     const input = this.state.inputValue;
 
     let optionList: Array<ReactSelectOption> = [
-      { value: 'count', label: 'count' },
-      { value: 'uniq', label: 'uniq(...)' },
-      { value: 'avg', label: 'avg(...)' },
-      { value: 'sum', label: 'sum(...)' },
+      {value: 'count', label: 'count'},
+      {value: 'uniq', label: 'uniq(...)'},
+      {value: 'avg', label: 'avg(...)'},
+      {value: 'sum', label: 'sum(...)'},
     ];
 
     if (input.startsWith('uniq')) {
       optionList = this.props.columns
-        .filter(({ name }) => !ARRAY_FIELD_PREFIXES.some(prefix => name.startsWith(prefix)))
-        .map(({ name }) => ({
+        .filter(({name}) => !ARRAY_FIELD_PREFIXES.some(prefix => name.startsWith(prefix)))
+        .map(({name}) => ({
           value: `uniq(${name})`,
           label: `uniq(${name})`,
         }));
@@ -60,8 +60,8 @@ export default class AggregationRow extends React.Component<
 
     if (input.startsWith('avg')) {
       optionList = this.props.columns
-        .filter(({ type }) => type === 'number')
-        .map(({ name }) => ({
+        .filter(({type}) => type === 'number')
+        .map(({name}) => ({
           value: `avg(${name})`,
           label: `avg(${name})`,
         }));
@@ -69,14 +69,14 @@ export default class AggregationRow extends React.Component<
 
     if (input.startsWith('sum')) {
       optionList = this.props.columns
-        .filter(({ type }) => type === 'number')
-        .map(({ name }) => ({
+        .filter(({type}) => type === 'number')
+        .map(({name}) => ({
           value: `sum(${name})`,
           label: `sum(${name})`,
         }));
     }
 
-    return optionList.filter(({ label }) => label.includes(input));
+    return optionList.filter(({label}) => label.includes(input));
   };
 
   focus() {
@@ -85,9 +85,9 @@ export default class AggregationRow extends React.Component<
 
   handleChange = (option: ReactSelectOption) => {
     if (option.value === 'uniq' || option.value === 'avg' || option.value === 'sum') {
-      this.setState({ inputValue: option.value }, this.focus);
+      this.setState({inputValue: option.value}, this.focus);
     } else {
-      this.setState({ inputValue: option.value, isOpen: false });
+      this.setState({inputValue: option.value, isOpen: false});
       this.props.onChange(getExternal(option.value));
     }
   };
@@ -107,7 +107,7 @@ export default class AggregationRow extends React.Component<
         evt.persist();
         // React select won't trigger an onChange event when a value is completely
         // cleared, so we'll force this before calling onChange
-        this.setState({ inputValue: evt.target.value }, () => {
+        this.setState({inputValue: evt.target.value}, () => {
           props.onChange(evt);
         });
       } else {
@@ -121,7 +121,7 @@ export default class AggregationRow extends React.Component<
         {...props}
         onChange={onChange}
         value={this.state.inputValue}
-        style={{ width: '100%', border: 0, backgroundColor: 'transparent' }}
+        style={{width: '100%', border: 0, backgroundColor: 'transparent'}}
       />
     );
   };

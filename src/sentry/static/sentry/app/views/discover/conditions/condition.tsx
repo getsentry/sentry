@@ -1,15 +1,15 @@
 import React from 'react';
-import { Value } from 'react-select-legacy';
+import {Value} from 'react-select-legacy';
 import styled from '@emotion/styled';
-import { t } from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import SelectControl from 'app/components/forms/selectControl';
 
-import { getInternal, getExternal, isValidCondition, ignoreCase } from './utils';
-import { CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES } from '../data';
-import { PlaceholderText } from '../styles';
-import { DiscoverBaseProps, Condition, ReactSelectOption } from '../types';
+import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
+import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
+import {PlaceholderText} from '../styles';
+import {DiscoverBaseProps, Condition, ReactSelectOption} from '../types';
 
 type ConditionProps = DiscoverBaseProps & {
   value: Condition;
@@ -29,7 +29,7 @@ const initalState = {
 export default class ConditionRow extends React.Component<
   ConditionProps,
   ConditionState
-  > {
+> {
   state = initalState;
 
   // This is the ref of the inner react-select component
@@ -76,11 +76,11 @@ export default class ConditionRow extends React.Component<
   getOptions() {
     const currentValue = getInternal(this.props.value);
     const shouldDisplayValue = currentValue || this.state.inputValue;
-    return shouldDisplayValue ? [{ label: currentValue, value: currentValue }] : [];
+    return shouldDisplayValue ? [{label: currentValue, value: currentValue}] : [];
   }
 
   getConditionsForColumn(colName: string) {
-    const column = this.props.columns.find(({ name }) => name === colName);
+    const column = this.props.columns.find(({name}) => name === colName);
     const colType = column ? column.type : 'string';
     const numberOnlyOperators = new Set(['>', '<', '>=', '<=']);
     const stringOnlyOperators = new Set(['LIKE', 'NOT LIKE']);
@@ -115,7 +115,7 @@ export default class ConditionRow extends React.Component<
     const hasSelectedOperator = external[1] !== null;
 
     if (!hasSelectedColumn) {
-      optionList = this.props.columns.map(({ name }) => ({
+      optionList = this.props.columns.map(({name}) => ({
         value: `${name}`,
         label: `${name}...`,
       }));
@@ -132,10 +132,10 @@ export default class ConditionRow extends React.Component<
       });
     }
 
-    return optionList.filter(({ label }) => label.includes(input));
+    return optionList.filter(({label}) => label.includes(input));
   };
 
-  isValidNewOption = ({ label }: ReactSelectOption) => {
+  isValidNewOption = ({label}: ReactSelectOption) => {
     label = ignoreCase(label);
     return isValidCondition(getExternal(label, this.props.columns), this.props.columns);
   };
@@ -146,7 +146,7 @@ export default class ConditionRow extends React.Component<
         evt.persist();
         // React select won't trigger an onChange event when a value is completely
         // cleared, so we'll force this before calling onChange
-        this.setState({ inputValue: evt.target.value }, () => {
+        this.setState({inputValue: evt.target.value}, () => {
           props.onChange(evt);
         });
       } else {
@@ -160,7 +160,7 @@ export default class ConditionRow extends React.Component<
         {...props}
         onChange={onChange}
         value={this.state.inputValue}
-        style={{ width: '100%', border: 0, zIndex: 1000, backgroundColor: 'transparent' }}
+        style={{width: '100%', border: 0, zIndex: 1000, backgroundColor: 'transparent'}}
       />
     );
   };
@@ -201,7 +201,7 @@ export default class ConditionRow extends React.Component<
     }
   };
 
-  newOptionCreator = ({ label, labelKey, valueKey }: any) => {
+  newOptionCreator = ({label, labelKey, valueKey}: any) => {
     label = ignoreCase(label);
     return {
       [valueKey]: label,

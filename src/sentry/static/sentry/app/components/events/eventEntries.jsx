@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import { analytics } from 'app/utils/analytics';
-import { logException } from 'app/utils/logging';
-import { objectIsEmpty } from 'app/utils';
-import { t } from 'app/locale';
+import {analytics} from 'app/utils/analytics';
+import {logException} from 'app/utils/logging';
+import {objectIsEmpty} from 'app/utils';
+import {t} from 'app/locale';
 import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
 import CspInterface from 'app/components/events/interfaces/csp';
 import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
@@ -32,7 +32,7 @@ import SentryTypes from 'app/sentryTypes';
 import SpansInterface from 'app/components/events/interfaces/spans';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
-import ThreadsInterface from 'app/components/events/interfaces/Threads/Threads';
+import ThreadsInterface from 'app/components/events/interfaces/Threads';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -73,7 +73,7 @@ class EventEntries extends React.Component {
   };
 
   componentDidMount() {
-    const { event } = this.props;
+    const {event} = this.props;
 
     if (!event || !event.errors || !(event.errors.length > 0)) {
       return;
@@ -86,7 +86,7 @@ class EventEntries extends React.Component {
   }
 
   shouldComponentUpdate(nextProps) {
-    const { event, showExampleCommit } = this.props;
+    const {event, showExampleCommit} = this.props;
 
     return (
       (event && nextProps.event && event.id !== nextProps.event.id) ||
@@ -95,7 +95,7 @@ class EventEntries extends React.Component {
   }
 
   recordIssueError(errorTypes, errorMessages) {
-    const { organization, project, event } = this.props;
+    const {organization, project, event} = this.props;
     const orgId = organization.id;
     const platform = project.platform;
 
@@ -104,12 +104,12 @@ class EventEntries extends React.Component {
       group: event.groupID,
       error_type: errorTypes,
       error_message: errorMessages,
-      ...(platform && { platform }),
+      ...(platform && {platform}),
     });
   }
 
   renderEntries() {
-    const { event, project, organization, isShare } = this.props;
+    const {event, project, organization, isShare} = this.props;
 
     const entries = event && event.entries;
 
@@ -173,7 +173,7 @@ class EventEntries extends React.Component {
 
     if (!event) {
       return (
-        <div style={{ padding: '15px 30px' }}>
+        <div style={{padding: '15px 30px'}}>
           <h3>{t('Latest Event Not Available')}</h3>
         </div>
       );
@@ -186,8 +186,8 @@ class EventEntries extends React.Component {
           (showExampleCommit ? (
             <EventCauseEmpty organization={organization} project={project} />
           ) : (
-              <EventCause event={event} orgId={orgId} projectId={project.slug} />
-            ))}
+            <EventCause event={event} orgId={orgId} projectId={project.slug} />
+          ))}
         {event.userReport && (
           <StyledEventUserFeedback
             report={event.userReport}

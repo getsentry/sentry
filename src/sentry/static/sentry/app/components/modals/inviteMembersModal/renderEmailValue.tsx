@@ -1,33 +1,33 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import { css } from '@emotion/core';
+import {css} from '@emotion/core';
 
-import { Value } from 'react-select-legacy';
+import {Value} from 'react-select-legacy';
 
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
-import { InviteStatus } from './types';
+import {InviteStatus} from './types';
 
 function renderEmailValue(status: InviteStatus[string], valueProps) {
-  const { children, ...props } = valueProps;
+  const {children, ...props} = valueProps;
   const error = status && status.error;
 
   const emailLabel =
     status === undefined ? (
       children
     ) : (
-        <Tooltip disabled={!error} title={error}>
-          <EmailLabel>
-            {children}
-            {!status.sent && !status.error && <SendingIndicator />}
-            {status.error && <InlineSvg src="icon-warning-sm" size="10px" />}
-            {status.sent && <InlineSvg src="icon-checkmark-sm" size="10px" />}
-          </EmailLabel>
-        </Tooltip>
-      );
+      <Tooltip disabled={!error} title={error}>
+        <EmailLabel>
+          {children}
+          {!status.sent && !status.error && <SendingIndicator />}
+          {status.error && <InlineSvg src="icon-warning-sm" size="10px" />}
+          {status.sent && <InlineSvg src="icon-checkmark-sm" size="10px" />}
+        </EmailLabel>
+      </Tooltip>
+    );
 
   return (
     <EmailValue status={status}>
@@ -36,14 +36,14 @@ function renderEmailValue(status: InviteStatus[string], valueProps) {
   );
 }
 
-const EmailValue = styled('div') <{ status: InviteStatus[string] }>`
+const EmailValue = styled('div')<{status: InviteStatus[string]}>`
   display: initial;
 
   .Select--multi.is-disabled & .Select-value {
     ${p =>
-    p.status &&
-    p.status.error &&
-    css`
+      p.status &&
+      p.status.error &&
+      css`
         color: ${p.theme.red};
         border-color: ${p.theme.redLight};
         background-color: ${p.theme.redLightest};

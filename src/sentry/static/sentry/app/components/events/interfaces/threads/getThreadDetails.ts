@@ -43,7 +43,9 @@ function getThreadDetails(thread: Thread, event: Event): ThreadDetails {
   const stacktrace = findThreadStacktrace(thread, event, false);
   const threadDetails: ThreadDetails = {};
 
-  if (!stacktrace) return threadDetails;
+  if (!stacktrace) {
+    return threadDetails;
+  }
 
   const relevantFrame: Frame = findRelevantFrame(stacktrace);
 
