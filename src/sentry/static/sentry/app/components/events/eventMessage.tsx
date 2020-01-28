@@ -2,12 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Level} from 'app/types';
 import ErrorLevel from 'app/components/events/errorLevel';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
 type Props = {
-  level?: 'error' | 'fatal' | 'info' | 'warning' | 'sample';
+  level?: Level;
   levelIndicatorSize?: string;
   message?: React.ReactNode;
   annotations?: React.ReactNode;
