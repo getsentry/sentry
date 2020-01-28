@@ -89,6 +89,8 @@ class IncidentType(Enum):
 class IncidentStatus(Enum):
     OPEN = 1
     CLOSED = 2
+    WARNING = 10
+    CRITICAL = 20
 
 
 class Incident(Model):
