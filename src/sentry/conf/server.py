@@ -423,17 +423,6 @@ ASANA_CLIENT_ID = ""
 ASANA_CLIENT_SECRET = ""
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = "sentry.User"
-SOCIAL_AUTH_PIPELINE = (
-    "social_core.pipeline.user.get_username",
-    "social_core.pipeline.social_auth.social_user",
-    "social_core.pipeline.social_auth.associate_by_email",
-    # "social_auth.backends.pipeline.misc.save_status_to_session",
-    "social_core.pipeline.social_auth.associate_user",
-    "social_core.pipeline.social_auth.load_extra_data",
-    "social_core.pipeline.user.user_details",
-    # "social_auth.backends.pipeline.misc.save_status_to_session",
-)
-SOCIAL_AUTH_REVOKE_TOKENS_ON_DISCONNECT = True
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = "/account/settings/identities/"
 SOCIAL_AUTH_ASSOCIATE_ERROR_URL = SOCIAL_AUTH_LOGIN_REDIRECT_URL
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
