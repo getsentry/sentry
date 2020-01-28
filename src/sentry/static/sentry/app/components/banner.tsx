@@ -46,15 +46,14 @@ const BannerWrapper = styled('div')`
   position: relative;
   min-height: 200px;
   margin-bottom: ${space(3)};
-  padding-top: 22%;
   box-shadow: ${p => p.theme.dropShadowLight};
+  border-radius: ${p => p.theme.borderRadius};
 
   @media (min-width: ${theme.breakpoints[1]}) {
     min-height: 220px;
   }
 
   @media (min-width: ${theme.breakpoints[3]}) {
-    padding-top: 0;
     min-height: 260px;
   }
 `;
