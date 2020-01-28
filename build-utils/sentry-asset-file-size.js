@@ -42,7 +42,7 @@ class SentryAssetFileSize {
               op: 'asset',
               description: assetName,
               data: {
-                size: `${sizeInKb}KB`,
+                size: `${Math.round(sizeInKb)}KB`,
               },
               sampled: true,
             });
