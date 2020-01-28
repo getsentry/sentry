@@ -2,12 +2,10 @@ from __future__ import absolute_import
 
 import logging
 
-from django.conf import settings
 from rest_framework.response import Response
-from social_core.backends.utils import get_backend
 from social_core.actions import do_disconnect
 
-# from social_django.utils import load_strategy
+from social_django.utils import load_strategy
 from social_django.models import UserSocialAuth
 
 from sentry.api.bases.user import UserEndpoint
@@ -27,18 +25,15 @@ class UserSocialIdentityDetailsEndpoint(UserEndpoint):
         :auth: required
         """
 
-        # auth = None
         try:
             auth = UserSocialAuth.objects.get(id=identity_id)
         except UserSocialAuth.DoesNotExist:
             return Response(status=404)
 
-        # backend = auth.get_backend(load_strategy())
-        backend = get_backend(settings.AUTHENTICATION_BACKENDS, auth.provider)
+        backend = auth.get_backend(load_strategy())
         if backend is None:
             raise Exception(u"Backend was not found for request: {}".format(auth.provider))
 
-        # import pdb; pdb.set_trace()
         do_disconnect(backend, user)
 
         # XXX(dcramer): we experienced an issue where the identity still existed,
