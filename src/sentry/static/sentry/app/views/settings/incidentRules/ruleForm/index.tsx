@@ -327,7 +327,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             />
 
             <RuleConditionsForm
-              api={api}
+              api={this.api}
               projectSlug={params.projectId}
               organization={organization}
               disabled={!hasAccess}
