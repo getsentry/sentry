@@ -8,8 +8,7 @@ import styled from '@emotion/styled';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {navigateTo} from 'app/actionCreators/navigation';
-import {t, tct} from 'app/locale';
-import Alert from 'app/components/alert';
+import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
@@ -162,6 +161,9 @@ class IncidentsListContainer extends React.Component<Props> {
                   'This feature may change in the future and currently only shows metric alerts'
                 )}
               />
+              <ExternalLink href="mailto:alerting-feedback@sentry.io">
+                {t('Send feedback')}
+              </ExternalLink>
             </PageHeading>
 
             <Actions>
@@ -199,16 +201,6 @@ class IncidentsListContainer extends React.Component<Props> {
               </div>
             </Actions>
           </PageHeader>
-
-          <Alert type="info">
-            {tct('Feature request or feedback? Email [emailAddress]', {
-              emailAddress: (
-                <ExternalLink href="mailto:alerts@sentry.io">
-                  alerts@sentry.io
-                </ExternalLink>
-              ),
-            })}
-          </Alert>
 
           <IncidentsList {...this.props} />
         </PageContent>
