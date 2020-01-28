@@ -127,6 +127,7 @@ export default class DetailsBody extends React.Component<Props> {
         <ChartWrapper>
           {incident ? (
             <Chart
+              aggregation={incident.alertRule.aggregation}
               data={incident.eventStats.data}
               detected={incident.dateDetected}
               closed={incident.dateClosed}
