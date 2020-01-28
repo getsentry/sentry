@@ -28,8 +28,8 @@ class Columns(Enum):
     TYPE = Column("events.type", "type", "type", "event.type")
     TAGS_KEY = Column("events.tags.key", "tags.key", "tags.key", "tags.key")
     TAGS_VALUE = Column("events.tags.value", "tags.value", "tags.value", "tags.value")
-    TAGS_KEYS = Column("events.tags_key", "tags_key", "tags_key", "tags_key")
-    TAGS_VALUES = Column("events.tags_value", "tags_value", "tags_value", "tags_value")
+    TAGS_KEYS = Column("events.tags_key", "tags_key", None, "tags_key")
+    TAGS_VALUES = Column("events.tags_value", "tags_value", None, "tags_value")
     TRANSACTION = Column("events.transaction", "transaction", "transaction", "transaction")
     USER = Column("events.tags[sentry:user]", "tags[sentry:user]", "user", "user")
     USER_ID = Column("events.user_id", "user_id", "user_id", "user.id")
@@ -155,9 +155,9 @@ class Columns(Enum):
         "exception_frames.stack_level",
         "stack.stack_level",
     )
-    CONTEXTS_KEY = Column("events.contexts.key", "contexts.key", "contexts.key", "contexts.key")
+    CONTEXTS_KEY = Column("events.contexts.key", "contexts.key", None, "contexts.key")
     CONTEXTS_VALUE = Column(
-        "events.contexts.value", "contexts.value", "contexts.value", "contexts.value"
+        "events.contexts.value", "contexts.value", None, "contexts.value"
     )
     # Transactions specific columns
     TRANSACTION_OP = Column(None, None, "transaction_op", "transaction.op")

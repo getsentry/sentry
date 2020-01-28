@@ -354,7 +354,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data["contexts"]["trace"]["status"] = "unauthenticated"
         self.store_event(data, project_id=project.id)
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
