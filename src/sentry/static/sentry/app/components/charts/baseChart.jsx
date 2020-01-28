@@ -122,6 +122,11 @@ class BaseChart extends React.Component {
     // x-axis and tooltips.
     isGroupedByDate: PropTypes.bool,
 
+    /**
+     * Format timestamp with date AND time
+     */
+    showTimeInTooltip: PropTypes.bool,
+
     // Should we render hours on xaxis instead of day?
     shouldXAxisRenderTimeOnly: PropTypes.bool,
 
@@ -198,6 +203,7 @@ class BaseChart extends React.Component {
       graphic,
 
       isGroupedByDate,
+      showTimeInTooltip,
       shouldXAxisRenderTimeOnly,
       previousPeriod,
       utc,
@@ -248,7 +254,10 @@ class BaseChart extends React.Component {
           useUTC: utc,
           color: colors || this.getColorPalette(),
           grid: Grid(grid),
-          tooltip: tooltip !== null ? Tooltip({isGroupedByDate, utc, ...tooltip}) : null,
+          tooltip:
+            tooltip !== null
+              ? Tooltip({showTimeInTooltip, isGroupedByDate, utc, ...tooltip})
+              : null,
           legend: legend ? Legend({...legend}) : null,
           yAxis: yAxisOrCustom,
           xAxis:
