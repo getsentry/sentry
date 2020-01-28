@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {tct} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import getDynamicText from 'app/utils/getDynamicText';
 
@@ -16,7 +16,7 @@ type Props = {
 /**
  * StatusItem renders status changes for Incidents
  *
- * For example: incident created, detected, or closed
+ * For example: incident detected, or closed
  *
  * Note `activity.dateCreated` refers to when the activity was created vs.
  * `incident.dateStarted` which is when an incident was first detected or created
@@ -25,18 +25,13 @@ class StatusItem extends React.Component<Props> {
   render() {
     const {activity, authorName, showTime} = this.props;
 
-    const isCreated = activity.type === IncidentActivityType.CREATED;
     const isDetected = activity.type === IncidentActivityType.DETECTED;
     const isClosed =
       activity.type === IncidentActivityType.STATUS_CHANGE &&
       activity.value === `${IncidentStatus.CLOSED}`;
-    const isReopened =
-      activity.type === IncidentActivityType.STATUS_CHANGE &&
-      activity.value === `${IncidentStatus.CREATED}` &&
-      activity.previousValue === `${IncidentStatus.CLOSED}`;
 
     // Unknown activity, don't render anything
-    if (!isCreated && !isDetected && !isClosed && !isReopened) {
+    if (!isDetected && !isClosed) {
       return null;
     }
 
@@ -52,10 +47,14 @@ class StatusItem extends React.Component<Props> {
         }}
         header={
           <div>
-            <AuthorName>{authorName}</AuthorName> {isCreated && t('created')}
-            {isDetected && t('detected')}
-            {isClosed && t('closed')}
-            {isReopened && t('re-opened')} {t('an Incident')}
+            {isClosed &&
+              tct('[user] resolved the incident', {
+                user: <AuthorName>{authorName}</AuthorName>,
+              })}
+            {isDetected &&
+              tct('[user] detected an incident', {
+                user: <AuthorName>{authorName}</AuthorName>,
+              })}
           </div>
         }
         date={getDynamicText({value: activity.dateCreated, fixed: new Date(0)})}
