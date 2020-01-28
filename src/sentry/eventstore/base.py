@@ -62,6 +62,7 @@ class Filter(object):
 class EventStorage(Service):
     __all__ = (
         "minimal_columns",
+        "full_columns",
         "create_event",
         "get_event_by_id",
         "get_events",
@@ -79,8 +80,33 @@ class EventStorage(Service):
     # avoid duplicated work.
     minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
 
+    # A list of all useful columns we can get from snuba.
+    full_columns = minimal_columns + [
+        Columns.CULPRIT,
+        Columns.LOCATION,
+        Columns.MESSAGE,
+        Columns.PLATFORM,
+        Columns.TITLE,
+        Columns.TYPE,
+        Columns.TRANSACTION,
+        # Required to provide snuba-only tags
+        Columns.TAGS_KEY,
+        Columns.TAGS_VALUE,
+        # Required to provide snuba-only 'user' interface
+        Columns.USER_EMAIL,
+        Columns.USER_IP_ADDRESS,
+        Columns.USER_ID,
+        Columns.USER_USERNAME,
+    ]
+
     def get_events(
-        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_events"
+        self,
+        filter,
+        additional_columns=None,
+        orderby=None,
+        limit=100,
+        offset=0,
+        referrer="eventstore.get_events",
     ):
         """
         Fetches a list of events given a set of criteria.
@@ -173,9 +199,7 @@ class EventStorage(Service):
         """
         Returns an Event from processed data
         """
-        return Event(
-            project_id=project_id, event_id=event_id, group_id=group_id, data=data
-        )
+        return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
 
     def bind_nodes(self, object_list, node_name="data"):
         """

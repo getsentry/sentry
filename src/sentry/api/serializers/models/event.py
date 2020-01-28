@@ -6,6 +6,7 @@ from datetime import datetime
 from django.utils import timezone
 from semaphore import meta_with_chunks
 
+from sentry import eventstore, options
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import EventAttachment, EventError, Release, UserReport
 from sentry.search.utils import convert_user_tag_to_query
@@ -166,6 +167,9 @@ class EventSerializer(Serializer):
         return serialize(user_report, user)
 
     def get_attrs(self, item_list, user, is_public=False):
+        if not options.get("eventstore.use-nodestore"):
+            eventstore.bind_nodes(item_list, "data")
+
         crash_files = get_crash_files(item_list)
         results = {}
         for item in item_list:

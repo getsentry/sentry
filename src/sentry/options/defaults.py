@@ -205,3 +205,6 @@ register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
 # Node data save rate
 register("nodedata.cache-sample-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
 register("nodedata.cache-on-save", default=False, flags=FLAG_PRIORITIZE_DISK)
+
+# Use nodestore for eventstore.get_events
+register("eventstore.use-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
