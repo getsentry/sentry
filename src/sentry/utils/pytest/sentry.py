@@ -99,10 +99,9 @@ def pytest_configure(config):
         "nodedata": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
     }
 
-    if os.environ.get("USE_SNUBA", False):
-        settings.SENTRY_SEARCH = "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
-        settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
-        settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
+    settings.SENTRY_SEARCH = "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
+    settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
+    settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
