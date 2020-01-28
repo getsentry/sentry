@@ -61,7 +61,7 @@ class StatusItem extends React.Component<Props> {
                 ? tct('[user] was triggered', {
                     user: <AuthorName>{incident.alertRule.name}</AuthorName>,
                   })
-                : tct('[user] detected an incident', {
+                : tct('[user] detected an alert', {
                     user: <AuthorName>{authorName}</AuthorName>,
                   }))}
           </div>
