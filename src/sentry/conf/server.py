@@ -841,8 +841,8 @@ SENTRY_FEATURES = {
     "organizations:org-saved-searches": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
     "organizations:datascrubbers-v2": False,
-    # Enable usage of external relays, for use with sentry semaphore. See
-    # https://github.com/getsentry/semaphore.
+    # Enable usage of external relays, for use with Relay. See
+    # https://github.com/getsentry/relay.
     "organizations:relay": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup

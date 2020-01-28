@@ -7,7 +7,7 @@ from functools import partial
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from semaphore.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import get_json_meta_type
 from sentry.api.helpers.events import get_direct_hit_response
