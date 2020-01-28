@@ -23,6 +23,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
     conf_title = title
     conf_key = "asana"
     auth_provider = "asana"
+    required_field = "workspace"
 
     def get_group_urls(self):
         return super(AsanaPlugin, self).get_group_urls() + [

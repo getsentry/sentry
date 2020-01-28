@@ -68,6 +68,7 @@ export default class Chart extends React.PureComponent<Props> {
     return (
       <LineChart
         isGroupedByDate
+        showTimeInTooltip
         series={[
           {
             seriesName: t('Events'),

@@ -1842,8 +1842,8 @@ describe('EventView.getResultsViewUrlTarget()', function() {
 
   it('generates a URL', function() {
     const view = new EventView(state);
-    const result = view.getResultsViewUrlTarget(organization);
-    expect(result.pathname).toEqual('/organizations/org-slug/eventsv2/results/');
+    const result = view.getResultsViewUrlTarget(organization.slug);
+    expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
     expect(result.query.query).toEqual(state.query);
     expect(result.query.project).toEqual(state.project);
   });

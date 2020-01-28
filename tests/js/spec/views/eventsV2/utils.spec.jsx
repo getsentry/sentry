@@ -6,54 +6,13 @@ import EventView from 'app/views/eventsV2/eventView';
 import {
   getFieldRenderer,
   getAggregateAlias,
-  getEventTagSearchUrl,
   isAggregateField,
   decodeColumnOrder,
   pushEventViewToLocation,
   getExpandedResults,
-  generateDiscoverLandingPageRoute,
+  getDiscoverLandingUrl,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
-
-describe('eventTagSearchUrl()', function() {
-  let location, organization;
-  beforeEach(function() {
-    organization = TestStubs.Organization();
-    location = {
-      pathname: '/organization/org-slug/events/',
-      query: {},
-    };
-  });
-
-  it('adds a query', function() {
-    expect(
-      getEventTagSearchUrl('browser', 'firefox', organization, location.query)
-    ).toEqual({
-      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
-      query: {query: 'browser:firefox'},
-    });
-  });
-
-  it('appends to an existing query', function() {
-    location.query.query = 'failure';
-    expect(
-      getEventTagSearchUrl('browser', 'firefox', organization, location.query)
-    ).toEqual({
-      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
-      query: {query: 'failure browser:firefox'},
-    });
-  });
-
-  it('quotes tags with spaces', function() {
-    location.query.query = 'failure';
-    expect(
-      getEventTagSearchUrl('browser', 'fire fox', organization, location.query)
-    ).toEqual({
-      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
-      query: {query: 'failure browser:"fire fox"'},
-    });
-  });
-});
 
 describe('getAggregateAlias', function() {
   it('no-ops simple fields', function() {
@@ -161,7 +120,7 @@ describe('getFieldRenderer', function() {
     const value = wrapper.find('OverflowLink');
     expect(value).toHaveLength(1);
     expect(value.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
       query: {},
     });
     expect(value.text()).toEqual(data.transaction);
@@ -175,7 +134,7 @@ describe('getFieldRenderer', function() {
     const value = wrapper.find('OverflowLink');
     expect(value).toHaveLength(1);
     expect(value.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
       query: {},
     });
     expect(value.text()).toEqual(data.title);
@@ -207,7 +166,7 @@ describe('getFieldRenderer', function() {
 
     const link = wrapper.find('OverflowLink');
     expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
       query: {},
     });
     expect(link.text()).toEqual('/example');
@@ -223,7 +182,7 @@ describe('getFieldRenderer', function() {
 
     const link = wrapper.find('OverflowLink');
     expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
       query: {},
     });
     expect(link.find('Count').props().value).toEqual(data.numeric);
@@ -239,7 +198,7 @@ describe('getFieldRenderer', function() {
 
     const link = wrapper.find('OverflowLink');
     expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
+      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
       query: {},
     });
     expect(link.find('StyledDateTime').props().date).toEqual(data.createdAt);
@@ -487,10 +446,14 @@ describe('getExpandedResults()', function() {
   });
 });
 
-describe('generateDiscoverLandingPageRoute', function() {
-  it('generateDiscoverLandingPageRoute', function() {
-    expect(generateDiscoverLandingPageRoute('sentry')).toBe(
-      '/organizations/sentry/eventsv2/'
-    );
+describe('getDiscoverLandingUrl', function() {
+  it('is correct for with discover-query and discover-basic features', function() {
+    const org = TestStubs.Organization({features: ['discover-query', 'discover-basic']});
+    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/queries/');
+  });
+
+  it('is correct for with only discover-basic feature', function() {
+    const org = TestStubs.Organization({features: ['discover-basic']});
+    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/results/');
   });
 });

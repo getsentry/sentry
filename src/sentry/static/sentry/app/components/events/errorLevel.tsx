@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
+import {Level} from 'app/types';
 
 const DEFAULT_SIZE = '13px';
 
-function getLevelColor({level, theme}) {
+function getLevelColor({level = '', theme}) {
   const COLORS = {
     error: theme.orange,
     info: theme.blue,
@@ -14,7 +15,12 @@ function getLevelColor({level, theme}) {
   return `background-color: ${COLORS[level] || theme.orange};`;
 }
 
-const ErrorLevel = styled('span')`
+type Props = {
+  size?: string;
+  level?: Level;
+};
+
+const ErrorLevel = styled('span')<Props>`
   padding: 0;
   position: relative;
   width: ${p => p.size || DEFAULT_SIZE};

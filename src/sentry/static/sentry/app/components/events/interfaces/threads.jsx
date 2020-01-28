@@ -48,11 +48,6 @@ function findThreadException(thread, event) {
 }
 
 function findThreadStacktrace(thread, event, raw) {
-  if (raw && thread.rawStacktrace) {
-    return thread.rawStacktrace;
-  } else if (thread.stacktrace) {
-    return thread.stacktrace;
-  }
   const exc = findThreadException(thread, event);
   if (exc) {
     let rv = null;
@@ -63,6 +58,15 @@ function findThreadStacktrace(thread, event, raw) {
     }
     return rv;
   }
+
+  if (raw && thread.rawStacktrace) {
+    return thread.rawStacktrace;
+  }
+
+  if (thread.stacktrace) {
+    return thread.stacktrace;
+  }
+
   return null;
 }
 

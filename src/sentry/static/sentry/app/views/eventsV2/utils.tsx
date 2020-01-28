@@ -12,7 +12,6 @@ import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
-import {generateQueryWithTag} from 'app/utils';
 import {appendTagCondition} from 'app/utils/queryString';
 import {
   COL_WIDTH_UNDEFINED,
@@ -37,7 +36,6 @@ import {
 import EventView, {Field as FieldType, Column} from './eventView';
 import {Aggregation, Field, AGGREGATIONS, FIELDS} from './eventQueryParams';
 import {TableColumn, TableDataRow} from './table/types';
-import {generateDiscoverResultsRoute} from './results';
 
 export type EventQuery = {
   field: string[];
@@ -92,28 +90,6 @@ export function isAggregateField(field: string): boolean {
   return (
     AGGREGATE_ALIASES.includes(field as any) || field.match(AGGREGATE_PATTERN) !== null
   );
-}
-
-/**
- * Return a location object for the search results pathname
- * with a query string reflected the provided tag.
- *
- * @param {String} tagKey
- * @param {String} tagValue
- * @param {OrganizationSummary} organization
- * @param {Query} browser location query.
- * @return {Object} router target
- */
-export function getEventTagSearchUrl(
-  tagKey: string,
-  tagValue: string,
-  organization: OrganizationSummary,
-  query: Query
-) {
-  return {
-    pathname: generateDiscoverResultsRoute(organization.slug),
-    query: generateQueryWithTag(query, {key: tagKey, value: tagValue}),
-  };
 }
 
 export type TagTopValue = {
@@ -477,6 +453,9 @@ export function getExpandedResults(
   return nextView;
 }
 
-export function generateDiscoverLandingPageRoute(orgSlug: string): string {
-  return `/organizations/${orgSlug}/eventsv2/`;
+export function getDiscoverLandingUrl(organization: OrganizationSummary): string {
+  if (organization.features.includes('discover-query')) {
+    return `/organizations/${organization.slug}/discover/queries/`;
+  }
+  return `/organizations/${organization.slug}/discover/results/`;
 }

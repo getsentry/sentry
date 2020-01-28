@@ -12,14 +12,18 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
 import {Organization, SavedQuery} from 'app/types';
 import localStorage from 'app/utils/localStorage';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
+import BetaTag from 'app/components/betaTag';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Banner from 'app/components/banner';
 import Button from 'app/components/button';
+import Feature from 'app/components/acl/feature';
 import SearchBar from 'app/components/searchBar';
 import NoProjectMessage from 'app/components/noProjectMessage';
 
+import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
@@ -28,7 +32,6 @@ import EventView from './eventView';
 import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
 import {getPrebuiltQueries, decodeScalar} from './utils';
-import {generateDiscoverResultsRoute} from './results';
 
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
@@ -183,13 +186,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-
-    const to = {
-      pathname: generateDiscoverResultsRoute(organization.slug),
-      query: {
-        ...eventView.generateQueryStringObject(),
-      },
-    };
+    const to = eventView.getResultsViewUrlTarget(organization.slug);
 
     return (
       <Banner
@@ -218,13 +215,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     const {location, organization} = this.props;
 
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-
-    const to = {
-      pathname: generateDiscoverResultsRoute(organization.slug),
-      query: {
-        ...eventView.generateQueryStringObject(),
-      },
-    };
+    const to = eventView.getResultsViewUrlTarget(organization.slug);
 
     return (
       <StyledActions>
@@ -242,6 +233,25 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 
+  onGoLegacyDiscover = () => {
+    localStorage.setItem('discover:version', '1');
+    const user = ConfigStore.get('user');
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.opt_out',
+      eventName: 'Discoverv2: Go to discover',
+      organization_id: parseInt(this.props.organization.id, 10),
+      user_id: parseInt(user.id, 10),
+    });
+  };
+
+  renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
+
   render() {
     let body;
     const {location, organization} = this.props;
@@ -253,7 +263,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     } else {
       body = (
         <PageContent>
-          <StyledPageHeader>{t('Discover')}</StyledPageHeader>
+          <StyledPageHeader>
+            {t('Discover')}
+            <BetaTag />
+          </StyledPageHeader>
           {this.renderBanner()}
           {this.renderActions()}
           <QueryList
@@ -264,17 +277,31 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             organization={organization}
             onQueryChange={this.handleQueryChange}
           />
+          <Feature features={['organizations:discover']} organization={organization}>
+            <SwitchLink
+              href={`/organizations/${organization.slug}/discover/`}
+              onClick={this.onGoLegacyDiscover}
+            >
+              {t('Go to Legacy Discover')}
+            </SwitchLink>
+          </Feature>
         </PageContent>
       );
     }
 
     return (
-      <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
-        <React.Fragment>
-          <GlobalSelectionHeader organization={organization} />
-          <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
-        </React.Fragment>
-      </SentryDocumentTitle>
+      <Feature
+        organization={organization}
+        features={['discover-query']}
+        renderDisabled={this.renderNoAccess}
+      >
+        <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
+          <React.Fragment>
+            <GlobalSelectionHeader organization={organization} />
+            <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
+          </React.Fragment>
+        </SentryDocumentTitle>
+      </Feature>
     );
   }
 }
@@ -306,6 +333,11 @@ const StyledActions = styled('div')`
 
 const StyledButton = styled(Button)`
   white-space: nowrap;
+`;
+
+const SwitchLink = styled('a')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-left: ${space(1)};
 `;
 
 export default withOrganization(DiscoverLanding);
