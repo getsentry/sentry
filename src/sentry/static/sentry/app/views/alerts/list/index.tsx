@@ -60,7 +60,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       <IncidentPanelItem key={incident.id}>
         <TableLayout>
           <TitleAndSparkLine>
-            <Link to={`/organizations/${orgId}/incidents/${incident.identifier}/`}>
+            <Link to={`/organizations/${orgId}/alerts/${incident.identifier}/`}>
               {incident.title}
             </Link>
             <SparkLine incident={incident} />

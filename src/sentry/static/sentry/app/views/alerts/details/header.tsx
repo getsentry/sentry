@@ -94,7 +94,7 @@ export default class DetailsHeader extends React.Component<Props> {
       <Header>
         <PageHeading>
           <Breadcrumb>
-            <IncidentsLink to={`/organizations/${params.orgId}/incidents/`}>
+            <IncidentsLink to={`/organizations/${params.orgId}/alerts/`}>
               {t('Incidents')}
             </IncidentsLink>
             {dateStarted && (
