@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0026_delete_event"),
+        ("sentry", "0027_exporteddata"),
     ]
 
     operations = [
