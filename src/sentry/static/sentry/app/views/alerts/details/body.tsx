@@ -6,7 +6,7 @@ import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/
 import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {defined} from 'app/utils';
-import {getDisplayForAlertRuleAggregation} from 'app/views/incidents/utils';
+import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import {t} from 'app/locale';
 import Duration from 'app/components/duration';
 import EventView from 'app/views/eventsV2/eventView';

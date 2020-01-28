@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import IncidentDetails from 'app/views/incidents/details';
+import IncidentDetails from 'app/views/alerts/details';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentDetails', function() {
