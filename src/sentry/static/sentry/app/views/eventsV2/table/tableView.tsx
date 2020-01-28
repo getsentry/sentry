@@ -487,7 +487,7 @@ const ExpandAggregateRow = (props: {
 };
 
 const StyledIconStack = styled(InlineSvg)`
-  margin-bottom: 8px;
+  vertical-align: top;
   color: ${p => p.theme.gray3};
 `;
 
