@@ -16,6 +16,10 @@ describe('Incident Rules Create', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/environments/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: TestStubs.EventsStats(),
     });
@@ -36,7 +40,7 @@ describe('Incident Rules Create', function() {
     const {organization, project, routerContext} = initializeOrg();
     mountWithTheme(
       <IncidentRulesCreate
-        params={{orgId: organization.slug}}
+        params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
         project={project}
       />,

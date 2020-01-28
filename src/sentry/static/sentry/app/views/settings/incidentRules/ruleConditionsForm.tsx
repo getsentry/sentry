@@ -1,7 +1,10 @@
 import React from 'react';
 
-import {Organization} from 'app/types';
+import {Client} from 'app/api';
+import {Environment, Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {defined} from 'app/utils';
 import {t} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
@@ -9,11 +12,6 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 
 import {AlertRuleAggregations, TimeWindow} from './types';
 import getMetricDisplayName from './utils/getMetricDisplayName';
-
-type Props = {
-  organization: Organization;
-  disabled: boolean;
-};
 
 type TimeWindowMapType = {[key in TimeWindow]: string};
 
@@ -29,7 +27,44 @@ const TIME_WINDOW_MAP: TimeWindowMapType = {
   [TimeWindow.ONE_DAY]: t('24 hours'),
 };
 
-class RuleConditionsForm extends React.PureComponent<Props> {
+type Props = {
+  api: Client;
+  organization: Organization;
+  projectSlug: string;
+  disabled: boolean;
+};
+
+type State = {
+  environments: Environment[] | null;
+};
+
+class RuleConditionsForm extends React.PureComponent<Props, State> {
+  state: State = {
+    environments: null,
+  };
+
+  componentDidMount() {
+    this.fetchData();
+  }
+
+  async fetchData() {
+    const {api, organization, projectSlug} = this.props;
+
+    try {
+      const environments = await api.requestPromise(
+        `/projects/${organization.slug}/${projectSlug}/environments/`,
+        {
+          query: {
+            visibility: 'visible',
+          },
+        }
+      );
+      this.setState({environments});
+    } catch (_err) {
+      addErrorMessage(t('Unable to fetch environments'));
+    }
+  }
+
   render() {
     const {organization, disabled} = this.props;
 
@@ -53,6 +88,18 @@ class RuleConditionsForm extends React.PureComponent<Props> {
             ]}
             required
             disabled={disabled}
+          />
+          <SelectField
+            name="environment"
+            label={t('Environment')}
+            help={t('Select an environment')}
+            placeholder={t('All environments')}
+            choices={
+              defined(this.state.environments)
+                ? this.state.environments.map((env: Environment) => [env.id, env.name])
+                : []
+            }
+            disabled={this.state.environments === null}
           />
           <FormField
             name="query"

@@ -28,6 +28,10 @@ describe('Incident Rules Form', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/environments/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: TestStubs.EventsStats(),
     });

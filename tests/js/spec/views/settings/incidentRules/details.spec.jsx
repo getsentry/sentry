@@ -17,6 +17,10 @@ describe('Incident Rules Details', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/environments/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: null,
     });
@@ -34,7 +38,7 @@ describe('Incident Rules Details', function() {
   });
 
   it('renders and adds and edits trigger', async function() {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, project, routerContext} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     const req = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
@@ -58,7 +62,7 @@ describe('Incident Rules Details', function() {
         <IncidentRulesDetails
           params={{
             orgId: organization.slug,
-            projectId: 'project-slug',
+            projectId: project.slug,
             incidentRuleId: rule.id,
           }}
           organization={organization}
