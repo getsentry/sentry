@@ -115,8 +115,8 @@ class PagerDutyNotifyServiceAction(EventAction):
                     },
                 )
 
-            # TODO(meredith): Maybe move this into the ApiClient at some point
-            # but for now just doing it for PD to confirm successful requests
+            # TODO(meredith): Maybe have a generic success log statements for
+            # first-party integrations similar to plugin `notification.dispatched`
             self.logger.info(
                 "rule.success.pagerduty_trigger",
                 extra={
