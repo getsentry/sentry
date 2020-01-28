@@ -82,7 +82,6 @@
     "mobx-react": "~5.4.4",
     "moment": "2.23.0",
     "moment-timezone": "0.5.25",
-    "node-libs-browser": "0.5.3",
     "optimize-css-assets-webpack-plugin": "^5.0.1",
     "papaparse": "^4.6.0",
     "parseurl": "^1.3.2",
