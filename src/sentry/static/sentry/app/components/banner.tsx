@@ -74,21 +74,23 @@ const BannerContent = styled('div')`
 `;
 
 const BannerTitle = styled('h1')`
-  margin: ${space(1.5)};
   color: ${p => p.theme.white};
+  margin-bottom: ${space(0.25)};
 
   @media (min-width: ${theme.breakpoints[1]}) {
+    margin-top: ${space(1)};
+    margin-bottom: ${space(1)};
     font-size: 48px;
   }
 `;
 
-const BannerSubtitle = styled('h4')`
-  margin-bottom: ${space(3)};
+const BannerSubtitle = styled('div')`
   font-size: ${theme.fontSizeMedium};
   color: ${p => p.theme.white};
 
   @media (min-width: ${theme.breakpoints[1]}) {
-    font-size: ${theme.fontSizeLarge};
+    font-size: ${theme.fontSizeExtraLarge};
+    margin-bottom: ${space(2)};
     flex-direction: row;
     min-width: 650px;
   }

@@ -190,11 +190,11 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     return (
       <Banner
-        title={t('Discover')}
-        subtitle={t('Customize your query searches')}
+        title={t('Discover Trends')}
+        subtitle={t('Customize your queries by search bar, columns or tags')}
         onCloseClick={this.handleClick}
       >
-        <Button
+        <StarterButton
           to={to}
           onClick={() => {
             trackAnalyticsEvent({
@@ -206,7 +206,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           }}
         >
           {t('Build a new query')}
-        </Button>
+        </StarterButton>
+        <StarterButton href="https://docs.sentry.io/workflow/discover2/">
+          {t('Read the docs')}
+        </StarterButton>
       </Banner>
     );
   }
@@ -333,6 +336,10 @@ const StyledActions = styled('div')`
 
 const StyledButton = styled(Button)`
   white-space: nowrap;
+`;
+
+const StarterButton = styled(Button)`
+  margin: ${space(1)};
 `;
 
 const SwitchLink = styled('a')`
