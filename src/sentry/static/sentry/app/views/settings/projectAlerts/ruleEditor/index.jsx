@@ -23,6 +23,8 @@ import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 import {getDisplayName} from 'app/utils/environment';
 
+const ONCE_ONLY_DATA_STRING = 'once-only';
+
 const FREQUENCY_CHOICES = [
   ['5', t('5 minutes')],
   ['10', t('10 minutes')],
@@ -33,6 +35,7 @@ const FREQUENCY_CHOICES = [
   ['1440', t('24 hours')],
   ['10080', t('one week')],
   ['43200', t('30 days')],
+  [ONCE_ONLY_DATA_STRING, t('Fire once in forever')],
 ];
 
 const ACTION_MATCH_CHOICES = [
@@ -107,6 +110,11 @@ const RuleEditor = createReactClass({
     e.preventDefault();
 
     const data = {...this.state.rule};
+
+    // TODO(jeff): Ponder using more idiomatic data transformation / Exhaustive switch-case statement
+    data.isFireOnceOnly = data.frequency === ONCE_ONLY_DATA_STRING ? 1 : 0;
+    data.frequency = data.isFireOnceOnly ? FREQUENCY_CHOICES[0][0] : data.frequency;
+
     const isNew = !data.id;
     const {project, organization} = this.props;
 
@@ -214,7 +222,7 @@ const RuleEditor = createReactClass({
     }
 
     const {rule, loading, error} = this.state;
-    const {actionMatch, actions, conditions, frequency, name} = rule;
+    const {actionMatch, actions, conditions, frequency, name, isFireOnceOnly} = rule;
 
     const environment =
       rule.environment === null ? ALL_ENVIRONMENTS_KEY : rule.environment;
@@ -315,7 +323,7 @@ const RuleEditor = createReactClass({
                   clearable={false}
                   name="frequency"
                   className={this.hasError('frequency') ? ' error' : ''}
-                  value={frequency}
+                  value={isFireOnceOnly ? ONCE_ONLY_DATA_STRING : frequency}
                   style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 140}}
                   required
                   choices={FREQUENCY_CHOICES}
