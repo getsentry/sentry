@@ -1,6 +1,8 @@
 import React from 'react';
 import moment from 'moment';
 
+import {AlertRuleAggregations} from 'app/views/settings/incidentRules/types';
+import {getDisplayForAlertRuleAggregation} from 'app/views/incidents/utils';
 import {t} from 'app/locale';
 import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';
@@ -37,13 +39,14 @@ function getNearbyIndex(data: Data, needle: number) {
 
 type Props = {
   data: Data;
+  aggregation: AlertRuleAggregations;
   detected: string;
   closed?: string;
 };
 
 export default class Chart extends React.PureComponent<Props> {
   render() {
-    const {data, detected, closed} = this.props;
+    const {aggregation, data, detected, closed} = this.props;
 
     const chartData = data.map(([ts, val]) => {
       return [
@@ -71,7 +74,8 @@ export default class Chart extends React.PureComponent<Props> {
         showTimeInTooltip
         series={[
           {
-            seriesName: t('Events'),
+            // e.g. Events or Users
+            seriesName: getDisplayForAlertRuleAggregation(aggregation),
             dataArray: chartData,
             markPoint: MarkPoint({
               data: [

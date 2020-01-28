@@ -47,6 +47,7 @@ export type UnsavedIncidentRule = {
 export type SavedIncidentRule = UnsavedIncidentRule & {
   dateCreated: string;
   dateModified: string;
+  dataset: string;
   id: string;
   status: number;
   name: string;
