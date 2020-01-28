@@ -1,13 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+
 import Tooltip from 'app/components/tooltip';
 import Flex from 'app/components/flex';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import styled from '@emotion/styled';
+import space from 'app/styles/space';
 
 const StyledContainer = styled(Flex)({
-  marginBottom: 20,
+  marginBottom: space(3),
 });
 
 class CrashHeader extends React.Component {

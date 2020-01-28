@@ -1,10 +1,12 @@
 import {trimPackage} from 'app/components/events/interfaces/frame';
-import {Event} from 'app/types';
 
-import {findThreadStacktrace, findRelevantFrame} from './threads';
+import {Event} from 'app/types';
+import findRelevantFrame from 'app/utils/findRelevantFrame';
+import findThreadStacktrace from 'app/utils/findThreadStacktrace';
+
 import trimFilename from './trimFilename';
 
-// TODO -> define all the thread types
+// TODO(ts): define all the thread types
 export interface Thread {
   id: string;
   name: string;
@@ -14,10 +16,11 @@ export interface Thread {
 
 export interface ThreadDetails {
   filename?: string;
+  function?: string;
   package?: string;
   module?: string;
 }
-// TODO -> define correct types
+// TODO(ts): define correct types
 interface Frame {
   function: string;
   errors: any;
@@ -38,10 +41,12 @@ interface Frame {
   rawFunction: any;
 }
 
-// TODO -> define event interface
+// TODO(ts): define event interface
 function getThreadDetails(thread: Thread, event: Event): ThreadDetails {
   const stacktrace = findThreadStacktrace(thread, event, false);
-  const threadDetails: ThreadDetails = {};
+  const threadDetails: ThreadDetails = {
+    filename: '<unknown>',
+  };
 
   if (!stacktrace) {
     return threadDetails;
@@ -51,6 +56,10 @@ function getThreadDetails(thread: Thread, event: Event): ThreadDetails {
 
   if (relevantFrame.filename) {
     threadDetails.filename = trimFilename(relevantFrame.filename);
+  }
+
+  if (relevantFrame.function) {
+    threadDetails.function = relevantFrame.function;
   }
 
   if (relevantFrame.package) {

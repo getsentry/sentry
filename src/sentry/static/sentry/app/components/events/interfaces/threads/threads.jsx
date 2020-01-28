@@ -9,55 +9,11 @@ import CrashHeader from 'app/components/events/interfaces/crashHeader';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
+import findRelevantFrame from 'app/utils/findRelevantFrame';
+import findThreadException from 'app/utils/findThreadException';
+import findThreadStacktrace from 'app/utils/findThreadStacktrace';
 
 import ThreadSelector from './threadsSelector';
-
-export function findRelevantFrame(stacktrace) {
-  if (!stacktrace.hasSystemFrames) {
-    return stacktrace.frames[stacktrace.frames.length - 1];
-  }
-  for (let i = stacktrace.frames.length - 1; i >= 0; i--) {
-    const frame = stacktrace.frames[i];
-    if (frame.inApp) {
-      return frame;
-    }
-  }
-  // this should not happen
-  return stacktrace.frames[stacktrace.frames.length - 1];
-}
-
-export function findThreadException(thread, event) {
-  for (const entry of event.entries) {
-    if (entry.type !== 'exception') {
-      continue;
-    }
-    for (const exc of entry.data.values) {
-      if (exc.threadId === thread.id) {
-        return entry.data;
-      }
-    }
-  }
-  return null;
-}
-
-export function findThreadStacktrace(thread, event, raw) {
-  if (raw && thread.rawStacktrace) {
-    return thread.rawStacktrace;
-  } else if (thread.stacktrace) {
-    return thread.stacktrace;
-  }
-  const exc = findThreadException(thread, event);
-  if (exc) {
-    let rv = null;
-    for (const singleExc of exc.values) {
-      if (singleExc.threadId === thread.id) {
-        rv = (raw && singleExc.rawStacktrace) || singleExc.stacktrace;
-      }
-    }
-    return rv;
-  }
-  return null;
-}
 
 function getIntendedStackView(thread, event) {
   const stacktrace = findThreadStacktrace(thread, event, false);

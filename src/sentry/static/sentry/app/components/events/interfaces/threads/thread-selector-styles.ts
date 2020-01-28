@@ -1,13 +1,6 @@
-/* eslint-disable react/prop-types */
-import React from 'react';
-import ReactSelect, {Styles, ValueType} from 'react-select';
+import {Styles} from 'react-select';
 
-import {Event} from 'app/types';
-
-import ThreadsSelectorOption from './threadsSelectorOption';
-import {Thread} from './getThreadDetails';
-
-const styles: Styles = {
+const threadSelectoStyles: Styles = {
   control: provided => ({
     ...provided,
     width: '100%',
@@ -31,7 +24,6 @@ const styles: Styles = {
     zIndex: 3,
     position: 'relative',
     display: 'inline-flex',
-    // TODO: define width in the theme ?
     width: '100%',
     maxWidth: 350,
   }),
@@ -91,47 +83,4 @@ const styles: Styles = {
   },
 };
 
-interface Props {
-  className?: string;
-  threads: Array<Thread>;
-  event: Event;
-  onChange?: (thread: Thread) => void;
-}
-
-const ThreadsSelector: React.FC<Props> = ({className, event, threads, onChange}) => {
-  const handleOnChange = (value: ValueType<Thread>) => {
-    if (onChange) {
-      // TODO: Do some research about ValueType. For instance here: https://github.com/JedWatson/react-select/issues/2902
-      const selecteOption = value as Thread;
-      onChange(selecteOption);
-    }
-  };
-
-  return (
-    <ReactSelect
-      defaultValue={threads[0]}
-      className={className}
-      styles={styles}
-      onChange={handleOnChange}
-      options={threads.map(thread => ({
-        ...thread,
-        value: thread.id,
-      }))}
-      formatOptionLabel={({id, name, crashed, stacktrace}) => (
-        <ThreadsSelectorOption thread={{id, name, crashed, stacktrace}} event={event} />
-      )}
-      components={{
-        SingleValue: ({data: {id, name, crashed, stacktrace}}) => (
-          <ThreadsSelectorOption
-            thread={{id, name, crashed, stacktrace}}
-            event={event}
-            selected
-          />
-        ),
-      }}
-      isSearchable
-    />
-  );
-};
-
-export default ThreadsSelector;
+export default threadSelectoStyles;

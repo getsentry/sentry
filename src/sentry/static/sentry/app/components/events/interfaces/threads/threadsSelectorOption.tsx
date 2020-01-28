@@ -3,52 +3,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import InlineSvg from 'app/components/inlineSvg';
-import Badge from 'app/components/badge';
 import Flex from 'app/components/flex';
 import Text from 'app/components/text';
-import TextOverflow from 'app/components/textOverflow';
-import space from 'app/styles/space';
 import {Event} from 'app/types';
 
 import getThreadDetails, {ThreadDetails, Thread} from './getThreadDetails';
 import ThreadsSelectorOptionLabel, {
   ThreadsSelectorOptionLabelType,
 } from './threadsSelectorOptionLabel';
-
-const StyledInlineSvgContainer = styled(Flex)(({theme}) => ({
-  color: theme.orange,
-  minHeight: 28,
-}));
-
-const StyledBadge = styled(Badge)({
-  marginRight: space(0.75),
-});
-
-const StyledThreadName = styled(Text)({
-  marginBottom: space(0.5),
-  fontWeight: 600,
-});
-
-const StyledInfo = styled(Flex)({
-  minWidth: 0,
-  marginRight: space(0.5),
-});
-
-const StyledInfoDetails = styled(Flex)({
-  maxWidth: '100%',
-});
-
-const StyledContainer = styled(Flex)({
-  maxWidth: '100%',
-});
-
-const StyledFileName = styled('span')({
-  color: '#2c58a8',
-});
-
-const StyledTextOverflow = styled(TextOverflow)({
-  maxWidth: 235,
-});
 
 export interface ThreadsSelectorOptionProps extends Thread {
   details?: ThreadDetails;
@@ -57,51 +19,46 @@ export interface ThreadsSelectorOptionProps extends Thread {
 interface Props {
   thread: Thread;
   event: Event;
-  selected?: boolean;
 }
 
-const ThreadsSelectorOption: React.FC<Props> = ({thread, event, selected = false}) => {
+// TODO(i18n): add locale here
+const ThreadsSelectorOption: React.FC<Props> = ({thread, event}) => {
   const threadDetails = getThreadDetails(thread, event);
   return (
-    <StyledContainer flexGrow={1} alignItems="center">
-      <StyledBadge text={thread.id} />
-      <StyledInfo>
-        {selected ? (
-          <StyledTextOverflow>
-            {threadDetails?.filename ? (
-              <React.Fragment>
-                {`Thread: ${thread.name} - `}
-                <StyledFileName>{threadDetails?.filename}</StyledFileName>
-              </React.Fragment>
-            ) : (
-              thread.name
-            )}
-          </StyledTextOverflow>
-        ) : (
-          <StyledInfoDetails flexDirection="column">
-            <StyledThreadName>{thread.name}</StyledThreadName>
-            {threadDetails &&
-              Object.entries(threadDetails).map(([key, value]) => (
-                <ThreadsSelectorOptionLabel
-                  key={key}
-                  label={key as ThreadsSelectorOptionLabelType}
-                  value={value}
-                />
-              ))}
-          </StyledInfoDetails>
-        )}
-      </StyledInfo>
-      {thread.crashed && (
-        <StyledInlineSvgContainer
-          alignItems="center"
-          flexGrow={1}
-          justifyContent="flex-end"
-        >
-          <InlineSvg src="icon-circle-exclamation" />
-        </StyledInlineSvgContainer>
-      )}
+    <StyledContainer flexGrow={1}>
+      <StyledDetailsContainer flexGrow={1} flexDirection="column">
+        <StyledText>{`#${thread.id}`}</StyledText>
+        {thread.name && <StyledText>{thread.name}</StyledText>}
+        {threadDetails &&
+          Object.entries(threadDetails).map(([key, value]) => (
+            <ThreadsSelectorOptionLabel
+              key={key}
+              label={key as ThreadsSelectorOptionLabelType}
+              value={value}
+            />
+          ))}
+      </StyledDetailsContainer>
+      {thread.crashed && <StyledInlineSvg src="icon-circle-exclamation" />}
     </StyledContainer>
   );
 };
 
 export default ThreadsSelectorOption;
+
+const StyledText = styled(Text)({
+  maxWidth: '100%',
+  overflowWrap: 'break-word',
+});
+
+const StyledContainer = styled(Flex)({
+  maxWidth: '100%',
+});
+
+const StyledDetailsContainer = styled(Flex)({
+  maxWidth: '100%',
+  paddingRight: 5,
+});
+
+const StyledInlineSvg = styled(InlineSvg)(({theme}) => ({
+  color: theme.orange,
+}));
