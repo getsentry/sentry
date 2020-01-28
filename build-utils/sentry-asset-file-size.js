@@ -1,13 +1,16 @@
 /*eslint-env node*/
 /*eslint import/no-nodejs-modules:0 */
+
 class SentryAssetFileSize {
   constructor() {
+    // Only run when we have DSN and if in travis, only in the javascript suite
     if (!!process.env.SENTRY_MEASURE_WEBPACK_DSN && process.env.TEST_SUITE === 'js') {
       this.Sentry = require('@sentry/node');
       require('@sentry/apm');
 
       this.Sentry.init({
         dsn: process.env.SENTRY_MEASURE_WEBPACK_DSN,
+        environment: process.env.TRAVIS_BRANCH ? 'travis' : 'local',
       });
     }
   }
@@ -48,14 +51,14 @@ class SentryAssetFileSize {
                 op: 'asset',
                 description: assetName,
                 data: {
-                  size: `${Math.round(sizeInKb)}KB`,
+                  size: `${Math.round(sizeInKb)} KB`,
                 },
                 sampled: true,
               });
               span.startTimestamp = start;
               span.setHttpStatus(200);
               span.finish();
-              span.timestamp = start + sizeInKb / 1000;
+              span.timestamp = start + sizeInKb / 1000 / 100;
               start = span.timestamp;
             })
         )
