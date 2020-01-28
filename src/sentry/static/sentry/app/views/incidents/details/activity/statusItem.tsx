@@ -15,7 +15,7 @@ type Props = {
    * Author name can be undefined if there is no author, e.g. if it's a system activity
    */
   authorName?: string;
-  incident: Incident;
+  incident?: Incident;
 };
 
 /**
