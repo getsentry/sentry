@@ -9,9 +9,12 @@ export const fields = {
     type: 'boolean',
     label: t('Send Me Alerts'),
     // TODO(billy): Make this a real link
-    help: tct('Alerts are defined in [locationPath]. Disable this to not receive alerts sent to teams you are in. You will continue to receive alerts sent directly to you.', {
-      locationPath: '[Project] » Project Settings » Alerts',
-    }),
+    help: tct(
+      'Alerts are defined in [locationPath]. Enable this to receive alerts sent to your teams. You will always receive alerts configured to be sent directly to you.',
+      {
+        locationPath: '[Project] » Project Settings » Alerts',
+      }
+    ),
   },
   workflowNotifications: {
     name: 'workflowNotifications',
