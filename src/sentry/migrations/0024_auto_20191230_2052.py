@@ -3,6 +3,7 @@
 from __future__ import unicode_literals, print_function
 
 import os
+import types
 from datetime import timedelta, datetime
 
 from django.db import migrations
@@ -71,6 +72,10 @@ def backfill_eventstream(apps, schema_editor):
 
         return next(hashes)
 
+    def _get_raw_data(event):
+        """Returns the internal raw event data dict."""
+        return dict(event.data.items())
+
     if skip_backfill:
         print("Skipping backfill.\n")
         return
@@ -90,6 +95,7 @@ def backfill_eventstream(apps, schema_editor):
         if event.project is None or event.group is None:
             print("Skipped {} as group or project information is invalid.\n".format(event))
             continue
+        event.get_raw_data = types.MethodType(_get_raw_data, event)
 
         eventstream.insert(
             group=event.group,
