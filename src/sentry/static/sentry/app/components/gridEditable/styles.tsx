@@ -162,9 +162,6 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   font-weight: 600;
   line-height: 1;
   text-transform: uppercase;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
   user-select: none;
 
   background-color: ${p => {
@@ -193,6 +190,9 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
 
   a {
     color: inherit;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
 `;
 
