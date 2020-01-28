@@ -14,6 +14,8 @@ import CrashContent from 'app/components/events/interfaces/crashContent';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 
+import ThreadsSelector from './ThreadsSelector';
+
 function trimFilename(fn) {
   const pieces = fn.split(/\//g);
   return pieces[pieces.length - 1];
@@ -268,26 +270,26 @@ class ThreadsInterface extends React.Component {
 
     const threads = this.props.data.values || [];
 
-    const threadSelector = (
-      <div className="pull-left btn-group">
-        <DropdownLink
-          btnGroup
-          caret
-          className="btn btn-default btn-sm"
-          title={getThreadTitle(activeThread, this.props.event, true)}
-        >
-          {threads.map((thread, idx) => {
-            return (
-              <MenuItem key={idx} noAnchor>
-                <a onClick={this.onSelectNewThread.bind(this, thread)}>
-                  {getThreadTitle(thread, this.props.event, false)}
-                </a>
-              </MenuItem>
-            );
-          })}
-        </DropdownLink>
-      </div>
-    );
+    // const threadSelector = (
+    //   <div className="pull-left btn-group">
+    //     <DropdownLink
+    //       btnGroup
+    //       caret
+    //       className="btn btn-default btn-sm"
+    //       title={getThreadTitle(activeThread, this.props.event, true)}
+    //     >
+    //       {threads.map((thread, idx) => {
+    //         return (
+    //           <MenuItem key={idx} noAnchor>
+    //             <a onClick={this.onSelectNewThread.bind(this, thread)}>
+    //               {getThreadTitle(thread, this.props.event, false)}
+    //             </a>
+    //           </MenuItem>
+    //         );
+    //       })}
+    //     </DropdownLink>
+    //   </div>
+    // );
 
     const titleProps = {
       platform: evt.platform,
@@ -303,7 +305,7 @@ class ThreadsInterface extends React.Component {
       threads.length > 1 ? (
         <CrashHeader
           title={null}
-          beforeTitle={threadSelector}
+          beforeTitle={<ThreadsSelector />}
           thread={activeThread}
           exception={exception}
           {...titleProps}
