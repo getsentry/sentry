@@ -39,9 +39,7 @@ class BitbucketPluginTest(PluginTestCase):
             provider="bitbucket",
             user=user,
             uid="1",
-            extra_data={
-                "access_token": "oauth_token=oauth-token&oauth_token_secret=oauth-token-secret"
-            },
+            extra_data={"access_token": "oauth_token=token&oauth_token_secret=secret"},
         )
 
         res = self.provider.compare_commits(
