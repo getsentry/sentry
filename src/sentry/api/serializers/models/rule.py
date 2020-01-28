@@ -44,5 +44,6 @@ class RuleSerializer(Serializer):
             "name": obj.label,
             "dateCreated": obj.date_added,
             "environment": environment.name if environment is not None else None,
+            "isFireOnceOnly": obj.data.get("is_fire_once_only") or Rule.DEFAULT_IS_FIRE_ONCE_ONLY,
         }
         return d

@@ -68,6 +68,9 @@ class RuleSerializer(serializers.Serializer):
     actions = ListField(child=RuleNodeField(type="action/event"))
     conditions = ListField(child=RuleNodeField(type="condition/event"))
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
+    isFireOnceOnly = serializers.BooleanField(
+        required=False
+    )  # required=False to prevent things from failing.
 
     def validate_environment(self, environment):
         if environment is None:
@@ -107,5 +110,7 @@ class RuleSerializer(serializers.Serializer):
             rule.data["conditions"] = self.validated_data["conditions"]
         if self.validated_data.get("frequency"):
             rule.data["frequency"] = self.validated_data["frequency"]
+        if self.validated_data.get("isFireOnceOnly") is not None:
+            rule.data["is_fire_once_only"] = self.validated_data["isFireOnceOnly"]
         rule.save()
         return rule

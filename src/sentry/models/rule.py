@@ -27,6 +27,7 @@ class Rule(Model):
 
     DEFAULT_ACTION_MATCH = "all"  # any, all
     DEFAULT_FREQUENCY = 30  # minutes
+    DEFAULT_IS_FIRE_ONCE_ONLY = False
 
     project = FlexibleForeignKey("sentry.Project")
     environment_id = BoundedPositiveIntegerField(null=True)

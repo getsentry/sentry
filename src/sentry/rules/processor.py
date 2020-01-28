@@ -65,6 +65,7 @@ class RuleProcessor(object):
         match = rule.data.get("action_match") or Rule.DEFAULT_ACTION_MATCH
         condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
+        is_fire_once_only = rule.data.get("is_fire_once_only")
 
         # XXX(dcramer): if theres no condition should we really skip it,
         # or should we just apply it blindly?
@@ -101,7 +102,13 @@ class RuleProcessor(object):
 
         if passed:
             passed = (
-                GroupRuleStatus.objects.filter(id=status.id)
+                is_fire_once_only
+                and GroupRuleStatus.objects.filter(id=status.id)
+                .filter(last_active__isnull=True)
+                .update(last_active=now)
+            ) or (
+                not is_fire_once_only
+                and GroupRuleStatus.objects.filter(id=status.id)
                 .exclude(last_active__gt=freq_offset)
                 .update(last_active=now)
             )
