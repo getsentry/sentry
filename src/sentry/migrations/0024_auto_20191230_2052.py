@@ -69,6 +69,8 @@ def backfill_eventstream(apps, schema_editor):
                 for hash in (x.get_hash() for x in _get_grouping_variants(event).values())
                 if hash
             )
+        else:
+            hashes = iter(hashes)
 
         return next(hashes)
 
