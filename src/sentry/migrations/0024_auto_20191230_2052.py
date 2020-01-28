@@ -60,17 +60,16 @@ def backfill_eventstream(apps, schema_editor):
         config = load_grouping_config(config)
         return get_grouping_variants_for_event(event, config)
 
-    def _get_hashes(event):
-        hashes = event.data.get("hashes")
-        if hashes is not None:
-            return hashes
-
-        return filter(
-            None, [x.get_hash() for x in _get_grouping_variants(event).values()]
-        )
-
     def _get_primary_hash(event):
-        return  _get_hashes(event)[0]
+        hashes = event.data.get("hashes")
+        if hashes is None:
+            hashes = (
+                hash
+                for hash in (x.get_hash() for x in _get_grouping_variants(event).values())
+                if hash
+            )
+
+        return next(hashes)
 
     if skip_backfill:
         print("Skipping backfill.\n")
