@@ -13,6 +13,7 @@ class BitbucketClient(AuthApiClient):
     base_url = "https://api.bitbucket.org"
     plugin_name = "bitbucket"
 
+    # TODO(joshuarli): port this away from self.auth.tokens
     def has_auth(self):
         return (
             self.auth
@@ -20,6 +21,7 @@ class BitbucketClient(AuthApiClient):
             and "oauth_token_secret" in self.auth.tokens
         )
 
+    # TODO(joshuarli): port this away from self.auth.tokens
     def bind_auth(self, **kwargs):
         kwargs["auth"] = OAuth1(
             six.text_type(settings.BITBUCKET_CONSUMER_KEY),

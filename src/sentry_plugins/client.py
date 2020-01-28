@@ -8,6 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 from cached_property import cached_property
 from requests.exceptions import ConnectionError, HTTPError
+from social_django.utils import load_strategy
 
 from sentry.http import build_session
 from sentry.utils import metrics
@@ -219,7 +220,7 @@ class AuthApiClient(ApiClient):
         super(AuthApiClient, self).__init__(*args, **kwargs)
 
     def has_auth(self):
-        return self.auth and "access_token" in self.auth.tokens
+        return self.auth and self.auth.access_token
 
     def exception_means_unauthorized(self, exc):
         return isinstance(exc, ApiUnauthorized)
@@ -231,11 +232,6 @@ class AuthApiClient(ApiClient):
         return kwargs
 
     def bind_auth(self, **kwargs):
-        # TODO(joshuarli): Unsure at the moment how to port refresh_token.
-        # This blocks http://localhost:8000/settings/sentry/projects/internal/plugins/asana/ from rendering.
-        # self.auth.tokens is now just a unicode string, not sure which token it is.
-        # Will also need to port over things like our has_auth.
-        # token = self.auth.tokens["access_token"]
         token = self.auth.access_token
         kwargs["headers"]["Authorization"] = "Bearer {}".format(token)
         return kwargs
@@ -256,11 +252,11 @@ class AuthApiClient(ApiClient):
             if not self.auth:
                 raise
 
-        # TODO(joshuarli): Unsure at the moment how to port refresh_token.
         # refresh token
-        # self.logger.info(
-        #    "token.refresh", extra={"auth_id": self.auth.id, "provider": self.auth.provider}
-        # )
-        # self.auth.refresh_token()
+        self.logger.info(
+            "token.refresh", extra={"auth_id": self.auth.id, "provider": self.auth.provider}
+        )
+        # XXX: refresh_token is ported now, but it doesn't work.
+        self.auth.refresh_token(load_strategy())
         kwargs = self.bind_auth(**kwargs)
         return ApiClient._request(self, method, path, **kwargs)

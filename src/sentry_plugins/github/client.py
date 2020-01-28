@@ -81,7 +81,7 @@ class GitHubClient(GitHubClientMixin, AuthApiClient):
         # TODO(jess): remove this whenever it's out of preview
         headers = {"Accept": "application/vnd.github.machine-man-preview+json"}
 
-        params = {"access_token": self.auth.tokens["access_token"]}
+        params = {"access_token": self.auth.access_token}
 
         return self._request("GET", "/user/installations", headers=headers, params=params)
 

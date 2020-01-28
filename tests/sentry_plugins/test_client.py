@@ -68,7 +68,7 @@ class AuthApiClientTest(TestCase):
         responses.add(responses.GET, "http://example.com", json={})
 
         auth = Mock()
-        auth.tokens = {"access_token": "access-token"}
+        auth.access_token = "access-token"
 
         resp = AuthApiClient(auth=auth).get("http://example.com")
         assert resp.status_code == 200
@@ -81,7 +81,7 @@ class AuthApiClientTest(TestCase):
         responses.add(responses.GET, "http://example.com", json={})
 
         auth = Mock()
-        auth.tokens = {"access_token": "access-token"}
+        auth.access_token = "access-token"
 
         resp = AuthApiClient(auth=auth).get("http://example.com", auth=None)
         assert resp.status_code == 200
