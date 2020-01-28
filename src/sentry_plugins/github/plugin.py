@@ -67,6 +67,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
     conf_title = title
     conf_key = "github"
     auth_provider = "github"
+    required_field = "repo"
     logger = logging.getLogger("sentry.plugins.github")
 
     def get_group_urls(self):

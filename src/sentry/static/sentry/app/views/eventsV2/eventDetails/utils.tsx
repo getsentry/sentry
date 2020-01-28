@@ -7,7 +7,7 @@ export function generateEventDetailsRoute({
   eventSlug: string;
   orgSlug: String;
 }): string {
-  return `/organizations/${orgSlug}/eventsv2/${eventSlug}/`;
+  return `/organizations/${orgSlug}/discover/${eventSlug}/`;
 }
 
 export function generateEventSlug(eventData: EventData): string {

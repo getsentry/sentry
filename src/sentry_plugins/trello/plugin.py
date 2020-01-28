@@ -24,6 +24,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     conf_key = "trello"
     auth_provider = None
     resource_links = [("Trello Setup Instructions", SETUP_URL)] + CorePluginMixin.resource_links
+    required_field = "key"
 
     def get_config(self, project, **kwargs):
         """

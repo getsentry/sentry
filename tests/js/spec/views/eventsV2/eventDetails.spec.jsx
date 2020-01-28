@@ -19,7 +19,7 @@ describe('EventsV2 > EventDetails', function() {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/discover/',
       body: {
         meta: {
           id: 'string',
@@ -212,7 +212,7 @@ describe('EventsV2 > EventDetails', function() {
       organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
       router: {
         location: {
-          pathname: '/organizations/org-slug/eventsv2/project-slug:deadbeef',
+          pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
           query: {},
         },
       },
@@ -233,7 +233,7 @@ describe('EventsV2 > EventDetails', function() {
 
     // Should append tag value and other event attributes to results view query.
     const target = tagLink.props().to;
-    expect(target.pathname).toEqual('/organizations/org-slug/eventsv2/results/');
+    expect(target.pathname).toEqual('/organizations/org-slug/discover/results/');
     expect(target.query.query).toEqual('browser:Firefox title:"Oh no something bad"');
   });
 
@@ -242,7 +242,7 @@ describe('EventsV2 > EventDetails', function() {
       organization: TestStubs.Organization({projects: [TestStubs.Project()]}),
       router: {
         location: {
-          pathname: '/organizations/org-slug/eventsv2/project-slug:deadbeef',
+          pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
           query: {},
         },
       },
@@ -265,7 +265,7 @@ describe('EventsV2 > EventDetails', function() {
 
     // Should append tag value and other event attributes to results view query.
     const target = tagLink.props().to;
-    expect(target.pathname).toEqual('/organizations/org-slug/eventsv2/results/');
+    expect(target.pathname).toEqual('/organizations/org-slug/discover/results/');
     expect(target.query.query).toEqual(
       'Dumpster browser:Firefox title:"Oh no something bad"'
     );

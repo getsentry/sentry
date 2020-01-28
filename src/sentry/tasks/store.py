@@ -8,7 +8,7 @@ from time import time
 from django.core.cache import cache
 from django.utils import timezone
 
-from semaphore.processing import StoreNormalizer
+from sentry_relay.processing import StoreNormalizer
 
 from sentry import features, reprocessing
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS

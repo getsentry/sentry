@@ -833,7 +833,7 @@ function routes() {
         <IndexRoute
           componentPromise={() =>
             import(
-              /* webpackChunkName: "OrganizationIntegrations" */ 'app/views/organizationIntegrations'
+              /* webpackChunkName: "OrganizationIntegrations" */ 'app/views/organizationIntegrations/integrationViewController'
             )
           }
           component={errorHandler(LazyLoad)}
@@ -1211,6 +1211,23 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         />
+        <Route
+          path="/organizations/:orgId/issues/"
+          component={errorHandler(IssueListContainer)}
+        >
+          <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
+          <IndexRoute component={errorHandler(IssueListOverview)} />
+          <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
+        </Route>
+        <Route
+          path="/organizations/:orgId/data-export/:dataExportId"
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "DataDownloadView" */ 'app/views/dataExport/dataDownload'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
         {/* Once org issues is complete, these routes can be nested under
           /organizations/:orgId/issues */}
         <Route
@@ -1363,22 +1380,13 @@ function routes() {
             <Redirect path="saved/" to="/organizations/:orgId/discover/" />
             <Route path="saved/:savedQueryId/" />
           </Route>
+          {/*
+          TODO(mark) Long term this /queries route should go away and /discover should be the
+          canoncial route for discover2. Also the duplication in route wrapping
+          here should go away.
+          */}
           <Route
-            path="/organizations/:orgId/events/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "EventsContainer" */ 'app/views/events')
-            }
-            component={errorHandler(LazyLoad)}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import(/* webpackChunkName: "Events" */ 'app/views/events/events')
-              }
-              component={errorHandler(LazyLoad)}
-            />
-          </Route>
-          <Route
-            path="/organizations/:orgId/eventsv2/"
+            path="/organizations/:orgId/discover/queries/"
             componentPromise={() =>
               import(/* webpackChunkName: "DiscoverV2Container" */ 'app/views/eventsV2')
             }
@@ -1392,8 +1400,15 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
-            <Route
-              path="results/"
+          </Route>
+          <Route
+            path="/organizations/:orgId/discover/results/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "DiscoverV2Container" */ 'app/views/eventsV2')
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "DiscoverV2Results" */ 'app/views/eventsV2/results'
@@ -1401,12 +1416,33 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
-            <Route
-              path=":eventSlug/"
+          </Route>
+          <Route
+            path="/organizations/:orgId/discover/:eventSlug/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "DiscoverV2Container" */ 'app/views/eventsV2')
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "DiscoverV2Details" */ 'app/views/eventsV2/eventDetails'
                 )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
+            path="/organizations/:orgId/events/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "EventsContainer" */ 'app/views/events')
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "Events" */ 'app/views/events/events')
               }
               component={errorHandler(LazyLoad)}
             />
@@ -1451,22 +1487,26 @@ function routes() {
             />
           </Route>
           <Route
-            path="/organizations/:orgId/health/"
+            path="/organizations/:orgId/releases-v2/"
             componentPromise={() =>
-              import(/* webpackChunkName: "HealthContainer" */ 'app/views/health')
+              import(/* webpackChunkName: "ReleasesV2Container" */ 'app/views/releasesV2')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "HealthLanding" */ 'app/views/health/landing')
+                import(
+                  /* webpackChunkName: "ReleasesV2List" */ 'app/views/releasesV2/list'
+                )
               }
               component={errorHandler(LazyLoad)}
             />
             <Route
-              path=":healthSlug/"
+              path=":releaseSlug/"
               componentPromise={() =>
-                import(/* webpackChunkName: "HealthDetail" */ 'app/views/health/detail')
+                import(
+                  /* webpackChunkName: "ReleasesV2Detail" */ 'app/views/releasesV2/detail'
+                )
               }
               component={errorHandler(LazyLoad)}
             />
@@ -1526,17 +1566,6 @@ function routes() {
             path="/organizations/:orgId/projects/:projectId/events/:eventId/"
             component={errorHandler(ProjectEventRedirect)}
           />
-          <Route
-            path="/organizations/:orgId/issues/"
-            component={errorHandler(IssueListContainer)}
-          >
-            <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
-            <IndexRoute component={errorHandler(IssueListOverview)} />
-            <Route
-              path="searches/:searchId/"
-              component={errorHandler(IssueListOverview)}
-            />
-          </Route>
           <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>

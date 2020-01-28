@@ -320,7 +320,7 @@ class EventManager(object):
             raise RuntimeError("Already normalized")
         self._normalized = True
 
-        from semaphore.processing import StoreNormalizer
+        from sentry_relay.processing import StoreNormalizer
 
         rust_normalizer = StoreNormalizer(
             project_id=self._project.id if self._project else None,
@@ -566,14 +566,6 @@ class EventManager(object):
         data.update(materialized_metadata)
         data["culprit"] = culprit
 
-        # index components into ``Event.message``
-        # See GH-3248
-        # TODO: We temporarily save the search message into the message field to
-        # maintain backward compatibility with the Django event model. Once
-        # "store.use-django-event" is turned off for good, we can just reference
-        # event.search_message everywhere.
-        event.message = event.search_message
-
         received_timestamp = event.data.get("received") or float(event.datetime.strftime("%s"))
 
         if not issueless_event:
@@ -584,7 +576,7 @@ class EventManager(object):
             group_metadata["last_received"] = received_timestamp
             kwargs = {
                 "platform": platform,
-                "message": event.message,
+                "message": event.search_message,
                 "culprit": culprit,
                 "logger": logger_name,
                 "level": LOG_LEVELS_MAP.get(level),
@@ -956,8 +948,8 @@ class EventManager(object):
     def _process_existing_aggregate(self, group, event, data, release):
         date = max(event.datetime, group.last_seen)
         extra = {"last_seen": date, "score": ScoreClause(group), "data": data["data"]}
-        if event.message and event.message != group.message:
-            extra["message"] = event.message
+        if event.search_message and event.search_message != group.message:
+            extra["message"] = event.search_message
         if group.level != data["level"]:
             extra["level"] = data["level"]
         if group.culprit != data["culprit"]:

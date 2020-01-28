@@ -11,7 +11,7 @@ from django.core.urlresolvers import reverse
 from sentry.models import Relay
 from sentry.testutils import APITestCase
 
-from semaphore import generate_key_pair
+from sentry_relay import generate_key_pair
 
 
 class RelayRegisterTest(APITestCase):

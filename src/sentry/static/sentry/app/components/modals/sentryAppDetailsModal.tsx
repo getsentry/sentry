@@ -57,6 +57,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     onInstall: PropTypes.func.isRequired,
     isInstalled: PropTypes.bool.isRequired,
     closeModal: PropTypes.func.isRequired,
+    onCloseModal: PropTypes.func,
     view: PropTypes.string.isRequired,
   };
 
@@ -75,6 +76,10 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     this.trackOpened();
   }
 
+  componentWillUnmount() {
+    this.props.onCloseModal?.();
+  }
+
   trackOpened() {
     const {sentryApp, organization, isInstalled, view} = this.props;
     recordInteraction(sentryApp.slug, 'sentry_app_viewed');
@@ -87,6 +92,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
         integration: sentryApp.slug,
         already_installed: isInstalled,
         view,
+        integration_status: sentryApp.status,
       },
       organization,
       {startSession: view === 'external_install'} //new session on external installs
@@ -109,9 +115,15 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     return toPermissions(this.props.sentryApp.scopes);
   }
 
-  onInstall() {
+  async onInstall() {
     const {onInstall, closeModal, view} = this.props;
-    onInstall();
+    //we want to make sure install finishes before we close the modal
+    //and we should close the modal if there is an error as well
+    try {
+      await onInstall();
+    } catch (_err) {
+      /* stylelint-disable-next-line no-empty-block */
+    }
     // let onInstall handle redirection post install on the external install flow
     view !== 'external_install' && closeModal();
   }

@@ -10,7 +10,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
-    feature_list = ("organizations:events-v2", "organizations:global-views")
+    feature_list = ("organizations:discover-basic", "organizations:global-views")
 
     def setUp(self):
         super(OrganizationEventsFacetsEndpointTest, self).setUp()
@@ -231,7 +231,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         url = reverse(
             "sentry-api-0-organization-events-facets", kwargs={"organization_slug": org.slug}
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "A valid project must be included."}
@@ -240,7 +240,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(data={"event_id": uuid4().hex}, project_id=self.project.id)
         self.store_event(data={"event_id": uuid4().hex}, project_id=self.project2.id)
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(self.url, format="json")
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "You cannot view events from multiple projects."}

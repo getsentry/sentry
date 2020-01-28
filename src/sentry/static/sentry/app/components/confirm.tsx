@@ -80,6 +80,7 @@ type Props = {
 
   /**
    * Callback function when user is in the confirming state
+   * called when the confirm modal is opened
    */
   onConfirming?: () => void;
 

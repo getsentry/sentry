@@ -62,6 +62,7 @@ class TeamworkPlugin(IssuePlugin):
     title = _("Teamwork")
     description = _("Create Teamwork Tasks.")
     slug = "teamwork"
+    required_field = "url"
 
     conf_title = title
     conf_key = slug

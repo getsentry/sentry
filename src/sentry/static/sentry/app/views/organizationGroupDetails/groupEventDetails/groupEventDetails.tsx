@@ -107,6 +107,7 @@ class GroupEventDetails extends React.Component<Props, State> {
     // TBD: if this behavior is actually desired
     if (organization.projects) {
       GlobalSelectionStore.loadInitialData(organization, this.props.location.query, {
+        api: this.props.api,
         onlyIfNeverLoaded: true,
         forceUrlSync: true,
       });

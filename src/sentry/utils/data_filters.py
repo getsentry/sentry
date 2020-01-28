@@ -13,7 +13,7 @@ from sentry.relay.utils import to_camel_case_name
 
 class FilterStatKeys(object):
     """
-    NOTE: This enum also exists in semaphore, check if alignment is needed when
+    NOTE: This enum also exists in Relay, check if alignment is needed when
     editing this.
     """
 
