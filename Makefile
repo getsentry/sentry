@@ -1,18 +1,29 @@
-STATIC_DIR = src/sentry/static/sentry
-
-ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
-	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
-endif
-ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
-	LDFLAGS += -L/usr/local/opt/openssl/lib
-endif
-
-PIP := LDFLAGS="$(LDFLAGS)" python -m pip
+PIP := python -m pip --disable-pip-version-check
 # Note: this has to be synced with the pip version in .travis.yml.
 PIP_VERSION := 19.2.3
-PIP_OPTS := --disable-pip-version-check
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
 YARN := ./bin/yarn
+
+bootstrap: develop init-config run-dependent-services create-db apply-migrations
+
+develop: ensure-venv ensure-pinned-pip setup-git install-yarn-pkgs install-sentry-dev
+
+clean:
+	@echo "--> Cleaning static cache"
+	rm -rf dist/* static/dist/*
+	@echo "--> Cleaning integration docs cache"
+	rm -rf src/sentry/integration-docs
+	@echo "--> Cleaning pyc files"
+	find . -name "*.pyc" -delete
+	@echo "--> Cleaning python build artifacts"
+	rm -rf build/ dist/ src/sentry/assets.json
+	@echo ""
+
+init-config:
+	sentry init --dev
+
+run-dependent-services:
+	sentry devservices up
 
 DROPDB := $(shell command -v dropdb 2> /dev/null)
 ifndef DROPDB
@@ -22,22 +33,6 @@ CREATEDB := $(shell command -v createdb 2> /dev/null)
 ifndef CREATEDB
 	CREATEDB = docker exec sentry_postgres createdb
 endif
-
-bootstrap: develop init-config run-dependent-services create-db apply-migrations
-
-develop: ensure-venv setup-git develop-only
-
-develop-only: ensure-venv update-submodules install-yarn-pkgs install-sentry-dev
-
-init-config:
-	sentry init --dev
-
-run-dependent-services:
-	sentry devservices up
-
-test: develop lint test-js test-python test-cli
-
-build: locale
 
 drop-db:
 	@echo "--> Dropping existing 'sentry' database"
@@ -53,42 +48,25 @@ apply-migrations:
 
 reset-db: drop-db create-db apply-migrations
 
-clean:
-	@echo "--> Cleaning static cache"
-	rm -rf dist/* static/dist/*
-	@echo "--> Cleaning integration docs cache"
-	rm -rf src/sentry/integration-docs
-	@echo "--> Cleaning pyc files"
-	find . -name "*.pyc" -delete
-	@echo "--> Cleaning python build artifacts"
-	rm -rf build/ dist/ src/sentry/assets.json
-	@echo ""
-
 ensure-venv:
 	@./scripts/ensure-venv.sh
 
-ensure-latest-pip:
+ensure-pinned-pip:
 	$(PIP) install "pip==$(PIP_VERSION)"
 
-setup-git: ensure-latest-pip
+setup-git:
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
 	git config core.ignorecase false
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
-	$(PIP) install "pre-commit==1.18.2" $(PIP_OPTS)
+	$(PIP) install "pre-commit==1.18.2"
 	pre-commit install --install-hooks
-	@echo ""
-
-update-submodules:
-	@echo "--> Updating git submodules"
-	git submodule init
-	git submodule update
 	@echo ""
 
 node-version-check:
 	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/creationix/nvm'; exit 1)
 
-install-yarn-pkgs:
+install-yarn-pkgs: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
 	@command -v $(YARN) 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
@@ -101,11 +79,13 @@ install-yarn-pkgs:
 
 install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
-	$(PIP) install -e ".[dev]" $(PIP_OPTS)
+	$(PIP) install -e ".[dev]"
 
 build-js-po: node-version-check
 	mkdir -p build
 	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
+
+build: locale
 
 locale: build-js-po
 	cd src/sentry && sentry django makemessages -i static -l en
@@ -114,7 +94,7 @@ locale: build-js-po
 	cd src/sentry && sentry django compilemessages
 
 update-transifex: build-js-po
-	$(PIP) install transifex-client $(PIP_OPTS)
+	$(PIP) install transifex-client
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
 	tx push -s
@@ -224,7 +204,7 @@ publish:
 	python setup.py sdist bdist_wheel upload
 
 
-.PHONY: develop develop-only test build test reset-db clean setup-git update-submodules node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
 
 
 ############################
@@ -257,7 +237,7 @@ travis-test-dist:
 .PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
-	$(PIP) install safety $(PIP_OPTS)
+	$(PIP) install safety
 	bin/scan
 	@echo ""
 
