@@ -125,7 +125,7 @@ class Activity extends React.Component<Props> {
                 <DateDivider>{title}</DateDivider>
                 {activitiesForDate &&
                   activitiesForDate.map(activity => {
-                    const authorName = activity.user ? activity.user.name : 'Sentry';
+                    const authorName = activity.user?.name;
 
                     if (activity.type === IncidentActivityType.COMMENT) {
                       return (
@@ -148,6 +148,7 @@ class Activity extends React.Component<Props> {
                         <ErrorBoundary mini key={`note-${activity.id}`}>
                           <StatusItem
                             showTime
+                            incident={incident}
                             authorName={authorName}
                             activity={activity}
                           />

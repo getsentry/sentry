@@ -5,16 +5,21 @@ import {tct} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import getDynamicText from 'app/utils/getDynamicText';
 
-import {IncidentActivityType, IncidentStatus, ActivityType} from '../../types';
+import {Incident, IncidentActivityType, IncidentStatus, ActivityType} from '../../types';
 
 type Props = {
   activity: ActivityType;
-  authorName: string;
   showTime: boolean;
+
+  /**
+   * Author name can be undefined if there is no author, e.g. if it's a system activity
+   */
+  authorName?: string;
+  incident: Incident;
 };
 
 /**
- * StatusItem renders status changes for Incidents
+ * StatusItem renders status changes for Alerts
  *
  * For example: incident detected, or closed
  *
@@ -23,7 +28,7 @@ type Props = {
  */
 class StatusItem extends React.Component<Props> {
   render() {
-    const {activity, authorName, showTime} = this.props;
+    const {activity, authorName, incident, showTime} = this.props;
 
     const isDetected = activity.type === IncidentActivityType.DETECTED;
     const isClosed =
@@ -48,13 +53,17 @@ class StatusItem extends React.Component<Props> {
         header={
           <div>
             {isClosed &&
-              tct('[user] resolved the incident', {
+              tct('[user] resolved the alert', {
                 user: <AuthorName>{authorName}</AuthorName>,
               })}
             {isDetected &&
-              tct('[user] detected an incident', {
-                user: <AuthorName>{authorName}</AuthorName>,
-              })}
+              (incident?.alertRule
+                ? tct('[user] was triggered', {
+                    user: <AuthorName>{incident.alertRule.name}</AuthorName>,
+                  })
+                : tct('[user] detected an incident', {
+                    user: <AuthorName>{authorName}</AuthorName>,
+                  }))}
           </div>
         }
         date={getDynamicText({value: activity.dateCreated, fixed: new Date(0)})}
