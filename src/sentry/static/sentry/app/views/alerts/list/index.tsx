@@ -183,7 +183,7 @@ class IncidentsListContainer extends React.Component<Props> {
                   size="small"
                   className={'btn' + (status === '' ? ' active' : '')}
                 >
-                  {t('All Incidents')}
+                  {t('All Alerts')}
                 </Button>
                 <Button
                   to={{pathname, query: openIncidentsQuery}}
