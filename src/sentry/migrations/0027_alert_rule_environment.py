@@ -21,17 +21,16 @@ class Migration(migrations.Migration):
     #   they can be monitored. Since data migrations will now hold a transaction open
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
-    is_dangerous = False
+    is_dangerous = True
 
 
     dependencies = [
-        ('sentry', '0027_alert_rule_environment'),
+        ('sentry', '0026_delete_event'),
     ]
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            database_operations=[],
-            state_operations=[
+            database_operations=[
                 migrations.CreateModel(
                     name='AlertRuleEnvironment',
                     fields=[
@@ -53,5 +52,6 @@ class Migration(migrations.Migration):
                     unique_together=set([('alert_rule', 'environment')]),
                 ),
             ],
+            state_operations=[],
         ),
     ]
