@@ -3,7 +3,8 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Organization} from 'app/types';
 import {Hooks} from 'app/types/hooks';
 
-const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'integrationsAnalyticsSession';
+const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION';
+const USE_INTEGRATION_DIRECTORY = 'USE_INTEGRATION_DIRECTORY';
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
@@ -19,6 +20,9 @@ export const getAnalyticsSessionId = () => {
   return window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 };
 
+export const isIntegrationDirectoryActive = () =>
+  localStorage.getItem(USE_INTEGRATION_DIRECTORY) === '1';
+
 type ModalOpenEvent = {
   eventKey: 'integrations.install_modal_opened';
   eventName: 'Integrations: Install Modal Opened';
@@ -31,13 +35,19 @@ type OtherSingleIntegrationEvents = {
     | 'integrations.installation_complete'
     | 'integrations.details_viewed'
     | 'integrations.uninstall_clicked'
-    | 'integrations.uninstall_completed';
+    | 'integrations.uninstall_completed'
+    | 'integrations.enabled'
+    | 'integrations.disabled'
+    | 'integrations.config_saved';
   eventName:
     | 'Integrations: Installation Start'
     | 'Integrations: Installation Complete'
     | 'Integrations: Details Viewed'
     | 'Integrations: Uninstall Clicked'
-    | 'Integrations: Uninstall Completed';
+    | 'Integrations: Uninstall Completed'
+    | 'Integrations: Enabled'
+    | 'Integrations: Disabled'
+    | 'Integrations: Config Saved';
 };
 
 type SentryAppEvent = {
@@ -55,7 +65,6 @@ type SingleIntegrationEvent = (ModalOpenEvent | OtherSingleIntegrationEvents) &
     integration: string; //the slug
   };
 
-//TODO(Steve): hook up events
 type MultipleIntegrationsEvent = {
   eventKey: 'integrations.index_viewed';
   eventName: 'Integrations: Index Page Viewed';
@@ -67,7 +76,9 @@ type IntegrationsEventParams = (MultipleIntegrationsEvent | SingleIntegrationEve
     | 'external_install'
     | 'integrations_page'
     | 'legacy_integrations'
+    | 'plugin_details'
     | 'integrations_directory';
+  project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 
 /**
@@ -94,7 +105,7 @@ export const trackIntegrationEvent = (
     analytics_session_id: sessionId,
     organization_id: org?.id,
     role: org?.role,
-    integration_directory_active: false, //TODO: should be configurable
+    integration_directory_active: isIntegrationDirectoryActive(),
     ...analyticsParams,
   };
 

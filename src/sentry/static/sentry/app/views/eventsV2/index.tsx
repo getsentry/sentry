@@ -30,7 +30,7 @@ class DiscoverContainer extends React.Component<Props> {
 
     return (
       <Feature
-        features={['events-v2']}
+        features={['discover-basic']}
         organization={organization}
         renderDisabled={this.renderNoAccess}
       >

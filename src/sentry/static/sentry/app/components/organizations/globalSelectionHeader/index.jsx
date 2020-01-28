@@ -206,8 +206,11 @@ class GlobalSelectionHeader extends React.Component {
       return true;
     }
 
-    // Update if `forceProject` changes
-    if (this.props.forceProject !== nextProps.forceProject) {
+    // Update if `forceProject` changes or loading state changes
+    if (
+      this.props.forceProject !== nextProps.forceProject ||
+      this.props.loadingProjects !== nextProps.loadingProjects
+    ) {
       return true;
     }
 
@@ -259,14 +262,30 @@ class GlobalSelectionHeader extends React.Component {
       return;
     }
 
+    const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
+    let singleProjectIsEnforced = false;
     // This means that previously forceProject was falsey (e.g. loading) and now
     // we have the project to force.
     //
     // If user does not have multiple project selection, we need to save the forced
     // project into the store (if project is not in URL params), otherwise
     // there will be weird behavior in this component since it just picks a project
-    if (!this.hasMultipleProjectSelection() && forceProject && !prevProps.forceProject) {
+    if (!hasMultipleProjectFeature && forceProject && !prevProps.forceProject) {
       // Make sure a project isn't specified in query param already, since it should take precendence
+      const {project} = getStateFromQuery(location.query);
+      if (!project) {
+        singleProjectIsEnforced = true;
+        this.enforceSingleProject({forceProject});
+      }
+    }
+
+    // Projects have finished loading so now we can enforce a single project
+    if (
+      !singleProjectIsEnforced &&
+      prevProps.loadingProjects &&
+      !this.props.loadingProjects &&
+      (!hasMultipleProjectFeature || forceProject)
+    ) {
       const {project} = getStateFromQuery(location.query);
       if (!project) {
         this.enforceSingleProject({forceProject});

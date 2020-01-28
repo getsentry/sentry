@@ -49,11 +49,7 @@ export default class DetailsBody extends React.Component<Props> {
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
-
-    return {
-      pathname: `/organizations/${orgId}/eventsv2/results/`,
-      query: discoverView.generateQueryStringObject(),
-    };
+    return discoverView.getResultsViewUrlTarget(orgId);
   }
 
   render() {
@@ -109,7 +105,7 @@ export default class DetailsBody extends React.Component<Props> {
 
               <SideHeader>
                 <span>{t('Query')}</span>
-                <Feature features={['events-v2']}>
+                <Feature features={['discover-basic']}>
                   <Projects slugs={incident && incident.projects} orgId={params.orgId}>
                     {({initiallyLoaded, projects, fetching}) => (
                       <DiscoverLink

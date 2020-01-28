@@ -16,7 +16,11 @@ from sentry.utils.samples import load_data
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-FEATURE_NAMES = ["organizations:events-v2", "organizations:transaction-events"]
+FEATURE_NAMES = [
+    "organizations:discover-basic",
+    "organizations:discover-query",
+    "organizations:transaction-events",
+]
 
 
 def all_events_query(**kwargs):
@@ -150,8 +154,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.landing_path = u"/organizations/{}/eventsv2/".format(self.org.slug)
-        self.result_path = u"/organizations/{}/eventsv2/results/".format(self.org.slug)
+        self.landing_path = u"/organizations/{}/discover/queries/".format(self.org.slug)
+        self.result_path = u"/organizations/{}/discover/results/".format(self.org.slug)
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
