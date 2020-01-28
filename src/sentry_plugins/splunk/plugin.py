@@ -96,6 +96,7 @@ class SplunkPlugin(CorePluginMixin, Plugin):
     description = "Send Sentry events into Splunk."
     conf_key = "splunk"
     resource_links = [("Splunk Setup Instructions", SETUP_URL)] + CorePluginMixin.resource_links
+    required_field = "instance"
 
     def configure(self, project, request):
         return react_plugin_config(self, project, request)

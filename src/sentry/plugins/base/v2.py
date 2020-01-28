@@ -71,6 +71,9 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     # Should this plugin be enabled by default for projects?
     project_default_enabled = False
 
+    # used by queries to determine if the plugin is configured
+    required_field = None
+
     def _get_option_key(self, key):
         return "%s:%s" % (self.get_conf_key(), key)
 

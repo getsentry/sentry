@@ -11,11 +11,13 @@ type UninstallButtonProps = {
   install: SentryAppInstallation;
   app: SentryApp;
   onClickUninstall?: (install: SentryAppInstallation) => void;
+  onUninstallModalOpen?: () => void; //used for analytics
 };
 export const UninstallButton = ({
   install,
   app,
   onClickUninstall,
+  onUninstallModalOpen,
 }: UninstallButtonProps) => {
   const message = t(`Are you sure you want to remove the ${app.slug} installation?`);
 
@@ -23,7 +25,8 @@ export const UninstallButton = ({
     <Confirm
       message={message}
       priority="danger"
-      onConfirm={() => onClickUninstall && install && onClickUninstall(install)}
+      onConfirm={() => onClickUninstall && install && onClickUninstall(install)} //called when the user confirms the action
+      onConfirming={onUninstallModalOpen} //called when the confirm modal opens
     >
       <StyledButton borderless icon="icon-trash" data-test-id="sentry-app-uninstall">
         {t('Uninstall')}

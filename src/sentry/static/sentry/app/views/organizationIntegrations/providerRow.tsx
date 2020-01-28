@@ -26,6 +26,7 @@ type Props = {
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
   onReinstall: (integration: Integration) => void;
+  onCloseModal?: () => void;
   enabledPlugins: string[];
   newlyInstalledIntegrationId: string;
   integrations: Integration[];
@@ -46,6 +47,7 @@ export default class ProviderRow extends React.Component<Props> {
     onReinstall: PropTypes.func.isRequired,
     enabledPlugins: PropTypes.array,
     newlyInstalledIntegrationId: PropTypes.string,
+    onCloseModal: PropTypes.func,
   };
 
   static defaultProps = {
@@ -81,6 +83,7 @@ export default class ProviderRow extends React.Component<Props> {
       organization,
       onAddIntegration,
       isInstalled: this.isEnabled,
+      onCloseModal: this.props.onCloseModal,
     });
   };
 

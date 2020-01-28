@@ -17,6 +17,7 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
     title = "PagerDuty"
     conf_key = slug
     conf_title = title
+    required_field = "service_key"
 
     def error_message_from_json(self, data):
         message = data.get("message", "unknown error")

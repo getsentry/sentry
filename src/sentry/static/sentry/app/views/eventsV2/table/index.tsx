@@ -51,15 +51,8 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   componentDidMount() {
-    const {location, organization, eventView} = this.props;
-
-    if (!eventView.isValid()) {
-      const nextEventView = EventView.fromNewQueryWithLocation(
-        DEFAULT_EVENT_VIEW,
-        location
-      );
-
-      browserHistory.replace(nextEventView.getResultsViewUrlTarget(organization.slug));
+    if (!this.props.eventView.isValid()) {
+      this.goToAllEvents();
       return;
     }
 
@@ -70,6 +63,20 @@ class Table extends React.PureComponent<TableProps, TableState> {
     if (!this.state.isLoading && this.shouldRefetchData(prevProps)) {
       this.fetchData();
     }
+    if (!this.props.eventView.isValid()) {
+      this.goToAllEvents();
+      return;
+    }
+  }
+
+  goToAllEvents() {
+    const {location, organization} = this.props;
+    const nextEventView = EventView.fromNewQueryWithLocation(
+      DEFAULT_EVENT_VIEW,
+      location
+    );
+
+    browserHistory.replace(nextEventView.getResultsViewUrlTarget(organization.slug));
   }
 
   shouldRefetchData = (prevProps: TableProps): boolean => {

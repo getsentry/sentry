@@ -4,8 +4,8 @@ import {Location} from 'history';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import {assert} from 'app/types/utils';
 import {t} from 'app/locale';
+import {assert} from 'app/types/utils';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
@@ -419,14 +419,14 @@ class TableView extends React.Component<TableViewProps> {
         }) => {
           return (
             <GridEditable
-              isEditable
+              editFeatures={['organizations:discover-query']}
+              noEditMessage={t('Requires discover query feature.')}
               onToggleEdit={this.onToggleEdit}
               isColumnDragging={isColumnDragging}
               gridHeadCellButtonProps={{className: DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER}}
               isLoading={isLoading}
               error={error}
               data={tableData ? tableData.data : []}
-              downloadAsCsv={() => downloadAsCsv(tableData, columnOrder, title)}
               columnOrder={this.generateColumnOrder({
                 initialColumnIndex: draggingColumnIndex,
                 destinationColumnIndex,
@@ -447,6 +447,7 @@ class TableView extends React.Component<TableViewProps> {
                 deleteColumn: this._deleteColumn,
                 moveColumnCommit: this._moveColumnCommit,
                 onDragStart: startColumnDrag,
+                downloadAsCsv: () => downloadAsCsv(tableData, columnOrder, title),
               }}
             />
           );

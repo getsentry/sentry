@@ -23,6 +23,7 @@ class RedminePlugin(IssuePlugin):
     title = _("Redmine")
     conf_title = "Redmine"
     conf_key = "redmine"
+    required_field = "host"
 
     new_issue_form = RedmineNewIssueForm
 
