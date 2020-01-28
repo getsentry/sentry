@@ -244,6 +244,7 @@ class SearchVisitor(NodeVisitor):
             "p75",
             "p95",
             "p99",
+            "error_rate",
         ]
     )
     date_keys = set(
@@ -836,6 +837,12 @@ FIELD_ALIASES = {
     "p75": {"result_type": "duration", "aggregations": [["quantile(0.75)(duration)", None, "p75"]]},
     "p95": {"result_type": "duration", "aggregations": [["quantile(0.95)(duration)", None, "p95"]]},
     "p99": {"result_type": "duration", "aggregations": [["quantile(0.99)(duration)", None, "p99"]]},
+    "error_rate": {
+        "result_type": "number",
+        "aggregations": [
+            ["divide(countIf(notEquals(transaction_status, 0)), count(*))", None, "error_rate"]
+        ],
+    },
 }
 
 VALID_AGGREGATES = {

@@ -383,6 +383,38 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_error_rate_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "error_rate"}],
+            "data": [{"transaction": "api.do_things", "error_rate": 0.314159}],
+        }
+        discover.query(
+            selected_columns=["transaction", "error_rate()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                ["divide(countIf(notEquals(transaction_status, 0)), count(*))", None, "error_rate"],
+                ["argMax", ["event_id", "timestamp"], "latest_event"],
+                ["argMax", ["project_id", "timestamp"], "projectid"],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_orderby_limit_offset(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "title"}, {"name": "project.id"}],
@@ -862,6 +894,19 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
     def test_field_alias_with_brackets(self):
         result = discover.timeseries_query(
             selected_columns=["p95()"],
+            query="event.type:transaction transaction:api.issue.delete",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+
+    def test_error_rate_field_alias(self):
+        result = discover.timeseries_query(
+            selected_columns=["error_rate()"],
             query="event.type:transaction transaction:api.issue.delete",
             params={
                 "start": self.day_ago,
