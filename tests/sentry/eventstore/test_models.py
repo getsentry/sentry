@@ -239,7 +239,7 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
         normalize_mock_calls.append(1)
         return old_normalize(*args, **kwargs)
 
-    monkeypatch.setattr("semaphore.processing.StoreNormalizer.normalize_event", normalize)
+    monkeypatch.setattr("sentry_relay.processing.StoreNormalizer.normalize_event", normalize)
 
     with task_runner():
         factories.store_event(
