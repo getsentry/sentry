@@ -390,7 +390,7 @@ AUTHENTICATION_BACKENDS = (
     "sentry.utils.auth.EmailAuthBackend",
     # The following authentication backends are used by social auth only.
     # We don't use them for user authentication.
-    "social_core.backends.asana.AsanaOAuth2",
+    "sentry_plugins.asana.backend.AsanaOAuth2",
     "social_core.backends.github.GithubOAuth2",
     "social_core.backends.bitbucket.BitbucketOAuth2",
 )

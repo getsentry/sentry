@@ -256,7 +256,6 @@ class AuthApiClient(ApiClient):
         self.logger.info(
             "token.refresh", extra={"auth_id": self.auth.id, "provider": self.auth.provider}
         )
-        # XXX: refresh_token is ported now, but it doesn't work.
         self.auth.refresh_token(load_strategy())
         kwargs = self.bind_auth(**kwargs)
         return ApiClient._request(self, method, path, **kwargs)
