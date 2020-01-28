@@ -4,7 +4,7 @@ import six
 
 from datetime import datetime
 from django.utils import timezone
-from semaphore import meta_with_chunks
+from sentry_relay import meta_with_chunks
 
 from sentry import eventstore
 from sentry.api.serializers import Serializer, register, serialize
