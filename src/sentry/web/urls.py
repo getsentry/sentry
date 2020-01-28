@@ -284,6 +284,24 @@ urlpatterns += [
                         pattern_name="sentry-account-settings-emails", permanent=False
                     ),
                 ),
+                url(
+                    r"^settings/",
+                    include(
+                        [
+                            url(
+                                r"^social/associate/(?P<backend>[^/]+)/$",
+                                SocialAuthAssociationView,
+                                name="begin",
+                            ),
+                            url(
+                                r"^social/associate/complete/(?P<backend>[^/]+)/$",
+                                SocialAuthAssociationCompleteView,
+                                name="complete",
+                            ),
+                        ],
+                        namespace="social",
+                    ),
+                ),
                 # Project Wizard
                 url(
                     r"^settings/wizard/(?P<wizard_hash>[^\/]+)/$",
@@ -355,24 +373,6 @@ urlpatterns += [
         r"^accept/(?P<member_id>\d+)/(?P<token>\w+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-accept-invite",
-    ),
-    url(
-        r"^settings/",
-        include(
-            [
-                url(
-                    r"^social/associate/(?P<backend>[^/]+)/$",
-                    SocialAuthAssociationView,
-                    name="begin",
-                ),
-                url(
-                    r"^social/associate/complete/(?P<backend>[^/]+)/$",
-                    SocialAuthAssociationCompleteView,
-                    name="complete",
-                ),
-            ],
-            namespace="social",
-        ),
     ),
     # User settings use generic_react_page_view, while any view acting on
     # behalf of an organization should use react_page_view
