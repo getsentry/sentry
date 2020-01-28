@@ -6,6 +6,7 @@ import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/
 import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {defined} from 'app/utils';
+import {getDisplayForAlertRuleAggregation} from 'app/views/incidents/utils';
 import {t} from 'app/locale';
 import Duration from 'app/components/duration';
 import EventView from 'app/views/eventsV2/eventView';
@@ -84,7 +85,9 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <RuleDetails>
         <span>{t('Metric')}</span>
-        <span>{incident?.alertRule.dataset}</span>
+        <span>
+          {incident && getDisplayForAlertRuleAggregation(incident.alertRule?.aggregation)}
+        </span>
 
         <span>{t('Critical Threshold')}</span>
         <span>{this.getThresholdText(criticalTrigger, 'alertThreshold')}</span>
