@@ -215,8 +215,6 @@ def create_sample_time_series(event, release=None):
     if event is None:
         return
 
-    event.bind_node_data()
-
     group = event.group
 
     project = group.project
