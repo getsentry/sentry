@@ -6,6 +6,7 @@ const fs = require('fs');
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
 const LastBuiltPlugin = require('./build-utils/last-built-plugin');
+const SentryAssetFileSize = require('./build-utils/sentry-asset-file-size');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
@@ -316,6 +317,8 @@ let appConfig = {
      * This removes empty js files for style only entries (e.g. sentry.less)
      */
     new FixStyleOnlyEntriesPlugin(),
+
+    new SentryAssetFileSize(),
 
     ...localeRestrictionPlugins,
   ],
