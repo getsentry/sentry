@@ -13,7 +13,7 @@ from sentry.utils import safe
 from sentry.models.relay import Relay
 from sentry.models import Project
 
-from semaphore.auth import generate_key_pair
+from sentry_relay.auth import generate_key_pair
 
 
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")

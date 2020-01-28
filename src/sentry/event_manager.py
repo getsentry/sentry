@@ -320,7 +320,7 @@ class EventManager(object):
             raise RuntimeError("Already normalized")
         self._normalized = True
 
-        from semaphore.processing import StoreNormalizer
+        from sentry_relay.processing import StoreNormalizer
 
         rust_normalizer = StoreNormalizer(
             project_id=self._project.id if self._project else None,

@@ -5,8 +5,7 @@ from warnings import warn
 from sentry.utils.strings import truncatechars, strip
 from sentry.utils.safe import get_path
 
-# Note: Detecting eventtypes is implemented in the semaphore Rust
-# library.
+# Note: Detecting eventtypes is implemented in the Relay Rust library.
 
 
 class BaseEvent(object):

@@ -16,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.utils.integrationdocs import load_doc
 from sentry.utils.geo import rust_geoip
 
-import semaphore
+import sentry_relay
 
 
 def get_all_languages():
@@ -226,8 +226,8 @@ SENTRY_RULES = (
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
-# See https://github.com/getsentry/semaphore/blob/master/general/src/protocol/constants.rs
-VALID_PLATFORMS = semaphore.VALID_PLATFORMS
+# See https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/constants.rs
+VALID_PLATFORMS = sentry_relay.VALID_PLATFORMS
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 

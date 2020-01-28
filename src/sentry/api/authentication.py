@@ -5,12 +5,12 @@ from django.utils.crypto import constant_time_compare
 from rest_framework.authentication import BasicAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 
+from sentry_relay import UnpackError
+
 from sentry.auth.system import SystemToken
 from sentry.models import ApiApplication, ApiKey, ApiToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.utils.sdk import configure_scope
-
-import semaphore
 
 
 class QuietBasicAuthentication(BasicAuthentication):
@@ -60,7 +60,7 @@ class RelayAuthentication(BasicAuthentication):
             data = relay.public_key_object.unpack(request.body, relay_sig, max_age=60 * 5)
             request.relay = relay
             request.relay_request_data = data
-        except semaphore.UnpackError:
+        except UnpackError:
             raise AuthenticationFailed("Invalid relay signature")
 
         # TODO(mitsuhiko): can we return the relay here?  would be nice if we
