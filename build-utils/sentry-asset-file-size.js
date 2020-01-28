@@ -34,24 +34,26 @@ class SentryAssetFileSize {
 
       [...compilation.entrypoints].forEach(([, entry]) =>
         entry.chunks.forEach(chunk =>
-          chunk.files.forEach(assetName => {
-            const asset = compilation.assets[assetName];
+          chunk.files
+            .filter(assetName => !assetName.endsWith('.map'))
+            .forEach(assetName => {
+              const asset = compilation.assets[assetName];
 
-            const sizeInKb = asset.size() / 1024;
-            const span = this.Sentry.getCurrentHub().startSpan({
-              op: 'asset',
-              description: assetName,
-              data: {
-                size: `${Math.round(sizeInKb)}KB`,
-              },
-              sampled: true,
-            });
-            span.startTimestamp = start;
-            span.setHttpStatus(200);
-            span.finish();
-            span.timestamp = start + sizeInKb / 1000;
-            start = span.timestamp;
-          })
+              const sizeInKb = asset.size() / 1024;
+              const span = this.Sentry.getCurrentHub().startSpan({
+                op: 'asset',
+                description: assetName,
+                data: {
+                  size: `${Math.round(sizeInKb)}KB`,
+                },
+                sampled: true,
+              });
+              span.startTimestamp = start;
+              span.setHttpStatus(200);
+              span.finish();
+              span.timestamp = start + sizeInKb / 1000;
+              start = span.timestamp;
+            })
         )
       );
 
