@@ -392,7 +392,7 @@ AUTHENTICATION_BACKENDS = (
     # We don't use them for user authentication.
     "sentry_plugins.asana.backend.AsanaOAuth2",
     "social_core.backends.github.GithubOAuth2",
-    "social_core.backends.bitbucket.BitbucketOAuth2",
+    "social_core.backends.bitbucket.BitbucketOAuth",
 )
 
 AUTH_PASSWORD_VALIDATORS = [
