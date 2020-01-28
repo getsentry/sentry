@@ -246,7 +246,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     }
 
     return (
-      <ButtonSaved>
+      <ButtonSaved disabled={this.props.disabled}>
         <ButtonSaveIcon isNewQuery={isNewQuery} src="icon-star-small-filled" size="14" />
         {t('Saved query')}
       </ButtonSaved>

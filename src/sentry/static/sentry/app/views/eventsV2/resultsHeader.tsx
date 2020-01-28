@@ -73,14 +73,7 @@ class ResultsHeader extends React.Component<Props, State> {
           />
         }
       >
-        <SavedQueryButtonGroup
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          savedQuery={savedQuery}
-          savedQueryLoading={loading}
-          disabled
-        />
+        {p.children(p)}
       </Hovercard>
     );
 
@@ -103,13 +96,16 @@ class ResultsHeader extends React.Component<Props, State> {
             hookName="feature-disabled:discover-saved-query-create"
             renderDisabled={renderDisabled}
           >
-            <SavedQueryButtonGroup
-              location={location}
-              organization={organization}
-              eventView={eventView}
-              savedQuery={savedQuery}
-              savedQueryLoading={loading}
-            />
+            {({hasFeature}) => (
+              <SavedQueryButtonGroup
+                location={location}
+                organization={organization}
+                eventView={eventView}
+                savedQuery={savedQuery}
+                savedQueryLoading={loading}
+                disabled={!hasFeature}
+              />
+            )}
           </Feature>
         </Controller>
       </HeaderBox>
