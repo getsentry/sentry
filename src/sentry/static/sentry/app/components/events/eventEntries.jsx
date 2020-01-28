@@ -32,7 +32,7 @@ import SentryTypes from 'app/sentryTypes';
 import SpansInterface from 'app/components/events/interfaces/spans';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
-import ThreadsInterface from 'app/components/events/interfaces/Threads';
+import ThreadsInterface from 'app/components/events/interfaces/threads';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
