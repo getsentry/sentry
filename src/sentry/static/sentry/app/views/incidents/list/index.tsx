@@ -154,17 +154,17 @@ class IncidentsListContainer extends React.Component<Props> {
       <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>
           <PageHeader>
-            <PageHeading>
+            <StyledPageHeading>
               {t('Alerts')}{' '}
               <BetaTag
                 title={t(
                   'This feature may change in the future and currently only shows metric alerts'
                 )}
               />
-              <ExternalLink href="mailto:alerting-feedback@sentry.io">
+              <FeedbackLink href="mailto:alerting-feedback@sentry.io">
                 {t('Send feedback')}
-              </ExternalLink>
-            </PageHeading>
+              </FeedbackLink>
+            </StyledPageHeading>
 
             <Actions>
               <Button
@@ -208,6 +208,16 @@ class IncidentsListContainer extends React.Component<Props> {
     );
   }
 }
+
+const StyledPageHeading = styled(PageHeading)`
+  display: flex;
+  align-items: center;
+`;
+
+const FeedbackLink = styled(ExternalLink)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-left: ${space(1)};
+`;
 
 const Actions = styled('div')`
   display: grid;
