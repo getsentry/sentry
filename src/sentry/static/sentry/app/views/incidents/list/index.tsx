@@ -133,9 +133,10 @@ class IncidentsListContainer extends React.Component<Props> {
    * go down to a specific project scope.
    */
   handleNavigateToSettings = (e: React.MouseEvent) => {
+    const {router, params} = this.props;
     e.preventDefault();
 
-    navigateTo('/settings/:orgId/projects/:projectId/alerts-v2/', this.props.router);
+    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts-v2/`, router);
   };
 
   render() {
