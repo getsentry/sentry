@@ -671,11 +671,6 @@ export type SentryAppComponent = {
   };
 };
 
-export type RouterProps = {
-  params: Params;
-  location: Location;
-};
-
 export type ActiveExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
 };
