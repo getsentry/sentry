@@ -1112,7 +1112,7 @@
     "@emotion/serialize" "^0.11.15"
     "@emotion/utils" "0.11.3"
 
-"@emotion/styled@^10.0.0", "@emotion/styled@^10.0.17", "@emotion/styled@^10.0.27":
+"@emotion/styled@*", "@emotion/styled@^10.0.0", "@emotion/styled@^10.0.17", "@emotion/styled@^10.0.27":
   version "10.0.27"
   resolved "https://registry.yarnpkg.com/@emotion/styled/-/styled-10.0.27.tgz#12cb67e91f7ad7431e1875b1d83a94b814133eaf"
   integrity sha512-iK/8Sh7+NLJzyp9a5+vIQIXTYxfT4yB/OJbjzQanB2RZpvmzBQOHZWhpAMZWYEKRNNbsD6WfBw5sVWkb6WzS/Q==
@@ -2461,6 +2461,15 @@
     "@types/prop-types" "*"
     csstype "^2.2.0"
 
+"@types/reflexbox@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@types/reflexbox/-/reflexbox-4.0.0.tgz#34c11a71f59ba2ce03830186f3feba02174ee4a5"
+  integrity sha512-6mAukJO+8Ko3qaHpmW6oRuD0Ibrkkf5eBJAYfk3DNwfbJEDZ8ti3bSdZrPA0pWfffT035V0bAVKG4uMhEK18Xg==
+  dependencies:
+    "@emotion/styled" "*"
+    "@types/react" "*"
+    "@types/styled-system" "*"
+
 "@types/reflux@0.4.1":
   version "0.4.1"
   resolved "https://registry.yarnpkg.com/@types/reflux/-/reflux-0.4.1.tgz#1f91d5ede2172c535107e9f79755bda70234f9c1"
@@ -2475,6 +2484,13 @@
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@types/stack-utils/-/stack-utils-1.0.1.tgz#0a851d3bd96498fa25c33ab7278ed3bd65f06c3e"
   integrity sha512-l42BggppR6zLmpfU6fq9HEa2oGPEI8yrSPL3GITjfRInppYFahObbIQOQK3UGxEnyQpltZLaPe75046NOZQikw==
+
+"@types/styled-system@*":
+  version "5.1.5"
+  resolved "https://registry.yarnpkg.com/@types/styled-system/-/styled-system-5.1.5.tgz#91c46bdc72f09a4d13b215695687ce35382ccad8"
+  integrity sha512-jYTj774fMiRZ7YgmQK6WxiHSI+ket6WqHPQQEq7CURkVqOI6YWUHKqn0WcLwrqQ+fPHYQt9DdoJb7ydZBMmFwQ==
+  dependencies:
+    csstype "^2.6.4"
 
 "@types/tapable@*":
   version "1.0.5"
@@ -5143,7 +5159,7 @@ cssstyle@^1.0.0:
   dependencies:
     cssom "0.3.x"
 
-csstype@^2.2.0, csstype@^2.5.7, csstype@^2.6.7:
+csstype@^2.2.0, csstype@^2.5.7, csstype@^2.6.4, csstype@^2.6.7:
   version "2.6.8"
   resolved "https://registry.yarnpkg.com/csstype/-/csstype-2.6.8.tgz#0fb6fc2417ffd2816a418c9336da74d7f07db431"
   integrity sha512-msVS9qTuMT5zwAGCVm4mxfrZ18BNc6Csd0oJAtiFMZ1FAx1CCvy2+5MDmYoix63LM/6NDbNtodCiGYGmFgO0dA==
