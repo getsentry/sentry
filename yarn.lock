@@ -5918,10 +5918,10 @@ eslint-config-prettier@6.3.0:
   dependencies:
     get-stdin "^6.0.0"
 
-eslint-config-sentry-app@1.29.0:
-  version "1.29.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.29.0.tgz#1a6d67defdb8fb55c9d810f56ecf6df8a4b49f39"
-  integrity sha512-/SfIqyf1r+xGDfJIH/Z6vnLu8AHxsbUgMEC8p/0oUYmtMCXWWQDyPe/1aJMk0t/Q+sbRopls6cEuApGc5DE5vw==
+eslint-config-sentry-app@1.30.0:
+  version "1.30.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.30.0.tgz#b0ed9148eb2dc0e5a7582c2ad9fd439c9c2bac42"
+  integrity sha512-OLLTDaXaSkHGog2Ph7rXs1VzQxZCYdH4Unvd3YTk7veULkUoPB9G7iMPQ+GxgJNVJ0YERNRUG5d8oWfinjYmuA==
   dependencies:
     eslint-config-prettier "6.3.0"
     eslint-config-sentry "^1.28.1"
@@ -5931,7 +5931,7 @@ eslint-config-sentry-app@1.29.0:
     eslint-plugin-jest "22.17.0"
     eslint-plugin-prettier "3.1.1"
     eslint-plugin-react "7.15.1"
-    eslint-plugin-sentry "^1.29.0"
+    eslint-plugin-sentry "^1.30.0"
 
 eslint-config-sentry-react@^1.28.1:
   version "1.28.1"
@@ -6028,10 +6028,10 @@ eslint-plugin-react@7.15.1:
     prop-types "^15.7.2"
     resolve "^1.12.0"
 
-eslint-plugin-sentry@^1.29.0:
-  version "1.29.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.29.0.tgz#3017d8439aa1c271a4f5aea9d85f5cc74b999cd9"
-  integrity sha512-mkdYz1HswF1Of4Bcx1N8knUeaEkj3TsAYYD4hZbBVu0E47WGhtwvoFGl0j4LcpIyDs/OX78sS//yHhomIVueng==
+eslint-plugin-sentry@^1.30.0:
+  version "1.30.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.30.0.tgz#1bc276cec0638a3c776c172dcf22f8b3b3669023"
+  integrity sha512-RPHCMv01HkG6L64nBBujzgG/CVCfk6WYACjvMuO+sxTySVU/bN2u7xa64ytR+7BrA3PM+mGQAg197ng19ijrLw==
   dependencies:
     requireindex "~1.1.0"
 
