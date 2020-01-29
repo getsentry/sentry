@@ -67,9 +67,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         projects = Project.objects.filter(id__in=project_id_set)
 
         # create a key/value map of our projects
-        project_map = {}
-        for project in projects:
-            project_map[project.id] = project
+        project_map = {project.id: project for project in projects}
 
         # iterate through the desired plugins and serialize them
         serialized_plugins = []
