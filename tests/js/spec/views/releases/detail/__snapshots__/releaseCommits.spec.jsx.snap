@@ -53,21 +53,12 @@ exports[`ReleaseCommits organization release commits 1`] = `
               disablePadding={true}
               flex={false}
             >
-              <EmotionCssPropInternal
-                __EMOTION_LABEL_PLEASE_DO_NOT_USE__="PanelBody"
-                __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
-                css={
-                  Object {
-                    "map": undefined,
-                    "name": "b1rh9y-PanelBody",
-                    "next": undefined,
-                    "styles": "h1,h2,h3,h4,h5,h6,p,ul,ol,table,dl,blockquote,form,pre,.auto-select-text,.section,[class^='highlight-']{margin-bottom:20px;&:last-child{margin-bottom:0;}}h1,h2,h3,h4,h5,h6{line-height:1.2;}p,ul,ol,blockquote{line-height:1.5;}h1{font-size:2em;}h2{font-size:1.75em;}h3{font-size:1.5em;}h4{font-size:1.25em;}h5{font-size:1em;}pre{word-break:break-all;white-space:pre-wrap;};;label:PanelBody;",
-                    "toString": [Function],
-                  }
-                }
+              <FlexBox
+                disablePadding={true}
+                flex={false}
               >
                 <div
-                  className="css-b1rh9y-PanelBody"
+                  className="css-1ehogmz-FlexBox e1vnwt6f0"
                 >
                   <Styled(CommitRow)
                     commit={
@@ -175,7 +166,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                         p={2}
                       >
                         <div
-                          className="eyce8w27 css-1ndv8gr-PanelItem eo8n7lk0"
+                          className="eyce8w27 css-1ndv8gr-PanelItem ej5ox20"
                         >
                           <AvatarWrapper>
                             <div
@@ -369,7 +360,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                     </CommitRow>
                   </Styled(CommitRow)>
                 </div>
-              </EmotionCssPropInternal>
+              </FlexBox>
             </PanelBody>
           </div>
         </Component>
@@ -434,21 +425,12 @@ exports[`ReleaseCommits project release commits 1`] = `
               disablePadding={true}
               flex={false}
             >
-              <EmotionCssPropInternal
-                __EMOTION_LABEL_PLEASE_DO_NOT_USE__="PanelBody"
-                __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
-                css={
-                  Object {
-                    "map": undefined,
-                    "name": "b1rh9y-PanelBody",
-                    "next": undefined,
-                    "styles": "h1,h2,h3,h4,h5,h6,p,ul,ol,table,dl,blockquote,form,pre,.auto-select-text,.section,[class^='highlight-']{margin-bottom:20px;&:last-child{margin-bottom:0;}}h1,h2,h3,h4,h5,h6{line-height:1.2;}p,ul,ol,blockquote{line-height:1.5;}h1{font-size:2em;}h2{font-size:1.75em;}h3{font-size:1.5em;}h4{font-size:1.25em;}h5{font-size:1em;}pre{word-break:break-all;white-space:pre-wrap;};;label:PanelBody;",
-                    "toString": [Function],
-                  }
-                }
+              <FlexBox
+                disablePadding={true}
+                flex={false}
               >
                 <div
-                  className="css-b1rh9y-PanelBody"
+                  className="css-1ehogmz-FlexBox e1vnwt6f0"
                 >
                   <Styled(CommitRow)
                     commit={
@@ -556,7 +538,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                         p={2}
                       >
                         <div
-                          className="eyce8w27 css-1ndv8gr-PanelItem eo8n7lk0"
+                          className="eyce8w27 css-1ndv8gr-PanelItem ej5ox20"
                         >
                           <AvatarWrapper>
                             <div
@@ -750,7 +732,7 @@ Users now have access to useful links from the blogs and docs on Spike-protectio
                     </CommitRow>
                   </Styled(CommitRow)>
                 </div>
-              </EmotionCssPropInternal>
+              </FlexBox>
             </PanelBody>
           </div>
         </Component>
