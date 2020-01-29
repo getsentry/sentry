@@ -1,7 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import {Organization, Integration, IntegrationProvider, RouterProps} from 'app/types';
+import {RequestOptions} from 'app/api';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Hooks} from 'app/types/hooks';
 import {t} from 'app/locale';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
@@ -16,14 +19,20 @@ import Alert from 'app/components/alert';
 import Tooltip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/links/externalLink';
+import InstalledIntegration, {
+  Props as InstalledIntegrationProps,
+} from 'app/views/organizationIntegrations/installedIntegration';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import HookStore from 'app/stores/hookStore';
 import withOrganization from 'app/utils/withOrganization';
+import {growDown, highlight} from 'app/styles/animations';
+import {sortArray} from 'app/utils';
 
 type State = {
   configurations: Integration[];
   provider: {information: IntegrationProvider};
   tab: string;
+  newlyInstalledIntegrationId: string;
 };
 
 type Props = RouterProps & {
@@ -39,8 +48,6 @@ const defaultFeatureGateComponents = {
       gatedFeatureGroups: [],
     }),
   FeatureList: p => {
-    console.log({p});
-
     return (
       <ul>
         {p.features.map((f, i) => (
@@ -59,7 +66,7 @@ class IntegrationDetailedView extends AsyncComponent<
 > {
   componentDidMount() {
     const {location} = this.props;
-    let value = location?.query?.tab ? (location.query.tab as string) : 'information';
+    const value = location?.query?.tab ? (location.query.tab as string) : 'information';
     this.setState({
       tab: value,
     });
@@ -87,7 +94,55 @@ class IntegrationDetailedView extends AsyncComponent<
     ));
   }
 
-  onAddIntegration = () => {};
+  onInstall = (integration: Integration) => {
+    // Merge the new integration into the list. If we're updating an
+    // integration overwrite the old integration.
+    const keyedItems = keyBy(this.state.configurations, i => i.id);
+
+    // Mark this integration as newlyAdded if it didn't already exist, allowing
+    // us to animate the element in.
+    if (!keyedItems.hasOwnProperty(integration.id)) {
+      this.setState({newlyInstalledIntegrationId: integration.id});
+    }
+
+    const configurations = sortArray(
+      Object.values({...keyedItems, [integration.id]: integration}),
+      i => i.name
+    );
+    this.setState({configurations});
+  };
+
+  onRemove = (integration: Integration) => {
+    const {orgId} = this.props.params;
+
+    const origIntegrations = [...this.state.configurations];
+
+    const integrations = this.state.configurations.filter(i => i.id !== integration.id);
+    this.setState({integrations});
+
+    const options: RequestOptions = {
+      method: 'DELETE',
+      error: () => {
+        this.setState({configurations: origIntegrations});
+        addErrorMessage(t('Failed to remove Integration'));
+      },
+    };
+
+    this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
+  };
+
+  onDisable = (integration: Integration) => {
+    let url: string;
+    const [domainName, orgName] = integration.domainName.split('/');
+
+    if (integration.accountType === 'User') {
+      url = `https://${domainName}/settings/installations/`;
+    } else {
+      url = `https://${domainName}/organizations/${orgName}/settings/installations/`;
+    }
+
+    window.open(url, '_blank');
+  };
 
   handleExternalInstall = () => {
     const {organization} = this.props;
@@ -108,11 +163,10 @@ class IntegrationDetailedView extends AsyncComponent<
   };
 
   renderBody() {
-    console.log('state: ', this.state);
     const {
       provider: {information},
-      //   configurations,
-      //   tab,
+      configurations,
+      tab,
     } = this.state;
     const {organization} = this.props;
 
@@ -137,7 +191,7 @@ class IntegrationDetailedView extends AsyncComponent<
       (information.canAdd && (
         <AddIntegrationButton
           provider={information}
-          onAddIntegration={this.onAddIntegration}
+          onAddIntegration={this.onInstall}
           {...buttonProps}
           {...p}
         />
@@ -170,7 +224,6 @@ class IntegrationDetailedView extends AsyncComponent<
 
     const {FeatureList, IntegrationFeatures} = featureListHooks[0]();
     const featureProps = {organization, features};
-    console.log('props: ', this.props);
     return (
       <React.Fragment>
         <Flex>
@@ -215,19 +268,33 @@ class IntegrationDetailedView extends AsyncComponent<
           {tabs.map(tabName => (
             <li
               key={tabName}
-              className={this.state.tab === tabName ? 'active' : ''}
+              className={tab === tabName ? 'active' : ''}
               onClick={() => this.onTabChange(tabName)}
             >
               <a style={{textTransform: 'capitalize'}}>{tabName}</a>
             </li>
           ))}
         </ul>
-        {this.state.tab === 'information' ? (
+        {tab === 'information' ? (
           <InformationCard alerts={alerts} information={information}>
             <FeatureList {...featureProps} provider={information} />
           </InformationCard>
         ) : (
-          <div>Configs</div>
+          <div>
+            {configurations.map(integration => (
+              <StyledInstalledIntegration
+                key={integration.id}
+                organization={organization}
+                provider={information}
+                integration={integration}
+                onRemove={this.onRemove}
+                onDisable={this.onDisable}
+                onReinstallIntegration={this.onInstall}
+                data-test-id={integration.id}
+                newlyAdded={integration.id === this.state.newlyInstalledIntegrationId}
+              />
+            ))}
+          </div>
         )}
       </React.Fragment>
     );
@@ -300,6 +367,27 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
 ))`
   color: ${p => p.theme.red};
   font-size: 0.9em;
+`;
+
+const NewInstallation = styled('div')`
+  overflow: hidden;
+  transform-origin: 0 auto;
+  animation: ${growDown('59px')} 160ms 500ms ease-in-out forwards,
+    ${p => highlight(p.theme.yellowLightest)} 1000ms 500ms ease-in-out forwards;
+`;
+
+const StyledInstalledIntegration = styled(
+  (p: InstalledIntegrationProps & {newlyAdded: boolean}) =>
+    p.newlyAdded ? (
+      <NewInstallation>
+        <InstalledIntegration {...p} />
+      </NewInstallation>
+    ) : (
+      <InstalledIntegration {...p} />
+    )
+)`
+  padding: ${space(2)};
+  border: 1px solid ${p => p.theme.borderLight};
 `;
 
 const InformationCard = ({children, alerts, information}) => {
