@@ -1,39 +1,37 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
-import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
-import pick from 'lodash/pick';
+import PropTypes from 'prop-types';
+import React from 'react';
+import * as ReactRouter from 'react-router';
 import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
+import styled from '@emotion/styled';
 
+import {Location} from 'history';
+import {Organization, SavedQuery} from 'app/types';
+import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import SentryTypes from 'app/sentryTypes';
-import {Organization, SavedQuery} from 'app/types';
-import localStorage from 'app/utils/localStorage';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import BetaTag from 'app/components/betaTag';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Banner from 'app/components/banner';
+import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
-import Feature from 'app/components/acl/feature';
-import SearchBar from 'app/components/searchBar';
-import NoProjectMessage from 'app/components/noProjectMessage';
-
 import ConfigStore from 'app/stores/configStore';
-import {PageContent} from 'app/styles/organization';
+import Feature from 'app/components/acl/feature';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import NoProjectMessage from 'app/components/noProjectMessage';
+import SearchBar from 'app/components/searchBar';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import SentryTypes from 'app/sentryTypes';
+import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
-import backgroundSpace from '../../../images/spot/background-space.svg';
-
-import EventView from './eventView';
 import {DEFAULT_EVENT_VIEW} from './data';
-import QueryList from './queryList';
 import {getPrebuiltQueries, decodeScalar} from './utils';
+import EventView from './eventView';
+import QueryList from './queryList';
+import backgroundSpace from '../../../images/spot/background-space.svg';
 
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
@@ -306,13 +304,19 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
           <React.Fragment>
             <GlobalSelectionHeader organization={organization} />
-            <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
+            <StyledPageContent>
+              <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
+            </StyledPageContent>
           </React.Fragment>
         </SentryDocumentTitle>
       </Feature>
     );
   }
 }
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
 
 const StyledPageHeader = styled('div')`
   display: flex;

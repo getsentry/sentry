@@ -128,7 +128,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {isSidebarVisible} = this.state;
 
     return (
-      <div>
+      <React.Fragment>
         <HeaderBox>
           <DiscoverBreadcrumb
             eventView={eventView}
@@ -184,7 +184,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             <TagsTable eventView={eventView} event={event} organization={organization} />
           </div>
         </ContentBox>
-      </div>
+      </React.Fragment>
     );
   }
 

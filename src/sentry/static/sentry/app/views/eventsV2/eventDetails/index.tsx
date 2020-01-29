@@ -1,18 +1,20 @@
-import React from 'react';
-import PropTypes from 'prop-types';
 import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
+import PropTypes from 'prop-types';
+import React from 'react';
+import styled from '@emotion/styled';
 
+import {Location} from 'history';
+import {Organization} from 'app/types';
+import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
-import {Organization} from 'app/types';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
-import EventView from '../eventView';
 import EventDetailsContent from './content';
+import EventView from '../eventView';
 
 type Props = {
   organization: Organization;
@@ -58,15 +60,17 @@ class EventDetails extends React.Component<Props> {
       <SentryDocumentTitle title={documentTitle} objSlug={organization.slug}>
         <React.Fragment>
           <GlobalSelectionHeader organization={organization} />
-          <NoProjectMessage organization={organization}>
-            <EventDetailsContent
-              organization={organization}
-              location={location}
-              params={params}
-              eventView={eventView}
-              eventSlug={this.getEventSlug()}
-            />
-          </NoProjectMessage>
+          <StyledPageContent>
+            <NoProjectMessage organization={organization}>
+              <EventDetailsContent
+                organization={organization}
+                location={location}
+                params={params}
+                eventView={eventView}
+                eventSlug={this.getEventSlug()}
+              />
+            </NoProjectMessage>
+          </StyledPageContent>
         </React.Fragment>
       </SentryDocumentTitle>
     );
@@ -74,3 +78,7 @@ class EventDetails extends React.Component<Props> {
 }
 
 export default withOrganization(EventDetails);
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
