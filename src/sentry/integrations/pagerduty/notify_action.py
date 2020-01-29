@@ -104,12 +104,28 @@ class PagerDutyNotifyServiceAction(EventAction):
         def send_notification(event, futures):
             client = PagerDutyClient(integration_key=service.integration_key)
             try:
-                client.send_trigger(event)
+                resp = client.send_trigger(event)
             except ApiError as e:
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
-                    extra={"error": e.message, "service": service.service_name},
+                    extra={
+                        "error": e.message,
+                        "service_name": service.service_name,
+                        "service_id": service.id,
+                    },
                 )
+
+            # TODO(meredith): Maybe have a generic success log statements for
+            # first-party integrations similar to plugin `notification.dispatched`
+            self.logger.info(
+                "rule.success.pagerduty_trigger",
+                extra={
+                    "status_code": resp.status_code,
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                    "service_id": service.id,
+                },
+            )
 
         key = u"pagerduty:{}".format(integration.id)
         yield self.future(send_notification, key=key)

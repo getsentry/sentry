@@ -1043,7 +1043,10 @@ class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
             self.organization, slug, ["message", "transaction", "unknown-field"]
         )
         result = discover.create_reference_event_conditions(ref)
-        assert result == [["message", "=", "oh no!"], ["transaction", "=", "/issues/{issue_id}"]]
+        assert result == [
+            ["message", "=", "oh no! /issues/{issue_id}"],
+            ["transaction", "=", "/issues/{issue_id}"],
+        ]
 
     def test_geo_field(self):
         event = self.store_event(

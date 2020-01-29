@@ -28,6 +28,8 @@ import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
+import backgroundSpace from '../../../images/spot/background-space.svg';
+
 import EventView from './eventView';
 import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
@@ -190,11 +192,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     return (
       <Banner
-        title={t('Discover')}
-        subtitle={t('Customize your query searches')}
+        title={t('Discover Trends')}
+        subtitle={t(
+          'Customize and save queries by search conditions, event fields, and tags'
+        )}
+        backgroundImg={backgroundSpace}
         onCloseClick={this.handleClick}
       >
-        <Button
+        <StarterButton
           to={to}
           onClick={() => {
             trackAnalyticsEvent({
@@ -206,7 +211,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           }}
         >
           {t('Build a new query')}
-        </Button>
+        </StarterButton>
+        <StarterButton href="https://docs.sentry.io/workflow/discover2/">
+          {t('Read the docs')}
+        </StarterButton>
       </Banner>
     );
   }
@@ -333,6 +341,10 @@ const StyledActions = styled('div')`
 
 const StyledButton = styled(Button)`
   white-space: nowrap;
+`;
+
+const StarterButton = styled(Button)`
+  margin: ${space(1)};
 `;
 
 const SwitchLink = styled('a')`
