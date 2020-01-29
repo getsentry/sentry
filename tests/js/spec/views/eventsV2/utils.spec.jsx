@@ -273,7 +273,7 @@ describe('isAggregateField', function() {
   it('detects aliases', function() {
     expect(isAggregateField('p888')).toBe(false);
     expect(isAggregateField('other_field')).toBe(false);
-    expect(isAggregateField('foo.bar.is-Enterprise-42')).toBe(false);
+    expect(isAggregateField('foo.bar.is-Enterprise_42')).toBe(false);
     expect(isAggregateField('p75')).toBe(true);
     expect(isAggregateField('last_seen')).toBe(true);
   });
@@ -282,7 +282,7 @@ describe('isAggregateField', function() {
     expect(isAggregateField('thing(')).toBe(false);
     expect(isAggregateField('count()')).toBe(true);
     expect(isAggregateField('unique_count(user)')).toBe(true);
-    expect(isAggregateField('unique_count(foo.bar.is-Enterprise-42)')).toBe(true);
+    expect(isAggregateField('unique_count(foo.bar.is-Enterprise_42)')).toBe(true);
   });
 });
 
@@ -400,16 +400,16 @@ describe('explodeField', function() {
     });
 
     // custom tag
-    expect(explodeField({field: 'foo.bar.is-Enterprise-42', width: 123})).toEqual({
+    expect(explodeField({field: 'foo.bar.is-Enterprise_42', width: 123})).toEqual({
       aggregation: '',
-      field: 'foo.bar.is-Enterprise-42',
+      field: 'foo.bar.is-Enterprise_42',
       width: 123,
     });
 
     // custom tag with aggregation
-    expect(explodeField({field: 'count(foo.bar.is-Enterprise-42)', width: 123})).toEqual({
+    expect(explodeField({field: 'count(foo.bar.is-Enterprise_42)', width: 123})).toEqual({
       aggregation: 'count',
-      field: 'foo.bar.is-Enterprise-42',
+      field: 'foo.bar.is-Enterprise_42',
       width: 123,
     });
   });
@@ -428,7 +428,7 @@ describe('hasAggregateField', function() {
     expect(hasAggregateField(eventView)).toBe(false);
 
     eventView = new EventView({
-      fields: [{field: 'count(foo.bar.is-Enterprise-42)'}],
+      fields: [{field: 'count(foo.bar.is-Enterprise_42)'}],
       sorts: [],
       query: '',
       project: [],
