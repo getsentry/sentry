@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.db.models import Model
 from django.utils.functional import cached_property
 
-import semaphore
+from sentry_relay import PublicKey
 
 
 class Relay(Model):
@@ -25,7 +25,7 @@ class Relay(Model):
 
     @cached_property
     def public_key_object(self):
-        return semaphore.PublicKey.parse(self.public_key)
+        return PublicKey.parse(self.public_key)
 
     def has_org_access(self, org):
         # Internal relays always have access

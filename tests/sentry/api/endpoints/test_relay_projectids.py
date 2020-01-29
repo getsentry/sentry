@@ -12,7 +12,7 @@ from sentry.utils import safe
 from sentry.models.relay import Relay
 from sentry.testutils import APITestCase
 
-from semaphore.auth import generate_key_pair
+from sentry_relay.auth import generate_key_pair
 
 
 def _get_all_keys(config):

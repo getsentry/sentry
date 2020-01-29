@@ -16,7 +16,7 @@ import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
 
 import EventView from '../eventView';
-import {generateDiscoverLandingPageRoute} from '../utils';
+import {getDiscoverLandingUrl} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
 type Props = {
@@ -34,6 +34,7 @@ type Props = {
   eventView: EventView;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
+  disabled?: boolean;
 };
 
 type State = {
@@ -97,6 +98,10 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       event.preventDefault();
       event.stopPropagation();
     }
+  };
+
+  static defaultProps = {
+    disabled: false,
   };
 
   state = {
@@ -169,13 +174,14 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     handleDeleteQuery(api, organization, eventView).then(() => {
       browserHistory.push({
-        pathname: generateDiscoverLandingPageRoute(organization.slug),
+        pathname: getDiscoverLandingUrl(organization),
         query: {},
       });
     });
   };
 
   renderButtonSaveAs() {
+    const {disabled} = this.props;
     const {isNewQuery, isEditingQuery, queryName} = this.state;
 
     if (!isNewQuery && !isEditingQuery) {
@@ -197,6 +203,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             {...getActorProps()}
             isOpen={isOpen}
             showChevron={false}
+            disabled={disabled}
           >
             <ButtonSaveIcon
               isNewQuery={isNewQuery}
@@ -215,12 +222,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             value={queryName || ''}
             onBlur={this.onBlurInput}
             onChange={this.onChangeInput}
+            disabled={disabled}
           />
           <Button
             data-test-id="button-save-query"
             onClick={this.handleCreateQuery}
             priority="primary"
-            disabled={!this.state.queryName}
+            disabled={disabled || !this.state.queryName}
             style={{width: '100%'}}
           >
             {t('Save')}
@@ -238,7 +246,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     }
 
     return (
-      <ButtonSaved>
+      <ButtonSaved disabled={this.props.disabled}>
         <ButtonSaveIcon isNewQuery={isNewQuery} src="icon-star-small-filled" size="14" />
         {t('Saved query')}
       </ButtonSaved>
@@ -256,6 +264,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       <Button
         onClick={this.handleUpdateQuery}
         data-test-id="discover2-savedquery-button-update"
+        disabled={this.props.disabled}
       >
         <ButtonUpdateIcon />
         {t('Update query')}
@@ -275,6 +284,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         data-test-id="discover2-savedquery-button-delete"
         icon="icon-trash"
         onClick={this.handleDeleteQuery}
+        disabled={this.props.disabled}
       />
     );
   }

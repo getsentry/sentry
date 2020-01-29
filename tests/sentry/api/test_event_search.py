@@ -5,7 +5,7 @@ import pytest
 import six
 import unittest
 from datetime import timedelta
-from semaphore.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from django.utils import timezone
 from freezegun import freeze_time

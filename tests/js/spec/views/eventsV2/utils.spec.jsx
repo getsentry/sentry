@@ -4,13 +4,13 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import EventView from 'app/views/eventsV2/eventView';
 import {
-  getFieldRenderer,
   getAggregateAlias,
   isAggregateField,
   decodeColumnOrder,
   pushEventViewToLocation,
   getExpandedResults,
-  generateDiscoverLandingPageRoute,
+  getFieldRenderer,
+  getDiscoverLandingUrl,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
 
@@ -61,25 +61,16 @@ describe('getFieldRenderer', function() {
     const renderer = getFieldRenderer('url', {url: 'string'});
     expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
-    const link = wrapper.find('QueryLink');
-    expect(link).toHaveLength(1);
-    expect(link.props().to).toEqual({
-      pathname: location.pathname,
-      query: {query: 'url:/example'},
-    });
-    expect(link.text()).toEqual(data.url);
+    const text = wrapper.find('Container');
+    expect(text.text()).toEqual(data.url);
   });
 
   it('can render boolean fields', function() {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
     expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
-    const link = wrapper.find('QueryLink');
-    expect(link).toHaveLength(1);
-    expect(link.props().to).toEqual({
-      pathname: location.pathname,
-      query: {query: 'boolValue:1'},
-    });
+    const text = wrapper.find('Container');
+    expect(text.text()).toEqual('yes');
   });
 
   it('can render integer fields', function() {
@@ -112,34 +103,6 @@ describe('getFieldRenderer', function() {
     expect(wrapper.text()).toEqual('n/a');
   });
 
-  it('can render transaction as a link', function() {
-    const renderer = getFieldRenderer('transaction', {transaction: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(renderer(data, {location, organization}));
-
-    const value = wrapper.find('OverflowLink');
-    expect(value).toHaveLength(1);
-    expect(value.props().to).toEqual({
-      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
-      query: {},
-    });
-    expect(value.text()).toEqual(data.transaction);
-  });
-
-  it('can render title as a link', function() {
-    const renderer = getFieldRenderer('title', {title: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(renderer(data, {location, organization}));
-
-    const value = wrapper.find('OverflowLink');
-    expect(value).toHaveLength(1);
-    expect(value.props().to).toEqual({
-      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
-      query: {},
-    });
-    expect(value.text()).toEqual(data.title);
-  });
-
   it('can render project as an avatar', function() {
     const renderer = getFieldRenderer('project', {'project.name': 'string'});
     expect(renderer).toBeInstanceOf(Function);
@@ -151,57 +114,6 @@ describe('getFieldRenderer', function() {
     const value = wrapper.find('ProjectBadge');
     expect(value).toHaveLength(1);
     expect(value.props().project).toEqual(project);
-  });
-
-  it('can coerce string field to a link', function() {
-    const renderer = getFieldRenderer('url', {url: 'string'}, true);
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
-
-    // No basic link should be present.
-    expect(wrapper.find('QueryLink')).toHaveLength(0);
-
-    const link = wrapper.find('OverflowLink');
-    expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
-      query: {},
-    });
-    expect(link.text()).toEqual('/example');
-  });
-
-  it('can coerce number field to a link', function() {
-    const renderer = getFieldRenderer('numeric', {numeric: 'number'}, true);
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
-
-    const link = wrapper.find('OverflowLink');
-    expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
-      query: {},
-    });
-    expect(link.find('Count').props().value).toEqual(data.numeric);
-  });
-
-  it('can coerce date field to a link', function() {
-    const renderer = getFieldRenderer('createdAt', {createdAt: 'date'}, true);
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
-
-    const link = wrapper.find('OverflowLink');
-    expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/discover/${project.slug}:deadbeef/`,
-      query: {},
-    });
-    expect(link.find('StyledDateTime').props().date).toEqual(data.createdAt);
   });
 });
 
@@ -229,7 +141,6 @@ describe('decodeColumnOrder', function() {
         width: 123,
       },
       isDragging: false,
-      isPrimary: true,
       isSortable: false,
       type: 'string',
     });
@@ -251,7 +162,6 @@ describe('decodeColumnOrder', function() {
         width: 123,
       },
       isDragging: false,
-      isPrimary: false,
       isSortable: true,
       type: 'number',
     });
@@ -270,7 +180,6 @@ describe('decodeColumnOrder', function() {
       width: COL_WIDTH_NUMBER,
       eventViewField: {field: 'avg(transaction.duration)'},
       isDragging: false,
-      isPrimary: false,
       isSortable: true,
       type: 'number',
     });
@@ -446,10 +355,14 @@ describe('getExpandedResults()', function() {
   });
 });
 
-describe('generateDiscoverLandingPageRoute', function() {
-  it('generateDiscoverLandingPageRoute', function() {
-    expect(generateDiscoverLandingPageRoute('sentry')).toBe(
-      '/organizations/sentry/discover/queries/'
-    );
+describe('getDiscoverLandingUrl', function() {
+  it('is correct for with discover-query and discover-basic features', function() {
+    const org = TestStubs.Organization({features: ['discover-query', 'discover-basic']});
+    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/queries/');
+  });
+
+  it('is correct for with only discover-basic feature', function() {
+    const org = TestStubs.Organization({features: ['discover-basic']});
+    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/results/');
   });
 });

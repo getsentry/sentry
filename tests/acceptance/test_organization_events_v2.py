@@ -16,7 +16,11 @@ from sentry.utils.samples import load_data
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-FEATURE_NAMES = ["organizations:discover-basic", "organizations:transaction-events"]
+FEATURE_NAMES = [
+    "organizations:discover-basic",
+    "organizations:discover-query",
+    "organizations:transaction-events",
+]
 
 
 def all_events_query(**kwargs):
@@ -299,9 +303,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             }
         )
-        event = self.store_event(
-            data=event_data, project_id=self.project.id, assert_no_errors=False
-        )
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=False)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page.
@@ -309,7 +311,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Click the event link to open the events detail view
-            self.browser.element('[aria-label="{}"]'.format(event.title)).click()
+            self.browser.element('[data-test-id="view-events"]').click()
             self.wait_until_loaded()
 
             header = self.browser.element('[data-test-id="event-header"] span')
@@ -343,7 +345,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Click the event link to open the event detail view
-            self.browser.element('[aria-label="{}"]'.format(event.title)).click()
+            self.browser.element('[data-test-id="view-events"]').click()
             self.wait_until_loaded()
 
             self.browser.snapshot("events-v2 - grouped error event detail view")
@@ -362,7 +364,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         event_data = generate_transaction()
 
-        event = self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
@@ -370,7 +372,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Click the event link to open the event detail view
-            self.browser.element('[aria-label="{}"]'.format(event.title)).click()
+            self.browser.element('[data-test-id="view-events"]').click()
             self.wait_until_loaded()
 
             self.browser.snapshot("events-v2 - transactions event detail view")

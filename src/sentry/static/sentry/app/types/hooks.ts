@@ -94,6 +94,8 @@ export type FeatureDisabledHooks = {
   'feature-disabled:discover-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:custom-symbol-sources': FeatureDisabledHook;
+  'feature-disabled:grid-editable-actions': FeatureDisabledHook;
+  'feature-disabled:discover-saved-query-create': FeatureDisabledHook;
 };
 
 /**

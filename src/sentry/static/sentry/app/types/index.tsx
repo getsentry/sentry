@@ -188,6 +188,8 @@ type SentryEventBase = {
   culprit: string;
   metadata: EventMetadata;
   contexts: EventContexts;
+  context?: {[key: string]: any};
+  packages?: {[key: string]: string};
   user: EventUser;
   message: string;
   platform?: string;
@@ -757,3 +759,5 @@ export type Tag = {
   totalValues?: number;
   predefined?: boolean;
 };
+
+export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';

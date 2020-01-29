@@ -12,6 +12,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
 import {Organization, SavedQuery} from 'app/types';
 import localStorage from 'app/utils/localStorage';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -26,6 +27,8 @@ import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+
+import backgroundSpace from '../../../images/spot/background-space.svg';
 
 import EventView from './eventView';
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -189,11 +192,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     return (
       <Banner
-        title={t('Discover')}
-        subtitle={t('Customize your query searches')}
+        title={t('Discover Trends')}
+        subtitle={t(
+          'Customize and save queries by search conditions, event fields, and tags'
+        )}
+        backgroundImg={backgroundSpace}
         onCloseClick={this.handleClick}
       >
-        <Button
+        <StarterButton
           to={to}
           onClick={() => {
             trackAnalyticsEvent({
@@ -205,7 +211,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           }}
         >
           {t('Build a new query')}
-        </Button>
+        </StarterButton>
+        <StarterButton href="https://docs.sentry.io/workflow/discover2/">
+          {t('Read the docs')}
+        </StarterButton>
       </Banner>
     );
   }
@@ -242,6 +251,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       user_id: parseInt(user.id, 10),
     });
   };
+
+  renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
 
   render() {
     let body;
@@ -281,12 +298,18 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     }
 
     return (
-      <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
-        <React.Fragment>
-          <GlobalSelectionHeader organization={organization} />
-          <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
-        </React.Fragment>
-      </SentryDocumentTitle>
+      <Feature
+        organization={organization}
+        features={['discover-query']}
+        renderDisabled={this.renderNoAccess}
+      >
+        <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
+          <React.Fragment>
+            <GlobalSelectionHeader organization={organization} />
+            <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
+          </React.Fragment>
+        </SentryDocumentTitle>
+      </Feature>
     );
   }
 }
@@ -318,6 +341,10 @@ const StyledActions = styled('div')`
 
 const StyledButton = styled(Button)`
   white-space: nowrap;
+`;
+
+const StarterButton = styled(Button)`
+  margin: ${space(1)};
 `;
 
 const SwitchLink = styled('a')`
