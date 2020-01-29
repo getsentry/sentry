@@ -1,6 +1,4 @@
 PIP := python -m pip --disable-pip-version-check
-# Note: this has to be synced with the pip version in .travis.yml.
-PIP_VERSION := 19.2.3
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
 YARN := ./bin/yarn
 
@@ -52,7 +50,7 @@ ensure-venv:
 	@./scripts/ensure-venv.sh
 
 ensure-pinned-pip:
-	$(PIP) install "pip==$(PIP_VERSION)"
+	$(PIP) install --upgrade pip
 
 setup-git:
 	@echo "--> Installing git hooks"
