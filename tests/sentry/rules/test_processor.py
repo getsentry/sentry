@@ -11,6 +11,7 @@ from sentry.testutils import TestCase
 from sentry.rules.processor import RuleProcessor
 
 
+# TODO(jeff): Add test here for new alert rule behaviour
 class RuleProcessorTest(TestCase):
     # this test relies on a few other tests passing
     def test_integrated(self):
