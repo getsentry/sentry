@@ -12,8 +12,6 @@ from sentry.tasks.base import instrumented_task
 def compile_data(data_export):
     if data_export.query_type == ExportQueryType.DISCOVER_V1:
         process_discover_v1(data_export)
-        # The plan, hijack the discover query pipeline to send a request to that endpoint.
-        # Using the returned data, form a CSV and save it locally
 
     elif data_export.query_type == ExportQueryType.BILLING_REPORT:
         # TODO(Leander): Implement logic for billing report CSVs
