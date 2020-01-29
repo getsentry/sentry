@@ -17,6 +17,7 @@ export type GridHeadCellProps<Column> = {
   isLast: boolean;
 
   isEditing: boolean;
+  isDeletable: boolean;
 
   indexColumnOrder: number;
   column: Column;
@@ -49,6 +50,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
 > {
   static defaultProps = {
     isEditing: false,
+    isDeletable: true,
   };
 
   state = {
@@ -79,11 +81,17 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
 
   renderButtonHoverDraggable() {
     const {isHovering} = this.state;
-    const {isEditing, isColumnDragging} = this.props;
+    const {isEditing, isDeletable, isColumnDragging} = this.props;
 
     if (!isEditing || !isHovering || isColumnDragging) {
       return null;
     }
+
+    const deleteButton = isDeletable ? (
+      <GridHeadCellButtonHoverButton onClick={this.deleteColumn}>
+        <InlineSvg src="icon-trash" />
+      </GridHeadCellButtonHoverButton>
+    ) : null;
 
     return (
       <React.Fragment>
@@ -100,9 +108,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
             <GridHeadCellButtonHoverButton onClick={this.toggleModal}>
               <InlineSvg src="icon-edit-pencil" />
             </GridHeadCellButtonHoverButton>
-            <GridHeadCellButtonHoverButton onClick={this.deleteColumn}>
-              <InlineSvg src="icon-trash" />
-            </GridHeadCellButtonHoverButton>
+            {deleteButton}
           </div>
 
           <GridHeadCellButtonHoverDraggable

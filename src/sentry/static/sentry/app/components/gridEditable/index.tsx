@@ -444,7 +444,6 @@ class GridEditable<
 
     // Ensure that the last column cannot be removed
     const numColumn = columnOrder.length;
-    const enableEdit = isEditing && numColumn > 1;
 
     const prependColumns = grid.renderPrependColumns
       ? grid.renderPrependColumns(true)
@@ -463,7 +462,8 @@ class GridEditable<
             isLast={columnOrder.length - 1 === i}
             key={`${i}.${column.key}`}
             isColumnDragging={this.props.isColumnDragging}
-            isEditing={enableEdit}
+            isEditing={isEditing}
+            isDeletable={numColumn > 1}
             indexColumnOrder={i}
             column={column}
             gridHeadCellButtonProps={this.props.gridHeadCellButtonProps || {}}
