@@ -25,9 +25,6 @@ addons:
 env:
   global:
     - NODE_ENV=development
-    # PIP_VERSION causes issues because: https://github.com/pypa/pip/issues/4528
-    # Note: this has to be synced with the pip version in the Makefile.
-    - PYTHON_PIP_VERSION=19.2.3
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - PIP_QUIET=1
     - SENTRY_LIGHT_BUILD=1
@@ -40,7 +37,7 @@ env:
     - NODE_OPTIONS=--max-old-space-size=4096
 
 before_install:
-  - &pip_install pip install "pip==${PYTHON_PIP_VERSION}"
+  - &pip_install pip install --upgrade pip
 
 script:
   # certain commands require sentry init to be run, but this is only true for
