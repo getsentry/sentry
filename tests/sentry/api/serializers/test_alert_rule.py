@@ -9,6 +9,7 @@ from sentry.api.serializers.models.alert_rule import (
     DetailedAlertRuleSerializer,
     CombinedRuleSerializer,
 )
+from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.models import Rule
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType
@@ -61,11 +62,49 @@ class BaseAlertRuleSerializerTest(object):
             rule.data["conditions"] = data["conditions"]
         if data.get("frequency"):
             rule.data["frequency"] = data["frequency"]
+        if data.get("isFireOnceOnly"):
+            rule.data["is_fire_once_only"] = data["isFireOnceOnly"]
         if data.get("date_added"):
             rule.date_added = data["date_added"]
 
         rule.save()
         return rule
+
+
+class IssueAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
+    def assert_issue_alert_rule_serialized(self, issue_alert_rule, result):
+        assert result.label == issue_alert_rule.label
+        self.assertDictEqual(result.data, issue_alert_rule.data)
+        # skip dates
+
+    def test_simple(self):
+        data = {
+            "project": self.project,
+            "name": "Issue Rule Test",
+            "conditions": [
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "An issue is first seen",
+                }
+            ],
+            "actions": [
+                {
+                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                    "name": "Send a notification (for all legacy integrations)",
+                }
+            ],
+            "actionMatch": "all",
+            "frequency": 5,
+            "isFireOnceOnly": 1,
+        }
+        issue_alert_rule = self.create_issue_alert_rule(data)
+
+        serializer = RuleSerializer(context={"project": self.project}, data=data)
+        assert serializer.is_valid()
+        result = Rule()
+        serializer.save(rule=result)
+
+        self.assert_issue_alert_rule_serialized(issue_alert_rule, result)
 
 
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
