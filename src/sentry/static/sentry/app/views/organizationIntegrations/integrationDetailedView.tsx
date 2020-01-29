@@ -1,8 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {Organization, Integration, IntegrationProvider, RouterProps} from 'app/types';
+import {Organization, Integration, IntegrationProvider} from 'app/types';
 import {RequestOptions} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Hooks} from 'app/types/hooks';
@@ -30,14 +31,14 @@ import {sortArray} from 'app/utils';
 
 type State = {
   configurations: Integration[];
-  provider: {information: IntegrationProvider};
+  information: {providers: IntegrationProvider[]};
   tab: string;
   newlyInstalledIntegrationId: string;
 };
 
-type Props = RouterProps & {
+type Props = {
   organization: Organization;
-};
+} & RouteComponentProps<{orgId: string; providerKey: string}, {}>;
 
 const defaultFeatureGateComponents = {
   IntegrationFeatures: p =>
@@ -66,17 +67,22 @@ class IntegrationDetailedView extends AsyncComponent<
 > {
   componentDidMount() {
     const {location} = this.props;
-    const value = location?.query?.tab ? (location.query.tab as string) : 'information';
+    const value =
+      typeof location.query.tab === 'string' ? location.query.tab : 'information';
     this.setState({
       tab: value,
     });
+  }
+
+  getInformation() {
+    return this.state.information.providers[0];
   }
 
   getEndpoints(): ([string, string, any] | [string, string])[] {
     const {orgId, providerKey} = this.props.params;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
       [
-        'provider',
+        'information',
         `/organizations/${orgId}/config/integrations/?provider_key=${providerKey}`,
       ],
       [
@@ -146,12 +152,12 @@ class IntegrationDetailedView extends AsyncComponent<
 
   handleExternalInstall = () => {
     const {organization} = this.props;
-    const {provider} = this.state;
+    const information = this.getInformation();
     trackIntegrationEvent(
       {
         eventKey: 'integrations.installation_start',
         eventName: 'Integrations: Installation Start',
-        integration: provider.information.key,
+        integration: information.key,
         integration_type: 'first_party',
       },
       organization
@@ -163,11 +169,9 @@ class IntegrationDetailedView extends AsyncComponent<
   };
 
   renderBody() {
-    const {
-      provider: {information},
-      configurations,
-      tab,
-    } = this.state;
+    console.log('state: ', this.state);
+    const {configurations, tab} = this.state;
+    const information = this.getInformation();
     const {organization} = this.props;
 
     const {metadata} = information;
