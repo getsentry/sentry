@@ -295,7 +295,11 @@ class Sidebar extends React.Component {
                   )}
 
                   {discoverVersion === '2' && (
-                    <Feature features={['discover-basic']} organization={organization}>
+                    <Feature
+                      hookName="feature-disabled:discover2-sidebar-item"
+                      features={['discover-basic']}
+                      organization={organization}
+                    >
                       <SidebarItem
                         {...sidebarItemProps}
                         onClick={(_id, evt) =>
