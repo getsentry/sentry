@@ -12,6 +12,7 @@ import {
   getFieldRenderer,
   getDiscoverLandingUrl,
   explodeField,
+  hasAggregateField,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
 
@@ -403,5 +404,29 @@ describe('explodeField', function() {
       field: 'foo.bar.is-Enterprise-42',
       width: 123,
     });
+  });
+});
+
+describe('hasAggregateField', function() {
+  it('ensures an eventview has an aggregate field', function() {
+    let eventView = new EventView({
+      fields: [{field: 'foobar'}],
+      sorts: [],
+      query: '',
+      project: [],
+      environment: [],
+    });
+
+    expect(hasAggregateField(eventView)).toBe(false);
+
+    eventView = new EventView({
+      fields: [{field: 'count(foo.bar.is-Enterprise-42)'}],
+      sorts: [],
+      query: '',
+      project: [],
+      environment: [],
+    });
+
+    expect(hasAggregateField(eventView)).toBe(true);
   });
 });
