@@ -1,6 +1,8 @@
 /*eslint-env node*/
 /*eslint import/no-nodejs-modules:0 */
 
+const IS_TRAVIS = process.env.TRAVIS_COMMIT;
+
 class SentryInstrumentation {
   constructor() {
     // Only run if SENTRY_INSTRUMENTATION` is set or when in travis, only in the javascript suite
@@ -22,11 +24,14 @@ class SentryInstrumentation {
         return;
       }
 
-      this.Sentry.setTag('travis_branch', process.env.TRAVIS_BRANCH);
-      this.Sentry.setTag('travis_build_url', process.env.TRAVIS_BUILD_WEB_URL);
-      this.Sentry.setTag('travis_commit', process.env.TRAVIS_COMMIT);
+      if (IS_TRAVIS) {
+        this.Sentry.setTag('travis_branch', process.env.TRAVIS_BRANCH);
+        this.Sentry.setTag('travis_commit', process.env.TRAVIS_COMMIT);
+      }
 
       const hub = this.Sentry.getCurrentHub();
+
+      this.Sentry.setTag('webpack-hash', compilation.hash);
 
       [...compilation.entrypoints].forEach(([entrypointName, entry]) =>
         entry.chunks.forEach(chunk =>
@@ -48,21 +53,24 @@ class SentryInstrumentation {
                 sampled: true,
               });
 
-              hub.configureScope(scope => scope.setSpan(transaction));
+              const start = transaction.startTimestamp;
 
-              let start = transaction.startTimestamp;
+              hub.configureScope(scope => scope.setSpan(transaction));
 
               const span = this.Sentry.getCurrentHub().startSpan({
                 op: 'asset',
+                startTimestamp: start,
                 description: assetName,
-                data: {},
+                data: {
+                  entrypointName,
+                  file: assetName,
+                  size: `${Math.round(sizeInKb)} KB`,
+                },
                 sampled: true,
               });
               span.startTimestamp = start;
               span.finish();
-              span.timestamp = start + sizeInKb / 1000 / 100;
-              start = span.timestamp;
-              transaction.setHttpStatus(200);
+              span.timestamp = start + sizeInKb / 1000;
               transaction.finish(true);
             })
         )
