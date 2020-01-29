@@ -28,6 +28,8 @@ import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
+import backgroundSpace from '../../../images/spot/background-space.svg';
+
 import EventView from './eventView';
 import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
@@ -194,6 +196,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         subtitle={t(
           'Customize and save queries by search conditions, event fields, and tags'
         )}
+        backgroundImg={backgroundSpace}
         onCloseClick={this.handleClick}
       >
         <StarterButton

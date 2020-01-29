@@ -6,14 +6,12 @@ import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
-import spaceBg from '../../images/spot/background-space.svg';
-
 type Props = {
   title?: string;
   subtitle?: string;
   isDismissable?: boolean;
   onCloseClick?: () => void;
-};
+} & BannerWrapperProps;
 
 class Banner extends React.Component<Props> {
   static defaultProps: Partial<Props> = {
@@ -21,10 +19,17 @@ class Banner extends React.Component<Props> {
   };
 
   render() {
-    const {title, subtitle, isDismissable, onCloseClick, children} = this.props;
+    const {
+      title,
+      subtitle,
+      isDismissable,
+      onCloseClick,
+      children,
+      backgroundImg,
+    } = this.props;
 
     return (
-      <BannerWrapper>
+      <BannerWrapper backgroundImg={backgroundImg}>
         {isDismissable ? (
           <BannerIcon src="icon-close" aria-label={t('Close')} onClick={onCloseClick} />
         ) : null}
@@ -38,8 +43,13 @@ class Banner extends React.Component<Props> {
   }
 }
 
-const BannerWrapper = styled('div')`
-  background-image: url(${spaceBg});
+type BannerWrapperProps = {
+  backgroundImg?: string;
+};
+
+const BannerWrapper = styled('div')<BannerWrapperProps>`
+  background-image: url('${p => p.backgroundImg}');
+  background-color: ${p => p.theme.gray4};
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center center;
