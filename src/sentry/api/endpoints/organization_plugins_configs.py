@@ -92,7 +92,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
                     {
                         "projectId": project.id,
                         "projectSlug": project.slug,
-                        "projectName": project.name,
+                        "projectName": project.name,  # TODO(steve): do we need?
                         "enabled": plugin_info["enabled"],
                         "configured": plugin_info["configured"],  # TODO(steve): do we need?
                     }
