@@ -11,6 +11,7 @@ import {
   getExpandedResults,
   getFieldRenderer,
   getDiscoverLandingUrl,
+  explodeField,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
 
@@ -364,5 +365,43 @@ describe('getDiscoverLandingUrl', function() {
   it('is correct for with only discover-basic feature', function() {
     const org = TestStubs.Organization({features: ['discover-basic']});
     expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/results/');
+  });
+});
+
+describe('explodeField', function() {
+  it('explodes fields', function() {
+    expect(explodeField({field: 'foobar'})).toEqual({
+      aggregation: '',
+      field: 'foobar',
+      width: 300,
+    });
+
+    // has width
+    expect(explodeField({field: 'foobar', width: 123})).toEqual({
+      aggregation: '',
+      field: 'foobar',
+      width: 123,
+    });
+
+    // has aggregation
+    expect(explodeField({field: 'count(foobar)', width: 123})).toEqual({
+      aggregation: 'count',
+      field: 'foobar',
+      width: 123,
+    });
+
+    // custom tag
+    expect(explodeField({field: 'foo.bar.is-Enterprise-42', width: 123})).toEqual({
+      aggregation: '',
+      field: 'foo.bar.is-Enterprise-42',
+      width: 123,
+    });
+
+    // custom tag with aggregation
+    expect(explodeField({field: 'count(foo.bar.is-Enterprise-42)', width: 123})).toEqual({
+      aggregation: 'count',
+      field: 'foo.bar.is-Enterprise-42',
+      width: 123,
+    });
   });
 });
