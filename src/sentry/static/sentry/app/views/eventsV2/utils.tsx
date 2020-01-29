@@ -26,7 +26,6 @@ import {
 import {
   AGGREGATE_ALIASES,
   SPECIAL_FIELDS,
-  LINK_FORMATTERS,
   FIELD_FORMATTERS,
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
@@ -196,25 +195,17 @@ export function getDefaultWidth(key: Aggregation | Field): number {
  *
  * @param {String} field name
  * @param {object} metadata mapping.
- * @param {boolean} Whether or not to coerce a field into a link.
  * @returns {Function}
  */
 export function getFieldRenderer(
   field: string,
-  meta: MetaType,
-  forceLink: boolean
+  meta: MetaType
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
   }
   const fieldName = getAggregateAlias(field);
   const fieldType = meta[fieldName];
-
-  // If the current field is being coerced to a link
-  // use a different formatter set based on the type.
-  if (forceLink && LINK_FORMATTERS.hasOwnProperty(fieldType)) {
-    return partial(LINK_FORMATTERS[fieldType], fieldName);
-  }
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
@@ -253,7 +244,6 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   type: 'never',
   isDragging: false,
   isSortable: false,
-  isPrimary: false,
 
   eventViewField: Object.freeze({field: '', width: COL_WIDTH_DEFAULT}),
 };
@@ -288,7 +278,6 @@ export function decodeColumnOrder(
     column.isSortable = AGGREGATIONS[column.aggregation]
       ? AGGREGATIONS[column.aggregation].isSortable
       : false;
-    column.isPrimary = column.field === 'title';
     column.eventViewField = f;
 
     return column;

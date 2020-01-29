@@ -15,6 +15,7 @@ import Button from 'app/components/button';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
@@ -133,9 +134,10 @@ class IncidentsListContainer extends React.Component<Props> {
    * go down to a specific project scope.
    */
   handleNavigateToSettings = (e: React.MouseEvent) => {
+    const {router, params} = this.props;
     e.preventDefault();
 
-    navigateTo('/settings/:orgId/projects/:projectId/alerts-v2/', this.props.router);
+    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts-v2/`, router);
   };
 
   render() {
@@ -153,14 +155,17 @@ class IncidentsListContainer extends React.Component<Props> {
       <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>
           <PageHeader>
-            <PageHeading>
+            <StyledPageHeading>
               {t('Alerts')}{' '}
               <BetaTag
                 title={t(
                   'This feature may change in the future and currently only shows metric alerts'
                 )}
               />
-            </PageHeading>
+              <FeedbackLink href="mailto:alerting-feedback@sentry.io">
+                {t('Send feedback')}
+              </FeedbackLink>
+            </StyledPageHeading>
 
             <Actions>
               <Button
@@ -204,6 +209,16 @@ class IncidentsListContainer extends React.Component<Props> {
     );
   }
 }
+
+const StyledPageHeading = styled(PageHeading)`
+  display: flex;
+  align-items: center;
+`;
+
+const FeedbackLink = styled(ExternalLink)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-left: ${space(1)};
+`;
 
 const Actions = styled('div')`
   display: grid;

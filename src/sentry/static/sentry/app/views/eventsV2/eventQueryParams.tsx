@@ -139,12 +139,6 @@ export const FIELDS = {
   'stack.colno': 'number',
   'stack.lineno': 'number',
   'stack.stack_level': 'number',
-  tags: 'string',
-  'tags.key': 'string',
-  'tags.value': 'string',
-  contexts: 'string',
-  'contexts.key': 'string',
-  'contexts.value': 'string',
 
   'transaction.duration': 'duration',
   'transaction.op': 'string',
