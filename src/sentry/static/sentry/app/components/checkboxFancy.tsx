@@ -5,6 +5,13 @@ import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import InlineSvg from 'app/components/inlineSvg';
 
+type Props = {
+  disabled?: boolean;
+  checked?: boolean;
+  size?: string;
+  className?: string;
+};
+
 const getDisabledStyles = p =>
   p.disabled &&
   css`
@@ -18,7 +25,7 @@ const getHoverStyles = p =>
     border: 2px solid ${p.checked ? p.theme.purple : p.theme.gray4};
   `;
 
-const CheckboxFancy = styled(({checked, disabled, ...props}) => (
+const CheckboxFancy = styled(({checked, disabled, ...props}: Props) => (
   <div role="checkbox" aria-disabled={disabled} aria-checked={checked} {...props}>
     {checked && <Check src="icon-checkmark-sm" />}
   </div>
