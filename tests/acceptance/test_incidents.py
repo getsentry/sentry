@@ -5,7 +5,7 @@ import pytz
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.incidents.logic import create_incident
+from sentry.incidents.logic import create_alert_rule, create_incident
 from sentry.incidents.models import IncidentType
 from sentry.snuba.models import QueryAggregations
 
@@ -27,16 +27,29 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("incidents - empty state")
 
     def test_incidents_list(self):
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "hello",
+            "level:error",
+            QueryAggregations.TOTAL,
+            10,
+            1,
+        )
+
         incident = create_incident(
             self.organization,
-            type=IncidentType.CREATED,
+            type=IncidentType.DETECTED,
             title="Incident #1",
-            query="",
+            query="hello",
             aggregation=QueryAggregations.TOTAL,
             date_started=timezone.now(),
+            date_detected=timezone.now(),
             projects=[self.project],
             groups=[self.group],
+            alert_rule=alert_rule,
         )
+
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
