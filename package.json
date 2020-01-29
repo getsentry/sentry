@@ -126,6 +126,7 @@
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.2.0",
+    "@sentry/node": "^5.11.1",
     "@storybook/addon-a11y": "^5.3.3",
     "@storybook/addon-actions": "^5.3.3",
     "@storybook/addon-docs": "^5.3.3",
