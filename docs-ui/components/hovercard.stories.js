@@ -18,6 +18,12 @@ const showOptions = {
   null: null,
 };
 
+const shrinkToFitOptions = {
+  true: true,
+  false: false,
+  null: null,
+};
+
 const tipColorOptions = {
   red: 'red',
   null: null,
@@ -42,6 +48,7 @@ storiesOf('UI|Hovercard', module).add(
         position={select('position', positionOptions, 'top', 'Hovercard positioning')}
         show={select('show', showOptions, null, 'Force show/unshow')}
         tipColor={select('tipColor', tipColorOptions, null, 'Tip color')}
+        shrinkToFit={select('shrinkToFit', shrinkToFitOptions, null, 'Shrink to fit')}
       >
         Hover over me
       </Hovercard>

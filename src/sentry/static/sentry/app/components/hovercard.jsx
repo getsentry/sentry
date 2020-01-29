@@ -15,7 +15,7 @@ const VALID_DIRECTIONS = ['top', 'bottom', 'left', 'right'];
 class Hovercard extends React.Component {
   static propTypes = {
     /**
-     * Time in ms until hovercard is hidden
+     * Time in ms until hovercard is shown or hidden
      */
     displayTimeout: PropTypes.number,
     /**
@@ -133,6 +133,7 @@ class Hovercard extends React.Component {
           {({ref}) => (
             <span
               ref={ref}
+              data-test-id="hover-target"
               aria-describedby={this.tooltipId}
               className={containerClassName}
               {...hoverProps}
