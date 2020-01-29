@@ -57,7 +57,7 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
-        if options.get("eventstore.use-nodestore"):
+        if not options.get("eventstore.use-nodestore"):
             return self.__get_events(
                 filter,
                 additional_columns=additional_columns,
