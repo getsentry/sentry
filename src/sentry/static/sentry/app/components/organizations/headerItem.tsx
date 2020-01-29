@@ -19,9 +19,9 @@ type Props = {
   isOpen: boolean;
   locked: boolean;
   loading: boolean;
-  forwardRef?: React.Ref<HTMLElement>;
+  forwardRef?: React.Ref<HTMLDivElement>;
   onClear: () => void;
-} & React.HTMLProps<HTMLDivElement>;
+} & React.HTMLAttributes<HTMLDivElement>;
 
 class HeaderItem extends React.Component<Props> {
   static propTypes = {
@@ -180,6 +180,6 @@ const StyledLock = styled(InlineSvg)`
   stroke-width: 1.5;
 `;
 
-export default React.forwardRef((props, ref) => (
+export default React.forwardRef<HTMLDivElement, Props>((props, ref) => (
   <HeaderItem forwardRef={ref} {...props} />
 ));
