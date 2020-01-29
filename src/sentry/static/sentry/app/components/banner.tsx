@@ -48,8 +48,13 @@ type BannerWrapperProps = {
 };
 
 const BannerWrapper = styled('div')<BannerWrapperProps>`
-  background-image: url('${p => p.backgroundImg}');
-  background-color: ${p => p.theme.gray4};
+  background: ${p => {
+    if (p.backgroundImg) {
+      return 'url(' + p.backgroundImg + ')';
+    }
+    return p.theme.gray4;
+  }};
+
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center center;
@@ -89,7 +94,7 @@ const BannerTitle = styled('h1')`
   @media (min-width: ${theme.breakpoints[1]}) {
     margin-top: ${space(2)};
     margin-bottom: ${space(0.5)};
-    font-size: 48px;
+    font-size: 42px;
   }
 `;
 
@@ -99,7 +104,7 @@ const BannerSubtitle = styled('div')`
 
   @media (min-width: ${theme.breakpoints[1]}) {
     font-size: ${theme.fontSizeExtraLarge};
-    margin-bottom: ${space(2)};
+    margin-bottom: ${space(1)};
     flex-direction: row;
     min-width: 650px;
   }
