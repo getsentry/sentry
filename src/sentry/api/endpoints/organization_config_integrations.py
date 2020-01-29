@@ -20,5 +20,6 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
 
         if "provider_key" in request.GET:
             serialized = list(filter(lambda d: d["key"] in request.GET["provider_key"], serialized))
+            return Response({"information": serialized[0]})
 
         return Response({"providers": serialized})
