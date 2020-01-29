@@ -29,6 +29,8 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:sso-basic',
   'feature-disabled:sso-rippling',
   'feature-disabled:sso-saml2',
+  'feature-disabled:discover2-page',
+  'feature-disabled:discover2-sidebar-item',
   'feature-disabled:grid-editable-actions',
   'feature-disabled:discover-saved-query-create',
   'footer',

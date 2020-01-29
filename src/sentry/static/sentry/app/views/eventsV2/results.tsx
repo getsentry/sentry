@@ -204,7 +204,9 @@ class Results extends React.Component<Props, State> {
   }
 }
 
-const StyledPageContent = styled(PageContent)`
+// These styled components are used in getsentry to create a paywall page.
+// Be careful changing their interfaces.
+export const StyledPageContent = styled(PageContent)`
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
@@ -218,26 +220,26 @@ const StyledPageContent = styled(PageContent)`
   }
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+export const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPanel = styled(Panel)`
+export const StyledPanel = styled(Panel)`
   .echarts-for-react div:first-child {
     width: 100% !important;
   }
 `;
 
-const Top = styled('div')`
+export const Top = styled('div')`
   grid-column: 1/3;
   flex-grow: 0;
 `;
-const Main = styled('div')<{eventView: EventView}>`
+export const Main = styled('div')<{eventView: EventView}>`
   grid-column: 1/2;
   max-width: 100%;
   overflow: hidden;
 `;
-const Side = styled('div')<{eventView: EventView}>`
+export const Side = styled('div')<{eventView: EventView}>`
   grid-column: 2/3;
 `;
 
