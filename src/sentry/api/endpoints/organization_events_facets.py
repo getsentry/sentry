@@ -47,11 +47,17 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
                 }
             )
         if "project" in resp:
-            # Replace project ids with slugs as that is what we generally expose to users.
+            # Replace project ids with slugs as that is what we generally expose to users
+            # and filter out projects that the user doesn't have access too.
             projects = {p.id: p.slug for p in self.get_projects(request, organization)}
+            filtered_values = []
             for v in resp["project"]["topValues"]:
-                name = projects[v["value"]]
-                v.update({"name": name})
+                if v["value"] in projects:
+                    name = projects[v["value"]]
+                    v.update({"name": name})
+                    filtered_values.append(v)
+
+            resp["project"]["topValues"] = filtered_values
 
         return Response(resp.values())
 

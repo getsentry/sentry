@@ -491,7 +491,7 @@ def get_facets(query, params, limit=10, referrer=None):
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
 
     # Exclude tracing tags as they are noisy and generally not helpful.
-    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span"]]
+    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]
 
     # Sampling keys for multi-project results as we don't need accuracy
     # with that much data.
