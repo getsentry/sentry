@@ -23,6 +23,11 @@ class PluginManager(InstanceManager):
                 continue
             yield plugin
 
+    def plugins_with_configuration(self):
+        for plugin in self.all():
+            if plugin.has_project_conf():
+                yield plugin
+
     def configurable_for_project(self, project, version=1):
         for plugin in self.all(version=version):
             if not safe_execute(plugin.can_configure_for_project, project, _with_transaction=False):

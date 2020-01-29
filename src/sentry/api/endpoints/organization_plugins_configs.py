@@ -14,7 +14,9 @@ from sentry.models import ProjectOption, Project
 # Eventually we can replace that one with this
 class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
-        all_plugins = dict([(p.slug, p) for p in plugins.all()])
+        # only load plugins that have configuration
+        # plugins that can't be configured shouldn't be shown
+        all_plugins = dict([(p.slug, p) for p in plugins.plugins_with_configuration()])
 
         # can specify specific plugins to load
         if "plugins" in request.GET:
@@ -83,9 +85,8 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
             for project_id, plugin_info in six.iteritems(info_by_project):
                 project = project_map[project_id]
 
-                # TODO(steve): Not sure if we should include plugins that have no configuration
-                # only include plugins which are configured or need no configuration
-                if serialized_plugin["hasConfiguration"] and not plugin_info["configured"]:
+                # only include plugins which are configured
+                if not plugin_info["configured"]:
                     continue
 
                 serialized_plugin["projectList"].append(

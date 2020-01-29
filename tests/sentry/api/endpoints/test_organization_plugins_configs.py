@@ -30,7 +30,12 @@ class OrganizationPluginsTest(APITestCase):
     def test_no_configs(self):
         response = self.client.get(self.url)
         assert response.status_code == 200, (response.status_code, response.content)
-        # TODO(Steve): check length?
+        # the number of plugins might change so let's just make sure we have some of them
+        assert len(response.data) > 20
+
+    def test_only_configuable_plugins(self):
+        response = self.client.get(self.url)
+        assert filter(lambda x: not x["hasConfiguration"], response.data) == []
 
     def test_enabled_not_configured(self):
         plugins.get("webhooks").enable(self.projectA)
