@@ -1,5 +1,6 @@
 import React from 'react';
 
+import {Event} from 'app/types';
 import {t} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -7,19 +8,23 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import SentryTypes from 'app/sentryTypes';
 
-class EventPackageData extends React.Component {
+type Props = {
+  event: Event;
+};
+
+class EventPackageData extends React.Component<Props> {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
   };
 
-  shouldComponentUpdate(nextProps) {
+  shouldComponentUpdate(nextProps: Props) {
     return this.props.event.id !== nextProps.event.id;
   }
 
   render() {
-    let longKeys, title;
     const {event} = this.props;
-    const packages = Object.entries(event.packages);
+    let longKeys: boolean, title: string;
+    const packages = Object.entries(event.packages || {});
 
     switch (event.platform) {
       case 'csharp':
@@ -32,7 +37,7 @@ class EventPackageData extends React.Component {
     }
 
     return (
-      <EventDataSection event={event} type="packages" title={title}>
+      <EventDataSection type="packages" title={title}>
         <ClippedBox>
           <ErrorBoundary mini>
             <KeyValueList data={packages} longKeys={longKeys} />
