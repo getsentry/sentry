@@ -851,7 +851,7 @@ SENTRY_FEATURES = {
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable different issue alerts on new project creation.
-    "organizations:new-project-custom-issue-alert": False,
+    "organizations:new-project-issue-alert-options": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
