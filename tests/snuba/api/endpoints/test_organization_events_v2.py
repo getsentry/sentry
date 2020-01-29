@@ -377,7 +377,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group_1"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
-                "tags": {"sub_customer.is-enterprise": "1"},
+                "tags": {"sub_customer.is-Enterprise-42": "1"},
             },
             project_id=project.id,
         )
@@ -388,7 +388,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "staging",
-                "tags": {"sub_customer.is-enterprise": "1"},
+                "tags": {"sub_customer.is-Enterprise-42": "1"},
             },
             project_id=project.id,
         )
@@ -399,7 +399,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
-                "tags": {"sub_customer.is-enterprise": "0"},
+                "tags": {"sub_customer.is-Enterprise-42": "0"},
             },
             project_id=project.id,
         )
@@ -410,7 +410,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "fingerprint": ["group_2"],
                 "user": {"email": "foo@example.com"},
                 "environment": "prod",
-                "tags": {"sub_customer.is-enterprise": "1"},
+                "tags": {"sub_customer.is-Enterprise-42": "1"},
             },
             project_id=project.id,
         )
@@ -420,16 +420,19 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["sub_customer.is-enterprise", "count(sub_customer.is-enterprise)"],
-                    "orderby": "sub_customer.is-enterprise",
+                    "field": [
+                        "sub_customer.is-Enterprise-42",
+                        "count(sub_customer.is-Enterprise-42)",
+                    ],
+                    "orderby": "sub_customer.is-Enterprise-42",
                 },
             )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert data[0]["count_sub_customer_is-enterprise"] == 1
-        assert data[1]["count_sub_customer_is-enterprise"] == 3
+        assert data[0]["count_sub_customer_is-Enterprise-42"] == 1
+        assert data[1]["count_sub_customer_is-Enterprise-42"] == 3
 
     def test_aggregation_comparison(self):
         self.login_as(user=self.user)
