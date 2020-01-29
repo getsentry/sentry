@@ -194,11 +194,8 @@ const TitleDescription = styled('div')`
 `;
 
 const Label = styled('div')`
-  display: inline;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 150px;
+  ${overflowEllipsis};
+  max-width: 150px;
 `;
 
 const Percent = styled('div')`
