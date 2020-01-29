@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 import logging
 
+from sentry import options
 from sentry.eventstore.base import EventStorage
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
@@ -54,8 +55,58 @@ class SnubaEventStorage(EventStorage):
         referrer="eventstore.get_events",
     ):
         """
-        Get events from Snuba.
+        Get events from Snuba, with node data loaded.
         """
+        if not options.get("eventstore.use-nodestore"):
+            return self.__get_events(
+                filter,
+                additional_columns=additional_columns,
+                orderby=orderby,
+                limit=limit,
+                offset=offset,
+                referrer=referrer,
+                should_bind_nodes=False,
+            )
+
+        return self.__get_events(
+            filter,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+            should_bind_nodes=True,
+        )
+
+    def get_unfetched_events(
+        self,
+        filter,
+        orderby=None,
+        limit=DEFAULT_LIMIT,
+        offset=DEFAULT_OFFSET,
+        referrer="eventstore.get_unfetched_events",
+    ):
+        """
+        Get events from Snuba, without node data loaded.
+        """
+        return self.__get_events(
+            filter,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+            should_bind_nodes=False,
+        )
+
+    def __get_events(
+        self,
+        filter,
+        additional_columns=None,
+        orderby=None,
+        limit=DEFAULT_LIMIT,
+        offset=DEFAULT_OFFSET,
+        referrer=None,
+        should_bind_nodes=False,
+    ):
         assert filter, "You must provide a filter"
         cols = self.__get_columns(additional_columns)
         orderby = orderby or DESC_ORDERING
@@ -74,7 +125,10 @@ class SnubaEventStorage(EventStorage):
         )
 
         if "error" not in result:
-            return [self.__make_event(evt) for evt in result["data"]]
+            events = [self.__make_event(evt) for evt in result["data"]]
+            if should_bind_nodes:
+                self.bind_nodes(events)
+            return events
 
         return []
 
@@ -169,7 +223,7 @@ class SnubaEventStorage(EventStorage):
 
         return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 
-    def __get_columns(self, additional_columns):
+    def __get_columns(self, additional_columns=None):
         columns = EventStorage.minimal_columns
 
         if additional_columns:
