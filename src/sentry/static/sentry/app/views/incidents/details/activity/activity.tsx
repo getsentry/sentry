@@ -1,5 +1,5 @@
-import groupBy from 'lodash/groupBy';
 import React from 'react';
+import groupBy from 'lodash/groupBy';
 import moment from 'moment';
 import styled from '@emotion/styled';
 
@@ -14,10 +14,10 @@ import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage'
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 
+import {Incident, IncidentActivityType, ActivityType, NoteType} from '../../types';
 import ActivityPlaceholder from './activityPlaceholder';
 import DateDivider from './dateDivider';
 import StatusItem from './statusItem';
-import {Incident, IncidentActivityType, ActivityType, NoteType} from '../../types';
 
 type Props = {
   api: Client;
@@ -114,7 +114,7 @@ class Activity extends React.Component<Props> {
           Object.entries(activitiesByDate).map(([date, activitiesForDate]) => {
             const title =
               date === today ? (
-                'Today'
+                t('Today')
               ) : (
                 <React.Fragment>
                   {date} <StyledTimeSince date={date} />
@@ -125,7 +125,7 @@ class Activity extends React.Component<Props> {
                 <DateDivider>{title}</DateDivider>
                 {activitiesForDate &&
                   activitiesForDate.map(activity => {
-                    const authorName = activity.user ? activity.user.name : 'Sentry';
+                    const authorName = activity.user?.name ?? 'Sentry';
 
                     if (activity.type === IncidentActivityType.COMMENT) {
                       return (
@@ -148,6 +148,7 @@ class Activity extends React.Component<Props> {
                         <ErrorBoundary mini key={`note-${activity.id}`}>
                           <StatusItem
                             showTime
+                            incident={incident}
                             authorName={authorName}
                             activity={activity}
                           />
