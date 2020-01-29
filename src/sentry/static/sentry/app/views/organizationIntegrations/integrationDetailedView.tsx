@@ -1,8 +1,7 @@
-import React, {FunctionComponent} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import PropTypes from 'prop-types';
 
 import {Organization, Integration, IntegrationProvider} from 'app/types';
 import {RequestOptions} from 'app/api';
@@ -394,11 +393,7 @@ const StyledInstalledIntegration = styled(
   border: 1px solid ${p => p.theme.borderLight};
 `;
 
-const InformationCard: FunctionComponent<InformationCardProps> = ({
-  children,
-  alerts,
-  information,
-}) => {
+const InformationCard = ({children, alerts, information}: InformationCardProps) => {
   const {metadata} = information;
   const description = marked(metadata.description);
   return (
@@ -422,12 +417,8 @@ const InformationCard: FunctionComponent<InformationCardProps> = ({
   );
 };
 
-InformationCard.propTypes = {
-  alerts: PropTypes.array,
-  information: PropTypes.object,
-};
-
 type InformationCardProps = {
+  children: React.ReactNode;
   alerts: any | AlertType[];
   information: IntegrationProvider;
 };
