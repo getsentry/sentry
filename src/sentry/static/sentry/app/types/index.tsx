@@ -1,8 +1,6 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
 
 export type ObjectStatus =
   | 'active'
