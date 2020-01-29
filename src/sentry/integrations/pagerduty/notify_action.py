@@ -122,6 +122,7 @@ class PagerDutyNotifyServiceAction(EventAction):
                 extra={
                     "status_code": resp.status_code,
                     "project_id": event.project_id,
+                    "event_id": event.event_id,
                     "service_id": service.id,
                 },
             )
