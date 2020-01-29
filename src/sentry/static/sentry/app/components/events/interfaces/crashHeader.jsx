@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -88,7 +90,7 @@ class CrashHeader extends React.Component {
     const {title, beforeTitle, hideGuide, stackView, stackType, newestFirst} = this.props;
 
     let titleNode = (
-      <h3 className="pull-left">
+      <h3 className="pull-left" style={{marginBottom: 0}}>
         {title}
         <small style={{marginLeft: 5}}>
           (
@@ -112,8 +114,10 @@ class CrashHeader extends React.Component {
 
     return (
       <div className="crash-title">
-        {beforeTitle}
-        {titleNode}
+        <StyledTitleInfo>
+          {beforeTitle}
+          {titleNode}
+        </StyledTitleInfo>
         <div className="btn-group" style={{marginLeft: 10}}>
           {this.hasSystemFrames() && (
             <a
@@ -166,3 +170,9 @@ class CrashHeader extends React.Component {
 }
 
 export default CrashHeader;
+
+const StyledTitleInfo = styled('div')({
+  display: 'flex',
+  alignItems: 'center',
+  marginBottom: 20,
+});
