@@ -2,6 +2,7 @@ import groupBy from 'lodash/groupBy';
 import keyBy from 'lodash/keyBy';
 import React from 'react';
 import styled from '@emotion/styled';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {
   Organization,
@@ -10,7 +11,6 @@ import {
   SentryApp,
   IntegrationProvider,
   SentryAppInstallation,
-  RouterProps,
 } from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {RequestOptions} from 'app/api';
@@ -35,7 +35,7 @@ import SearchInput from 'app/components/forms/searchInput';
 
 type AppOrProvider = SentryApp | IntegrationProvider;
 
-type Props = RouterProps & {
+type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
 };
