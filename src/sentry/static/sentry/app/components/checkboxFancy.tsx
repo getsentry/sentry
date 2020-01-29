@@ -10,7 +10,7 @@ type Props = {
   checked?: boolean;
   size?: string;
   className?: string;
-};
+} & HTMLDivElement;
 
 const getDisabledStyles = p =>
   p.disabled &&
@@ -25,8 +25,13 @@ const getHoverStyles = p =>
     border: 2px solid ${p.checked ? p.theme.purple : p.theme.gray4};
   `;
 
-const CheckboxFancy = styled(({checked, disabled, ...props}: Props) => (
-  <div role="checkbox" aria-disabled={disabled} aria-checked={checked} {...props}>
+const CheckboxFancy = styled(({checked, disabled, className}: Props) => (
+  <div
+    role="checkbox"
+    aria-disabled={disabled}
+    aria-checked={checked}
+    className={className}
+  >
     {checked && <Check src="icon-checkmark-sm" />}
   </div>
 ))`
