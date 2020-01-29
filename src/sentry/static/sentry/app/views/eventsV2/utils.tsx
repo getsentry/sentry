@@ -222,9 +222,8 @@ export function getAggregateAlias(field: string): string {
   }
   return field
     .replace(AGGREGATE_PATTERN, '$1_$2')
-    .replace('.', '_')
-    .replace(/_+$/, '')
-    .toLowerCase();
+    .replace(/\./g, '_')
+    .replace(/_+$/, '');
 }
 
 export type QueryWithColumnState =

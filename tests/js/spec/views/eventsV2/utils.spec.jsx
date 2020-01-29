@@ -20,6 +20,9 @@ describe('getAggregateAlias', function() {
   it('no-ops simple fields', function() {
     expect(getAggregateAlias('field')).toEqual('field');
     expect(getAggregateAlias('under_field')).toEqual('under_field');
+    expect(getAggregateAlias('foo.bar.is-Enterprise_42')).toEqual(
+      'foo.bar.is-Enterprise_42'
+    );
   });
 
   it('handles 0 arg functions', function() {
@@ -31,6 +34,9 @@ describe('getAggregateAlias', function() {
     expect(getAggregateAlias('count(id)')).toEqual('count_id');
     expect(getAggregateAlias('count_unique(user)')).toEqual('count_unique_user');
     expect(getAggregateAlias('count_unique(issue.id)')).toEqual('count_unique_issue_id');
+    expect(getAggregateAlias('count(foo.bar.is-Enterprise_42)')).toEqual(
+      'count_foo_bar_is-Enterprise_42'
+    );
   });
 });
 
