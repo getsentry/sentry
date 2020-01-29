@@ -145,8 +145,9 @@ class IncidentsListContainer extends React.Component<Props> {
     const {pathname, query} = location;
     const {orgId} = params;
 
-    const openIncidentsQuery = {...query, status: 'open'};
     const closedIncidentsQuery = {...query, status: 'closed'};
+    const warningIncidentsQuery = {...query, status: 'warning'};
+    const criticalIncidentsQuery = {...query, status: 'critical'};
     const allIncidentsQuery = omit(query, 'status');
 
     const status = query.status === undefined ? DEFAULT_QUERY_STATUS : query.status;
@@ -186,18 +187,25 @@ class IncidentsListContainer extends React.Component<Props> {
                   {t('All Incidents')}
                 </Button>
                 <Button
-                  to={{pathname, query: openIncidentsQuery}}
+                  to={{pathname, query: warningIncidentsQuery}}
                   size="small"
-                  className={'btn' + (status === 'open' ? ' active' : '')}
+                  className={'btn' + (status === 'warning' ? ' active' : '')}
                 >
-                  {t('Open')}
+                  {t('Warning')}
+                </Button>
+                <Button
+                  to={{pathname, query: criticalIncidentsQuery}}
+                  size="small"
+                  className={'btn' + (status === 'critical' ? ' active' : '')}
+                >
+                  {t('Critical')}
                 </Button>
                 <Button
                   to={{pathname, query: closedIncidentsQuery}}
                   size="small"
                   className={'btn' + (status === 'closed' ? ' active' : '')}
                 >
-                  {t('Closed')}
+                  {t('Resolved')}
                 </Button>
               </div>
             </Actions>
