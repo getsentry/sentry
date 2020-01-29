@@ -498,8 +498,12 @@ class EventManager(object):
         if release:
             # dont allow a conflicting 'release' tag
             pop_tag(data, "release")
-            release = Release.get_or_create(project=project, version=release, date_added=date)
-            set_tag(data, "sentry:release", release.version)
+            if not issueless_event:
+                release = Release.get_or_create(project=project, version=release, date_added=date)
+                set_tag(data, "sentry:release", release.version)
+            else:
+                set_tag(data, "sentry:release", release)
+                release = None
 
         if dist and release:
             dist = release.add_dist(dist, date)
@@ -509,26 +513,31 @@ class EventManager(object):
         else:
             dist = None
 
-        event_user = self._get_event_user(project, data)
+        if not issueless_event:
+            event_user = self._get_event_user(project, data)
+        else:
+            event_user = None
+
         if event_user:
             # dont allow a conflicting 'user' tag
             pop_tag(data, "user")
             set_tag(data, "sentry:user", event_user.tag_value)
 
-        # At this point we want to normalize the in_app values in case the
-        # clients did not set this appropriately so far.
-        grouping_config = load_grouping_config(
-            get_grouping_config_dict_for_event_data(data, project)
-        )
-        normalize_stacktraces_for_grouping(data, grouping_config)
+        if not issueless_event:
+            # At this point we want to normalize the in_app values in case the
+            # clients did not set this appropriately so far.
+            grouping_config = load_grouping_config(
+                get_grouping_config_dict_for_event_data(data, project)
+            )
+            normalize_stacktraces_for_grouping(data, grouping_config)
 
-        for plugin in plugins.for_project(project, version=None):
-            added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
-            if added_tags:
-                # plugins should not override user provided tags
-                for key, value in added_tags:
-                    if get_tag(data, key) is None:
-                        set_tag(data, key, value)
+            for plugin in plugins.for_project(project, version=None):
+                added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
+                if added_tags:
+                    # plugins should not override user provided tags
+                    for key, value in added_tags:
+                        if get_tag(data, key) is None:
+                            set_tag(data, key, value)
 
         for path, iface in six.iteritems(event.interfaces):
             for k, v in iface.iter_tags():
@@ -537,24 +546,27 @@ class EventManager(object):
             if iface.ephemeral:
                 data.pop(iface.path, None)
 
-        # The active grouping config was put into the event in the
-        # normalize step before.  We now also make sure that the
-        # fingerprint was set to `'{{ default }}' just in case someone
-        # removed it from the payload.  The call to get_hashes will then
-        # look at `grouping_config` to pick the right parameters.
-        data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
-        apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
+        if not issueless_event:
+            # The active grouping config was put into the event in the
+            # normalize step before.  We now also make sure that the
+            # fingerprint was set to `'{{ default }}' just in case someone
+            # removed it from the payload.  The call to get_hashes will then
+            # look at `grouping_config` to pick the right parameters.
+            data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
+            apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
 
-        # Here we try to use the grouping config that was requested in the
-        # event.  If that config has since been deleted (because it was an
-        # experimental grouping config) we fall back to the default.
-        try:
-            hashes = event.get_hashes()
-        except GroupingConfigNotFound:
-            data["grouping_config"] = get_grouping_config_dict_for_project(project)
-            hashes = event.get_hashes()
+            # Here we try to use the grouping config that was requested in the
+            # event.  If that config has since been deleted (because it was an
+            # experimental grouping config) we fall back to the default.
+            try:
+                hashes = event.get_hashes()
+            except GroupingConfigNotFound:
+                data["grouping_config"] = get_grouping_config_dict_for_project(project)
+                hashes = event.get_hashes()
 
-        data["hashes"] = hashes
+            data["hashes"] = hashes
+        else:
+            hashes = None
 
         # we want to freeze not just the metadata and type in but also the
         # derived attributes.  The reason for this is that we push this
@@ -602,19 +614,21 @@ class EventManager(object):
                     tags={"organization_id": project.organization_id, "platform": platform},
                 )
                 raise
-            else:
-                event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
             event.group = group
         else:
             group = None
             is_new = False
             is_regression = False
-            event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
+
+        event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
 
         # store a reference to the group id to guarantee validation of isolation
         event.data.bind_ref(event)
 
-        environment = Environment.get_or_create(project=project, name=environment)
+        if not issueless_event:
+            environment = Environment.get_or_create(project=project, name=environment)
+        else:
+            environment = None
 
         if group:
             group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
@@ -647,7 +661,9 @@ class EventManager(object):
         if release:
             counters.append((tsdb.models.release, release.id))
 
-        tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
+        tsdb.incr_multi(
+            counters, timestamp=event.datetime, environment_id=environment and environment.id
+        )
 
         frequencies = []
 
@@ -712,7 +728,7 @@ class EventManager(object):
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            primary_hash=hashes[0],
+            primary_hash=hashes and hashes[0] or "",
             # We are choosing to skip consuming the event back
             # in the eventstream if it's flagged as raw.
             # This means that we want to publish the event
