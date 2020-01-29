@@ -267,7 +267,7 @@ class BaseManager(Manager):
         the cache key is cleared on save.
         """
         if not self.cache_fields or len(kwargs) > 1:
-            return self.get(**kwargs)
+            raise ValueError("We cannot cache this query. Just hit the database.")
 
         key, value = next(six.iteritems(kwargs))
         pk_name = self.model._meta.pk.name
@@ -323,7 +323,7 @@ class BaseManager(Manager):
 
             return retval
         else:
-            return self.get(**kwargs)
+            raise ValueError("We cannot cache this query. Just hit the database.")
 
     def get_many_from_cache(self, values, key="pk"):
         """
@@ -342,7 +342,7 @@ class BaseManager(Manager):
             key = key.split("__exact", 1)[0]
 
         if key not in self.cache_fields and key != pk_name:
-            return self.filter(**{key + "__in": values})
+            raise ValueError("We cannot cache this query. Just hit the database.")
 
         final_results = []
         cache_lookup_cache_keys = []
