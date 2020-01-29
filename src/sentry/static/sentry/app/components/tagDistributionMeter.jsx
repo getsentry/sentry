@@ -6,6 +6,7 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {percent} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 
@@ -183,6 +184,7 @@ const Title = styled('div', {shouldForwardProp: isPropValid})`
 const TitleType = styled('div')`
   color: ${p => p.theme.gray4};
   font-weight: bold;
+  ${overflowEllipsis};
 `;
 
 const TitleDescription = styled('div')`
