@@ -15,73 +15,98 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
                your organization. For example, you might have separate projects
                for your API server and frontend client.
     </HelpText>
+    <WithOrganizationMockWrapper
+      features={
+        Array [
+          "organizations:new-project-issue-alert-options",
+        ]
+      }
+    >
+      <PageHeading
+        withMargins={true}
+      >
+        Choose a platform
+      </PageHeading>
+    </WithOrganizationMockWrapper>
     <PlatformPicker
       platform=""
       setPlatform={[Function]}
       showOther={true}
     />
-    <CreateProjectForm
-      onSubmit={[Function]}
+    <WithOrganizationMockWrapper
+      features={
+        Array [
+          "organizations:new-project-issue-alert-options",
+        ]
+      }
     >
-      <div>
-        <FormLabel>
-          Give your project a name
-        </FormLabel>
-        <ProjectNameInput>
-          <ProjectPlatformIcon
-            monoTone={true}
-            platform=""
-          />
-          <input
-            autoComplete="off"
-            label="Project Name"
-            name="name"
-            onChange={[Function]}
-            placeholder="Project name"
-            type="text"
-            value=""
-          />
-        </ProjectNameInput>
-      </div>
-      <div>
-        <FormLabel>
-          Assign a Team
-        </FormLabel>
-        <TeamSelectInput>
-          <ForwardRef(RefForwardedSelectControl)
-            clearable={false}
-            deprecatedSelectControl={true}
-            name="select-team"
-            onChange={[Function]}
-            options={Array []}
-            placeholder="Select a Team"
-            value={0}
-          />
-          <Tooltip
-            containerDisplayMode="inline-block"
-            position="top"
-            title="Create a team"
-          >
-            <forwardRef<Button>
-              borderless={true}
-              data-test-id="create-team"
-              icon="icon-circle-add"
-              onClick={[Function]}
-              type="button"
+      <IssueAlertOptions
+        onChange={[Function]}
+      />
+    </WithOrganizationMockWrapper>
+    <StickyWrapper>
+      <CreateProjectForm
+        onSubmit={[Function]}
+      >
+        <div>
+          <FormLabel>
+            Give your project a name
+          </FormLabel>
+          <ProjectNameInput>
+            <ProjectPlatformIcon
+              monoTone={true}
+              platform=""
             />
-          </Tooltip>
-        </TeamSelectInput>
-      </div>
-      <div>
-        <forwardRef<Button>
-          data-test-id="create-project"
-          disabled={true}
-          priority="primary"
-        >
-          Create Project
-        </forwardRef<Button>>
-      </div>
-    </CreateProjectForm>
+            <input
+              autoComplete="off"
+              label="Project Name"
+              name="name"
+              onChange={[Function]}
+              placeholder="Project name"
+              type="text"
+              value=""
+            />
+          </ProjectNameInput>
+        </div>
+        <div>
+          <FormLabel>
+            Assign a Team
+          </FormLabel>
+          <TeamSelectInput>
+            <ForwardRef(RefForwardedSelectControl)
+              clearable={false}
+              name="select-team"
+              onChange={[Function]}
+              options={Array []}
+              placeholder="Select a Team"
+              value={0}
+            />
+            <Tooltip
+              containerDisplayMode="inline-block"
+              position="top"
+              title="Create a team"
+            >
+              <forwardRef<Button>
+                borderless={true}
+                data-test-id="create-team"
+                icon="icon-circle-add"
+                onClick={[Function]}
+                type="button"
+              />
+            </Tooltip>
+          </TeamSelectInput>
+        </div>
+        <div>
+          <forwardRef<Button>
+            data-test-id="create-project"
+            disabled={true}
+            priority="primary"
+          >
+            Create Project
+          </forwardRef<Button>>
+        </div>
+      </CreateProjectForm>
+    </StickyWrapper>
   </div>
 </Fragment>
 `;
@@ -159,6 +184,126 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                for your API server and frontend client.
       </p>
     </HelpText>
+    <WithOrganizationMockWrapper
+      features={
+        Array [
+          "organizations:new-project-issue-alert-options",
+        ]
+      }
+    >
+      <withProject(withConfig(Feature))
+        features={
+          Array [
+            "organizations:new-project-issue-alert-options",
+          ]
+        }
+        organization={
+          Object {
+            "id": "1",
+            "slug": "testOrg",
+            "teams": Array [
+              Object {
+                "hasAccess": true,
+                "id": "1",
+                "name": "test",
+                "slug": "test",
+              },
+            ],
+          }
+        }
+      >
+        <withConfig(Feature)
+          features={
+            Array [
+              "organizations:new-project-issue-alert-options",
+            ]
+          }
+          organization={
+            Object {
+              "id": "1",
+              "slug": "testOrg",
+              "teams": Array [
+                Object {
+                  "hasAccess": true,
+                  "id": "1",
+                  "name": "test",
+                  "slug": "test",
+                },
+              ],
+            }
+          }
+          project={
+            Object {
+              "environments": Array [],
+              "hasAccess": true,
+              "id": "2",
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Project Name",
+              "slug": "project-slug",
+              "teams": Array [],
+            }
+          }
+        >
+          <Feature
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            features={
+              Array [
+                "organizations:new-project-issue-alert-options",
+              ]
+            }
+            organization={
+              Object {
+                "id": "1",
+                "slug": "testOrg",
+                "teams": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "1",
+                    "name": "test",
+                    "slug": "test",
+                  },
+                ],
+              }
+            }
+            project={
+              Object {
+                "environments": Array [],
+                "hasAccess": true,
+                "id": "2",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Project Name",
+                "slug": "project-slug",
+                "teams": Array [],
+              }
+            }
+            renderDisabled={false}
+            requireAll={true}
+          />
+        </withConfig(Feature)>
+      </withProject(withConfig(Feature))>
+    </WithOrganizationMockWrapper>
     <PlatformPicker
       platform=""
       setPlatform={[Function]}
@@ -1226,86 +1371,190 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
         </div>
       </PlatformList>
     </PlatformPicker>
-    <CreateProjectForm
-      onSubmit={[Function]}
+    <WithOrganizationMockWrapper
+      features={
+        Array [
+          "organizations:new-project-issue-alert-options",
+        ]
+      }
     >
-      <form
-        className="css-8zz3uw-CreateProjectForm e19kiapg0"
-        onSubmit={[Function]}
+      <withProject(withConfig(Feature))
+        features={
+          Array [
+            "organizations:new-project-issue-alert-options",
+          ]
+        }
+        organization={
+          Object {
+            "id": "1",
+            "slug": "testOrg",
+            "teams": Array [
+              Object {
+                "hasAccess": true,
+                "id": "1",
+                "name": "test",
+                "slug": "test",
+              },
+            ],
+          }
+        }
       >
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Give your project a name
-            </div>
-          </FormLabel>
-          <ProjectNameInput>
-            <div
-              className="css-9ctizw-ProjectNameInput e19kiapg3"
-            >
-              <ProjectPlatformIcon
-                monoTone={true}
-                platform=""
-              >
+        <withConfig(Feature)
+          features={
+            Array [
+              "organizations:new-project-issue-alert-options",
+            ]
+          }
+          organization={
+            Object {
+              "id": "1",
+              "slug": "testOrg",
+              "teams": Array [
+                Object {
+                  "hasAccess": true,
+                  "id": "1",
+                  "name": "test",
+                  "slug": "test",
+                },
+              ],
+            }
+          }
+          project={
+            Object {
+              "environments": Array [],
+              "hasAccess": true,
+              "id": "2",
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Project Name",
+              "slug": "project-slug",
+              "teams": Array [],
+            }
+          }
+        >
+          <Feature
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            features={
+              Array [
+                "organizations:new-project-issue-alert-options",
+              ]
+            }
+            organization={
+              Object {
+                "id": "1",
+                "slug": "testOrg",
+                "teams": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "1",
+                    "name": "test",
+                    "slug": "test",
+                  },
+                ],
+              }
+            }
+            project={
+              Object {
+                "environments": Array [],
+                "hasAccess": true,
+                "id": "2",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Project Name",
+                "slug": "project-slug",
+                "teams": Array [],
+              }
+            }
+            renderDisabled={false}
+            requireAll={true}
+          />
+        </withConfig(Feature)>
+      </withProject(withConfig(Feature))>
+    </WithOrganizationMockWrapper>
+    <StickyWrapper>
+      <div
+        className="css-byvn5x-StickyWrapper e19kiapg6"
+      >
+        <CreateProjectForm
+          onSubmit={[Function]}
+        >
+          <form
+            className="css-1dq1lt0-CreateProjectForm e19kiapg0"
+            onSubmit={[Function]}
+          >
+            <div>
+              <FormLabel>
                 <div
-                  className="css-12loq7n-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
-                />
-              </ProjectPlatformIcon>
-              <input
-                autoComplete="off"
-                label="Project Name"
-                name="name"
-                onChange={[Function]}
-                placeholder="Project name"
-                type="text"
-                value=""
-              />
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Give your project a name
+                </div>
+              </FormLabel>
+              <ProjectNameInput>
+                <div
+                  className="css-9ctizw-ProjectNameInput e19kiapg3"
+                >
+                  <ProjectPlatformIcon
+                    monoTone={true}
+                    platform=""
+                  >
+                    <div
+                      className="css-12loq7n-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
+                    />
+                  </ProjectPlatformIcon>
+                  <input
+                    autoComplete="off"
+                    label="Project Name"
+                    name="name"
+                    onChange={[Function]}
+                    placeholder="Project name"
+                    type="text"
+                    value=""
+                  />
+                </div>
+              </ProjectNameInput>
             </div>
-          </ProjectNameInput>
-        </div>
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Assign a Team
-            </div>
-          </FormLabel>
-          <TeamSelectInput>
-            <div
-              className="css-15lxetg-TeamSelectInput e19kiapg4"
-            >
-              <ForwardRef(RefForwardedSelectControl)
-                clearable={false}
-                deprecatedSelectControl={true}
-                name="select-team"
-                onChange={[Function]}
-                options={Array []}
-                placeholder="Select a Team"
-                value={0}
-              >
-                <SelectControl
-                  clearable={false}
-                  deprecatedSelectControl={true}
-                  forwardedRef={null}
-                  name="select-team"
-                  onChange={[Function]}
-                  options={Array []}
-                  placeholder="Select a Team"
-                  value={0}
+            <div>
+              <FormLabel>
+                <div
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Assign a Team
+                </div>
+              </FormLabel>
+              <TeamSelectInput>
+                <div
+                  className="css-15lxetg-TeamSelectInput e19kiapg4"
                 >
                   <ForwardRef(RefForwardedSelectControl)
                     clearable={false}
-                    forwardedRef={null}
                     name="select-team"
                     onChange={[Function]}
                     options={Array []}
                     placeholder="Select a Team"
                     value={0}
                   >
-                    <SelectControlLegacy
+                    <SelectControl
                       clearable={false}
                       forwardedRef={null}
                       height={36}
@@ -1333,7 +1582,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                         <SelectPicker
                           arrowRenderer={[Function]}
                           backspaceRemoves={false}
-                          className="css-140v9or-StyledSelect e1ynsgsr0"
+                          className="css-140v9or-StyledSelect eho28m20"
                           clearable={false}
                           deleteRemoves={false}
                           forwardedRef={null}
@@ -1350,7 +1599,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                             autosize={true}
                             backspaceRemoves={false}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="css-140v9or-StyledSelect e1ynsgsr0"
+                            className="css-140v9or-StyledSelect eho28m20"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -1398,7 +1647,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                             valueKey="value"
                           >
                             <div
-                              className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                              className="Select css-140v9or-StyledSelect eho28m20 is-searchable Select--single"
                             >
                               <div
                                 className="Select-control"
@@ -1487,208 +1736,208 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                           </Select>
                         </SelectPicker>
                       </StyledSelect>
-                    </SelectControlLegacy>
+                    </SelectControl>
                   </ForwardRef(RefForwardedSelectControl)>
-                </SelectControl>
-              </ForwardRef(RefForwardedSelectControl)>
-              <Tooltip
-                containerDisplayMode="inline-block"
-                position="top"
-                title="Create a team"
-              >
-                <Manager>
-                  <Reference>
-                    <InnerReference
-                      setReferenceNode={[Function]}
-                    >
-                      <Container
-                        aria-describedby="tooltip-123456"
-                        containerDisplayMode="inline-block"
-                        onBlur={[Function]}
-                        onFocus={[Function]}
-                        onMouseEnter={[Function]}
-                        onMouseLeave={[Function]}
-                      >
-                        <span
-                          aria-describedby="tooltip-123456"
-                          className="css-sce1yi-Container eowlwvy0"
-                          onBlur={[Function]}
-                          onFocus={[Function]}
-                          onMouseEnter={[Function]}
-                          onMouseLeave={[Function]}
+                  <Tooltip
+                    containerDisplayMode="inline-block"
+                    position="top"
+                    title="Create a team"
+                  >
+                    <Manager>
+                      <Reference>
+                        <InnerReference
+                          setReferenceNode={[Function]}
                         >
-                          <forwardRef<Button>
-                            borderless={true}
-                            data-test-id="create-team"
-                            icon="icon-circle-add"
-                            onClick={[Function]}
-                            type="button"
+                          <Container
+                            aria-describedby="tooltip-123456"
+                            containerDisplayMode="inline-block"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <Button
-                              align="center"
-                              borderless={true}
-                              data-test-id="create-team"
-                              disabled={false}
-                              forwardRef={null}
-                              icon="icon-circle-add"
-                              onClick={[Function]}
-                              type="button"
+                            <span
+                              aria-describedby="tooltip-123456"
+                              className="css-sce1yi-Container eowlwvy0"
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
                             >
-                              <StyledButton
-                                aria-disabled={false}
+                              <forwardRef<Button>
                                 borderless={true}
                                 data-test-id="create-team"
-                                disabled={false}
-                                forwardRef={null}
+                                icon="icon-circle-add"
                                 onClick={[Function]}
-                                role="button"
                                 type="button"
                               >
-                                <Component
-                                  aria-disabled={false}
-                                  className="css-e1k74m-StyledButton edwq9my0"
+                                <Button
+                                  align="center"
+                                  borderless={true}
                                   data-test-id="create-team"
+                                  disabled={false}
                                   forwardRef={null}
+                                  icon="icon-circle-add"
                                   onClick={[Function]}
-                                  role="button"
                                   type="button"
                                 >
-                                  <button
+                                  <StyledButton
                                     aria-disabled={false}
-                                    className="css-e1k74m-StyledButton edwq9my0"
+                                    borderless={true}
                                     data-test-id="create-team"
+                                    disabled={false}
+                                    forwardRef={null}
                                     onClick={[Function]}
                                     role="button"
                                     type="button"
                                   >
-                                    <ButtonLabel
-                                      align="center"
-                                      borderless={true}
+                                    <Component
+                                      aria-disabled={false}
+                                      className="css-e1k74m-StyledButton edwq9my0"
+                                      data-test-id="create-team"
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      role="button"
+                                      type="button"
                                     >
-                                      <Component
-                                        align="center"
-                                        borderless={true}
-                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      <button
+                                        aria-disabled={false}
+                                        className="css-e1k74m-StyledButton edwq9my0"
+                                        data-test-id="create-team"
+                                        onClick={[Function]}
+                                        role="button"
+                                        type="button"
                                       >
-                                        <span
-                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                        <ButtonLabel
+                                          align="center"
+                                          borderless={true}
                                         >
-                                          <Icon
-                                            hasChildren={false}
+                                          <Component
+                                            align="center"
+                                            borderless={true}
+                                            className="css-cmi7y3-ButtonLabel edwq9my1"
                                           >
-                                            <Component
-                                              className="css-heib7e-Icon edwq9my2"
-                                              hasChildren={false}
+                                            <span
+                                              className="css-cmi7y3-ButtonLabel edwq9my1"
                                             >
-                                              <span
-                                                className="css-heib7e-Icon edwq9my2"
+                                              <Icon
+                                                hasChildren={false}
                                               >
-                                                <StyledInlineSvg
-                                                  size="14px"
-                                                  src="icon-circle-add"
+                                                <Component
+                                                  className="css-heib7e-Icon edwq9my2"
+                                                  hasChildren={false}
                                                 >
-                                                  <ForwardRef
-                                                    className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                    size="14px"
-                                                    src="icon-circle-add"
+                                                  <span
+                                                    className="css-heib7e-Icon edwq9my2"
                                                   >
-                                                    <svg
-                                                      className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                      height="14px"
-                                                      viewBox={Object {}}
-                                                      width="14px"
+                                                    <StyledInlineSvg
+                                                      size="14px"
+                                                      src="icon-circle-add"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </ForwardRef>
-                                                </StyledInlineSvg>
-                                              </span>
-                                            </Component>
-                                          </Icon>
-                                        </span>
-                                      </Component>
-                                    </ButtonLabel>
-                                  </button>
-                                </Component>
-                              </StyledButton>
-                            </Button>
-                          </forwardRef<Button>>
-                        </span>
-                      </Container>
-                    </InnerReference>
-                  </Reference>
-                </Manager>
-              </Tooltip>
+                                                      <ForwardRef
+                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                        size="14px"
+                                                        src="icon-circle-add"
+                                                      >
+                                                        <svg
+                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                          height="14px"
+                                                          viewBox={Object {}}
+                                                          width="14px"
+                                                        >
+                                                          <use
+                                                            href="#test"
+                                                            xlinkHref="#test"
+                                                          />
+                                                        </svg>
+                                                      </ForwardRef>
+                                                    </StyledInlineSvg>
+                                                  </span>
+                                                </Component>
+                                              </Icon>
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </forwardRef<Button>>
+                            </span>
+                          </Container>
+                        </InnerReference>
+                      </Reference>
+                    </Manager>
+                  </Tooltip>
+                </div>
+              </TeamSelectInput>
             </div>
-          </TeamSelectInput>
-        </div>
-        <div>
-          <forwardRef<Button>
-            data-test-id="create-project"
-            disabled={true}
-            priority="primary"
-          >
-            <Button
-              align="center"
-              data-test-id="create-project"
-              disabled={true}
-              forwardRef={null}
-              priority="primary"
-            >
-              <StyledButton
-                aria-disabled={true}
-                aria-label="Create Project"
+            <div>
+              <forwardRef<Button>
                 data-test-id="create-project"
                 disabled={true}
-                forwardRef={null}
-                onClick={[Function]}
                 priority="primary"
-                role="button"
               >
-                <Component
-                  aria-disabled={true}
-                  aria-label="Create Project"
-                  className="css-1e3hcbu-StyledButton edwq9my0"
+                <Button
+                  align="center"
                   data-test-id="create-project"
+                  disabled={true}
                   forwardRef={null}
-                  onClick={[Function]}
-                  role="button"
+                  priority="primary"
                 >
-                  <button
+                  <StyledButton
                     aria-disabled={true}
                     aria-label="Create Project"
-                    className="css-1e3hcbu-StyledButton edwq9my0"
                     data-test-id="create-project"
+                    disabled={true}
+                    forwardRef={null}
                     onClick={[Function]}
+                    priority="primary"
                     role="button"
                   >
-                    <ButtonLabel
-                      align="center"
-                      priority="primary"
+                    <Component
+                      aria-disabled={true}
+                      aria-label="Create Project"
+                      className="css-1e3hcbu-StyledButton edwq9my0"
+                      data-test-id="create-project"
+                      forwardRef={null}
+                      onClick={[Function]}
+                      role="button"
                     >
-                      <Component
-                        align="center"
-                        className="css-zmpclt-ButtonLabel edwq9my1"
-                        priority="primary"
+                      <button
+                        aria-disabled={true}
+                        aria-label="Create Project"
+                        className="css-1e3hcbu-StyledButton edwq9my0"
+                        data-test-id="create-project"
+                        onClick={[Function]}
+                        role="button"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
+                        <ButtonLabel
+                          align="center"
+                          priority="primary"
                         >
-                          Create Project
-                        </span>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
-              </StyledButton>
-            </Button>
-          </forwardRef<Button>>
-        </div>
-      </form>
-    </CreateProjectForm>
+                          <Component
+                            align="center"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
+                            priority="primary"
+                          >
+                            <span
+                              className="css-zmpclt-ButtonLabel edwq9my1"
+                            >
+                              Create Project
+                            </span>
+                          </Component>
+                        </ButtonLabel>
+                      </button>
+                    </Component>
+                  </StyledButton>
+                </Button>
+              </forwardRef<Button>>
+            </div>
+          </form>
+        </CreateProjectForm>
+      </div>
+    </StickyWrapper>
   </div>
 </CreateProject>
 `;
@@ -1766,6 +2015,126 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                for your API server and frontend client.
       </p>
     </HelpText>
+    <WithOrganizationMockWrapper
+      features={
+        Array [
+          "organizations:new-project-issue-alert-options",
+        ]
+      }
+    >
+      <withProject(withConfig(Feature))
+        features={
+          Array [
+            "organizations:new-project-issue-alert-options",
+          ]
+        }
+        organization={
+          Object {
+            "id": "1",
+            "slug": "testOrg",
+            "teams": Array [
+              Object {
+                "hasAccess": true,
+                "id": "1",
+                "name": "test",
+                "slug": "test",
+              },
+            ],
+          }
+        }
+      >
+        <withConfig(Feature)
+          features={
+            Array [
+              "organizations:new-project-issue-alert-options",
+            ]
+          }
+          organization={
+            Object {
+              "id": "1",
+              "slug": "testOrg",
+              "teams": Array [
+                Object {
+                  "hasAccess": true,
+                  "id": "1",
+                  "name": "test",
+                  "slug": "test",
+                },
+              ],
+            }
+          }
+          project={
+            Object {
+              "environments": Array [],
+              "hasAccess": true,
+              "id": "2",
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Project Name",
+              "slug": "project-slug",
+              "teams": Array [],
+            }
+          }
+        >
+          <Feature
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            features={
+              Array [
+                "organizations:new-project-issue-alert-options",
+              ]
+            }
+            organization={
+              Object {
+                "id": "1",
+                "slug": "testOrg",
+                "teams": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "1",
+                    "name": "test",
+                    "slug": "test",
+                  },
+                ],
+              }
+            }
+            project={
+              Object {
+                "environments": Array [],
+                "hasAccess": true,
+                "id": "2",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Project Name",
+                "slug": "project-slug",
+                "teams": Array [],
+              }
+            }
+            renderDisabled={false}
+            requireAll={true}
+          />
+        </withConfig(Feature)>
+      </withProject(withConfig(Feature))>
+    </WithOrganizationMockWrapper>
     <PlatformPicker
       platform="ruby"
       setPlatform={[Function]}
@@ -2244,86 +2613,190 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
         </div>
       </PlatformList>
     </PlatformPicker>
-    <CreateProjectForm
-      onSubmit={[Function]}
+    <WithOrganizationMockWrapper
+      features={
+        Array [
+          "organizations:new-project-issue-alert-options",
+        ]
+      }
     >
-      <form
-        className="css-8zz3uw-CreateProjectForm e19kiapg0"
-        onSubmit={[Function]}
+      <withProject(withConfig(Feature))
+        features={
+          Array [
+            "organizations:new-project-issue-alert-options",
+          ]
+        }
+        organization={
+          Object {
+            "id": "1",
+            "slug": "testOrg",
+            "teams": Array [
+              Object {
+                "hasAccess": true,
+                "id": "1",
+                "name": "test",
+                "slug": "test",
+              },
+            ],
+          }
+        }
       >
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Give your project a name
-            </div>
-          </FormLabel>
-          <ProjectNameInput>
-            <div
-              className="css-9ctizw-ProjectNameInput e19kiapg3"
-            >
-              <ProjectPlatformIcon
-                monoTone={true}
-                platform="ruby"
-              >
+        <withConfig(Feature)
+          features={
+            Array [
+              "organizations:new-project-issue-alert-options",
+            ]
+          }
+          organization={
+            Object {
+              "id": "1",
+              "slug": "testOrg",
+              "teams": Array [
+                Object {
+                  "hasAccess": true,
+                  "id": "1",
+                  "name": "test",
+                  "slug": "test",
+                },
+              ],
+            }
+          }
+          project={
+            Object {
+              "environments": Array [],
+              "hasAccess": true,
+              "id": "2",
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Project Name",
+              "slug": "project-slug",
+              "teams": Array [],
+            }
+          }
+        >
+          <Feature
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            features={
+              Array [
+                "organizations:new-project-issue-alert-options",
+              ]
+            }
+            organization={
+              Object {
+                "id": "1",
+                "slug": "testOrg",
+                "teams": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "1",
+                    "name": "test",
+                    "slug": "test",
+                  },
+                ],
+              }
+            }
+            project={
+              Object {
+                "environments": Array [],
+                "hasAccess": true,
+                "id": "2",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Project Name",
+                "slug": "project-slug",
+                "teams": Array [],
+              }
+            }
+            renderDisabled={false}
+            requireAll={true}
+          />
+        </withConfig(Feature)>
+      </withProject(withConfig(Feature))>
+    </WithOrganizationMockWrapper>
+    <StickyWrapper>
+      <div
+        className="css-byvn5x-StickyWrapper e19kiapg6"
+      >
+        <CreateProjectForm
+          onSubmit={[Function]}
+        >
+          <form
+            className="css-1dq1lt0-CreateProjectForm e19kiapg0"
+            onSubmit={[Function]}
+          >
+            <div>
+              <FormLabel>
                 <div
-                  className="css-17k22u3-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
-                />
-              </ProjectPlatformIcon>
-              <input
-                autoComplete="off"
-                label="Project Name"
-                name="name"
-                onChange={[Function]}
-                placeholder="Project name"
-                type="text"
-                value="Ruby"
-              />
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Give your project a name
+                </div>
+              </FormLabel>
+              <ProjectNameInput>
+                <div
+                  className="css-9ctizw-ProjectNameInput e19kiapg3"
+                >
+                  <ProjectPlatformIcon
+                    monoTone={true}
+                    platform="ruby"
+                  >
+                    <div
+                      className="css-17k22u3-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
+                    />
+                  </ProjectPlatformIcon>
+                  <input
+                    autoComplete="off"
+                    label="Project Name"
+                    name="name"
+                    onChange={[Function]}
+                    placeholder="Project name"
+                    type="text"
+                    value="Ruby"
+                  />
+                </div>
+              </ProjectNameInput>
             </div>
-          </ProjectNameInput>
-        </div>
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Assign a Team
-            </div>
-          </FormLabel>
-          <TeamSelectInput>
-            <div
-              className="css-15lxetg-TeamSelectInput e19kiapg4"
-            >
-              <ForwardRef(RefForwardedSelectControl)
-                clearable={false}
-                deprecatedSelectControl={true}
-                name="select-team"
-                onChange={[Function]}
-                options={Array []}
-                placeholder="Select a Team"
-                value={0}
-              >
-                <SelectControl
-                  clearable={false}
-                  deprecatedSelectControl={true}
-                  forwardedRef={null}
-                  name="select-team"
-                  onChange={[Function]}
-                  options={Array []}
-                  placeholder="Select a Team"
-                  value={0}
+            <div>
+              <FormLabel>
+                <div
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Assign a Team
+                </div>
+              </FormLabel>
+              <TeamSelectInput>
+                <div
+                  className="css-15lxetg-TeamSelectInput e19kiapg4"
                 >
                   <ForwardRef(RefForwardedSelectControl)
                     clearable={false}
-                    forwardedRef={null}
                     name="select-team"
                     onChange={[Function]}
                     options={Array []}
                     placeholder="Select a Team"
                     value={0}
                   >
-                    <SelectControlLegacy
+                    <SelectControl
                       clearable={false}
                       forwardedRef={null}
                       height={36}
@@ -2351,7 +2824,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         <SelectPicker
                           arrowRenderer={[Function]}
                           backspaceRemoves={false}
-                          className="css-140v9or-StyledSelect e1ynsgsr0"
+                          className="css-140v9or-StyledSelect eho28m20"
                           clearable={false}
                           deleteRemoves={false}
                           forwardedRef={null}
@@ -2368,7 +2841,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                             autosize={true}
                             backspaceRemoves={false}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="css-140v9or-StyledSelect e1ynsgsr0"
+                            className="css-140v9or-StyledSelect eho28m20"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -2416,7 +2889,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                             valueKey="value"
                           >
                             <div
-                              className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                              className="Select css-140v9or-StyledSelect eho28m20 is-searchable Select--single"
                             >
                               <div
                                 className="Select-control"
@@ -2505,208 +2978,208 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                           </Select>
                         </SelectPicker>
                       </StyledSelect>
-                    </SelectControlLegacy>
+                    </SelectControl>
                   </ForwardRef(RefForwardedSelectControl)>
-                </SelectControl>
-              </ForwardRef(RefForwardedSelectControl)>
-              <Tooltip
-                containerDisplayMode="inline-block"
-                position="top"
-                title="Create a team"
-              >
-                <Manager>
-                  <Reference>
-                    <InnerReference
-                      setReferenceNode={[Function]}
-                    >
-                      <Container
-                        aria-describedby="tooltip-123456"
-                        containerDisplayMode="inline-block"
-                        onBlur={[Function]}
-                        onFocus={[Function]}
-                        onMouseEnter={[Function]}
-                        onMouseLeave={[Function]}
-                      >
-                        <span
-                          aria-describedby="tooltip-123456"
-                          className="css-sce1yi-Container eowlwvy0"
-                          onBlur={[Function]}
-                          onFocus={[Function]}
-                          onMouseEnter={[Function]}
-                          onMouseLeave={[Function]}
+                  <Tooltip
+                    containerDisplayMode="inline-block"
+                    position="top"
+                    title="Create a team"
+                  >
+                    <Manager>
+                      <Reference>
+                        <InnerReference
+                          setReferenceNode={[Function]}
                         >
-                          <forwardRef<Button>
-                            borderless={true}
-                            data-test-id="create-team"
-                            icon="icon-circle-add"
-                            onClick={[Function]}
-                            type="button"
+                          <Container
+                            aria-describedby="tooltip-123456"
+                            containerDisplayMode="inline-block"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <Button
-                              align="center"
-                              borderless={true}
-                              data-test-id="create-team"
-                              disabled={false}
-                              forwardRef={null}
-                              icon="icon-circle-add"
-                              onClick={[Function]}
-                              type="button"
+                            <span
+                              aria-describedby="tooltip-123456"
+                              className="css-sce1yi-Container eowlwvy0"
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
                             >
-                              <StyledButton
-                                aria-disabled={false}
+                              <forwardRef<Button>
                                 borderless={true}
                                 data-test-id="create-team"
-                                disabled={false}
-                                forwardRef={null}
+                                icon="icon-circle-add"
                                 onClick={[Function]}
-                                role="button"
                                 type="button"
                               >
-                                <Component
-                                  aria-disabled={false}
-                                  className="css-e1k74m-StyledButton edwq9my0"
+                                <Button
+                                  align="center"
+                                  borderless={true}
                                   data-test-id="create-team"
+                                  disabled={false}
                                   forwardRef={null}
+                                  icon="icon-circle-add"
                                   onClick={[Function]}
-                                  role="button"
                                   type="button"
                                 >
-                                  <button
+                                  <StyledButton
                                     aria-disabled={false}
-                                    className="css-e1k74m-StyledButton edwq9my0"
+                                    borderless={true}
                                     data-test-id="create-team"
+                                    disabled={false}
+                                    forwardRef={null}
                                     onClick={[Function]}
                                     role="button"
                                     type="button"
                                   >
-                                    <ButtonLabel
-                                      align="center"
-                                      borderless={true}
+                                    <Component
+                                      aria-disabled={false}
+                                      className="css-e1k74m-StyledButton edwq9my0"
+                                      data-test-id="create-team"
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      role="button"
+                                      type="button"
                                     >
-                                      <Component
-                                        align="center"
-                                        borderless={true}
-                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      <button
+                                        aria-disabled={false}
+                                        className="css-e1k74m-StyledButton edwq9my0"
+                                        data-test-id="create-team"
+                                        onClick={[Function]}
+                                        role="button"
+                                        type="button"
                                       >
-                                        <span
-                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                        <ButtonLabel
+                                          align="center"
+                                          borderless={true}
                                         >
-                                          <Icon
-                                            hasChildren={false}
+                                          <Component
+                                            align="center"
+                                            borderless={true}
+                                            className="css-cmi7y3-ButtonLabel edwq9my1"
                                           >
-                                            <Component
-                                              className="css-heib7e-Icon edwq9my2"
-                                              hasChildren={false}
+                                            <span
+                                              className="css-cmi7y3-ButtonLabel edwq9my1"
                                             >
-                                              <span
-                                                className="css-heib7e-Icon edwq9my2"
+                                              <Icon
+                                                hasChildren={false}
                                               >
-                                                <StyledInlineSvg
-                                                  size="14px"
-                                                  src="icon-circle-add"
+                                                <Component
+                                                  className="css-heib7e-Icon edwq9my2"
+                                                  hasChildren={false}
                                                 >
-                                                  <ForwardRef
-                                                    className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                    size="14px"
-                                                    src="icon-circle-add"
+                                                  <span
+                                                    className="css-heib7e-Icon edwq9my2"
                                                   >
-                                                    <svg
-                                                      className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                      height="14px"
-                                                      viewBox={Object {}}
-                                                      width="14px"
+                                                    <StyledInlineSvg
+                                                      size="14px"
+                                                      src="icon-circle-add"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </ForwardRef>
-                                                </StyledInlineSvg>
-                                              </span>
-                                            </Component>
-                                          </Icon>
-                                        </span>
-                                      </Component>
-                                    </ButtonLabel>
-                                  </button>
-                                </Component>
-                              </StyledButton>
-                            </Button>
-                          </forwardRef<Button>>
-                        </span>
-                      </Container>
-                    </InnerReference>
-                  </Reference>
-                </Manager>
-              </Tooltip>
+                                                      <ForwardRef
+                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                        size="14px"
+                                                        src="icon-circle-add"
+                                                      >
+                                                        <svg
+                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                          height="14px"
+                                                          viewBox={Object {}}
+                                                          width="14px"
+                                                        >
+                                                          <use
+                                                            href="#test"
+                                                            xlinkHref="#test"
+                                                          />
+                                                        </svg>
+                                                      </ForwardRef>
+                                                    </StyledInlineSvg>
+                                                  </span>
+                                                </Component>
+                                              </Icon>
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </forwardRef<Button>>
+                            </span>
+                          </Container>
+                        </InnerReference>
+                      </Reference>
+                    </Manager>
+                  </Tooltip>
+                </div>
+              </TeamSelectInput>
             </div>
-          </TeamSelectInput>
-        </div>
-        <div>
-          <forwardRef<Button>
-            data-test-id="create-project"
-            disabled={true}
-            priority="primary"
-          >
-            <Button
-              align="center"
-              data-test-id="create-project"
-              disabled={true}
-              forwardRef={null}
-              priority="primary"
-            >
-              <StyledButton
-                aria-disabled={true}
-                aria-label="Create Project"
+            <div>
+              <forwardRef<Button>
                 data-test-id="create-project"
                 disabled={true}
-                forwardRef={null}
-                onClick={[Function]}
                 priority="primary"
-                role="button"
               >
-                <Component
-                  aria-disabled={true}
-                  aria-label="Create Project"
-                  className="css-1e3hcbu-StyledButton edwq9my0"
+                <Button
+                  align="center"
                   data-test-id="create-project"
+                  disabled={true}
                   forwardRef={null}
-                  onClick={[Function]}
-                  role="button"
+                  priority="primary"
                 >
-                  <button
+                  <StyledButton
                     aria-disabled={true}
                     aria-label="Create Project"
-                    className="css-1e3hcbu-StyledButton edwq9my0"
                     data-test-id="create-project"
+                    disabled={true}
+                    forwardRef={null}
                     onClick={[Function]}
+                    priority="primary"
                     role="button"
                   >
-                    <ButtonLabel
-                      align="center"
-                      priority="primary"
+                    <Component
+                      aria-disabled={true}
+                      aria-label="Create Project"
+                      className="css-1e3hcbu-StyledButton edwq9my0"
+                      data-test-id="create-project"
+                      forwardRef={null}
+                      onClick={[Function]}
+                      role="button"
                     >
-                      <Component
-                        align="center"
-                        className="css-zmpclt-ButtonLabel edwq9my1"
-                        priority="primary"
+                      <button
+                        aria-disabled={true}
+                        aria-label="Create Project"
+                        className="css-1e3hcbu-StyledButton edwq9my0"
+                        data-test-id="create-project"
+                        onClick={[Function]}
+                        role="button"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
+                        <ButtonLabel
+                          align="center"
+                          priority="primary"
                         >
-                          Create Project
-                        </span>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
-              </StyledButton>
-            </Button>
-          </forwardRef<Button>>
-        </div>
-      </form>
-    </CreateProjectForm>
+                          <Component
+                            align="center"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
+                            priority="primary"
+                          >
+                            <span
+                              className="css-zmpclt-ButtonLabel edwq9my1"
+                            >
+                              Create Project
+                            </span>
+                          </Component>
+                        </ButtonLabel>
+                      </button>
+                    </Component>
+                  </StyledButton>
+                </Button>
+              </forwardRef<Button>>
+            </div>
+          </form>
+        </CreateProjectForm>
+      </div>
+    </StickyWrapper>
   </div>
 </CreateProject>
 `;
@@ -2784,6 +3257,126 @@ exports[`CreateProject should fill in project name if its empty when platform is
                for your API server and frontend client.
       </p>
     </HelpText>
+    <WithOrganizationMockWrapper
+      features={
+        Array [
+          "organizations:new-project-issue-alert-options",
+        ]
+      }
+    >
+      <withProject(withConfig(Feature))
+        features={
+          Array [
+            "organizations:new-project-issue-alert-options",
+          ]
+        }
+        organization={
+          Object {
+            "id": "1",
+            "slug": "testOrg",
+            "teams": Array [
+              Object {
+                "hasAccess": true,
+                "id": "1",
+                "name": "test",
+                "slug": "test",
+              },
+            ],
+          }
+        }
+      >
+        <withConfig(Feature)
+          features={
+            Array [
+              "organizations:new-project-issue-alert-options",
+            ]
+          }
+          organization={
+            Object {
+              "id": "1",
+              "slug": "testOrg",
+              "teams": Array [
+                Object {
+                  "hasAccess": true,
+                  "id": "1",
+                  "name": "test",
+                  "slug": "test",
+                },
+              ],
+            }
+          }
+          project={
+            Object {
+              "environments": Array [],
+              "hasAccess": true,
+              "id": "2",
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Project Name",
+              "slug": "project-slug",
+              "teams": Array [],
+            }
+          }
+        >
+          <Feature
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            features={
+              Array [
+                "organizations:new-project-issue-alert-options",
+              ]
+            }
+            organization={
+              Object {
+                "id": "1",
+                "slug": "testOrg",
+                "teams": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "1",
+                    "name": "test",
+                    "slug": "test",
+                  },
+                ],
+              }
+            }
+            project={
+              Object {
+                "environments": Array [],
+                "hasAccess": true,
+                "id": "2",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Project Name",
+                "slug": "project-slug",
+                "teams": Array [],
+              }
+            }
+            renderDisabled={false}
+            requireAll={true}
+          />
+        </withConfig(Feature)>
+      </withProject(withConfig(Feature))>
+    </WithOrganizationMockWrapper>
     <PlatformPicker
       platform="csharp"
       setPlatform={[Function]}
@@ -3962,86 +4555,190 @@ exports[`CreateProject should fill in project name if its empty when platform is
         </div>
       </PlatformList>
     </PlatformPicker>
-    <CreateProjectForm
-      onSubmit={[Function]}
+    <WithOrganizationMockWrapper
+      features={
+        Array [
+          "organizations:new-project-issue-alert-options",
+        ]
+      }
     >
-      <form
-        className="css-8zz3uw-CreateProjectForm e19kiapg0"
-        onSubmit={[Function]}
+      <withProject(withConfig(Feature))
+        features={
+          Array [
+            "organizations:new-project-issue-alert-options",
+          ]
+        }
+        organization={
+          Object {
+            "id": "1",
+            "slug": "testOrg",
+            "teams": Array [
+              Object {
+                "hasAccess": true,
+                "id": "1",
+                "name": "test",
+                "slug": "test",
+              },
+            ],
+          }
+        }
       >
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Give your project a name
-            </div>
-          </FormLabel>
-          <ProjectNameInput>
-            <div
-              className="css-9ctizw-ProjectNameInput e19kiapg3"
-            >
-              <ProjectPlatformIcon
-                monoTone={true}
-                platform="csharp"
-              >
+        <withConfig(Feature)
+          features={
+            Array [
+              "organizations:new-project-issue-alert-options",
+            ]
+          }
+          organization={
+            Object {
+              "id": "1",
+              "slug": "testOrg",
+              "teams": Array [
+                Object {
+                  "hasAccess": true,
+                  "id": "1",
+                  "name": "test",
+                  "slug": "test",
+                },
+              ],
+            }
+          }
+          project={
+            Object {
+              "environments": Array [],
+              "hasAccess": true,
+              "id": "2",
+              "isBookmarked": false,
+              "isMember": true,
+              "name": "Project Name",
+              "slug": "project-slug",
+              "teams": Array [],
+            }
+          }
+        >
+          <Feature
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            features={
+              Array [
+                "organizations:new-project-issue-alert-options",
+              ]
+            }
+            organization={
+              Object {
+                "id": "1",
+                "slug": "testOrg",
+                "teams": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "1",
+                    "name": "test",
+                    "slug": "test",
+                  },
+                ],
+              }
+            }
+            project={
+              Object {
+                "environments": Array [],
+                "hasAccess": true,
+                "id": "2",
+                "isBookmarked": false,
+                "isMember": true,
+                "name": "Project Name",
+                "slug": "project-slug",
+                "teams": Array [],
+              }
+            }
+            renderDisabled={false}
+            requireAll={true}
+          />
+        </withConfig(Feature)>
+      </withProject(withConfig(Feature))>
+    </WithOrganizationMockWrapper>
+    <StickyWrapper>
+      <div
+        className="css-byvn5x-StickyWrapper e19kiapg6"
+      >
+        <CreateProjectForm
+          onSubmit={[Function]}
+        >
+          <form
+            className="css-1dq1lt0-CreateProjectForm e19kiapg0"
+            onSubmit={[Function]}
+          >
+            <div>
+              <FormLabel>
                 <div
-                  className="css-nwocbk-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
-                />
-              </ProjectPlatformIcon>
-              <input
-                autoComplete="off"
-                label="Project Name"
-                name="name"
-                onChange={[Function]}
-                placeholder="Project name"
-                type="text"
-                value="another"
-              />
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Give your project a name
+                </div>
+              </FormLabel>
+              <ProjectNameInput>
+                <div
+                  className="css-9ctizw-ProjectNameInput e19kiapg3"
+                >
+                  <ProjectPlatformIcon
+                    monoTone={true}
+                    platform="csharp"
+                  >
+                    <div
+                      className="css-nwocbk-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
+                    />
+                  </ProjectPlatformIcon>
+                  <input
+                    autoComplete="off"
+                    label="Project Name"
+                    name="name"
+                    onChange={[Function]}
+                    placeholder="Project name"
+                    type="text"
+                    value="another"
+                  />
+                </div>
+              </ProjectNameInput>
             </div>
-          </ProjectNameInput>
-        </div>
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Assign a Team
-            </div>
-          </FormLabel>
-          <TeamSelectInput>
-            <div
-              className="css-15lxetg-TeamSelectInput e19kiapg4"
-            >
-              <ForwardRef(RefForwardedSelectControl)
-                clearable={false}
-                deprecatedSelectControl={true}
-                name="select-team"
-                onChange={[Function]}
-                options={Array []}
-                placeholder="Select a Team"
-                value={0}
-              >
-                <SelectControl
-                  clearable={false}
-                  deprecatedSelectControl={true}
-                  forwardedRef={null}
-                  name="select-team"
-                  onChange={[Function]}
-                  options={Array []}
-                  placeholder="Select a Team"
-                  value={0}
+            <div>
+              <FormLabel>
+                <div
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Assign a Team
+                </div>
+              </FormLabel>
+              <TeamSelectInput>
+                <div
+                  className="css-15lxetg-TeamSelectInput e19kiapg4"
                 >
                   <ForwardRef(RefForwardedSelectControl)
                     clearable={false}
-                    forwardedRef={null}
                     name="select-team"
                     onChange={[Function]}
                     options={Array []}
                     placeholder="Select a Team"
                     value={0}
                   >
-                    <SelectControlLegacy
+                    <SelectControl
                       clearable={false}
                       forwardedRef={null}
                       height={36}
@@ -4069,7 +4766,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         <SelectPicker
                           arrowRenderer={[Function]}
                           backspaceRemoves={false}
-                          className="css-140v9or-StyledSelect e1ynsgsr0"
+                          className="css-140v9or-StyledSelect eho28m20"
                           clearable={false}
                           deleteRemoves={false}
                           forwardedRef={null}
@@ -4086,7 +4783,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                             autosize={true}
                             backspaceRemoves={false}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="css-140v9or-StyledSelect e1ynsgsr0"
+                            className="css-140v9or-StyledSelect eho28m20"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -4134,7 +4831,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                             valueKey="value"
                           >
                             <div
-                              className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                              className="Select css-140v9or-StyledSelect eho28m20 is-searchable Select--single"
                             >
                               <div
                                 className="Select-control"
@@ -4223,208 +4920,208 @@ exports[`CreateProject should fill in project name if its empty when platform is
                           </Select>
                         </SelectPicker>
                       </StyledSelect>
-                    </SelectControlLegacy>
+                    </SelectControl>
                   </ForwardRef(RefForwardedSelectControl)>
-                </SelectControl>
-              </ForwardRef(RefForwardedSelectControl)>
-              <Tooltip
-                containerDisplayMode="inline-block"
-                position="top"
-                title="Create a team"
-              >
-                <Manager>
-                  <Reference>
-                    <InnerReference
-                      setReferenceNode={[Function]}
-                    >
-                      <Container
-                        aria-describedby="tooltip-123456"
-                        containerDisplayMode="inline-block"
-                        onBlur={[Function]}
-                        onFocus={[Function]}
-                        onMouseEnter={[Function]}
-                        onMouseLeave={[Function]}
-                      >
-                        <span
-                          aria-describedby="tooltip-123456"
-                          className="css-sce1yi-Container eowlwvy0"
-                          onBlur={[Function]}
-                          onFocus={[Function]}
-                          onMouseEnter={[Function]}
-                          onMouseLeave={[Function]}
+                  <Tooltip
+                    containerDisplayMode="inline-block"
+                    position="top"
+                    title="Create a team"
+                  >
+                    <Manager>
+                      <Reference>
+                        <InnerReference
+                          setReferenceNode={[Function]}
                         >
-                          <forwardRef<Button>
-                            borderless={true}
-                            data-test-id="create-team"
-                            icon="icon-circle-add"
-                            onClick={[Function]}
-                            type="button"
+                          <Container
+                            aria-describedby="tooltip-123456"
+                            containerDisplayMode="inline-block"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <Button
-                              align="center"
-                              borderless={true}
-                              data-test-id="create-team"
-                              disabled={false}
-                              forwardRef={null}
-                              icon="icon-circle-add"
-                              onClick={[Function]}
-                              type="button"
+                            <span
+                              aria-describedby="tooltip-123456"
+                              className="css-sce1yi-Container eowlwvy0"
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
                             >
-                              <StyledButton
-                                aria-disabled={false}
+                              <forwardRef<Button>
                                 borderless={true}
                                 data-test-id="create-team"
-                                disabled={false}
-                                forwardRef={null}
+                                icon="icon-circle-add"
                                 onClick={[Function]}
-                                role="button"
                                 type="button"
                               >
-                                <Component
-                                  aria-disabled={false}
-                                  className="css-e1k74m-StyledButton edwq9my0"
+                                <Button
+                                  align="center"
+                                  borderless={true}
                                   data-test-id="create-team"
+                                  disabled={false}
                                   forwardRef={null}
+                                  icon="icon-circle-add"
                                   onClick={[Function]}
-                                  role="button"
                                   type="button"
                                 >
-                                  <button
+                                  <StyledButton
                                     aria-disabled={false}
-                                    className="css-e1k74m-StyledButton edwq9my0"
+                                    borderless={true}
                                     data-test-id="create-team"
+                                    disabled={false}
+                                    forwardRef={null}
                                     onClick={[Function]}
                                     role="button"
                                     type="button"
                                   >
-                                    <ButtonLabel
-                                      align="center"
-                                      borderless={true}
+                                    <Component
+                                      aria-disabled={false}
+                                      className="css-e1k74m-StyledButton edwq9my0"
+                                      data-test-id="create-team"
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      role="button"
+                                      type="button"
                                     >
-                                      <Component
-                                        align="center"
-                                        borderless={true}
-                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      <button
+                                        aria-disabled={false}
+                                        className="css-e1k74m-StyledButton edwq9my0"
+                                        data-test-id="create-team"
+                                        onClick={[Function]}
+                                        role="button"
+                                        type="button"
                                       >
-                                        <span
-                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                        <ButtonLabel
+                                          align="center"
+                                          borderless={true}
                                         >
-                                          <Icon
-                                            hasChildren={false}
+                                          <Component
+                                            align="center"
+                                            borderless={true}
+                                            className="css-cmi7y3-ButtonLabel edwq9my1"
                                           >
-                                            <Component
-                                              className="css-heib7e-Icon edwq9my2"
-                                              hasChildren={false}
+                                            <span
+                                              className="css-cmi7y3-ButtonLabel edwq9my1"
                                             >
-                                              <span
-                                                className="css-heib7e-Icon edwq9my2"
+                                              <Icon
+                                                hasChildren={false}
                                               >
-                                                <StyledInlineSvg
-                                                  size="14px"
-                                                  src="icon-circle-add"
+                                                <Component
+                                                  className="css-heib7e-Icon edwq9my2"
+                                                  hasChildren={false}
                                                 >
-                                                  <ForwardRef
-                                                    className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                    size="14px"
-                                                    src="icon-circle-add"
+                                                  <span
+                                                    className="css-heib7e-Icon edwq9my2"
                                                   >
-                                                    <svg
-                                                      className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                      height="14px"
-                                                      viewBox={Object {}}
-                                                      width="14px"
+                                                    <StyledInlineSvg
+                                                      size="14px"
+                                                      src="icon-circle-add"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </ForwardRef>
-                                                </StyledInlineSvg>
-                                              </span>
-                                            </Component>
-                                          </Icon>
-                                        </span>
-                                      </Component>
-                                    </ButtonLabel>
-                                  </button>
-                                </Component>
-                              </StyledButton>
-                            </Button>
-                          </forwardRef<Button>>
-                        </span>
-                      </Container>
-                    </InnerReference>
-                  </Reference>
-                </Manager>
-              </Tooltip>
+                                                      <ForwardRef
+                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                        size="14px"
+                                                        src="icon-circle-add"
+                                                      >
+                                                        <svg
+                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                          height="14px"
+                                                          viewBox={Object {}}
+                                                          width="14px"
+                                                        >
+                                                          <use
+                                                            href="#test"
+                                                            xlinkHref="#test"
+                                                          />
+                                                        </svg>
+                                                      </ForwardRef>
+                                                    </StyledInlineSvg>
+                                                  </span>
+                                                </Component>
+                                              </Icon>
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </forwardRef<Button>>
+                            </span>
+                          </Container>
+                        </InnerReference>
+                      </Reference>
+                    </Manager>
+                  </Tooltip>
+                </div>
+              </TeamSelectInput>
             </div>
-          </TeamSelectInput>
-        </div>
-        <div>
-          <forwardRef<Button>
-            data-test-id="create-project"
-            disabled={true}
-            priority="primary"
-          >
-            <Button
-              align="center"
-              data-test-id="create-project"
-              disabled={true}
-              forwardRef={null}
-              priority="primary"
-            >
-              <StyledButton
-                aria-disabled={true}
-                aria-label="Create Project"
+            <div>
+              <forwardRef<Button>
                 data-test-id="create-project"
                 disabled={true}
-                forwardRef={null}
-                onClick={[Function]}
                 priority="primary"
-                role="button"
               >
-                <Component
-                  aria-disabled={true}
-                  aria-label="Create Project"
-                  className="css-1e3hcbu-StyledButton edwq9my0"
+                <Button
+                  align="center"
                   data-test-id="create-project"
+                  disabled={true}
                   forwardRef={null}
-                  onClick={[Function]}
-                  role="button"
+                  priority="primary"
                 >
-                  <button
+                  <StyledButton
                     aria-disabled={true}
                     aria-label="Create Project"
-                    className="css-1e3hcbu-StyledButton edwq9my0"
                     data-test-id="create-project"
+                    disabled={true}
+                    forwardRef={null}
                     onClick={[Function]}
+                    priority="primary"
                     role="button"
                   >
-                    <ButtonLabel
-                      align="center"
-                      priority="primary"
+                    <Component
+                      aria-disabled={true}
+                      aria-label="Create Project"
+                      className="css-1e3hcbu-StyledButton edwq9my0"
+                      data-test-id="create-project"
+                      forwardRef={null}
+                      onClick={[Function]}
+                      role="button"
                     >
-                      <Component
-                        align="center"
-                        className="css-zmpclt-ButtonLabel edwq9my1"
-                        priority="primary"
+                      <button
+                        aria-disabled={true}
+                        aria-label="Create Project"
+                        className="css-1e3hcbu-StyledButton edwq9my0"
+                        data-test-id="create-project"
+                        onClick={[Function]}
+                        role="button"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
+                        <ButtonLabel
+                          align="center"
+                          priority="primary"
                         >
-                          Create Project
-                        </span>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
-              </StyledButton>
-            </Button>
-          </forwardRef<Button>>
-        </div>
-      </form>
-    </CreateProjectForm>
+                          <Component
+                            align="center"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
+                            priority="primary"
+                          >
+                            <span
+                              className="css-zmpclt-ButtonLabel edwq9my1"
+                            >
+                              Create Project
+                            </span>
+                          </Component>
+                        </ButtonLabel>
+                      </button>
+                    </Component>
+                  </StyledButton>
+                </Button>
+              </forwardRef<Button>>
+            </div>
+          </form>
+        </CreateProjectForm>
+      </div>
+    </StickyWrapper>
   </div>
 </CreateProject>
 `;
