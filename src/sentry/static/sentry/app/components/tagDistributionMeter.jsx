@@ -198,7 +198,7 @@ const Label = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 120px;
+  width: 150px;
 `;
 
 const Percent = styled('div')`
