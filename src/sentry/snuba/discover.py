@@ -304,7 +304,7 @@ def query(
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     """
     if not selected_columns:
-        raise InvalidSearchQuery("No fields provided")
+        raise InvalidSearchQuery("No columns selected")
 
     snuba_filter = get_filter(query, params)
 
@@ -340,7 +340,9 @@ def query(
         )
         if not found:
             raise InvalidSearchQuery(
-                "Aggregates used in a condition must also be in the selected columns."
+                "Aggregate {} used in a condition but is not a selected column.".format(
+                    having_clause[0]
+                )
             )
 
     result = raw_query(

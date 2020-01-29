@@ -5,7 +5,15 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+
 from sentry.utils.samples import load_data
+from sentry.utils.compat.mock import patch
+from sentry.utils.snuba import (
+    RateLimitExceeded,
+    QueryOutsideRetentionError,
+    QueryIllegalTypeOfArgument,
+    QueryExecutionError,
+)
 
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
@@ -69,6 +77,63 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             response.data["detail"]
             == "Parse error: 'search' (column 4). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
         )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_handling_snuba_errors(self, mock_query):
+        mock_query.side_effect = RateLimitExceeded("test")
+
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        self.store_event(
+            data={"event_id": "a" * 32, "message": "how to make fast"}, project_id=project.id
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+        )
+
+        mock_query.side_effect = QueryExecutionError("test")
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid query."
+
+        mock_query.side_effect = QueryIllegalTypeOfArgument("test")
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid query. Argument to function is wrong type."
+
+        mock_query.side_effect = QueryOutsideRetentionError("test")
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={"field": ["id", "timestamp"], "orderby": ["-timestamp", "-id"]},
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid date range. Please try a more recent date range."
 
     def test_raw_data(self):
         self.login_as(user=self.user)
@@ -646,7 +711,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(self.url, format="json", data={"query": "test"})
         assert response.status_code == 400, response.content
-        assert response.data["detail"] == "No fields provided"
+        assert response.data["detail"] == "No columns selected"
 
     def test_condition_on_aggregate_misses(self):
         self.login_as(user=self.user)
