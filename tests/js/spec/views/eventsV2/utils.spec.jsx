@@ -267,6 +267,7 @@ describe('isAggregateField', function() {
   it('detects aliases', function() {
     expect(isAggregateField('p888')).toBe(false);
     expect(isAggregateField('other_field')).toBe(false);
+    expect(isAggregateField('foo.bar.is-Enterprise-42')).toBe(false);
     expect(isAggregateField('p75')).toBe(true);
     expect(isAggregateField('last_seen')).toBe(true);
   });
@@ -275,6 +276,7 @@ describe('isAggregateField', function() {
     expect(isAggregateField('thing(')).toBe(false);
     expect(isAggregateField('count()')).toBe(true);
     expect(isAggregateField('unique_count(user)')).toBe(true);
+    expect(isAggregateField('unique_count(foo.bar.is-Enterprise-42)')).toBe(true);
   });
 });
 
