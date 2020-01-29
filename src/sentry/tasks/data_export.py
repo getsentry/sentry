@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
-import six
+import csv
 from datetime import datetime
 
 from sentry.api import client
 from sentry.constants import ExportQueryType
-from sentry.models import User
 from sentry.tasks.base import instrumented_task
 
 
@@ -25,43 +24,28 @@ def compile_data(data_export):
 
 
 def process_discover_v1(data_export):
-    # Get the user who made the data export request
-    user = User.objects.get(id=data_export.user_id)
-    # Use their credentials to create an export job
     response = client.post(
-        path="/organizations/sentry/discover/query/", user=user, data=data_export.query_info
+        path="/organizations/{}/discover/query/".format(data_export.organization.slug),
+        user=data_export.user,
+        data=data_export.query_info,
     )
     response.render()
-    # Extract the keys and data
     data = response.data["data"]
     keys = data[0].keys()
     return convert_to_csv(type=ExportQueryType.DISCOVER_V1_STR, keys=keys, data=data)
 
 
-# /Users/leanderrodrigues/Downloads/CdI6NhU5.csv
-
-
 def convert_to_csv(type, keys, data):
     # TODO(Leander): Consider sorting the keys in a consistent order(?)
-    time_string = datetime.now().strftime("%m:%d:%Y")
+    time_string = datetime.now().strftime("%m:%d:%Y__%H:%M")
     file_path = "/Users/leanderrodrigues/Downloads/{}-{}.csv".format(type, time_string)
-    with open(file_path, "w") as f:
-        key_string = ""
-        for key in keys:
-            if key is not keys[-1]:
-                key_string = key_string + key + ","
-            else:
-                key_string = key_string + key + "\n"
-                f.writelines([key_string])
-        for item in data:
-            item_string = ""
-            for key in keys:
-                if key is not keys[-1]:
-                    item_string = item_string + six.binary_type(item[key]) + ","
-                else:
-                    item_string = item_string + six.binary_type(item[key]) + "\n"
-            f.writelines([item_string])
-        f.close()
+
+    with open(file_path, "w") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=keys)
+        writer.writeheader()
+        writer.writerows(data)
+        csvfile.close()
+    # TODO(Leander): Upload the file to GCS and record the storage_url in ExportedData
     return
 
 
