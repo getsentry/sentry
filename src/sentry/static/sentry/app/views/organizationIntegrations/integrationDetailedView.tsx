@@ -1,7 +1,8 @@
-import React from 'react';
+import React, {FunctionComponent} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import PropTypes from 'prop-types';
 
 import {Organization, Integration, IntegrationProvider} from 'app/types';
 import {RequestOptions} from 'app/api';
@@ -16,7 +17,7 @@ import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrat
 import Access from 'app/components/acl/access';
 import Tag from 'app/views/settings/components/tag';
 import Button from 'app/components/button';
-import Alert from 'app/components/alert';
+import Alert, {Props as AlertProps} from 'app/components/alert';
 import Tooltip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/links/externalLink';
@@ -69,9 +70,9 @@ class IntegrationDetailedView extends AsyncComponent<
     const {location} = this.props;
     const value =
       typeof location.query.tab === 'string' ? location.query.tab : 'information';
-    this.setState({
-      tab: value,
-    });
+
+    // eslint-disable-next-line react/no-did-mount-set-state
+    this.setState({tab: value});
   }
 
   getInformation() {
@@ -169,7 +170,6 @@ class IntegrationDetailedView extends AsyncComponent<
   };
 
   renderBody() {
-    console.log('state: ', this.state);
     const {configurations, tab} = this.state;
     const information = this.getInformation();
     const {organization} = this.props;
@@ -394,7 +394,11 @@ const StyledInstalledIntegration = styled(
   border: 1px solid ${p => p.theme.borderLight};
 `;
 
-const InformationCard = ({children, alerts, information}) => {
+const InformationCard: FunctionComponent<InformationCardProps> = ({
+  children,
+  alerts,
+  information,
+}) => {
   const {metadata} = information;
   const description = marked(metadata.description);
   return (
@@ -417,4 +421,19 @@ const InformationCard = ({children, alerts, information}) => {
     </React.Fragment>
   );
 };
+
+InformationCard.propTypes = {
+  alerts: PropTypes.array,
+  information: PropTypes.object,
+};
+
+type InformationCardProps = {
+  alerts: AlertType[];
+  information: IntegrationProvider;
+};
+
+type AlertType = AlertProps & {
+  text: string;
+};
+
 export default withOrganization(IntegrationDetailedView);
