@@ -254,6 +254,7 @@ class ReleaseSerializer(Serializer):
         d = {
             "version": obj.version,
             "shortVersion": obj.version,
+            "versionInfo": obj.verison_info,
             "ref": obj.ref,
             "url": obj.url,
             "dateReleased": obj.date_released,
