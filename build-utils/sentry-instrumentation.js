@@ -11,7 +11,7 @@ class SentryInstrumentation {
       require('@sentry/apm');
 
       this.Sentry.init({
-        dsn: 'https://1e77769d661c4caab572f453e631362e@sentry.io/1853222',
+        dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
         environment: process.env.TRAVIS_BRANCH ? 'travis' : 'local',
       });
     }
