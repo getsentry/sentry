@@ -11,13 +11,20 @@ const SELECTOR_BUTTON_SAVED = 'ButtonSaved';
 const SELECTOR_BUTTON_UPDATE = '[data-test-id="discover2-savedquery-button-update"]';
 const SELECTOR_BUTTON_DELETE = '[data-test-id="discover2-savedquery-button-delete"]';
 
-function generateWrappedComponent(location, organization, eventView, savedQuery) {
+function generateWrappedComponent(
+  location,
+  organization,
+  eventView,
+  savedQuery,
+  disabled = false
+) {
   return mountWithTheme(
     <SavedQueryButtonGroup
       location={location}
       organization={organization}
       eventView={eventView}
       savedQuery={savedQuery}
+      disabled={disabled}
     />,
     TestStubs.routerContext()
   );
@@ -50,6 +57,19 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
 
     beforeEach(() => {
       mockUtils.mockClear();
+    });
+
+    it('renders disabled buttons when disabled prop is used', () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsView,
+        undefined,
+        true
+      );
+
+      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
+      expect(buttonSaveAs.props().disabled).toBe(true);
     });
 
     it('renders the correct set of buttons', () => {
