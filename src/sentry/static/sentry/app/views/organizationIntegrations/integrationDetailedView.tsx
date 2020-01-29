@@ -428,7 +428,7 @@ InformationCard.propTypes = {
 };
 
 type InformationCardProps = {
-  alerts: AlertType[];
+  alerts: any | AlertType[];
   information: IntegrationProvider;
 };
 
