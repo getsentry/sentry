@@ -17,14 +17,17 @@ class Migration(migrations.Migration):
     # someone from ops to run manually and monitor.
     # General advice is that if in doubt, mark your migration as `is_dangerous`.
     # Some things you should always mark as dangerous:
-    # - Adding indexes to large tables. These indexes should be created concurrently,
-    #   unfortunately we can't run migrations outside of a transaction until Django
-    #   1.10. So until then these should be run manually.
     # - Large data migrations. Typically we want these to be run manually by ops so that
     #   they can be monitored. Since data migrations will now hold a transaction open
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
+
+    # This flag is used to decide whether to run this migration in a transaction or not.
+    # By default we prefer to run in a transaction, but for migrations where you want
+    # to `CREATE INDEX CONCURRENTLY` this needs to be set to False. Typically you'll
+    # want to create an index concurrently when adding one to an existing table.
+    atomic = True
 
 %(replaces_str)s%(initial_str)s
     dependencies = [
