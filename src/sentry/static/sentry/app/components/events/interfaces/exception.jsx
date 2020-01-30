@@ -44,22 +44,20 @@ class ExceptionInterface extends React.Component {
       return null;
     }
 
-    // const title = (
-    //   <CrashHeader
-    //     title={t('Exception')}
-    //     platform={event.platform}
-    //     exception={data}
-    //     stackView={stackView}
-    //     newestFirst={newestFirst}
-    //     stackType={stackType}
-    //     hideGuide={hideGuide}
-    //     onChange={newState => {
-    //       this.setState(newState);
-    //     }}
-    //   />
-    // );
-
-    return null;
+    const title = (
+      <CrashHeader
+        title={t('Exception')}
+        platform={event.platform}
+        exception={data}
+        stackView={stackView}
+        newestFirst={newestFirst}
+        stackType={stackType}
+        hideGuide={hideGuide}
+        onChange={newState => {
+          this.setState(newState);
+        }}
+      />
+    );
 
     return (
       <EventDataSection event={event} type={type} title={title} wrapTitle={false}>
