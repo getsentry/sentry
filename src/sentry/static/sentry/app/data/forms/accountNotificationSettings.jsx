@@ -7,11 +7,14 @@ export const fields = {
   subscribeByDefault: {
     name: 'subscribeByDefault',
     type: 'boolean',
-    label: t('Send Me Project Alerts'),
+    label: t('Send Me Alerts'),
     // TODO(billy): Make this a real link
-    help: tct('Alerts are defined in [locationPath]', {
-      locationPath: '[Project] » Project Settings » Alerts » Rules.',
-    }),
+    help: tct(
+      'Alerts are defined in [locationPath]. Enable this to receive alerts sent to your teams. You will always receive alerts configured to be sent directly to you.',
+      {
+        locationPath: '[Project] » Project Settings » Alerts',
+      }
+    ),
   },
   workflowNotifications: {
     name: 'workflowNotifications',
