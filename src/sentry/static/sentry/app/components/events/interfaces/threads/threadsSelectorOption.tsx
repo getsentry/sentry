@@ -6,6 +6,7 @@ import space from 'app/styles/space';
 import TextOverflow from 'app/components/textOverflow';
 import Text from 'app/components/text';
 import InlineSvg from 'app/components/inlineSvg';
+import {EntryTypeData} from 'app/types';
 
 import ThreadsSelectorOptionLabel from './ThreadsSelectorOptionLabel';
 
@@ -13,7 +14,7 @@ interface Props {
   id: string;
   name?: string;
   frame: Frame;
-  crashed?: boolean;
+  crashed?: EntryTypeData;
 }
 
 const ThreadsSelectorOption: React.FC<Props> = ({id, name, frame, crashed}) => {
@@ -34,7 +35,12 @@ const ThreadsSelectorOption: React.FC<Props> = ({id, name, frame, crashed}) => {
       ) : (
         <Text>{`<unknown>`}</Text>
       )}
-      {crashed && <StyledCrashIcon src="icon-warning-sm" />}
+      {crashed && (
+        <StyledCrashIcon
+          src="icon-warning-sm"
+          title={`(crashed with ${crashed.values[0].type})`}
+        />
+      )}
     </StyledContainer>
   );
 };

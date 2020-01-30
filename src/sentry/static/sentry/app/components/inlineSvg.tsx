@@ -9,6 +9,7 @@ type Props = {
   size?: string;
   width?: string;
   height?: string;
+  title?: string;
 };
 
 type InlineSvgProps = React.ComponentProps<'svg'> & Props;
@@ -16,7 +17,7 @@ type InlineSvgProps = React.ComponentProps<'svg'> & Props;
 const InlineSvg = styled(
   React.forwardRef<SVGSVGElement, InlineSvgProps>(
     // eslint-disable-next-line react/prop-types
-    ({src, size, width, height, ...props}, ref) => {
+    ({src, size, width, height, title, ...props}, ref) => {
       const {id, viewBox} = require(`../icons/${src}.svg`).default;
 
       return (
@@ -27,6 +28,7 @@ const InlineSvg = styled(
           width={width || size || '1em'}
           height={height || size || '1em'}
         >
+          {title && <title>{title}</title>}
           <use href={`#${id}`} xlinkHref={`#${id}`} />
         </svg>
       );
