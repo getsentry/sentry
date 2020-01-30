@@ -10,7 +10,7 @@ type Props = {
   checked?: boolean;
   size?: string;
   className?: string;
-} & HTMLDivElement;
+};
 
 const getDisabledStyles = p =>
   p.disabled &&
