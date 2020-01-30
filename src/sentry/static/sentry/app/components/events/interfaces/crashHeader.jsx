@@ -91,7 +91,7 @@ class CrashHeader extends React.Component {
     const {title, beforeTitle, hideGuide, stackView, stackType, newestFirst} = this.props;
 
     let titleNode = (
-      <h3 className="pull-left" style={{marginBottom: 0}}>
+      <h3 className="pull-left" style={{marginBottom: space(0)}}>
         {title}
         <small style={{marginLeft: 5}}>
           (
