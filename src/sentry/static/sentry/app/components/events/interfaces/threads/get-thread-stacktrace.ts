@@ -3,6 +3,7 @@ import {Event} from 'app/types';
 
 import getThreadException from './get-thread-exception';
 
+// TODO(ts): define raw type
 function getThreadStacktrace(thread: Thread, event: Event, raw?: any) {
   const exc = getThreadException(thread, event);
   if (exc) {
