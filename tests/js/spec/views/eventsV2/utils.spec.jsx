@@ -327,6 +327,12 @@ describe('getExpandedResults()', function() {
     expect(result.query).toEqual('event.type:error event.type:csp');
   });
 
+  it('removes any aggregates in either search conditions or extra conditions', () => {
+    const view = new EventView({...state, query: 'event.type:error count(id):<10'});
+    const result = getExpandedResults(view, {'count(id)': '>2'}, {});
+    expect(result.query).toEqual('event.type:error');
+  });
+
   it('applies conditions from dataRow map structure based on fields', () => {
     const view = new EventView(state);
     const result = getExpandedResults(view, {extra: 'condition'}, {title: 'Event title'});
