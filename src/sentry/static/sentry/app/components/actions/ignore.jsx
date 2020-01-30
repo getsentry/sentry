@@ -180,7 +180,7 @@ export default class IgnoreActions extends React.Component {
                   return (
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
-                        title={tn('one time', '%s times', count)}
+                        title={tn('one time\u2026', '%s times\u2026', count)}
                         caret={false}
                         isNestedDropdown
                         alwaysRenderMenu
@@ -231,7 +231,7 @@ export default class IgnoreActions extends React.Component {
                   return (
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
-                        title={tn('one user', '%s users', count)}
+                        title={tn('one user\u2026', '%s users\u2026', count)}
                         caret={false}
                         isNestedDropdown
                         alwaysRenderMenu
