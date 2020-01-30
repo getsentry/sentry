@@ -9,6 +9,7 @@ from datetime import timedelta, datetime
 from django.db import migrations
 
 from sentry import options
+from sentry.eventstore.models import Event as NewEvent
 
 
 def backfill_eventstream(apps, schema_editor):
@@ -53,31 +54,6 @@ def backfill_eventstream(apps, schema_editor):
             event.group = groups.get(event.group_id)
         eventstore.bind_nodes(_events, "data")
 
-    def _get_grouping_variants(event):
-        from sentry.grouping.api import get_grouping_variants_for_event, load_grouping_config
-        from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
-
-        config = event.data.get("grouping_config")
-        config = load_grouping_config(config)
-        return get_grouping_variants_for_event(event, config)
-
-    def _get_primary_hash(event):
-        hashes = event.data.get("hashes")
-        if hashes is None:
-            hashes = (
-                hash
-                for hash in (x.get_hash() for x in _get_grouping_variants(event).values())
-                if hash
-            )
-        else:
-            hashes = iter(hashes)
-
-        return next(hashes)
-
-    def _get_raw_data(event):
-        """Returns the internal raw event data dict."""
-        return dict(event.data.items())
-
     if skip_backfill:
         print("Skipping backfill.\n")
         return
@@ -92,12 +68,12 @@ def backfill_eventstream(apps, schema_editor):
     print("Events to process: {}\n".format(count))
 
     processed = 0
-    for event in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
-        primary_hash = _get_primary_hash(event)
+    for e in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
+        event = NewEvent(project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=e.data.data)
+        primary_hash = event.get_primary_hash()
         if event.project is None or event.group is None:
             print("Skipped {} as group or project information is invalid.\n".format(event))
             continue
-        event.get_raw_data = types.MethodType(_get_raw_data, event)
 
         eventstream.insert(
             group=event.group,
