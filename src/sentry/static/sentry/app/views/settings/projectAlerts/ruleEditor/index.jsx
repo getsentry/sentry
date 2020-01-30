@@ -2,7 +2,6 @@ import $ from 'jquery';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
@@ -46,35 +45,39 @@ const AlertRuleRow = styled('h6')`
   align-items: center;
 `;
 
-const RuleEditor = createReactClass({
-  displayName: 'RuleEditor',
-
-  propTypes: {
+class RuleEditor extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     actions: PropTypes.array.isRequired,
     conditions: PropTypes.array.isRequired,
     project: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       rule: null,
       loading: false,
       error: null,
       environments: [],
+      uuid: null,
     };
-  },
+  }
 
   componentDidMount() {
     this.fetchData();
-  },
+  }
 
   componentDidUpdate() {
     if (this.state.error) {
       $(document.body).scrollTop($(this.formNode).offset().top);
     }
-  },
+  }
+
+  componentWillUnmount() {
+    this.stopPolling();
+  }
 
   fetchData() {
     const {
@@ -101,9 +104,54 @@ const RuleEditor = createReactClass({
     Promise.all(promises).then(([environments, rule]) => {
       this.setState({environments, rule});
     });
-  },
+  }
 
-  handleSubmit(e) {
+  fetchStatus() {
+    this.pollHandler();
+    this.startPolling();
+  }
+
+  pollHandler = async () => {
+    const {api, organization, project} = this.props;
+    const {uuid} = this.state;
+    const origRule = {...this.state.rule};
+
+    const {status, rule} = await api.requestPromise(
+      `/projects/${organization.slug}/${project.slug}/rule-async-tasks/${uuid}/`
+    );
+
+    if (status === 'pending') {
+      return;
+    }
+
+    this.stopPolling();
+    if (status === 'failed') {
+      // TODO(meredith): better error message - maybe get the error
+      // passed through from the endpoint?
+      addErrorMessage(t('An error occurred'));
+      this.setState({loading: false, rule: origRule});
+    }
+    if (rule && status === 'success') {
+      this.setState({error: null, loading: false, rule});
+      const isNew = !origRule.id;
+      if (isNew) {
+        browserHistory.replace(
+          recreateRoute(`${rule.id}/`, {...this.props, stepBack: -1})
+        );
+      }
+      addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
+    }
+  };
+
+  startPolling() {
+    this.intervalId = setInterval(this.pollHandler, 1000);
+  }
+
+  stopPolling() {
+    clearInterval(this.intervalId);
+  }
+
+  handleSubmit = e => {
     e.preventDefault();
 
     const data = {...this.state.rule};
@@ -124,15 +172,24 @@ const RuleEditor = createReactClass({
     this.props.api.request(endpoint, {
       method: isNew ? 'POST' : 'PUT',
       data,
-      success: resp => {
-        this.setState({error: null, loading: false, rule: resp});
-        // Redirect to correct ID if /new
-        if (isNew) {
-          browserHistory.replace(
-            recreateRoute(`${resp.id}/`, {...this.props, stepBack: -1})
-          );
+      success: (resp, _, jqXHR) => {
+        // if we get a 202 back it means that we have an async task
+        // running to lookup and verfity the channel id for Slack.
+        if (jqXHR.status === 202) {
+          const rule = {...this.state.rule};
+          this.setState({error: null, loading: true, rule, uuid: resp.uuid});
+          this.fetchStatus();
+          addMessage(t('Looking through all your damn channels...'));
+        } else {
+          this.setState({error: null, loading: false, rule: resp});
+          // Redirect to correct ID if /new
+          if (isNew) {
+            browserHistory.replace(
+              recreateRoute(`${resp.id}/`, {...this.props, stepBack: -1})
+            );
+          }
+          addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
         }
-        addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
       },
       error: response => {
         this.setState({
@@ -142,7 +199,7 @@ const RuleEditor = createReactClass({
         addErrorMessage(t('An error occurred'));
       },
     });
-  },
+  };
 
   hasError(field) {
     const {error} = this.state;
@@ -150,7 +207,7 @@ const RuleEditor = createReactClass({
       return false;
     }
     return !!error[field];
-  },
+  }
 
   handleEnvironmentChange(val) {
     // If 'All Environments' is selected the value should be null
@@ -159,7 +216,7 @@ const RuleEditor = createReactClass({
     } else {
       this.handleChange('environment', val);
     }
-  },
+  }
 
   handleChange(prop, val) {
     this.setState(state => {
@@ -167,7 +224,7 @@ const RuleEditor = createReactClass({
       rule[prop] = val;
       return {rule};
     });
-  },
+  }
 
   handlePropertyChange(type) {
     return idx => {
@@ -177,7 +234,7 @@ const RuleEditor = createReactClass({
         this.setState({rule});
       };
     };
-  },
+  }
 
   handleAddRow(type) {
     return id => {
@@ -188,7 +245,7 @@ const RuleEditor = createReactClass({
         };
       });
     };
-  },
+  }
 
   handleDeleteRow(type) {
     return idx => {
@@ -199,7 +256,7 @@ const RuleEditor = createReactClass({
         };
       });
     };
-  },
+  }
 
   render() {
     const {projectId} = this.props.params;
@@ -339,8 +396,8 @@ const RuleEditor = createReactClass({
         </Panel>
       </form>
     );
-  },
-});
+  }
+}
 
 export {RuleEditor};
 
