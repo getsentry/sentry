@@ -639,7 +639,7 @@ class StoreView(APIView):
             track_outcome(
                 organization_id, project_id, key.id, Outcome.INVALID, "invalid_transaction"
             )
-            raise APIError(e.message.split("\n", 1)[0])
+            raise APIError(six.text_type(e).split("\n", 1)[0])
 
         data = event_manager.get_data()
         dict_data = dict(data)
@@ -998,7 +998,7 @@ class UnrealView(StoreView):
                 Outcome.INVALID,
                 "process_unreal",
             )
-            raise APIError(e.message.split("\n", 1)[0])
+            raise APIError(six.text_type(e).split("\n", 1)[0])
 
         try:
             unreal_context = unreal.get_context()

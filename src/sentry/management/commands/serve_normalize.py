@@ -36,7 +36,9 @@ def catch_errors(f):
                 return encode(
                     {
                         "result": None,
-                        "error": force_str(e.message) + " " + force_str(traceback.format_exc()),
+                        "error": force_str(six.text_type(e))
+                        + " "
+                        + force_str(traceback.format_exc()),
                         "metrics": None,
                         "encoding_error": True,
                     }

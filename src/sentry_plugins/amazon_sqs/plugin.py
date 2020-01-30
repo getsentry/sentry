@@ -117,7 +117,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                     },
                 )
                 return False
-            elif e.message.endswith("must contain the parameter MessageGroupId."):
+            elif six.text_type(e).endswith("must contain the parameter MessageGroupId."):
                 metrics_name = "sentry_plugins.amazon_sqs.missing_message_group_id"
                 logger.info(
                     metrics_name,
