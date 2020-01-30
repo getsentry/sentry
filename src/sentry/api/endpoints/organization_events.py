@@ -145,7 +145,11 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 },
             )
             message = "Internal error. Please try again."
-            if isinstance(
+            if isinstance(error, snuba.QueryIllegalTypeOfArgument):
+                message = "Invalid query. Argument to function is wrong type."
+            elif isinstance(error, snuba.QueryOutsideRetentionError):
+                message = "Invalid date range. Please try a more recent date range."
+            elif isinstance(
                 error,
                 (
                     snuba.RateLimitExceeded,
@@ -163,10 +167,6 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 ),
             ):
                 message = "Invalid query."
-            elif isinstance(error, snuba.QueryIllegalTypeOfArgument):
-                message = "Invalid query. Argument to function is wrong type."
-            elif isinstance(error, snuba.QueryOutsideRetentionError):
-                message = "Invalid date range. Please try a more recent date range."
 
             raise ParseError(detail=message)
 
