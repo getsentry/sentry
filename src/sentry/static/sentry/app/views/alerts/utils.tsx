@@ -7,20 +7,20 @@ import {Incident, IncidentStatus} from './types';
 export function fetchIncident(
   api: Client,
   orgId: string,
-  incidentId: string
+  alertId: string
 ): Promise<Incident> {
-  return api.requestPromise(`/organizations/${orgId}/incidents/${incidentId}/`);
+  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`);
 }
 
 export function updateSubscription(
   api: Client,
   orgId: string,
-  incidentId: string,
+  alertId: string,
   isSubscribed?: boolean
 ): Promise<Incident> {
   const method = isSubscribed ? 'POST' : 'DELETE';
   return api.requestPromise(
-    `/organizations/${orgId}/incidents/${incidentId}/subscriptions/`,
+    `/organizations/${orgId}/incidents/${alertId}/subscriptions/`,
     {
       method,
     }
@@ -30,10 +30,10 @@ export function updateSubscription(
 export function updateStatus(
   api: Client,
   orgId: string,
-  incidentId: string,
+  alertId: string,
   status: IncidentStatus
 ): Promise<Incident> {
-  return api.requestPromise(`/organizations/${orgId}/incidents/${incidentId}/`, {
+  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`, {
     method: 'PUT',
     data: {
       status,
