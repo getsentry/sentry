@@ -57,7 +57,7 @@ describe('GlobalSelectionHeader', function() {
     MockApiClient.clearMockResponses();
     jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
       projects: organization.projects,
-      loadingProjects: false,
+      loading: false,
     }));
     GlobalSelectionStore.reset();
     [
@@ -274,7 +274,7 @@ describe('GlobalSelectionHeader', function() {
     });
     jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
       projects: initialData.projects,
-      loadingProjects: false,
+      loading: false,
     }));
 
     const wrapper = mountWithTheme(
@@ -498,7 +498,7 @@ describe('GlobalSelectionHeader', function() {
       const org = TestStubs.Organization({projects: [project]});
       jest
         .spyOn(ProjectsStore, 'getState')
-        .mockImplementation(() => ({projects: org.projects, loadingProjects: false}));
+        .mockImplementation(() => ({projects: org.projects, loading: false}));
 
       const initializationObj = initializeOrg({
         organization: org,
@@ -520,6 +520,10 @@ describe('GlobalSelectionHeader', function() {
   describe('forceProject selection mode', function() {
     let wrapper;
     beforeAll(function() {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [],
+      });
       const initialData = initializeOrg({
         organization: {features: ['global-views']},
         projects: [
@@ -590,7 +594,7 @@ describe('GlobalSelectionHeader', function() {
       beforeEach(function() {
         jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
           projects: initialData.organization.projects,
-          loadingProjects: false,
+          loading: false,
         }));
         initialData.router.push.mockClear();
         initialData.router.replace.mockClear();
@@ -609,8 +613,21 @@ describe('GlobalSelectionHeader', function() {
       });
 
       it('appends projectId to URL when `forceProject` becomes available (async)', async function() {
+        const mockProjectsStoreState = {
+          projects: [],
+          loading: true,
+        };
+
+        jest
+          .spyOn(ProjectsStore, 'getState')
+          .mockImplementation(() => mockProjectsStoreState);
+
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
+
+        // load the projects
+        mockProjectsStoreState.projects = initialData.organization.projects;
+        mockProjectsStoreState.loading = false;
 
         wrapper.setProps({
           forceProject: initialData.organization.projects[1],
@@ -622,6 +639,8 @@ describe('GlobalSelectionHeader', function() {
           pathname: undefined,
           query: {project: [1]},
         });
+
+        expect(initialData.router.replace).toHaveBeenCalledTimes(1);
       });
 
       it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function() {
@@ -715,6 +734,130 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
+  describe('with global-views (multi-project feature)', function() {
+    describe('without existing URL params', function() {
+      let wrapper;
+      const initialData = initializeOrg({
+        organization: {features: ['global-views']},
+        projects: [
+          {id: 0, slug: 'random project', isMember: true},
+          {id: 1, slug: 'staging-project', environments: ['staging']},
+          {id: 2, slug: 'prod-project', environments: ['prod']},
+        ],
+        router: {
+          location: {query: {}},
+          params: {orgId: 'org-slug'},
+        },
+      });
+
+      const createWrapper = props => {
+        wrapper = mountWithTheme(
+          <GlobalSelectionHeader
+            params={{orgId: initialData.organization.slug}}
+            organization={initialData.organization}
+            {...props}
+          />,
+          initialData.routerContext
+        );
+        return wrapper;
+      };
+
+      beforeEach(function() {
+        jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
+          projects: initialData.organization.projects,
+          loading: false,
+        }));
+        initialData.router.push.mockClear();
+        initialData.router.replace.mockClear();
+      });
+
+      it('does not use first project in org projects when mounting', async function() {
+        createWrapper();
+
+        await tick();
+        wrapper.update();
+
+        expect(initialData.router.replace).not.toHaveBeenCalled();
+      });
+
+      it('does not append projectId to URL when `loadingProjects` changes and finishes loading', async function() {
+        const mockProjectsStoreState = {
+          projects: [],
+          loading: true,
+        };
+
+        jest
+          .spyOn(ProjectsStore, 'getState')
+          .mockImplementation(() => mockProjectsStoreState);
+
+        createWrapper();
+
+        // load the projects
+        mockProjectsStoreState.projects = initialData.organization.projects;
+        mockProjectsStoreState.loading = false;
+
+        wrapper.update();
+
+        expect(initialData.router.replace).not.toHaveBeenCalled();
+      });
+
+      it('appends projectId to URL when `forceProject` becomes available (async)', async function() {
+        const mockProjectsStoreState = {
+          projects: [],
+          loading: true,
+        };
+
+        jest
+          .spyOn(ProjectsStore, 'getState')
+          .mockImplementation(() => mockProjectsStoreState);
+
+        // forceProject generally starts undefined
+        createWrapper({shouldForceProject: true});
+
+        // load the projects
+        mockProjectsStoreState.projects = initialData.organization.projects;
+        mockProjectsStoreState.loading = false;
+
+        wrapper.setProps({
+          forceProject: initialData.organization.projects[1],
+        });
+
+        wrapper.update();
+
+        expect(initialData.router.replace).toHaveBeenLastCalledWith({
+          pathname: undefined,
+          query: {project: [1]},
+        });
+
+        expect(initialData.router.replace).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function() {
+        // forceProject generally starts undefined
+        createWrapper({shouldForceProject: true});
+
+        wrapper.setContext({
+          router: {
+            ...initialData.router,
+            location: {
+              ...initialData.router.location,
+              query: {
+                project: 321,
+              },
+            },
+          },
+        });
+        wrapper.setProps({
+          forceProject: initialData.organization.projects[1],
+        });
+
+        wrapper.update();
+
+        expect(initialData.router.replace).not.toHaveBeenCalled();
+      });
+    });
+  });
+
   describe('projects list', function() {
     let wrapper, memberProject, nonMemberProject, initialData;
     beforeEach(function() {
@@ -723,7 +866,7 @@ describe('GlobalSelectionHeader', function() {
       const org = TestStubs.Organization({projects: [memberProject, nonMemberProject]});
       jest
         .spyOn(ProjectsStore, 'getState')
-        .mockImplementation(() => ({projects: org.projects, loadingProjects: false}));
+        .mockImplementation(() => ({projects: org.projects, loading: false}));
 
       initialData = initializeOrg({
         organization: org,

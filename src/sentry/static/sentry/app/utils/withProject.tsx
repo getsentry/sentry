@@ -26,7 +26,7 @@ const withProject = <P extends InjectedProjectProps>(
       return (
         <WrappedComponent
           project={this.context.project as Project}
-          {...this.props as P}
+          {...(this.props as P)}
         />
       );
     }

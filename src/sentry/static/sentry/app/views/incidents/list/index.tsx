@@ -1,13 +1,13 @@
-import {Location} from 'history';
-import {Params} from 'react-router/lib/Router';
-import omit from 'lodash/omit';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import moment from 'moment';
+import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import BetaTag from 'app/components/betaTag';
@@ -15,6 +15,7 @@ import Button from 'app/components/button';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
@@ -22,16 +23,13 @@ import Pagination from 'app/components/pagination';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
-import Status from '../status';
-import SparkLine from './sparkLine';
 import {Incident} from '../types';
+import SparkLine from './sparkLine';
+import Status from '../status';
 
 const DEFAULT_QUERY_STATUS = '';
 
-type Props = {
-  params: Params;
-  location: Location;
-};
+type Props = RouteComponentProps<{orgId: string}, {}>;
 
 type State = {
   incidentList: Incident[];
@@ -131,6 +129,17 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 }
 
 class IncidentsListContainer extends React.Component<Props> {
+  /**
+   * Incidents list is currently at the organization level, but the link needs to
+   * go down to a specific project scope.
+   */
+  handleNavigateToSettings = (e: React.MouseEvent) => {
+    const {router, params} = this.props;
+    e.preventDefault();
+
+    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts-v2/`, router);
+  };
+
   render() {
     const {params, location} = this.props;
     const {pathname, query} = location;
@@ -146,11 +155,28 @@ class IncidentsListContainer extends React.Component<Props> {
       <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>
           <PageHeader>
-            <PageHeading>
-              {t('Alerts')} <BetaTag />
-            </PageHeading>
+            <StyledPageHeading>
+              {t('Alerts')}{' '}
+              <BetaTag
+                title={t(
+                  'This feature may change in the future and currently only shows metric alerts'
+                )}
+              />
+              <FeedbackLink href="mailto:alerting-feedback@sentry.io">
+                {t('Send feedback')}
+              </FeedbackLink>
+            </StyledPageHeading>
 
             <Actions>
+              <Button
+                onClick={this.handleNavigateToSettings}
+                href="#"
+                size="small"
+                icon="icon-settings"
+              >
+                {t('Settings')}
+              </Button>
+
               <div className="btn-group">
                 <Button
                   to={{pathname, query: allIncidentsQuery}}
@@ -183,6 +209,16 @@ class IncidentsListContainer extends React.Component<Props> {
     );
   }
 }
+
+const StyledPageHeading = styled(PageHeading)`
+  display: flex;
+  align-items: center;
+`;
+
+const FeedbackLink = styled(ExternalLink)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-left: ${space(1)};
+`;
 
 const Actions = styled('div')`
   display: grid;

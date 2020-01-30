@@ -29,18 +29,43 @@ const getDefaultSelection = () => {
   };
 };
 
-const isValidSelection = (selection, organization) => {
-  const allowedProjects = new Set(
-    organization.projects.filter(project => project.isMember).map(p => parseInt(p.id, 10))
-  );
-  if (
-    Array.isArray(selection.projects) &&
-    selection.projects.some(project => !allowedProjects.has(project))
-  ) {
-    return false;
-  }
+const getProjectsByIds = async (organization, projectIds, api) => {
+  const query = {};
+  query.query = projectIds.map(id => `id:${id}`).join(' ');
+  return await api.requestPromise(`/organizations/${organization.slug}/projects/`, {
+    query,
+  });
+};
 
-  return true;
+const isValidSelection = async (selection, organization, api) => {
+  if (organization.projects) {
+    const allowedProjects = new Set(
+      organization.projects
+        .filter(project => project.hasAccess)
+        .map(p => parseInt(p.id, 10))
+    );
+    if (
+      Array.isArray(selection.projects) &&
+      selection.projects.some(project => !allowedProjects.has(project))
+    ) {
+      return false;
+    }
+    return true;
+  } else {
+    // if the selection is [-1] (all projects) or [] (my projects) return true
+    if (selection.projects.length === 0 || selection.projects[0] === -1) {
+      return true;
+    }
+    // if we do not have organization.projects then make an API call to fetch projects based on id
+    const projects = await getProjectsByIds(organization, selection.projects, api);
+    if (
+      selection.projects.length !== projects.length ||
+      projects.some(project => !project.hasAccess)
+    ) {
+      return false;
+    }
+    return true;
+  }
 };
 
 const GlobalSelectionStore = Reflux.createStore({
@@ -61,7 +86,11 @@ const GlobalSelectionStore = Reflux.createStore({
    * Initializes the global selection store
    * If there are query params apply these, otherwise check local storage
    */
-  loadInitialData(organization, queryParams, {forceUrlSync, onlyIfNeverLoaded} = {}) {
+  loadInitialData(
+    organization,
+    queryParams,
+    {api, forceUrlSync, onlyIfNeverLoaded} = {}
+  ) {
     // If this option is true, only load if it has never been loaded before
     if (onlyIfNeverLoaded && this._hasLoaded) {
       return;
@@ -102,8 +131,11 @@ const GlobalSelectionStore = Reflux.createStore({
         // use default if invalid
       }
     }
+    this.loadSelectionIfValid(globalSelection, organization, forceUrlSync, api);
+  },
 
-    if (isValidSelection(globalSelection, organization)) {
+  async loadSelectionIfValid(globalSelection, organization, forceUrlSync, api) {
+    if (await isValidSelection(globalSelection, organization, api)) {
       this.selection = {
         ...globalSelection,
         ...(forceUrlSync ? {forceUrlSync: true} : {}),

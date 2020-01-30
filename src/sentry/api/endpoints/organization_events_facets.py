@@ -13,7 +13,7 @@ from sentry import features, tagstore
 
 class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        if not features.has("organizations:events-v2", organization, actor=request.user):
+        if not features.has("organizations:discover-basic", organization, actor=request.user):
             return Response(status=404)
         try:
             params = self.get_filter_params(request, organization)
@@ -47,13 +47,18 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
                 }
             )
         if "project" in resp:
-            # Replace project ids with slugs as that is what we generally expose to users.
+            # Replace project ids with slugs as that is what we generally expose to users
+            # and filter out projects that the user doesn't have access too.
             projects = {p.id: p.slug for p in self.get_projects(request, organization)}
+            filtered_values = []
             for v in resp["project"]["topValues"]:
-                name = projects[v["value"]]
-                v.update({"name": name, "value": name})
+                if v["value"] in projects:
+                    name = projects[v["value"]]
+                    v.update({"name": name})
+                    filtered_values.append(v)
 
-        # TODO(mark) Figure out how to keep the results ordered.
+            resp["project"]["topValues"] = filtered_values
+
         return Response(resp.values())
 
     def _validate_project_ids(self, request, organization, params):

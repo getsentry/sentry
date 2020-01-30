@@ -7,7 +7,7 @@ from functools import partial
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from semaphore.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import get_json_meta_type
 from sentry.api.helpers.events import get_direct_hit_response
@@ -49,8 +49,11 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             # or user doesn't have access to projects in org
             data_fn = lambda *args, **kwargs: []
         else:
+            cols = None if full else eventstore.full_columns
+
             data_fn = partial(
                 eventstore.get_events,
+                additional_columns=cols,
                 referrer="api.organization-events",
                 filter=eventstore.Filter(
                     start=snuba_args["start"],
@@ -89,7 +92,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
 class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        if not features.has("organizations:events-v2", organization, actor=request.user):
+        if not features.has("organizations:discover-basic", organization, actor=request.user):
             return Response(status=404)
 
         try:
@@ -118,6 +121,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 limit=limit,
                 referrer="api.organization-events-v2",
                 auto_fields=True,
+                use_aggregate_conditions=True,
             )
 
         try:

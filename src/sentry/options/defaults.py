@@ -174,10 +174,6 @@ register("store.eventstream-per-type-topic", default=False, flags=FLAG_PRIORITIZ
 # regards to filter responses.
 register("store.lie-about-filter-status", default=False)
 
-# Use Django event
-register("store.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
-register("eventstream.use-django-event", default=False, flags=FLAG_PRIORITIZE_DISK)
-
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
 register("symbolicator.minidump-refactor-projects-opt-in", type=Sequence, default=[])  # unused
@@ -206,5 +202,15 @@ register("transaction-events.force-disable-internal-project", default=False)
 register("outcomes.signals-in-consumer-sample-rate", default=0.0)
 register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
 
-# Eventstore uses Nodestore instead of Snuba for get_event_by_id
-register("eventstore.use-nodestore", default=True, flags=FLAG_PRIORITIZE_DISK)
+# Node data save rate
+register("nodedata.cache-sample-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
+register("nodedata.cache-on-save", default=False, flags=FLAG_PRIORITIZE_DISK)
+
+# Use nodestore for eventstore.get_events
+register("eventstore.use-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
+
+# Discover2 incremental rollout rate. Tied to feature handlers in getsentry
+register("discover2.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
+
+# Max number of tags to combine in a single query in Discover2 tags facet.
+register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)

@@ -6,14 +6,12 @@ import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
-import spaceBg from '../../images/spot/background-space.svg';
-
 type Props = {
   title?: string;
   subtitle?: string;
   isDismissable?: boolean;
   onCloseClick?: () => void;
-};
+} & BannerWrapperProps;
 
 class Banner extends React.Component<Props> {
   static defaultProps: Partial<Props> = {
@@ -21,10 +19,17 @@ class Banner extends React.Component<Props> {
   };
 
   render() {
-    const {title, subtitle, isDismissable, onCloseClick, children} = this.props;
+    const {
+      title,
+      subtitle,
+      isDismissable,
+      onCloseClick,
+      children,
+      backgroundImg,
+    } = this.props;
 
     return (
-      <BannerWrapper>
+      <BannerWrapper backgroundImg={backgroundImg}>
         {isDismissable ? (
           <BannerIcon src="icon-close" aria-label={t('Close')} onClick={onCloseClick} />
         ) : null}
@@ -38,23 +43,32 @@ class Banner extends React.Component<Props> {
   }
 }
 
-const BannerWrapper = styled('div')`
-  background-image: url(${spaceBg});
+type BannerWrapperProps = {
+  backgroundImg?: string;
+};
+
+const BannerWrapper = styled('div')<BannerWrapperProps>`
+  background: ${p => {
+    if (p.backgroundImg) {
+      return 'url(' + p.backgroundImg + ')';
+    }
+    return p.theme.gray4;
+  }};
+
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center center;
   position: relative;
   min-height: 200px;
   margin-bottom: ${space(3)};
-  padding-top: 22%;
   box-shadow: ${p => p.theme.dropShadowLight};
+  border-radius: ${p => p.theme.borderRadius};
 
   @media (min-width: ${theme.breakpoints[1]}) {
     min-height: 220px;
   }
 
   @media (min-width: ${theme.breakpoints[3]}) {
-    padding-top: 0;
     min-height: 260px;
   }
 `;
@@ -74,21 +88,23 @@ const BannerContent = styled('div')`
 `;
 
 const BannerTitle = styled('h1')`
-  margin: ${space(1.5)};
   color: ${p => p.theme.white};
+  margin-bottom: ${space(0.25)};
 
   @media (min-width: ${theme.breakpoints[1]}) {
-    font-size: 48px;
+    margin-top: ${space(2)};
+    margin-bottom: ${space(0.5)};
+    font-size: 42px;
   }
 `;
 
-const BannerSubtitle = styled('h4')`
-  margin-bottom: ${space(3)};
+const BannerSubtitle = styled('div')`
   font-size: ${theme.fontSizeMedium};
   color: ${p => p.theme.white};
 
   @media (min-width: ${theme.breakpoints[1]}) {
-    font-size: ${theme.fontSizeLarge};
+    font-size: ${theme.fontSizeExtraLarge};
+    margin-bottom: ${space(1)};
     flex-direction: row;
     min-width: 650px;
   }

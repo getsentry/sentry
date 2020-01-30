@@ -54,6 +54,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
     onAddIntegration: PropTypes.func.isRequired,
     provider: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
+    onCloseModal: PropTypes.func,
   };
 
   componentDidMount() {
@@ -70,9 +71,27 @@ class IntegrationDetailsModal extends React.Component<Props> {
     );
   }
 
+  componentWillUnmount() {
+    this.props.onCloseModal?.();
+  }
+
   onAddIntegration = (integration: Integration) => {
     this.props.closeModal();
     this.props.onAddIntegration(integration);
+  };
+
+  handleExternalInstall = () => {
+    const {closeModal, provider, organization} = this.props;
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.installation_start',
+        eventName: 'Integrations: Installation Start',
+        integration: provider.key,
+        integration_type: 'first_party',
+      },
+      organization
+    );
+    closeModal();
   };
 
   featureTags(features: string[]) {
@@ -115,7 +134,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
         <Button
           icon="icon-exit"
           href={metadata.aspects.externalInstall.url}
-          onClick={closeModal}
+          onClick={this.handleExternalInstall}
           external
           {...buttonProps}
           {...p}
@@ -189,6 +208,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
                     <AddButton
                       data-test-id="add-button"
                       disabled={disabled || !hasAccess}
+                      organization={organization}
                     />
                   </Tooltip>
                 )}

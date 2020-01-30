@@ -7,14 +7,13 @@ import ipaddress
 import jsonschema
 import six
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
-from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventstore, eventtypes, eventstream, options, tsdb
+from sentry import buffer, eventstore, eventtypes, eventstream, tsdb
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS,
@@ -45,7 +44,6 @@ from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity,
     Environment,
-    Event,
     EventDict,
     EventError,
     EventUser,
@@ -322,7 +320,7 @@ class EventManager(object):
             raise RuntimeError("Already normalized")
         self._normalized = True
 
-        from semaphore.processing import StoreNormalizer
+        from sentry_relay.processing import StoreNormalizer
 
         rust_normalizer = StoreNormalizer(
             project_id=self._project.id if self._project else None,
@@ -378,36 +376,15 @@ class EventManager(object):
         return self._data
 
     def _get_event_instance(self, project_id=None):
-        if options.get("store.use-django-event"):
-            data = self._data
-            event_id = data.get("event_id")
-            platform = data.get("platform")
+        data = self._data
+        event_id = data.get("event_id")
 
-            recorded_timestamp = data.get("timestamp")
-            date = datetime.fromtimestamp(recorded_timestamp)
-            date = date.replace(tzinfo=timezone.utc)
-            time_spent = data.get("time_spent")
-
-            data["node_id"] = Event.generate_node_id(project_id, event_id)
-
-            return Event(
-                project_id=project_id or self._project.id,
-                event_id=event_id,
-                data=EventDict(data, skip_renormalization=True),
-                time_spent=time_spent,
-                datetime=date,
-                platform=platform,
-            )
-        else:
-            data = self._data
-            event_id = data.get("event_id")
-
-            return eventstore.create_event(
-                project_id=project_id or self._project.id,
-                event_id=event_id,
-                group_id=None,
-                data=EventDict(data, skip_renormalization=True),
-            )
+        return eventstore.create_event(
+            project_id=project_id or self._project.id,
+            event_id=event_id,
+            group_id=None,
+            data=EventDict(data, skip_renormalization=True),
+        )
 
     def get_culprit(self):
         """Helper to calculate the default culprit"""
@@ -589,14 +566,6 @@ class EventManager(object):
         data.update(materialized_metadata)
         data["culprit"] = culprit
 
-        # index components into ``Event.message``
-        # See GH-3248
-        # TODO: We temporarily save the search message into the message field to
-        # maintain backward compatibility with the Django event model. Once
-        # "store.use-django-event" is turned off for good, we can just reference
-        # event.search_message everywhere.
-        event.message = event.search_message
-
         received_timestamp = event.data.get("received") or float(event.datetime.strftime("%s"))
 
         if not issueless_event:
@@ -607,7 +576,7 @@ class EventManager(object):
             group_metadata["last_received"] = received_timestamp
             kwargs = {
                 "platform": platform,
-                "message": event.message,
+                "message": event.search_message,
                 "culprit": culprit,
                 "logger": logger_name,
                 "level": LOG_LEVELS_MAP.get(level),
@@ -979,8 +948,8 @@ class EventManager(object):
     def _process_existing_aggregate(self, group, event, data, release):
         date = max(event.datetime, group.last_seen)
         extra = {"last_seen": date, "score": ScoreClause(group), "data": data["data"]}
-        if event.message and event.message != group.message:
-            extra["message"] = event.message
+        if event.search_message and event.search_message != group.message:
+            extra["message"] = event.search_message
         if group.level != data["level"]:
             extra["level"] = data["level"]
         if group.culprit != data["culprit"]:

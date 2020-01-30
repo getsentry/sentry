@@ -20,7 +20,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
     def test_no_projects(self):
         self.login_as(user=self.user)
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
@@ -43,7 +43,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
 
         query = {"field": ["id", "project.id"], "project": [project.id, project2.id]}
-        with self.feature({"organizations:events-v2": True, "organizations:global-views": False}):
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": False}
+        ):
             response = self.client.get(self.url, query, format="json")
         assert response.status_code == 400
         assert "events from multiple projects" in response.data["detail"]
@@ -57,7 +59,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url, {"field": ["id"], "query": "hi \n there"}, format="json"
             )
@@ -90,7 +92,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -121,7 +123,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url, format="json", data={"field": ["project.name", "environment"]}
             )
@@ -148,7 +150,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -187,7 +189,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(self.url, format="json", data={"field": ["count(id)"]})
 
         assert response.status_code == 200, response.content
@@ -215,7 +217,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={"event_id": "c" * 32, "timestamp": self.min_ago}, project_id=project.id
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -243,7 +245,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             data={"event_id": "c" * 32, "message": "first", "timestamp": self.min_ago},
             project_id=project.id,
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url, format="json", data={"field": ["id", "title"], "sort": "title"}
             )
@@ -260,7 +262,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.two_min_ago}, project_id=project.id
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url, format="json", data={"field": ["id"], "sort": "garbage"}
             )
@@ -298,7 +300,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -321,6 +323,49 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["issue.id"] == event2.group_id
         assert data[1]["count_id"] == 2
         assert data[1]["count_unique_user"] == 2
+
+    def test_error_rate_alias_field(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        data = load_data("transaction")
+        data["transaction"] = "/error_rate/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        event = self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction")
+        data["transaction"] = "/error_rate/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction")
+        data["transaction"] = "/error_rate/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction")
+        data["transaction"] = "/error_rate/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(data, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["transaction", "error_rate()"], "query": "event.type:transaction"},
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["transaction"] == event.transaction
+        assert data[0]["error_rate"] == 0.75
 
     def test_aggregation_comparison(self):
         self.login_as(user=self.user)
@@ -371,7 +416,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -404,13 +449,45 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
         event = self.store_event(data, project_id=project.id)
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
                 data={
                     "field": ["transaction", "p95"],
                     "query": "event.type:transaction p95:<4000",
+                    "orderby": ["transaction"],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["transaction"] == event.transaction
+        assert data[0]["p95"] == 3000
+
+    def test_aggregation_alias_comparison_with_brackets(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        data = load_data("transaction")
+        data["transaction"] = "/aggregates/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction")
+        data["transaction"] = "/aggregates/2"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
+        event = self.store_event(data, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["transaction", "p95()"],
+                    "query": "event.type:transaction p95():<4000",
                     "orderby": ["transaction"],
                 },
             )
@@ -465,7 +542,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -527,7 +604,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -552,7 +629,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(self.url, format="json", data={"field": ["issue_world.id"]})
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["issue_world.id"] == ""
@@ -566,7 +643,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(self.url, format="json", data={"query": "test"})
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "No fields provided"
@@ -584,7 +661,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -625,7 +702,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             },
             project_id=project.id,
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -649,7 +726,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data["timestamp"] = self.min_ago
         self.store_event(data=data, project_id=project.id)
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -668,7 +745,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         self.store_event(data=data, project_id=project.id)
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -692,7 +769,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         self.store_event(data=data, project_id=project.id)
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",

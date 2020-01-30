@@ -246,7 +246,7 @@ class EventTest(TestCase):
 
 @pytest.mark.django_db
 def test_renormalization(monkeypatch, factories, task_runner, default_project):
-    from semaphore.processing import StoreNormalizer
+    from sentry_relay.processing import StoreNormalizer
 
     old_normalize = StoreNormalizer.normalize_event
     normalize_mock_calls = []
@@ -255,7 +255,7 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
         normalize_mock_calls.append(1)
         return old_normalize(*args, **kwargs)
 
-    monkeypatch.setattr("semaphore.processing.StoreNormalizer.normalize_event", normalize)
+    monkeypatch.setattr("sentry_relay.processing.StoreNormalizer.normalize_event", normalize)
 
     with task_runner():
         factories.store_event(

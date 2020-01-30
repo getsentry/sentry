@@ -2,7 +2,6 @@ import EventView, {
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
 } from 'app/views/eventsV2/eventView';
-import {AUTOLINK_FIELDS} from 'app/views/eventsV2/data';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
 
 const generateFields = fields => {
@@ -66,7 +65,10 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
+      fields: [
+        {field: 'count()', width: 123},
+        {field: 'id', width: 456},
+      ],
       sorts: generateSorts(['count']),
       query: 'event.type:transaction',
       project: [123],
@@ -100,7 +102,10 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
+      fields: [
+        {field: 'count()', width: 123},
+        {field: 'id', width: 456},
+      ],
       sorts: generateSorts(['count']),
       query: 'event.type:transaction',
       project: [123],
@@ -132,7 +137,10 @@ describe('EventView.fromLocation()', function() {
     expect(eventView).toMatchObject({
       id: '42',
       name: 'best query',
-      fields: [{field: 'count()', width: 123}, {field: 'id', width: 456}],
+      fields: [
+        {field: 'count()', width: 123},
+        {field: 'id', width: 456},
+      ],
       sorts: generateSorts(['count']),
       query: 'event.type:transaction',
       project: [123],
@@ -241,7 +249,10 @@ describe('EventView.fromSavedQuery()', function() {
     const expected = {
       id: '5',
       name: 'foo bar',
-      fields: [{field: 'release', width: 111}, {field: 'count(id)', width: 222}],
+      fields: [
+        {field: 'release', width: 111},
+        {field: 'count(id)', width: 222},
+      ],
       sorts: generateSorts(['count_id']),
       query: '',
       project: [1],
@@ -535,7 +546,10 @@ describe('EventView.generateQueryStringObject()', function() {
     const state = {
       id: '1234',
       name: 'best query',
-      fields: [{field: 'count()', width: 123}, {field: 'project.id', width: 456}],
+      fields: [
+        {field: 'count()', width: 123},
+        {field: 'project.id', width: 456},
+      ],
       sorts: generateSorts(['count']),
       query: 'event.type:error',
       project: [42],
@@ -873,7 +887,10 @@ describe('EventView.toNewQuery()', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()', width: 123}, {field: 'project.id', width: 456}],
+    fields: [
+      {field: 'count()', width: 123},
+      {field: 'project.id', width: 456},
+    ],
     sorts: generateSorts(['count']),
     query: 'event.type:error',
     project: [42],
@@ -994,30 +1011,6 @@ describe('EventView.getFields()', function() {
     });
 
     expect(eventView.getFields()).toEqual(['count()', 'project.id']);
-  });
-});
-
-describe('EventView.hasAutolinkField()', function() {
-  it('returns false when none of the fields are auto-linkable', function() {
-    const eventView = new EventView({
-      fields: [{field: 'count()'}, {field: 'project.id'}],
-      sorts: [],
-      project: [],
-    });
-
-    expect(eventView.hasAutolinkField()).toEqual(false);
-  });
-
-  it('returns true when any of the fields are auto-linkable', function() {
-    for (const field of AUTOLINK_FIELDS) {
-      const eventView = new EventView({
-        fields: generateFields([field]),
-        sorts: [],
-        project: [],
-      });
-
-      expect(eventView.hasAutolinkField()).toEqual(true);
-    }
   });
 });
 
@@ -1169,6 +1162,7 @@ describe('EventView.withUpdatedColumn()', function() {
 
   const meta = {
     count: 'integer',
+    title: 'string',
   };
 
   it('update a column with no changes', function() {
@@ -1407,6 +1401,7 @@ describe('EventView.withDeletedColumn()', function() {
 
   const meta = {
     count: 'integer',
+    title: 'string',
   };
 
   it('returns itself when attempting to delete the last remaining column', function() {
@@ -1663,7 +1658,7 @@ describe('EventView.sortOnField()', function() {
     environment: ['staging'],
   };
 
-  const meta = {count: 'integer'};
+  const meta = {count: 'integer', title: 'string'};
 
   it('returns itself when attempting to sort on un-sortable field', function() {
     const eventView = new EventView(state);
@@ -1785,87 +1780,49 @@ describe('EventView.isEqualTo()', function() {
       yAxis: 'fam',
     };
 
+    const differences = {
+      id: '12',
+      name: 'new query',
+      fields: [{field: 'project.id'}, {field: 'count()'}],
+      sorts: [{field: 'count', kind: 'asc'}],
+      query: 'event.type:transaction',
+      project: [24],
+      start: '2019-09-01T00:00:00',
+      end: '2020-09-01T00:00:00',
+      statsPeriod: '24d',
+      environment: [],
+      yAxis: 'ok boomer',
+    };
     const eventView = new EventView(state);
 
-    // id differs
+    for (const key in differences) {
+      const eventView2 = new EventView({...state, [key]: differences[key]});
+      expect(eventView.isEqualTo(eventView2)).toBe(false);
+    }
+  });
+});
 
-    let eventView2 = new EventView({...state, id: '12'});
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
+describe('EventView.getResultsViewUrlTarget()', function() {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [{field: 'count()'}, {field: 'project.id'}],
+    sorts: generateSorts(['count']),
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+  };
+  const organization = TestStubs.Organization();
 
-    // name differs
-
-    eventView2 = new EventView({...state, name: 'new query'});
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
-
-    // field differs
-
-    eventView2 = new EventView({
-      ...state,
-      fields: [
-        // swapped columns
-        {field: 'project.id'},
-        {field: 'count()'},
-      ],
-    });
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
-
-    // sort differs
-
-    eventView2 = new EventView({
-      ...state,
-      sorts: [
-        {
-          field: 'count',
-          kind: 'asc',
-        },
-      ],
-    });
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
-
-    // query differs
-    eventView2 = new EventView({
-      ...state,
-      query: 'event.type:transaction',
-    });
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
-
-    // project differs
-    eventView2 = new EventView({
-      ...state,
-      project: [24],
-    });
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
-
-    // date time differs
-    eventView2 = new EventView({
-      ...state,
-      start: '2019-09-01T00:00:00',
-    });
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
-
-    eventView2 = new EventView({
-      ...state,
-      end: '2020-09-01T00:00:00',
-    });
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
-
-    eventView2 = new EventView({
-      ...state,
-      statsPeriod: '24d',
-    });
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
-
-    // environment differs
-    eventView2 = new EventView({
-      ...state,
-      environment: [],
-    });
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
-
-    // yaxis differs
-
-    eventView2 = new EventView({...state, yAxis: 'ok boomer'});
-    expect(eventView.isEqualTo(eventView2)).toBe(false);
+  it('generates a URL', function() {
+    const view = new EventView(state);
+    const result = view.getResultsViewUrlTarget(organization.slug);
+    expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
+    expect(result.query.query).toEqual(state.query);
+    expect(result.query.project).toEqual(state.project);
   });
 });
 
@@ -1885,6 +1842,7 @@ describe('isAPIPayloadSimilar', function() {
 
   const meta = {
     count: 'integer',
+    title: 'string',
   };
 
   describe('getEventsAPIPayload', function() {

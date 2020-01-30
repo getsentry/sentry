@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Client} from 'app/api';
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
@@ -15,12 +16,15 @@ import MutedBox from 'app/components/mutedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
-import {Group, Project, Organization, Environment, RouterProps, Event} from 'app/types';
+import {Group, Project, Organization, Environment, Event} from 'app/types';
 
 import {fetchGroupEventAndMarkSeen, getEventEnvironment} from '../utils';
 import GroupEventToolbar from '../eventToolbar';
 
-type Props = RouterProps & {
+type Props = RouteComponentProps<
+  {orgId: string; groupId: string; eventId?: string},
+  {}
+> & {
   api: Client;
   group: Group;
   project: Project;
@@ -107,6 +111,7 @@ class GroupEventDetails extends React.Component<Props, State> {
     // TBD: if this behavior is actually desired
     if (organization.projects) {
       GlobalSelectionStore.loadInitialData(organization, this.props.location.query, {
+        api: this.props.api,
         onlyIfNeverLoaded: true,
         forceUrlSync: true,
       });

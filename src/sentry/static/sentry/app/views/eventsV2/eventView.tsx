@@ -11,7 +11,7 @@ import {SavedQuery, NewQuery} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
-import {AUTOLINK_FIELDS, SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
+import {SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
 import {
   MetaType,
   EventQuery,
@@ -300,11 +300,9 @@ class EventView {
       .map(field => {
         return getSortKeyFromField(field, undefined);
       })
-      .filter(
-        (sortKey): sortKey is string => {
-          return !!sortKey;
-        }
-      );
+      .filter((sortKey): sortKey is string => {
+        return !!sortKey;
+      });
 
     const sort = sorts.find(currentSort => {
       return sortKeys.includes(currentSort.field);
@@ -546,15 +544,6 @@ class EventView {
 
   getAggregateFields(): Field[] {
     return this.fields.filter(field => isAggregateField(field.field));
-  }
-
-  /**
-   * Check if the field set contains no automatically linked fields
-   */
-  hasAutolinkField(): boolean {
-    return this.fields.some(field => {
-      return AUTOLINK_FIELDS.includes(field.field);
-    });
   }
 
   numOfColumns(): number {
@@ -865,6 +854,13 @@ class EventView {
     }
 
     return eventQuery;
+  }
+
+  getResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
+    return {
+      pathname: `/organizations/${slug}/discover/results/`,
+      query: this.generateQueryStringObject(),
+    };
   }
 
   isFieldSorted(field: Field, tableMeta: MetaType): Sort | undefined {

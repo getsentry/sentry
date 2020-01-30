@@ -21,6 +21,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
     slug = "slack"
     description = "Post notifications to a Slack channel."
     conf_key = "slack"
+    required_field = "webhook"
 
     def is_configured(self, project):
         return bool(self.get_option("webhook", project))

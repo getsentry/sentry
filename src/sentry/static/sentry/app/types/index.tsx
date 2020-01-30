@@ -1,8 +1,6 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
 
 export type ObjectStatus =
   | 'active'
@@ -90,9 +88,14 @@ export type Organization = LightWeightOrganization & {
   teams: Team[];
 };
 
+// Minimal project representation for use with avatars.
+export type AvatarProject = {
+  slug: string;
+  platform?: string;
+};
+
 export type Project = {
   id: string;
-  slug: string;
   isMember: boolean;
   teams: Team[];
   features: string[];
@@ -100,12 +103,11 @@ export type Project = {
   isBookmarked: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
-  platform: string;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
-};
+} & AvatarProject;
 
 export type Team = {
   id: string;
@@ -184,6 +186,8 @@ type SentryEventBase = {
   culprit: string;
   metadata: EventMetadata;
   contexts: EventContexts;
+  context?: {[key: string]: any};
+  packages?: {[key: string]: string};
   user: EventUser;
   message: string;
   platform?: string;
@@ -208,12 +212,12 @@ type SentryEventBase = {
 // This type is incomplete
 export type Event =
   | ({type: string} & SentryEventBase)
-  | {
+  | ({
       type: 'transaction';
       entries: SpanEntry[];
       startTimestamp: number;
       endTimestamp: number;
-    } & SentryEventBase;
+    } & SentryEventBase);
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -236,6 +240,7 @@ export type AvatarUser = {
   options?: {
     avatarType: string;
   };
+  lastSeen?: string;
 };
 
 export type User = AvatarUser & {
@@ -664,11 +669,6 @@ export type SentryAppComponent = {
   };
 };
 
-export type RouterProps = {
-  params: Params;
-  location: Location;
-};
-
 export type ActiveExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
 };
@@ -744,3 +744,13 @@ export type OnboardingTask = {
   location: string | (() => void);
   display: boolean;
 };
+
+export type Tag = {
+  name: string;
+  key: string;
+  values?: string[];
+  totalValues?: number;
+  predefined?: boolean;
+};
+
+export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';

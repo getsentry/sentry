@@ -12,6 +12,7 @@ import FormModel, {
 } from 'app/views/settings/components/forms/model';
 import Panel from 'app/components/panels/panel';
 import space from 'app/styles/space';
+import {isRenderFunc} from 'app/utils/isRenderFunc';
 
 type Data = {};
 
@@ -21,11 +22,6 @@ type RenderProps = {
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-// Type guard for render func.
-function isRenderFunc(func: React.ReactNode | Function): func is RenderFunc {
-  return typeof func === 'function';
-}
-
 type Props = {
   apiMethod?: APIRequestMethod;
   apiEndpoint?: string;
@@ -34,7 +30,7 @@ type Props = {
   cancelLabel?: string;
   submitDisabled?: boolean;
   submitLabel?: string;
-  submitPriority?: Button['props']['priority'];
+  submitPriority?: React.ComponentProps<typeof Button>['priority'];
   footerClass?: string;
   footerStyle?: React.CSSProperties;
   extraButton?: React.ReactNode;
@@ -212,7 +208,9 @@ export default class Form extends React.Component<Props> {
         className={className}
         data-test-id={this.props['data-test-id']}
       >
-        <div>{isRenderFunc(children) ? children({model: this.model}) : children}</div>
+        <div>
+          {isRenderFunc<RenderFunc>(children) ? children({model: this.model}) : children}
+        </div>
 
         {shouldShowFooter && (
           <StyledFooter

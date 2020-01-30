@@ -10,7 +10,7 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
-from sentry.incidents.endpoints.serializers import UnifiedAlertRuleSerializer
+from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.testutils import APITestCase
 
@@ -66,7 +66,7 @@ class AlertRuleDetailsBase(object):
         if data is None:
             data = deepcopy(self.alert_rule_dict)
 
-        serializer = UnifiedAlertRuleSerializer(
+        serializer = AlertRuleSerializer(
             context={
                 "organization": self.organization,
                 "access": OrganizationGlobalAccess(self.organization),

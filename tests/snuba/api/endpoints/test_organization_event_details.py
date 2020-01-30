@@ -57,7 +57,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             },
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -86,7 +86,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             },
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 url,
                 data={"field": ["title", "count_unique(user)"], "statsPeriod": "24h"},
@@ -122,7 +122,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": event.event_id,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
         assert response.status_code == 200
 
@@ -159,7 +159,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "a" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 
@@ -167,7 +167,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
@@ -181,7 +181,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             },
         )
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
 
         assert response.status_code == 404, response.content
@@ -222,7 +222,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json", data={"field": ["message", "count()"]})
         assert response.data["eventID"] == "b" * 32
         assert response.data["nextEventID"] == "c" * 32, "c is newer & matches message"
@@ -251,7 +251,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "b" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 url, format="json", data={"field": ["message", "count()"], "statsPeriod": "7d"}
             )
@@ -303,7 +303,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "1" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json", data={"field": ["important", "count()"]})
         assert response.data["eventID"] == "1" * 32
         assert response.data["previousEventID"] is None, "no matching tags"
@@ -339,11 +339,93 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 "event_id": "e" * 32,
             },
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 url,
                 format="json",
                 data={"field": ["important", "count()"], "query": "transaction.duration:>2"},
+            )
+        assert response.status_code == 200
+        assert response.data["nextEventID"] == "d" * 32
+        assert response.data["previousEventID"] == "f" * 32
+
+    def test_event_links_with_transaction_events_aggregate_fields(self):
+        prototype = {
+            "type": "transaction",
+            "transaction": "api.issue.delete",
+            "spans": [],
+            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
+            "tags": {"important": "yes"},
+        }
+        fixtures = (
+            ("d" * 32, before_now(minutes=1)),
+            ("e" * 32, before_now(minutes=2)),
+            ("f" * 32, before_now(minutes=3)),
+        )
+        for fixture in fixtures:
+            data = prototype.copy()
+            data["event_id"] = fixture[0]
+            data["timestamp"] = iso_format(fixture[1])
+            data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=5))
+            self.store_event(data=data, project_id=self.project.id)
+
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "e" * 32,
+            },
+        )
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "field": ["important", "count()", "p95()"],
+                    "query": "transaction.duration:>2",
+                },
+            )
+        assert response.status_code == 200
+        assert response.data["nextEventID"] == "d" * 32
+        assert response.data["previousEventID"] == "f" * 32
+
+    def test_event_links_with_transaction_events_aggregate_conditions(self):
+        prototype = {
+            "type": "transaction",
+            "transaction": "api.issue.delete",
+            "spans": [],
+            "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
+            "tags": {"important": "yes"},
+        }
+        fixtures = (
+            ("d" * 32, before_now(minutes=1)),
+            ("e" * 32, before_now(minutes=2)),
+            ("f" * 32, before_now(minutes=3)),
+        )
+        for fixture in fixtures:
+            data = prototype.copy()
+            data["event_id"] = fixture[0]
+            data["timestamp"] = iso_format(fixture[1])
+            data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=5))
+            self.store_event(data=data, project_id=self.project.id)
+
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "e" * 32,
+            },
+        )
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                url,
+                format="json",
+                data={
+                    "field": ["important", "count()", "p95()"],
+                    "query": "transaction.duration:>2 p95():>0",
+                },
             )
         assert response.status_code == 200
         assert response.data["nextEventID"] == "d" * 32

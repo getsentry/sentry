@@ -40,7 +40,7 @@ type Props = {
   /**
    * Button priority
    */
-  priority: Button['props']['priority'];
+  priority: React.ComponentProps<typeof Button>['priority'];
 
   /**
    * Disables the confirm button
@@ -80,6 +80,7 @@ type Props = {
 
   /**
    * Callback function when user is in the confirming state
+   * called when the confirm modal is opened
    */
   onConfirming?: () => void;
 

@@ -6,7 +6,6 @@ import {
   GridHeadCell as GridHeadCellWrapper,
   GridHeadCellButton,
   GridHeadCellButtonHover,
-  GridHeadCellButtonHoverBackground,
   GridHeadCellButtonHoverButton,
   GridHeadCellButtonHoverDraggable,
 } from './styles';
@@ -18,7 +17,7 @@ export type GridHeadCellProps<Column> = {
   isLast: boolean;
 
   isEditing: boolean;
-  isPrimary: boolean;
+  isDeletable: boolean;
 
   indexColumnOrder: number;
   column: Column;
@@ -51,7 +50,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
 > {
   static defaultProps = {
     isEditing: false,
-    isPrimary: false,
+    isDeletable: true,
   };
 
   state = {
@@ -80,21 +79,25 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
     this.props.actions.onDragStart(event, fromColumn);
   };
 
-  renderButtonHoverDraggable(children: React.ReactNode) {
+  renderButtonHoverDraggable() {
     const {isHovering} = this.state;
-    const {isEditing, isColumnDragging} = this.props;
+    const {isEditing, isDeletable, isColumnDragging} = this.props;
 
     if (!isEditing || !isHovering || isColumnDragging) {
       return null;
     }
+
+    const deleteButton = isDeletable ? (
+      <GridHeadCellButtonHoverButton onClick={this.deleteColumn}>
+        <InlineSvg src="icon-trash" />
+      </GridHeadCellButtonHoverButton>
+    ) : null;
 
     return (
       <React.Fragment>
         {/* Ensure that background is always at the top. The background must be
             independent because it has <100% opacity, but the elements on top
             of it must be 100% opacity */}
-        <GridHeadCellButtonHoverBackground>{children}</GridHeadCellButtonHoverBackground>
-
         <GridHeadCellButtonHover>
           <GridHeadCellButtonHoverDraggable
             src="icon-grabbable"
@@ -105,9 +108,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
             <GridHeadCellButtonHoverButton onClick={this.toggleModal}>
               <InlineSvg src="icon-edit-pencil" />
             </GridHeadCellButtonHoverButton>
-            <GridHeadCellButtonHoverButton onClick={this.deleteColumn}>
-              <InlineSvg src="icon-trash" />
-            </GridHeadCellButtonHoverButton>
+            {deleteButton}
           </div>
 
           <GridHeadCellButtonHoverDraggable
@@ -133,7 +134,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
           onMouseLeave={() => this.setHovering(false)}
         >
           {children}
-          {this.renderButtonHoverDraggable(children)}
+          {this.renderButtonHoverDraggable()}
         </GridHeadCellButton>
       </GridHeadCellWrapper>
     );

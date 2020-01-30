@@ -10,7 +10,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
-    feature_list = ("organizations:events-v2", "organizations:global-views")
+    feature_list = ("organizations:discover-basic", "organizations:global-views")
 
     def setUp(self):
         super(OrganizationEventsFacetsEndpointTest, self).setUp()
@@ -229,9 +229,9 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)
         url = reverse(
-            "sentry-api-0-organization-events-distribution", kwargs={"organization_slug": org.slug}
+            "sentry-api-0-organization-events-facets", kwargs={"organization_slug": org.slug}
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "A valid project must be included."}
@@ -240,7 +240,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(data={"event_id": uuid4().hex}, project_id=self.project.id)
         self.store_event(data={"event_id": uuid4().hex}, project_id=self.project2.id)
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(self.url, format="json")
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "You cannot view events from multiple projects."}
@@ -305,9 +305,63 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         expected = [
-            {"count": 3, "name": self.project.slug, "value": self.project.slug},
-            {"count": 1, "name": self.project2.slug, "value": self.project2.slug},
+            {"count": 3, "name": self.project.slug, "value": self.project.id},
+            {"count": 1, "name": self.project2.slug, "value": self.project2.id},
         ]
+        self.assert_facet(response, "project", expected)
+
+    def test_project_key_with_project_tag(self):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member_user = self.create_user()
+        team = self.create_team(members=[member_user])
+        private_project1 = self.create_project(organization=self.organization, teams=[team])
+        private_project2 = self.create_project(organization=self.organization, teams=[team])
+        self.login_as(member_user)
+
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"color": "green", "project": "%d" % private_project1.id},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"number": "one", "project": "%d" % private_project1.id},
+            },
+            project_id=private_project1.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"color": "green"},
+            },
+            project_id=private_project1.id,
+        )
+        self.store_event(
+            data={"event_id": uuid4().hex, "timestamp": self.min_ago_iso, "tags": {"color": "red"}},
+            project_id=private_project2.id,
+        )
+        self.store_event(
+            data={"event_id": uuid4().hex, "timestamp": self.min_ago_iso, "tags": {"color": "red"}},
+            project_id=private_project2.id,
+        )
+
+        with self.feature(self.feature_list):
+            response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        expected = [
+            {"count": 2, "name": private_project1.slug, "value": private_project1.id},
+            {"count": 2, "name": private_project2.slug, "value": private_project2.id},
+        ]
+
         self.assert_facet(response, "project", expected)
 
     def test_malformed_query(self):

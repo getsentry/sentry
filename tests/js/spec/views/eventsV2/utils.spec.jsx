@@ -4,47 +4,15 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import EventView from 'app/views/eventsV2/eventView';
 import {
-  getFieldRenderer,
   getAggregateAlias,
-  getEventTagSearchUrl,
   isAggregateField,
   decodeColumnOrder,
   pushEventViewToLocation,
+  getExpandedResults,
+  getFieldRenderer,
+  getDiscoverLandingUrl,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
-
-describe('eventTagSearchUrl()', function() {
-  let location;
-  beforeEach(function() {
-    location = {
-      pathname: '/organization/org-slug/events/',
-      query: {},
-    };
-  });
-
-  it('adds a query', function() {
-    expect(getEventTagSearchUrl('browser', 'firefox', location)).toEqual({
-      pathname: location.pathname,
-      query: {query: 'browser:firefox'},
-    });
-  });
-
-  it('removes eventSlug', function() {
-    location.query.eventSlug = 'project-slug:deadbeef';
-    expect(getEventTagSearchUrl('browser', 'firefox 69', location)).toEqual({
-      pathname: location.pathname,
-      query: {query: 'browser:"firefox 69"'},
-    });
-  });
-
-  it('appends to an existing query', function() {
-    location.query.query = 'failure';
-    expect(getEventTagSearchUrl('browser', 'firefox', location)).toEqual({
-      pathname: location.pathname,
-      query: {query: 'failure browser:firefox'},
-    });
-  });
-});
 
 describe('getAggregateAlias', function() {
   it('no-ops simple fields', function() {
@@ -93,25 +61,16 @@ describe('getFieldRenderer', function() {
     const renderer = getFieldRenderer('url', {url: 'string'});
     expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
-    const link = wrapper.find('QueryLink');
-    expect(link).toHaveLength(1);
-    expect(link.props().to).toEqual({
-      pathname: location.pathname,
-      query: {query: 'url:/example'},
-    });
-    expect(link.text()).toEqual(data.url);
+    const text = wrapper.find('Container');
+    expect(text.text()).toEqual(data.url);
   });
 
   it('can render boolean fields', function() {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
     expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
-    const link = wrapper.find('QueryLink');
-    expect(link).toHaveLength(1);
-    expect(link.props().to).toEqual({
-      pathname: location.pathname,
-      query: {query: 'boolValue:1'},
-    });
+    const text = wrapper.find('Container');
+    expect(text.text()).toEqual('yes');
   });
 
   it('can render integer fields', function() {
@@ -144,34 +103,6 @@ describe('getFieldRenderer', function() {
     expect(wrapper.text()).toEqual('n/a');
   });
 
-  it('can render transaction as a link', function() {
-    const renderer = getFieldRenderer('transaction', {transaction: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(renderer(data, {location, organization}));
-
-    const value = wrapper.find('OverflowLink');
-    expect(value).toHaveLength(1);
-    expect(value.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
-      query: {},
-    });
-    expect(value.text()).toEqual(data.transaction);
-  });
-
-  it('can render title as a link', function() {
-    const renderer = getFieldRenderer('title', {title: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(renderer(data, {location, organization}));
-
-    const value = wrapper.find('OverflowLink');
-    expect(value).toHaveLength(1);
-    expect(value.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
-      query: {},
-    });
-    expect(value.text()).toEqual(data.title);
-  });
-
   it('can render project as an avatar', function() {
     const renderer = getFieldRenderer('project', {'project.name': 'string'});
     expect(renderer).toBeInstanceOf(Function);
@@ -183,57 +114,6 @@ describe('getFieldRenderer', function() {
     const value = wrapper.find('ProjectBadge');
     expect(value).toHaveLength(1);
     expect(value.props().project).toEqual(project);
-  });
-
-  it('can coerce string field to a link', function() {
-    const renderer = getFieldRenderer('url', {url: 'string'}, true);
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
-
-    // No basic link should be present.
-    expect(wrapper.find('QueryLink')).toHaveLength(0);
-
-    const link = wrapper.find('OverflowLink');
-    expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
-      query: {},
-    });
-    expect(link.text()).toEqual('/example');
-  });
-
-  it('can coerce number field to a link', function() {
-    const renderer = getFieldRenderer('numeric', {numeric: 'number'}, true);
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
-
-    const link = wrapper.find('OverflowLink');
-    expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
-      query: {},
-    });
-    expect(link.find('Count').props().value).toEqual(data.numeric);
-  });
-
-  it('can coerce date field to a link', function() {
-    const renderer = getFieldRenderer('createdAt', {createdAt: 'date'}, true);
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mount(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
-
-    const link = wrapper.find('OverflowLink');
-    expect(link.props().to).toEqual({
-      pathname: `/organizations/org-slug/eventsv2/${project.slug}:deadbeef/`,
-      query: {},
-    });
-    expect(link.find('StyledDateTime').props().date).toEqual(data.createdAt);
   });
 });
 
@@ -261,7 +141,6 @@ describe('decodeColumnOrder', function() {
         width: 123,
       },
       isDragging: false,
-      isPrimary: true,
       isSortable: false,
       type: 'string',
     });
@@ -283,7 +162,6 @@ describe('decodeColumnOrder', function() {
         width: 123,
       },
       isDragging: false,
-      isPrimary: false,
       isSortable: true,
       type: 'number',
     });
@@ -302,7 +180,6 @@ describe('decodeColumnOrder', function() {
       width: COL_WIDTH_NUMBER,
       eventViewField: {field: 'avg(transaction.duration)'},
       isDragging: false,
-      isPrimary: false,
       isSortable: true,
       type: 'number',
     });
@@ -396,5 +273,96 @@ describe('isAggregateField', function() {
     expect(isAggregateField('thing(')).toBe(false);
     expect(isAggregateField('count()')).toBe(true);
     expect(isAggregateField('unique_count(user)')).toBe(true);
+  });
+});
+
+describe('getExpandedResults()', function() {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [
+      {field: 'count()'},
+      {field: 'last_seen'},
+      {field: 'title'},
+      {field: 'custom_tag'},
+    ],
+    sorts: [{field: 'count', kind: 'desc'}],
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+  };
+
+  it('removes aggregate fields from result view', () => {
+    const view = new EventView(state);
+    const result = getExpandedResults(view, {}, {});
+
+    expect(result.fields).toEqual([{field: 'title'}, {field: 'custom_tag'}]);
+    expect(result.query).toEqual('event.type:error');
+  });
+
+  it('applies provided conditions', () => {
+    const view = new EventView(state);
+    let result = getExpandedResults(view, {extra: 'condition'}, {});
+    expect(result.query).toEqual('event.type:error extra:condition');
+
+    // quotes value
+    result = getExpandedResults(view, {extra: 'has space'}, {});
+    expect(result.query).toEqual('event.type:error extra:"has space"');
+
+    // appends to existing conditions
+    result = getExpandedResults(view, {'event.type': 'csp'}, {});
+    expect(result.query).toEqual('event.type:error event.type:csp');
+  });
+
+  it('applies conditions from dataRow map structure based on fields', () => {
+    const view = new EventView(state);
+    const result = getExpandedResults(view, {extra: 'condition'}, {title: 'Event title'});
+    expect(result.query).toEqual('event.type:error extra:condition title:"Event title"');
+  });
+
+  it('applies tag key conditions from event data', () => {
+    const view = new EventView(state);
+    const event = {
+      type: 'error',
+      tags: [
+        {key: 'nope', value: 'nope'},
+        {key: 'custom_tag', value: 'tag_value'},
+      ],
+    };
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('event.type:error custom_tag:tag_value');
+  });
+
+  it('applies project condition to project property', () => {
+    const view = new EventView(state);
+    let result = getExpandedResults(view, {project: 1});
+    expect(result.query).toEqual('event.type:error');
+    expect(result.project).toEqual([42, 1]);
+
+    result = getExpandedResults(view, {'project.id': 1});
+    expect(result.query).toEqual('event.type:error');
+    expect(result.project).toEqual([42, 1]);
+  });
+
+  it('applies environment condition to environment property', () => {
+    const view = new EventView(state);
+    const result = getExpandedResults(view, {environment: 'dev'});
+    expect(result.query).toEqual('event.type:error');
+    expect(result.environment).toEqual(['staging', 'dev']);
+  });
+});
+
+describe('getDiscoverLandingUrl', function() {
+  it('is correct for with discover-query and discover-basic features', function() {
+    const org = TestStubs.Organization({features: ['discover-query', 'discover-basic']});
+    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/queries/');
+  });
+
+  it('is correct for with only discover-basic feature', function() {
+    const org = TestStubs.Organization({features: ['discover-basic']});
+    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/results/');
   });
 });

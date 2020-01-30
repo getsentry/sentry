@@ -18,6 +18,8 @@ from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
+from .endpoints.data_export import DataExportEndpoint
+from .endpoints.data_export_details import DataExportDetailsEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
     DebugFilesEndpoint,
@@ -90,7 +92,6 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
-from .endpoints.organization_events_distribution import OrganizationEventsDistributionEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
@@ -290,18 +291,6 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
 )
 from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
-)
-from sentry.incidents.endpoints.organization_alert_rule_trigger_action_details import (
-    OrganizationAlertRuleTriggerActionDetailsEndpoint,
-)
-from sentry.incidents.endpoints.organization_alert_rule_trigger_action_index import (
-    OrganizationAlertRuleTriggerActionIndexEndpoint,
-)
-from sentry.incidents.endpoints.organization_alert_rule_trigger_details import (
-    OrganizationAlertRuleTriggerDetailsEndpoint,
-)
-from sentry.incidents.endpoints.organization_alert_rule_trigger_index import (
-    OrganizationAlertRuleTriggerIndexEndpoint,
 )
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
 from sentry.incidents.endpoints.project_alert_rule_index import (
@@ -582,25 +571,16 @@ urlpatterns = [
                     OrganizationAlertRuleIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-alert-rules",
                 ),
+                # Data Export
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/$",
-                    OrganizationAlertRuleTriggerDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-alert-rule-trigger-details",
+                    r"^(?P<organization_slug>[^\/]+)/data-export/$",
+                    DataExportEndpoint.as_view(),
+                    name="sentry-api-0-organization-data-export",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/$",
-                    OrganizationAlertRuleTriggerIndexEndpoint.as_view(),
-                    name="sentry-api-0-organization-alert-rules-triggers",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/actions/(?P<alert_rule_trigger_action_id>[^\/]+)/$",
-                    OrganizationAlertRuleTriggerActionDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-alert-rule-trigger-action-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/triggers/(?P<alert_rule_trigger_id>[^\/]+)/actions/$",
-                    OrganizationAlertRuleTriggerActionIndexEndpoint.as_view(),
-                    name="sentry-api-0-organization-alert-rules-trigger-actions",
+                    r"^(?P<organization_slug>[^\/]+)/data-export/(?P<data_export_id>[^\/]+)/$",
+                    DataExportDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-data-export-details",
                 ),
                 # Incidents
                 url(
@@ -775,11 +755,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-stats/$",
                     OrganizationEventsStatsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-stats",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/events-distribution/$",
-                    OrganizationEventsDistributionEndpoint.as_view(),
-                    name="sentry-api-0-organization-events-distribution",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-facets/$",

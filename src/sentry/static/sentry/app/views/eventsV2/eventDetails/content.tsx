@@ -128,7 +128,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {isSidebarVisible} = this.state;
 
     return (
-      <div>
+      <React.Fragment>
         <HeaderBox>
           <DiscoverBreadcrumb
             eventView={eventView}
@@ -181,10 +181,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             {event.groupID && (
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}
-            <TagsTable tags={event.tags} />
+            <TagsTable eventView={eventView} event={event} organization={organization} />
           </div>
         </ContentBox>
-      </div>
+      </React.Fragment>
     );
   }
 
@@ -284,9 +284,7 @@ const EventMetadata = (props: {
 }) => {
   const {event, organization, projectId} = props;
 
-  const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${
-    event.eventID
-  }/json/`;
+  const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${event.eventID}/json/`;
 
   return (
     <MetaDataID>

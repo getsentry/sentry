@@ -156,11 +156,7 @@ const GroupDetailsActions = createReactClass({
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
-
-    return {
-      pathname: `/organizations/${organization.slug}/eventsv2/results/`,
-      query: discoverView.generateQueryStringObject(),
-    };
+    return discoverView.getResultsViewUrlTarget(organization.slug);
   },
 
   onDelete() {
@@ -317,7 +313,7 @@ const GroupDetailsActions = createReactClass({
           </div>
         )}
 
-        {orgFeatures.has('events-v2') && (
+        {orgFeatures.has('discover-basic') && (
           <div className="btn-group">
             <Link
               className={buttonClassName}

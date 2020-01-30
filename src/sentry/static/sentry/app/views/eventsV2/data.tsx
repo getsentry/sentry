@@ -1,22 +1,17 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {t} from 'app/locale';
 import Count from 'app/components/count';
-import DateTime from 'app/components/dateTime';
-import Link from 'app/components/links/link';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import getDynamicText from 'app/utils/getDynamicText';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import pinIcon from 'app/../images/graph/icon-location-filled.svg';
 import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
 import floatFormat from 'app/utils/floatFormat';
 
-import {QueryLink} from './styles';
-import {generateEventDetailsRoute, generateEventSlug} from './eventDetails/utils';
+import {Container, NumberContainer, OverflowLink, StyledDateTime} from './styles';
 
 export const PIN_ICON = `image://${pinIcon}`;
 export const AGGREGATE_ALIASES = [
@@ -50,8 +45,8 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
       'project',
       'count(id)',
       'avg(transaction.duration)',
-      'p75',
-      'p95',
+      'p75()',
+      'p95()',
     ],
     orderby: '-count_id',
     query: 'event.type:transaction',
@@ -155,16 +150,9 @@ const emptyValue = <span>{t('n/a')}</span>;
 export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     sortField: true,
-    renderFunc: (field, data, {location}) => {
-      const target = {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          query: `${field}:${data[field]}`,
-        },
-      };
+    renderFunc: (field, data) => {
       const value = data[field] ? t('yes') : t('no');
-      return <QueryLink to={target}>{value}</QueryLink>;
+      return <Container>{value}</Container>;
     },
   },
   integer: {
@@ -198,17 +186,10 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   string: {
     sortField: true,
-    renderFunc: (field, data, {location}) => {
-      const target = {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          query: `${field}:${data[field]}`,
-        },
-      };
+    renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field]) ? data[field].slice(-1) : data[field];
-      return <QueryLink to={target}>{value}</QueryLink>;
+      return <Container>{value}</Container>;
     },
   },
   duration: {
@@ -225,74 +206,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
 };
 
-const eventLink = (
-  location: Location,
-  organization: Organization,
-  data: EventData,
-  content: string | React.ReactNode
-): React.ReactNode => {
-  const eventSlug = generateEventSlug(data);
-  const pathname = generateEventDetailsRoute({
-    orgSlug: organization.slug,
-    eventSlug,
-  });
-
-  const target = {
-    pathname,
-    query: {
-      ...location.query,
-    },
-  };
-  return <OverflowLink to={target}>{content}</OverflowLink>;
-};
-
-type LinkFormatter = (
-  field: string,
-  data: EventData,
-  baggage: RenderFunctionBaggage
-) => React.ReactNode;
-
-type LinkFormatters = {
-  integer: LinkFormatter;
-  number: LinkFormatter;
-  date: LinkFormatter;
-  string: LinkFormatter;
-};
-
-export const LINK_FORMATTERS: LinkFormatters = {
-  string: (field, data, {location, organization}) => {
-    return <Container>{eventLink(location, organization, data, data[field])}</Container>;
-  },
-  number: (field, data, {location, organization}) => {
-    return (
-      <NumberContainer>
-        {typeof data[field] === 'number'
-          ? eventLink(location, organization, data, <Count value={data[field]} />)
-          : emptyValue}
-      </NumberContainer>
-    );
-  },
-  integer: (field, data, {location, organization}) => {
-    return (
-      <NumberContainer>
-        {typeof data[field] === 'number'
-          ? eventLink(location, organization, data, <Count value={data[field]} />)
-          : emptyValue}
-      </NumberContainer>
-    );
-  },
-  date: (field, data, {location, organization}) => {
-    let content = emptyValue;
-    if (data[field]) {
-      content = getDynamicText({
-        value: <StyledDateTime date={data[field]} />,
-        fixed: <span>timestamp</span>,
-      });
-    }
-    return <Container>{eventLink(location, organization, data, content)}</Container>;
-  },
-};
-
 type SpecialFieldRenderFunc = (
   data: EventData,
   baggage: RenderFunctionBaggage
@@ -304,9 +217,6 @@ type SpecialField = {
 };
 
 type SpecialFields = {
-  transaction: SpecialField;
-  title: SpecialField;
-  'event.type': SpecialField;
   project: SpecialField;
   user: SpecialField;
   last_seen: SpecialField;
@@ -332,64 +242,6 @@ export const SPECIAL_FIELDS: SpecialFields = {
       );
     },
   },
-  transaction: {
-    sortField: 'transaction',
-    renderFunc: (data, {location, organization}) => {
-      const eventSlug = generateEventSlug(data);
-      const pathname = generateEventDetailsRoute({
-        orgSlug: organization.slug,
-        eventSlug,
-      });
-
-      const target = {
-        pathname,
-        query: {...location.query},
-      };
-      return (
-        <Container>
-          <OverflowLink to={target} aria-label={data.transaction}>
-            {data.transaction}
-          </OverflowLink>
-        </Container>
-      );
-    },
-  },
-  title: {
-    sortField: 'title',
-    renderFunc: (data, {location, organization}) => {
-      const eventSlug = generateEventSlug(data);
-      const pathname = generateEventDetailsRoute({
-        orgSlug: organization.slug,
-        eventSlug,
-      });
-
-      const target = {
-        pathname,
-        query: {...location.query},
-      };
-      return (
-        <Container>
-          <OverflowLink to={target} aria-label={data.title}>
-            {data.title}
-          </OverflowLink>
-        </Container>
-      );
-    },
-  },
-  'event.type': {
-    sortField: 'event.type',
-    renderFunc: (data, {location}) => {
-      const target = {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          query: `event.type:${data['event.type']}`,
-        },
-      };
-
-      return <QueryLink to={target}>{data['event.type']}</QueryLink>;
-    },
-  },
   project: {
     sortField: null,
     renderFunc: (data, {organization}) => {
@@ -407,7 +259,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
   },
   user: {
     sortField: 'user.id',
-    renderFunc: (data, {location}) => {
+    renderFunc: data => {
       const userObj = {
         id: data['user.id'],
         name: data['user.name'],
@@ -416,23 +268,9 @@ export const SPECIAL_FIELDS: SpecialFields = {
         ip_address: data['user.ip'],
       };
 
-      const badge = (
-        <UserBadge useLink={false} user={userObj} hideEmail avatarSize={16} />
-      );
+      const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
 
-      if (!data.user) {
-        return <Container>{badge}</Container>;
-      }
-
-      const target = {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          query: `user:${data.user}`,
-        },
-      };
-
-      return <QueryLink to={target}>{badge}</QueryLink>;
+      return <Container>{badge}</Container>;
     },
   },
   last_seen: {
@@ -451,26 +289,3 @@ export const SPECIAL_FIELDS: SpecialFields = {
     },
   },
 };
-
-/**
- * List of fields that have links auto-generated
- */
-export const AUTOLINK_FIELDS: string[] = ['transaction', 'title'];
-
-const Container = styled('div')`
-  ${overflowEllipsis};
-`;
-
-const NumberContainer = styled('div')`
-  text-align: right;
-  ${overflowEllipsis};
-`;
-
-const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray2};
-  ${overflowEllipsis};
-`;
-
-const OverflowLink = styled(Link)`
-  ${overflowEllipsis};
-`;

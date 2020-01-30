@@ -47,6 +47,7 @@ export type UnsavedIncidentRule = {
 export type SavedIncidentRule = UnsavedIncidentRule & {
   dateCreated: string;
   dateModified: string;
+  dataset: string;
   id: string;
   status: number;
   name: string;
@@ -96,4 +97,7 @@ export type Action = {
 
   // How to identify the target. Can be email, slack channel, pagerduty service, user_id, team_id, etc
   targetIdentifier: string | null;
+
+  // Human readable string describing what the action does.
+  desc: string | null;
 };

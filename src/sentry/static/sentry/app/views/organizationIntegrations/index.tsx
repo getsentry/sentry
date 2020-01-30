@@ -3,6 +3,7 @@ import groupBy from 'lodash/groupBy';
 import keyBy from 'lodash/keyBy';
 import React from 'react';
 import styled from '@emotion/styled';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {
   Organization,
@@ -11,12 +12,11 @@ import {
   SentryApp,
   IntegrationProvider,
   SentryAppInstallation,
-  RouterProps,
 } from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {RequestOptions} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {analytics} from 'app/utils/analytics';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
@@ -35,7 +35,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 type AppOrProvider = SentryApp | IntegrationProvider;
 
-type Props = RouterProps & {
+type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
 };
@@ -69,11 +69,33 @@ class OrganizationIntegrations extends AsyncComponent<
     organization: SentryTypes.Organization,
   };
 
-  componentDidMount() {
-    analytics('integrations.index_viewed', {
-      org_id: parseInt(this.props.organization.id, 10),
-    });
+  onLoadAllEndpointsSuccess() {
+    this.recordIndexPageViewed();
   }
+
+  recordIndexPageViewed = () => {
+    //count the number of installed apps
+    const {integrations, publishedApps} = this.state;
+    const integrationsInstalled = new Set();
+    //add installed integrations
+    integrations.forEach((integration: Integration) => {
+      integrationsInstalled.add(integration.provider.key);
+    });
+    //add sentry apps
+    publishedApps.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
+      integrationsInstalled.add(sentryApp.slug);
+    });
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.index_viewed',
+        eventName: 'Integrations: Index Page Viewed',
+        integrations_installed: integrationsInstalled.size,
+        view: 'integrations_page',
+      },
+      this.props.organization,
+      {startSession: true}
+    );
+  };
 
   getEndpoints(): ([string, string, any] | [string, string])[] {
     const {orgId} = this.props.params;
@@ -228,6 +250,7 @@ class OrganizationIntegrations extends AsyncComponent<
         onReinstall={this.onInstall}
         enabledPlugins={this.enabledPlugins}
         newlyInstalledIntegrationId={this.state.newlyInstalledIntegrationId}
+        onCloseModal={this.recordIndexPageViewed}
       />
     );
   };
@@ -259,6 +282,7 @@ class OrganizationIntegrations extends AsyncComponent<
         install={this.getAppInstall(app)}
         onAppUninstall={() => this.handleRemoveAppInstallation(app)}
         onAppInstall={this.handleAppInstallation}
+        onCloseModal={this.recordIndexPageViewed}
         app={app}
       />
     );

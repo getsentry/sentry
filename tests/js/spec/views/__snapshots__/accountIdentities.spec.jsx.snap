@@ -71,14 +71,12 @@ exports[`AccountIdentities renders list 1`] = `
           <Styled(div)
             p={2}
           >
-            <Button
-              align="center"
-              disabled={false}
+            <forwardRef<Button>
               onClick={[Function]}
               size="small"
             >
               Disconnect
-            </Button>
+            </forwardRef<Button>>
           </Styled(div)>
         </PanelItem>
       </PanelBody>

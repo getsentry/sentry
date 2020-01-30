@@ -13,16 +13,11 @@ import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
+import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {SectionHeading} from './styles';
 
-import {
-  fetchTagFacets,
-  fetchTotalCount,
-  getEventTagSearchUrl,
-  Tag,
-  TagTopValue,
-} from './utils';
+import {fetchTagFacets, fetchTotalCount, Tag, TagTopValue} from './utils';
 import EventView, {isAPIPayloadSimilar} from './eventView';
 
 type Props = {
@@ -105,11 +100,16 @@ class Tags extends React.Component<Props, State> {
   };
 
   renderTag(tag: Tag) {
-    const {location} = this.props;
+    const {organization, eventView} = this.props;
     const {totalValues} = this.state;
 
     const segments: TagTopValue[] = tag.topValues.map(segment => {
-      segment.url = getEventTagSearchUrl(tag.key, segment.value, location);
+      const url = eventView.getResultsViewUrlTarget(organization.slug);
+      url.query = generateQueryWithTag(url.query, {
+        key: tag.key,
+        value: segment.value,
+      });
+      segment.url = url;
 
       return segment;
     });
@@ -153,11 +153,12 @@ class Tags extends React.Component<Props, State> {
   }
 }
 
-const StyledHeading = styled(SectionHeading)`
+// These styled components are used in getsentry for a paywall.
+export const StyledHeading = styled(SectionHeading)`
   margin: 0 0 ${space(1.5)} 0;
 `;
 
-const TagSection = styled('div')`
+export const TagSection = styled('div')`
   margin: ${space(2)} 0;
 `;
 

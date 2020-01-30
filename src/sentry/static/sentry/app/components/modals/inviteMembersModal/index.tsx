@@ -255,7 +255,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
       const sentCount = statuses.filter(i => i.sent).length;
       const errorCount = statuses.filter(i => i.error).length;
 
-      const invites = <strong>{tn('%d invite', '%d invites', sentCount)}</strong>;
+      const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
       const tctComponents = {
         invites,
         failed: errorCount,
@@ -290,8 +290,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   get inviteButtonLabel() {
     if (this.invites.length > 0) {
       return this.willInvite
-        ? tn('Send invite', 'Send invites (%d)', this.invites.length)
-        : tn('Send invite request', 'Send invite requests (%d)', this.invites.length);
+        ? tn('Send invite', 'Send invites (%s)', this.invites.length)
+        : tn('Send invite request', 'Send invite requests (%s)', this.invites.length);
     }
 
     return this.willInvite ? t('Send invite') : t('Send invite request');
@@ -351,9 +351,19 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
             teamOptions={allTeams}
             inviteStatus={inviteStatus}
             onRemove={() => this.removeInviteRow(i)}
-            onChangeEmails={opts => this.setEmails(opts.map(v => v.value), i)}
+            onChangeEmails={opts =>
+              this.setEmails(
+                opts.map(v => v.value),
+                i
+              )
+            }
             onChangeRole={({value}) => this.setRole(value, i)}
-            onChangeTeams={opts => this.setTeams(opts.map(v => v.value), i)}
+            onChangeTeams={opts =>
+              this.setTeams(
+                opts.map(v => v.value),
+                i
+              )
+            }
             disableRemove={disableInputs || pendingInvites.length === 1}
           />
         ))}

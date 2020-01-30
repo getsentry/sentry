@@ -257,7 +257,6 @@ USE_TZ = True
 MIDDLEWARE_CLASSES = (
     "sentry.middleware.proxy.ChunkedMiddleware",
     "sentry.middleware.proxy.DecompressBodyMiddleware",
-    "sentry.middleware.proxy.ContentLengthHeaderMiddleware",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -274,8 +273,6 @@ MIDDLEWARE_CLASSES = (
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
-    # TODO(dcramer): kill this once we verify its safe
-    # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     "django.contrib.messages.middleware.MessageMiddleware",
 )
 
@@ -393,13 +390,11 @@ LOGIN_URL = reverse_lazy("sentry-login")
 
 AUTHENTICATION_BACKENDS = (
     "sentry.utils.auth.EmailAuthBackend",
-    # TODO(dcramer): we can't remove these until we rewrite more of social auth
-    "social_auth.backends.github.GithubBackend",
-    "social_auth.backends.github_apps.GithubAppsBackend",
-    "social_auth.backends.bitbucket.BitbucketBackend",
-    "social_auth.backends.trello.TrelloBackend",
+    # The following authentication backends are used by social auth only.
+    # We don't use them for user authentication.
     "social_auth.backends.asana.AsanaBackend",
-    "social_auth.backends.slack.SlackBackend",
+    "social_auth.backends.github.GithubBackend",
+    "social_auth.backends.bitbucket.BitbucketBackend",
     "social_auth.backends.visualstudio.VisualStudioBackend",
 )
 
@@ -416,16 +411,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = "sentry.User"
 
-SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
-    "social_auth.backends.github.GithubBackend",
-    "social_auth.backends.bitbucket.BitbucketBackend",
-    "social_auth.backends.trello.TrelloBackend",
-    "social_auth.backends.asana.AsanaBackend",
-    "social_auth.backends.slack.SlackBackend",
-    "social_auth.backends.github_apps.GithubAppsBackend",
-    "social_auth.backends.visualstudio.VisualStudioBackend",
-)
-
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
 SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
@@ -436,14 +421,11 @@ GOOGLE_OAUTH2_CLIENT_SECRET = ""
 GITHUB_APP_ID = ""
 GITHUB_API_SECRET = ""
 
-GITHUB_APPS_APP_ID = ""
-GITHUB_APPS_API_SECRET = ""
-
-TRELLO_API_KEY = ""
-TRELLO_API_SECRET = ""
-
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
+
+ASANA_CLIENT_ID = ""
+ASANA_CLIENT_SECRET = ""
 
 VISUALSTUDIO_APP_ID = ""
 VISUALSTUDIO_APP_SECRET = ""
@@ -469,11 +451,8 @@ INITIAL_CUSTOM_USER_MIGRATION = "0108_fix_user"
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     "github": ("GITHUB_APP_ID", "GITHUB_API_SECRET"),
-    "github_apps": ("GITHUB_APPS_APP_ID", "GITHUB_APPS_API_SECRET"),
-    "trello": ("TRELLO_API_KEY", "TRELLO_API_SECRET"),
     "bitbucket": ("BITBUCKET_CONSUMER_KEY", "BITBUCKET_CONSUMER_SECRET"),
     "asana": ("ASANA_CLIENT_ID", "ASANA_CLIENT_SECRET"),
-    "slack": ("SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET"),
     "visualstudio": (
         "VISUALSTUDIO_APP_ID",
         "VISUALSTUDIO_APP_SECRET",
@@ -483,11 +462,8 @@ AUTH_PROVIDERS = {
 
 AUTH_PROVIDER_LABELS = {
     "github": "GitHub",
-    "github_apps": "GitHub Apps",
-    "trello": "Trello",
     "bitbucket": "Bitbucket",
     "asana": "Asana",
-    "slack": "Slack",
     "visualstudio": "Visual Studio",
 }
 
@@ -537,6 +513,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
+    "sentry.tasks.data_export",
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
@@ -568,6 +545,7 @@ CELERY_QUEUES = [
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
     Queue("commits", routing_key="commits"),
     Queue("cleanup", routing_key="cleanup"),
+    Queue("data_export", routing_key="data_export"),
     Queue("default", routing_key="default"),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
@@ -816,6 +794,8 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
+    # Enable the 'data-export' interface.
+    "organizations:data-export": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
@@ -828,6 +808,10 @@ SENTRY_FEATURES = {
     "organizations:events": False,
     # Enable events v2 instead of the events stream
     "organizations:events-v2": False,
+    # Enable discover 2 basic functions
+    "organizations:discover-basic": False,
+    # Enable discover 2 custom queries and saved queries
+    "organizations:discover-query": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Turns on grouping info.
@@ -836,8 +820,8 @@ SENTRY_FEATURES = {
     "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
-    # Enable health feature
-    "organizations:health": False,
+    # Enable Releases v2 feature
+    "organizations:releases-v2": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable integration functionality to create and link groups to issues on
@@ -857,8 +841,8 @@ SENTRY_FEATURES = {
     "organizations:org-saved-searches": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
     "organizations:datascrubbers-v2": False,
-    # Enable usage of external relays, for use with sentry semaphore. See
-    # https://github.com/getsentry/semaphore.
+    # Enable usage of external relays, for use with Relay. See
+    # https://github.com/getsentry/relay.
     "organizations:relay": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
@@ -1396,7 +1380,7 @@ SENTRY_DEVSERVICES = {
             "REDIS_DB": "1",
         },
     },
-    "bigtable": {"image": "mattrobenolt/cbtemulator:0.36.0", "ports": {"8086/tcp": 8086}},
+    "bigtable": {"image": "mattrobenolt/cbtemulator:0.51.0", "ports": {"8086/tcp": 8086}},
     "memcached": {"image": "memcached:1.5-alpine", "ports": {"11211/tcp": 11211}},
     "symbolicator": {
         "image": "us.gcr.io/sentryio/symbolicator:latest",
@@ -1470,6 +1454,9 @@ EMAIL_HOST_PASSWORD = DEAD
 EMAIL_USE_TLS = DEAD
 SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
+
+GITHUB_APP_ID = DEAD
+GITHUB_API_SECRET = DEAD
 
 SUDO_URL = "sentry-sudo"
 

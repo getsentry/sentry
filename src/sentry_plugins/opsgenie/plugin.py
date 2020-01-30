@@ -43,6 +43,7 @@ class OpsGeniePlugin(notify.NotificationPlugin):
     conf_key = "opsgenie"
     version = sentry.VERSION
     project_conf_form = OpsGenieOptionsForm
+    required_field = "api_key"
 
     logger = logging.getLogger("sentry.plugins.opsgenie")
 
@@ -54,7 +55,7 @@ class OpsGeniePlugin(notify.NotificationPlugin):
 
     def build_payload(self, group, event, triggering_rules):
         payload = {
-            "message": event.message,
+            "message": event.message or event.title,
             "alias": "sentry: %d" % group.id,
             "source": "Sentry",
             "details": {

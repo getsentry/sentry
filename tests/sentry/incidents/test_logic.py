@@ -165,9 +165,9 @@ class UpdateIncidentStatus(TestCase):
         return IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
 
     def test_status_already_set(self):
-        incident = self.create_incident(status=IncidentStatus.OPEN.value)
+        incident = self.create_incident(status=IncidentStatus.WARNING.value)
         with self.assertRaises(StatusAlreadyChangedError):
-            update_incident_status(incident, IncidentStatus.OPEN)
+            update_incident_status(incident, IncidentStatus.WARNING)
 
     def run_test(self, incident, status, expected_date_closed, user=None, comment=None):
         prev_status = incident.status
@@ -213,24 +213,6 @@ class UpdateIncidentStatus(TestCase):
             after=True,
         ):
             self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
-
-    def test_reopened(self):
-        incident = create_incident(
-            self.organization,
-            IncidentType.CREATED,
-            "Test",
-            "",
-            QueryAggregations.TOTAL,
-            timezone.now(),
-            projects=[self.project],
-        )
-        update_incident_status(incident, IncidentStatus.CLOSED)
-        with self.assertChanges(
-            lambda: IncidentSnapshot.objects.filter(incident=incident).exists(),
-            before=True,
-            after=False,
-        ):
-            self.run_test(incident, IncidentStatus.OPEN, None)
 
     def test_all_params(self):
         incident = self.create_incident()
@@ -444,13 +426,13 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
             IncidentActivityType.STATUS_CHANGE,
             user=self.user,
             value=six.text_type(IncidentStatus.CLOSED.value),
-            previous_value=six.text_type(IncidentStatus.OPEN.value),
+            previous_value=six.text_type(IncidentStatus.WARNING.value),
         )
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
         assert activity.user == self.user
         assert activity.value == six.text_type(IncidentStatus.CLOSED.value)
-        assert activity.previous_value == six.text_type(IncidentStatus.OPEN.value)
+        assert activity.previous_value == six.text_type(IncidentStatus.WARNING.value)
         self.assert_notifications_sent(activity)
         assert not self.record_event.called
 
@@ -873,7 +855,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         for subscription in updated_subscriptions:
             assert subscription.query == query
             assert subscription.aggregation == aggregation.value
-            assert subscription.time_window == time_window
+            assert subscription.time_window == int(timedelta(minutes=time_window).total_seconds())
         assert self.alert_rule.query == query
         assert self.alert_rule.aggregation == aggregation.value
         assert self.alert_rule.time_window == time_window

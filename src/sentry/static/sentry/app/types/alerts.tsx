@@ -52,6 +52,7 @@ export type UnsavedIssueAlertRule = {
   frequency: number;
   name: string;
 };
+
 // Issue-based alert rule
 export type IssueAlertRule = UnsavedIssueAlertRule & {
   dateCreated: string;

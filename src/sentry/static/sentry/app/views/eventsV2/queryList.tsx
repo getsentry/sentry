@@ -22,7 +22,6 @@ import QueryCard from './querycard';
 import MiniGraph from './miniGraph';
 import {getPrebuiltQueries} from './utils';
 import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
-import {generateDiscoverResultsRoute} from './results';
 
 type Props = {
   api: Client;
@@ -113,15 +112,7 @@ class QueryList extends React.Component<Props> {
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
-      const to = {
-        pathname: generateDiscoverResultsRoute(organization.slug),
-        query: {
-          ...location.query,
-          // remove any landing page cursor
-          cursor: undefined,
-          ...eventView.generateQueryStringObject(),
-        },
-      };
+      const to = eventView.getResultsViewUrlTarget(organization.slug);
 
       return (
         <QueryCard
@@ -168,15 +159,8 @@ class QueryList extends React.Component<Props> {
         moment(eventView.start).format('MMM D, YYYY h:mm A') +
         ' - ' +
         moment(eventView.end).format('MMM D, YYYY h:mm A');
-      const to = {
-        pathname: generateDiscoverResultsRoute(organization.slug),
-        query: {
-          ...location.query,
-          // remove any landing page cursor
-          cursor: undefined,
-          ...eventView.generateQueryStringObject(),
-        },
-      };
+
+      const to = eventView.getResultsViewUrlTarget(organization.slug);
 
       return (
         <QueryCard
@@ -289,18 +273,21 @@ class ContextMenu extends React.Component {
             >
               <ContextMenuButton
                 data-test-id="context-menu"
-                {...getActorProps({
+                {...(getActorProps({
                   onClick: (event: MouseEvent) => {
                     event.stopPropagation();
                     event.preventDefault();
                   },
-                }) as any}
+                }) as any)}
               >
                 <InlineSvg src="icon-ellipsis-filled" />
               </ContextMenuButton>
 
               {isOpen && (
-                <ul {...getMenuProps({}) as any} className={classNames('dropdown-menu')}>
+                <ul
+                  {...(getMenuProps({}) as any)}
+                  className={classNames('dropdown-menu')}
+                >
                   {children}
                 </ul>
               )}

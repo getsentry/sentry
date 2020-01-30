@@ -14,6 +14,7 @@ const ProjectsStore = Reflux.createStore({
     this.listenTo(ProjectActions.loadProjects, this.loadInitialData);
     this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess);
     this.listenTo(ProjectActions.removeTeamSuccess, this.onRemoveTeam);
+    this.listenTo(ProjectActions.reset, this.reset);
     this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess);
 
     this.listenTo(TeamActions.removeTeamSuccess, this.onDeleteTeam);

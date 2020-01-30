@@ -16,7 +16,11 @@ from sentry.utils.samples import load_data
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-FEATURE_NAMES = ["organizations:events-v2", "organizations:transaction-events"]
+FEATURE_NAMES = [
+    "organizations:discover-basic",
+    "organizations:discover-query",
+    "organizations:transaction-events",
+]
 
 
 def all_events_query(**kwargs):
@@ -80,21 +84,21 @@ def generate_transaction():
     parent_span_id = reference_span["parent_span_id"]
 
     span_tree_blueprint = {
-        "a": {"aa": {"aaa": {"aaaa": "aaaaa"}}},
-        "b": {},
+        "a": {},
+        "b": {"bb": {"bbb": {"bbbb": "bbbbb"}}},
         "c": {},
         "d": {},
         "e": {},
     }
 
     time_offsets = {
-        "a": (timedelta(), timedelta(milliseconds=250)),
-        "aa": (timedelta(milliseconds=10), timedelta(milliseconds=20)),
-        "aaa": (timedelta(milliseconds=15), timedelta(milliseconds=30)),
-        "aaaa": (timedelta(milliseconds=20), timedelta(milliseconds=50)),
-        "aaaaa": (timedelta(milliseconds=25), timedelta(milliseconds=50)),
-        "b": (timedelta(milliseconds=100), timedelta(milliseconds=100)),
-        "c": (timedelta(milliseconds=350), timedelta(milliseconds=50)),
+        "a": (timedelta(), timedelta(milliseconds=10)),
+        "b": (timedelta(milliseconds=120), timedelta(milliseconds=250)),
+        "bb": (timedelta(milliseconds=130), timedelta(milliseconds=10)),
+        "bbb": (timedelta(milliseconds=140), timedelta(milliseconds=10)),
+        "bbbb": (timedelta(milliseconds=150), timedelta(milliseconds=10)),
+        "bbbbb": (timedelta(milliseconds=160), timedelta(milliseconds=90)),
+        "c": (timedelta(milliseconds=260), timedelta(milliseconds=100)),
         "d": (timedelta(milliseconds=375), timedelta(milliseconds=50)),
         "e": (timedelta(milliseconds=400), timedelta(milliseconds=100)),
     }
@@ -150,8 +154,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.landing_path = u"/organizations/{}/eventsv2/".format(self.org.slug)
-        self.result_path = u"/organizations/{}/eventsv2/results/".format(self.org.slug)
+        self.landing_path = u"/organizations/{}/discover/queries/".format(self.org.slug)
+        self.result_path = u"/organizations/{}/discover/results/".format(self.org.slug)
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
@@ -299,9 +303,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             }
         )
-        event = self.store_event(
-            data=event_data, project_id=self.project.id, assert_no_errors=False
-        )
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=False)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page.
@@ -309,7 +311,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Click the event link to open the events detail view
-            self.browser.element('[aria-label="{}"]'.format(event.title)).click()
+            self.browser.element('[data-test-id="view-events"]').click()
             self.wait_until_loaded()
 
             header = self.browser.element('[data-test-id="event-header"] span')
@@ -343,7 +345,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Click the event link to open the event detail view
-            self.browser.element('[aria-label="{}"]'.format(event.title)).click()
+            self.browser.element('[data-test-id="view-events"]').click()
             self.wait_until_loaded()
 
             self.browser.snapshot("events-v2 - grouped error event detail view")
@@ -362,7 +364,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         event_data = generate_transaction()
 
-        event = self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
@@ -370,7 +372,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Click the event link to open the event detail view
-            self.browser.element('[aria-label="{}"]'.format(event.title)).click()
+            self.browser.element('[data-test-id="view-events"]').click()
             self.wait_until_loaded()
 
             self.browser.snapshot("events-v2 - transactions event detail view")

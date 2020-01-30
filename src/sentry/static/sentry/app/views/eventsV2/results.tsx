@@ -4,11 +4,14 @@ import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 import uniqBy from 'lodash/uniqBy';
+import isEqual from 'lodash/isEqual';
 
-import {Organization} from 'app/types';
+import {Organization, GlobalSelection} from 'app/types';
 
+import {Client} from 'app/api';
 import {Panel} from 'app/components/panels';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -21,7 +24,9 @@ import EventsChart from 'app/views/events/eventsChart';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import Table from './table';
 import Tags from './tags';
@@ -35,9 +40,11 @@ const CHART_AXIS_OPTIONS = [
 ];
 
 type Props = {
+  api: Client;
   router: ReactRouter.InjectedRouter;
   location: Location;
   organization: Organization;
+  selection: GlobalSelection;
 };
 
 type State = {
@@ -53,6 +60,21 @@ class Results extends React.Component<Props, State> {
   state = {
     eventView: EventView.fromLocation(this.props.location),
   };
+
+  componentDidMount() {
+    const {api, organization, selection} = this.props;
+    loadOrganizationTags(api, organization.slug, selection);
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    const {api, organization, selection} = this.props;
+    if (
+      !isEqual(prevProps.selection.projects, selection.projects) ||
+      !isEqual(prevProps.selection.datetime, selection.datetime)
+    ) {
+      loadOrganizationTags(api, organization.slug, selection);
+    }
+  }
 
   handleSearch = (query: string) => {
     const {router, location} = this.props;
@@ -182,13 +204,13 @@ class Results extends React.Component<Props, State> {
   }
 }
 
-const StyledPageContent = styled(PageContent)`
+// These styled components are used in getsentry to create a paywall page.
+// Be careful changing their interfaces.
+export const StyledPageContent = styled(PageContent)`
   margin: 0;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
-    /* HACK(leedongwei): Hardcoded height for search bar and graph */
-    grid-template-rows: 270px auto;
     grid-template-columns: 66% auto;
     grid-column-gap: ${space(3)};
   }
@@ -198,34 +220,27 @@ const StyledPageContent = styled(PageContent)`
   }
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+export const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
-const StyledPanel = styled(Panel)`
-  /* HACK(leedongwei): Hardcoded height for graph */
-  height: 200px;
-  margin-bottom: ${space(1.5)};
 
+export const StyledPanel = styled(Panel)`
   .echarts-for-react div:first-child {
     width: 100% !important;
   }
 `;
 
-const Top = styled('div')`
+export const Top = styled('div')`
   grid-column: 1/3;
   flex-grow: 0;
 `;
-const Main = styled('div')<{eventView: EventView}>`
+export const Main = styled('div')<{eventView: EventView}>`
   grid-column: 1/2;
   max-width: 100%;
   overflow: hidden;
 `;
-const Side = styled('div')<{eventView: EventView}>`
+export const Side = styled('div')<{eventView: EventView}>`
   grid-column: 2/3;
 `;
 
-export function generateDiscoverResultsRoute(orgSlug: string): string {
-  return `/organizations/${orgSlug}/eventsv2/results/`;
-}
-
-export default withOrganization(Results);
+export default withApi(withOrganization(withGlobalSelection(Results)));

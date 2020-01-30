@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import timedelta
 import logging
 
+from sentry import options
 from sentry.eventstore.base import EventStorage
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
@@ -49,6 +50,7 @@ class SnubaEventStorage(EventStorage):
     def get_events(
         self,
         filter,
+        additional_columns=None,
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
@@ -57,6 +59,17 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
+        if not options.get("eventstore.use-nodestore"):
+            return self.__get_events(
+                filter,
+                additional_columns=additional_columns,
+                orderby=orderby,
+                limit=limit,
+                offset=offset,
+                referrer=referrer,
+                should_bind_nodes=False,
+            )
+
         return self.__get_events(
             filter,
             orderby=orderby,
@@ -89,6 +102,7 @@ class SnubaEventStorage(EventStorage):
     def __get_events(
         self,
         filter,
+        additional_columns=None,
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
@@ -123,7 +137,7 @@ class SnubaEventStorage(EventStorage):
                 start = min(event.datetime for event in events)
                 end = max(event.datetime for event in events) + timedelta(seconds=1)
 
-                result = snuba.dataset_query(
+                result = snuba.aliased_query(
                     selected_columns=cols,
                     start=start,
                     end=end,
@@ -272,7 +286,7 @@ class SnubaEventStorage(EventStorage):
             # This query uses the discover dataset to enable
             # getting events across both errors and transactions, which is
             # required when doing pagination in discover
-            result = snuba.dataset_query(
+            result = snuba.aliased_query(
                 selected_columns=columns,
                 conditions=filter.conditions,
                 filter_keys=filter.filter_keys,

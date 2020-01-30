@@ -12,7 +12,7 @@ from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
-from semaphore.consts import SPAN_STATUS_NAME_TO_CODE
+from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
 from sentry.models import Project
@@ -109,7 +109,7 @@ rel_time_filter      = search_key sep rel_date_format
 # exact time filter for dates
 specific_time_filter = search_key sep date_format
 # Numeric comparison filter
-numeric_filter       = search_key sep operator? numeric_value
+numeric_filter       = (function_key / search_key) sep operator? numeric_value
 # Aggregate numeric filter
 aggregate_filter        = aggregate_key sep operator? numeric_value
 aggregate_date_filter   = aggregate_key sep operator? (date_format / rel_date_format)
@@ -119,7 +119,8 @@ has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
 tag_filter           = negation? "tags[" search_key "]" sep search_value
 
-aggregate_key        = key open_paren key closed_paren
+aggregate_key        = key space? open_paren space? key space? closed_paren
+function_key         = key space? open_paren space? closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
@@ -156,11 +157,9 @@ SEARCH_MAP = {
     "first_seen": "first_seen",
     "last_seen": "last_seen",
     "times_seen": "times_seen",
-    # TODO(mark) figure out how to safelist aggregate functions/field aliases
-    # so they can be used in conditions
 }
-SEARCH_MAP.update(**DATASETS[Dataset.Transactions])
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
+SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
 no_conversion = set(["start", "end"])
 
@@ -245,6 +244,7 @@ class SearchVisitor(NodeVisitor):
             "p75",
             "p95",
             "p99",
+            "error_rate",
         ]
     )
     date_keys = set(
@@ -363,6 +363,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
+        search_key = search_key[0] if not isinstance(search_key, Node) else search_key
         operator = operator[0] if not isinstance(operator, Node) else "="
 
         if search_key.name in self.numeric_keys:
@@ -510,8 +511,23 @@ class SearchVisitor(NodeVisitor):
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_aggregate_key(self, node, children):
+        children = self.flatten(children)
+        children = self.remove_optional_nodes(children)
+        children = self.remove_space(children)
+
         key = "".join(children)
         return AggregateKey(self.key_mappings_lookup.get(key, key))
+
+    def visit_function_key(self, node, children):
+        children = self.flatten(children)
+        children = self.remove_optional_nodes(children)
+        children = self.remove_space(children)
+
+        key = "".join(children)
+        if key.strip("()") in FIELD_ALIASES:
+            key = key.strip("()")
+
+        return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
@@ -606,6 +622,8 @@ def convert_search_filter_to_snuba_query(search_filter):
 
     if name in no_conversion:
         return
+    elif name == "id" and search_filter.value.is_wildcard():
+        raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
     elif name == "environment":
         # conditions added to env_conditions are OR'd
         env_conditions = []
@@ -806,7 +824,11 @@ FIELD_ALIASES = {
         "result_type": "number",
         "aggregations": [
             [
-                "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
+                # Snuba is not able to parse Clickhouse infix expressions. We should pass aggregations
+                # in a format Snuba can parse so query optimizations can be applied.
+                # It has a minimal prefix parser though to bridge the gap between the current state
+                # and when we will have an easier syntax.
+                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
                 None,
                 "impact",
             ]
@@ -815,6 +837,12 @@ FIELD_ALIASES = {
     "p75": {"result_type": "duration", "aggregations": [["quantile(0.75)(duration)", None, "p75"]]},
     "p95": {"result_type": "duration", "aggregations": [["quantile(0.95)(duration)", None, "p95"]]},
     "p99": {"result_type": "duration", "aggregations": [["quantile(0.99)(duration)", None, "p99"]]},
+    "error_rate": {
+        "result_type": "number",
+        "aggregations": [
+            ["divide(countIf(notEquals(transaction_status, 0)), count(*))", None, "error_rate"]
+        ],
+    },
 }
 
 VALID_AGGREGATES = {
@@ -893,8 +921,9 @@ def resolve_field(field):
     if not isinstance(field, six.string_types):
         raise InvalidSearchQuery("Field names must be strings")
 
-    if field in FIELD_ALIASES:
-        special_field = deepcopy(FIELD_ALIASES[field])
+    sans_parens = field.strip("()")
+    if sans_parens in FIELD_ALIASES:
+        special_field = deepcopy(FIELD_ALIASES[sans_parens])
         return (special_field.get("fields", []), special_field.get("aggregations", []))
 
     # Basic fields don't require additional validation. They could be tag
@@ -937,8 +966,8 @@ def resolve_field_list(fields, snuba_args, auto_fields=True):
             fields.append("project.id")
 
     aggregations = []
-    groupby = []
     columns = []
+    groupby = []
     for field in fields:
         column_additions, agg_additions = resolve_field(field)
         if column_additions:
@@ -959,7 +988,7 @@ def resolve_field_list(fields, snuba_args, auto_fields=True):
             columns.append("id")
         if not aggregations and "project.id" not in columns:
             columns.append("project.id")
-        if aggregations and "latest_event" not in fields:
+        if aggregations and "latest_event" not in map(lambda a: a[-1], aggregations):
             aggregations.extend(deepcopy(FIELD_ALIASES["latest_event"]["aggregations"]))
         if aggregations and "project.id" not in columns:
             aggregations.append(["argMax", ["project.id", "timestamp"], "projectid"])
