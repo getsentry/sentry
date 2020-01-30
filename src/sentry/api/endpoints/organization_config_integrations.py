@@ -18,4 +18,10 @@ class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
             providers, organization=organization, serializer=IntegrationProviderSerializer()
         )
 
+        if "provider_key" in request.GET:
+            serialized = list(filter(lambda d: d["key"] in request.GET["provider_key"], serialized))
+
+        if not serialized:
+            return Response({"detail": "Providers do not exist"}, status=404)
+
         return Response({"providers": serialized})

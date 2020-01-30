@@ -839,6 +839,16 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
+          name="Integration Details"
+          path=":providerKey"
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/integrationDetailedView'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
           name="Configure Integration"
           path=":providerKey/:integrationId/"
           componentPromise={() =>
