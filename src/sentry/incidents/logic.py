@@ -16,6 +16,7 @@ from sentry.api.event_search import get_filter
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleEnvironment,
     AlertRuleExcludedProjects,
     AlertRuleQuerySubscription,
     AlertRuleStatus,
@@ -35,7 +36,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.snuba.discover import zerofill
-from sentry.models import Commit, Integration, Project, Release
+from sentry.models import Commit, Integration, Project, Release, Environment
 from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -641,11 +642,11 @@ def create_alert_rule(
             query=query,
             aggregation=aggregation.value,
             time_window=time_window,
-            environment=environment,
             resolution=resolution,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
         )
+
         if include_all_projects:
             excluded_projects = excluded_projects if excluded_projects else []
             projects = Project.objects.filter(organization=organization).exclude(
@@ -656,6 +657,15 @@ def create_alert_rule(
                 for project in excluded_projects
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
+
+        if environment:
+            for e in environment:
+                try:
+                    env = Environment.objects.get(id=e)
+                    if env:
+                        AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=env)
+                except Environment.DoesNotExist:
+                    raise Environment.DoesNotExist()
 
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
@@ -716,8 +726,6 @@ def update_alert_rule(
         updated_fields["aggregation"] = aggregation.value
     if time_window:
         updated_fields["time_window"] = time_window
-    if environment:
-        updated_fields["environment"] = environment
     if threshold_period:
         updated_fields["threshold_period"] = threshold_period
     if include_all_projects is not None:
@@ -805,6 +813,20 @@ def update_alert_rule(
                 timedelta(minutes=alert_rule.time_window),
                 timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
             )
+
+        if environment:
+            # Delete rows we don't have present in the updated data.
+            AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).exclude(
+                id__in=environment
+            ).delete()
+            for e in environment:
+                env = Environment.objects.get(id=e)
+                if env:
+                    AlertRuleEnvironment.objects.get_or_create(
+                        alert_rule=alert_rule, environment=env
+                    )
+        else:
+            AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).delete()
 
         if triggers is not None:
             # Delete triggers we don't have present in the updated data.

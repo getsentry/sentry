@@ -18,8 +18,12 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger_action,
     InvalidTriggerActionError,
 )
-from sentry.incidents.models import AlertRuleThresholdType, AlertRuleTriggerAction
-from sentry.models import Integration
+from sentry.incidents.models import (
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+    AlertRuleEnvironment,
+)
+from sentry.models import Integration, Environment
 from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase
 
@@ -92,6 +96,62 @@ class TestAlertRuleSerializer(TestCase):
             "query": field_is_required,
             "triggers": field_is_required,
         }
+
+    def test_environment(self):
+        base_params = self.valid_params.copy()
+        env_1 = Environment.objects.create(organization_id=self.organization.id, name="test_env_1")
+        env_2 = Environment.objects.create(organization_id=self.organization.id, name="test_env_2")
+
+        base_params.update({"environment": [env_1.id]})
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid()
+        alert_rule = serializer.save()
+
+        # Make sure AlertRuleEnvironment entry was made:
+        alert_rule_env = AlertRuleEnvironment.objects.get(
+            environment=env_1.id, alert_rule=alert_rule
+        )
+        assert alert_rule_env
+
+        base_params.update({"id": alert_rule.id})
+        base_params.update({"environment": [env_1.id, env_2.id]})
+        serializer = AlertRuleSerializer(
+            context=self.context, instance=alert_rule, data=base_params
+        )
+        assert serializer.is_valid()
+        serializer.save()
+
+        assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 2
+
+        base_params.update({"environment": [env_2.id]})
+        serializer = AlertRuleSerializer(
+            context=self.context, instance=alert_rule, data=base_params
+        )
+        assert serializer.is_valid()
+        serializer.save()
+
+        # Make sure env_1 AlertRuleEnvironment was deleted:
+        try:
+            alert_rule_env = AlertRuleEnvironment.objects.get(
+                environment=env_1.id, alert_rule=alert_rule
+            )
+            assert False
+        except AlertRuleEnvironment.DoesNotExist:
+            assert True
+        # And that env_2 is still present:
+        assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 1
+        assert (
+            len(AlertRuleEnvironment.objects.filter(environment=env_2.id, alert_rule=alert_rule))
+            == 1
+        )
+
+        base_params.update({"environment": []})
+        serializer = AlertRuleSerializer(
+            context=self.context, instance=alert_rule, data=base_params
+        )
+        assert serializer.is_valid()
+        serializer.save()
+        assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 0
 
     def test_time_window(self):
         self.run_fail_validation_test(
