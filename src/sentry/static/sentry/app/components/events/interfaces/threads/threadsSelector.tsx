@@ -19,38 +19,52 @@ interface Props {
 }
 
 const ThreadsSelector: React.FC<Props> = ({threads, event, activeThread, onChange}) => {
-  console.log('PRISCILA');
-  return <div>oioioioio</div>;
+  const handleOnChange = ({thread}) => {
+    if (onChange) {
+      onChange(thread);
+    }
+  };
   return (
     <ClassNames>
       {({css}) => (
         <DropdownAutoComplete
-          // className={css`
-          //   width: 700px;
-          // `}
-          items={threads.map(thread => ({
-            value: 'okokoko',
-            label: 'oioioioi',
-            thread,
-          }))}
+          items={threads.map(thread => {
+            const frame = filterThreadInfo(thread, event, false);
+            return {
+              label: (
+                <ThreadsSelectorOption
+                  id={thread.id}
+                  frame={frame}
+                  crashed={thread.crashed}
+                  name={thread.name}
+                />
+              ),
+              frame,
+              thread,
+            };
+          })}
+          onSelect={handleOnChange}
+          align="left"
           alignMenu="left"
           maxHeight={400}
+          className={css`
+            width: 700px;
+          `}
         >
           {({isOpen, selectedItem}) => (
-            // <StyledDropdownButton isOpen={isOpen} align="left">
-            //   {selectedItem ? (
-            //     <ThreadsSelectorSelectedOption
-            //       id={selectedItem.thread.id}
-            //       frame={filterThreadInfo(selectedItem.thread, event, false)}
-            //     />
-            //   ) : (
-            //     <ThreadsSelectorSelectedOption
-            //       id={activeThread.id}
-            //       frame={filterThreadInfo(activeThread, event, true)}
-            //     />
-            //   )}
-            // </StyledDropdownButton>
-            <div>test</div>
+            <StyledDropdownButton isOpen={isOpen} align="left">
+              {selectedItem ? (
+                <ThreadsSelectorSelectedOption
+                  id={selectedItem.thread.id}
+                  frame={selectedItem.frame}
+                />
+              ) : (
+                <ThreadsSelectorSelectedOption
+                  id={activeThread.id}
+                  frame={filterThreadInfo(activeThread, event, true)}
+                />
+              )}
+            </StyledDropdownButton>
           )}
         </DropdownAutoComplete>
       )}
@@ -61,5 +75,5 @@ const ThreadsSelector: React.FC<Props> = ({threads, event, activeThread, onChang
 export default ThreadsSelector;
 
 const StyledDropdownButton = styled(DropdownButton)({
-  width: '100%',
+  width: 420,
 });

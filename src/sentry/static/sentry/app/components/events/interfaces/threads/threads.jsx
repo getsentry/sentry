@@ -180,27 +180,6 @@ class ThreadsInterface extends React.Component {
 
     const threads = this.props.data.values || [];
 
-    // const threadSelector = (
-    //   <div className="pull-left btn-group">
-    //     <DropdownLink
-    //       btnGroup
-    //       caret
-    //       className="btn btn-default btn-sm"
-    //       title={getThreadTitle(activeThread, this.props.event, true)}
-    //     >
-    //       {threads.map((thread, idx) => {
-    //         return (
-    //           <MenuItem key={idx} noAnchor>
-    //             <a onClick={this.onSelectNewThread.bind(this, thread)}>
-    //               {getThreadTitle(thread, this.props.event, false)}
-    //             </a>
-    //           </MenuItem>
-    //         );
-    //       })}
-    //     </DropdownLink>
-    //   </div>
-    // );
-
     const titleProps = {
       platform: evt.platform,
       stacktrace,
@@ -220,6 +199,7 @@ class ThreadsInterface extends React.Component {
               threads={threads}
               activeThread={activeThread}
               event={event}
+              onChange={this.onSelectNewThread}
             />
           }
           thread={activeThread}

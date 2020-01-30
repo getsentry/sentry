@@ -353,6 +353,7 @@ const ButtonLabel = styled(
   align-items: center;
   justify-content: ${p => p.align};
   padding: ${getLabelPadding};
+  grid-template-columns: 1fr 15px;
 `;
 
 type IconProps = Omit<React.HTMLProps<HTMLSpanElement>, 'size'> & {

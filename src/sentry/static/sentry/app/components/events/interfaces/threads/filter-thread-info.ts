@@ -10,7 +10,7 @@ function filterThreadInfo(thread: Thread, event: Event, simplified: boolean) {
   const stacktrace = getThreadStacktrace(thread, event, simplified);
   const threadInfo: Frame = {};
 
-  if (!stacktrace) threadInfo;
+  if (!stacktrace || stacktrace === null) return threadInfo;
 
   const relevantFrame: Frame = getRelevantFrame(stacktrace);
 

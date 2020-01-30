@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Frame} from 'app/types/events';
+import TextOverflow from 'app/components/textOverflow';
 import Text from 'app/components/text';
 import space from 'app/styles/space';
 
@@ -17,10 +18,14 @@ const ThreadsSelectorSelectedOption: React.FC<Props> = ({id, frame}) => {
   return (
     <StyledContainer>
       <StyledThreadID>{`Thread #${id}:`}</StyledThreadID>
-      <ThreadsSelectorOptionLabel
-        label={mostImportantInfoToBeDisplayed[0] as keyof Frame}
-        value={mostImportantInfoToBeDisplayed[1]}
-      />
+      {mostImportantInfoToBeDisplayed ? (
+        <ThreadsSelectorOptionLabel
+          label={mostImportantInfoToBeDisplayed[0] as keyof Frame}
+          value={mostImportantInfoToBeDisplayed[1]}
+        />
+      ) : (
+        <Text>{`<unknown>`}</Text>
+      )}
     </StyledContainer>
   );
 };
@@ -28,12 +33,13 @@ const ThreadsSelectorSelectedOption: React.FC<Props> = ({id, frame}) => {
 export default ThreadsSelectorSelectedOption;
 
 const StyledContainer = styled('div')({
-  maxWidth: '100%',
-  overflow: 'hidden',
-  gridTemplateColumns: 'auto auto',
+  gridTemplateColumns: '110px 260px',
   display: 'grid',
+  justifyContent: 'flex-start',
+  alignItems: 'center',
+  justifyItems: 'start',
 });
 
-const StyledThreadID = styled(Text)({
-  paddingRight: space(0.5),
+const StyledThreadID = styled(TextOverflow)({
+  paddingRight: space(1),
 });
