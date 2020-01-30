@@ -120,7 +120,7 @@ class RepositoryRow extends React.Component<Props> {
   }
 }
 
-const StyledPanelItem = styled(PanelItem)`
+const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
   /* shorter top padding because of title lineheight */
   padding: ${space(1)} ${space(2)} ${space(2)};
   justify-content: space-between;
