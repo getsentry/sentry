@@ -562,7 +562,7 @@ def get_facets(query, params, limit=10, referrer=None):
         if tag == "environment":
             # Add here tags that you want to be individual
             individual_tags.append(tag)
-        if i >= len(top_tags) - max_aggregate_tags:
+        elif i >= len(top_tags) - max_aggregate_tags:
             aggregate_tags.append(tag)
         else:
             individual_tags.append(tag)
