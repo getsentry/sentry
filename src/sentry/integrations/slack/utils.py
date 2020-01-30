@@ -341,8 +341,13 @@ def get_channel_id(organization, integration_id, name):
     :param organization: The organization that is using this integration
     :param integration_id: The integration id of this slack integration
     :param name: The name of the channel
-    :return:
+    :return: a tuple of three values
+        1. prefix: string (`"#"` or `"@"`)
+        2. channel_id: string or `None`
+        3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
+    import time
+
     name = strip_channel_name(name)
     try:
         integration = Integration.objects.get(
@@ -356,27 +361,44 @@ def get_channel_id(organization, integration_id, name):
     # Look for channel ID
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
+    # XXX(meredith): For large accounts that have many, many channels it's
+    # possible for us to timeout while attempting to paginate through to find the channel id
+    # This means some users are unable to create/update alert rules. To avoid this, we attempt
+    # to find the channel id asynchronously if it takes longer than a certain amount of time,
+    # which I have set here - arbitrarily - to 10 seconds.
+    timeout = time.time() + 10
     session = http.build_session()
     for list_type, result_name, prefix in LIST_TYPES:
-        # Slack limits the response of `<list_type>.list` to 1000 channels, paginate if
-        # needed
         cursor = ""
         while cursor is not None:
+
+            if time.time() > timeout:
+                return (prefix, None, True)
+
             items = session.get(
                 "https://slack.com/api/%s.list" % list_type,
-                params=dict(payload, **{"cursor": cursor}),
+                # TODO(meredith): change this to 1000
+                # Slack limits the response of `<list_type>.list` to 1000 channels
+                params=dict(payload, **{"cursor": cursor, "limit": 1}),
             )
             items = items.json()
             if not items.get("ok"):
                 logger.info(
                     "rule.slack.%s_list_failed" % list_type, extra={"error": items.get("error")}
                 )
-                return None
+                return (prefix, None, False)
 
             cursor = items.get("response_metadata", {}).get("next_cursor", None)
+            # Slack can return "" as the next cursor so must set to None or else we end
+            # up in a loop and getting rate limited
+            if cursor == "":
+                cursor = None
+
             item_id = {c["name"]: c["id"] for c in items[result_name]}.get(name)
             if item_id:
-                return prefix, item_id
+                return (prefix, item_id, False)
+
+    return (prefix, None, False)
 
 
 def send_incident_alert_notification(integration, incident, channel):
