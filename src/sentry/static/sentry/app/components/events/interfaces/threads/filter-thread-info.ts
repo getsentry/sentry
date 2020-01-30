@@ -6,9 +6,11 @@ import getThreadStacktrace from './get-thread-stacktrace';
 import getRelevantFrame from './get-relevant-frame';
 import trimFilename from './trim-filename';
 
+const NOT_FOUND_FRAME = '<unknown>';
+
 interface ThreadInfo {
   label:
-    | '<unknown>'
+    | typeof NOT_FOUND_FRAME
     | {
         type: keyof Omit<Frame, 'filename'>;
         value: string;
@@ -19,7 +21,7 @@ interface ThreadInfo {
 function filterThreadInfo(thread: Thread, event: Event, simplified: boolean): ThreadInfo {
   const stacktrace = getThreadStacktrace(thread, event, simplified);
   const threadInfo: ThreadInfo = {
-    label: '<unknown>',
+    label: NOT_FOUND_FRAME,
   };
 
   if (!stacktrace || stacktrace === null) {
