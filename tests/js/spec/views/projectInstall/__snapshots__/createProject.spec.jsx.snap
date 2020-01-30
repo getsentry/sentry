@@ -151,7 +151,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
     </PageHeading>
     <HelpText>
       <p
-        className="css-zphuw0-HelpText e2gtsme5"
+        className="css-zphuw0-HelpText e19kiapg5"
       >
         Projects allow you to scope events to a specific application in
                your organization. For example, you might have separate projects
@@ -1229,27 +1229,27 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
       onSubmit={[Function]}
     >
       <form
-        className="css-8zz3uw-CreateProjectForm e2gtsme0"
+        className="css-8zz3uw-CreateProjectForm e19kiapg0"
         onSubmit={[Function]}
       >
         <div>
           <FormLabel>
             <div
-              className="css-1ynor6-FormLabel e2gtsme1"
+              className="css-1ynor6-FormLabel e19kiapg1"
             >
               Give your project a name
             </div>
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-9ctizw-ProjectNameInput e2gtsme3"
+              className="css-9ctizw-ProjectNameInput e19kiapg3"
             >
               <ProjectPlatformIcon
                 monoTone={true}
                 platform=""
               >
                 <div
-                  className="css-12loq7n-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
+                  className="css-12loq7n-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
                 />
               </ProjectPlatformIcon>
               <input
@@ -1267,14 +1267,14 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
         <div>
           <FormLabel>
             <div
-              className="css-1ynor6-FormLabel e2gtsme1"
+              className="css-1ynor6-FormLabel e19kiapg1"
             >
               Assign a Team
             </div>
           </FormLabel>
           <TeamSelectInput>
             <div
-              className="css-15lxetg-TeamSelectInput e2gtsme4"
+              className="css-15lxetg-TeamSelectInput e19kiapg4"
             >
               <ForwardRef(RefForwardedSelectControl)
                 clearable={false}
@@ -1736,7 +1736,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
     </PageHeading>
     <HelpText>
       <p
-        className="css-zphuw0-HelpText e2gtsme5"
+        className="css-zphuw0-HelpText e19kiapg5"
       >
         Projects allow you to scope events to a specific application in
                your organization. For example, you might have separate projects
@@ -2225,27 +2225,27 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
       onSubmit={[Function]}
     >
       <form
-        className="css-8zz3uw-CreateProjectForm e2gtsme0"
+        className="css-8zz3uw-CreateProjectForm e19kiapg0"
         onSubmit={[Function]}
       >
         <div>
           <FormLabel>
             <div
-              className="css-1ynor6-FormLabel e2gtsme1"
+              className="css-1ynor6-FormLabel e19kiapg1"
             >
               Give your project a name
             </div>
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-9ctizw-ProjectNameInput e2gtsme3"
+              className="css-9ctizw-ProjectNameInput e19kiapg3"
             >
               <ProjectPlatformIcon
                 monoTone={true}
                 platform="ruby"
               >
                 <div
-                  className="css-17k22u3-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
+                  className="css-17k22u3-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
                 />
               </ProjectPlatformIcon>
               <input
@@ -2263,14 +2263,14 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
         <div>
           <FormLabel>
             <div
-              className="css-1ynor6-FormLabel e2gtsme1"
+              className="css-1ynor6-FormLabel e19kiapg1"
             >
               Assign a Team
             </div>
           </FormLabel>
           <TeamSelectInput>
             <div
-              className="css-15lxetg-TeamSelectInput e2gtsme4"
+              className="css-15lxetg-TeamSelectInput e19kiapg4"
             >
               <ForwardRef(RefForwardedSelectControl)
                 clearable={false}
@@ -2732,7 +2732,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
     </PageHeading>
     <HelpText>
       <p
-        className="css-zphuw0-HelpText e2gtsme5"
+        className="css-zphuw0-HelpText e19kiapg5"
       >
         Projects allow you to scope events to a specific application in
                your organization. For example, you might have separate projects
@@ -3921,27 +3921,27 @@ exports[`CreateProject should fill in project name if its empty when platform is
       onSubmit={[Function]}
     >
       <form
-        className="css-8zz3uw-CreateProjectForm e2gtsme0"
+        className="css-8zz3uw-CreateProjectForm e19kiapg0"
         onSubmit={[Function]}
       >
         <div>
           <FormLabel>
             <div
-              className="css-1ynor6-FormLabel e2gtsme1"
+              className="css-1ynor6-FormLabel e19kiapg1"
             >
               Give your project a name
             </div>
           </FormLabel>
           <ProjectNameInput>
             <div
-              className="css-9ctizw-ProjectNameInput e2gtsme3"
+              className="css-9ctizw-ProjectNameInput e19kiapg3"
             >
               <ProjectPlatformIcon
                 monoTone={true}
                 platform="csharp"
               >
                 <div
-                  className="css-nwocbk-PlatformIconTile-ProjectPlatformIcon e2gtsme2"
+                  className="css-nwocbk-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
                 />
               </ProjectPlatformIcon>
               <input
@@ -3959,14 +3959,14 @@ exports[`CreateProject should fill in project name if its empty when platform is
         <div>
           <FormLabel>
             <div
-              className="css-1ynor6-FormLabel e2gtsme1"
+              className="css-1ynor6-FormLabel e19kiapg1"
             >
               Assign a Team
             </div>
           </FormLabel>
           <TeamSelectInput>
             <div
-              className="css-15lxetg-TeamSelectInput e2gtsme4"
+              className="css-15lxetg-TeamSelectInput e19kiapg4"
             >
               <ForwardRef(RefForwardedSelectControl)
                 clearable={false}
