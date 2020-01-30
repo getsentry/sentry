@@ -67,18 +67,15 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         )
 
         query_status = request.GET.get("status")
-        print("query status:",query_status)
-
         if query_status is not None:
-            query_status = query_status.split(',')
-            status_values = []
-            if "critical" in query_status:
-                status_values.append(IncidentStatus.CRITICAL.value)
-            if "warning" in query_status:
-                status_values.append(IncidentStatus.WARNING.value)
-            if "closed" in query_status:
-                status_values.append(IncidentStatus.CLOSEDL.value)
-            incidents = incidents.filter(status__in=status_values)
+            if query_status == "active":
+                incidents = incidents.exclude(status=IncidentStatus.CLOSED.value)
+            elif query_status == "warning":
+                incidents = incidents.filter(status=IncidentStatus.WARNING.value)
+            elif query_status == "critical":
+                incidents = incidents.filter(status=IncidentStatus.CRITICAL.value)
+            elif query_status == "closed":
+                incidents = incidents.filter(status=IncidentStatus.CLOSED.value)
 
         return self.paginate(
             request,
