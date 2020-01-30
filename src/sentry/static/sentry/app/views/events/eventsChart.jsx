@@ -232,7 +232,7 @@ const EventsChartContainer = withGlobalSelection(
 );
 
 export default EventsChartContainer;
-export {EventsChart};
+export {EventsChart, EventsAreaChart};
 
 const TransparentLoadingMask = styled(LoadingMask)`
   ${p => !p.visible && 'display: none;'};
