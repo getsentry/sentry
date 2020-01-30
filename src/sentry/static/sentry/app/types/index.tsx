@@ -457,9 +457,16 @@ export type Repository = {
   integrationId: string;
   name: string;
   provider: {id: string; name: string};
-  status: string;
+  status: RepositoryStatus;
   url: string;
 };
+export enum RepositoryStatus {
+  ACTIVE = 'active',
+  DISABLED = 'disabled',
+  HIDDEN = 'hidden',
+  PENDING_DELETION = 'pending_deletion',
+  DELETION_IN_PROGRESS = 'deletion_in_progress',
+}
 
 export type IntegrationProvider = {
   key: string;
