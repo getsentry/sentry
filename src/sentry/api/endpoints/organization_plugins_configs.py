@@ -10,18 +10,17 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import ProjectOption, Project
 
 
-"""
-List one or more plugin configurations, including a `projectList` for each plugin which contains
-all the projects that have that specific plugin both configured and enabled.
-
-- similar to the `OrganizationPluginsEndpoint`, and can eventually replace it
-
-:qparam plugins array[string]: an optional list of plugin ids (slugs) if you want specific plugins.
-                               If not set, will return configurations for all plugins.
-"""
-
-
 class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
+    """
+    List one or more plugin configurations, including a `projectList` for each plugin which contains
+    all the projects that have that specific plugin both configured and enabled.
+
+    - similar to the `OrganizationPluginsEndpoint`, and can eventually replace it
+
+    :qparam plugins array[string]: an optional list of plugin ids (slugs) if you want specific plugins.
+                                If not set, will return configurations for all plugins.
+    """
+
     def get(self, request, organization):
 
         desired_plugins = []
@@ -54,11 +53,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         This map stores info about whether a plugin is configured and/or enabled
         {
             "plugin_slug": {
-                "project_id": {
-                    "enabled": True,
-                    "configured": False,
-                },
-                ...
+                "project_id": { "enabled": True, "configured": False },
             },
         }
         """
