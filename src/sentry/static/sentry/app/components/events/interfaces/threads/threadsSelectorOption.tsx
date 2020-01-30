@@ -63,7 +63,7 @@ export default ThreadsSelectorOption;
 
 const StyledLabelsContainer = styled('div')({
   display: 'grid',
-  gridTemplateColumns: '1fr 100px',
+  gridTemplateColumns: '1fr 200px',
   width: '100%',
 });
 
