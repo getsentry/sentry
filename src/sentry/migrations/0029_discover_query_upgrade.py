@@ -192,6 +192,7 @@ class Migration(migrations.Migration):
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
+    atomic = False
     dependencies = [
         ("sentry", "0028_user_reports"),
     ]
