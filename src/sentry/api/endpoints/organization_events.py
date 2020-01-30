@@ -145,17 +145,23 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 },
             )
             message = "Internal error. Please try again."
-            if type(error) in [
-                snuba.RateLimitExceeded,
-                snuba.QueryMemoryLimitExceeded,
-                snuba.QueryTooManySimultaneous,
-            ]:
+            if isinstance(
+                error,
+                (
+                    snuba.RateLimitExceeded,
+                    snuba.QueryMemoryLimitExceeded,
+                    snuba.QueryTooManySimultaneous,
+                ),
+            ):
                 message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
-            elif type(error) in [
-                snuba.UnqualifiedQueryError,
-                snuba.QueryExecutionError,
-                snuba.SchemaValidationError,
-            ]:
+            elif isinstance(
+                error,
+                (
+                    snuba.UnqualifiedQueryError,
+                    snuba.QueryExecutionError,
+                    snuba.SchemaValidationError,
+                ),
+            ):
                 message = "Invalid query."
             elif isinstance(error, snuba.QueryIllegalTypeOfArgument):
                 message = "Invalid query. Argument to function is wrong type."

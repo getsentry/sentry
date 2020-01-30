@@ -340,7 +340,7 @@ def query(
         )
         if not found:
             raise InvalidSearchQuery(
-                "Aggregate {} used in a condition but is not a selected column.".format(
+                u"Aggregate {} used in a condition but is not a selected column.".format(
                     having_clause[0]
                 )
             )
