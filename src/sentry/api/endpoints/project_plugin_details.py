@@ -146,7 +146,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                 InvalidIdentity,
                 PluginError,
             ) as e:
-                errors[key] = e.message
+                errors[key] = six.text_type(e)
 
             if not errors.get(key):
                 cleaned[key] = value
@@ -157,7 +157,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     project=project, config=cleaned, actor=request.user
                 )
             except (InvalidIdentity, PluginError) as e:
-                errors["__all__"] = e.message
+                errors["__all__"] = six.text_type(e)
 
         if errors:
             return Response({"errors": errors}, status=400)

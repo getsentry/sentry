@@ -225,12 +225,12 @@ def parse_sources(config):
     try:
         sources = json.loads(config)
     except BaseException as e:
-        raise InvalidSourcesError(e.message)
+        raise InvalidSourcesError(six.text_type(e))
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
     except jsonschema.ValidationError as e:
-        raise InvalidSourcesError(e.message)
+        raise InvalidSourcesError(six.text_type(e))
 
     ids = set()
     for source in sources:

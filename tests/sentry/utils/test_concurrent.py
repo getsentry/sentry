@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
+import six
 import pytest
 import thread
 from Queue import Full
@@ -8,6 +8,7 @@ from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from threading import Event
 
+from sentry.utils.compat import mock
 from sentry.utils.concurrent import (
     FutureSet,
     SynchronousExecutor,
@@ -163,7 +164,7 @@ def test_synchronous_executor():
     try:
         future.result()
     except Exception as e:
-        assert e.message is mock.sentinel.MESSAGE
+        assert six.text_type(e) is mock.sentinel.MESSAGE
     else:
         assert False, "expected future to raise"
 
