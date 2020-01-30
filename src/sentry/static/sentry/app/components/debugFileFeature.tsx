@@ -22,8 +22,13 @@ const FEATURE_TOOLTIPS = {
   ),
 };
 
-function DebugFileFeature({available, feature}) {
-  let icon = null;
+type Props = {
+  feature: 'symtab' | 'debug' | 'unwind' | 'sources';
+  available?: true;
+};
+
+const DebugFileFeature = ({available, feature}: Props) => {
+  let icon: React.ReactNode = null;
 
   if (available === true) {
     icon = <Icon type="success" src="icon-checkmark-sm" />;
@@ -39,14 +44,14 @@ function DebugFileFeature({available, feature}) {
       </Tag>
     </Tooltip>
   );
-}
+};
 
 DebugFileFeature.propTypes = {
   available: PropTypes.bool,
   feature: PropTypes.oneOf(Object.keys(FEATURE_TOOLTIPS)).isRequired,
 };
 
-const Icon = styled(InlineSvg)`
+const Icon = styled(InlineSvg)<{type: 'error' | 'success'}>`
   color: ${p => p.theme.alert[p.type].iconColor};
   margin-right: 1ex;
 `;
