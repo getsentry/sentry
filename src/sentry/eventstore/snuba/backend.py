@@ -166,7 +166,7 @@ class SnubaEventStorage(EventStorage):
 
             return []
 
-        result = snuba.dataset_query(
+        result = snuba.aliased_query(
             selected_columns=cols,
             start=filter.start,
             end=filter.end,
