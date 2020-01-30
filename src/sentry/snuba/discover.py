@@ -304,7 +304,7 @@ def query(
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     """
     if not selected_columns:
-        raise InvalidSearchQuery("No fields provided")
+        raise InvalidSearchQuery("No columns selected")
 
     snuba_filter = get_filter(query, params)
 
@@ -340,7 +340,9 @@ def query(
         )
         if not found:
             raise InvalidSearchQuery(
-                "Aggregates used in a condition must also be in the selected columns."
+                u"Aggregate {} used in a condition but is not a selected column.".format(
+                    having_clause[0]
+                )
             )
 
     result = raw_query(
@@ -491,7 +493,7 @@ def get_facets(query, params, limit=10, referrer=None):
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
 
     # Exclude tracing tags as they are noisy and generally not helpful.
-    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span"]]
+    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]
 
     # Sampling keys for multi-project results as we don't need accuracy
     # with that much data.

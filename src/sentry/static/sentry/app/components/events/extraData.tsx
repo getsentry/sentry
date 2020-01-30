@@ -35,7 +35,7 @@ class EventExtraData extends React.Component<Props, State> {
   };
 
   render() {
-    const extraDataArray = Object.entries(this.props.event.context);
+    const extraDataArray = Object.entries(this.props.event.context || {});
 
     return (
       <div className="extra-data">

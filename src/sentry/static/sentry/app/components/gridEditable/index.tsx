@@ -17,8 +17,6 @@ import {
   GridColumnSortBy,
   ObjectKey,
 } from './types';
-import GridHeadCell from './gridHeadCell';
-import GridModalEditColumn from './gridModalEditColumn';
 import {
   Header,
   HeaderTitle,
@@ -28,12 +26,16 @@ import {
   Grid,
   GridRow,
   GridHead,
+  GridHeadCellStatic,
   GridBody,
   GridBodyCell,
   GridBodyCellStatus,
   GridStatusErrorAlert,
   GridResizer,
 } from './styles';
+import GridHeadCell from './gridHeadCell';
+import GridModalEditColumn from './gridModalEditColumn';
+
 import {
   COL_WIDTH_UNDEFINED,
   COL_WIDTH_MIN,
@@ -94,6 +96,12 @@ type GridEditableProps<DataRow, ColumnKey> = {
       columnIndex: number,
       nextColumn: GridColumnOrder<ColumnKey>
     ) => void;
+    renderPrependColumns?: (
+      isHeader: boolean,
+      dataRow?: any,
+      rowIndex?: number
+    ) => React.ReactNode[];
+    prependColumnWidths?: string[];
   };
 
   /**
@@ -319,20 +327,24 @@ class GridEditable<
       return;
     }
 
-    let sumWidth = 0;
-    const columnWidths = columnOrder.map((c, i) => {
-      let width =
-        i === columnIndex // Case 1: Resize, then draw a specific column
-          ? columnWidth
-          : !c.width || isNaN(c.width) // Case 2: Draw a column with no width
-          ? COL_WIDTH_DEFAULT
-          : c.width; // Case 3: Draw a column with width
+    const prependColumns = this.props.grid.prependColumnWidths || [];
+    let sumWidth = prependColumns.reduce((acc, item) => acc + parseInt(item, 10), 0);
 
-      width = Math.max(COL_WIDTH_MIN, width);
-      sumWidth += width;
+    const columnWidths = prependColumns.concat(
+      columnOrder.map((c, i) => {
+        let width =
+          i === columnIndex // Case 1: Resize, then draw a specific column
+            ? columnWidth
+            : !c.width || isNaN(c.width) // Case 2: Draw a column with no width
+            ? COL_WIDTH_DEFAULT
+            : c.width; // Case 3: Draw a column with width
 
-      return `${width}px`;
-    });
+        width = Math.max(COL_WIDTH_MIN, width);
+        sumWidth += width;
+
+        return `${width}px`;
+      })
+    );
 
     // If columns are smaller than grid, let the last column fill the remaining
     // blank space on the right of the grid
@@ -432,10 +444,16 @@ class GridEditable<
 
     // Ensure that the last column cannot be removed
     const numColumn = columnOrder.length;
-    const enableEdit = isEditing && numColumn > 1;
 
+    const prependColumns = grid.renderPrependColumns
+      ? grid.renderPrependColumns(true)
+      : [];
     return (
       <GridRow>
+        {prependColumns &&
+          prependColumns.map((item, i) => {
+            return <GridHeadCellStatic key={`prepend-${i}`}>{item}</GridHeadCellStatic>;
+          })}
         {/* Note that this.onResizeMouseDown assumes GridResizer is nested
             2 levels under GridHeadCell */
         columnOrder.map((column, i) => (
@@ -444,8 +462,8 @@ class GridEditable<
             isLast={columnOrder.length - 1 === i}
             key={`${i}.${column.key}`}
             isColumnDragging={this.props.isColumnDragging}
-            isPrimary={column.isPrimary}
-            isEditing={enableEdit}
+            isEditing={isEditing}
+            isDeletable={numColumn > 1}
             indexColumnOrder={i}
             column={column}
             gridHeadCellButtonProps={this.props.gridHeadCellButtonProps || {}}
@@ -489,9 +507,16 @@ class GridEditable<
 
   renderGridBodyRow = (dataRow: DataRow, row: number) => {
     const {columnOrder, grid} = this.props;
+    const prependColumns = grid.renderPrependColumns
+      ? grid.renderPrependColumns(false, dataRow, row)
+      : [];
 
     return (
       <GridRow key={row}>
+        {prependColumns &&
+          prependColumns.map((item, i) => {
+            return <GridBodyCell key={`prepend-${i}`}>{item}</GridBodyCell>;
+          })}
         {columnOrder.map((col, i) => (
           <GridBodyCell key={`${col.key}${i}`}>
             {grid.renderBodyCell ? grid.renderBodyCell(col, dataRow) : dataRow[col.key]}

@@ -56,7 +56,8 @@ class NoGroupsHandler extends React.Component<Props, State> {
     // If no projects are selected, then we must check every project the user is a
     // member of and make sure there are no first events for all of the projects
     let firstEventQuery = {};
-    const projectsQuery = {per_page: 1, query: {}};
+    const projectsQuery: {per_page: number; query?: string} = {per_page: 1};
+
     if (!selectedProjectIds || !selectedProjectIds.length) {
       firstEventQuery = {is_member: true};
     } else {

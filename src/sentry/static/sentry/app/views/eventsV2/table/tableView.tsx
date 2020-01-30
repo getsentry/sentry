@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Organization} from 'app/types';
@@ -6,7 +7,9 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {t} from 'app/locale';
 import {assert} from 'app/types/utils';
+import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
+import Tooltip from 'app/components/tooltip';
 
 import {
   downloadAsCsv,
@@ -25,6 +28,7 @@ import {ColumnValueType} from '../eventQueryParams';
 import DraggableColumns, {
   DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER,
 } from './draggableColumns';
+import {generateEventDetailsRoute, generateEventSlug} from '../eventDetails/utils';
 
 export type TableViewProps = {
   location: Location;
@@ -211,6 +215,34 @@ class TableView extends React.Component<TableViewProps> {
     });
   };
 
+  _renderPrependColumns = (
+    isHeader: boolean,
+    dataRow?: any,
+    rowIndex?: number
+  ): React.ReactNode[] => {
+    if (isHeader) {
+      return [<StyledIconStack key="header-icon" src="icon-stack" size="14px" />];
+    }
+    const {organization, location} = this.props;
+    const eventSlug = generateEventSlug(dataRow);
+    const pathname = generateEventDetailsRoute({
+      orgSlug: organization.slug,
+      eventSlug,
+    });
+    const target = {
+      pathname,
+      query: {...location.query},
+    };
+
+    return [
+      <Tooltip key={`eventlink${rowIndex}`} title={t('View Details')}>
+        <Link to={target} data-test-id="view-events">
+          <InlineSvg src="icon-stack" size="14px" />
+        </Link>
+      </Tooltip>,
+    ];
+  };
+
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
     const field = column.eventViewField;
@@ -269,23 +301,11 @@ class TableView extends React.Component<TableViewProps> {
           assert(tableData.meta);
 
           if (!willExpand) {
-            const hasLinkField = eventView.hasAutolinkField();
-            const forceLink =
-              !hasLinkField && eventView.getFields().indexOf(String(column.field)) === 0;
-
-            const fieldRenderer = getFieldRenderer(
-              String(column.key),
-              tableData.meta,
-              forceLink
-            );
+            const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
             return fieldRenderer(dataRow, {organization, location});
           }
 
-          const fieldRenderer = getFieldRenderer(
-            String(column.key),
-            tableData.meta,
-            false
-          );
+          const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
           return fieldRenderer(dataRow, {organization, location});
         }}
       </ExpandAggregateRow>
@@ -417,6 +437,8 @@ class TableView extends React.Component<TableViewProps> {
                 renderHeadCell: this._renderGridHeaderCell as any,
                 renderBodyCell: this._renderGridBodyCell as any,
                 onResizeColumn: this._updateColumn as any,
+                renderPrependColumns: this._renderPrependColumns as any,
+                prependColumnWidths: ['50px'],
               }}
               modalEditColumn={{
                 renderBodyWithForm: renderModalBodyWithForm as any,
@@ -463,5 +485,10 @@ const ExpandAggregateRow = (props: {
 
   return <React.Fragment>{children({willExpand: false})}</React.Fragment>;
 };
+
+const StyledIconStack = styled(InlineSvg)`
+  vertical-align: top;
+  color: ${p => p.theme.gray3};
+`;
 
 export default TableView;
