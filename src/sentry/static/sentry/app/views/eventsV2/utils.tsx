@@ -44,7 +44,7 @@ export type EventQuery = {
   per_page?: number;
 };
 
-const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
+const AGGREGATE_PATTERN = /^([^\(]+)\((.*)\)$/;
 const ROUND_BRACKETS_PATTERN = /[\(\)]/;
 
 function explodeFieldString(field: string): {aggregation: string; field: string} {
@@ -222,9 +222,8 @@ export function getAggregateAlias(field: string): string {
   }
   return field
     .replace(AGGREGATE_PATTERN, '$1_$2')
-    .replace('.', '_')
-    .replace(/_+$/, '')
-    .toLowerCase();
+    .replace(/\./g, '_')
+    .replace(/_+$/, '');
 }
 
 export type QueryWithColumnState =
