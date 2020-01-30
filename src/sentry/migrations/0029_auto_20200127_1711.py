@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0027_exporteddata'),
+        ('sentry', '0028_user_reports'),
     ]
 
     operations = [
