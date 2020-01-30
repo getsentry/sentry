@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import six
 import pytest
 import thread
 from Queue import Full
@@ -164,7 +163,7 @@ def test_synchronous_executor():
     try:
         future.result()
     except Exception as e:
-        assert six.text_type(e) is mock.sentinel.MESSAGE
+        assert e.message is mock.sentinel.MESSAGE
     else:
         assert False, "expected future to raise"
 
