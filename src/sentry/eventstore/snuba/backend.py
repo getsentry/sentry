@@ -110,7 +110,7 @@ class SnubaEventStorage(EventStorage):
         should_bind_nodes=False,
     ):
         assert filter, "You must provide a filter"
-        cols = self.__get_minimal_columns()
+        cols = self.__get_columns()
         orderby = orderby or DESC_ORDERING
 
         # This is an optimization for the Group.filter_by_event_id query where we
@@ -276,7 +276,7 @@ class SnubaEventStorage(EventStorage):
 
         return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 
-    def __get_minimal_columns(self):
+    def __get_columns(self):
         return [col.value.event_name for col in EventStorage.minimal_columns]
 
     def __get_event_id_from_filter(self, filter=None, orderby=None):
