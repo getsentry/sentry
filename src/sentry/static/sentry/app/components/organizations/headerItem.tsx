@@ -19,8 +19,9 @@ type Props = {
   isOpen: boolean;
   locked: boolean;
   loading: boolean;
+  forwardRef?: React.Ref<HTMLDivElement>;
   onClear: () => void;
-} & React.HTMLProps<HTMLDivElement>;
+} & React.HTMLAttributes<HTMLDivElement>;
 
 class HeaderItem extends React.Component<Props> {
   static propTypes = {
@@ -56,6 +57,7 @@ class HeaderItem extends React.Component<Props> {
       settingsLink,
       onClear, // eslint-disable-line no-unused-vars
       loading,
+      forwardRef,
       ...props
     } = this.props;
 
@@ -66,7 +68,7 @@ class HeaderItem extends React.Component<Props> {
     };
 
     return (
-      <StyledHeaderItem loading={loading} {...props} {...textColorProps}>
+      <StyledHeaderItem ref={forwardRef} loading={loading} {...props} {...textColorProps}>
         <IconContainer {...textColorProps}>{icon}</IconContainer>
         <Content>{children}</Content>
         {hasSelected && !locked && allowClear && (
@@ -178,4 +180,6 @@ const StyledLock = styled(InlineSvg)`
   stroke-width: 1.5;
 `;
 
-export default HeaderItem;
+export default React.forwardRef<HTMLDivElement, Props>((props, ref) => (
+  <HeaderItem forwardRef={ref} {...props} />
+));
