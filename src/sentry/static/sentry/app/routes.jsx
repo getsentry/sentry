@@ -1522,25 +1522,23 @@ function routes() {
             />
           </Route>
           <Route
-            path="/organizations/:orgId/incidents/"
+            path="/organizations/:orgId/alerts/"
             componentPromise={() =>
-              import(/* webpackChunkName: "IncidentsContainer" */ 'app/views/incidents')
+              import(/* webpackChunkName: "AlertsContainer" */ 'app/views/alerts')
             }
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "Incidents" */ 'app/views/incidents/list')
+                import(/* webpackChunkName: "AlertsList" */ 'app/views/alerts/list')
               }
               component={errorHandler(LazyLoad)}
             />
 
             <Route
-              path=":incidentId/"
+              path=":alertId/"
               componentPromise={() =>
-                import(
-                  /* webpackChunkName: "IncidentDetails" */ 'app/views/incidents/details'
-                )
+                import(/* webpackChunkName: "AlertsDetails" */ 'app/views/alerts/details')
               }
               component={errorHandler(LazyLoad)}
             />

@@ -15,7 +15,7 @@ import {IncidentStatus, Incident} from '../types';
 
 type Props = {
   api: Client;
-} & RouteComponentProps<{incidentId: string; orgId: string}, {}>;
+} & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
 type State = {
   isLoading: boolean;
@@ -37,11 +37,11 @@ class IncidentDetails extends React.Component<Props, State> {
 
     const {
       api,
-      params: {orgId, incidentId},
+      params: {orgId, alertId},
     } = this.props;
 
     try {
-      const incident = await fetchIncident(api, orgId, incidentId);
+      const incident = await fetchIncident(api, orgId, alertId);
       this.setState({incident, isLoading: false, hasError: false});
       markIncidentAsSeen(api, orgId, incident);
     } catch (_err) {
@@ -52,7 +52,7 @@ class IncidentDetails extends React.Component<Props, State> {
   handleSubscriptionChange = async () => {
     const {
       api,
-      params: {orgId, incidentId},
+      params: {orgId, alertId},
     } = this.props;
 
     if (!this.state.incident) {
@@ -68,7 +68,7 @@ class IncidentDetails extends React.Component<Props, State> {
     }));
 
     try {
-      updateSubscription(api, orgId, incidentId, newIsSubscribed);
+      updateSubscription(api, orgId, alertId, newIsSubscribed);
     } catch (_err) {
       this.setState(state => ({
         incident: {...(state.incident as Incident), isSubscribed},
@@ -80,7 +80,7 @@ class IncidentDetails extends React.Component<Props, State> {
   handleStatusChange = async () => {
     const {
       api,
-      params: {orgId, incidentId},
+      params: {orgId, alertId},
     } = this.props;
 
     if (!this.state.incident) {
@@ -98,7 +98,7 @@ class IncidentDetails extends React.Component<Props, State> {
     }));
 
     try {
-      const incident = await updateStatus(api, orgId, incidentId, newStatus);
+      const incident = await updateStatus(api, orgId, alertId, newStatus);
       // Update entire incident object because updating status can cause other parts
       // of the model to change (e.g close date)
       this.setState({incident});

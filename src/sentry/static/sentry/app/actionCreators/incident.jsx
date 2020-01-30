@@ -4,17 +4,17 @@ import {t} from 'app/locale';
 /**
  * Fetches a list of activities for an incident
  */
-export async function fetchIncidentActivities(api, orgId, incidentId) {
-  return api.requestPromise(`/organizations/${orgId}/incidents/${incidentId}/activity/`);
+export async function fetchIncidentActivities(api, orgId, alertId) {
+  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/activity/`);
 }
 
 /**
  * Creates a note for an incident
  */
-export async function createIncidentNote(api, orgId, incidentId, note) {
+export async function createIncidentNote(api, orgId, alertId, note) {
   try {
     const result = await api.requestPromise(
-      `/organizations/${orgId}/incidents/${incidentId}/comments/`,
+      `/organizations/${orgId}/incidents/${alertId}/comments/`,
       {
         method: 'POST',
         data: {
@@ -34,10 +34,10 @@ export async function createIncidentNote(api, orgId, incidentId, note) {
 /**
  * Deletes a note for an incident
  */
-export async function deleteIncidentNote(api, orgId, incidentId, noteId) {
+export async function deleteIncidentNote(api, orgId, alertId, noteId) {
   try {
     const result = await api.requestPromise(
-      `/organizations/${orgId}/incidents/${incidentId}/comments/${noteId}/`,
+      `/organizations/${orgId}/incidents/${alertId}/comments/${noteId}/`,
       {
         method: 'DELETE',
       }
@@ -53,10 +53,10 @@ export async function deleteIncidentNote(api, orgId, incidentId, noteId) {
 /**
  * Updates a note for an incident
  */
-export async function updateIncidentNote(api, orgId, incidentId, noteId, note) {
+export async function updateIncidentNote(api, orgId, alertId, noteId, note) {
   try {
     const result = await api.requestPromise(
-      `/organizations/${orgId}/incidents/${incidentId}/comments/${noteId}/`,
+      `/organizations/${orgId}/incidents/${alertId}/comments/${noteId}/`,
       {
         method: 'PUT',
         data: {
