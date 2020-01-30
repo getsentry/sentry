@@ -50,7 +50,7 @@ ensure-venv:
 	@./scripts/ensure-venv.sh
 
 ensure-pinned-pip:
-	$(PIP) install --upgrade pip
+	$(PIP) install --no-cache-dir "pip>=20.0.2"
 
 setup-git:
 	@echo "--> Installing git hooks"
