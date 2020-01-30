@@ -384,13 +384,21 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
   link.remove();
 }
 
+type AggregateTransformer = (field: string) => string;
+
+// an array of 2-tuples of which the first tuple is an array of field names or aggregate names
+// to match a given column on, and the second tuple would transform the given column.
+const TRANSFORM_AGGREGATES: Array<[Array<string>, AggregateTransformer]> = [
+  [['p99', 'p95', 'p75'], () => 'transaction.duration'],
+];
+
 export function getExpandedResults(
   eventView: EventView,
   additionalConditions: {[key: string]: string},
   dataRow?: TableDataRow | Event
 ): EventView {
   let nextView = eventView.clone();
-  const fieldsToRemove: number[] = [];
+  const fieldsToUpdate: number[] = [];
 
   // Workaround around readonly typing
   const aggregateAliases: string[] = [...AGGREGATE_ALIASES];
@@ -400,7 +408,7 @@ export function getExpandedResults(
 
     // Remove aggregates as the expanded results have no aggregates.
     if (column.aggregation || aggregateAliases.includes(column.field)) {
-      fieldsToRemove.push(index);
+      fieldsToUpdate.push(index);
       return;
     }
 
@@ -423,10 +431,76 @@ export function getExpandedResults(
     }
   });
 
-  // Remove fields from view largest index to smallest to not
-  // disturbe lower indexes until the end.
-  fieldsToRemove.reverse().forEach((i: number) => {
-    nextView = nextView.withDeletedColumn(i, undefined);
+  const transformedFields = new Set();
+  const fieldsToDelete: number[] = [];
+
+  // make a best effort to transform aggregated columns with its non-aggregated form
+  fieldsToUpdate.forEach((indexToUpdate: number) => {
+    const currentField: FieldType = nextView.fields[indexToUpdate];
+    const exploded = explodeField(currentField);
+
+    // check if we can use an aggregated transform function
+
+    for (const tuple of TRANSFORM_AGGREGATES) {
+      const aliases = tuple[0];
+
+      const fieldName = aliases.includes(exploded.aggregation)
+        ? exploded.aggregation
+        : aliases.includes(exploded.field)
+        ? exploded.field
+        : undefined;
+
+      if (!fieldName) {
+        continue;
+      }
+
+      const transform = tuple[1];
+      const nextFieldName = transform(fieldName);
+
+      if (transformedFields.has(nextFieldName)) {
+        // this field is duplicated in another column. we remove this column
+        fieldsToDelete.push(indexToUpdate);
+        return;
+      }
+
+      const updatedColumn = {
+        aggregation: '',
+        field: nextFieldName,
+        width: exploded.width,
+      };
+
+      transformedFields.add(nextFieldName);
+      nextView = nextView.withUpdatedColumn(indexToUpdate, updatedColumn, undefined);
+
+      return;
+    }
+
+    // otherwise just use exploded.field as a column
+
+    if (!exploded.field) {
+      return;
+    }
+
+    if (transformedFields.has(exploded.field)) {
+      // this field is duplicated in another column. we remove this column
+      fieldsToDelete.push(indexToUpdate);
+      return;
+    }
+
+    transformedFields.add(exploded.field);
+
+    const updatedColumn = {
+      aggregation: '',
+      field: exploded.field,
+      width: exploded.width,
+    };
+
+    nextView = nextView.withUpdatedColumn(indexToUpdate, updatedColumn, undefined);
+  });
+
+  // delete any columns marked for deletion
+  fieldsToDelete.reverse().forEach((index: number) => {
+    nextView = nextView.withDeletedColumn(index, undefined);
   });
 
   // filter out any aggregates from the search conditions.
