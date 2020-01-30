@@ -839,6 +839,16 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
+          name="Integration Details"
+          path=":providerKey"
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/integrationDetailedView'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
           name="Configure Integration"
           path=":providerKey/:integrationId/"
           componentPromise={() =>
@@ -1219,6 +1229,15 @@ function routes() {
           <IndexRoute component={errorHandler(IssueListOverview)} />
           <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
         </Route>
+        <Route
+          path="/organizations/:orgId/data-export/:dataExportId"
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "DataDownloadView" */ 'app/views/dataExport/dataDownload'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
         {/* Once org issues is complete, these routes can be nested under
           /organizations/:orgId/issues */}
         <Route

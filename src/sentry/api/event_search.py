@@ -12,7 +12,7 @@ from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
 from parsimonious.nodes import Node
 from parsimonious.grammar import Grammar, NodeVisitor
-from semaphore.consts import SPAN_STATUS_NAME_TO_CODE
+from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
 from sentry.models import Project
@@ -244,6 +244,7 @@ class SearchVisitor(NodeVisitor):
             "p75",
             "p95",
             "p99",
+            "error_rate",
         ]
     )
     date_keys = set(
@@ -836,6 +837,12 @@ FIELD_ALIASES = {
     "p75": {"result_type": "duration", "aggregations": [["quantile(0.75)(duration)", None, "p75"]]},
     "p95": {"result_type": "duration", "aggregations": [["quantile(0.95)(duration)", None, "p95"]]},
     "p99": {"result_type": "duration", "aggregations": [["quantile(0.99)(duration)", None, "p99"]]},
+    "error_rate": {
+        "result_type": "number",
+        "aggregations": [
+            ["divide(countIf(notEquals(transaction_status, 0)), count(*))", None, "error_rate"]
+        ],
+    },
 }
 
 VALID_AGGREGATES = {
@@ -847,7 +854,7 @@ VALID_AGGREGATES = {
     "sum": {"snuba_name": "sum", "fields": ["transaction.duration"]},
 }
 
-AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$")
+AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>.*)\)$")
 
 
 def get_json_meta_type(field, snuba_type):
