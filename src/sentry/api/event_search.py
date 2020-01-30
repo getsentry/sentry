@@ -854,7 +854,7 @@ VALID_AGGREGATES = {
     "sum": {"snuba_name": "sum", "fields": ["transaction.duration"]},
 }
 
-AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>[a-z\._]*)\)$")
+AGGREGATE_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<column>.*)\)$")
 
 
 def get_json_meta_type(field, snuba_type):

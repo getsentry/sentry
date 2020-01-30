@@ -37,7 +37,7 @@ env:
     - NODE_OPTIONS=--max-old-space-size=4096
 
 before_install:
-  - &pip_install pip install --upgrade pip
+  - &pip_install pip install --no-cache-dir "pip>=20.0.2"
 
 script:
   # certain commands require sentry init to be run, but this is only true for

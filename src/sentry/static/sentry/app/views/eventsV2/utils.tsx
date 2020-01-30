@@ -5,6 +5,11 @@ import isString from 'lodash/isString';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
+import {
+  tokenizeSearch,
+  stringifyQueryObject,
+  QueryResults,
+} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
 import {Event, Organization, OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
@@ -44,7 +49,7 @@ export type EventQuery = {
   per_page?: number;
 };
 
-const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
+const AGGREGATE_PATTERN = /^([^\(]+)\((.*)\)$/;
 const ROUND_BRACKETS_PATTERN = /[\(\)]/;
 
 function explodeFieldString(field: string): {aggregation: string; field: string} {
@@ -222,9 +227,8 @@ export function getAggregateAlias(field: string): string {
   }
   return field
     .replace(AGGREGATE_PATTERN, '$1_$2')
-    .replace('.', '_')
-    .replace(/_+$/, '')
-    .toLowerCase();
+    .replace(/\./g, '_')
+    .replace(/_+$/, '');
 }
 
 export type QueryWithColumnState =
@@ -425,6 +429,30 @@ export function getExpandedResults(
     nextView = nextView.withDeletedColumn(i, undefined);
   });
 
+  // filter out any aggregates from the search conditions.
+  // otherwise, it'll lead to an invalid query result.
+  const queryWithNoAggregates = Object.entries(tokenizeSearch(nextView.query)).reduce(
+    (acc: QueryResults, [field, value]) => {
+      if (field === 'query') {
+        acc.query = value;
+        return acc;
+      }
+
+      const column = explodeFieldString(field);
+
+      if (column.aggregation) {
+        return acc;
+      }
+
+      acc[field] = value;
+
+      return acc;
+    },
+    {query: []}
+  );
+
+  nextView.query = stringifyQueryObject(queryWithNoAggregates);
+
   // Tokenize conditions and append additional conditions provided + generated.
   Object.keys(additionalConditions).forEach(key => {
     if (key === 'project' || key === 'project.id') {
@@ -433,6 +461,13 @@ export function getExpandedResults(
     }
     if (key === 'environment') {
       nextView.environment = [...nextView.environment, additionalConditions[key]];
+      return;
+    }
+
+    // filter out any aggregates from provided additional conditions.
+    // otherwise, it'll lead to an invalid query result.
+    const column = explodeFieldString(key);
+    if (column.aggregation) {
       return;
     }
 

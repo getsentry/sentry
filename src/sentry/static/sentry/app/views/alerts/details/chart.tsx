@@ -2,7 +2,7 @@ import React from 'react';
 import moment from 'moment';
 
 import {AlertRuleAggregations} from 'app/views/settings/incidentRules/types';
-import {getDisplayForAlertRuleAggregation} from 'app/views/incidents/utils';
+import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import {t} from 'app/locale';
 import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';

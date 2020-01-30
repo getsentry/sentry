@@ -457,9 +457,16 @@ export type Repository = {
   integrationId: string;
   name: string;
   provider: {id: string; name: string};
-  status: string;
+  status: RepositoryStatus;
   url: string;
 };
+export enum RepositoryStatus {
+  ACTIVE = 'active',
+  DISABLED = 'disabled',
+  HIDDEN = 'hidden',
+  PENDING_DELETION = 'pending_deletion',
+  DELETION_IN_PROGRESS = 'deletion_in_progress',
+}
 
 export type IntegrationProvider = {
   key: string;
@@ -642,6 +649,38 @@ export type UserReport = {
   email: string;
 };
 
+export type Release = {
+  commitCount: number;
+  data: {};
+  lastDeploy?: Deploy;
+  deployCount: number;
+  lastEvent: string;
+  firstEvent: string;
+  lastCommit?: Commit;
+  authors: User[];
+  owner?: any; // TODO(ts)
+  newGroups: number;
+  projects: {slug: string; name: string}[];
+} & BaseRelease;
+
+export type BaseRelease = {
+  dateReleased: string;
+  url: string;
+  dateCreated: string;
+  version: string;
+  shortVersion: string;
+  ref: string;
+};
+
+export type Deploy = {
+  id: string;
+  name: string;
+  url: string;
+  environment: string;
+  dateStarted: string;
+  dateFinished: string;
+};
+
 export type Commit = {
   id: string;
   key: string;
@@ -649,6 +688,7 @@ export type Commit = {
   dateCreated: string;
   repository?: Repository;
   author?: User;
+  releases: BaseRelease[];
 };
 
 export type MemberRole = {

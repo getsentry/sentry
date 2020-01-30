@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Placeholder from 'app/components/placeholder';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
-import {Incident} from 'app/views/incidents/types';
+import {Incident} from 'app/views/alerts/types';
 
 // Height of sparkline
 const SPARKLINE_HEIGHT = 38;
