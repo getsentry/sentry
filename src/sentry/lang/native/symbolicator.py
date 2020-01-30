@@ -230,7 +230,7 @@ def parse_sources(config):
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
     except jsonschema.ValidationError as e:
-        raise InvalidSourcesError(six.text_type(e))
+        raise InvalidSourcesError(e.message)
 
     ids = set()
     for source in sources:

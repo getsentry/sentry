@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import six
 from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
@@ -54,7 +53,7 @@ class SchemaField(serializers.Field):
         try:
             validate_ui_element_schema(data)
         except SchemaValidationError as e:
-            raise ValidationError(six.text_type(e))
+            raise ValidationError(e.message)
         return data
 
 

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import six
 from jsonschema import ValidationError
 
 
@@ -17,7 +16,7 @@ def invalid_schema_with_error_message(message):
         def inner(self, *args, **kwargs):
             with self.assertRaises(ValidationError) as cm:
                 func(self)
-            found_message = six.text_type(cm.exception)
+            found_message = cm.exception.message
             if found_message != message:
                 assert found_message == message
 

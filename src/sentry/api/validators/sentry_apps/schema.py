@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 import json
 
-import six
 from jsonschema import Draft4Validator
 from jsonschema.exceptions import best_match
 from jsonschema.exceptions import ValidationError as SchemaValidationError
@@ -219,9 +218,7 @@ def check_each_element_for_error(instance):
             validate_component(element)
         except SchemaValidationError as e:
             # catch the validation error and re-write the error so the user knows which element has the issue
-            raise SchemaValidationError(
-                "%s for element of type '%s'" % (six.text_type(e), found_type)
-            )
+            raise SchemaValidationError("%s for element of type '%s'" % (e.message, found_type))
 
 
 def validate_ui_element_schema(instance):
