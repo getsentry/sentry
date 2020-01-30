@@ -9,12 +9,7 @@ import trimFilename from './trim-filename';
 const NOT_FOUND_FRAME = '<unknown>';
 
 interface ThreadInfo {
-  label:
-    | typeof NOT_FOUND_FRAME
-    | {
-        type: keyof Omit<Frame, 'filename'>;
-        value: string;
-      };
+  label: string;
   filename?: string;
 }
 
@@ -35,26 +30,17 @@ function filterThreadInfo(thread: Thread, event: Event, simplified: boolean): Th
   }
 
   if (relevantFrame.function) {
-    threadInfo.label = {
-      type: 'function',
-      value: relevantFrame.function,
-    };
+    threadInfo.label = relevantFrame.function;
     return threadInfo;
   }
 
   if (relevantFrame.package) {
-    threadInfo.label = {
-      type: 'package',
-      value: trimPackage(relevantFrame.package),
-    };
+    threadInfo.label = trimPackage(relevantFrame.package);
     return threadInfo;
   }
 
   if (relevantFrame.module) {
-    threadInfo.label = {
-      type: 'module',
-      value: relevantFrame.module,
-    };
+    threadInfo.label = relevantFrame.module;
     return threadInfo;
   }
 

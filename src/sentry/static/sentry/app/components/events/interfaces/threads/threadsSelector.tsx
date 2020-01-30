@@ -23,18 +23,13 @@ interface Props {
 }
 
 const DROPDOWN_MAX_HEIGHT = 400;
-const NOT_FOUND_FRAME = '<unknown>';
 
 const ThreadsSelector: React.FC<Props> = ({threads, event, activeThread, onChange}) => {
   const getDropDownItem = (thread: Thread) => {
     const threadInfo = filterThreadInfo(thread, event, false);
 
-    let dropDownValue = `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`;
+    const dropDownValue = `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`;
     let crashedInfo: undefined | EntryTypeData = undefined;
-
-    if (threadInfo.label !== NOT_FOUND_FRAME) {
-      dropDownValue = `#${thread.id}: ${thread.name} ${threadInfo.label.value} ${threadInfo.filename}`;
-    }
 
     if (thread.crashed) {
       crashedInfo = getThreadException(thread, event);
@@ -49,6 +44,7 @@ const ThreadsSelector: React.FC<Props> = ({threads, event, activeThread, onChang
           id={thread.id}
           details={threadInfo}
           name={thread.name}
+          crashed={thread.crashed}
           crashedInfo={crashedInfo}
         />
       ),

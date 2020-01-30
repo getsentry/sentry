@@ -7,8 +7,6 @@ import TextOverflow from 'app/components/textOverflow';
 import Text from 'app/components/text';
 import space from 'app/styles/space';
 
-import ThreadsSelectorOptionLabel from './threadsSelectorOptionLabel';
-
 const NOT_FOUND_FRAME = '<unknown>';
 
 interface Props {
@@ -17,23 +15,14 @@ interface Props {
 }
 
 interface ThreadInfo {
-  label:
-    | typeof NOT_FOUND_FRAME
-    | {
-        type: keyof Omit<Frame, 'filename'>;
-        value: string;
-      };
+  label: string;
   filename?: string;
 }
 
 const ThreadsSelectorSelectedOption: React.FC<Props> = ({id, details}) => (
   <StyledContainer>
     <StyledThreadID>{`Thread #${id}:`}</StyledThreadID>
-    {details.label !== NOT_FOUND_FRAME ? (
-      <ThreadsSelectorOptionLabel type={details.label.type} value={details.label.value} />
-    ) : (
-      <Text>{details.label}</Text>
-    )}
+    <StyledOptionLabel>{details.label}</StyledOptionLabel>
   </StyledContainer>
 );
 
@@ -51,4 +40,9 @@ const StyledThreadID = styled(TextOverflow)({
   paddingRight: space(1),
   maxWidth: '100%',
   textAlign: 'left',
+});
+
+const StyledOptionLabel = styled(StyledThreadID)({
+  // TODO(style): color not yet in the theme
+  color: '#2c58a8',
 });
