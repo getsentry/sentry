@@ -60,19 +60,6 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
             pass
 
 
-def unregister_plugins(settings):
-    from pkg_resources import iter_entry_points
-    from sentry.plugins.base import plugins
-
-    # reverse the registrations that happen in register_plugins
-    # note that we are NOT unregistering things from SENTRY_DEFAULT_INTEGRATIONS
-    # that is because we need them for other tests
-
-    for ep in iter_entry_points("sentry.plugins"):
-        plugin = ep.load()
-        plugins.unregister(plugin)
-
-
 def init_plugin(plugin):
     from sentry.plugins.base import bindings
 

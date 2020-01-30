@@ -10,41 +10,58 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import ProjectOption, Project
 
 
-# This endpoint is similar to OrganizationPluginsEndpoint
-# Eventually we can replace that one with this
+"""
+List one or more plugin configurations, including a `projectList` for each plugin which contains
+all the projects that have that specific plugin both configured and enabled.
+
+- similar to the `OrganizationPluginsEndpoint`, and can eventually replace it
+
+:qparam plugins array[string]: an optional list of plugin ids (slugs) if you want specific plugins.
+                               If not set, will return configurations for all plugins.
+"""
+
+
 class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
-        # only load plugins that have configuration
-        # plugins that can't be configured shouldn't be shown
-        all_plugins = dict([(p.slug, p) for p in plugins.plugins_with_configuration()])
 
-        # can specify specific plugins to load
-        if "plugins" in request.GET:
-            desired_plugins = request.GET.getlist("plugins")
-        else:
-            desired_plugins = all_plugins.keys()
-
-        # find all the keys that will tell us if a plugin is enabled OR configured
-        keys_to_check = []
-        for slug in desired_plugins:
+        desired_plugins = []
+        for slug in request.GET.getlist("plugins") or ():
             # if the user request a plugin that doesn't exist, throw 404
             try:
-                plugin = plugins.get(slug)
+                desired_plugins.append(plugins.get(slug))
             except KeyError:
                 return Response({"detail": "Plugin %s not found" % slug}, status=404)
-            keys_to_check.append("%s:enabled" % slug)
+
+        # if no plugins were specified, grab all plugins but limit by those that have the ability to be configured
+        if not desired_plugins:
+            desired_plugins = list(plugins.plugin_that_can_be_configured())
+
+        # `keys_to_check` are the ProjectOption keys that tell us if a plugin is enabled (e.g. `plugin:enabled`) or are
+        # configured properly, meaning they have the required information - plugin.required_field - needed for the
+        # plugin to work (ex:`opsgenie:api_key`)
+        keys_to_check = []
+        for plugin in desired_plugins:
+            keys_to_check.append("%s:enabled" % plugin.slug)
             if plugin.required_field:
-                keys_to_check.append("%s:%s" % (slug, plugin.required_field))
+                keys_to_check.append("%s:%s" % (plugin.slug, plugin.required_field))
 
         # Get all the project options for org that have truthy values
         project_options = ProjectOption.objects.filter(
             key__in=keys_to_check, project__organization=organization
         ).exclude(value__in=[False, ""])
 
-        # This map stores info about whether a plugin is configured and/or enabled
-        # the first key is the plugin slug
-        # the second slug is the project id
-        # the value is an object containing the boolean fields "enabled" and "configured"
+        """
+        This map stores info about whether a plugin is configured and/or enabled
+        {
+            "plugin_slug": {
+                "project_id": {
+                    "enabled": True,
+                    "configured": False,
+                },
+                ...
+            },
+        }
+        """
         info_by_plugin_project = {}
         for project_option in project_options:
             [slug, field] = project_option.key.split(":")
@@ -58,7 +75,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
             # next check if enabled
             if field == "enabled":
                 info_by_plugin_project[slug][project_id]["enabled"] = True
-            # if the projectoption is not the enable field, it's connfiguration field
+            # if the projectoption is not the enable field, it's configuration field
             else:
                 info_by_plugin_project[slug][project_id]["configured"] = True
 
@@ -71,13 +88,12 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
 
         # iterate through the desired plugins and serialize them
         serialized_plugins = []
-        for slug in desired_plugins:
-            plugin = plugins.get(slug)
+        for plugin in desired_plugins:
             serialized_plugin = serialize(plugin, request.user, PluginSerializer())
 
             serialized_plugin["projectList"] = []
 
-            info_by_project = info_by_plugin_project.get(slug, {})
+            info_by_project = info_by_plugin_project.get(plugin.slug, {})
 
             # iterate through the projects
             for project_id, plugin_info in six.iteritems(info_by_project):

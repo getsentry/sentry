@@ -1,17 +1,20 @@
 from __future__ import absolute_import
 
+from copy import copy
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
+from sentry.utils.compat import mock
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase
-from sentry.runner.initializer import register_plugins, unregister_plugins
+from sentry.runner.initializer import register_plugins
 
 
 class OrganizationPluginsTest(APITestCase):
+    # create a copy of class_list for plugins from the initial value
+    @mock.patch.object(plugins, "class_list", new=copy(plugins.class_list))
     def setUp(self):
-
-        register_plugins(settings, raise_on_plugin_load_failure=True)
+        register_plugins(settings)
 
         self.projectA = self.create_project()
         self.organization = self.projectA.organization
@@ -24,14 +27,11 @@ class OrganizationPluginsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    def tearDown(self):
-        unregister_plugins(settings)
-
     def test_no_configs(self):
         response = self.client.get(self.url)
         assert response.status_code == 200, (response.status_code, response.content)
-        # the number of plugins might change so let's just make sure we have some of them
-        assert len(response.data) > 20
+        # the number of plugins might change so let's just make sure we have most of them
+        assert len(response.data) > 18
 
     def test_only_configuable_plugins(self):
         response = self.client.get(self.url)
