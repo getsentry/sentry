@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import space from 'app/styles/space';
 
 class CrashHeader extends React.Component {
   static propTypes = {
@@ -171,8 +172,12 @@ class CrashHeader extends React.Component {
 
 export default CrashHeader;
 
-const StyledTitleInfo = styled('div')({
+const StyledTitleInfo = styled('div')(({theme}) => ({
   display: 'flex',
+  flexDirection: 'column',
   alignItems: 'center',
-  marginBottom: 20,
-});
+  marginBottom: space(3),
+  [`@media (min-width: ${theme.breakpoints[2]})`]: {
+    flexDirection: 'row',
+  },
+}));

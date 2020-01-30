@@ -5,23 +5,14 @@ import {t} from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
-import {defined} from 'app/utils';
-import DropdownLink from 'app/components/dropdownLink';
-import MenuItem from 'app/components/menuItem';
-import {trimPackage} from 'app/components/events/interfaces/frame';
 import CrashHeader from 'app/components/events/interfaces/crashHeader';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 
-import ThreadsSelector from './ThreadsSelector';
+import ThreadsSelector from './threadsSelector';
 import getThreadStacktrace from './get-thread-stacktrace';
 import getThreadException from './get-thread-exception';
-
-function trimFilename(fn) {
-  const pieces = fn.split(/\//g);
-  return pieces[pieces.length - 1];
-}
 
 function getIntendedStackView(thread, event) {
   const stacktrace = getThreadStacktrace(thread, event, false);

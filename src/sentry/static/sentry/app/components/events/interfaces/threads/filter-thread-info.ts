@@ -6,28 +6,54 @@ import getThreadStacktrace from './get-thread-stacktrace';
 import getRelevantFrame from './get-relevant-frame';
 import trimFilename from './trim-filename';
 
-function filterThreadInfo(thread: Thread, event: Event, simplified: boolean) {
-  const stacktrace = getThreadStacktrace(thread, event, simplified);
-  const threadInfo: Frame = {};
+interface ThreadInfo {
+  label:
+    | '<unknown>'
+    | {
+        type: keyof Omit<Frame, 'filename'>;
+        value: string;
+      };
+  filename?: string;
+}
 
-  if (!stacktrace || stacktrace === null) return threadInfo;
+function filterThreadInfo(thread: Thread, event: Event, simplified: boolean): ThreadInfo {
+  const stacktrace = getThreadStacktrace(thread, event, simplified);
+  const threadInfo: ThreadInfo = {
+    label: '<unknown>',
+  };
+
+  if (!stacktrace || stacktrace === null) {
+    return threadInfo;
+  }
 
   const relevantFrame: Frame = getRelevantFrame(stacktrace);
-
-  if (relevantFrame.function) {
-    threadInfo.function = relevantFrame.function;
-  }
 
   if (relevantFrame.filename) {
     threadInfo.filename = trimFilename(relevantFrame.filename);
   }
 
+  if (relevantFrame.function) {
+    threadInfo.label = {
+      type: 'function',
+      value: relevantFrame.function,
+    };
+    return threadInfo;
+  }
+
   if (relevantFrame.package) {
-    threadInfo.package = trimPackage(relevantFrame.package);
+    threadInfo.label = {
+      type: 'package',
+      value: trimPackage(relevantFrame.package),
+    };
+    return threadInfo;
   }
 
   if (relevantFrame.module) {
-    threadInfo.module = relevantFrame.module;
+    threadInfo.label = {
+      type: 'module',
+      value: relevantFrame.module,
+    };
+    return threadInfo;
   }
 
   return threadInfo;

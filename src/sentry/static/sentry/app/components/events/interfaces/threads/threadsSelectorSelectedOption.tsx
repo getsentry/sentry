@@ -3,37 +3,44 @@ import styled from '@emotion/styled';
 
 import {Frame} from 'app/types/events';
 import TextOverflow from 'app/components/textOverflow';
+/* eslint-disable react/prop-types */
 import Text from 'app/components/text';
 import space from 'app/styles/space';
 
-import ThreadsSelectorOptionLabel from './ThreadsSelectorOptionLabel';
+import ThreadsSelectorOptionLabel from './threadsSelectorOptionLabel';
+
+const NOT_FOUND_FRAME = '<unknown>';
 
 interface Props {
   id: string;
-  frame: Frame;
+  details: ThreadInfo;
 }
 
-const ThreadsSelectorSelectedOption: React.FC<Props> = ({id, frame}) => {
-  const mostImportantInfoToBeDisplayed = Object.entries(frame)[0];
-  return (
-    <StyledContainer>
-      <StyledThreadID>{`Thread #${id}:`}</StyledThreadID>
-      {mostImportantInfoToBeDisplayed ? (
-        <ThreadsSelectorOptionLabel
-          label={mostImportantInfoToBeDisplayed[0] as keyof Frame}
-          value={mostImportantInfoToBeDisplayed[1]}
-        />
-      ) : (
-        <Text>{`<unknown>`}</Text>
-      )}
-    </StyledContainer>
-  );
-};
+interface ThreadInfo {
+  label:
+    | typeof NOT_FOUND_FRAME
+    | {
+        type: keyof Omit<Frame, 'filename'>;
+        value: string;
+      };
+  filename?: string;
+}
+
+const ThreadsSelectorSelectedOption: React.FC<Props> = ({id, details}) => (
+  <StyledContainer>
+    <StyledThreadID>{`Thread #${id}:`}</StyledThreadID>
+    {details.label !== NOT_FOUND_FRAME ? (
+      <ThreadsSelectorOptionLabel type={details.label.type} value={details.label.value} />
+    ) : (
+      <Text>{details.label}</Text>
+    )}
+  </StyledContainer>
+);
 
 export default ThreadsSelectorSelectedOption;
 
 const StyledContainer = styled('div')({
-  gridTemplateColumns: '110px 260px',
+  gridTemplateColumns: '110px 1fr',
   display: 'grid',
   justifyContent: 'flex-start',
   alignItems: 'center',
@@ -42,4 +49,6 @@ const StyledContainer = styled('div')({
 
 const StyledThreadID = styled(TextOverflow)({
   paddingRight: space(1),
+  maxWidth: '100%',
+  textAlign: 'left',
 });

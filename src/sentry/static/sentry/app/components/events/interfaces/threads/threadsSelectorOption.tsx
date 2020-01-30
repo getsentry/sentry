@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -8,55 +9,69 @@ import Text from 'app/components/text';
 import InlineSvg from 'app/components/inlineSvg';
 import {EntryTypeData} from 'app/types';
 
-import ThreadsSelectorOptionLabel from './ThreadsSelectorOptionLabel';
+import ThreadsSelectorOptionLabel from './threadsSelectorOptionLabel';
+
+const NOT_FOUND_FRAME = '<unknown>';
 
 interface Props {
   id: string;
   name?: string;
-  frame: Frame;
-  crashed?: EntryTypeData;
+  details: ThreadInfo;
+  crashedInfo?: EntryTypeData;
 }
 
-const ThreadsSelectorOption: React.FC<Props> = ({id, name, frame, crashed}) => {
-  const mostImportantInfoToBeDisplayed = Object.entries(frame)[0];
-  return (
-    <StyledContainer>
-      <StyledNameID>{name ? `#${id}: ${name}` : `#${id}`}</StyledNameID>
-      {mostImportantInfoToBeDisplayed ? (
-        <>
-          <ThreadsSelectorOptionLabel
-            label={mostImportantInfoToBeDisplayed[0] as keyof Frame}
-            value={mostImportantInfoToBeDisplayed[1]}
-          />
-          {mostImportantInfoToBeDisplayed[0] !== 'filename' && frame.filename && (
-            <ThreadsSelectorOptionLabel label="filename" value={frame.filename} />
-          )}
-        </>
-      ) : (
-        <Text>{`<unknown>`}</Text>
-      )}
-      {crashed && (
-        <StyledCrashIcon
-          src="icon-warning-sm"
-          title={`(crashed with ${crashed.values[0].type})`}
+interface ThreadInfo {
+  label:
+    | typeof NOT_FOUND_FRAME
+    | {
+        type: keyof Omit<Frame, 'filename'>;
+        value: string;
+      };
+  filename?: string;
+}
+
+const ThreadsSelectorOption: React.FC<Props> = ({id, name, details, crashedInfo}) => (
+  <StyledContainer>
+    <StyledNameID>{name ? `#${id}: ${name}` : `#${id}`}</StyledNameID>
+    <StyledLabelsContainer>
+      {details.label !== NOT_FOUND_FRAME ? (
+        <ThreadsSelectorOptionLabel
+          type={details.label.type}
+          value={details.label.value}
         />
+      ) : (
+        <Text>{details.label}</Text>
       )}
-    </StyledContainer>
-  );
-};
+      {details.filename && (
+        <StyledFileName>
+          {'('}
+          <TextOverflow>{details.filename}</TextOverflow>
+          {')'}
+        </StyledFileName>
+      )}
+    </StyledLabelsContainer>
+    {crashedInfo && (
+      <StyledCrashIcon
+        src="icon-warning-sm"
+        title={`(crashed with ${crashedInfo.values[0].type})`}
+      />
+    )}
+  </StyledContainer>
+);
 
 export default ThreadsSelectorOption;
 
-const StyledCrashIcon = styled(InlineSvg)({
-  color: '#ec5e44',
-  marginLeft: space(1),
+const StyledLabelsContainer = styled('div')({
+  display: 'grid',
+  gridTemplateColumns: '1fr 100px',
+  width: '100%',
 });
 
 const StyledContainer = styled('div')({
   display: 'grid',
   maxWidth: '100%',
   overflow: 'hidden',
-  gridTemplateColumns: '110px 1fr auto 28px',
+  gridTemplateColumns: '110px 1fr 28px',
   justifyContent: 'flex-start',
   justifyItems: 'start',
   paddingLeft: space(1),
@@ -66,3 +81,15 @@ const StyledNameID = styled(TextOverflow)({
   paddingRight: space(1),
   maxWidth: '100%',
 });
+
+const StyledCrashIcon = styled(InlineSvg)({
+  color: '#ec5e44',
+  marginLeft: space(1),
+});
+
+const StyledFileName = styled(TextOverflow)(({theme}) => ({
+  color: theme.purple,
+  display: 'flex',
+  width: '100%',
+  textAlign: 'left',
+}));

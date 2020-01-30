@@ -1,30 +1,25 @@
+/* eslint-disable react/prop-types */
+/* eslint-disable react/prop-types */
 import React from 'react';
 import styled from '@emotion/styled';
 
 import {Frame} from 'app/types/events';
 import TextOverflow from 'app/components/textOverflow';
+import space from 'app/styles/space';
 
 interface Props {
-  label: keyof Frame;
+  type: keyof Omit<Frame, 'filename'>;
   value: string;
 }
 
-const ThreadsSelectorOptionLabel: React.FC<Props> = ({label, value}) => {
-  switch (label) {
-    case 'filename':
-      return (
-        <StyledFileName>
-          {`(`}
-          <TextOverflow>{value}</TextOverflow>
-          {`)`}
-        </StyledFileName>
-      );
+const ThreadsSelectorOptionLabel: React.FC<Props> = ({type, value}) => {
+  switch (type) {
     case 'function':
       return <StyledFunctionName>{value}</StyledFunctionName>;
     case 'module':
-      return <TextOverflow>{value}</TextOverflow>;
+      return <StyledOptionLabel>{value}</StyledOptionLabel>;
     case 'package':
-      return <TextOverflow>{value}</TextOverflow>;
+      return <StyledOptionLabel>{value}</StyledOptionLabel>;
     default:
       return null;
   }
@@ -32,13 +27,13 @@ const ThreadsSelectorOptionLabel: React.FC<Props> = ({label, value}) => {
 
 export default ThreadsSelectorOptionLabel;
 
-const StyledFunctionName = styled(TextOverflow)({
-  color: '#2c58a8',
+const StyledOptionLabel = styled(TextOverflow)({
+  paddingRight: space(1),
   maxWidth: '100%',
+  textAlign: 'left',
 });
 
-const StyledFileName = styled(TextOverflow)({
-  color: '#6c5fc7',
-  maxWidth: '100%',
-  display: 'flex',
+const StyledFunctionName = styled(StyledOptionLabel)({
+  // TODO(style): color not yet in the theme
+  color: '#2c58a8',
 });
