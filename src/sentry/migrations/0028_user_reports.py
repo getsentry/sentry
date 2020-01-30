@@ -31,17 +31,13 @@ def backfill_user_reports(apps, schema_editor):
             event = eventstore.get_event_by_id(report.project_id, report.event_id)
         except (SnubaError, QueryOutsideGroupActivityError, QueryOutsideRetentionError) as se:
             logger.warn(
-                "failed to fetch event {} for project {}: {}".format(
-                    report.event_id, report.project_id, se
-                )
+                "failed to fetch event %s for project %d: %s"
+                % (report.event_id, report.project_id, se)
             )
             continue
 
         if event:
-            try:
-                report.update(group_id=event.group_id, environment=event.get_environment())
-            except Exception as e:
-                logger.warn("failed to update user report {}: {}".format(report.id, e))
+            report.update(group_id=event.group_id, environment=event.get_environment())
 
 
 class Migration(migrations.Migration):
