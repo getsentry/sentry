@@ -68,7 +68,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
         query_status = request.GET.get("status")
         if query_status is not None:
-            if query_status == "open" or query_status == "active":
+            if query_status == "open":
                 incidents = incidents.exclude(status=IncidentStatus.CLOSED.value)
             elif query_status == "warning":
                 incidents = incidents.filter(status=IncidentStatus.WARNING.value)

@@ -78,7 +78,7 @@ describe('IncidentsList', function() {
       expect.objectContaining({query: {}})
     );
 
-    wrapper.setProps({location: {query: {status: 'active'}, search: '?status=active`'}});
+    wrapper.setProps({location: {query: {status: 'open'}, search: '?status=open`'}});
 
     expect(
       wrapper
@@ -92,7 +92,7 @@ describe('IncidentsList', function() {
 
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: expect.objectContaining({status: 'active'})})
+      expect.objectContaining({query: expect.objectContaining({status: 'open'})})
     );
   });
 });

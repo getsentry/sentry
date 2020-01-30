@@ -145,7 +145,7 @@ class IncidentsListContainer extends React.Component<Props> {
     const {pathname, query} = location;
     const {orgId} = params;
 
-    const activeIncidentsQuery = {...query, status: 'active'};
+    const openIncidentsQuery = {...query, status: 'open'};
     const closedIncidentsQuery = {...query, status: 'closed'};
     const allIncidentsQuery = omit(query, 'status');
 
@@ -186,9 +186,9 @@ class IncidentsListContainer extends React.Component<Props> {
                   {t('All')}
                 </Button>
                 <Button
-                  to={{pathname, query: activeIncidentsQuery}}
+                  to={{pathname, query: openIncidentsQuery}}
                   size="small"
-                  className={'btn' + (status === 'active' ? ' active' : '')}
+                  className={'btn' + (status === 'open' ? ' active' : '')}
                 >
                   {t('Active')}
                 </Button>
