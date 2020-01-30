@@ -224,7 +224,7 @@ class QueryTransformTest(TestCase):
                 query="event.type:transaction",
                 params={"project_id": [self.project.id]},
             )
-        assert "No fields" in six.text_type(err)
+        assert "No columns selected" in six.text_type(err)
         assert mock_query.call_count == 0
 
     @patch("sentry.snuba.discover.raw_query")

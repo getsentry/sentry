@@ -100,6 +100,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
         except OrganizationEventsError as exc:
             raise ParseError(detail=six.text_type(exc))
         except NoProjects:
+
             return Response([])
 
         has_global_views = features.has(
@@ -134,7 +135,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
             )
         except discover.InvalidSearchQuery as error:
             raise ParseError(detail=six.text_type(error))
-        except snuba.SnubaError as error:
+        except (snuba.SnubaError, snuba.QueryOutsideRetentionError) as error:
             logger.info(
                 "organization.events.snuba-error",
                 extra={
@@ -143,7 +144,31 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                     "error": six.text_type(error),
                 },
             )
-            raise ParseError(detail="Invalid query.")
+            message = "Internal error. Please try again."
+            if isinstance(error, snuba.QueryIllegalTypeOfArgument):
+                message = "Invalid query. Argument to function is wrong type."
+            elif isinstance(error, snuba.QueryOutsideRetentionError):
+                message = "Invalid date range. Please try a more recent date range."
+            elif isinstance(
+                error,
+                (
+                    snuba.RateLimitExceeded,
+                    snuba.QueryMemoryLimitExceeded,
+                    snuba.QueryTooManySimultaneous,
+                ),
+            ):
+                message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+            elif isinstance(
+                error,
+                (
+                    snuba.UnqualifiedQueryError,
+                    snuba.QueryExecutionError,
+                    snuba.SchemaValidationError,
+                ),
+            ):
+                message = "Invalid query."
+
+            raise ParseError(detail=message)
 
     def handle_results_with_meta(self, request, organization, project_ids, results):
         data = self.handle_data(request, organization, project_ids, results.get("data"))
