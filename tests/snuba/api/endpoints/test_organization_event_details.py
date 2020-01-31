@@ -17,6 +17,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         self.project = self.create_project()
+        self.project_2 = self.create_project()
 
         self.store_event(
             data={
@@ -125,6 +126,47 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
         assert response.status_code == 200
+
+    def test_multi_project_pagination(self):
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "hello world",
+                "timestamp": iso_format(before_now(minutes=2, seconds=30)),
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project_2.id,
+        )
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project_2.organization.slug,
+                "project_slug": self.project_2.slug,
+                "event_id": "d" * 32,
+            },
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                url,
+                data={
+                    "field": ["project", "count(id)", "count_unique(issue.id)"],
+                    "statsPeriod": "24h",
+                    "sort": "-count_id",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == "d" * 32
+        assert response.data["previousEventID"] == "a" * 32
+        assert response.data["previousEventProjectSlug"] == self.project.slug
+        assert response.data["nextEventID"] == "b" * 32
+        assert response.data["nextEventProjectSlug"] == self.project.slug
+        assert response.data["latestEventID"] == "c" * 32
+        assert response.data["latestEventProjectSlug"] == self.project.slug
+        assert response.data["oldestEventID"] == "a" * 32
+        assert response.data["oldestEventProjectSlug"] == self.project.slug
 
     def test_no_access_missing_feature(self):
         url = reverse(
