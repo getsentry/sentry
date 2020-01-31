@@ -11,17 +11,17 @@ from sentry.models import ProjectOption, Project
 
 
 class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
-    """
-    List one or more plugin configurations, including a `projectList` for each plugin which contains
-    all the projects that have that specific plugin both configured and enabled.
-
-    - similar to the `OrganizationPluginsEndpoint`, and can eventually replace it
-
-    :qparam plugins array[string]: an optional list of plugin ids (slugs) if you want specific plugins.
-                                If not set, will return configurations for all plugins.
-    """
-
     def get(self, request, organization):
+
+        """
+        List one or more plugin configurations, including a `projectList` for each plugin which contains
+        all the projects that have that specific plugin both configured and enabled.
+
+        - similar to the `OrganizationPluginsEndpoint`, and can eventually replace it
+
+        :qparam plugins array[string]: an optional list of plugin ids (slugs) if you want specific plugins.
+                                    If not set, will return configurations for all plugins.
+        """
 
         desired_plugins = []
         for slug in request.GET.getlist("plugins") or ():
