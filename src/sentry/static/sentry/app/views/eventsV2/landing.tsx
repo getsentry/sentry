@@ -14,7 +14,6 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Banner from 'app/components/banner';
-import BetaTag from 'app/components/betaTag';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
@@ -269,10 +268,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     } else {
       body = (
         <PageContent>
-          <StyledPageHeader>
-            {t('Discover')}
-            <BetaTag />
-          </StyledPageHeader>
+          <StyledPageHeader>{t('Discover')}</StyledPageHeader>
           {this.renderBanner()}
           {this.renderActions()}
           <QueryList

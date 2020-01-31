@@ -312,6 +312,7 @@ class Sidebar extends React.Component {
                         label={t('Discover')}
                         to={getDiscoverLandingUrl(organization)}
                         id="discover-v2"
+                        isNew
                       />
                     </Feature>
                   )}
