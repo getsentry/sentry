@@ -1187,6 +1187,17 @@ function routes() {
               </Route>
             </Route>
 
+            <Route
+              name="Sentry App Details"
+              path="sentry-apps/:providerKey"
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/sentryAppDetailedView'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+
             <Redirect from=":projectId/" to="projects/:projectId/" />
             <Redirect from=":projectId/alerts/" to="projects/:projectId/alerts/" />
             <Redirect

@@ -30,15 +30,13 @@ import {growDown, highlight} from 'app/styles/animations';
 import {sortArray} from 'app/utils';
 
 type State = {
-  configurations: Integration[];
   information: {providers: IntegrationProvider[]};
-  tab: string;
   newlyInstalledIntegrationId: string;
 };
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{orgId: string; providerKey: string}, {}>;
+} & RouteComponentProps<{providerKey: string}, {}>;
 
 const defaultFeatureGateComponents = {
   IntegrationFeatures: p =>
@@ -59,36 +57,20 @@ const defaultFeatureGateComponents = {
   },
 } as ReturnType<Hooks['integrations:feature-gates']>;
 
-const tabs = ['information', 'configurations'];
+const tabs = ['information'];
 
 class IntegrationDetailedView extends AsyncComponent<
   Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
-  componentDidMount() {
-    const {location} = this.props;
-    const value =
-      typeof location.query.tab === 'string' ? location.query.tab : 'information';
-
-    // eslint-disable-next-line react/no-did-mount-set-state
-    this.setState({tab: value});
-  }
-
   getInformation() {
     return this.state.information.providers[0];
   }
 
   getEndpoints(): ([string, string, any] | [string, string])[] {
-    const {orgId, providerKey} = this.props.params;
+    const {providerKey} = this.props.params;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
-      [
-        'information',
-        `/organizations/${orgId}/config/integrations/?provider_key=${providerKey}`,
-      ],
-      [
-        'configurations',
-        `/organizations/${orgId}/integrations/?provider_key=${providerKey}`,
-      ],
+      ['published_apps', `/sentry-apps/?status=published&&providerKey=${providerKey}`],
     ];
 
     return baseEndpoints;
@@ -167,143 +149,147 @@ class IntegrationDetailedView extends AsyncComponent<
   onTabChange = value => {
     this.setState({tab: value});
   };
-
   renderBody() {
     console.log('props: ', this.props);
     console.log('state: ', this.state);
-    const {configurations, tab} = this.state;
-    const information = this.getInformation();
-    const {organization} = this.props;
-
-    const {metadata} = information;
-    const alerts = metadata.aspects.alerts || [];
-
-    if (!information.canAdd && metadata.aspects.externalInstall) {
-      alerts.push({
-        type: 'warning',
-        icon: 'icon-exit',
-        text: metadata.aspects.externalInstall.noticeText,
-      });
-    }
-
-    const buttonProps = {
-      style: {marginLeft: space(1)},
-      size: 'small',
-      priority: 'primary',
-    };
-
-    const AddButton = p =>
-      (information.canAdd && (
-        <AddIntegrationButton
-          provider={information}
-          onAddIntegration={this.onInstall}
-          {...buttonProps}
-          {...p}
-        />
-      )) ||
-      (!information.canAdd && metadata.aspects.externalInstall && (
-        <Button
-          icon="icon-exit"
-          href={metadata.aspects.externalInstall.url}
-          onClick={this.handleExternalInstall}
-          external
-          {...buttonProps}
-          {...p}
-        >
-          {metadata.aspects.externalInstall.buttonText}
-        </Button>
-      ));
-
-    // Prepare the features list
-    const features = metadata.features.map(f => ({
-      featureGate: f.featureGate,
-      description: (
-        <FeatureListItem
-          dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}}
-        />
-      ),
-    }));
-
-    const featureListHooks = HookStore.get('integrations:feature-gates');
-    featureListHooks.push(() => defaultFeatureGateComponents);
-
-    const {FeatureList, IntegrationFeatures} = featureListHooks[0]();
-    const featureProps = {organization, features};
-    return (
-      <React.Fragment>
-        <Flex>
-          <PluginIcon size={60} pluginId={information.key} />
-          <TitleContainer>
-            <Title>{information.name}</Title>
-            <Flex>
-              {information.features.length && this.featureTags(information.features)}
-            </Flex>
-          </TitleContainer>
-
-          <IntegrationFeatures {...featureProps}>
-            {({disabled, disabledReason}) => (
-              <div
-                style={{
-                  marginLeft: 'auto',
-                  alignSelf: 'center',
-                }}
-              >
-                {disabled && <DisabledNotice reason={disabledReason} />}
-                <Access organization={organization} access={['org:integrations']}>
-                  {({hasAccess}) => (
-                    <Tooltip
-                      title={t(
-                        'You must be an organization owner, manager or admin to install this.'
-                      )}
-                      disabled={hasAccess}
-                    >
-                      <AddButton
-                        data-test-id="add-button"
-                        disabled={disabled || !hasAccess}
-                        organization={organization}
-                      />
-                    </Tooltip>
-                  )}
-                </Access>
-              </div>
-            )}
-          </IntegrationFeatures>
-        </Flex>
-        <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
-          {tabs.map(tabName => (
-            <li
-              key={tabName}
-              className={tab === tabName ? 'active' : ''}
-              onClick={() => this.onTabChange(tabName)}
-            >
-              <a style={{textTransform: 'capitalize'}}>{tabName}</a>
-            </li>
-          ))}
-        </ul>
-        {tab === 'information' ? (
-          <InformationCard alerts={alerts} information={information}>
-            <FeatureList {...featureProps} provider={information} />
-          </InformationCard>
-        ) : (
-          <div>
-            {configurations.map(integration => (
-              <StyledInstalledIntegration
-                key={integration.id}
-                organization={organization}
-                provider={information}
-                integration={integration}
-                onRemove={this.onRemove}
-                onDisable={this.onDisable}
-                onReinstallIntegration={this.onInstall}
-                data-test-id={integration.id}
-                newlyAdded={integration.id === this.state.newlyInstalledIntegrationId}
-              />
-            ))}
-          </div>
-        )}
-      </React.Fragment>
-    );
+    return <div>DetailedViewState</div>;
   }
+  // renderBody() {
+  //   console.log('props: ', this.props);
+  //   console.log('state: ', this.state);
+  //   const {configurations, tab} = this.state;
+  //   const information = this.getInformation();
+  //   const {organization} = this.props;
+
+  //   const {metadata} = information;
+  //   const alerts = metadata.aspects.alerts || [];
+
+  //   if (!information.canAdd && metadata.aspects.externalInstall) {
+  //     alerts.push({
+  //       type: 'warning',
+  //       icon: 'icon-exit',
+  //       text: metadata.aspects.externalInstall.noticeText,
+  //     });
+  //   }
+
+  //   const buttonProps = {
+  //     style: {marginLeft: space(1)},
+  //     size: 'small',
+  //     priority: 'primary',
+  //   };
+
+  //   const AddButton = p =>
+  //     (information.canAdd && (
+  //       <AddIntegrationButton
+  //         provider={information}
+  //         onAddIntegration={this.onInstall}
+  //         {...buttonProps}
+  //         {...p}
+  //       />
+  //     )) ||
+  //     (!information.canAdd && metadata.aspects.externalInstall && (
+  //       <Button
+  //         icon="icon-exit"
+  //         href={metadata.aspects.externalInstall.url}
+  //         onClick={this.handleExternalInstall}
+  //         external
+  //         {...buttonProps}
+  //         {...p}
+  //       >
+  //         {metadata.aspects.externalInstall.buttonText}
+  //       </Button>
+  //     ));
+
+  //   // Prepare the features list
+  //   const features = metadata.features.map(f => ({
+  //     featureGate: f.featureGate,
+  //     description: (
+  //       <FeatureListItem
+  //         dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}}
+  //       />
+  //     ),
+  //   }));
+
+  //   const featureListHooks = HookStore.get('integrations:feature-gates');
+  //   featureListHooks.push(() => defaultFeatureGateComponents);
+
+  //   const {FeatureList, IntegrationFeatures} = featureListHooks[0]();
+  //   const featureProps = {organization, features};
+  //   return (
+  //     <React.Fragment>
+  //       <Flex>
+  //         <PluginIcon size={60} pluginId={information.key} />
+  //         <TitleContainer>
+  //           <Title>{information.name}</Title>
+  //           <Flex>
+  //             {information.features.length && this.featureTags(information.features)}
+  //           </Flex>
+  //         </TitleContainer>
+
+  //         <IntegrationFeatures {...featureProps}>
+  //           {({disabled, disabledReason}) => (
+  //             <div
+  //               style={{
+  //                 marginLeft: 'auto',
+  //                 alignSelf: 'center',
+  //               }}
+  //             >
+  //               {disabled && <DisabledNotice reason={disabledReason} />}
+  //               <Access organization={organization} access={['org:integrations']}>
+  //                 {({hasAccess}) => (
+  //                   <Tooltip
+  //                     title={t(
+  //                       'You must be an organization owner, manager or admin to install this.'
+  //                     )}
+  //                     disabled={hasAccess}
+  //                   >
+  //                     <AddButton
+  //                       data-test-id="add-button"
+  //                       disabled={disabled || !hasAccess}
+  //                       organization={organization}
+  //                     />
+  //                   </Tooltip>
+  //                 )}
+  //               </Access>
+  //             </div>
+  //           )}
+  //         </IntegrationFeatures>
+  //       </Flex>
+  //       <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
+  //         {tabs.map(tabName => (
+  //           <li
+  //             key={tabName}
+  //             className={tab === tabName ? 'active' : ''}
+  //             onClick={() => this.onTabChange(tabName)}
+  //           >
+  //             <a style={{textTransform: 'capitalize'}}>{tabName}</a>
+  //           </li>
+  //         ))}
+  //       </ul>
+  //       {tab === 'information' ? (
+  //         <InformationCard alerts={alerts} information={information}>
+  //           <FeatureList {...featureProps} provider={information} />
+  //         </InformationCard>
+  //       ) : (
+  //         <div>
+  //           {configurations.map(integration => (
+  //             <StyledInstalledIntegration
+  //               key={integration.id}
+  //               organization={organization}
+  //               provider={information}
+  //               integration={integration}
+  //               onRemove={this.onRemove}
+  //               onDisable={this.onDisable}
+  //               onReinstallIntegration={this.onInstall}
+  //               data-test-id={integration.id}
+  //               newlyAdded={integration.id === this.state.newlyInstalledIntegrationId}
+  //             />
+  //           ))}
+  //         </div>
+  //       )}
+  //     </React.Fragment>
+  //   );
+  // }
 }
 
 const Flex = styled('div')`
