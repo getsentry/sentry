@@ -460,6 +460,10 @@ def get_pagination_ids(event, query, params, organization, reference_event=None,
             snuba_filter.conditions.extend(ref_conditions)
 
     def into_pagination_record(project_slug_event_id):
+
+        if project_slug_event_id is None:
+            return PaginationRecord(None, None)
+
         project = Project.objects.get(
             id=project_slug_event_id[0], organization=organization, status=ProjectStatus.VISIBLE
         )
