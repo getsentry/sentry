@@ -1,9 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Client} from 'app/api';
 import {PanelItem} from 'app/components/panels';
-import {Repository} from 'app/sentryTypes';
+import {Repository, RepositoryStatus} from 'app/types';
 import {deleteRepository, cancelDeleteRepository} from 'app/actionCreators/integrations';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -11,28 +11,28 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import space from 'app/styles/space';
 
-class RepositoryRow extends React.Component {
-  static propTypes = {
-    repository: Repository,
-    api: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    showProvider: PropTypes.bool,
-    onRepositoryChange: PropTypes.func,
-  };
+type Props = {
+  repository: Repository;
+  api: Client;
+  orgId: string;
+  showProvider?: boolean;
+  onRepositoryChange?: (data: {id: string; status: RepositoryStatus}) => void;
+};
 
+class RepositoryRow extends React.Component<Props> {
   static defaultProps = {
     showProvider: false,
   };
 
-  getStatusLabel(repo) {
+  getStatusLabel(repo: Repository) {
     switch (repo.status) {
-      case 'pending_deletion':
+      case RepositoryStatus.PENDING_DELETION:
         return 'Deletion Queued';
-      case 'deletion_in_progress':
+      case RepositoryStatus.DELETION_IN_PROGRESS:
         return 'Deletion in Progress';
-      case 'disabled':
+      case RepositoryStatus.DISABLED:
         return 'Disabled';
-      case 'hidden':
+      case RepositoryStatus.HIDDEN:
         return 'Disabled';
       default:
         return null;
@@ -64,7 +64,7 @@ class RepositoryRow extends React.Component {
   };
 
   get isActive() {
-    return this.props.repository.status === 'active';
+    return this.props.repository.status === RepositoryStatus.ACTIVE;
   }
 
   render() {
@@ -79,7 +79,7 @@ class RepositoryRow extends React.Component {
               <RepositoryTitle>
                 <strong>{repository.name}</strong>
                 {!isActive && <small> &mdash; {this.getStatusLabel(repository)}</small>}
-                {repository.status === 'pending_deletion' && (
+                {repository.status === RepositoryStatus.PENDING_DELETION && (
                   <StyledButton
                     size="xsmall"
                     onClick={this.cancelDelete}
@@ -102,7 +102,10 @@ class RepositoryRow extends React.Component {
             </RepositoryTitleAndUrl>
 
             <Confirm
-              disabled={!hasAccess || (!isActive && repository.status !== 'disabled')}
+              disabled={
+                !hasAccess ||
+                (!isActive && repository.status !== RepositoryStatus.DISABLED)
+              }
               onConfirm={this.deleteRepo}
               message={t(
                 'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
@@ -117,7 +120,7 @@ class RepositoryRow extends React.Component {
   }
 }
 
-const StyledPanelItem = styled(PanelItem)`
+const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
   /* shorter top padding because of title lineheight */
   padding: ${space(1)} ${space(2)} ${space(2)};
   justify-content: space-between;
@@ -125,7 +128,7 @@ const StyledPanelItem = styled(PanelItem)`
   flex: 1;
 
   ${p =>
-    p.status === 'disabled' &&
+    p.status === RepositoryStatus.DISABLED &&
     `
     filter: grayscale(1);
     opacity: 0.4;

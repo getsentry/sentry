@@ -41,6 +41,7 @@
     "@types/react-router": "^3.0.20",
     "@types/react-sparklines": "^1.7.0",
     "@types/react-virtualized": "^9.20.1",
+    "@types/reflexbox": "^4.0.0",
     "@types/reflux": "0.4.1",
     "algoliasearch": "^3.32.0",
     "babel-core": "^7.0.0-bridge.0",
@@ -125,6 +126,7 @@
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.2.0",
+    "@sentry/node": "^5.11.1",
     "@storybook/addon-a11y": "^5.3.3",
     "@storybook/addon-actions": "^5.3.3",
     "@storybook/addon-docs": "^5.3.3",
