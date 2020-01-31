@@ -14,6 +14,7 @@ import {load as loadIncidents} from 'app/actionCreators/serviceIncidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import HookStore from 'app/stores/hookStore';
 import InlineSvg from 'app/components/inlineSvg';
 import PreferencesStore from 'app/stores/preferencesStore';
@@ -300,20 +301,22 @@ class Sidebar extends React.Component {
                       features={['discover-basic']}
                       organization={organization}
                     >
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={(_id, evt) =>
-                          this.navigateWithGlobalSelection(
-                            getDiscoverLandingUrl(organization),
-                            evt
-                          )
-                        }
-                        icon={<InlineSvg src="icon-telescope" />}
-                        label={t('Discover')}
-                        to={getDiscoverLandingUrl(organization)}
-                        id="discover-v2"
-                        isNew
-                      />
+                      <GuideAnchor position="right" target="discover_sidebar">
+                        <SidebarItem
+                          {...sidebarItemProps}
+                          onClick={(_id, evt) =>
+                            this.navigateWithGlobalSelection(
+                              getDiscoverLandingUrl(organization),
+                              evt
+                            )
+                          }
+                          icon={<InlineSvg src="icon-telescope" />}
+                          label={t('Discover')}
+                          to={getDiscoverLandingUrl(organization)}
+                          id="discover-v2"
+                          isNew
+                        />
+                      </GuideAnchor>
                     </Feature>
                   )}
 
