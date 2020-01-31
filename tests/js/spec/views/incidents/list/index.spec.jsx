@@ -78,7 +78,7 @@ describe('IncidentsList', function() {
       expect.objectContaining({query: {}})
     );
 
-    wrapper.setProps({location: {query: {status: 'open'}, search: '?status=open'}});
+    wrapper.setProps({location: {query: {status: 'open'}, search: '?status=open`'}});
 
     expect(
       wrapper
