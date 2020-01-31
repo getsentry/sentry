@@ -11,8 +11,8 @@ import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 
 import ThreadsSelector from './threadsSelector';
-import getThreadStacktrace from './get-thread-stacktrace';
-import getThreadException from './get-thread-exception';
+import getThreadStacktrace from './getThreadStacktrace';
+import getThreadException from './getThreadException';
 
 function getIntendedStackView(thread, event) {
   const stacktrace = getThreadStacktrace(thread, event, false);

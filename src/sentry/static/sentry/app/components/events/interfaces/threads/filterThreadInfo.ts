@@ -2,16 +2,17 @@ import {Thread, Frame} from 'app/types/events';
 import {Event} from 'app/types';
 import {trimPackage} from 'app/components/events/interfaces/frame';
 
-import getThreadStacktrace from './get-thread-stacktrace';
-import getRelevantFrame from './get-relevant-frame';
+import getThreadStacktrace from './getThreadStacktrace';
+import getRelevantFrame from './getRelevantFrame';
 import trimFilename from './trim-filename';
 
+// TODO(i18n): add traslations here
 const NOT_FOUND_FRAME = '<unknown>';
 
-interface ThreadInfo {
+type ThreadInfo = {
   label: string;
   filename?: string;
-}
+};
 
 function filterThreadInfo(thread: Thread, event: Event, simplified: boolean): ThreadInfo {
   const stacktrace = getThreadStacktrace(thread, event, simplified);

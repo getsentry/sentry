@@ -1,7 +1,7 @@
 import {Thread} from 'app/types/events';
 import {Event} from 'app/types';
 
-import getThreadException from './get-thread-exception';
+import getThreadException from './getThreadException';
 
 // TODO(ts): define raw type
 function getThreadStacktrace(thread: Thread, event: Event, raw?: any) {

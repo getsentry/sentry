@@ -91,7 +91,7 @@ class CrashHeader extends React.Component {
     const {title, beforeTitle, hideGuide, stackView, stackType, newestFirst} = this.props;
 
     let titleNode = (
-      <h3 className="pull-left" style={{marginBottom: space(0)}}>
+      <h3 className="pull-left" style={{marginBottom: 0}}>
         {title}
         <small style={{marginLeft: 5}}>
           (
@@ -115,10 +115,10 @@ class CrashHeader extends React.Component {
 
     return (
       <div className="crash-title">
-        <StyledTitleInfo>
+        <TitleInfo>
           {beforeTitle}
           {titleNode}
-        </StyledTitleInfo>
+        </TitleInfo>
         <div className="btn-group" style={{marginLeft: 10}}>
           {this.hasSystemFrames() && (
             <a
@@ -172,12 +172,12 @@ class CrashHeader extends React.Component {
 
 export default CrashHeader;
 
-const StyledTitleInfo = styled('div')(({theme}) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  marginBottom: space(3),
-  [`@media (min-width: ${theme.breakpoints[2]})`]: {
-    flexDirection: 'row',
-  },
-}));
+const TitleInfo = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: ${space(3)};
+  @media (min-width: ${theme.breakpoints[2]}) {
+    flexdirection: row;
+  }
+`;

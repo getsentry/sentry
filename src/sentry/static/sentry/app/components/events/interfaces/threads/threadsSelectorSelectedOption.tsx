@@ -1,23 +1,19 @@
+/* eslint-disable react/prop-types */
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Frame} from 'app/types/events';
 import TextOverflow from 'app/components/textOverflow';
-/* eslint-disable react/prop-types */
-import Text from 'app/components/text';
 import space from 'app/styles/space';
 
-const NOT_FOUND_FRAME = '<unknown>';
-
-interface Props {
+type Props = {
   id: string;
   details: ThreadInfo;
-}
+};
 
-interface ThreadInfo {
+type ThreadInfo = {
   label: string;
   filename?: string;
-}
+};
 
 const ThreadsSelectorSelectedOption: React.FC<Props> = ({id, details}) => (
   <StyledContainer>
@@ -28,21 +24,21 @@ const ThreadsSelectorSelectedOption: React.FC<Props> = ({id, details}) => (
 
 export default ThreadsSelectorSelectedOption;
 
-const StyledContainer = styled('div')({
-  gridTemplateColumns: '110px 1fr',
-  display: 'grid',
-  justifyContent: 'flex-start',
-  alignItems: 'center',
-  justifyItems: 'start',
-});
+const StyledContainer = styled('div')`
+  grid-template-columns: 110px 1fr;
+  display: grid;
+  justify-content: flex-start;
+  align-items: center;
+  justify-items: start;
+`;
 
-const StyledThreadID = styled(TextOverflow)({
-  paddingRight: space(1),
-  maxWidth: '100%',
-  textAlign: 'left',
-});
+const StyledThreadID = styled(TextOverflow)`
+  padding-right: ${space(1)};
+  max-width: 100%;
+  text-align: left;
+`;
 
-const StyledOptionLabel = styled(StyledThreadID)({
-  // TODO(style): color not yet in the theme
-  color: '#2c58a8',
-});
+// TODO(style): color not yet in the theme
+const StyledOptionLabel = styled(StyledThreadID)`
+  color: #2c58a8;
+`;

@@ -10,17 +10,17 @@ import DropdownButton from 'app/components/dropdownButton';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import filterThreadInfo from './filter-thread-info';
-import getThreadException from './get-thread-exception';
+import filterThreadInfo from './filterThreadInfo';
+import getThreadException from './getThreadException';
 import ThreadsSelectorOption from './threadsSelectorOption';
 import ThreadsSelectorSelectedOption from './threadsSelectorSelectedOption';
 
-interface Props {
+type Props = {
   threads: Array<Thread>;
   activeThread: Thread;
   event: Event;
-  onChange?: (Thread: Thread) => void;
-}
+  onChange?: (thread: Thread) => void;
+};
 
 const DROPDOWN_MAX_HEIGHT = 400;
 
@@ -29,7 +29,7 @@ const ThreadsSelector: React.FC<Props> = ({threads, event, activeThread, onChang
     const threadInfo = filterThreadInfo(thread, event, false);
 
     const dropDownValue = `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`;
-    let crashedInfo: undefined | EntryTypeData = undefined;
+    let crashedInfo: undefined | EntryTypeData;
 
     if (thread.crashed) {
       crashedInfo = getThreadException(thread, event);
@@ -66,7 +66,7 @@ const ThreadsSelector: React.FC<Props> = ({threads, event, activeThread, onChang
           align="left"
           alignMenu="left"
           maxHeight={DROPDOWN_MAX_HEIGHT}
-          // TODO(fix): unfortunately the dropDown is playing well with emotion js
+          // TODO(fix): unfortunately the dropDown is not playing well with emotion js
           className={css`
             width: 100%;
             @media (min-width: ${theme.breakpoints[0]}) {
@@ -103,11 +103,11 @@ const ThreadsSelector: React.FC<Props> = ({threads, event, activeThread, onChang
 
 export default ThreadsSelector;
 
-const StyledDropdownButton = styled(DropdownButton)(({theme: {breakpoints}}) => ({
-  width: '100%',
-  marginBottom: space(1),
-  [`@media (min-width: ${breakpoints[0]})`]: {
-    width: 420,
-    marginBottom: space(0),
-  },
-}));
+const StyledDropdownButton = styled(DropdownButton)`
+  width: 100%;
+  margin-bottom: ${space(1)};
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    width: 420;
+    margin-bottom: ${space(0)};
+  }
+`;

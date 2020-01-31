@@ -7,19 +7,20 @@ import TextOverflow from 'app/components/textOverflow';
 import InlineSvg from 'app/components/inlineSvg';
 import {EntryTypeData} from 'app/types';
 
-interface Props {
+type Props = {
   id: string;
   name?: string;
   crashed?: boolean;
   details: ThreadInfo;
   crashedInfo?: EntryTypeData;
-}
+};
 
-interface ThreadInfo {
+type ThreadInfo = {
   label: string;
   filename?: string;
-}
+};
 
+// TODO (i18n): added translations here
 const ThreadsSelectorOption: React.FC<Props> = ({
   id,
   name,
@@ -27,9 +28,9 @@ const ThreadsSelectorOption: React.FC<Props> = ({
   crashed,
   crashedInfo,
 }) => (
-  <StyledContainer>
-    <StyledNameID>{name ? `#${id}: ${name}` : `#${id}`}</StyledNameID>
-    <StyledLabelsContainer>
+  <Wrapper>
+    <StyledNameId>{name ? `#${id}: ${name}` : `#${id}`}</StyledNameId>
+    <LabelsWrapper>
       <StyledOptionLabel>{details.label}</StyledOptionLabel>
       {details.filename && (
         <StyledFileName>
@@ -38,53 +39,53 @@ const ThreadsSelectorOption: React.FC<Props> = ({
           {')'}
         </StyledFileName>
       )}
-    </StyledLabelsContainer>
+    </LabelsWrapper>
     {crashed && (
       <StyledCrashIcon
         src="icon-warning-sm"
         title={crashedInfo ? `(crashed with ${crashedInfo.values[0].type})` : ''}
       />
     )}
-  </StyledContainer>
+  </Wrapper>
 );
 
 export default ThreadsSelectorOption;
 
-const StyledLabelsContainer = styled('div')({
-  display: 'grid',
-  gridTemplateColumns: '1fr 200px',
-  width: '100%',
-});
+const LabelsWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  width: 100%;
+`;
 
-const StyledContainer = styled('div')({
-  display: 'grid',
-  maxWidth: '100%',
-  overflow: 'hidden',
-  gridTemplateColumns: '110px 1fr 28px',
-  justifyContent: 'flex-start',
-  justifyItems: 'start',
-  paddingLeft: space(1),
-});
+const Wrapper = styled('div')`
+  display: grid;
+  maxwidth: 100%;
+  overflow: hidden;
+  grid-template-columns: 110px 1fr 28px;
+  justify-content: flex-start;
+  justify-items: start;
+  padding-left: ${space(1)};
+`;
 
-const StyledNameID = styled(TextOverflow)({
-  paddingRight: space(1),
-  maxWidth: '100%',
-  textAlign: 'left',
-});
+const StyledNameId = styled(TextOverflow)`
+  padding-right: ${space(1)};
+  max-width: 100%;
+  text-align: left;
+`;
 
-const StyledCrashIcon = styled(InlineSvg)({
-  color: '#ec5e44',
-  marginLeft: space(1),
-});
+const StyledCrashIcon = styled(InlineSvg)`
+  color: #ec5e44;
+  margin-left: ${space(1)};
+`;
 
-const StyledFileName = styled(TextOverflow)(({theme}) => ({
-  color: theme.purple,
-  display: 'flex',
-  width: '100%',
-  textAlign: 'left',
-}));
+const StyledFileName = styled(TextOverflow)`
+  color: ${props => props.theme.purple}
+  display: flex;
+  width: 100%;
+  text-align: left;
+`;
 
-const StyledOptionLabel = styled(StyledNameID)({
-  // TODO(style): color not yet in the theme
-  color: '#2c58a8',
-});
+// TODO(style): color not yet in the theme
+const StyledOptionLabel = styled(StyledNameId)`
+  color: #2c58a8;
+`;
