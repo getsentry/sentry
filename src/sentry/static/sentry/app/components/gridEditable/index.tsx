@@ -164,6 +164,7 @@ class GridEditable<
 
   componentDidMount() {
     window.addEventListener('resize', this.redrawGridColumn);
+    this.setGridTemplateColumns(this.props.columnOrder);
   }
 
   componentDidUpdate() {

@@ -21,7 +21,7 @@ import StatusItem from './statusItem';
 
 type Props = {
   api: Client;
-  incidentId: string;
+  alertId: string;
   incident?: Incident;
   loading: boolean;
   error: boolean;
@@ -40,7 +40,7 @@ type Props = {
 
 /**
  * Activity component on Incident Details view
- * Allows user to leave a comment on an incidentId as well as
+ * Allows user to leave a comment on an alertId as well as
  * fetch and render existing activity items.
  */
 class Activity extends React.Component<Props> {
@@ -59,7 +59,7 @@ class Activity extends React.Component<Props> {
       loading,
       error,
       me,
-      incidentId,
+      alertId,
       incident,
       activities,
       noteInputId,
@@ -86,7 +86,7 @@ class Activity extends React.Component<Props> {
             <NoteInputWithStorage
               key={noteInputId}
               storageKey="incidentIdinput"
-              itemKey={incidentId}
+              itemKey={alertId}
               onCreate={onCreateNote}
               busy={createBusy}
               error={createError}
