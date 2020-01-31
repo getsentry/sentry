@@ -1333,9 +1333,6 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             },
             self.organization,
         )
-        import pdb
-
-        pdb.set_trace()
 
         assert result.previous.event_id == "a" * 32
         assert result.previous.project_slug == self.project.slug
