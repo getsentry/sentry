@@ -406,7 +406,7 @@ export function getExpandedResults(
   nextView.fields.forEach((field: FieldType, index: number) => {
     const column = explodeField(field);
 
-    // Remove aggregates as the expanded results have no aggregates.
+    // Mark aggregated fields to be transformed into its un-aggregated form
     if (column.aggregation || aggregateAliases.includes(column.field)) {
       fieldsToUpdate.push(index);
       return;
