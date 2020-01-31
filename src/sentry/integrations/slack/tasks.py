@@ -77,7 +77,7 @@ def find_channel_id_for_rule(serializer, project_id, uuid, rule_id=None):
         return
 
     # 3 minutes should be enough to find the channel
-    (prefix, item_id) = get_channel_id_with_timeout(integration, channel_name, 3 * 60)
+    (prefix, item_id, _timeout) = get_channel_id_with_timeout(integration, channel_name, 3 * 60)
 
     # if we couldn't find the item, we failed
     if not item_id:
