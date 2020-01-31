@@ -32,7 +32,6 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
   orderby: '-timestamp',
   version: 2,
-  tags: ['event.type', 'release', 'project.name', 'user.email', 'user.ip', 'environment'],
   range: '24h',
 };
 
@@ -50,7 +49,6 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
     ],
     orderby: '-count_id',
     query: 'event.type:transaction',
-    tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
     projects: [],
     version: 2,
     range: '24h',
@@ -60,22 +58,10 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
 export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
   {
     id: undefined,
-    name: t('Errors'),
-    fields: ['title', 'count(id)', 'count_unique(user)', 'project', 'last_seen'],
+    name: t('Errors by Title'),
+    fields: ['title', 'count(id)', 'count_unique(user)', 'project'],
     orderby: '-count_id',
     query: 'event.type:error',
-    tags: ['project.name', 'release', 'environment'],
-    projects: [],
-    version: 2,
-    range: '24h',
-  },
-  {
-    id: undefined,
-    name: t('Project Summary'),
-    fields: ['project', 'count(id)', 'count_unique(issue.id)'],
-    orderby: '-count_id',
-    query: 'event.type:error',
-    tags: ['error.type', 'project.name', 'release', 'environment'],
     projects: [],
     version: 2,
     range: '24h',
@@ -86,22 +72,9 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     fields: ['url', 'count(id)', 'count_unique(issue.id)'],
     orderby: '-count_id',
     query: 'event.type:error',
-    tags: ['error.type', 'project.name', 'url', 'release', 'environment'],
     projects: [],
     version: 2,
     range: '24h',
-  },
-  {
-    version: 2,
-    id: undefined,
-    name: t('Errors by Release'),
-    fields: ['release', 'count(id)', 'count_unique(user)', 'timestamp'],
-    orderby: '-count_id',
-    tags: ['event.type', 'release', 'project', 'user.email', 'user.ip', 'environment'],
-    projects: [],
-    range: '24h',
-    environment: [],
-    query: '',
   },
 ];
 

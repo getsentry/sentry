@@ -9,7 +9,7 @@ import EventView from 'app/views/eventsV2/eventView';
 describe('EventsV2 > EventDetails', function() {
   const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
   const errorsView = EventView.fromSavedQuery(
-    ALL_VIEWS.find(view => view.name === 'Errors')
+    ALL_VIEWS.find(view => view.name === 'Errors by Title')
   );
 
   beforeEach(function() {
