@@ -14,35 +14,39 @@ type RenderProps = {
   value: string;
 };
 
-type Props = ReactRouter.WithRouterProps & {
-  api: Client;
-  className?: string;
-  /**
-   * URL to make the search request to
-   */
-  url: string;
+type DefaultProps = {
   /**
    * Placeholder text in the search input
    */
-  placeholder?: string;
+  placeholder: string;
   /**
    * Time in milliseconds to wait before firing off the request
    */
-  debounceWait?: number;
-  /**
-   * Updates URL with search query in the URL param: `query`
-   */
-  updateRoute?: boolean;
-
-  onSearchSubmit?: (query: string, event: React.FormEvent) => void;
-  onSuccess: (data: object, jqXHR: JQueryXHR | undefined) => void;
-  onError: () => void;
-
-  /**
-   * A render-prop child may be passed to handle custom rendering of the input.
-   */
-  children?: (otps: RenderProps) => React.ReactNode;
+  debounceWait?: number; // optional, otherwise src/sentry/static/sentry/app/views/settings/organizationMembers/organizationMembersList.tsx L:191 is not happy
 };
+
+type Props = ReactRouter.WithRouterProps &
+  DefaultProps & {
+    api: Client;
+    className?: string;
+    /**
+     * URL to make the search request to
+     */
+    url: string;
+    /**
+     * Updates URL with search query in the URL param: `query`
+     */
+    updateRoute?: boolean;
+
+    onSearchSubmit?: (query: string, event: React.FormEvent) => void;
+    onSuccess: (data: object, jqXHR: JQueryXHR | undefined) => void;
+    onError: () => void;
+
+    /**
+     * A render-prop child may be passed to handle custom rendering of the input.
+     */
+    children?: (otps: RenderProps) => React.ReactNode;
+  };
 
 type State = {
   query: string;
@@ -55,7 +59,7 @@ type State = {
  * It probably doesn't make too much sense outside of an AsyncComponent atm.
  */
 class AsyncComponentSearchInput extends React.Component<Props, State> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     placeholder: 'Search...',
     debounceWait: 200,
   };

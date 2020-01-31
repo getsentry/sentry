@@ -9,22 +9,25 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
+type DefaultProps = {
+  allowClear: boolean;
+};
+
 type Props = {
   icon: React.ReactElement;
   lockedMessage: string;
   settingsLink: string;
-  allowClear: boolean;
   hasChanges: boolean;
   hasSelected: boolean;
   isOpen: boolean;
   locked: boolean;
   loading: boolean;
   onClear: () => void;
-} & React.HTMLProps<HTMLDivElement>;
+} & DefaultProps &
+  React.HTMLProps<HTMLDivElement>;
 
 class HeaderItem extends React.Component<Props> {
   static propTypes = {
-    allowClear: PropTypes.bool,
     icon: PropTypes.element,
     onClear: PropTypes.func,
     hasChanges: PropTypes.bool,
@@ -35,7 +38,7 @@ class HeaderItem extends React.Component<Props> {
     settingsLink: PropTypes.string,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     allowClear: true,
   };
 

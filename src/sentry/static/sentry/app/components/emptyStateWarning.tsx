@@ -10,7 +10,7 @@ type Props = {
   small?: boolean;
 };
 
-const EmptyStateWarning: React.FC<Props> = ({small, children}) =>
+const EmptyStateWarning: React.FC<Props> = ({small = false, children}) =>
   small ? (
     <EmptyMessage>
       <SmallMessage>
@@ -27,10 +27,6 @@ const EmptyStateWarning: React.FC<Props> = ({small, children}) =>
 
 EmptyStateWarning.propTypes = {
   small: PropTypes.bool,
-};
-
-EmptyStateWarning.defaultProps = {
-  small: false,
 };
 
 const EmptyStreamWrapper = styled('div')`

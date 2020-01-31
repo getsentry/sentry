@@ -7,13 +7,16 @@ import styled from '@emotion/styled';
 
 import {domId} from 'app/utils/domId';
 
-type Props = {
+type DefaultProps = {
+  position: PopperJS.Placement;
+  containerDisplayMode: React.CSSProperties['display'];
+};
+
+type Props = DefaultProps & {
   children: React.ReactElement;
   disabled?: boolean;
   title: React.ReactNode;
-  position: PopperJS.Placement;
   popperStyle?: React.CSSProperties;
-  containerDisplayMode?: React.CSSProperties['display'];
   delay?: number;
 };
 
@@ -78,7 +81,7 @@ class Tooltip extends React.Component<Props, State> {
     delay: PropTypes.number,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     position: 'top',
     containerDisplayMode: 'inline-block',
   };
