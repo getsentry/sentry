@@ -638,7 +638,11 @@ const RepeatedFrames = styled('div')`
 
 const VertCenterWrapper = styled('div')`
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    flex-direction: row;
+    align-items: center;
+  }
 `;
 
 const RepeatedContent = styled(VertCenterWrapper)`

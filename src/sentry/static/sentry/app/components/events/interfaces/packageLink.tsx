@@ -54,7 +54,7 @@ const Package = styled('a')<Partial<Props>>`
   max-width: 100%;
   display: flex;
   align-items: center;
-  flex-basis: 137px;
+  flex-basis: auto;
   flex-grow: 0;
   flex-shrink: 0;
   padding: 0 0 0 ${space(0.5)};
@@ -73,6 +73,10 @@ const Package = styled('a')<Partial<Props>>`
       opacity: 1;
     }
   }
+
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    flex-basis: 137px;
+  }
 `;
 
 const PackageName = styled('span')`
@@ -80,7 +84,11 @@ const PackageName = styled('span')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  max-width: 104px;
+  max-width: 100%;
+
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    max-width: 104px;
+  }
 `;
 
 export default PackageLink;
