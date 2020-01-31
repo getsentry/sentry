@@ -6,8 +6,8 @@ import PropTypes from 'prop-types';
 import Confirm from 'app/components/confirm';
 
 type DefaultProps = {
-  disabled?: boolean;
-  shouldConfirm?: boolean;
+  disabled: boolean;
+  shouldConfirm: boolean;
 };
 
 type ActionLinkProps = DefaultProps & {
