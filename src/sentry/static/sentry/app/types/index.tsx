@@ -317,7 +317,7 @@ export type PluginWithProjectList = PluginNoProject & {
     projectSlug: string;
     projectName: string;
     enabled: boolean;
-    configured: string;
+    configured: boolean;
   }>;
 };
 
