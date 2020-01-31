@@ -305,9 +305,9 @@ describe('getExpandedResults()', function() {
     environment: ['staging'],
   };
 
-  it('transforms aggregated fields', () => {
-    const view = new EventView(state);
-    const result = getExpandedResults(view, {}, {});
+  it('preserve aggregated fields', () => {
+    let view = new EventView(state);
+    let result = getExpandedResults(view, {}, {});
 
     expect(result.fields).toEqual([
       {field: 'id', width: 300}, // expect count() to be converted to id
@@ -316,6 +316,58 @@ describe('getExpandedResults()', function() {
       {field: 'custom_tag'},
     ]);
     expect(result.query).toEqual('event.type:error');
+
+    // de-duplicate transformed columns
+
+    view = new EventView({
+      ...state,
+      fields: [
+        {field: 'count()'},
+        {field: 'last_seen'},
+        {field: 'title'},
+        {field: 'custom_tag'},
+        {field: 'count(id)'},
+      ],
+    });
+
+    result = getExpandedResults(view, {}, {});
+
+    expect(result.fields).toEqual([
+      {field: 'id', width: 300}, // expect count() to be converted to id
+      {field: 'last_seen', width: 300},
+      {field: 'title'},
+      {field: 'custom_tag'},
+    ]);
+
+    // transform aliased fields
+
+    view = new EventView({
+      ...state,
+      fields: [
+        {field: 'last_seen'},
+        {field: 'title'},
+        {field: 'avg(transaction.duration)'},
+        {field: 'p75()'},
+        {field: 'p95()'},
+        {field: 'p99()'},
+        // legacy parameterless functions
+        {field: 'p75'},
+        {field: 'p95'},
+        {field: 'p99'},
+        {field: 'custom_tag'},
+        {field: 'unique_count(id)'},
+      ],
+    });
+
+    result = getExpandedResults(view, {}, {});
+
+    expect(result.fields).toEqual([
+      {field: 'last_seen', width: 300},
+      {field: 'title'},
+      {field: 'transaction.duration', width: 300},
+      {field: 'custom_tag'},
+      {field: 'id', width: 300},
+    ]);
   });
 
   it('applies provided conditions', () => {
