@@ -8,7 +8,7 @@ import * as newIconset from 'app/icons';
 
 storiesOf('Style|Icons', module).add(
   'SVG',
-  withInfo('All SVG icons, replace `InlineSvg` with Icon[Name]')(() => {
+  withInfo('Replace `InlineSvg` with IconComponent')(() => {
     const contextOld = require.context('app/icons', true, /\.svg/);
     const iconsOld = contextOld
       .keys()
