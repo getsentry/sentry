@@ -24,7 +24,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/integrationProviderRow';
-import SentryAppInstallationDetail from 'app/views/organizationIntegrations/sentryAppInstallationDetail';
+import IntegrationDirectoryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow/integrationDirectoryApplicationRow';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
@@ -190,15 +190,6 @@ class OrganizationIntegrations extends AsyncComponent<
     );
   };
 
-  handleRemoveAppInstallation = (app: SentryApp): void => {
-    const appInstalls = this.state.appInstalls.filter(i => i.app.slug !== app.slug);
-    this.setState({appInstalls});
-  };
-
-  handleAppInstallation = (install: SentryAppInstallation): void => {
-    this.setState({appInstalls: [install, ...this.state.appInstalls]});
-  };
-
   getAppInstall = (app: SentryApp) => {
     return this.state.appInstalls.find(i => i.app.slug === app.slug);
   };
@@ -233,13 +224,7 @@ class OrganizationIntegrations extends AsyncComponent<
         key={`row-${provider.key}`}
         data-test-id="integration-row"
         provider={provider}
-        orgId={this.props.params.orgId}
         integrations={integrations}
-        onInstall={this.onInstall}
-        onRemove={this.onRemove}
-        onDisable={this.onDisable}
-        onReinstall={this.onInstall}
-        newlyInstalledIntegrationId={this.state.newlyInstalledIntegrationId}
       />
     );
   };
@@ -247,7 +232,6 @@ class OrganizationIntegrations extends AsyncComponent<
   //render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
-
     if (app.status === 'internal') {
       return (
         <SentryApplicationRow
@@ -261,19 +245,19 @@ class OrganizationIntegrations extends AsyncComponent<
         />
       );
     }
-
-    return (
-      <SentryAppInstallationDetail
-        key={`sentry-app-row-${app.slug}`}
-        data-test-id="integration-row"
-        api={this.api}
-        organization={organization}
-        install={this.getAppInstall(app)}
-        onAppUninstall={() => this.handleRemoveAppInstallation(app)}
-        onAppInstall={this.handleAppInstallation}
-        app={app}
-      />
-    );
+    if (app.status === 'published') {
+      return (
+        <IntegrationDirectoryApplicationRow
+          key={`sentry-app-row-${app.slug}`}
+          data-test-id="integration-row"
+          organization={organization}
+          install={this.getAppInstall(app)}
+          app={app}
+          isOnIntegrationPage
+        />
+      );
+    }
+    return null;
   };
 
   renderIntegration = (integration: AppOrProvider) => {
