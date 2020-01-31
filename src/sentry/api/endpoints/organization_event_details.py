@@ -54,6 +54,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
                 event=event,
                 query=request.query_params.get("query"),
                 params=params,
+                organization=organization,
                 reference_event=reference,
                 referrer="api.organization-event-details",
             )
@@ -61,10 +62,14 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
             raise ParseError(detail=six.text_type(err))
 
         data = serialize(event)
-        data["nextEventID"] = pagination.next
-        data["previousEventID"] = pagination.previous
-        data["oldestEventID"] = pagination.oldest
-        data["latestEventID"] = pagination.latest
+        data["nextEventID"] = pagination.next.event_id
+        data["nextEventProjectSlug"] = pagination.next.project_slug
+        data["previousEventID"] = pagination.previous.event_id
+        data["previousEventProjectSlug"] = pagination.previous.project_slug
+        data["oldestEventID"] = pagination.oldest.event_id
+        data["oldestEventProjectSlug"] = pagination.oldest.project_slug
+        data["latestEventID"] = pagination.latest.event_id
+        data["latestEventProjectSlug"] = pagination.latest.project_slug
         data["projectSlug"] = project_slug
 
         return Response(data)

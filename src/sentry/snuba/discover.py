@@ -48,6 +48,7 @@ ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields",
 ReferenceEvent.__new__.__defaults__ = (None, None)
 
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
+PaginationRecord = namedtuple("PaginationRecord", ["project_slug", "event_id"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
 
@@ -437,7 +438,7 @@ def get_id(result):
         return result[1]
 
 
-def get_pagination_ids(event, query, params, reference_event=None, referrer=None):
+def get_pagination_ids(event, query, params, organization, reference_event=None, referrer=None):
     """
     High-level API for getting pagination data for an event + filter
 
@@ -458,11 +459,17 @@ def get_pagination_ids(event, query, params, reference_event=None, referrer=None
         if ref_conditions:
             snuba_filter.conditions.extend(ref_conditions)
 
+    def into_pagination_record(project_slug_event_id):
+        project = Project.objects.get(
+            id=project_slug_event_id[0], organization=organization, status=ProjectStatus.VISIBLE
+        )
+        return PaginationRecord(project.slug, project_slug_event_id[1])
+
     return PaginationResult(
-        next=get_id(eventstore.get_next_event_id(event, filter=snuba_filter)),
-        previous=get_id(eventstore.get_prev_event_id(event, filter=snuba_filter)),
-        latest=get_id(eventstore.get_latest_event_id(event, filter=snuba_filter)),
-        oldest=get_id(eventstore.get_earliest_event_id(event, filter=snuba_filter)),
+        next=into_pagination_record(eventstore.get_next_event_id(event, filter=snuba_filter)),
+        previous=into_pagination_record(eventstore.get_prev_event_id(event, filter=snuba_filter)),
+        latest=into_pagination_record(eventstore.get_latest_event_id(event, filter=snuba_filter)),
+        oldest=into_pagination_record(eventstore.get_earliest_event_id(event, filter=snuba_filter)),
     )
 
 
