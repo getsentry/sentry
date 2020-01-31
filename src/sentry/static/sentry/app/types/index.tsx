@@ -286,7 +286,7 @@ export type Environment = {
 // TODO(ts): This type is incomplete
 export type SavedSearch = {};
 
-export type Plugin = {
+export type PluginNoProject = {
   id: string;
   name: string;
   slug: string;
@@ -300,12 +300,25 @@ export type Plugin = {
   status: string;
   assets: any[]; // TODO(ts)
   doc: string;
-  enabled?: boolean;
   version?: string;
   author?: {name: string; url: string};
   isHidden: boolean;
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+};
+
+export type Plugin = PluginNoProject & {
+  enabled: boolean;
+};
+
+export type PluginWithProjectList = PluginNoProject & {
+  projectList: Array<{
+    projectId: string;
+    projectSlug: string;
+    projectName: string;
+    enabled: boolean;
+    configured: string;
+  }>;
 };
 
 export type GlobalSelection = {
