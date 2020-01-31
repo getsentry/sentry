@@ -27,7 +27,7 @@ class ProjectPluginsTest(APITestCase):
         assert response.status_code == 200, (response.status_code, response.content)
         assert len(response.data) >= 9
 
-        auto_tag = response.data[0]
+        auto_tag = filter(lambda p: p["slug"] == "browsers", response.data)[0]
         assert auto_tag["name"] == "Auto Tag: Browsers"
         assert auto_tag["enabled"] is True
         assert auto_tag["isHidden"] is False
