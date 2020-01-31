@@ -663,8 +663,6 @@ def resolve_column(col, dataset):
         return col
     if col in DATASETS[dataset]:
         return DATASETS[dataset][col]
-    if col in DATASET_FIELDS[dataset]:
-        return col
 
     return u"tags[{}]".format(col)
 
