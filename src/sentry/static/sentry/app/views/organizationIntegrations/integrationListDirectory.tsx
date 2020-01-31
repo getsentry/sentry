@@ -24,7 +24,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/integrationProviderRow';
-import IntegrationDirectoryAppInstallationDetail from 'app/views/organizationIntegrations/integrationDirectoryAppInstallationDetail';
+import IntegrationDirectoryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow/integrationDirectoryApplicationRow';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
@@ -247,11 +247,13 @@ class OrganizationIntegrations extends AsyncComponent<
     }
     if (app.status === 'published') {
       return (
-        <IntegrationDirectoryAppInstallationDetail
+        <IntegrationDirectoryApplicationRow
           key={`sentry-app-row-${app.slug}`}
+          data-test-id="integration-row"
           organization={organization}
           install={this.getAppInstall(app)}
           app={app}
+          isOnIntegrationPage
         />
       );
     }

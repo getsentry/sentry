@@ -51,13 +51,9 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
       return null;
     }
     if (isOnIntegrationPage) {
-      //if internal and we show installation status, we don't show the learn more
-      if (isInternal) {
-        return <StatusIndicator status={status} isInternal={isInternal} />;
-      }
       return (
         <React.Fragment>
-          <StatusIndicator status={status} isInternal={false} />
+          <StatusIndicator status={status} isInternal={isInternal} />
         </React.Fragment>
       );
     }
@@ -95,7 +91,7 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
                 </SentryAppLink>
               ) : (
                 <SentryAppLink
-                  to={`/settings/${organization.slug}/integrations/${app.slug}`}
+                  to={`/settings/${organization.slug}/sentry-apps/${app.slug}`}
                 >
                   {app.name}
                 </SentryAppLink>
