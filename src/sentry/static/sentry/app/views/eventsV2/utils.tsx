@@ -478,7 +478,14 @@ export function getExpandedResults(
     // otherwise just use exploded.field as a column
 
     if (!exploded.field) {
-      return;
+      // edge case: transform count() into id
+
+      if (exploded.aggregation !== 'count') {
+        fieldsToDelete.push(indexToUpdate);
+        return;
+      }
+
+      exploded.field = 'id';
     }
 
     if (transformedFields.has(exploded.field)) {

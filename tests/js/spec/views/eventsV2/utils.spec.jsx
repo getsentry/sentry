@@ -305,11 +305,16 @@ describe('getExpandedResults()', function() {
     environment: ['staging'],
   };
 
-  it('removes aggregate fields from result view', () => {
+  it('transforms aggregated fields', () => {
     const view = new EventView(state);
     const result = getExpandedResults(view, {}, {});
 
-    expect(result.fields).toEqual([{field: 'title'}, {field: 'custom_tag'}]);
+    expect(result.fields).toEqual([
+      {field: 'id', width: 300}, // expect count() to be converted to id
+      {field: 'last_seen', width: 300},
+      {field: 'title'},
+      {field: 'custom_tag'},
+    ]);
     expect(result.query).toEqual('event.type:error');
   });
 
