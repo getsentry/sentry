@@ -222,6 +222,28 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert resp.data["name"] == "AUniqueName"
         assert resp.data["triggers"][1]["alertThreshold"] == 125
 
+    def test_delete_resolve_alert_threshold(self):
+        # This is a test to make sure we can remove a resolveThreshold after it has been set.
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        serialized_alert_rule["triggers"][1]["resolveThreshold"] = None
+        serialized_alert_rule["name"] = "AUniqueName"
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert resp.data["name"] == "AUniqueName"
+        assert resp.data["triggers"][1]["resolveThreshold"] is None
+
     def test_delete_trigger(self):
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
