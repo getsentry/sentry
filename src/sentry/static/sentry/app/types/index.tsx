@@ -196,7 +196,9 @@ type SentryEventBase = {
   entries: EntryType[];
 
   previousEventID?: string;
+  previousEventProjectSlug?: string;
   nextEventID?: string;
+  nextEventProjectSlug?: string;
   projectSlug: string;
 
   tags: EventTag[];
@@ -206,7 +208,9 @@ type SentryEventBase = {
   location: string;
 
   oldestEventID: string | null;
+  oldestEventProjectSlug: string | null;
   latestEventID: string | null;
+  latestEventProjectSlug: string | null;
 };
 
 // This type is incomplete

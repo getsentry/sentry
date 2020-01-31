@@ -27,21 +27,21 @@ function buildTargets(
   eventView: EventView,
   organization: Organization
 ): LinksType {
-  const urlMap: {[k in keyof LinksType]: string | undefined | null} = {
-    previous: event.previousEventID,
-    next: event.nextEventID,
-    oldest: event.oldestEventID,
-    latest: event.latestEventID,
+  const urlMap: {[k in keyof LinksType]: Array<string | undefined | null>} = {
+    previous: [event.previousEventProjectSlug, event.previousEventID],
+    next: [event.nextEventProjectSlug, event.nextEventID],
+    oldest: [event.oldestEventProjectSlug, event.oldestEventID],
+    latest: [event.latestEventProjectSlug, event.latestEventID],
   };
 
   const links: {[k in keyof LinksType]?: any} = {};
 
-  Object.entries(urlMap).forEach(([key, value]) => {
+  Object.entries(urlMap).forEach(([key, [project_slug, event_id]]) => {
     // If the urlMap has no value we want to skip this link as it is 'disabled';
-    if (!value) {
+    if (!event_id) {
       links[key] = null;
     } else {
-      const eventSlug = `${event.projectSlug}:${value}`;
+      const eventSlug = `${project_slug || event.projectSlug}:${event_id}`;
 
       links[key] = {
         pathname: generateEventDetailsRoute({eventSlug, orgSlug: organization.slug}),
