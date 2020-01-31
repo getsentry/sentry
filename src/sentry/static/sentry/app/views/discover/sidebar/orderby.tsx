@@ -62,6 +62,7 @@ export default class Orderby extends React.Component<OrderbyProps> {
         <Container>
           <OrderbyField>
             <SelectControl
+              deprecatedSelectControl
               name="orderbyField"
               options={columns}
               value={field}
@@ -71,6 +72,7 @@ export default class Orderby extends React.Component<OrderbyProps> {
           </OrderbyField>
           <OrderbyValue>
             <SelectControl
+              deprecatedSelectControl
               name="orderbyDirection"
               options={[
                 {value: 'asc', label: 'asc'},

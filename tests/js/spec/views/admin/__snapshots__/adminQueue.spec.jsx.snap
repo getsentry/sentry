@@ -233,6 +233,7 @@ exports[`AdminQueue render() renders 1`] = `
             ]
           }
           clearable={true}
+          deprecatedSelectControl={true}
           disabled={false}
           hideErrorMessage={false}
           multiple={false}

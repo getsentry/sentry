@@ -52,6 +52,7 @@ export default class CustomResolutionModal extends React.Component {
           <Header>{t('Resolved In')}</Header>
           <Body>
             <SelectAsyncField
+              deprecatedSelectControl
               label={t('Version')}
               id="version"
               name="version"

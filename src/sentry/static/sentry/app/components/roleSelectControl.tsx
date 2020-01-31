@@ -12,6 +12,7 @@ type Props = SelectControl['props'] & {
 
 const RoleSelector = ({roles, disableUnallowed, ...props}: Props) => (
   <RoleSelectControl
+    deprecatedSelectControl
     options={
       roles &&
       roles.map(r => ({

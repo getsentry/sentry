@@ -81,6 +81,7 @@ export default class AdminQueue extends AsyncView {
           <div>
             <label>Show details for task:</label>
             <SelectField
+              deprecatedSelectControl
               name="task"
               onChange={this.changeTask}
               value={activeTask}

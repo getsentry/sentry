@@ -83,6 +83,7 @@ const InviteRequestRow = ({
       />
 
       <TeamSelectControl
+        deprecatedSelectControl
         name="teams"
         placeholder={t('Add to teams...')}
         onChange={teams => onUpdate({teams: teams.map(team => team.value)})}

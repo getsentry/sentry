@@ -79,6 +79,7 @@ export default class CustomIgnoreCountModal extends React.Component<Props, State
             placeholder={t('e.g. 100')}
           />
           <SelectField
+            deprecatedSelectControl
             inline={false}
             flexibleControlStateSize
             stacked

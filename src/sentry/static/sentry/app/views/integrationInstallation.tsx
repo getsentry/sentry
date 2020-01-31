@@ -185,6 +185,7 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
         <Field label={t('Organization')} inline={false} stacked required>
           {() => (
             <SelectControl
+              deprecatedSelectControl
               onChange={this.onSelectOrg}
               value={selectedOrg}
               placeholder={t('Select an organization')}
