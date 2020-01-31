@@ -127,7 +127,7 @@ export default class FieldFromConfig extends React.Component<Props> {
         // return <SelectAsyncField {...props} />;
         // }
 
-        return <SelectField {...props} />;
+        return <SelectField deprecatedSelectControl {...props} />;
       case 'choice_mapper':
         return <ChoiceMapperField {...props} />;
       case 'radio':

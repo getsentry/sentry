@@ -135,6 +135,7 @@ class ActionsPanel extends React.PureComponent<Props> {
 
                   {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
                     <SelectControl
+                      deprecatedSelectControl
                       disabled={disabled || loading}
                       value={action.targetType}
                       options={
@@ -179,6 +180,7 @@ class ActionsPanel extends React.PureComponent<Props> {
             })}
           <PanelItem>
             <StyledSelectControl
+              deprecatedSelectControl
               name="add-action"
               aria-label={t('Add an Action')}
               disabled={disabled || loading}

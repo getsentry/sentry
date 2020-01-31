@@ -80,6 +80,7 @@ class AuditLogList extends React.Component {
     const action = (
       <form>
         <SelectField
+          deprecatedSelectControl
           name="event"
           onChange={onEventSelect}
           value={eventType}

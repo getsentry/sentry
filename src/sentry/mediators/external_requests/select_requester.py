@@ -69,7 +69,7 @@ class SelectRequester(Mediator):
                     "install": self.install.uuid,
                     "project": self.project and self.project.slug,
                     "uri": self.uri,
-                    "error_message": e.message,
+                    "error_message": six.text_type(e),
                 },
             )
             response = {}

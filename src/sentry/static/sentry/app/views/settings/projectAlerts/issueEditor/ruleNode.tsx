@@ -50,6 +50,7 @@ class RuleNode extends React.Component<Props> {
     return (
       <SelectWrapper>
         <SelectControl
+          deprecatedSelectControl
           clearable={false}
           placeholder={t('Select integration')}
           noResultsText={t('No integrations available')}

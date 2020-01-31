@@ -317,6 +317,7 @@ class SelectMembers extends React.Component<Props> {
 
     return (
       <StyledSelectControl
+        deprecatedSelectControl
         ref={this.selectRef}
         filterOptions={(options, filterText) =>
           options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1)
