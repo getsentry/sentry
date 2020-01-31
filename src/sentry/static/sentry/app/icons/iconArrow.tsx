@@ -9,8 +9,7 @@ export const IconArrow: React.FC<IconProps> = ({
   ...props
 }: IconProps) => {
   const color = providedColor;
-  const size =
-    typeof providedSize === 'string' ? theme.iconSizes[providedSize] : providedSize;
+  const size = theme.iconSizes[providedSize] ?? providedSize;
   const direction =
     typeof providedDirection === 'string'
       ? theme.iconDirections[providedDirection]

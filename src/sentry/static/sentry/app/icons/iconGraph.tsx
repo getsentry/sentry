@@ -9,8 +9,7 @@ export const IconGraph: React.FC<IconProps> = ({
   ...props
 }: IconProps) => {
   const color = providedColor;
-  const size =
-    typeof providedSize === 'string' ? theme.iconSizes[providedSize] : providedSize;
+  const size = theme.iconSizes[providedSize] ?? providedSize;
 
   const bar = (
     <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props}>
