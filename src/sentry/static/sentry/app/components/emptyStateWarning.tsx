@@ -8,9 +8,10 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = {
   small?: boolean;
+  children: React.ReactNode;
 };
 
-const EmptyStateWarning: React.FC<Props> = ({small = false, children}) =>
+const EmptyStateWarning = ({small = false, children}: Props) =>
   small ? (
     <EmptyMessage>
       <SmallMessage>
