@@ -79,7 +79,6 @@ const ThreadsSelector: React.FC<Props> = ({threads, event, activeThread, onChang
               width: auto;
             }
           `}
-          isOpen
         >
           {({isOpen, selectedItem}) => (
             <StyledDropdownButton isOpen={isOpen} align="left">
