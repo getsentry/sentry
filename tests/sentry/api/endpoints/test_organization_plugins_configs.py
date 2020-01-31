@@ -1,21 +1,12 @@
 from __future__ import absolute_import
 
-from copy import copy
 from django.core.urlresolvers import reverse
-from django.conf import settings
-
-from sentry.utils.compat import mock
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase
-from sentry.runner.initializer import register_plugins
 
 
 class OrganizationPluginsTest(APITestCase):
-    # create a copy of class_list for plugins from the initial value
-    @mock.patch.object(plugins, "class_list", new=copy(plugins.class_list))
     def setUp(self):
-        register_plugins(settings)
-
         self.projectA = self.create_project()
         self.organization = self.projectA.organization
         self.projectB = self.create_project(organization=self.organization)
