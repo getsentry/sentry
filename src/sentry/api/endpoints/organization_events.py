@@ -42,8 +42,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         full = request.GET.get("full", False)
         try:
             snuba_args = self.get_snuba_query_args_legacy(request, organization)
-        except OrganizationEventsError as exc:
-            return Response({"detail": exc.message}, status=400)
+        except OrganizationEventsError as e:
+            return Response({"detail": six.text_type(e)}, status=400)
         except NoProjects:
             # return empty result if org doesn't have projects
             # or user doesn't have access to projects in org
