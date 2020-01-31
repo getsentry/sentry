@@ -4,7 +4,6 @@ import {Location} from 'history';
 
 import {t} from 'app/locale';
 import {Event, Organization} from 'app/types';
-import BetaTag from 'app/components/betaTag';
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
@@ -74,12 +73,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
   }
 
   render() {
-    return (
-      <BreadcrumbList>
-        {this.getCrumbs()}
-        <BetaTag />
-      </BreadcrumbList>
-    );
+    return <BreadcrumbList>{this.getCrumbs()}</BreadcrumbList>;
   }
 }
 
