@@ -251,6 +251,7 @@ const RuleEditor = createReactClass({
               {t(
                 'Every time %s of these conditions are met:',
                 <SelectField
+                  deprecatedSelectControl
                   clearable={false}
                   className={this.hasError('actionMatch') ? ' error' : ''}
                   style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 100}}
@@ -280,6 +281,7 @@ const RuleEditor = createReactClass({
 
             <h6>{t('In this environment')}:</h6>
             <SelectField
+              deprecatedSelectControl
               clearable={false}
               className={this.hasError('environment') ? ' error' : ''}
               style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
@@ -312,6 +314,7 @@ const RuleEditor = createReactClass({
               {t(
                 'Perform these actions at most once every %s for an issue.',
                 <SelectField
+                  deprecatedSelectControl
                   clearable={false}
                   name="frequency"
                   className={this.hasError('frequency') ? ' error' : ''}
