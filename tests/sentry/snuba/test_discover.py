@@ -1171,6 +1171,7 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
         super(GetPaginationIdsTest, self).setUp()
 
         self.project = self.create_project()
+        self.project_2 = self.create_project()
         self.min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1)
 
@@ -1207,6 +1208,17 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             },
             project_id=self.project.id,
         )
+        self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "message": "very bad",
+                "type": "default",
+                "platform": "python",
+                "timestamp": iso_format(before_now(minutes=2, seconds=30)),
+                "tags": {"foo": "1"},
+            },
+            project_id=self.project_2.id,
+        )
         self.event = eventstore.get_event_by_id(self.project.id, "b" * 32)
 
     def test_no_related_events(self):
@@ -1214,11 +1226,16 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             self.event,
             "foo:bar",
             {"project_id": [self.project.id], "start": self.min_ago, "end": self.day_ago},
+            self.organization,
         )
-        assert result.previous is None
-        assert result.next is None
-        assert result.oldest is None
-        assert result.latest is None
+        assert result.previous.event_id is None
+        assert result.previous.project_slug is None
+        assert result.next.event_id is None
+        assert result.next.project_slug is None
+        assert result.oldest.event_id is None
+        assert result.oldest.project_slug is None
+        assert result.latest.event_id is None
+        assert result.latest.project_slug is None
 
     def test_invalid_conditions(self):
         with pytest.raises(InvalidSearchQuery):
@@ -1226,6 +1243,7 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
                 self.event,
                 "foo:(11",
                 {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+                self.organization,
             )
 
     def test_matching_conditions(self):
@@ -1233,11 +1251,16 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             self.event,
             "foo:1",
             {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+            self.organization,
         )
-        assert result.previous == "a" * 32
-        assert result.next == "c" * 32
-        assert result.oldest == "a" * 32
-        assert result.latest == "c" * 32
+        assert result.previous.event_id == "a" * 32
+        assert result.previous.project_slug == self.project.slug
+        assert result.next.event_id == "c" * 32
+        assert result.next.project_slug == self.project.slug
+        assert result.oldest.event_id == "a" * 32
+        assert result.oldest.project_slug == self.project.slug
+        assert result.latest.event_id == "c" * 32
+        assert result.latest.project_slug == self.project.slug
 
     def test_reference_event_matching(self):
         # Create an event that won't match the reference
@@ -1259,12 +1282,17 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             self.event,
             "foo:1",
             {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+            self.organization,
             reference_event=reference,
         )
-        assert result.previous == "a" * 32
-        assert result.next == "c" * 32
-        assert result.oldest == "a" * 32
-        assert result.latest == "c" * 32
+        assert result.previous.event_id == "a" * 32
+        assert result.previous.project_slug == self.project.slug
+        assert result.next.event_id == "c" * 32
+        assert result.next.project_slug == self.project.slug
+        assert result.oldest.event_id == "a" * 32
+        assert result.oldest.project_slug == self.project.slug
+        assert result.latest.event_id == "c" * 32
+        assert result.latest.project_slug == self.project.slug
 
     def test_date_params_included(self):
         # Create an event that is outside the date range
@@ -1283,11 +1311,40 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             self.event,
             "foo:1",
             {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+            self.organization,
         )
-        assert result.previous == "a" * 32
-        assert result.next == "c" * 32
-        assert result.oldest == "a" * 32
-        assert result.latest == "c" * 32
+        assert result.previous.event_id == "a" * 32
+        assert result.previous.project_slug == self.project.slug
+        assert result.next.event_id == "c" * 32
+        assert result.next.project_slug == self.project.slug
+        assert result.oldest.event_id == "a" * 32
+        assert result.oldest.project_slug == self.project.slug
+        assert result.latest.event_id == "c" * 32
+        assert result.latest.project_slug == self.project.slug
+
+    def test_multi_projects(self):
+        result = discover.get_pagination_ids(
+            self.event,
+            "foo:1",
+            {
+                "project_id": [self.project.id, self.project_2.id],
+                "end": self.min_ago,
+                "start": self.day_ago,
+            },
+            self.organization,
+        )
+        import pdb
+
+        pdb.set_trace()
+
+        assert result.previous.event_id == "a" * 32
+        assert result.previous.project_slug == self.project.slug
+        assert result.next.event_id == "e" * 32
+        assert result.next.project_slug == self.project_2.slug
+        assert result.oldest.event_id == "a" * 32
+        assert result.oldest.project_slug == self.project.slug
+        assert result.latest.event_id == "c" * 32
+        assert result.latest.project_slug == self.project.slug
 
 
 class GetFacetsTest(SnubaTestCase, TestCase):
