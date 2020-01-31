@@ -609,7 +609,7 @@ def get_facets(query, params, limit=10, referrer=None):
         )
         results.extend(
             [
-                FacetResult(r["tags_key"], r["tags_value"], int(r["count"]))
+                FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
                 for r in tag_values["data"]
             ]
         )
