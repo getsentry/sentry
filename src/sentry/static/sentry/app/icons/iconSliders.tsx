@@ -1,12 +1,12 @@
 import React from 'react';
-import {IconProps} from '../types/iconProps';
-import theme from '../utils/theme';
+import {IconProps} from 'app/types/iconProps';
+import theme from 'app/utils/theme';
 
 export const IconSliders: React.FC<IconProps> = ({
   color: providedColor = 'currentColor',
   size: providedSize = 'sm',
   direction: providedDirection = 'up',
-  ...other
+  ...props
 }: IconProps) => {
   const color = providedColor;
   const size =
@@ -22,8 +22,8 @@ export const IconSliders: React.FC<IconProps> = ({
       fill={color}
       height={size}
       width={size}
-      transform={'rotate(' + direction + ')'}
-      {...other}
+      transform={`rotate(${direction})`}
+      {...props}
     >
       <path d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z" />
       <path d="M11.71,7.75a2.86,2.86,0,1,1,2.85-2.86A2.86,2.86,0,0,1,11.71,7.75Zm0-4.21a1.36,1.36,0,1,0,1.35,1.35A1.36,1.36,0,0,0,11.71,3.54Z" />

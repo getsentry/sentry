@@ -1,18 +1,18 @@
 import React from 'react';
-import {IconProps} from '../types/iconProps';
-import theme from '../utils/theme';
+import {IconProps} from 'app/types/iconProps';
+import theme from 'app/utils/theme';
 
 export const IconTelescope: React.FC<IconProps> = ({
   color: providedColor = 'currentColor',
   size: providedSize = 'sm',
-  ...other
+  ...props
 }: IconProps) => {
   const color = providedColor;
   const size =
     typeof providedSize === 'string' ? theme.iconSizes[providedSize] : providedSize;
 
   return (
-    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...other}>
+    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props}>
       <path d="M4.66,16a.76.76,0,0,1-.73-1l1.24-4.38a.75.75,0,1,1,1.45.41L5.38,15.46A.77.77,0,0,1,4.66,16Z" />
       <path d="M11,16a.77.77,0,0,1-.63-.33L6.8,10.4a.75.75,0,0,1,1.25-.83l3.53,5.27a.74.74,0,0,1-.21,1A.71.71,0,0,1,11,16Z" />
       <path d="M3.68,12.77A1.6,1.6,0,0,1,2.29,12L.57,9a1.63,1.63,0,0,1,.62-2.22L6.74,3.56l.75,1.3L2,8.09c-.08.05-.11.13-.09.17l1.73,3a.24.24,0,0,0,.19,0L9.32,8l.75,1.3L4.53,12.54A1.72,1.72,0,0,1,3.68,12.77Z" />

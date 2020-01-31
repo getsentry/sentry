@@ -1,18 +1,18 @@
 import React from 'react';
-import {IconProps} from '../types/iconProps';
-import theme from '../utils/theme';
+import {IconProps} from 'app/types/iconProps';
+import theme from 'app/utils/theme';
 
 export const IconDocs: React.FC<IconProps> = ({
   color: providedColor = 'currentColor',
   size: providedSize = 'sm',
-  ...other
+  ...props
 }: IconProps) => {
   const color = providedColor;
   const size =
     typeof providedSize === 'string' ? theme.iconSizes[providedSize] : providedSize;
 
   return (
-    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...other}>
+    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props}>
       <path d="M8,15.27a.76.76,0,0,1-.75-.75V2.06a.75.75,0,0,1,1.5,0V14.52A.76.76,0,0,1,8,15.27Z" />
       <path d="M5.74,5.38H2.93a.75.75,0,0,1,0-1.5H5.74a.75.75,0,0,1,0,1.5Z" />
       <path d="M5.74,7.89H2.93a.75.75,0,0,1,0-1.5H5.74a.75.75,0,0,1,0,1.5Z" />

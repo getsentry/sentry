@@ -1,18 +1,18 @@
 import React from 'react';
-import {IconProps} from '../types/iconProps';
-import theme from '../utils/theme';
+import {IconProps} from 'app/types/iconProps';
+import theme from 'app/utils/theme';
 
 export const IconDelete: React.FC<IconProps> = ({
   color: providedColor = 'currentColor',
   size: providedSize = 'sm',
-  ...other
+  ...props
 }: IconProps) => {
   const color = providedColor;
   const size =
     typeof providedSize === 'string' ? theme.iconSizes[providedSize] : providedSize;
 
   return (
-    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...other}>
+    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props}>
       <path d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z" />
       <path d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z" />
       <path d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z" />

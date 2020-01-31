@@ -1,18 +1,18 @@
 import React from 'react';
-import {IconProps} from '../types/iconProps';
-import theme from '../utils/theme';
+import {IconProps} from 'app/types/iconProps';
+import theme from 'app/utils/theme';
 
 export const IconSiren: React.FC<IconProps> = ({
   color: providedColor = 'currentColor',
   size: providedSize = 'sm',
-  ...other
+  ...props
 }: IconProps) => {
   const color = providedColor;
   const size =
     typeof providedSize === 'string' ? theme.iconSizes[providedSize] : providedSize;
 
   return (
-    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...other}>
+    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props}>
       <path d="M14.74,16H1.26a.75.75,0,0,1-.75-.75V13.08a1.75,1.75,0,0,1,1.75-1.75H13.74a1.75,1.75,0,0,1,1.75,1.75v2.17A.75.75,0,0,1,14.74,16ZM2,14.5H14V13.08a.25.25,0,0,0-.25-.25H2.26a.25.25,0,0,0-.25.25Z" />
       <path d="M12.48,12.24,11.21,6.08a1.2,1.2,0,0,0-1.18-1H6a1.2,1.2,0,0,0-1.18,1L3.52,12.24l-1.46-.31L3.32,5.78A2.71,2.71,0,0,1,6,3.61H10a2.71,2.71,0,0,1,2.65,2.17l1.26,6.15Z" />
       <path d="M4,3.45a.75.75,0,0,1-.64-.36L2.56,1.77a.75.75,0,0,1,.24-1,.76.76,0,0,1,1,.24L4.65,2.3a.76.76,0,0,1-.24,1A.79.79,0,0,1,4,3.45Z" />

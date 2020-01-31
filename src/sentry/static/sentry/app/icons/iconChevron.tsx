@@ -1,13 +1,13 @@
 import React from 'react';
-import {IconProps} from '../types/iconProps';
-import theme from '../utils/theme';
+import {IconProps} from 'app/types/iconProps';
+import theme from 'app/utils/theme';
 
 export const IconChevron: React.FC<IconProps> = ({
   color: providedColor = 'currentColor',
   size: providedSize = 'sm',
   direction: providedDirection = 'up',
   circle: providedCircle = false,
-  ...other
+  ...props
 }: IconProps) => {
   const color = providedColor;
   const size =
@@ -23,8 +23,8 @@ export const IconChevron: React.FC<IconProps> = ({
       fill={color}
       height={size}
       width={size}
-      transform={'rotate(' + direction + ')'}
-      {...other}
+      transform={`rotate(${direction})`}
+      {...props}
     >
       {providedCircle === true ? (
         <g>
