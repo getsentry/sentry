@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
@@ -276,7 +277,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                     "verify_ssl": installation_data["verify_ssl"],
                     "group": installation_data["group"],
                     "include_subgroups": installation_data["include_subgroups"],
-                    "error_message": e.message,
+                    "error_message": six.text_type(e),
                     "error_status": e.code,
                 },
             )

@@ -66,8 +66,8 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         try:
             start, end = get_date_range_from_params(request.GET, optional=True)
-        except InvalidParams as exc:
-            return Response({"detail": exc.message}, status=400)
+        except InvalidParams as e:
+            return Response({"detail": six.text_type(e)}, status=400)
 
         try:
             return self._get_events_snuba(request, group, environments, query, tags, start, end)

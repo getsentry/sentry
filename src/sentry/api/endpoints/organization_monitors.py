@@ -41,8 +41,8 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:
             return self.respond([])
-        except OrganizationEventsError as exc:
-            return self.respond({"detail": exc.message}, status=400)
+        except OrganizationEventsError as e:
+            return self.respond({"detail": six.text_type(e)}, status=400)
 
         queryset = Monitor.objects.filter(
             organization_id=organization.id, project_id__in=filter_params["project_id"]

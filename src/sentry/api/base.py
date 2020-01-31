@@ -253,7 +253,7 @@ class Endpoint(APIView):
         try:
             cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
         except BadPaginationError as e:
-            return Response({"detail": e.message}, status=400)
+            return Response({"detail": six.text_type(e)}, status=400)
 
         # map results based on callback
         if on_results:

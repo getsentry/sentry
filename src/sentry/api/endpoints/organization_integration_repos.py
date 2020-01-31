@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from django.http import Http404
 
 from sentry.constants import ObjectStatus
@@ -38,7 +39,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationEndpoint):
             try:
                 repositories = install.get_repositories(request.GET.get("search"))
             except IntegrationError as e:
-                return self.respond({"detail": e.message}, status=400)
+                return self.respond({"detail": six.text_type(e)}, status=400)
 
             context = {"repos": repositories, "searchable": install.repo_search}
             return self.respond(context)

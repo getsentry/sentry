@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-
+import six
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -51,7 +51,7 @@ class DataExportEndpoint(OrganizationEndpoint):
             )
         except ValidationError as e:
             # This will handle invalid JSON requests
-            return Response({"detail": e.message}, status=400)
+            return Response({"detail": six.text_type(e)}, status=400)
 
         compile_data.delay(data_export=data_export)
         return Response(serialize(data_export, request.user), status=201)

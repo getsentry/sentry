@@ -113,9 +113,9 @@ class ProviderMixin(object):
 
         return UserSocialAuth.objects.filter(user=user, provider=self.auth_provider).first()
 
-    def handle_api_error(self, error):
+    def handle_api_error(self, e):
         context = {"error_type": "unknown"}
-        if isinstance(error, InvalidIdentity):
+        if isinstance(e, InvalidIdentity):
             if self.auth_provider is None:
                 context.update(
                     {
@@ -130,12 +130,12 @@ class ProviderMixin(object):
                     }
                 )
             status = 400
-        elif isinstance(error, PluginError):
+        elif isinstance(e, PluginError):
             # TODO(dcramer): we should have a proper validation error
-            context.update({"error_type": "validation", "errors": {"__all__": error.message}})
+            context.update({"error_type": "validation", "errors": {"__all__": six.text_type(e)}})
             status = 400
         else:
             if self.logger:
-                self.logger.exception(six.text_type(error))
+                self.logger.exception(six.text_type(e))
             status = 500
         return Response(context, status=status)

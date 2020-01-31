@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.event_search import InvalidSearchQuery, SearchFilter, SearchKey, SearchValue
 from sentry.api.issue_search import (
     convert_actor_value,
@@ -65,7 +67,9 @@ class ParseSearchQueryTest(TestCase):
         with self.assertRaises(InvalidSearchQuery) as cm:
             parse_search_query("is:wrong")
 
-        assert cm.exception.message.startswith('Invalid value for "is" search, valid values are')
+        assert six.text_type(cm.exception).startswith(
+            'Invalid value for "is" search, valid values are'
+        )
 
     def test_numeric_filter(self):
         # test numeric format

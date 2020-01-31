@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
+import six
 from django.db import IntegrityError, transaction
-
 from rest_framework.response import Response
 
 from sentry.api.bases import NoProjects, OrganizationEventsError
@@ -94,8 +94,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:
             return Response([])
-        except OrganizationEventsError as exc:
-            return Response({"detail": exc.message}, status=400)
+        except OrganizationEventsError as e:
+            return Response({"detail": six.text_type(e)}, status=400)
 
         queryset = (
             Release.objects.filter(
@@ -246,8 +246,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 fetch_commits = not commit_list
                 try:
                     release.set_refs(refs, request.user, fetch=fetch_commits)
-                except InvalidRepository as exc:
-                    return Response({"refs": [exc.message]}, status=400)
+                except InvalidRepository as e:
+                    return Response({"refs": [six.text_type(e)]}, status=400)
 
             if not created and not new_projects:
                 # This is the closest status code that makes sense, and we want

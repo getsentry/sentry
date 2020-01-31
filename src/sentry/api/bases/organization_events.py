@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
@@ -15,8 +16,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         query = request.GET.get("query")
         try:
             return get_filter(query, params)
-        except InvalidSearchQuery as exc:
-            raise OrganizationEventsError(exc.message)
+        except InvalidSearchQuery as e:
+            raise OrganizationEventsError(six.text_type(e))
 
     def get_orderby(self, request):
         sort = request.GET.getlist("sort")
@@ -58,8 +59,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         query = request.GET.get("query")
         try:
             _filter = get_filter(query, params)
-        except InvalidSearchQuery as exc:
-            raise OrganizationEventsError(exc.message)
+        except InvalidSearchQuery as e:
+            raise OrganizationEventsError(six.text_type(e))
 
         snuba_args = {
             "start": _filter.start,

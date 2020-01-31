@@ -13,8 +13,8 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         try:
             params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as exc:
-            return Response({"detail": exc.message}, status=400)
+        except OrganizationEventsError as e:
+            return Response({"detail": six.text_type(e)}, status=400)
         except NoProjects:
             return Response({"count": 0})
 

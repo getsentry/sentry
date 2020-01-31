@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from uuid import uuid4
 
+import six
 from django.http import Http404
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
@@ -60,6 +61,6 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
         try:
             installation.update_organization_config(request.data)
         except IntegrationError as e:
-            return self.respond({"detail": e.message}, status=400)
+            return self.respond({"detail": six.text_type(e)}, status=400)
 
         return self.respond(status=200)
