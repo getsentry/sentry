@@ -29,17 +29,19 @@ const ThreadsSelectorOption: React.FC<Props> = ({
   crashedInfo,
 }) => (
   <Wrapper>
-    <StyledNameId>{name ? `#${id}: ${name}` : `#${id}`}</StyledNameId>
-    <LabelsWrapper>
-      <StyledOptionLabel>{details.label}</StyledOptionLabel>
-      {details.filename && (
-        <StyledFileName>
-          {'('}
-          <StyledOptionLabel>{details.filename}</StyledOptionLabel>
-          {')'}
-        </StyledFileName>
-      )}
-    </LabelsWrapper>
+    <DetailsWrapper>
+      <StyledNameId>{name ? `#${id}: ${name}` : `#${id}`}</StyledNameId>
+      <LabelsWrapper>
+        <StyledOptionLabel>{details.label}</StyledOptionLabel>
+        {details.filename && (
+          <StyledFileNameWrapper>
+            {'('}
+            <StyledFileName>{details.filename}</StyledFileName>
+            {')'}
+          </StyledFileNameWrapper>
+        )}
+      </LabelsWrapper>
+    </DetailsWrapper>
     {crashed && (
       <StyledCrashIcon
         src="icon-warning-sm"
@@ -51,26 +53,36 @@ const ThreadsSelectorOption: React.FC<Props> = ({
 
 export default ThreadsSelectorOption;
 
-const LabelsWrapper = styled('div')`
+const Wrapper = styled('div')`
+  grid-template-columns: 1fr 30px;
   display: grid;
-  grid-template-columns: 1fr 200px;
-  width: 100%;
+  align-items: center;
 `;
 
-const Wrapper = styled('div')`
-  display: grid;
-  maxwidth: 100%;
+const DetailsWrapper = styled('div')`
+  max-width: 100%;
   overflow: hidden;
-  grid-template-columns: 110px 1fr 28px;
-  justify-content: flex-start;
-  justify-items: start;
-  padding-left: ${space(1)};
+  display: grid;
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    grid-template-columns: 100px 1fr;
+  }
+`;
+
+const LabelsWrapper = styled('div')`
+  display: grid;
+  width: 100%;
+  grid-gap: ${space(0.5)};
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr 200px;
+  }
 `;
 
 const StyledNameId = styled(TextOverflow)`
-  padding-right: ${space(1)};
   max-width: 100%;
   text-align: left;
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    padding-right: ${space(1)};
+  }
 `;
 
 const StyledCrashIcon = styled(InlineSvg)`
@@ -78,14 +90,20 @@ const StyledCrashIcon = styled(InlineSvg)`
   margin-left: ${space(1)};
 `;
 
-const StyledFileName = styled(TextOverflow)`
-  color: ${props => props.theme.purple}
+const StyledFileNameWrapper = styled(TextOverflow)`
+  color: ${props => props.theme.purple};
   display: flex;
-  width: 100%;
   text-align: left;
+  overflow: hidden;
+`;
+
+const StyledFileName = styled(StyledNameId)`
+  color: ${props => props.theme.purple};
+  padding-right: ${space(0)};
 `;
 
 // TODO(style): color not yet in the theme
 const StyledOptionLabel = styled(StyledNameId)`
   color: #2c58a8;
+  padding-right: ${space(0)};
 `;

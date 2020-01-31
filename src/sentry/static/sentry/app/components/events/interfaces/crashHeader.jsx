@@ -178,6 +178,6 @@ const TitleInfo = styled('div')`
   align-items: center;
   margin-bottom: ${space(3)};
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
-    flexdirection: row;
+    flex-direction: row;
   }
 `;

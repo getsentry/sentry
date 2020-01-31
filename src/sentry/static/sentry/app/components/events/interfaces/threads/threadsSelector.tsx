@@ -79,6 +79,7 @@ const ThreadsSelector: React.FC<Props> = ({threads, event, activeThread, onChang
               width: auto;
             }
           `}
+          isOpen
         >
           {({isOpen, selectedItem}) => (
             <StyledDropdownButton isOpen={isOpen} align="left">
@@ -107,7 +108,7 @@ const StyledDropdownButton = styled(DropdownButton)`
   width: 100%;
   margin-bottom: ${space(1)};
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    width: 420;
+    width: 420px;
     margin-bottom: ${space(0)};
   }
 `;
