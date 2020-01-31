@@ -384,12 +384,17 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
   link.remove();
 }
 
-type AggregateTransformer = (field: string) => string;
+// transform a given aggregated field to its un-aggregated form.
+// the given field can be transformed into another field, or undefined if it'll need to be dropped.
+type AggregateTransformer = (field: string) => string | undefined;
 
 // an array of 2-tuples of which the first tuple is an array of field names or aggregate names
 // to match a given column on, and the second tuple would transform the given column.
 const TRANSFORM_AGGREGATES: Array<[Array<string>, AggregateTransformer]> = [
   [['p99', 'p95', 'p75'], () => 'transaction.duration'],
+  [['last_seen'], () => 'timestamp'],
+  [['latest_event'], () => 'id'],
+  [['apdex', 'impact'], () => undefined],
 ];
 
 export function getExpandedResults(
@@ -457,7 +462,7 @@ export function getExpandedResults(
       const transform = tuple[1];
       const nextFieldName = transform(fieldName);
 
-      if (transformedFields.has(nextFieldName)) {
+      if (!nextFieldName || transformedFields.has(nextFieldName)) {
         // this field is duplicated in another column. we remove this column
         fieldsToDelete.push(indexToUpdate);
         return;

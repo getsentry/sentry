@@ -311,7 +311,7 @@ describe('getExpandedResults()', function() {
 
     expect(result.fields).toEqual([
       {field: 'id', width: 300}, // expect count() to be converted to id
-      {field: 'last_seen', width: 300},
+      {field: 'timestamp', width: 300},
       {field: 'title'},
       {field: 'custom_tag'},
     ]);
@@ -334,19 +334,20 @@ describe('getExpandedResults()', function() {
 
     expect(result.fields).toEqual([
       {field: 'id', width: 300}, // expect count() to be converted to id
-      {field: 'last_seen', width: 300},
+      {field: 'timestamp', width: 300},
       {field: 'title'},
       {field: 'custom_tag'},
     ]);
 
-    // transform aliased fields
+    // transform aliased fields, & de-duplicate any transforms
 
     view = new EventView({
       ...state,
       fields: [
-        {field: 'last_seen'},
+        {field: 'last_seen'}, // expect this to be transformed to transaction.duration
+        {field: 'latest_event'},
         {field: 'title'},
-        {field: 'avg(transaction.duration)'},
+        {field: 'avg(transaction.duration)'}, // expect this to be dropped
         {field: 'p75()'},
         {field: 'p95()'},
         {field: 'p99()'},
@@ -355,18 +356,23 @@ describe('getExpandedResults()', function() {
         {field: 'p95'},
         {field: 'p99'},
         {field: 'custom_tag'},
+        {field: 'title'}, // not expected to be dropped
         {field: 'unique_count(id)'},
+        // expect these aliases to be dropped
+        {field: 'apdex'},
+        {field: 'impact'},
       ],
     });
 
     result = getExpandedResults(view, {}, {});
 
     expect(result.fields).toEqual([
-      {field: 'last_seen', width: 300},
+      {field: 'timestamp', width: 300},
+      {field: 'id', width: 300},
       {field: 'title'},
       {field: 'transaction.duration', width: 300},
       {field: 'custom_tag'},
-      {field: 'id', width: 300},
+      {field: 'title'},
     ]);
   });
 
