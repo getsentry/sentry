@@ -189,7 +189,7 @@ class ThreadsInterface extends React.Component {
             <ThreadsSelector
               threads={threads}
               activeThread={activeThread}
-              event={event}
+              event={this.props.event}
               onChange={this.onSelectNewThread}
             />
           }
