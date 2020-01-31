@@ -94,14 +94,14 @@ class CreateSavedSearchButton extends React.Component {
     return (
       <Access organization={organization} access={['org:write']}>
         <Button
-          title={withTooltip ? t('Add to organization filter list') : null}
+          title={withTooltip ? t('Add to organization saved searches') : null}
           onClick={this.onToggle}
           data-test-id="save-current-search"
           size="zero"
           borderless
           containerDisplayMode="inline-flex"
           type="button"
-          aria-label={t('Add to organization filter list')}
+          aria-label={t('Add to organization saved searches')}
           icon="icon-add-to-list"
           iconSize="16px"
           className={buttonClassName}
