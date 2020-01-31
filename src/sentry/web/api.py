@@ -874,6 +874,8 @@ class MinidumpView(StoreView):
             )
         )
 
+        attachments_size = 0
+
         # Append all other files as generic attachments.
         # RaduW 4 Jun 2019 always sent attachments for minidump (does not use
         # event-attachments feature)
@@ -890,7 +892,14 @@ class MinidumpView(StoreView):
                 continue
 
             # Add any other file as attachment
+            attachments_size += file.size
             attachments.append(CachedAttachment.from_upload(file))
+
+        data["_metrics"] = {
+            "bytes.ingested.event": len(json.dumps(data)),
+            "bytes.ingested.event.minidump": minidump.size,
+            "bytes.ingested.event.attachment": attachments_size,
+        }
 
         # Assign our own UUID so we can track this minidump. We cannot trust
         # the uploaded filename, and if reading the minidump fails there is
