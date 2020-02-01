@@ -1305,14 +1305,10 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
             self.organization,
         )
-        assert result.previous.event_id == "a" * 32
-        assert result.previous.project_slug == self.project.slug
-        assert result.next.event_id == "c" * 32
-        assert result.next.project_slug == self.project.slug
-        assert result.oldest.event_id == "a" * 32
-        assert result.oldest.project_slug == self.project.slug
-        assert result.latest.event_id == "c" * 32
-        assert result.latest.project_slug == self.project.slug
+        assert result.previous == format_project_event(self.project.slug, "a" * 32)
+        assert result.next == format_project_event(self.project.slug, "c" * 32)
+        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
+        assert result.latest == format_project_event(self.project.slug, "c" * 32)
 
     def test_multi_projects(self):
         result = discover.get_pagination_ids(
