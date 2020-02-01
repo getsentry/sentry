@@ -388,8 +388,8 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 // the given field can be transformed into another field, or undefined if it'll need to be dropped.
 type AggregateTransformer = (field: string) => string | undefined;
 
-// an array of 2-tuples of which the first tuple is an array of field names or aggregate names
-// to match a given column on, and the second tuple would transform the given column.
+// a map between a field alias to a transform function to convert the aggregated field alias into
+// its un-aggregated form
 const TRANSFORM_AGGREGATES: {[field: string]: AggregateTransformer} = {
   p99: () => 'transaction.duration',
   p95: () => 'transaction.duration',
