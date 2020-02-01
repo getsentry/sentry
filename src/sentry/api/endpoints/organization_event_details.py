@@ -62,14 +62,10 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
             raise ParseError(detail=six.text_type(err))
 
         data = serialize(event)
-        data["nextEventID"] = pagination.next.event_id
-        data["nextEventProjectSlug"] = pagination.next.project_slug
-        data["previousEventID"] = pagination.previous.event_id
-        data["previousEventProjectSlug"] = pagination.previous.project_slug
-        data["oldestEventID"] = pagination.oldest.event_id
-        data["oldestEventProjectSlug"] = pagination.oldest.project_slug
-        data["latestEventID"] = pagination.latest.event_id
-        data["latestEventProjectSlug"] = pagination.latest.project_slug
+        data["nextEventID"] = pagination.next
+        data["previousEventID"] = pagination.previous
+        data["oldestEventID"] = pagination.oldest
+        data["latestEventID"] = pagination.latest
         data["projectSlug"] = project_slug
 
         return Response(data)
