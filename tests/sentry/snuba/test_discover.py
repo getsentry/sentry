@@ -1228,14 +1228,10 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             {"project_id": [self.project.id], "start": self.min_ago, "end": self.day_ago},
             self.organization,
         )
-        assert result.previous.event_id is None
-        assert result.previous.project_slug is None
-        assert result.next.event_id is None
-        assert result.next.project_slug is None
-        assert result.oldest.event_id is None
-        assert result.oldest.project_slug is None
-        assert result.latest.event_id is None
-        assert result.latest.project_slug is None
+        assert result.previous is None
+        assert result.next is None
+        assert result.oldest is None
+        assert result.latest is None
 
     def test_invalid_conditions(self):
         with pytest.raises(InvalidSearchQuery):
