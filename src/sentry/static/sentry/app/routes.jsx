@@ -829,6 +829,19 @@ function routes() {
         </Route>
       </Route>
 
+      <Redirect from="sentry-apps/" to="integrations/" />
+      <Route name="Sentry Apps" path="sentry-apps/">
+        <Route
+          name="Details"
+          path=":appSlug"
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/sentryAppDetailedView'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
       <Route name="Integrations" path="integrations/">
         <IndexRoute
           componentPromise={() =>
@@ -1186,17 +1199,6 @@ function routes() {
                 {projectSettingsRoutes}
               </Route>
             </Route>
-
-            <Route
-              name="Sentry App Details"
-              path="sentry-apps/:providerKey"
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/sentryAppDetailedView'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
 
             <Redirect from=":projectId/" to="projects/:projectId/" />
             <Redirect from=":projectId/alerts/" to="projects/:projectId/alerts/" />
