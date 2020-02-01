@@ -390,12 +390,15 @@ type AggregateTransformer = (field: string) => string | undefined;
 
 // an array of 2-tuples of which the first tuple is an array of field names or aggregate names
 // to match a given column on, and the second tuple would transform the given column.
-const TRANSFORM_AGGREGATES: Array<[Array<string>, AggregateTransformer]> = [
-  [['p99', 'p95', 'p75'], () => 'transaction.duration'],
-  [['last_seen'], () => 'timestamp'],
-  [['latest_event'], () => 'id'],
-  [['apdex', 'impact'], () => undefined],
-];
+const TRANSFORM_AGGREGATES: {[field: string]: AggregateTransformer} = {
+  p99: () => 'transaction.duration',
+  p95: () => 'transaction.duration',
+  p75: () => 'transaction.duration',
+  last_seen: () => 'timestamp',
+  latest_event: () => 'id',
+  apdex: () => undefined,
+  impact: () => undefined,
+};
 
 export function getExpandedResults(
   eventView: EventView,
@@ -446,24 +449,20 @@ export function getExpandedResults(
 
     // check if we can use an aggregated transform function
 
-    for (const tuple of TRANSFORM_AGGREGATES) {
-      const aliases = tuple[0];
+    const fieldNameAlias = TRANSFORM_AGGREGATES[exploded.aggregation]
+      ? exploded.aggregation
+      : TRANSFORM_AGGREGATES[exploded.field]
+      ? exploded.field
+      : undefined;
 
-      const fieldName = aliases.includes(exploded.aggregation)
-        ? exploded.aggregation
-        : aliases.includes(exploded.field)
-        ? exploded.field
-        : undefined;
+    const transform = fieldNameAlias && TRANSFORM_AGGREGATES[fieldNameAlias];
 
-      if (!fieldName) {
-        continue;
-      }
-
-      const transform = tuple[1];
-      const nextFieldName = transform(fieldName);
+    if (fieldNameAlias && transform) {
+      const nextFieldName = transform(fieldNameAlias);
 
       if (!nextFieldName || transformedFields.has(nextFieldName)) {
-        // this field is duplicated in another column. we remove this column
+        // this field is either duplicated in another column, or nextFieldName is undefined.
+        // in either case, we remove this column
         fieldsToDelete.push(indexToUpdate);
         return;
       }
