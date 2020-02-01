@@ -35,7 +35,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.snuba.discover import zerofill
-from sentry.models import Commit, Integration, Project, Release
+from sentry.models import Integration, Project
 from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -43,7 +43,6 @@ from sentry.snuba.subscriptions import (
     bulk_update_snuba_subscriptions,
     query_aggregation_to_snuba,
 )
-from sentry.utils.committers import get_event_file_committers
 from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
@@ -126,7 +125,6 @@ def create_incident(
             incident_type=type.value,
         )
 
-    tasks.calculate_incident_suspects.apply_async(kwargs={"incident_id": incident.id})
     return incident
 
 
@@ -557,33 +555,6 @@ def get_incident_activity(incident):
     return IncidentActivity.objects.filter(incident=incident).select_related(
         "user", "event_stats_snapshot", "incident"
     )
-
-
-def get_incident_suspects(incident, projects):
-    return Commit.objects.filter(
-        incidentsuspectcommit__incident=incident, releasecommit__release__projects__in=projects
-    ).distinct()
-
-
-def get_incident_suspect_commits(incident):
-    groups = list(incident.groups.all())
-    # For now, we want to track whether we've seen a commit before to avoid
-    # duplicates. We'll probably use a commit being seen across multiple groups
-    # as a way to increase score in the future.
-    seen = set()
-    for group in groups:
-        event = group.get_latest_event_for_environments()
-        try:
-            committers = get_event_file_committers(group.project, event)
-        except (Release.DoesNotExist, Commit.DoesNotExist):
-            continue
-
-        for committer in committers:
-            for (commit, _) in committer["commits"]:
-                if commit.id in seen:
-                    continue
-                seen.add(commit.id)
-                yield commit.id
 
 
 class AlertRuleNameAlreadyUsedError(Exception):
