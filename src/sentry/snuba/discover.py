@@ -459,15 +459,40 @@ def get_pagination_ids(event, query, params, organization, reference_event=None,
         if ref_conditions:
             snuba_filter.conditions.extend(ref_conditions)
 
+    # translate project ids to slugs
+
+    result = PaginationResult(
+        # each tuple is (project_id, event_id)
+        next=eventstore.get_next_event_id(event, filter=snuba_filter),
+        previous=eventstore.get_prev_event_id(event, filter=snuba_filter),
+        latest=eventstore.get_latest_event_id(event, filter=snuba_filter),
+        oldest=eventstore.get_earliest_event_id(event, filter=snuba_filter),
+    )
+
+    project_ids = set([tuple[0] for tuple in result])
+
+    project_slugs = {}
+    projects = Project.objects.filter(
+        id__in=list(project_ids), organization=organization, status=ProjectStatus.VISIBLE
+    ).values()
+
+    for project in projects:
+        project_slugs[project["id"]] = project["slug"]
+
     def into_pagination_record(project_slug_event_id):
 
         if project_slug_event_id is None:
             return PaginationRecord(None, None)
 
-        project = Project.objects.get(
-            id=project_slug_event_id[0], organization=organization, status=ProjectStatus.VISIBLE
+        project_id = int(project_slug_event_id[0])
+
+        return PaginationRecord(
+            project_slug=project_slugs[project_id], event_id=project_slug_event_id[1]
         )
-        return PaginationRecord(project.slug, project_slug_event_id[1])
+
+    # import pdb
+
+    # pdb.set_trace()
 
     return PaginationResult(
         next=into_pagination_record(eventstore.get_next_event_id(event, filter=snuba_filter)),
