@@ -48,7 +48,6 @@ ReferenceEvent = namedtuple("ReferenceEvent", ["organization", "slug", "fields",
 ReferenceEvent.__new__.__defaults__ = (None, None)
 
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
-PaginationRecord = namedtuple("PaginationRecord", ["project_slug", "event_id"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
 
@@ -480,21 +479,15 @@ def get_pagination_ids(event, query, params, organization, reference_event=None,
 
     def into_pagination_record(project_slug_event_id):
 
-        if project_slug_event_id is None:
-            return PaginationRecord(None, None)
+        if not project_slug_event_id:
+            return None
 
         project_id = int(project_slug_event_id[0])
 
-        return PaginationRecord(
-            project_slug=project_slugs[project_id], event_id=project_slug_event_id[1]
-        )
+        return "{}:{}".format(project_slugs[project_id], project_slug_event_id[1])
 
     for key, value in result.items():
         result[key] = into_pagination_record(value)
-
-    # import pdb
-
-    # pdb.set_trace()
 
     return PaginationResult(**result)
 
