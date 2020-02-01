@@ -211,16 +211,13 @@ export const GridHeadCellStatic = styled('th')`
   font-weight: 600;
   line-height: 1;
   text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 
   &:first-child {
     border-top-left-radius: ${p => p.theme.borderRadius};
     padding: ${space(1)} 0 ${space(1)} ${space(3)};
-  }
-
-  &:not(:first-child) {
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
   }
 `;
 
