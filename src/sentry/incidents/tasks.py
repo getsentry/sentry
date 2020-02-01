@@ -3,11 +3,9 @@ from __future__ import absolute_import
 from uuid import uuid4
 
 from django.core.urlresolvers import reverse
-from django.db import transaction
 from six.moves.urllib.parse import urlencode
 
 from sentry import deletions
-from sentry.app import locks
 from sentry.auth.access import from_user
 from sentry.exceptions import DeleteAborted
 from sentry.incidents.models import (
@@ -18,7 +16,6 @@ from sentry.incidents.models import (
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
-    IncidentSuspectCommit,
 )
 from sentry.models import Project
 from sentry.snuba.query_subscription_consumer import register_subscriber
@@ -27,7 +24,6 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 from sentry.utils import metrics
-from sentry.utils.retries import TimedRetryPolicy
 
 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
 
@@ -105,24 +101,6 @@ def build_activity_context(activity, user):
             user, "sentry-account-email-unsubscribe-incident", kwargs={"incident_id": incident.id}
         ),
     }
-
-
-@instrumented_task(name="sentry.incidents.tasks.calculate_incident_suspects", queue="incidents")
-def calculate_incident_suspects(incident_id):
-    from sentry.incidents.logic import get_incident_suspect_commits
-
-    lock = locks.get(u"incident:suspects:{}".format(incident_id), duration=60 * 10)
-    with TimedRetryPolicy(60)(lock.acquire):
-        incident = Incident.objects.get(id=incident_id)
-        suspect_commits = get_incident_suspect_commits(incident)
-        with transaction.atomic():
-            IncidentSuspectCommit.objects.filter(incident=incident).delete()
-            IncidentSuspectCommit.objects.bulk_create(
-                [
-                    IncidentSuspectCommit(incident=incident, commit_id=commit_id, order=i)
-                    for i, commit_id in enumerate(suspect_commits)
-                ]
-            )
 
 
 @instrumented_task(

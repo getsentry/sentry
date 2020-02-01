@@ -9,6 +9,7 @@ from enum import Enum
 
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes
 from sentry.db.models import ArrayField, sane_repr
+from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
 from sentry.snuba.models import QueryAggregations
@@ -219,8 +220,8 @@ class IncidentSubscription(Model):
 class IncidentSuspectCommit(Model):
     __core__ = True
 
-    incident = FlexibleForeignKey("sentry.Incident", db_index=False)
-    commit = FlexibleForeignKey("sentry.Commit", db_constraint=False)
+    incident = BoundedBigIntegerField(db_column="incident_id")
+    commit = BoundedBigIntegerField(db_column="commit_id", db_index=True)
     order = models.SmallIntegerField()
 
     class Meta:
