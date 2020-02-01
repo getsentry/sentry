@@ -1166,6 +1166,10 @@ class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
         assert result == [["issue.id", "=", event.group_id]]
 
 
+def format_project_event(project_slug, event_id):
+    return "{}:{}".format(project_slug, event_id)
+
+
 class GetPaginationIdsTest(SnubaTestCase, TestCase):
     def setUp(self):
         super(GetPaginationIdsTest, self).setUp()
@@ -1249,14 +1253,10 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
             self.organization,
         )
-        assert result.previous.event_id == "a" * 32
-        assert result.previous.project_slug == self.project.slug
-        assert result.next.event_id == "c" * 32
-        assert result.next.project_slug == self.project.slug
-        assert result.oldest.event_id == "a" * 32
-        assert result.oldest.project_slug == self.project.slug
-        assert result.latest.event_id == "c" * 32
-        assert result.latest.project_slug == self.project.slug
+        assert result.previous == format_project_event(self.project.slug, "a" * 32)
+        assert result.next == format_project_event(self.project.slug, "c" * 32)
+        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
+        assert result.latest == format_project_event(self.project.slug, "c" * 32)
 
     def test_reference_event_matching(self):
         # Create an event that won't match the reference
