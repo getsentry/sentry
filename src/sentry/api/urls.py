@@ -134,6 +134,7 @@ from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
+from .endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
@@ -907,6 +908,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/plugins/$",
                     OrganizationPluginsEndpoint.as_view(),
                     name="sentry-api-0-organization-plugins",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/plugins/configs/$",
+                    OrganizationPluginsConfigsEndpoint.as_view(),
+                    name="sentry-api-0-organization-plugins-configs",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/releases/$",

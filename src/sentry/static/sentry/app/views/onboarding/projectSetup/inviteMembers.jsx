@@ -102,6 +102,7 @@ class InviteMembers extends React.Component {
               )}
             />
             <SelectField
+              deprecatedSelectControl
               name="role"
               label={t('Member Role')}
               required

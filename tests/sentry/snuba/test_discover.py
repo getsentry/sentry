@@ -1389,7 +1389,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         result = discover.get_facets("", params)
         keys = {r.key for r in result}
         assert keys == {"environment", "level"}
-        assert {"prod", "staging", None} == {f.value for f in result if f.key == "environment"}
+        assert {None, "prod", "staging"} == {f.value for f in result if f.key == "environment"}
         assert {1} == {f.count for f in result if f.key == "environment"}
 
     def test_query_string(self):

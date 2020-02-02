@@ -1,5 +1,5 @@
 import React from 'react';
-import {Value} from 'react-select';
+import {Value} from 'react-select-legacy';
 
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
@@ -144,6 +144,7 @@ export default class AggregationRow extends React.Component<
     return (
       <div>
         <SelectControl
+          deprecatedSelectControl
           ref={(ref: any) => (this.select = ref)}
           value={getInternal(this.props.value)}
           placeholder={

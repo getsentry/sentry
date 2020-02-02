@@ -16,8 +16,33 @@ type State = {
   tags: TagCollection;
 };
 
+type Options = {
+  /**
+   * Set to true if you want to include issue attributes in the tag listt
+   * that is forwarded to the wrapped component.
+   */
+  includeIssueAttributes?: boolean;
+};
+
+const ISSUE_TAGS: TagCollection = TagStore.getIssueAttributes();
+
+function filterTags(tags: TagCollection, includeIssueAttributes: boolean): TagCollection {
+  if (includeIssueAttributes) {
+    return tags;
+  }
+  const out = Object.keys(tags).reduce((acc, name) => {
+    if (!ISSUE_TAGS.hasOwnProperty(name)) {
+      acc[name] = tags[name];
+    }
+
+    return acc;
+  }, {});
+  return out;
+}
+
 const withTags = <P extends InjectedTagsProps>(
-  WrappedComponent: React.ComponentType<P>
+  WrappedComponent: React.ComponentType<P>,
+  {includeIssueAttributes = false}: Options = {}
 ) =>
   createReactClass<Omit<P, keyof InjectedTagsProps>, State>({
     displayName: `withTags(${getDisplayName(WrappedComponent)})`,
@@ -25,12 +50,12 @@ const withTags = <P extends InjectedTagsProps>(
 
     getInitialState() {
       return {
-        tags: TagStore.getAllTags(),
+        tags: filterTags(TagStore.getAllTags(), includeIssueAttributes),
       };
     },
 
     onTagsUpdate(tags: TagCollection) {
-      this.setState({tags});
+      this.setState({tags: filterTags(tags, includeIssueAttributes)});
     },
 
     render() {

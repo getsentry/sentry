@@ -156,6 +156,7 @@ class IssueListTagFilter extends React.Component {
 
         {!tag.isInput && (
           <SelectControl
+            deprecatedSelectControl
             clearable
             filterOptions={(options, filter, currentValues) => options}
             placeholder="--"

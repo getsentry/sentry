@@ -48,7 +48,7 @@ type State = {
 
 /**
  * Activity component on Incident Details view
- * Allows user to leave a comment on an incidentId as well as
+ * Allows user to leave a comment on an alertId as well as
  * fetch and render existing activity items.
  */
 class ActivityContainer extends React.PureComponent<Props, State> {
@@ -83,10 +83,10 @@ class ActivityContainer extends React.PureComponent<Props, State> {
 
   async fetchData() {
     const {api, params} = this.props;
-    const {incidentId, orgId} = params;
+    const {alertId, orgId} = params;
 
     try {
-      const activities = await fetchIncidentActivities(api, orgId, incidentId);
+      const activities = await fetchIncidentActivities(api, orgId, alertId);
       this.setState({activities, loading: false});
     } catch (err) {
       this.setState({loading: false, error: !!err});
@@ -95,7 +95,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
 
   handleCreateNote = async (note: NoteType) => {
     const {api, params} = this.props;
-    const {incidentId, orgId} = params;
+    const {alertId, orgId} = params;
 
     const newActivity: ActivityTypeDraft = {
       comment: note.text,
@@ -103,7 +103,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
       dateCreated: new Date().toISOString(),
       user: ConfigStore.get('user'),
       id: uniqueId(),
-      incidentIdentifier: incidentId,
+      incidentIdentifier: alertId,
     };
 
     this.setState(state => ({
@@ -116,7 +116,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
     }));
 
     try {
-      const newNote = await createIncidentNote(api, orgId, incidentId, note);
+      const newNote = await createIncidentNote(api, orgId, alertId, note);
 
       this.setState(state => {
         // Update activities to replace our fake new activity with activity object from server
@@ -160,7 +160,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
 
   handleDeleteNote = async (activity: ActivityType | ActivityTypeDraft) => {
     const {api, params} = this.props;
-    const {incidentId, orgId} = params;
+    const {alertId, orgId} = params;
 
     const [index, oldActivity] = this.getIndexAndActivityFromState(activity);
 
@@ -169,7 +169,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
     }));
 
     try {
-      await deleteIncidentNote(api, orgId, incidentId, activity.id);
+      await deleteIncidentNote(api, orgId, alertId, activity.id);
     } catch (error) {
       this.setState(state => ({
         activities: replaceAtArrayIndex(state.activities!, index, oldActivity),
@@ -182,7 +182,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
     activity: ActivityType | ActivityTypeDraft
   ) => {
     const {api, params} = this.props;
-    const {incidentId, orgId} = params;
+    const {alertId, orgId} = params;
 
     const [index, oldActivity] = this.getIndexAndActivityFromState(activity);
 
@@ -194,7 +194,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
     }));
 
     try {
-      await updateIncidentNote(api, orgId, incidentId, activity.id, note);
+      await updateIncidentNote(api, orgId, alertId, activity.id, note);
     } catch (error) {
       this.setState(state => ({
         activities: replaceAtArrayIndex(state.activities!, index, oldActivity),
@@ -204,13 +204,13 @@ class ActivityContainer extends React.PureComponent<Props, State> {
 
   render() {
     const {api, params, ...props} = this.props;
-    const {incidentId} = params;
+    const {alertId} = params;
     const me = ConfigStore.get('user');
 
     return (
       <Activity
         noteInputId={this.state.noteInputId}
-        incidentId={incidentId}
+        alertId={alertId}
         me={me}
         api={api}
         {...this.state}

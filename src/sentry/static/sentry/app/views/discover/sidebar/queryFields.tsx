@@ -104,6 +104,7 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
             {t('Summarize')}
           </SidebarLabel>
           <SelectControl
+            deprecatedSelectControl
             name="fields"
             multiple
             placeholder={this.getSummarizePlaceholder()}

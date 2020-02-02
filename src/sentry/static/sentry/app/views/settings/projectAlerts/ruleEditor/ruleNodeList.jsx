@@ -36,6 +36,7 @@ class RuleNodeList extends React.Component {
         </RuleNodes>
         <fieldset>
           <SelectControl
+            deprecatedSelectControl
             onChange={obj => this.props.handleAddRow(obj ? obj.value : obj)}
             style={{width: '100%'}}
             options={this.props.nodes
