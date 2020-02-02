@@ -5,7 +5,12 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import register, serialize, Serializer
-from sentry.incidents.models import AlertRule, AlertRuleExcludedProjects, AlertRuleTrigger
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleExcludedProjects,
+    AlertRuleTrigger,
+    AlertRuleEnvironment,
+)
 from sentry.models import Rule
 
 
@@ -23,6 +28,13 @@ class AlertRuleSerializer(Serializer):
             )
             alert_rule_triggers.append(serialized)
 
+        environments = AlertRuleEnvironment.objects.filter(alert_rule__in=item_list)
+        for environment in environments:
+            alert_rule_environment = result[alert_rules[environment.alert_rule_id]].setdefault(
+                "environment", []
+            )
+            alert_rule_environment.append([environment.id])
+
         return result
 
     def serialize(self, obj, attrs, user):
@@ -38,7 +50,7 @@ class AlertRuleSerializer(Serializer):
             "aggregation": obj.aggregation,
             "aggregations": [obj.aggregation],
             "timeWindow": obj.time_window,
-            "environment": obj.environment,
+            "environment": attrs.get("environment", []),
             "resolution": obj.resolution,
             # TODO: Remove when frontend isn't using
             "alertThreshold": 0,
