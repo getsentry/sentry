@@ -7,16 +7,14 @@ import * as newIconset from 'app/icons';
 
 storiesOf('Style|Icons', module).add(
   'SVG',
-  withInfo('Replace `InlineSvg` with IconComponent')(() => {
+  withInfo('Replace `InlineSvg` with the following Icon Components')(() => {
     return (
       <div>
         <h4>New Icons</h4>
         <Swatches>
           {Object.entries(newIconset).map(([key, Icon]) => (
             <Swatch key={key}>
-              <IconWrapper>
-                <Icon />
-              </IconWrapper>
+              <Icon />
               <LabelWrapper>{key}</LabelWrapper>
             </Swatch>
           ))}
@@ -30,7 +28,6 @@ const Swatches = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, 160px);
   grid-gap: 8px;
-  margin-bottom: 24px;
 `;
 
 const Swatch = styled('div')`
@@ -40,10 +37,7 @@ const Swatch = styled('div')`
   min-height: 32px;
 `;
 
-const IconWrapper = styled('div')`
-  min-width: 40px;
-`;
-
 const LabelWrapper = styled('div')`
   font-size: 12px;
+  margin-left: 16px;
 `;
