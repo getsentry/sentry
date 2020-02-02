@@ -85,7 +85,9 @@ describe('CreateSavedSearchButton', function() {
       });
       wrapper.setProps({organization: orgWithoutFeature});
 
-      const button = wrapper.find('button[aria-label="Add to organization filter list"]');
+      const button = wrapper.find(
+        'button[aria-label="Add to organization saved searches"]'
+      );
       expect(button).toHaveLength(1);
     });
 
@@ -95,7 +97,9 @@ describe('CreateSavedSearchButton', function() {
       });
       wrapper.setProps({organization: orgWithoutAccess});
 
-      const button = wrapper.find('button[aria-label="Add to organization filter list"]');
+      const button = wrapper.find(
+        'button[aria-label="Add to organization saved searches"]'
+      );
       expect(button).toHaveLength(0);
     });
   });
