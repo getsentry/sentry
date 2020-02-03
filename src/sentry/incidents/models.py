@@ -9,7 +9,6 @@ from enum import Enum
 
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes
 from sentry.db.models import ArrayField, sane_repr
-from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
 from sentry.snuba.models import QueryAggregations
@@ -215,19 +214,6 @@ class IncidentSubscription(Model):
         unique_together = (("incident", "user"),)
 
     __repr__ = sane_repr("incident_id", "user_id")
-
-
-class IncidentSuspectCommit(Model):
-    __core__ = True
-
-    incident = BoundedBigIntegerField(db_column="incident_id")
-    commit = BoundedBigIntegerField(db_column="commit_id", db_index=True)
-    order = models.SmallIntegerField()
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidentsuspectcommit"
-        unique_together = (("incident", "commit"),)
 
 
 class AlertRuleStatus(Enum):
