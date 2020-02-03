@@ -305,6 +305,11 @@ export type PluginNoProject = {
   isHidden: boolean;
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  features: string[];
+  featureDescriptions: Array<{
+    description: string;
+    featureGate: string;
+  }>;
 };
 
 export type Plugin = PluginNoProject & {

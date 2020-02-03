@@ -829,6 +829,20 @@ function routes() {
         </Route>
       </Route>
 
+      <Redirect from="plugins/" to="integrations/" />
+      <Route name="Integrations" path="plugins/">
+        <Route
+          name="Integration Details"
+          path=":pluginSlug/"
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/pluginDetailedView'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
+
       <Route name="Integrations" path="integrations/">
         <IndexRoute
           componentPromise={() =>

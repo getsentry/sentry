@@ -10,6 +10,7 @@ from requests import HTTPError
 from sentry import http
 from sentry.plugins.bases import notify
 from sentry.utils import json
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 
 class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
@@ -44,6 +45,14 @@ class OpsGeniePlugin(notify.NotificationPlugin):
     version = sentry.VERSION
     project_conf_form = OpsGenieOptionsForm
     required_field = "api_key"
+    features = [
+        FeatureDescription(
+            """
+            Configure rule based OpsGenie alerts to automatically be triggered in a specific service
+            """,
+            IntegrationFeatures.ALERT_RULE,
+        ),
+    ]
 
     logger = logging.getLogger("sentry.plugins.opsgenie")
 
