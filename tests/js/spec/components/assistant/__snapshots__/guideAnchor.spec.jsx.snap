@@ -81,7 +81,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                       class="css-oc5lxq-GuideInputRow e130o4352"
                     >
                       <div
-                        class="css-4npf6p-StyledTitle e130o4353"
+                        class="css-nw97la-StyledTitle e130o4353"
                       >
                         title 1
                       </div>
@@ -104,7 +104,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                       </a>
                     </div>
                     <div
-                      class="css-1f6s6ls-StyledContent e130o4354"
+                      class="css-qwocdy-StyledContent e130o4354"
                     >
                       <div>
                         abc
@@ -220,7 +220,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                             >
                               <StyledTitle>
                                 <div
-                                  className="css-4npf6p-StyledTitle e130o4353"
+                                  className="css-nw97la-StyledTitle e130o4353"
                                 >
                                   title 1
                                 </div>
@@ -269,7 +269,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                           </GuideInputRow>
                           <StyledContent>
                             <div
-                              className="css-1f6s6ls-StyledContent e130o4354"
+                              className="css-qwocdy-StyledContent e130o4354"
                             >
                               <div
                                 dangerouslySetInnerHTML={
@@ -446,13 +446,13 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                       class="css-oc5lxq-GuideInputRow e130o4352"
                     >
                       <div
-                        class="css-4npf6p-StyledTitle e130o4353"
+                        class="css-nw97la-StyledTitle e130o4353"
                       >
                         title 2
                       </div>
                     </div>
                     <div
-                      class="css-1f6s6ls-StyledContent e130o4354"
+                      class="css-qwocdy-StyledContent e130o4354"
                     >
                       <div>
                         xyz
@@ -568,7 +568,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                             >
                               <StyledTitle>
                                 <div
-                                  className="css-4npf6p-StyledTitle e130o4353"
+                                  className="css-nw97la-StyledTitle e130o4353"
                                 >
                                   title 2
                                 </div>
@@ -577,7 +577,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                           </GuideInputRow>
                           <StyledContent>
                             <div
-                              className="css-1f6s6ls-StyledContent e130o4354"
+                              className="css-qwocdy-StyledContent e130o4354"
                             >
                               <div
                                 dangerouslySetInnerHTML={

@@ -110,4 +110,18 @@ GUIDES = {
             }
         ],
     },
+    "discover_sidebar": {
+        "id": 4,
+        "required_targets": ["discover_sidebar"],
+        "steps": [
+            {
+                "title": _("Event Pages have moved"),
+                "message": _(
+                    "These are now in our powerful new query builder, Discover "
+                    '<a href="https://docs.sentry.io/workflow/discover2/" target="_blank">Learn more about its advanced features</a>. '
+                ),
+                "target": "discover_sidebar",
+            }
+        ],
+    },
 }
