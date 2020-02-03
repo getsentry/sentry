@@ -15,6 +15,7 @@ type Props = {
   popperStyle?: React.CSSProperties;
   containerDisplayMode?: React.CSSProperties['display'];
   delay?: number;
+  isHoverable?: boolean;
 };
 
 type State = {
@@ -76,6 +77,11 @@ class Tooltip extends React.Component<Props, State> {
      * Time to wait (in milliseconds) before showing the tooltip
      */
     delay: PropTypes.number,
+
+    /**
+     * Time to wait (in milliseconds) before hiding the tooltip
+     */
+    isHoverable: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -102,13 +108,23 @@ class Tooltip extends React.Component<Props, State> {
   portalEl: HTMLElement;
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
+  delayHideTimeout: number | null = null;
 
   setOpen = () => {
     this.setState({isOpen: true});
   };
 
+  setClose = () => {
+    this.setState({isOpen: false});
+  };
+
   handleOpen = () => {
     const {delay} = this.props;
+
+    if (this.delayHideTimeout) {
+      window.clearTimeout(this.delayHideTimeout);
+      this.delayHideTimeout = null;
+    }
 
     if (delay) {
       this.delayTimeout = window.setTimeout(this.setOpen, delay);
@@ -118,11 +134,17 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleClose = () => {
-    this.setState({isOpen: false});
+    const {isHoverable} = this.props;
 
     if (this.delayTimeout) {
       window.clearTimeout(this.delayTimeout);
       this.delayTimeout = null;
+    }
+
+    if (isHoverable) {
+      this.delayHideTimeout = window.setTimeout(this.setClose, 50);
+    } else {
+      this.setClose();
     }
   };
 
@@ -157,7 +179,7 @@ class Tooltip extends React.Component<Props, State> {
   }
 
   render() {
-    const {disabled, children, title, position, popperStyle} = this.props;
+    const {disabled, children, title, position, popperStyle, isHoverable} = this.props;
     const {isOpen} = this.state;
     if (disabled || title === '') {
       return children;
@@ -185,6 +207,8 @@ class Tooltip extends React.Component<Props, State> {
               style={style}
               data-placement={placement}
               popperStyle={popperStyle}
+              onMouseEnter={() => isHoverable && this.handleOpen()}
+              onMouseLeave={() => isHoverable && this.handleClose()}
             >
               {title}
               <TooltipArrow
