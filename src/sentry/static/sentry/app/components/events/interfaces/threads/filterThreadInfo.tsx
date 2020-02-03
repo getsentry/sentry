@@ -4,7 +4,7 @@ import {trimPackage} from 'app/components/events/interfaces/frame';
 
 import getThreadStacktrace from './getThreadStacktrace';
 import getRelevantFrame from './getRelevantFrame';
-import trimFilename from './trim-filename';
+import trimFilename from './trimFilename';
 
 // TODO(i18n): add traslations here
 const NOT_FOUND_FRAME = '<unknown>';
