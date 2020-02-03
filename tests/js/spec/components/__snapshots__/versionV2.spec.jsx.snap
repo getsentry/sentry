@@ -7,7 +7,6 @@ exports[`Version renders 1`] = `
 >
   <Tooltip
     containerDisplayMode="inline-block"
-    delay={50}
     disabled={true}
     isHoverable={true}
     position="top"

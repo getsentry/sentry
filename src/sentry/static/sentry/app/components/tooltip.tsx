@@ -81,8 +81,8 @@ class Tooltip extends React.Component<Props, State> {
     delay: PropTypes.number,
 
     /**
-     * If true, there is a slight delay before hiding tooltip - good when
-     * user wants to copy something from tooltip to clipboard
+     * If true, user is able to hover tooltip without it disappearing.
+     * (nice if you want to be able to copy tooltip contents to clipboard)
      */
     isHoverable: PropTypes.bool,
   };
