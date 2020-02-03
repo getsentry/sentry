@@ -680,11 +680,11 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                       >
                                                         <Component
                                                           align="center"
-                                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                          className="css-1n6v23v-ButtonLabel edwq9my1"
                                                           size="xsmall"
                                                         >
                                                           <span
-                                                            className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                            className="css-1n6v23v-ButtonLabel edwq9my1"
                                                           >
                                                             Add Team
                                                             <StyledChevronDown>
@@ -832,11 +832,11 @@ exports[`InviteMember should render roles when available and allowed, and handle
                 >
                   <Component
                     align="center"
-                    className="css-zmpclt-ButtonLabel edwq9my1"
+                    className="css-18wvyub-ButtonLabel edwq9my1"
                     priority="primary"
                   >
                     <span
-                      className="css-zmpclt-ButtonLabel edwq9my1"
+                      className="css-18wvyub-ButtonLabel edwq9my1"
                     >
                       Add Member
                     </span>

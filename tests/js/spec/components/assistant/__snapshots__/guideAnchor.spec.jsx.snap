@@ -119,7 +119,7 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                             role="button"
                           >
                             <span
-                              class="css-19gcr2f-ButtonLabel edwq9my1"
+                              class="css-l3ekl7-ButtonLabel edwq9my1"
                             >
                               Next
                                →
@@ -327,12 +327,12 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                                               >
                                                 <Component
                                                   align="center"
-                                                  className="css-19gcr2f-ButtonLabel edwq9my1"
+                                                  className="css-l3ekl7-ButtonLabel edwq9my1"
                                                   priority="success"
                                                   size="small"
                                                 >
                                                   <span
-                                                    className="css-19gcr2f-ButtonLabel edwq9my1"
+                                                    className="css-l3ekl7-ButtonLabel edwq9my1"
                                                   >
                                                     Next
                                                      →
@@ -468,7 +468,7 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                             role="button"
                           >
                             <span
-                              class="css-19gcr2f-ButtonLabel edwq9my1"
+                              class="css-l3ekl7-ButtonLabel edwq9my1"
                             >
                               Done
                             </span>
@@ -638,12 +638,12 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                                               >
                                                 <Component
                                                   align="center"
-                                                  className="css-19gcr2f-ButtonLabel edwq9my1"
+                                                  className="css-l3ekl7-ButtonLabel edwq9my1"
                                                   priority="success"
                                                   size="small"
                                                 >
                                                   <span
-                                                    className="css-19gcr2f-ButtonLabel edwq9my1"
+                                                    className="css-l3ekl7-ButtonLabel edwq9my1"
                                                   >
                                                     Done
                                                   </span>

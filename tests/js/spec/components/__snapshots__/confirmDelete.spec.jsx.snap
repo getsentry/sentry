@@ -224,10 +224,10 @@ exports[`ConfirmDelete renders 1`] = `
                     >
                       <Component
                         align="center"
-                        className="css-zmpclt-ButtonLabel edwq9my1"
+                        className="css-18wvyub-ButtonLabel edwq9my1"
                       >
                         <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
+                          className="css-18wvyub-ButtonLabel edwq9my1"
                         >
                           Cancel
                         </span>
@@ -290,11 +290,11 @@ exports[`ConfirmDelete renders 1`] = `
                     >
                       <Component
                         align="center"
-                        className="css-zmpclt-ButtonLabel edwq9my1"
+                        className="css-18wvyub-ButtonLabel edwq9my1"
                         priority="primary"
                       >
                         <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
+                          className="css-18wvyub-ButtonLabel edwq9my1"
                         >
                           Confirm
                         </span>
