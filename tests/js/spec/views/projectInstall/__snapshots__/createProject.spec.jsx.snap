@@ -1568,10 +1568,10 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                       <Component
                                         align="center"
                                         borderless={true}
-                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                        className="css-1n6v23v-ButtonLabel edwq9my1"
                                       >
                                         <span
-                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                          className="css-1n6v23v-ButtonLabel edwq9my1"
                                         >
                                           <Icon
                                             hasChildren={false}
@@ -1671,11 +1671,11 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                     >
                       <Component
                         align="center"
-                        className="css-zmpclt-ButtonLabel edwq9my1"
+                        className="css-18wvyub-ButtonLabel edwq9my1"
                         priority="primary"
                       >
                         <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
+                          className="css-18wvyub-ButtonLabel edwq9my1"
                         >
                           Create Project
                         </span>
@@ -2184,11 +2184,11 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                 <Component
                                   align="center"
                                   borderless={true}
-                                  className="css-12az27u-ButtonLabel edwq9my1"
+                                  className="css-13dyfrt-ButtonLabel edwq9my1"
                                   size="xsmall"
                                 >
                                   <span
-                                    className="css-12az27u-ButtonLabel edwq9my1"
+                                    className="css-13dyfrt-ButtonLabel edwq9my1"
                                   >
                                     <Icon
                                       hasChildren={false}
@@ -2586,10 +2586,10 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                       <Component
                                         align="center"
                                         borderless={true}
-                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                        className="css-1n6v23v-ButtonLabel edwq9my1"
                                       >
                                         <span
-                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                          className="css-1n6v23v-ButtonLabel edwq9my1"
                                         >
                                           <Icon
                                             hasChildren={false}
@@ -2689,11 +2689,11 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                     >
                       <Component
                         align="center"
-                        className="css-zmpclt-ButtonLabel edwq9my1"
+                        className="css-18wvyub-ButtonLabel edwq9my1"
                         priority="primary"
                       >
                         <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
+                          className="css-18wvyub-ButtonLabel edwq9my1"
                         >
                           Create Project
                         </span>
@@ -3102,11 +3102,11 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                 <Component
                                   align="center"
                                   borderless={true}
-                                  className="css-12az27u-ButtonLabel edwq9my1"
+                                  className="css-13dyfrt-ButtonLabel edwq9my1"
                                   size="xsmall"
                                 >
                                   <span
-                                    className="css-12az27u-ButtonLabel edwq9my1"
+                                    className="css-13dyfrt-ButtonLabel edwq9my1"
                                   >
                                     <Icon
                                       hasChildren={false}
@@ -4304,10 +4304,10 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                       <Component
                                         align="center"
                                         borderless={true}
-                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                        className="css-1n6v23v-ButtonLabel edwq9my1"
                                       >
                                         <span
-                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                          className="css-1n6v23v-ButtonLabel edwq9my1"
                                         >
                                           <Icon
                                             hasChildren={false}
@@ -4407,11 +4407,11 @@ exports[`CreateProject should fill in project name if its empty when platform is
                     >
                       <Component
                         align="center"
-                        className="css-zmpclt-ButtonLabel edwq9my1"
+                        className="css-18wvyub-ButtonLabel edwq9my1"
                         priority="primary"
                       >
                         <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
+                          className="css-18wvyub-ButtonLabel edwq9my1"
                         >
                           Create Project
                         </span>

@@ -1016,12 +1016,12 @@ exports[`Project Ownership Input renders 1`] = `
                     >
                       <Component
                         align="center"
-                        className="css-19gcr2f-ButtonLabel edwq9my1"
+                        className="css-l3ekl7-ButtonLabel edwq9my1"
                         priority="primary"
                         size="small"
                       >
                         <span
-                          className="css-19gcr2f-ButtonLabel edwq9my1"
+                          className="css-l3ekl7-ButtonLabel edwq9my1"
                         >
                           <Icon
                             hasChildren={false}
@@ -1184,12 +1184,12 @@ url:http://example.com/settings/* #product"
                       >
                         <Component
                           align="center"
-                          className="css-19gcr2f-ButtonLabel edwq9my1"
+                          className="css-l3ekl7-ButtonLabel edwq9my1"
                           priority="primary"
                           size="small"
                         >
                           <span
-                            className="css-19gcr2f-ButtonLabel edwq9my1"
+                            className="css-l3ekl7-ButtonLabel edwq9my1"
                           >
                             Save Changes
                           </span>
