@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0028_user_reports"),
+        ("sentry", "0029_discover_query_upgrade"),
     ]
 
     operations = [
