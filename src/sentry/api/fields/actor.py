@@ -14,7 +14,7 @@ class Actor(namedtuple("Actor", "id type")):
         return "%s:%d" % (self.type.__name__.lower(), self.id)
 
     @classmethod
-    def from_actor_id(cls, actor_identifier):
+    def from_actor_identifier(cls, actor_identifier):
         """
         Returns an Actor tuple corresponding to a User or Team associated with
         the given identifier.
@@ -89,6 +89,6 @@ class ActorField(serializers.Field):
             return None
 
         try:
-            return Actor.from_actor_id(data)
+            return Actor.from_actor_identifier(data)
         except Exception:
             raise serializers.ValidationError("Unknown actor input")
