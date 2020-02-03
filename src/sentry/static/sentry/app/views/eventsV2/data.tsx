@@ -56,6 +56,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
 ];
 
 export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
+  DEFAULT_EVENT_VIEW,
   {
     id: undefined,
     name: t('Errors by Title'),
