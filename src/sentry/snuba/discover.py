@@ -437,7 +437,7 @@ def get_id(result):
         return result[1]
 
 
-def get_pagination_ids(event, query, params, reference_event=None, referrer=None):
+def get_pagination_ids(event, query, params, organization, reference_event=None, referrer=None):
     """
     High-level API for getting pagination data for an event + filter
 
@@ -458,12 +458,38 @@ def get_pagination_ids(event, query, params, reference_event=None, referrer=None
         if ref_conditions:
             snuba_filter.conditions.extend(ref_conditions)
 
-    return PaginationResult(
-        next=get_id(eventstore.get_next_event_id(event, filter=snuba_filter)),
-        previous=get_id(eventstore.get_prev_event_id(event, filter=snuba_filter)),
-        latest=get_id(eventstore.get_latest_event_id(event, filter=snuba_filter)),
-        oldest=get_id(eventstore.get_earliest_event_id(event, filter=snuba_filter)),
-    )
+    result = {
+        "next": eventstore.get_next_event_id(event, filter=snuba_filter),
+        "previous": eventstore.get_prev_event_id(event, filter=snuba_filter),
+        "latest": eventstore.get_latest_event_id(event, filter=snuba_filter),
+        "oldest": eventstore.get_earliest_event_id(event, filter=snuba_filter),
+    }
+
+    # translate project ids to slugs
+
+    project_ids = set([tuple[0] for tuple in result.values() if tuple])
+
+    project_slugs = {}
+    projects = Project.objects.filter(
+        id__in=list(project_ids), organization=organization, status=ProjectStatus.VISIBLE
+    ).values("id", "slug")
+
+    for project in projects:
+        project_slugs[project["id"]] = project["slug"]
+
+    def into_pagination_record(project_slug_event_id):
+
+        if not project_slug_event_id:
+            return None
+
+        project_id = int(project_slug_event_id[0])
+
+        return "{}:{}".format(project_slugs[project_id], project_slug_event_id[1])
+
+    for key, value in result.items():
+        result[key] = into_pagination_record(value)
+
+    return PaginationResult(**result)
 
 
 def get_facets(query, params, limit=10, referrer=None):
