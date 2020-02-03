@@ -1,8 +1,6 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
 
 export type ObjectStatus =
   | 'active'
@@ -188,7 +186,8 @@ type SentryEventBase = {
   culprit: string;
   metadata: EventMetadata;
   contexts: EventContexts;
-  context?: any; // TODO(ts)
+  context?: {[key: string]: any};
+  packages?: {[key: string]: string};
   user: EventUser;
   message: string;
   platform?: string;
@@ -287,7 +286,7 @@ export type Environment = {
 // TODO(ts): This type is incomplete
 export type SavedSearch = {};
 
-export type Plugin = {
+export type PluginNoProject = {
   id: string;
   name: string;
   slug: string;
@@ -301,12 +300,25 @@ export type Plugin = {
   status: string;
   assets: any[]; // TODO(ts)
   doc: string;
-  enabled?: boolean;
   version?: string;
   author?: {name: string; url: string};
   isHidden: boolean;
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+};
+
+export type Plugin = PluginNoProject & {
+  enabled: boolean;
+};
+
+export type PluginWithProjectList = PluginNoProject & {
+  projectList: Array<{
+    projectId: string;
+    projectSlug: string;
+    projectName: string;
+    enabled: boolean;
+    configured: boolean;
+  }>;
 };
 
 export type GlobalSelection = {
@@ -458,9 +470,16 @@ export type Repository = {
   integrationId: string;
   name: string;
   provider: {id: string; name: string};
-  status: string;
+  status: RepositoryStatus;
   url: string;
 };
+export enum RepositoryStatus {
+  ACTIVE = 'active',
+  DISABLED = 'disabled',
+  HIDDEN = 'hidden',
+  PENDING_DELETION = 'pending_deletion',
+  DELETION_IN_PROGRESS = 'deletion_in_progress',
+}
 
 export type IntegrationProvider = {
   key: string;
@@ -643,6 +662,38 @@ export type UserReport = {
   email: string;
 };
 
+export type Release = {
+  commitCount: number;
+  data: {};
+  lastDeploy?: Deploy;
+  deployCount: number;
+  lastEvent: string;
+  firstEvent: string;
+  lastCommit?: Commit;
+  authors: User[];
+  owner?: any; // TODO(ts)
+  newGroups: number;
+  projects: {slug: string; name: string}[];
+} & BaseRelease;
+
+export type BaseRelease = {
+  dateReleased: string;
+  url: string;
+  dateCreated: string;
+  version: string;
+  shortVersion: string;
+  ref: string;
+};
+
+export type Deploy = {
+  id: string;
+  name: string;
+  url: string;
+  environment: string;
+  dateStarted: string;
+  dateFinished: string;
+};
+
 export type Commit = {
   id: string;
   key: string;
@@ -650,6 +701,7 @@ export type Commit = {
   dateCreated: string;
   repository?: Repository;
   author?: User;
+  releases: BaseRelease[];
 };
 
 export type MemberRole = {
@@ -668,11 +720,6 @@ export type SentryAppComponent = {
     slug: string;
     name: string;
   };
-};
-
-export type RouterProps = {
-  params: Params;
-  location: Location;
 };
 
 export type ActiveExperiments = {

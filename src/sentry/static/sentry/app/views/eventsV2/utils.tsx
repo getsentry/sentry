@@ -5,6 +5,11 @@ import isString from 'lodash/isString';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
+import {
+  tokenizeSearch,
+  stringifyQueryObject,
+  QueryResults,
+} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
 import {Event, Organization, OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
@@ -26,7 +31,6 @@ import {
 import {
   AGGREGATE_ALIASES,
   SPECIAL_FIELDS,
-  LINK_FORMATTERS,
   FIELD_FORMATTERS,
   FieldTypes,
   FieldFormatterRenderFunctionPartial,
@@ -45,7 +49,7 @@ export type EventQuery = {
   per_page?: number;
 };
 
-const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
+const AGGREGATE_PATTERN = /^([^\(]+)\((.*)\)$/;
 const ROUND_BRACKETS_PATTERN = /[\(\)]/;
 
 function explodeFieldString(field: string): {aggregation: string; field: string} {
@@ -196,25 +200,17 @@ export function getDefaultWidth(key: Aggregation | Field): number {
  *
  * @param {String} field name
  * @param {object} metadata mapping.
- * @param {boolean} Whether or not to coerce a field into a link.
  * @returns {Function}
  */
 export function getFieldRenderer(
   field: string,
-  meta: MetaType,
-  forceLink: boolean
+  meta: MetaType
 ): FieldFormatterRenderFunctionPartial {
   if (SPECIAL_FIELDS.hasOwnProperty(field)) {
     return SPECIAL_FIELDS[field].renderFunc;
   }
   const fieldName = getAggregateAlias(field);
   const fieldType = meta[fieldName];
-
-  // If the current field is being coerced to a link
-  // use a different formatter set based on the type.
-  if (forceLink && LINK_FORMATTERS.hasOwnProperty(fieldType)) {
-    return partial(LINK_FORMATTERS[fieldType], fieldName);
-  }
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
@@ -231,9 +227,8 @@ export function getAggregateAlias(field: string): string {
   }
   return field
     .replace(AGGREGATE_PATTERN, '$1_$2')
-    .replace('.', '_')
-    .replace(/_+$/, '')
-    .toLowerCase();
+    .replace(/\./g, '_')
+    .replace(/_+$/, '');
 }
 
 export type QueryWithColumnState =
@@ -253,7 +248,6 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   type: 'never',
   isDragging: false,
   isSortable: false,
-  isPrimary: false,
 
   eventViewField: Object.freeze({field: '', width: COL_WIDTH_DEFAULT}),
 };
@@ -288,7 +282,6 @@ export function decodeColumnOrder(
     column.isSortable = AGGREGATIONS[column.aggregation]
       ? AGGREGATIONS[column.aggregation].isSortable
       : false;
-    column.isPrimary = column.field === 'title';
     column.eventViewField = f;
 
     return column;
@@ -436,6 +429,30 @@ export function getExpandedResults(
     nextView = nextView.withDeletedColumn(i, undefined);
   });
 
+  // filter out any aggregates from the search conditions.
+  // otherwise, it'll lead to an invalid query result.
+  const queryWithNoAggregates = Object.entries(tokenizeSearch(nextView.query)).reduce(
+    (acc: QueryResults, [field, value]) => {
+      if (field === 'query') {
+        acc.query = value;
+        return acc;
+      }
+
+      const column = explodeFieldString(field);
+
+      if (column.aggregation) {
+        return acc;
+      }
+
+      acc[field] = value;
+
+      return acc;
+    },
+    {query: []}
+  );
+
+  nextView.query = stringifyQueryObject(queryWithNoAggregates);
+
   // Tokenize conditions and append additional conditions provided + generated.
   Object.keys(additionalConditions).forEach(key => {
     if (key === 'project' || key === 'project.id') {
@@ -444,6 +461,13 @@ export function getExpandedResults(
     }
     if (key === 'environment') {
       nextView.environment = [...nextView.environment, additionalConditions[key]];
+      return;
+    }
+
+    // filter out any aggregates from provided additional conditions.
+    // otherwise, it'll lead to an invalid query result.
+    const column = explodeFieldString(key);
+    if (column.aggregation) {
       return;
     }
 

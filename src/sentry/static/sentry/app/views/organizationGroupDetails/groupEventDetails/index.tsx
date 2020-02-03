@@ -1,4 +1,5 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
 import {t} from 'app/locale';
@@ -7,19 +8,15 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
 import {Client} from 'app/api';
-import {
-  GlobalSelection,
-  Organization,
-  Environment,
-  RouterProps,
-  Project,
-  Group,
-} from 'app/types';
+import {GlobalSelection, Organization, Environment, Project, Group} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
-type Props = RouterProps & {
+type Props = RouteComponentProps<
+  {orgId: string; groupId: string; eventId?: string},
+  {}
+> & {
   api: Client;
   organization: Organization;
   selection: GlobalSelection;

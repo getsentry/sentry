@@ -11,13 +11,20 @@ const SELECTOR_BUTTON_SAVED = 'ButtonSaved';
 const SELECTOR_BUTTON_UPDATE = '[data-test-id="discover2-savedquery-button-update"]';
 const SELECTOR_BUTTON_DELETE = '[data-test-id="discover2-savedquery-button-delete"]';
 
-function generateWrappedComponent(location, organization, eventView, savedQuery) {
+function generateWrappedComponent(
+  location,
+  organization,
+  eventView,
+  savedQuery,
+  disabled = false
+) {
   return mountWithTheme(
     <SavedQueryButtonGroup
       location={location}
       organization={organization}
       eventView={eventView}
       savedQuery={savedQuery}
+      disabled={disabled}
     />,
     TestStubs.routerContext()
   );
@@ -31,7 +38,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
     query: {},
   };
 
-  const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors');
+  const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors by Title');
   const errorsView = EventView.fromSavedQuery(errorsQuery);
 
   const errorsViewSaved = EventView.fromSavedQuery(errorsQuery);
@@ -50,6 +57,19 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
 
     beforeEach(() => {
       mockUtils.mockClear();
+    });
+
+    it('renders disabled buttons when disabled prop is used', () => {
+      const wrapper = generateWrappedComponent(
+        location,
+        organization,
+        errorsView,
+        undefined,
+        true
+      );
+
+      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
+      expect(buttonSaveAs.props().disabled).toBe(true);
     });
 
     it('renders the correct set of buttons', () => {
@@ -122,15 +142,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       buttonSaveAs.find('ButtonSaveDropDown Button').simulate('click');
 
       // Check that EventView has a name
-      expect(errorsView.name).toBe('Errors');
-
-      /**
-       * This does not work because SavedQueryButtonGroup is wrapped by 2 HOCs
-       * and we cannot access the state of the inner component. But it should
-       * be empty because we didn't fill in Input. If it has a value, then the
-       * test will fail anyway
-       */
-      // expect(wrapper.state('queryName')).toBe('');
+      expect(errorsView.name).toBe('Errors by Title');
 
       expect(mockUtils).not.toHaveBeenCalled();
     });

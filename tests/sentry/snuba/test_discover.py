@@ -224,7 +224,7 @@ class QueryTransformTest(TestCase):
                 query="event.type:transaction",
                 params={"project_id": [self.project.id]},
             )
-        assert "No fields" in six.text_type(err)
+        assert "No columns selected" in six.text_type(err)
         assert mock_query.call_count == 0
 
     @patch("sentry.snuba.discover.raw_query")
@@ -1043,7 +1043,10 @@ class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
             self.organization, slug, ["message", "transaction", "unknown-field"]
         )
         result = discover.create_reference_event_conditions(ref)
-        assert result == [["message", "=", "oh no!"], ["transaction", "=", "/issues/{issue_id}"]]
+        assert result == [
+            ["message", "=", "oh no! /issues/{issue_id}"],
+            ["transaction", "=", "/issues/{issue_id}"],
+        ]
 
     def test_geo_field(self):
         event = self.store_event(
@@ -1386,7 +1389,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         result = discover.get_facets("", params)
         keys = {r.key for r in result}
         assert keys == {"environment", "level"}
-        assert {"prod", "staging", None} == {f.value for f in result if f.key == "environment"}
+        assert {None, "prod", "staging"} == {f.value for f in result if f.key == "environment"}
         assert {1} == {f.count for f in result if f.key == "environment"}
 
     def test_query_string(self):
