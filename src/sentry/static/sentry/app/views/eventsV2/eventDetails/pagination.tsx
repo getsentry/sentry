@@ -36,13 +36,11 @@ function buildTargets(
 
   const links: {[k in keyof LinksType]?: any} = {};
 
-  Object.entries(urlMap).forEach(([key, projectEventID]) => {
+  Object.entries(urlMap).forEach(([key, eventSlug]) => {
     // If the urlMap has no value we want to skip this link as it is 'disabled';
-    if (!projectEventID) {
+    if (!eventSlug) {
       links[key] = null;
     } else {
-      const eventSlug = projectEventID;
-
       links[key] = {
         pathname: generateEventDetailsRoute({eventSlug, orgSlug: organization.slug}),
         query: eventView.generateQueryStringObject(),
