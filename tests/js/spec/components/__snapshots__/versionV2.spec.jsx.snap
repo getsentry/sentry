@@ -1,0 +1,29 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Version renders 1`] = `
+<VersionV2
+  orgId="sentry"
+  version="foo.bar.Baz@1.0.0+20200101"
+>
+  <Tooltip
+    containerDisplayMode="inline-block"
+    delay={50}
+    disabled={true}
+    isHoverable={true}
+    position="top"
+    title="foo.bar.Baz@1.0.0+20200101"
+  >
+    <Link
+      to="/organizations/sentry/releases-v2/foo.bar.Baz%401.0.0%2B20200101/"
+    >
+      <a
+        href="/organizations/sentry/releases-v2/foo.bar.Baz%401.0.0%2B20200101/"
+      >
+        <span>
+          1.0.0 (20200101)
+        </span>
+      </a>
+    </Link>
+  </Tooltip>
+</VersionV2>
+`;
