@@ -12,6 +12,7 @@ from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
 from sentry.signals import alert_rule_created
 
 from sentry.integrations.slack import tasks
+from sentry.mediators import project_rules
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
@@ -53,15 +54,28 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         serializer = RuleSerializer(context={"project": project}, data=request.data)
 
         if serializer.is_valid():
-            if serializer.validated_data.get("pending_save"):
+            data = serializer.validated_data
+            kwargs = {
+                "name": data["name"],
+                "environment": data.get("environment", None),
+                "project": project,
+                "action_match": data["actionMatch"],
+                "conditions": data["conditions"],
+                "actions": data["actions"],
+                "frequency": data["frequency"],
+            }
+
+            rule = project_rules.Creator.run(
+                pending_save=data.get("pending_save", False), request=request, **kwargs
+            )
+
+            if not rule:
                 uuid = uuid4().hex
-                tasks.find_channel_id_for_rule.apply_async(
-                    kwargs={"serializer": serializer, "project_id": project.id, "uuid": uuid}
-                )
+                kwargs.update({"uuid": uuid})
+                tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
                 context = {"uuid": uuid}
                 return Response(context, status=202)
 
-            rule = serializer.save(rule=Rule())
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,

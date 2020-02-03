@@ -202,7 +202,7 @@ from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
-from .endpoints.project_rule_async_task import ProjectRuleTaskEndpoint
+from .endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
 from .endpoints.project_search_details import ProjectSearchDetailsEndpoint
@@ -1315,9 +1315,9 @@ urlpatterns = [
                     name="sentry-api-0-project-rule-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-async-tasks/(?P<task_uuid>[^\/]+)/$",
-                    ProjectRuleTaskEndpoint.as_view(),
-                    name="sentry-api-0-project-rule-async-tasks",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
+                    ProjectRuleTaskDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-task-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/$",

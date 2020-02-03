@@ -117,7 +117,7 @@ class RuleEditor extends React.Component {
     const origRule = {...this.state.rule};
 
     const {status, rule} = await api.requestPromise(
-      `/projects/${organization.slug}/${project.slug}/rule-async-tasks/${uuid}/`
+      `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
     );
 
     if (status === 'pending') {
@@ -129,17 +129,11 @@ class RuleEditor extends React.Component {
       // TODO(meredith): better error message - maybe get the error
       // passed through from the endpoint?
       addErrorMessage(t('An error occurred'));
-      this.setState({loading: false, rule: origRule});
+      this.setState({loading: false});
     }
     if (rule && status === 'success') {
-      this.setState({error: null, loading: false, rule});
       const isNew = !origRule.id;
-      if (isNew) {
-        browserHistory.replace(
-          recreateRoute(`${rule.id}/`, {...this.props, stepBack: -1})
-        );
-      }
-      addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
+      this.handleRuleSuccess(isNew, rule);
     }
   };
 
@@ -150,6 +144,15 @@ class RuleEditor extends React.Component {
   stopPolling() {
     clearInterval(this.intervalId);
   }
+
+  handleRuleSuccess = (isNew, rule) => {
+    this.setState({error: null, loading: false, rule});
+    // Redirect to correct ID if /new
+    if (isNew) {
+      browserHistory.replace(recreateRoute(`${rule.id}/`, {...this.props, stepBack: -1}));
+    }
+    addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
+  };
 
   handleSubmit = e => {
     e.preventDefault();
@@ -176,19 +179,11 @@ class RuleEditor extends React.Component {
         // if we get a 202 back it means that we have an async task
         // running to lookup and verfity the channel id for Slack.
         if (jqXHR.status === 202) {
-          const rule = {...this.state.rule};
-          this.setState({error: null, loading: true, rule, uuid: resp.uuid});
+          this.setState({error: null, loading: true, uuid: resp.uuid});
           this.fetchStatus();
           addMessage(t('Looking through all your damn channels...'));
         } else {
-          this.setState({error: null, loading: false, rule: resp});
-          // Redirect to correct ID if /new
-          if (isNew) {
-            browserHistory.replace(
-              recreateRoute(`${resp.id}/`, {...this.props, stepBack: -1})
-            );
-          }
-          addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
+          this.handleRuleSuccess(isNew, resp);
         }
       },
       error: response => {

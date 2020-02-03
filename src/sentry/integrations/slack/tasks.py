@@ -10,6 +10,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.models import Integration, Project, Rule
 
 from sentry.utils.redis import redis_clusters
+from sentry.mediators import project_rules
 
 MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
@@ -48,11 +49,13 @@ class RedisRuleStatus(object):
 
 
 @instrumented_task(name="sentry.integrations.slack.search_channel_id", queue="integrations")
-def find_channel_id_for_rule(serializer, project_id, uuid, rule_id=None):
+def find_channel_id_for_rule(
+    name, environment, project, action_match, conditions, actions, frequency, uuid, rule_id=None
+):
     redis_rule_status = RedisRuleStatus(uuid)
 
     try:
-        project = Project.objects.get(id=project_id)
+        project = Project.objects.get(id=project.id)
     except Project.DoesNotExist:
         redis_rule_status._set_value("failed")
         return
@@ -61,7 +64,7 @@ def find_channel_id_for_rule(serializer, project_id, uuid, rule_id=None):
     integration_id = None
     channel_name = None
 
-    for action in serializer.validated_data["actions"]:
+    for action in actions:
         if action.get("workspace") and action.get("channel"):
             integration_id = action["workspace"]
             # we need to strip the prefix when searching on the channel name
@@ -99,12 +102,22 @@ def find_channel_id_for_rule(serializer, project_id, uuid, rule_id=None):
 
             item_id = {c["name"]: c["id"] for c in items[result_name]}.get(channel_name)
             if item_id:
+                kwargs = {
+                    "name": name,
+                    "environment": environment,
+                    "project": project,
+                    "action_match": action_match,
+                    "conditions": conditions,
+                    "actions": actions,
+                    "frequency": frequency,
+                }
+
                 if rule_id:
                     rule = Rule.objects.get(id=rule_id)
+                    rule = project_rules.Updater.run(rule=rule, pending_save=False, **kwargs)
                 else:
-                    rule = Rule()
+                    rule = project_rules.Creator.run(pending_save=False, **kwargs)
 
-                rule = serializer.save(rule)
                 redis_rule_status._set_value("success", rule.id)
                 return
     # if we never find the channel name we failed :(

@@ -11,6 +11,7 @@ from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
 
 from sentry.integrations.slack import tasks
+from sentry.mediators import project_rules
 
 
 class ProjectRuleDetailsEndpoint(ProjectEndpoint):
@@ -50,30 +51,37 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         serializer = RuleSerializer(context={"project": project}, data=request.data, partial=True)
 
         if serializer.is_valid():
-            if serializer.validated_data.get("pending_save"):
+            data = serializer.validated_data
+            kwargs = {
+                "name": data["name"],
+                "environment": data.get("environment", None),
+                "project": project,
+                "action_match": data["actionMatch"],
+                "conditions": data["conditions"],
+                "actions": data["actions"],
+                "frequency": data["frequency"],
+            }
+
+            updated_rule = project_rules.Updater.run(
+                rule=rule, pending_save=data.get("pending_save", False), request=request, **kwargs
+            )
+
+            if not updated_rule:
                 uuid = uuid4().hex
-                tasks.find_channel_id_for_rule.apply_async(
-                    kwargs={
-                        "serializer": serializer,
-                        "project_id": project.id,
-                        "uuid": uuid,
-                        "rule_id": rule.id,
-                    }
-                )
+                kwargs.update({"uuid": uuid, "rule_id": rule.id})
+                tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
                 context = {"uuid": uuid}
                 return Response(context, status=202)
-
-            rule = serializer.save(rule=rule)
 
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
-                target_object=rule.id,
+                target_object=updated_rule.id,
                 event=AuditLogEntryEvent.RULE_EDIT,
-                data=rule.get_audit_log_data(),
+                data=updated_rule.get_audit_log_data(),
             )
 
-            return Response(serialize(rule, request.user))
+            return Response(serialize(updated_rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

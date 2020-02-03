@@ -1,0 +1,46 @@
+from __future__ import absolute_import
+
+import six
+
+from collections import Iterable
+from sentry.mediators import Mediator, Param
+from sentry.models import Rule
+
+
+class Creator(Mediator):
+    name = Param(six.string_types)
+    environment = Param(int, required=False)
+    project = Param("sentry.models.Project")
+    action_match = Param(six.string_types)
+    actions = Param(Iterable)
+    conditions = Param(Iterable)
+    frequency = Param(int)
+    pending_save = Param(bool)
+    request = Param("rest_framework.request.Request", required=False)
+
+    def call(self):
+        self.rule = self._create_rule()
+        return self.rule
+
+    def _create_rule(self):
+        if self.pending_save:
+            return None
+
+        kwargs = self._get_kwargs()
+        rule = Rule.objects.create(**kwargs)
+        return rule
+
+    def _get_kwargs(self):
+        data = {
+            "action_match": self.action_match,
+            "actions": self.actions,
+            "conditions": self.conditions,
+            "frequency": self.frequency,
+        }
+        _kwargs = {
+            "label": self.name,
+            "environment_id": self.environment or None,
+            "project": self.project,
+            "data": data,
+        }
+        return _kwargs

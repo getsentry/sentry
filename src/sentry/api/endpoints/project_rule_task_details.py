@@ -20,7 +20,7 @@ def _get_value_from_redis(task_uuid):
     return json.loads(value)
 
 
-class ProjectRuleTaskEndpoint(ProjectEndpoint):
+class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
     permission_classes = [ProjectSettingPermission]
 
     def get(self, request, project, task_uuid):
