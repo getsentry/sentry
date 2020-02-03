@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import React from 'react';
 import styled from '@emotion/styled';
 import {ClassNames} from '@emotion/core';
@@ -24,7 +23,7 @@ type Props = {
 
 const DROPDOWN_MAX_HEIGHT = 400;
 
-const ThreadsSelector: React.FC<Props> = ({threads, event, activeThread, onChange}) => {
+const ThreadsSelector = ({threads, event, activeThread, onChange}: Props) => {
   const getDropDownItem = (thread: Thread) => {
     const threadInfo = filterThreadInfo(thread, event, false);
 

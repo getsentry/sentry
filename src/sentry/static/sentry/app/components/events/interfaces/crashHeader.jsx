@@ -91,17 +91,7 @@ class CrashHeader extends React.Component {
     const {title, beforeTitle, hideGuide, stackView, stackType, newestFirst} = this.props;
 
     let titleNode = (
-      <h3
-        className="pull-left"
-        style={{
-          marginBottom: 0,
-          maxWidth: '100%',
-          width: '100%',
-          marginRight: space(1),
-          marginLeft: space(1),
-          whiteSpace: 'nowrap',
-        }}
-      >
+      <StyledH3 className="pull-left">
         {title}
         <small style={{marginLeft: 5}}>
           (
@@ -112,7 +102,7 @@ class CrashHeader extends React.Component {
           </Tooltip>
           )
         </small>
-      </h3>
+      </StyledH3>
     );
 
     if (!hideGuide) {
@@ -210,6 +200,17 @@ const TitleInfo = styled('div')`
 `;
 
 const ButtonGroup = styled('div')`
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
+  padding-top: ${space(1.5)};
+  padding-bottom: ${space(1.5)};
+`;
+
+const StyledH3 = styled('h3')`
+  & {
+    margin-bottom: 0px;
+    max-width: 100%;
+    width: 100%;
+    margin-right: ${space(1)};
+    margin-left: ${space(1)};
+    white-space: nowrap;
+  }
 `;

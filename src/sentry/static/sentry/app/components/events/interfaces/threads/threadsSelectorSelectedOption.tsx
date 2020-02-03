@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -15,7 +14,7 @@ type ThreadInfo = {
   filename?: string;
 };
 
-const ThreadsSelectorSelectedOption: React.FC<Props> = ({id, details}) => (
+const ThreadsSelectorSelectedOption = ({id, details}: Props) => (
   <StyledContainer>
     <StyledThreadID>{`Thread #${id}:`}</StyledThreadID>
     <StyledOptionLabel>{details.label}</StyledOptionLabel>

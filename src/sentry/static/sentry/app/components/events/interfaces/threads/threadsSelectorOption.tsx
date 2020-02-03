@@ -1,18 +1,18 @@
-/* eslint-disable react/prop-types */
 import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import TextOverflow from 'app/components/textOverflow';
+import Tooltip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
 import {EntryTypeData} from 'app/types';
 
 type Props = {
   id: string;
-  name?: string;
-  crashed?: boolean;
   details: ThreadInfo;
   crashedInfo?: EntryTypeData;
+  name?: string;
+  crashed?: boolean;
 };
 
 type ThreadInfo = {
@@ -21,13 +21,7 @@ type ThreadInfo = {
 };
 
 // TODO (i18n): added translations here
-const ThreadsSelectorOption: React.FC<Props> = ({
-  id,
-  name,
-  details,
-  crashed,
-  crashedInfo,
-}) => (
+const ThreadsSelectorOption = ({id, name, details, crashed, crashedInfo}: Props) => (
   <Wrapper>
     <DetailsWrapper>
       <StyledNameId>{name ? `#${id}: ${name}` : `#${id}`}</StyledNameId>
@@ -42,12 +36,14 @@ const ThreadsSelectorOption: React.FC<Props> = ({
         )}
       </LabelsWrapper>
     </DetailsWrapper>
-    {crashed && (
-      <StyledCrashIcon
-        src="icon-warning-sm"
-        title={crashedInfo ? `(crashed with ${crashedInfo.values[0].type})` : ''}
-      />
-    )}
+    {crashed &&
+      (crashedInfo ? (
+        <Tooltip title={`(crashed with ${crashedInfo.values[0].type}`} position="top">
+          <StyledCrashIcon src="icon-warning-sm" />
+        </Tooltip>
+      ) : (
+        <StyledCrashIcon src="icon-warning-sm" />
+      ))}
   </Wrapper>
 );
 
