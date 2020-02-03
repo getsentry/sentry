@@ -211,6 +211,54 @@ class Sidebar extends React.Component {
     }
   };
 
+  /**
+   * Determine which mix of discovers and events tabs to show for an account.
+   */
+  discoverSidebarState() {
+    const {organization} = this.props;
+    // Default all things to off
+    const sidebarState = {
+      discover1: false,
+      discover2: false,
+      events: false,
+    };
+
+    // Bail as we can't do any more checks.
+    if (!organization) {
+      return sidebarState;
+    }
+    const optState = localStorage.getItem('discover:version');
+    const features = organization.features;
+
+    if (features.includes('discover-basic')) {
+      // If there is no opt-out state show discover2
+      if (!optState || optState === '2') {
+        sidebarState.discover2 = true;
+      }
+      // User wants discover1
+      if (optState === '1') {
+        sidebarState.discover1 = true;
+        sidebarState.events = true;
+      }
+      return sidebarState;
+    }
+
+    // If an account has the old features they continue to have
+    // access to them.
+    if (features.includes('discover')) {
+      sidebarState.discover1 = true;
+    }
+    if (features.includes('events')) {
+      sidebarState.events = true;
+    }
+
+    // TODO(mark) Once discover2 is on for all accounts if an organization
+    // doesn't have events, or discover-basic sidebarState.discover2 should = true
+    // so that we can show an upsell.
+
+    return sidebarState;
+  }
+
   sidebarRef = React.createRef();
 
   render() {
@@ -226,12 +274,8 @@ class Sidebar extends React.Component {
       hasPanel,
     };
     const hasOrganization = !!organization;
-    // If the user has not opted either way on discover 1/2 prefer the one they have
-    // access to and default to '1' if they have neither so events tab displays.
-    let discoverVersion = localStorage.getItem('discover:version');
-    if (discoverVersion === null && organization && organization.features) {
-      discoverVersion = organization.features.includes('discover-basic') ? '2' : '1';
-    }
+
+    const discoverState = this.discoverSidebarState();
 
     return (
       <StyledSidebar ref={this.sidebarRef} collapsed={collapsed}>
@@ -273,7 +317,7 @@ class Sidebar extends React.Component {
                     id="issues"
                   />
 
-                  {discoverVersion !== '2' && (
+                  {discoverState.events && (
                     <Feature
                       features={['events']}
                       hookName="feature-disabled:events-sidebar-item"
@@ -295,7 +339,7 @@ class Sidebar extends React.Component {
                     </Feature>
                   )}
 
-                  {discoverVersion === '2' && (
+                  {discoverState.discover2 && (
                     <Feature
                       hookName="feature-disabled:discover2-sidebar-item"
                       features={['discover-basic']}
@@ -377,7 +421,7 @@ class Sidebar extends React.Component {
                     />
                   </Feature>
 
-                  {discoverVersion === '1' && (
+                  {discoverState.discover1 && (
                     <Feature
                       features={['discover']}
                       hookName="feature-disabled:discover-sidebar-item"
