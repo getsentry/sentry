@@ -42,8 +42,9 @@ class RedisRuleStatus(object):
         if rule_id:
             value["rule_id"] = six.text_type(rule_id)
         if status == "failed":
-            # TODO(meredith): set some generic error? or pass in an error?
-            value["error"] = "some error"
+            value[
+                "error"
+            ] = "The slack resource does not exist or has not been granted access in that workspace."
 
         return json.dumps(value)
 

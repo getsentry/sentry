@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.conf import settings
-
+from django.http import Http404
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
@@ -33,15 +33,22 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
         result = _get_value_from_redis(task_uuid)
         status = result["status"]
         rule_id = result.get("rule_id", None)
+        error = result.get("error", None)
 
-        context = {"status": status, "rule": None}
+        context = {"status": status, "rule": None, "error": None}
 
         if rule_id and status == "success":
-            rule = Rule.objects.get(
-                project=project,
-                id=int(rule_id),
-                status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
-            )
-            context["rule"] = serialize(rule, request.user)
+            try:
+                rule = Rule.objects.get(
+                    project=project,
+                    id=int(rule_id),
+                    status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
+                )
+                context["rule"] = serialize(rule, request.user)
+            except Rule.DoesNotExist:
+                raise Http404
+
+        if status == "failed":
+            context["error"] = error
 
         return Response(context, status=200)

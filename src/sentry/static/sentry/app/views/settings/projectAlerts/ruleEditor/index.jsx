@@ -75,10 +75,6 @@ class RuleEditor extends React.Component {
     }
   }
 
-  componentWillUnmount() {
-    this.stopPolling();
-  }
-
   fetchData() {
     const {
       api,
@@ -108,7 +104,6 @@ class RuleEditor extends React.Component {
 
   fetchStatus() {
     this.pollHandler();
-    this.startPolling();
   }
 
   pollHandler = async () => {
@@ -116,20 +111,26 @@ class RuleEditor extends React.Component {
     const {uuid} = this.state;
     const origRule = {...this.state.rule};
 
-    const {status, rule} = await api.requestPromise(
-      `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
-    );
+    const response = await api
+      .requestPromise(`/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`)
+      .catch(() => {
+        addErrorMessage(t('An error occurred'));
+        this.setState({loading: false});
+      });
+
+    const {status, rule, error} = response;
 
     if (status === 'pending') {
+      setTimeout(this.pollHandler, 1000);
       return;
     }
 
-    this.stopPolling();
     if (status === 'failed') {
-      // TODO(meredith): better error message - maybe get the error
-      // passed through from the endpoint?
+      this.setState({
+        error: {actions: [error]} || {__all__: 'Unknown error'},
+        loading: false,
+      });
       addErrorMessage(t('An error occurred'));
-      this.setState({loading: false});
     }
     if (rule && status === 'success') {
       const isNew = !origRule.id;
@@ -138,11 +139,7 @@ class RuleEditor extends React.Component {
   };
 
   startPolling() {
-    this.intervalId = setInterval(this.pollHandler, 1000);
-  }
-
-  stopPolling() {
-    clearInterval(this.intervalId);
+    setTimeout(this.pollHandler, 1000);
   }
 
   handleRuleSuccess = (isNew, rule) => {
