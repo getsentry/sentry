@@ -172,6 +172,11 @@ export default class SentryAppDetailsModal extends AsyncComponent<
               <Flex>{features.length && this.featureTags(features)}</Flex>
             </NameContainer>
           </Flex>
+          <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
+            <li className="active">
+              <a>Information</a>
+            </li>
+          </ul>
           <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
           <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
 
