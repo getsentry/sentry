@@ -1105,6 +1105,8 @@ class EventManager(object):
             extra["level"] = data["level"]
         if group.culprit != data["culprit"]:
             extra["culprit"] = data["culprit"]
+        if group.first_seen > event.datetime:
+            extra["first_seen"] = event.datetime
 
         is_regression = self._handle_regression(group, event, release)
 
