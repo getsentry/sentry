@@ -438,7 +438,7 @@ class TableView extends React.Component<TableViewProps> {
                 renderBodyCell: this._renderGridBodyCell as any,
                 onResizeColumn: this._updateColumn as any,
                 renderPrependColumns: this._renderPrependColumns as any,
-                prependColumnWidths: ['50px'],
+                prependColumnWidths: ['40px'],
               }}
               modalEditColumn={{
                 renderBodyWithForm: renderModalBodyWithForm as any,
