@@ -7,6 +7,8 @@ import styled from '@emotion/styled';
 
 import {domId} from 'app/utils/domId';
 
+const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
+
 type Props = {
   children: React.ReactElement;
   disabled?: boolean;
@@ -79,7 +81,8 @@ class Tooltip extends React.Component<Props, State> {
     delay: PropTypes.number,
 
     /**
-     * Time to wait (in milliseconds) before hiding the tooltip
+     * If true, there is a slight delay before hiding tooltip - good when
+     * user wants to copy something from tooltip to clipboard
      */
     isHoverable: PropTypes.bool,
   };
@@ -119,15 +122,15 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleOpen = () => {
-    const {delay} = this.props;
+    const {delay, isHoverable} = this.props;
 
     if (this.delayHideTimeout) {
       window.clearTimeout(this.delayHideTimeout);
       this.delayHideTimeout = null;
     }
 
-    if (delay) {
-      this.delayTimeout = window.setTimeout(this.setOpen, delay);
+    if (delay || isHoverable) {
+      this.delayTimeout = window.setTimeout(this.setOpen, delay || IS_HOVERABLE_DELAY);
     } else {
       this.setOpen();
     }
@@ -142,7 +145,7 @@ class Tooltip extends React.Component<Props, State> {
     }
 
     if (isHoverable) {
-      this.delayHideTimeout = window.setTimeout(this.setClose, 50);
+      this.delayHideTimeout = window.setTimeout(this.setClose, IS_HOVERABLE_DELAY);
     } else {
       this.setClose();
     }

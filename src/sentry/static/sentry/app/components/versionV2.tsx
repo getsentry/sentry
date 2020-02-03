@@ -47,12 +47,7 @@ export const VersionV2 = ({
   };
 
   return (
-    <Tooltip
-      title={parsedVersion.raw}
-      disabled={!tooltipRawVersion}
-      isHoverable
-      delay={50}
-    >
+    <Tooltip title={parsedVersion.raw} disabled={!tooltipRawVersion} isHoverable>
       {renderVersion()}
     </Tooltip>
   );
