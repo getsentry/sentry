@@ -472,7 +472,7 @@ def get_pagination_ids(event, query, params, organization, reference_event=None,
     project_slugs = {}
     projects = Project.objects.filter(
         id__in=list(project_ids), organization=organization, status=ProjectStatus.VISIBLE
-    ).values()
+    ).values("id", "slug")
 
     for project in projects:
         project_slugs[project["id"]] = project["slug"]
