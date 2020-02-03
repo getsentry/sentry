@@ -15,20 +15,17 @@ type ThreadInfo = {
 };
 
 const ThreadsSelectorSelectedOption = ({id, details}: Props) => (
-  <StyledContainer>
+  <Container>
     <StyledThreadID>{`Thread #${id}:`}</StyledThreadID>
     <StyledOptionLabel>{details.label}</StyledOptionLabel>
-  </StyledContainer>
+  </Container>
 );
 
 export default ThreadsSelectorSelectedOption;
 
-const StyledContainer = styled('div')`
+const Container = styled('div')`
   grid-template-columns: 110px 1fr;
   display: grid;
-  justify-content: flex-start;
-  align-items: center;
-  justify-items: start;
 `;
 
 const StyledThreadID = styled(TextOverflow)`
