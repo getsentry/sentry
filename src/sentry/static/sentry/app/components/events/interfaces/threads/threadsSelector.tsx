@@ -69,14 +69,18 @@ const ThreadsSelector: React.FC<Props> = ({threads, event, activeThread, onChang
           // TODO(fix): unfortunately the dropDown is not playing well with emotion js
           className={css`
             width: 100%;
-            @media (min-width: ${theme.breakpoints[0]}) {
+            @media (min-width: ${theme.breakpoints[2]}) {
               width: 700px;
             }
           `}
           rootClassName={css`
             width: 100%;
-            @media (min-width: ${theme.breakpoints[0]}) {
+            flex: 1;
+            margin-bottom: ${space(1)};
+            @media (min-width: ${theme.breakpoints[2]}) {
               width: auto;
+              flex: initial;
+              margin-bottom: ${space(0)};
             }
           `}
         >
@@ -105,12 +109,10 @@ export default ThreadsSelector;
 
 const StyledDropdownButton = styled(DropdownButton)`
   width: 100%;
-  margin-bottom: ${space(1)};
   > *:first-child {
     grid-template-columns: 1fr 15px;
   }
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
     width: 420px;
-    margin-bottom: ${space(0)};
   }
 `;
