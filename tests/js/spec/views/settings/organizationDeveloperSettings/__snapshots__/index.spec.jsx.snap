@@ -246,12 +246,12 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                 >
                                   <Component
                                     align="center"
-                                    className="css-l3ekl7-ButtonLabel edwq9my1"
+                                    className="css-19gcr2f-ButtonLabel edwq9my1"
                                     priority="primary"
                                     size="small"
                                   >
                                     <span
-                                      className="css-l3ekl7-ButtonLabel edwq9my1"
+                                      className="css-19gcr2f-ButtonLabel edwq9my1"
                                     >
                                       <Icon
                                         hasChildren={true}
@@ -418,12 +418,12 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                 >
                                   <Component
                                     align="center"
-                                    className="css-l3ekl7-ButtonLabel edwq9my1"
+                                    className="css-19gcr2f-ButtonLabel edwq9my1"
                                     priority="primary"
                                     size="small"
                                   >
                                     <span
-                                      className="css-l3ekl7-ButtonLabel edwq9my1"
+                                      className="css-19gcr2f-ButtonLabel edwq9my1"
                                     >
                                       <Icon
                                         hasChildren={true}

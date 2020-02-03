@@ -295,11 +295,11 @@ exports[`TableField renders renders with form context 1`] = `
                                                 >
                                                   <Component
                                                     align="center"
-                                                    className="css-1n6v23v-ButtonLabel edwq9my1"
+                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
                                                     size="xsmall"
                                                   >
                                                     <span
-                                                      className="css-1n6v23v-ButtonLabel edwq9my1"
+                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
                                                     >
                                                       <Icon
                                                         hasChildren={true}
@@ -498,11 +498,11 @@ exports[`TableField renders renders with form context 1`] = `
                         >
                           <Component
                             align="center"
-                            className="css-18wvyub-ButtonLabel edwq9my1"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
                             priority="primary"
                           >
                             <span
-                              className="css-18wvyub-ButtonLabel edwq9my1"
+                              className="css-zmpclt-ButtonLabel edwq9my1"
                             >
                               Save Changes
                             </span>
@@ -724,11 +724,11 @@ exports[`TableField renders renders without form context 1`] = `
                                           >
                                             <Component
                                               align="center"
-                                              className="css-1n6v23v-ButtonLabel edwq9my1"
+                                              className="css-cmi7y3-ButtonLabel edwq9my1"
                                               size="xsmall"
                                             >
                                               <span
-                                                className="css-1n6v23v-ButtonLabel edwq9my1"
+                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                               >
                                                 <Icon
                                                   hasChildren={true}

@@ -175,11 +175,11 @@ exports[`ExternalIssueForm create renders 1`] = `
                           >
                             <Component
                               align="center"
-                              className="css-18wvyub-ButtonLabel edwq9my1"
+                              className="css-zmpclt-ButtonLabel edwq9my1"
                               priority="primary"
                             >
                               <span
-                                className="css-18wvyub-ButtonLabel edwq9my1"
+                                className="css-zmpclt-ButtonLabel edwq9my1"
                               >
                                 Create Issue
                               </span>
@@ -3049,11 +3049,11 @@ exports[`ExternalIssueForm link renders 1`] = `
                           >
                             <Component
                               align="center"
-                              className="css-18wvyub-ButtonLabel edwq9my1"
+                              className="css-zmpclt-ButtonLabel edwq9my1"
                               priority="primary"
                             >
                               <span
-                                className="css-18wvyub-ButtonLabel edwq9my1"
+                                className="css-zmpclt-ButtonLabel edwq9my1"
                               >
                                 Link Issue
                               </span>

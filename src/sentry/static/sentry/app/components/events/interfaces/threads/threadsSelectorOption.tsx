@@ -106,4 +106,5 @@ const StyledFileName = styled(StyledNameId)`
 const StyledOptionLabel = styled(StyledNameId)`
   color: #2c58a8;
   padding-right: ${space(0)};
+  font-weight: 600;
 `;

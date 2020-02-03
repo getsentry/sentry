@@ -106,6 +106,9 @@ export default ThreadsSelector;
 const StyledDropdownButton = styled(DropdownButton)`
   width: 100%;
   margin-bottom: ${space(1)};
+  > *:first-child {
+    grid-template-columns: 1fr 15px;
+  }
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     width: 420px;
     margin-bottom: ${space(0)};

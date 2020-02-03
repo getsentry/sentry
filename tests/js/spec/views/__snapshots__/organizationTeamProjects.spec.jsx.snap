@@ -240,11 +240,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                 >
                                                   <Component
                                                     align="center"
-                                                    className="css-1n6v23v-ButtonLabel edwq9my1"
+                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
                                                     size="xsmall"
                                                   >
                                                     <span
-                                                      className="css-1n6v23v-ButtonLabel edwq9my1"
+                                                      className="css-cmi7y3-ButtonLabel edwq9my1"
                                                     >
                                                       Add Project
                                                       <StyledChevronDown>
@@ -635,11 +635,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               >
                                 <Component
                                   align="center"
-                                  className="css-l3ekl7-ButtonLabel edwq9my1"
+                                  className="css-19gcr2f-ButtonLabel edwq9my1"
                                   size="small"
                                 >
                                   <span
-                                    className="css-l3ekl7-ButtonLabel edwq9my1"
+                                    className="css-19gcr2f-ButtonLabel edwq9my1"
                                   >
                                     <RemoveIcon>
                                       <Component
@@ -997,11 +997,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               >
                                 <Component
                                   align="center"
-                                  className="css-l3ekl7-ButtonLabel edwq9my1"
+                                  className="css-19gcr2f-ButtonLabel edwq9my1"
                                   size="small"
                                 >
                                   <span
-                                    className="css-l3ekl7-ButtonLabel edwq9my1"
+                                    className="css-19gcr2f-ButtonLabel edwq9my1"
                                   >
                                     <RemoveIcon>
                                       <Component

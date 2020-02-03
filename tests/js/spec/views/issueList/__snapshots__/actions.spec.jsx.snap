@@ -205,10 +205,10 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                     >
                       <Component
                         align="center"
-                        className="css-18wvyub-ButtonLabel edwq9my1"
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                       >
                         <span
-                          className="css-18wvyub-ButtonLabel edwq9my1"
+                          className="css-zmpclt-ButtonLabel edwq9my1"
                         >
                           Cancel
                         </span>
@@ -271,11 +271,11 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                     >
                       <Component
                         align="center"
-                        className="css-18wvyub-ButtonLabel edwq9my1"
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                         priority="primary"
                       >
                         <span
-                          className="css-18wvyub-ButtonLabel edwq9my1"
+                          className="css-zmpclt-ButtonLabel edwq9my1"
                         >
                           Bulk resolve issues
                         </span>
@@ -530,10 +530,10 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                     >
                       <Component
                         align="center"
-                        className="css-18wvyub-ButtonLabel edwq9my1"
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                       >
                         <span
-                          className="css-18wvyub-ButtonLabel edwq9my1"
+                          className="css-zmpclt-ButtonLabel edwq9my1"
                         >
                           Cancel
                         </span>
@@ -596,11 +596,11 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                     >
                       <Component
                         align="center"
-                        className="css-18wvyub-ButtonLabel edwq9my1"
+                        className="css-zmpclt-ButtonLabel edwq9my1"
                         priority="primary"
                       >
                         <span
-                          className="css-18wvyub-ButtonLabel edwq9my1"
+                          className="css-zmpclt-ButtonLabel edwq9my1"
                         >
                           Bulk resolve issues
                         </span>

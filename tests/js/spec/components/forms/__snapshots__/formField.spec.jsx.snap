@@ -327,11 +327,11 @@ exports[`FormField + model renders with Form 1`] = `
                         >
                           <Component
                             align="center"
-                            className="css-18wvyub-ButtonLabel edwq9my1"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
                             priority="primary"
                           >
                             <span
-                              className="css-18wvyub-ButtonLabel edwq9my1"
+                              className="css-zmpclt-ButtonLabel edwq9my1"
                             >
                               Save Changes
                             </span>

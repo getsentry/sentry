@@ -1242,11 +1242,11 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                           >
                                             <Component
                                               align="center"
-                                              className="css-1n6v23v-ButtonLabel edwq9my1"
+                                              className="css-cmi7y3-ButtonLabel edwq9my1"
                                               size="xsmall"
                                             >
                                               <span
-                                                className="css-1n6v23v-ButtonLabel edwq9my1"
+                                                className="css-cmi7y3-ButtonLabel edwq9my1"
                                               >
                                                 Show
                                               </span>
