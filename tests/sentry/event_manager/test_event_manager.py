@@ -898,6 +898,7 @@ class EventManagerTest(TestCase):
                         }
                     },
                     "spans": [],
+                    "timestamp": "2019-06-14T14:01:40Z",
                     "start_timestamp": "2019-06-14T14:01:40Z",
                     "type": "transaction",
                 }
@@ -1119,6 +1120,7 @@ class EventManagerTest(TestCase):
                     }
                 },
                 spans=[],
+                timestamp="2019-06-14T14:01:40Z",
                 start_timestamp="2019-06-14T14:01:40Z",
                 type="transaction",
                 platform="python",
@@ -1153,6 +1155,7 @@ class EventManagerTest(TestCase):
                     }
                 },
                 spans=[],
+                timestamp="2019-06-14T14:01:40Z",
                 start_timestamp="2019-06-14T14:01:40Z",
                 type="transaction",
                 platform="python",

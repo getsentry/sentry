@@ -977,8 +977,8 @@ def update_alert_rule_trigger(
         updated_fields["threshold_type"] = threshold_type.value
     if alert_threshold is not None:
         updated_fields["alert_threshold"] = alert_threshold
-    if resolve_threshold is not None:
-        updated_fields["resolve_threshold"] = resolve_threshold
+    # We set resolve_threshold to None as a 'reset', in case it was previously a value and we're removing it here.
+    updated_fields["resolve_threshold"] = resolve_threshold
 
     deleted_exclusion_ids = []
     new_subs = []

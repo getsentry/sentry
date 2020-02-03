@@ -35,6 +35,7 @@ class RuleNode extends React.Component {
 
     return (
       <SelectField
+        deprecatedSelectControl
         clearable={false}
         placeholder={t('Select integration')}
         noResultsText={t('No integrations available')}
