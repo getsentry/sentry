@@ -28,7 +28,7 @@ describe('AccountNotifications', function() {
   it('renders with values from API', function() {
     const wrapper = mountWithTheme(<AccountNotifications />, TestStubs.routerContext());
 
-    // "Send Me Project Alerts"
+    // "Send Me Alerts"
     expect(wrapper.find('Switch[name="subscribeByDefault"]').prop('isActive')).toBe(true);
 
     // "Workflow Notifications"

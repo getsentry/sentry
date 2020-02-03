@@ -229,7 +229,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             sources = parse_sources(sources_json.strip())
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
-            raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError(six.text_type(e))
 
         return sources_json
 
@@ -240,7 +240,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
-            raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError(six.text_type(e))
 
         return value
 
@@ -251,7 +251,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             FingerprintingRules.from_config_string(value)
         except InvalidFingerprintingConfig as e:
-            raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError(six.text_type(e))
 
         return value
 

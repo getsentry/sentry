@@ -224,7 +224,7 @@ class QueryTransformTest(TestCase):
                 query="event.type:transaction",
                 params={"project_id": [self.project.id]},
             )
-        assert "No fields" in six.text_type(err)
+        assert "No columns selected" in six.text_type(err)
         assert mock_query.call_count == 0
 
     @patch("sentry.snuba.discover.raw_query")
@@ -1389,7 +1389,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         result = discover.get_facets("", params)
         keys = {r.key for r in result}
         assert keys == {"environment", "level"}
-        assert {"prod", "staging", None} == {f.value for f in result if f.key == "environment"}
+        assert {None, "prod", "staging"} == {f.value for f in result if f.key == "environment"}
         assert {1} == {f.count for f in result if f.key == "environment"}
 
     def test_query_string(self):

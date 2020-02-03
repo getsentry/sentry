@@ -66,7 +66,7 @@ redis>=2.10.3,<2.10.6
 requests-oauthlib==1.2.0
 requests[security]>=2.20.0,<2.21.0
 selenium==3.141.0
-sentry-relay>=0.5.0,<0.6.0
+sentry-relay>=0.5.1,<0.6.0
 sentry-sdk>=0.13.5
 setproctitle>=1.1.7,<1.2.0
 simplejson>=3.2.0,<3.9.0

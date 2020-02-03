@@ -411,7 +411,11 @@ class Project(Model, PendingDeletionMixin):
         except IntegrityError as e:
             logging.exception(
                 "Error occurred during copy project settings.",
-                extra={"error": e.message, "project_to": self.id, "project_from": project_id},
+                extra={
+                    "error": six.text_type(e),
+                    "project_to": self.id,
+                    "project_from": project_id,
+                },
             )
             return False
         return True

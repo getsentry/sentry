@@ -2,7 +2,7 @@
 /LICENSE  @getsentry/owners-legal
 
 # Migrations
-/src/sentry/south_migrations/  @getsentry/owners-migrations
+/src/sentry/migrations/  @getsentry/owners-migrations
 
 # Snuba
 /src/sentry/eventstream/        @getsentry/owners-snuba
