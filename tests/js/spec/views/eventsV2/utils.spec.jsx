@@ -305,12 +305,75 @@ describe('getExpandedResults()', function() {
     environment: ['staging'],
   };
 
-  it('removes aggregate fields from result view', () => {
-    const view = new EventView(state);
-    const result = getExpandedResults(view, {}, {});
+  it('preserve aggregated fields', () => {
+    let view = new EventView(state);
+    let result = getExpandedResults(view, {}, {});
 
-    expect(result.fields).toEqual([{field: 'title'}, {field: 'custom_tag'}]);
+    expect(result.fields).toEqual([
+      {field: 'id', width: 300}, // expect count() to be converted to id
+      {field: 'timestamp', width: 300},
+      {field: 'title'},
+      {field: 'custom_tag'},
+    ]);
     expect(result.query).toEqual('event.type:error');
+
+    // de-duplicate transformed columns
+
+    view = new EventView({
+      ...state,
+      fields: [
+        {field: 'count()'},
+        {field: 'last_seen'},
+        {field: 'title'},
+        {field: 'custom_tag'},
+        {field: 'count(id)'},
+      ],
+    });
+
+    result = getExpandedResults(view, {}, {});
+
+    expect(result.fields).toEqual([
+      {field: 'id', width: 300}, // expect count() to be converted to id
+      {field: 'timestamp', width: 300},
+      {field: 'title'},
+      {field: 'custom_tag'},
+    ]);
+
+    // transform aliased fields, & de-duplicate any transforms
+
+    view = new EventView({
+      ...state,
+      fields: [
+        {field: 'last_seen'}, // expect this to be transformed to transaction.duration
+        {field: 'latest_event'},
+        {field: 'title'},
+        {field: 'avg(transaction.duration)'}, // expect this to be dropped
+        {field: 'p75()'},
+        {field: 'p95()'},
+        {field: 'p99()'},
+        // legacy parameterless functions
+        {field: 'p75'},
+        {field: 'p95'},
+        {field: 'p99'},
+        {field: 'custom_tag'},
+        {field: 'title'}, // not expected to be dropped
+        {field: 'unique_count(id)'},
+        // expect these aliases to be dropped
+        {field: 'apdex'},
+        {field: 'impact'},
+      ],
+    });
+
+    result = getExpandedResults(view, {}, {});
+
+    expect(result.fields).toEqual([
+      {field: 'timestamp', width: 300},
+      {field: 'id', width: 300},
+      {field: 'title'},
+      {field: 'transaction.duration', width: 300},
+      {field: 'custom_tag'},
+      {field: 'title'},
+    ]);
   });
 
   it('applies provided conditions', () => {
