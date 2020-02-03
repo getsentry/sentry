@@ -979,6 +979,11 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_not_has(self):
         assert get_filter("!has:release").conditions == [[["isNull", ["release"]], "=", 1]]
 
+    def test_has_issue_id(self):
+        has_issue_filter = get_filter("has:issue.id")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "!=", 1]]
+
     def test_message_negative(self):
         assert get_filter('!message:"post_process.process_error HTTPError 403"').conditions == [
             [
