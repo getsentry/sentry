@@ -2,7 +2,6 @@ import EventView, {
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
 } from 'app/views/eventsV2/eventView';
-import {AUTOLINK_FIELDS} from 'app/views/eventsV2/data';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
 
 const generateFields = fields => {
@@ -1015,30 +1014,6 @@ describe('EventView.getFields()', function() {
   });
 });
 
-describe('EventView.hasAutolinkField()', function() {
-  it('returns false when none of the fields are auto-linkable', function() {
-    const eventView = new EventView({
-      fields: [{field: 'count()'}, {field: 'project.id'}],
-      sorts: [],
-      project: [],
-    });
-
-    expect(eventView.hasAutolinkField()).toEqual(false);
-  });
-
-  it('returns true when any of the fields are auto-linkable', function() {
-    for (const field of AUTOLINK_FIELDS) {
-      const eventView = new EventView({
-        fields: generateFields([field]),
-        sorts: [],
-        project: [],
-      });
-
-      expect(eventView.hasAutolinkField()).toEqual(true);
-    }
-  });
-});
-
 describe('EventView.numOfColumns()', function() {
   it('returns correct number of columns', function() {
     // has columns
@@ -1187,6 +1162,7 @@ describe('EventView.withUpdatedColumn()', function() {
 
   const meta = {
     count: 'integer',
+    title: 'string',
   };
 
   it('update a column with no changes', function() {
@@ -1425,6 +1401,7 @@ describe('EventView.withDeletedColumn()', function() {
 
   const meta = {
     count: 'integer',
+    title: 'string',
   };
 
   it('returns itself when attempting to delete the last remaining column', function() {
@@ -1681,7 +1658,7 @@ describe('EventView.sortOnField()', function() {
     environment: ['staging'],
   };
 
-  const meta = {count: 'integer'};
+  const meta = {count: 'integer', title: 'string'};
 
   it('returns itself when attempting to sort on un-sortable field', function() {
     const eventView = new EventView(state);
@@ -1865,6 +1842,7 @@ describe('isAPIPayloadSimilar', function() {
 
   const meta = {
     count: 'integer',
+    title: 'string',
   };
 
   describe('getEventsAPIPayload', function() {

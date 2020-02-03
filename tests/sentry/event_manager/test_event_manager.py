@@ -898,6 +898,7 @@ class EventManagerTest(TestCase):
                         }
                     },
                     "spans": [],
+                    "timestamp": "2019-06-14T14:01:40Z",
                     "start_timestamp": "2019-06-14T14:01:40Z",
                     "type": "transaction",
                 }
@@ -928,6 +929,20 @@ class EventManagerTest(TestCase):
         event = manager.save(self.project.id)
 
         assert event.message == "hello world"
+
+    def test_search_message(self):
+        manager = EventManager(
+            make_event(
+                **{
+                    "message": "test",
+                    "logentry": {"message": "hello world"},
+                    "transaction": "sentry.tasks.process",
+                }
+            )
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+        assert event.search_message == "hello world sentry.tasks.process"
 
     def test_stringified_message(self):
         manager = EventManager(make_event(**{"message": 1234}))
@@ -1105,6 +1120,7 @@ class EventManagerTest(TestCase):
                     }
                 },
                 spans=[],
+                timestamp="2019-06-14T14:01:40Z",
                 start_timestamp="2019-06-14T14:01:40Z",
                 type="transaction",
                 platform="python",
@@ -1139,6 +1155,7 @@ class EventManagerTest(TestCase):
                     }
                 },
                 spans=[],
+                timestamp="2019-06-14T14:01:40Z",
                 start_timestamp="2019-06-14T14:01:40Z",
                 type="transaction",
                 platform="python",

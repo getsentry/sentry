@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
+import six
 from rest_framework.exceptions import PermissionDenied, ParseError
-
 from django.core.cache import cache
 
 from sentry.api.base import Endpoint
@@ -244,8 +244,8 @@ class OrganizationEndpoint(Endpoint):
         # from the request
         try:
             start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
-        except InvalidParams as exc:
-            raise OrganizationEventsError(exc.message)
+        except InvalidParams as e:
+            raise OrganizationEventsError(six.text_type(e))
 
         try:
             projects = self.get_projects(request, organization)
@@ -255,7 +255,7 @@ class OrganizationEndpoint(Endpoint):
         if not projects:
             raise NoProjects
 
-        environments = [e.name for e in self.get_environments(request, organization)]
+        environments = [env.name for env in self.get_environments(request, organization)]
         params = {"start": start, "end": end, "project_id": [p.id for p in projects]}
         if environments:
             params["environment"] = environments

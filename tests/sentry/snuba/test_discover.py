@@ -224,7 +224,7 @@ class QueryTransformTest(TestCase):
                 query="event.type:transaction",
                 params={"project_id": [self.project.id]},
             )
-        assert "No fields" in six.text_type(err)
+        assert "No columns selected" in six.text_type(err)
         assert mock_query.call_count == 0
 
     @patch("sentry.snuba.discover.raw_query")
@@ -366,6 +366,38 @@ class QueryTransformTest(TestCase):
             aggregations=[
                 ["quantile(0.95)(duration)", None, "p95"],
                 ["uniq", "transaction", "count_unique_transaction"],
+                ["argMax", ["event_id", "timestamp"], "latest_event"],
+                ["argMax", ["project_id", "timestamp"], "projectid"],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_error_rate_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "error_rate"}],
+            "data": [{"transaction": "api.do_things", "error_rate": 0.314159}],
+        }
+        discover.query(
+            selected_columns=["transaction", "error_rate()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                ["divide(countIf(notEquals(transaction_status, 0)), count(*))", None, "error_rate"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
             ],
@@ -872,6 +904,19 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         )
         assert len(result.data["data"]) == 3
 
+    def test_error_rate_field_alias(self):
+        result = discover.timeseries_query(
+            selected_columns=["error_rate()"],
+            query="event.type:transaction transaction:api.issue.delete",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+
     def test_aggregate_function(self):
         result = discover.timeseries_query(
             selected_columns=["count()"],
@@ -998,7 +1043,10 @@ class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
             self.organization, slug, ["message", "transaction", "unknown-field"]
         )
         result = discover.create_reference_event_conditions(ref)
-        assert result == [["message", "=", "oh no!"], ["transaction", "=", "/issues/{issue_id}"]]
+        assert result == [
+            ["message", "=", "oh no! /issues/{issue_id}"],
+            ["transaction", "=", "/issues/{issue_id}"],
+        ]
 
     def test_geo_field(self):
         event = self.store_event(
@@ -1341,7 +1389,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         result = discover.get_facets("", params)
         keys = {r.key for r in result}
         assert keys == {"environment", "level"}
-        assert {"prod", "staging", None} == {f.value for f in result if f.key == "environment"}
+        assert {None, "prod", "staging"} == {f.value for f in result if f.key == "environment"}
         assert {1} == {f.count for f in result if f.key == "environment"}
 
     def test_query_string(self):

@@ -6,8 +6,9 @@ import re
 import warnings
 from collections import namedtuple
 from enum import Enum
-
 from datetime import timedelta
+
+import six
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
@@ -185,8 +186,10 @@ class GroupManager(BaseManager):
             return manager.save(project)
 
         # TODO(jess): this method maybe isn't even used?
-        except HashDiscarded as exc:
-            logger.info("discarded.hash", extra={"project_id": project, "description": exc.message})
+        except HashDiscarded as e:
+            logger.info(
+                "discarded.hash", extra={"project_id": project, "description": six.text_type(e)}
+            )
 
     def from_event_id(self, project, event_id):
         """

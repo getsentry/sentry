@@ -1,5 +1,6 @@
 import React from 'react';
 import pick from 'lodash/pick';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Panel, PanelBody} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -11,12 +12,12 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import parseApiError from 'app/utils/parseApiError';
-import {RouterProps, EventAttachment, Group} from 'app/types';
+import {EventAttachment, Group} from 'app/types';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 
-type Props = RouterProps & {
+type Props = RouteComponentProps<{orgId: string; groupId: string}, {}> & {
   api: Client;
   group: Group;
 };
