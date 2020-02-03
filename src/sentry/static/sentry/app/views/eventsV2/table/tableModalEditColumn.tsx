@@ -168,6 +168,7 @@ class TableModalEditColumnBodyForm extends React.Component<
         >
           <FormRow>
             <SelectField
+              deprecatedSelectControl
               name="aggregation"
               label={t('Aggregate')}
               placeholder="Select Aggregate"
@@ -175,6 +176,7 @@ class TableModalEditColumnBodyForm extends React.Component<
               onChange={this.onChangeAggregation}
             />
             <SelectField
+              deprecatedSelectControl
               required
               name="field"
               label={t('Column Type')}

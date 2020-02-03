@@ -2,7 +2,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import IncidentActivity from 'app/views/incidents/details/activity';
+import IncidentActivity from 'app/views/alerts/details/activity';
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
 
 describe('IncidentDetails -> Activity', function() {
@@ -25,7 +25,7 @@ describe('IncidentDetails -> Activity', function() {
   const createWrapper = props =>
     mountWithTheme(
       <IncidentActivity
-        params={{incidentId: incident.identifier, orgId: organization.slug}}
+        params={{alertId: incident.identifier, orgId: organization.slug}}
         {...props}
       />,
       routerContext

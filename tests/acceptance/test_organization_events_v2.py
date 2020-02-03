@@ -27,7 +27,6 @@ def all_events_query(**kwargs):
     options = {
         "sort": ["-timestamp"],
         "field": ["title", "event.type", "project", "user", "timestamp"],
-        "tag": ["event.type", "release", "project.name", "user.email", "user.ip", "environment"],
         "name": ["All Events"],
     }
     options.update(kwargs)
@@ -37,10 +36,9 @@ def all_events_query(**kwargs):
 
 def errors_query(**kwargs):
     options = {
-        "sort": ["-last_seen", "-title"],
+        "sort": ["-title"],
         "name": ["Errors"],
-        "field": ["title", "count(id)", "count_unique(user)", "project", "last_seen"],
-        "tag": ["error.type", "project.name"],
+        "field": ["title", "count(id)", "count_unique(user)", "project"],
         "query": ["event.type:error"],
     }
     options.update(kwargs)
@@ -53,7 +51,6 @@ def transactions_query(**kwargs):
         "sort": ["-count"],
         "name": ["Transactions"],
         "field": ["transaction", "project", "count()"],
-        "tag": ["release", "project.name", "user.email", "user.ip", "environment"],
         "statsPeriod": ["14d"],
         "query": ["event.type:transaction"],
     }
@@ -415,6 +412,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # View the query list
             self.browser.get(self.landing_path)
             self.wait_until_loaded()
+
+            # Dismiss assistant as it is in the way.
+            self.browser.element('[aria-label="Got It"]').click()
 
             # Look at the results for our query.
             self.browser.element('[data-test-id="card-{}"]'.format(query.name)).click()

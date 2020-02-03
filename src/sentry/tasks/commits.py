@@ -132,7 +132,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                 repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
         except NotImplementedError:
             pass
-        except Exception as exc:
+        except Exception as e:
             logger.info(
                 "fetch_commits.error",
                 extra={
@@ -140,15 +140,15 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                     "user_id": user_id,
                     "repository": repo.name,
                     "provider": provider.id,
-                    "error": six.text_type(exc),
+                    "error": six.text_type(e),
                     "end_sha": end_sha,
                     "start_sha": start_sha,
                 },
             )
-            if isinstance(exc, InvalidIdentity) and getattr(exc, "identity", None):
-                handle_invalid_identity(identity=exc.identity, commit_failure=True)
-            elif isinstance(exc, (PluginError, InvalidIdentity, IntegrationError)):
-                msg = generate_fetch_commits_error_email(release, exc.message)
+            if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
+                handle_invalid_identity(identity=e.identity, commit_failure=True)
+            elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):
+                msg = generate_fetch_commits_error_email(release, six.text_type(e))
                 msg.send_async(to=[user.email])
             else:
                 msg = generate_fetch_commits_error_email(

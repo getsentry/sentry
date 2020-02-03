@@ -28,9 +28,9 @@ const TagStore = Reflux.createStore({
     this.reset();
   },
 
-  reset() {
+  getIssueAttributes() {
     // TODO(mitsuhiko): what do we do with translations here?
-    this.tags = {
+    return {
       is: {
         key: 'is',
         name: 'Status',
@@ -96,6 +96,10 @@ const TagStore = Reflux.createStore({
         predefined: true,
       },
     };
+  },
+
+  reset() {
+    this.tags = this.getIssueAttributes();
 
     this.trigger(this.tags);
   },

@@ -6,6 +6,7 @@ from collections import namedtuple
 from copy import deepcopy
 from datetime import timedelta
 
+from sentry import options
 from sentry.api.event_search import (
     get_filter,
     resolve_field_list,
@@ -304,7 +305,7 @@ def query(
     auto_fields (bool) Set to true to have project + eventid fields automatically added.
     """
     if not selected_columns:
-        raise InvalidSearchQuery("No fields provided")
+        raise InvalidSearchQuery("No columns selected")
 
     snuba_filter = get_filter(query, params)
 
@@ -340,7 +341,9 @@ def query(
         )
         if not found:
             raise InvalidSearchQuery(
-                "Aggregates used in a condition must also be in the selected columns."
+                u"Aggregate {} used in a condition but is not a selected column.".format(
+                    having_clause[0]
+                )
             )
 
     result = raw_query(
@@ -434,7 +437,7 @@ def get_id(result):
         return result[1]
 
 
-def get_pagination_ids(event, query, params, reference_event=None, referrer=None):
+def get_pagination_ids(event, query, params, organization, reference_event=None, referrer=None):
     """
     High-level API for getting pagination data for an event + filter
 
@@ -455,12 +458,38 @@ def get_pagination_ids(event, query, params, reference_event=None, referrer=None
         if ref_conditions:
             snuba_filter.conditions.extend(ref_conditions)
 
-    return PaginationResult(
-        next=get_id(eventstore.get_next_event_id(event, filter=snuba_filter)),
-        previous=get_id(eventstore.get_prev_event_id(event, filter=snuba_filter)),
-        latest=get_id(eventstore.get_latest_event_id(event, filter=snuba_filter)),
-        oldest=get_id(eventstore.get_earliest_event_id(event, filter=snuba_filter)),
-    )
+    result = {
+        "next": eventstore.get_next_event_id(event, filter=snuba_filter),
+        "previous": eventstore.get_prev_event_id(event, filter=snuba_filter),
+        "latest": eventstore.get_latest_event_id(event, filter=snuba_filter),
+        "oldest": eventstore.get_earliest_event_id(event, filter=snuba_filter),
+    }
+
+    # translate project ids to slugs
+
+    project_ids = set([tuple[0] for tuple in result.values() if tuple])
+
+    project_slugs = {}
+    projects = Project.objects.filter(
+        id__in=list(project_ids), organization=organization, status=ProjectStatus.VISIBLE
+    ).values("id", "slug")
+
+    for project in projects:
+        project_slugs[project["id"]] = project["slug"]
+
+    def into_pagination_record(project_slug_event_id):
+
+        if not project_slug_event_id:
+            return None
+
+        project_id = int(project_slug_event_id[0])
+
+        return "{}:{}".format(project_slugs[project_id], project_slug_event_id[1])
+
+    for key, value in result.items():
+        result[key] = into_pagination_record(value)
+
+    return PaginationResult(**result)
 
 
 def get_facets(query, params, limit=10, referrer=None):
@@ -554,7 +583,19 @@ def get_facets(query, params, limit=10, referrer=None):
     # Get tag counts for our top tags. Fetching them individually
     # allows snuba to leverage promoted tags better and enables us to get
     # the value count we want.
-    for tag_name in top_tags:
+    max_aggregate_tags = options.get("discover2.max_tags_to_combine")
+    individual_tags = []
+    aggregate_tags = []
+    for i, tag in enumerate(top_tags):
+        if tag == "environment":
+            # Add here tags that you want to be individual
+            individual_tags.append(tag)
+        elif i >= len(top_tags) - max_aggregate_tags:
+            aggregate_tags.append(tag)
+        else:
+            individual_tags.append(tag)
+
+    for tag_name in individual_tags:
         tag = u"tags[{}]".format(tag_name)
         tag_values = raw_query(
             aggregations=[["count", None, "count"]],
@@ -572,6 +613,29 @@ def get_facets(query, params, limit=10, referrer=None):
         results.extend(
             [
                 FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
+                for r in tag_values["data"]
+            ]
+        )
+
+    if aggregate_tags:
+        conditions = snuba_args.get("conditions", [])
+        conditions.append(["tags_key", "IN", aggregate_tags])
+        tag_values = raw_query(
+            aggregations=[["count", None, "count"]],
+            conditions=conditions,
+            start=snuba_args.get("start"),
+            end=snuba_args.get("end"),
+            filter_keys=snuba_args.get("filter_keys"),
+            orderby=["tags_key", "-count"],
+            groupby=["tags_key", "tags_value"],
+            dataset=Dataset.Discover,
+            referrer=referrer,
+            sample=sample_rate,
+            limitby=[TOP_VALUES_DEFAULT_LIMIT, "tags_key"],
+        )
+        results.extend(
+            [
+                FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
                 for r in tag_values["data"]
             ]
         )

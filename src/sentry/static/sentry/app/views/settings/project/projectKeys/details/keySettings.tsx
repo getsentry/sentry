@@ -153,6 +153,7 @@ class KeySettings extends React.Component<Props, State> {
                     </TextCopyInput>
                   </Field>
                   <SelectField
+                    deprecatedSelectControl
                     name="browserSdkVersion"
                     choices={data.browserSdk ? data.browserSdk.choices : []}
                     placeholder={t('4.x')}
