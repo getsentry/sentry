@@ -28,14 +28,14 @@ class RedisRuleStatus(object):
 
         cluster_id = getattr(settings, "SENTRY_RULE_TASK_REDIS_CLUSTER", "default")
         self.client = redis_clusters.get(cluster_id)
-        self._set_value("pending")
+        self.set_value("pending")
+
+    def set_value(self, status, rule_id=None):
+        value = self._format_value(status, rule_id)
+        self.client.set(self._get_redis_key(), u"{}".format(value), ex=60 * 60)
 
     def _get_redis_key(self):
         return u"slack-channel-task:1:{}".format(self.uuid)
-
-    def _set_value(self, status, rule_id=None):
-        value = self._format_value(status, rule_id)
-        self.client.set(self._get_redis_key(), u"{}".format(value), ex=60 * 60)
 
     def _format_value(self, status, rule_id):
         value = {"status": status}
@@ -58,7 +58,7 @@ def find_channel_id_for_rule(
     try:
         project = Project.objects.get(id=project.id)
     except Project.DoesNotExist:
-        redis_rule_status._set_value("failed")
+        redis_rule_status.set_value("failed")
         return
 
     organization = project.organization
@@ -77,7 +77,7 @@ def find_channel_id_for_rule(
             provider="slack", organizations=organization, id=integration_id
         )
     except Integration.DoesNotExist:
-        redis_rule_status._set_value("failed")
+        redis_rule_status.set_value("failed")
         return
 
     token_payload = {"token": integration.metadata["access_token"]}
@@ -94,7 +94,7 @@ def find_channel_id_for_rule(
             )
             items = items.json()
             if not items.get("ok"):
-                redis_rule_status._set_value("failed")
+                redis_rule_status.set_value("failed")
                 return
 
             cursor = items.get("response_metadata", {}).get("next_cursor", None)
@@ -103,6 +103,12 @@ def find_channel_id_for_rule(
 
             item_id = {c["name"]: c["id"] for c in items[result_name]}.get(channel_name)
             if item_id:
+                for action in actions:
+                    # need to make sure we are adding the right prefix
+                    if action.get("channel") and action.get("channel").strip("#@") == channel_name:
+                        action["channel"] = prefix + channel_name
+                        break
+
                 kwargs = {
                     "name": name,
                     "environment": environment,
@@ -119,7 +125,7 @@ def find_channel_id_for_rule(
                 else:
                     rule = project_rules.Creator.run(pending_save=False, **kwargs)
 
-                redis_rule_status._set_value("success", rule.id)
+                redis_rule_status.set_value("success", rule.id)
                 return
     # if we never find the channel name we failed :(
-    redis_rule_status._set_value("failed")
+    redis_rule_status.set_value("failed")

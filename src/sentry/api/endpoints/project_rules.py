@@ -57,12 +57,12 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             data = serializer.validated_data
             kwargs = {
                 "name": data["name"],
-                "environment": data.get("environment", None),
+                "environment": data.get("environment"),
                 "project": project,
                 "action_match": data["actionMatch"],
                 "conditions": data["conditions"],
                 "actions": data["actions"],
-                "frequency": data["frequency"],
+                "frequency": data.get("frequency"),
             }
 
             rule = project_rules.Creator.run(

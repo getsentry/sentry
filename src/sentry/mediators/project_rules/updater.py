@@ -36,9 +36,9 @@ class Updater(Mediator):
     def _update_name(self):
         self.rule.label = self.name
 
-    @if_param("environment")
     def _update_environment(self):
-        self.rule.envirnoment_id = self.environment
+        # environment can be None so we don't use the if_param decorator
+        self.rule.environment_id = self.environment
 
     @if_param("project")
     def _update_project(self):

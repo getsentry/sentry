@@ -32,9 +32,10 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
         """
         result = _get_value_from_redis(task_uuid)
         status = result["status"]
-        rule_id = result.get("rule_id", None)
-        error = result.get("error", None)
+        rule_id = result.get("rule_id")
+        error = result.get("error")
 
+        # if the status is "pending" we don't have a rule yet or error
         context = {"status": status, "rule": None, "error": None}
 
         if rule_id and status == "success":
