@@ -25,6 +25,7 @@ import {
   COL_WIDTH_DATETIME,
   COL_WIDTH_NUMBER,
   COL_WIDTH_STRING,
+  COL_WIDTH_STRING_SHORT,
   COL_WIDTH_STRING_LONG,
 } from 'app/components/gridEditable';
 
@@ -176,6 +177,11 @@ export function getDefaultWidth(key: Aggregation | Field): number {
     case 'url':
     case 'transaction':
       return COL_WIDTH_STRING_LONG;
+    case 'user':
+    case 'project':
+      return COL_WIDTH_STRING_SHORT;
+    case 'event.type':
+      return COL_WIDTH_STRING_SHORT - 50;
     default:
       break;
   }
@@ -186,8 +192,8 @@ export function getDefaultWidth(key: Aggregation | Field): number {
     case 'boolean':
       return COL_WIDTH_BOOLEAN;
     case 'number':
-      return COL_WIDTH_NUMBER;
     case 'duration':
+      return COL_WIDTH_NUMBER;
     case 'never': // never is usually a timestamp
       return COL_WIDTH_DATETIME;
     default:
