@@ -54,6 +54,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
                 event=event,
                 query=request.query_params.get("query"),
                 params=params,
+                organization=organization,
                 reference_event=reference,
                 referrer="api.organization-event-details",
             )
