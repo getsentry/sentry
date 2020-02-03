@@ -93,7 +93,14 @@ class CrashHeader extends React.Component {
     let titleNode = (
       <h3
         className="pull-left"
-        style={{marginBottom: 0, maxWidth: '100%', width: '100%'}}
+        style={{
+          marginBottom: 0,
+          maxWidth: '100%',
+          width: '100%',
+          marginRight: space(1),
+          marginLeft: space(1),
+          whiteSpace: 'nowrap',
+        }}
       >
         {title}
         <small style={{marginLeft: 5}}>
@@ -122,7 +129,7 @@ class CrashHeader extends React.Component {
           {beforeTitle}
           {titleNode}
         </TitleInfo>
-        <div className="btn-group">
+        <ButtonGroup className="btn-group">
           {this.hasSystemFrames() && (
             <a
               className={
@@ -145,29 +152,31 @@ class CrashHeader extends React.Component {
           >
             {t('Raw')}
           </a>
-        </div>
-        <div className="btn-group">
-          {this.hasMinified() && [
-            <a
-              key="original"
-              className={
-                (stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'
-              }
-              onClick={() => this.setStackType('original')}
-            >
-              {this.getOriginalButtonLabel()}
-            </a>,
-            <a
-              key="minified"
-              className={
-                (stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'
-              }
-              onClick={() => this.setStackType('minified')}
-            >
-              {this.getMinifiedButtonLabel()}
-            </a>,
-          ]}
-        </div>
+        </ButtonGroup>
+        {this.hasMinified() && (
+          <ButtonGroup className="btn-group">
+            {[
+              <a
+                key="original"
+                className={
+                  (stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'
+                }
+                onClick={() => this.setStackType('original')}
+              >
+                {this.getOriginalButtonLabel()}
+              </a>,
+              <a
+                key="minified"
+                className={
+                  (stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'
+                }
+                onClick={() => this.setStackType('minified')}
+              >
+                {this.getMinifiedButtonLabel()}
+              </a>,
+            ]}
+          </ButtonGroup>
+        )}
       </Wrapper>
     );
   }
@@ -179,6 +188,11 @@ const Wrapper = styled('div')`
   display: flex;
   margin-bottom: ${space(3)};
   flex-wrap: wrap;
+  margin-right: -${space(1)};
+
+  > .btn-group {
+    padding-right: ${space(1)};
+  }
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
     align-items: center;
   }
@@ -190,9 +204,12 @@ const TitleInfo = styled('div')`
   max-width: 100%;
   flex-direction: column;
   align-items: center;
-  margin-bottom: ${space(2)};
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
     flex-direction: row;
-    margin-bottom: ${space(0)};
   }
+`;
+
+const ButtonGroup = styled('div')`
+  padding-top: ${space(1)};
+  padding-bottom: ${space(1)};
 `;
