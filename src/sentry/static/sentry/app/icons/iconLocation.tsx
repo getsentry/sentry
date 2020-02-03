@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {IconProps} from 'app/types/iconProps';
 import theme from 'app/utils/theme';
 
