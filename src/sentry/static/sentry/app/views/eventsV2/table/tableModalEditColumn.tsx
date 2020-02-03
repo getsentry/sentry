@@ -4,6 +4,7 @@ import uniq from 'lodash/uniq';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {t} from 'app/locale';
+import {DISCOVER2_DOCS_URL} from 'app/constants';
 import {Form, SelectField} from 'app/components/forms';
 import InlineSvg from 'app/components/inlineSvg';
 import {Organization} from 'app/types';
@@ -193,10 +194,9 @@ class TableModalEditColumnBodyForm extends React.Component<
 
 // TODO(leedongwei): Check with Mimi to get the link for DiscoverV2 docs
 const TableModalEditColumnFooter = () => (
-  <FooterContent>
-    {/* Attach href to documentation on FooterContent */}
+  <FooterContent href={`${DISCOVER2_DOCS_URL}query-builder/`} target="_blank">
     <div>
-      <InlineSvg src="icon-docs" /> Documentation (Coming soon!)
+      <InlineSvg src="icon-docs" /> {t('Read the docs')}
     </div>
     <div>
       <InlineSvg src="icon-chevron-right" />
@@ -292,12 +292,16 @@ const FormRow = styled('div')`
   grid-column-gap: ${space(2)};
 `;
 
-const FooterContent = styled('div')`
+const FooterContent = styled('a')`
   display: flex;
-  width: 100%;
 
-  /* pointer-events: none; */
-  cursor: not-allowed;
+  /* HACK(leedongwei): Padding and margin values from "shared-components.less"
+  The .modal-footer class has a fairly big padding that makes it difficult
+  to click on the docs link. This hack expands the <a> element to fill up the
+  whitespace and makes for better UX */
+  width: calc(100% + 60px);
+  padding: 20px 30px;
+  margin: -20px -30px;
 
   > div {
     display: flex;
