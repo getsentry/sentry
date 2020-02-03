@@ -312,6 +312,7 @@ class Sidebar extends React.Component {
                         label={t('Discover')}
                         to={getDiscoverLandingUrl(organization)}
                         id="discover-v2"
+                        isNew
                       />
                     </Feature>
                   )}
@@ -321,14 +322,14 @@ class Sidebar extends React.Component {
                       {...sidebarItemProps}
                       onClick={(_id, evt) =>
                         this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/incidents/`,
+                          `/organizations/${organization.slug}/alerts/`,
                           evt
                         )
                       }
                       icon={<InlineSvg src="icon-siren" size="22" />}
-                      label={t('Incidents')}
-                      to={`/organizations/${organization.slug}/incidents/`}
-                      id="incidents"
+                      label={t('Alerts')}
+                      to={`/organizations/${organization.slug}/alerts/`}
+                      id="alerts"
                     />
                   </Feature>
 

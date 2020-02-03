@@ -397,7 +397,7 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
                 url[BASE64_PREAMBLE_LENGTH:] + (b"=" * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
             )
         except TypeError as e:
-            raise UnparseableSourcemap({"url": "<base64>", "reason": e.message})
+            raise UnparseableSourcemap({"url": "<base64>", "reason": six.text_type(e)})
     else:
         result = fetch_file(
             url, project=project, release=release, dist=dist, allow_scraping=allow_scraping

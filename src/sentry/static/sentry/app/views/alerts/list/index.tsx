@@ -60,7 +60,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       <IncidentPanelItem key={incident.id}>
         <TableLayout>
           <TitleAndSparkLine>
-            <Link to={`/organizations/${orgId}/incidents/${incident.identifier}/`}>
+            <Link to={`/organizations/${orgId}/alerts/${incident.identifier}/`}>
               {incident.title}
             </Link>
             <SparkLine incident={incident} />
@@ -183,21 +183,21 @@ class IncidentsListContainer extends React.Component<Props> {
                   size="small"
                   className={'btn' + (status === '' ? ' active' : '')}
                 >
-                  {t('All Incidents')}
+                  {t('All Alerts')}
                 </Button>
                 <Button
                   to={{pathname, query: openIncidentsQuery}}
                   size="small"
                   className={'btn' + (status === 'open' ? ' active' : '')}
                 >
-                  {t('Open')}
+                  {t('Active')}
                 </Button>
                 <Button
                   to={{pathname, query: closedIncidentsQuery}}
                   size="small"
                   className={'btn' + (status === 'closed' ? ' active' : '')}
                 >
-                  {t('Closed')}
+                  {t('Resolved')}
                 </Button>
               </div>
             </Actions>

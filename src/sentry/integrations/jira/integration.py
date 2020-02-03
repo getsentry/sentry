@@ -475,14 +475,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             raise IntegrationError(
                 "Jira returned: Unauthorized. " "Please check your configuration settings."
             )
-        except ApiError as exc:
+        except ApiError as e:
             logger.info(
                 "jira.fetch-issue-create-meta.error",
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
                     "jira_project": project_id,
-                    "error": exc.message,
+                    "error": six.text_type(e),
                 },
             )
             raise IntegrationError(
@@ -502,13 +502,13 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         client = self.get_client()
         try:
             jira_projects = client.get_projects_list()
-        except ApiError as exc:
+        except ApiError as e:
             logger.info(
                 "jira.get-create-issue-config.no-projects",
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
-                    "error": exc.message,
+                    "error": six.text_type(e),
                 },
             )
             raise IntegrationError(

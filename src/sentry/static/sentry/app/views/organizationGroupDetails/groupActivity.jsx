@@ -53,7 +53,7 @@ class GroupActivity extends React.Component {
   };
 
   /**
-   * Note: This is nearly the same logic as `app/views/incidents/details/activity`
+   * Note: This is nearly the same logic as `app/views/alerts/details/activity`
    * This can be abstracted a bit if we create more objects that can have activities
    */
   handleNoteCreate = async note => {

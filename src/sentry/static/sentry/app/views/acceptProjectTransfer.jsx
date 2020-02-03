@@ -91,6 +91,7 @@ class AcceptProjectTransfer extends AsyncView {
           initialData={{organization: choices[0] && choices[0][0]}}
         >
           <SelectField
+            deprecatedSelectControl
             choices={choices}
             label={t('Organization')}
             name="organization"

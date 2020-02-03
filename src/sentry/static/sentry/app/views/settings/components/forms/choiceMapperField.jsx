@@ -190,6 +190,7 @@ export default class ChoiceMapper extends React.Component {
               <Flex key={fieldKey} alignItems="center" ml={1} flex="1 0 0">
                 <Box flex={1}>
                   <SelectControl
+                    deprecatedSelectControl
                     {...(perItemMapping
                       ? mappedSelectors[itemKey][fieldKey]
                       : mappedSelectors[fieldKey])}
