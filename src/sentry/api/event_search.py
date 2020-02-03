@@ -776,7 +776,8 @@ def get_filter(query=None, params=None):
                     projects = get_projects(params)
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
-            elif name == "issue.id":
+            elif name == "issue.id" and term.value.value != "":
+                # A blank term value means that this is a has filter
                 kwargs["group_ids"].extend(to_list(term.value.value))
             elif name in FIELD_ALIASES:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
