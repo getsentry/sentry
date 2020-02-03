@@ -3,6 +3,7 @@
 from __future__ import unicode_literals, print_function
 
 import os
+import pytz
 import types
 from datetime import timedelta, datetime
 
@@ -34,7 +35,7 @@ def backfill_eventstream(apps, schema_editor):
     retention_days = options.get("system.event-retention-days") or DEFAULT_RETENTION
 
     def get_events(last_days):
-        to_date = datetime.now()
+        to_date = datetime.now(pytz.utc)
         from_date = to_date - timedelta(days=last_days)
         return Event.objects.filter(
             datetime__gte=from_date, datetime__lte=to_date, group_id__isnull=False
@@ -69,7 +70,9 @@ def backfill_eventstream(apps, schema_editor):
 
     processed = 0
     for e in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
-        event = NewEvent(project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=e.data.data)
+        event = NewEvent(
+            project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=e.data.data
+        )
         primary_hash = event.get_primary_hash()
         if event.project is None or event.group is None:
             print("Skipped {} as group or project information is invalid.\n".format(event))
