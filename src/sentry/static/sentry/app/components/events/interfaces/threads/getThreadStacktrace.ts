@@ -7,7 +7,7 @@ import getThreadException from './getThreadException';
 function getThreadStacktrace(thread: Thread, event: Event, raw?: any) {
   const exc = getThreadException(thread, event);
   if (exc) {
-    let rv = null;
+    let rv = undefined;
     for (const singleExc of exc.values) {
       if (singleExc.threadId === thread.id) {
         rv = (raw && singleExc.rawStacktrace) || singleExc.stacktrace;
@@ -24,7 +24,7 @@ function getThreadStacktrace(thread: Thread, event: Event, raw?: any) {
     return thread.stacktrace;
   }
 
-  return null;
+  return undefined;
 }
 
 export default getThreadStacktrace;

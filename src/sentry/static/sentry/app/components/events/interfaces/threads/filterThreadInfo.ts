@@ -20,7 +20,7 @@ function filterThreadInfo(thread: Thread, event: Event, simplified: boolean): Th
     label: NOT_FOUND_FRAME,
   };
 
-  if (!stacktrace || stacktrace === null) {
+  if (!stacktrace) {
     return threadInfo;
   }
 
