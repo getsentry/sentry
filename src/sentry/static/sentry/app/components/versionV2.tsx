@@ -18,7 +18,7 @@ type Props = {
   className?: string;
 };
 
-export const VersionV2 = ({
+const VersionV2 = ({
   version,
   orgId,
   anchor = true,
