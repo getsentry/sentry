@@ -476,7 +476,9 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_is_query_unsupported(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with self.assertRaises(
+            InvalidSearchQuery, expected_regex="queries are only supported in issue search"
+        ):
             parse_search_query("is:unassigned")
 
     def test_key_remapping(self):
