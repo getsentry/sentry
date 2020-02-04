@@ -4,10 +4,13 @@ import React from 'react';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Link from 'app/components/links/link';
 
-type Props = {
+type DefaultProps = {
+  anchor: boolean;
+};
+
+type Props = DefaultProps & {
   version: string;
   orgId: string;
-  anchor?: boolean;
   preserveGlobalSelection?: boolean;
   className?: string;
 };
@@ -24,7 +27,7 @@ export default class Version extends React.Component<Props> {
     preserveGlobalSelection: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     anchor: true,
   };
 
