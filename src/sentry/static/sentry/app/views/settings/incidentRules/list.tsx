@@ -122,7 +122,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
             })}
 
           {!isLoading && isEmpty && (
-            <EmptyMessage>{t('No Incident rules have been created yet.')}</EmptyMessage>
+            <EmptyMessage>{t('No Alert Rules have been created yet.')}</EmptyMessage>
           )}
         </PanelBody>
       </Panel>
