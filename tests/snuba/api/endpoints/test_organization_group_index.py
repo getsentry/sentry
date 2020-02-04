@@ -1091,7 +1091,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 data={
                     "fingerprint": ["put-me-in-group-1"],
                     "user": {"id": six.binary_type(i)},
-                    "timestamp": iso_format(self.min_ago - timedelta(seconds=i)),
+                    "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
             )
