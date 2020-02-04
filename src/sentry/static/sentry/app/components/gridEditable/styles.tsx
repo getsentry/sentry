@@ -75,7 +75,7 @@ const PanelWithProtectedBorder = styled(Panel)`
   overflow: hidden;
   z-index: ${Z_INDEX_PANEL};
 `;
-export const Body: React.FC = props => (
+export const Body = props => (
   <PanelWithProtectedBorder>
     <PanelBody>{props.children}</PanelBody>
   </PanelWithProtectedBorder>
@@ -202,22 +202,22 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
  */
 export const GridHeadCellStatic = styled('th')`
   height: ${GRID_HEAD_ROW_HEIGHT}px;
-  min-width: 24px;
-  display: block;
+  display: flex;
+  align-items: center;
   padding: ${space(2)};
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
   text-transform: uppercase;
-  white-space: nowrap;
   text-overflow: ellipsis;
+  white-space: nowrap;
   overflow: hidden;
 
   &:first-child {
     border-top-left-radius: ${p => p.theme.borderRadius};
+    padding: ${space(1)} 0 ${space(1)} ${space(3)};
   }
 `;
 
@@ -281,6 +281,10 @@ export const GridBodyCell = styled('td')`
 
   font-size: ${p => p.theme.fontSizeMedium};
 
+  &:first-child {
+    padding: ${space(1)} 0 ${space(1)} ${space(3)};
+  }
+
   &:last-child {
     border-right: none;
   }
@@ -305,7 +309,7 @@ const GridStatusFloat = styled('div')`
   z-index: ${Z_INDEX_GRID_STATUS};
   background: ${p => p.theme.white};
 `;
-export const GridBodyCellStatus: React.FC = props => (
+export const GridBodyCellStatus = props => (
   <GridStatusWrapper>
     <GridStatusFloat>{props.children}</GridStatusFloat>
   </GridStatusWrapper>

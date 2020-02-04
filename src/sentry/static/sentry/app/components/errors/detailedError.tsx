@@ -7,7 +7,14 @@ import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
 
-type Props = {
+type DefaultProps = {
+  /**
+   * Hide support links in footer of error message
+   */
+  hideSupportLinks: boolean;
+};
+
+type Props = DefaultProps & {
   className?: string;
   /**
    * Error heading
@@ -21,10 +28,6 @@ type Props = {
    * Retry callback
    */
   onRetry?: (e: React.MouseEvent) => void;
-  /**
-   * Hide support links in footer of error message
-   */
-  hideSupportLinks?: boolean;
 };
 
 function openFeedback(e: React.MouseEvent) {
@@ -41,7 +44,7 @@ class DetailedError extends React.Component<Props> {
     hideSupportLinks: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     hideSupportLinks: false,
   };
 

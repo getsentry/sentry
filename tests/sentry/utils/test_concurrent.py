@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
 import pytest
 import thread
 from Queue import Full
@@ -8,6 +7,7 @@ from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from threading import Event
 
+from sentry.utils.compat import mock
 from sentry.utils.concurrent import (
     FutureSet,
     SynchronousExecutor,

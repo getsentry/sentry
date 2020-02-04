@@ -145,6 +145,7 @@ export const FIELDS = {
   'transaction.status': 'string',
   apdex: 'number',
   impact: 'number',
+  error_rate: 'number',
   // duration aliases
   p75: 'duration',
   p95: 'duration',

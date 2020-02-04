@@ -2,9 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {t} from 'app/locale';
 
-type Props = {
+type DefaultProps = {
+  message: React.ReactNode;
+};
+
+type Props = DefaultProps & {
   onRetry?: () => void;
-  message?: React.ReactNode;
 };
 class LoadingError extends React.Component<Props> {
   static propTypes = {
@@ -12,7 +15,7 @@ class LoadingError extends React.Component<Props> {
     message: PropTypes.string,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     message: t('There was an error loading data.'),
   };
 

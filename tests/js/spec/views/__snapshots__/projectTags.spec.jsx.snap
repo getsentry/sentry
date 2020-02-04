@@ -51,13 +51,7 @@ exports[`ProjectTags renders 1`] = `
           </div>
         </SettingsPageHeading>
       </StyledSettingsPageHeading>
-      <PermissionAlert
-        access={
-          Array [
-            "project:write",
-          ]
-        }
-      >
+      <PermissionAlert>
         <WithOrganizationMockWrapper
           access={
             Array [

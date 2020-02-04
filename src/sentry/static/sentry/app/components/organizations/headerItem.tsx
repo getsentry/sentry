@@ -9,22 +9,26 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
+type DefaultProps = {
+  allowClear: boolean;
+};
+
 type Props = {
   icon: React.ReactElement;
   lockedMessage: string;
   settingsLink: string;
-  allowClear: boolean;
   hasChanges: boolean;
   hasSelected: boolean;
   isOpen: boolean;
   locked: boolean;
   loading: boolean;
+  forwardRef?: React.Ref<HTMLDivElement>;
   onClear: () => void;
-} & React.HTMLProps<HTMLDivElement>;
+} & DefaultProps &
+  React.HTMLAttributes<HTMLDivElement>;
 
 class HeaderItem extends React.Component<Props> {
   static propTypes = {
-    allowClear: PropTypes.bool,
     icon: PropTypes.element,
     onClear: PropTypes.func,
     hasChanges: PropTypes.bool,
@@ -35,7 +39,7 @@ class HeaderItem extends React.Component<Props> {
     settingsLink: PropTypes.string,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     allowClear: true,
   };
 
@@ -56,6 +60,7 @@ class HeaderItem extends React.Component<Props> {
       settingsLink,
       onClear, // eslint-disable-line no-unused-vars
       loading,
+      forwardRef,
       ...props
     } = this.props;
 
@@ -66,7 +71,7 @@ class HeaderItem extends React.Component<Props> {
     };
 
     return (
-      <StyledHeaderItem loading={loading} {...props} {...textColorProps}>
+      <StyledHeaderItem ref={forwardRef} loading={loading} {...props} {...textColorProps}>
         <IconContainer {...textColorProps}>{icon}</IconContainer>
         <Content>{children}</Content>
         {hasSelected && !locked && allowClear && (
@@ -178,4 +183,6 @@ const StyledLock = styled(InlineSvg)`
   stroke-width: 1.5;
 `;
 
-export default HeaderItem;
+export default React.forwardRef<HTMLDivElement, Props>((props, ref) => (
+  <HeaderItem forwardRef={ref} {...props} />
+));

@@ -11,7 +11,7 @@ const defaultProps = {
   flexibleControlStateSize: false,
 };
 
-type Props = Partial<typeof defaultProps> & {
+type Props = typeof defaultProps & {
   inline?: boolean;
   alignRight?: boolean;
   disabled?: boolean;

@@ -23,11 +23,7 @@ type DeleteButtonProps = {
 /**
  * Button to delete a trigger
  */
-const DeleteButton: React.FC<DeleteButtonProps> = ({
-  triggerIndex,
-  onDelete,
-  disabled,
-}: DeleteButtonProps) => (
+const DeleteButton = ({triggerIndex, onDelete, disabled}: DeleteButtonProps) => (
   <Button
     type="button"
     icon="icon-trash"

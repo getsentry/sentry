@@ -8,9 +8,10 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = {
   small?: boolean;
+  children: React.ReactNode;
 };
 
-const EmptyStateWarning: React.FC<Props> = ({small, children}) =>
+const EmptyStateWarning = ({small = false, children}: Props) =>
   small ? (
     <EmptyMessage>
       <SmallMessage>
@@ -27,10 +28,6 @@ const EmptyStateWarning: React.FC<Props> = ({small, children}) =>
 
 EmptyStateWarning.propTypes = {
   small: PropTypes.bool,
-};
-
-EmptyStateWarning.defaultProps = {
-  small: false,
 };
 
 const EmptyStreamWrapper = styled('div')`

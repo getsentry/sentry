@@ -10,7 +10,6 @@ from google.cloud.bigtable.row_set import RowSet
 from simplejson import JSONEncoder, _default_decoder
 from django.utils import timezone
 
-from sentry import options
 from sentry.nodestore.base import NodeStorage
 
 
@@ -168,9 +167,7 @@ class BigtableNodeStorage(NodeStorage):
     def set(self, id, data, ttl=None):
         row = self.encode_row(id, data, ttl)
         row.commit()
-        cache_on_save = options.get("nodedata.cache-on-save")
-        if cache_on_save:
-            self._set_cache_item(id, data)
+        self._set_cache_item(id, data)
 
     def encode_row(self, id, data, ttl=None):
         data = json_dumps(data)

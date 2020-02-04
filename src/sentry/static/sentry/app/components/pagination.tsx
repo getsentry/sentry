@@ -23,7 +23,7 @@ type Props = {
   className?: string;
   pageLinks: string | null | undefined;
   to?: string;
-} & Partial<DefaultProps>;
+} & DefaultProps;
 
 class Pagination extends React.Component<Props> {
   static propTypes = {

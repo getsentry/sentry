@@ -3,10 +3,11 @@ Used for notifying a *specific* plugin
 """
 from __future__ import absolute_import
 
+import six
 from django import forms
 from django.utils.translation import ugettext_lazy as _
-from sentry.constants import ObjectStatus
 
+from sentry.constants import ObjectStatus
 from sentry.rules.actions.base import EventAction
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.integrations.exceptions import ApiError
@@ -109,7 +110,7 @@ class PagerDutyNotifyServiceAction(EventAction):
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
                     extra={
-                        "error": e.message,
+                        "error": six.text_type(e),
                         "service_name": service.service_name,
                         "service_id": service.id,
                     },

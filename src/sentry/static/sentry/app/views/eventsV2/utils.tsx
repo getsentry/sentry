@@ -5,6 +5,11 @@ import isString from 'lodash/isString';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
+import {
+  tokenizeSearch,
+  stringifyQueryObject,
+  QueryResults,
+} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
 import {Event, Organization, OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
@@ -20,6 +25,7 @@ import {
   COL_WIDTH_DATETIME,
   COL_WIDTH_NUMBER,
   COL_WIDTH_STRING,
+  COL_WIDTH_STRING_SHORT,
   COL_WIDTH_STRING_LONG,
 } from 'app/components/gridEditable';
 
@@ -44,7 +50,7 @@ export type EventQuery = {
   per_page?: number;
 };
 
-const AGGREGATE_PATTERN = /^([^\(]+)\(([a-z\._+]*)\)$/;
+const AGGREGATE_PATTERN = /^([^\(]+)\((.*)\)$/;
 const ROUND_BRACKETS_PATTERN = /[\(\)]/;
 
 function explodeFieldString(field: string): {aggregation: string; field: string} {
@@ -171,6 +177,11 @@ export function getDefaultWidth(key: Aggregation | Field): number {
     case 'url':
     case 'transaction':
       return COL_WIDTH_STRING_LONG;
+    case 'user':
+    case 'project':
+      return COL_WIDTH_STRING_SHORT;
+    case 'event.type':
+      return COL_WIDTH_STRING_SHORT - 50;
     default:
       break;
   }
@@ -181,8 +192,8 @@ export function getDefaultWidth(key: Aggregation | Field): number {
     case 'boolean':
       return COL_WIDTH_BOOLEAN;
     case 'number':
-      return COL_WIDTH_NUMBER;
     case 'duration':
+      return COL_WIDTH_NUMBER;
     case 'never': // never is usually a timestamp
       return COL_WIDTH_DATETIME;
     default:
@@ -222,9 +233,8 @@ export function getAggregateAlias(field: string): string {
   }
   return field
     .replace(AGGREGATE_PATTERN, '$1_$2')
-    .replace('.', '_')
-    .replace(/_+$/, '')
-    .toLowerCase();
+    .replace(/\./g, '_')
+    .replace(/_+$/, '');
 }
 
 export type QueryWithColumnState =
@@ -380,13 +390,29 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
   link.remove();
 }
 
+// transform a given aggregated field to its un-aggregated form.
+// the given field can be transformed into another field, or undefined if it'll need to be dropped.
+type AggregateTransformer = (field: string) => string | undefined;
+
+// a map between a field alias to a transform function to convert the aggregated field alias into
+// its un-aggregated form
+const TRANSFORM_AGGREGATES: {[field: string]: AggregateTransformer} = {
+  p99: () => 'transaction.duration',
+  p95: () => 'transaction.duration',
+  p75: () => 'transaction.duration',
+  last_seen: () => 'timestamp',
+  latest_event: () => 'id',
+  apdex: () => undefined,
+  impact: () => undefined,
+};
+
 export function getExpandedResults(
   eventView: EventView,
   additionalConditions: {[key: string]: string},
   dataRow?: TableDataRow | Event
 ): EventView {
   let nextView = eventView.clone();
-  const fieldsToRemove: number[] = [];
+  const fieldsToUpdate: number[] = [];
 
   // Workaround around readonly typing
   const aggregateAliases: string[] = [...AGGREGATE_ALIASES];
@@ -394,9 +420,9 @@ export function getExpandedResults(
   nextView.fields.forEach((field: FieldType, index: number) => {
     const column = explodeField(field);
 
-    // Remove aggregates as the expanded results have no aggregates.
+    // Mark aggregated fields to be transformed into its un-aggregated form
     if (column.aggregation || aggregateAliases.includes(column.field)) {
-      fieldsToRemove.push(index);
+      fieldsToUpdate.push(index);
       return;
     }
 
@@ -419,11 +445,104 @@ export function getExpandedResults(
     }
   });
 
-  // Remove fields from view largest index to smallest to not
-  // disturbe lower indexes until the end.
-  fieldsToRemove.reverse().forEach((i: number) => {
-    nextView = nextView.withDeletedColumn(i, undefined);
+  const transformedFields = new Set();
+  const fieldsToDelete: number[] = [];
+
+  // make a best effort to transform aggregated columns with its non-aggregated form
+  fieldsToUpdate.forEach((indexToUpdate: number) => {
+    const currentField: FieldType = nextView.fields[indexToUpdate];
+    const exploded = explodeField(currentField);
+
+    // check if we can use an aggregated transform function
+
+    const fieldNameAlias = TRANSFORM_AGGREGATES[exploded.aggregation]
+      ? exploded.aggregation
+      : TRANSFORM_AGGREGATES[exploded.field]
+      ? exploded.field
+      : undefined;
+
+    const transform = fieldNameAlias && TRANSFORM_AGGREGATES[fieldNameAlias];
+
+    if (fieldNameAlias && transform) {
+      const nextFieldName = transform(fieldNameAlias);
+
+      if (!nextFieldName || transformedFields.has(nextFieldName)) {
+        // this field is either duplicated in another column, or nextFieldName is undefined.
+        // in either case, we remove this column
+        fieldsToDelete.push(indexToUpdate);
+        return;
+      }
+
+      const updatedColumn = {
+        aggregation: '',
+        field: nextFieldName,
+        width: exploded.width,
+      };
+
+      transformedFields.add(nextFieldName);
+      nextView = nextView.withUpdatedColumn(indexToUpdate, updatedColumn, undefined);
+
+      return;
+    }
+
+    // otherwise just use exploded.field as a column
+
+    if (!exploded.field) {
+      // edge case: transform count() into id
+
+      if (exploded.aggregation !== 'count') {
+        fieldsToDelete.push(indexToUpdate);
+        return;
+      }
+
+      exploded.field = 'id';
+    }
+
+    if (transformedFields.has(exploded.field)) {
+      // this field is duplicated in another column. we remove this column
+      fieldsToDelete.push(indexToUpdate);
+      return;
+    }
+
+    transformedFields.add(exploded.field);
+
+    const updatedColumn = {
+      aggregation: '',
+      field: exploded.field,
+      width: exploded.width,
+    };
+
+    nextView = nextView.withUpdatedColumn(indexToUpdate, updatedColumn, undefined);
   });
+
+  // delete any columns marked for deletion
+  fieldsToDelete.reverse().forEach((index: number) => {
+    nextView = nextView.withDeletedColumn(index, undefined);
+  });
+
+  // filter out any aggregates from the search conditions.
+  // otherwise, it'll lead to an invalid query result.
+  const queryWithNoAggregates = Object.entries(tokenizeSearch(nextView.query)).reduce(
+    (acc: QueryResults, [field, value]) => {
+      if (field === 'query') {
+        acc.query = value;
+        return acc;
+      }
+
+      const column = explodeFieldString(field);
+
+      if (column.aggregation) {
+        return acc;
+      }
+
+      acc[field] = value;
+
+      return acc;
+    },
+    {query: []}
+  );
+
+  nextView.query = stringifyQueryObject(queryWithNoAggregates);
 
   // Tokenize conditions and append additional conditions provided + generated.
   Object.keys(additionalConditions).forEach(key => {
@@ -433,6 +552,13 @@ export function getExpandedResults(
     }
     if (key === 'environment') {
       nextView.environment = [...nextView.environment, additionalConditions[key]];
+      return;
+    }
+
+    // filter out any aggregates from provided additional conditions.
+    // otherwise, it'll lead to an invalid query result.
+    const column = explodeFieldString(key);
+    if (column.aggregation) {
       return;
     }
 

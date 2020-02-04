@@ -4,7 +4,6 @@ import {Location} from 'history';
 
 import {t} from 'app/locale';
 import {Event, Organization} from 'app/types';
-import BetaTag from 'app/components/betaTag';
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
@@ -12,15 +11,18 @@ import space from 'app/styles/space';
 import EventView from './eventView';
 import {getDiscoverLandingUrl} from './utils';
 
-type Props = {
-  eventView: EventView;
+type DefaultProps = {
   event: Event | undefined;
+};
+
+type Props = DefaultProps & {
+  eventView: EventView;
   organization: Organization;
   location: Location;
 };
 
 class DiscoverBreadcrumb extends React.Component<Props> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     event: undefined,
   };
 
@@ -74,12 +76,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
   }
 
   render() {
-    return (
-      <BreadcrumbList>
-        {this.getCrumbs()}
-        <BetaTag />
-      </BreadcrumbList>
-    );
+    return <BreadcrumbList>{this.getCrumbs()}</BreadcrumbList>;
   }
 }
 

@@ -117,6 +117,7 @@ class RuleBuilder extends React.Component {
         )}
         <BuilderBar>
           <BuilderSelect
+            deprecatedSelectControl
             name="select-type"
             value={type}
             showSearch={false}

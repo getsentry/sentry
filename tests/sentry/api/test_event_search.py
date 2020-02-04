@@ -413,6 +413,10 @@ class ParseSearchQueryTest(unittest.TestCase):
                 key=SearchKey(name="device.family"), operator="=", value=SearchValue(raw_value="")
             )
         ]
+        with self.assertRaises(
+            InvalidSearchQuery, expected_regex="Invalid format for numeric search"
+        ):
+            parse_search_query("device.family:")
 
     def test_custom_tag(self):
         assert parse_search_query("fruit:apple release:1.2.1") == [
@@ -472,7 +476,9 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_is_query_unsupported(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with self.assertRaises(
+            InvalidSearchQuery, expected_regex="queries are only supported in issue search"
+        ):
             parse_search_query("is:unassigned")
 
     def test_key_remapping(self):
@@ -979,6 +985,16 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_not_has(self):
         assert get_filter("!has:release").conditions == [[["isNull", ["release"]], "=", 1]]
 
+    def test_has_issue_id(self):
+        has_issue_filter = get_filter("has:issue.id")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "!=", 1]]
+
+    def test_not_has_issue_id(self):
+        has_issue_filter = get_filter("!has:issue.id")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "=", 1]]
+
     def test_message_negative(self):
         assert get_filter('!message:"post_process.process_error HTTPError 403"').conditions == [
             [
@@ -1044,7 +1060,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert filter.filter_keys == {}
         assert filter.group_ids == []
 
-        filter = get_filter("environment: ")
+        filter = get_filter('environment:""')
         # The '' environment is Null in snuba
         assert filter.conditions == [[["environment", "IS NULL", None]]]
         assert filter.filter_keys == {}

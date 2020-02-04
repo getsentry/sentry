@@ -19,6 +19,7 @@ type Props = {
 type BooleanFilterProps = {
   onChange: (value: boolean | null) => void;
   value: boolean | null;
+  children: React.ReactNode;
 };
 
 type Filters = {
@@ -31,7 +32,7 @@ type Filters = {
 const getBoolean = (list: string[]) =>
   Array.isArray(list) ? list && list.map(v => v.toLowerCase()).includes('true') : null;
 
-const MembersFilter: React.FC<Props> = ({className, roles, query, onChange}) => {
+const MembersFilter = ({className, roles, query, onChange}: Props) => {
   const search = tokenizeSearch(query);
 
   const filters = {
@@ -112,7 +113,7 @@ const MembersFilter: React.FC<Props> = ({className, roles, query, onChange}) => 
   );
 };
 
-const BooleanFilter: React.FC<BooleanFilterProps> = ({onChange, value, children}) => (
+const BooleanFilter = ({onChange, value, children}: BooleanFilterProps) => (
   <label>
     <Checkbox
       checked={value !== null}
