@@ -17,6 +17,7 @@ import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import HookStore from 'app/stores/hookStore';
 import InlineSvg from 'app/components/inlineSvg';
+import {IconSettings} from 'app/icons';
 import PreferencesStore from 'app/stores/preferencesStore';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -492,7 +493,7 @@ class Sidebar extends React.Component {
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-settings" />}
+                    icon={<IconSettings size="md" />}
                     label={t('Settings')}
                     to={`/settings/${organization.slug}/`}
                     id="settings"
