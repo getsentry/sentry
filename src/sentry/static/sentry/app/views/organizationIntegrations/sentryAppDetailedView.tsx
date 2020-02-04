@@ -92,51 +92,47 @@ class SentryAppDetailedView extends AsyncComponent<
   redirectUser = (install: SentryAppInstallation) => {
     const {organization} = this.props;
     const {sentryApp} = this.state;
-    if (!sentryApp.redirectUrl) {
-      addSuccessMessage(t(`${sentryApp.slug} successfully installed.`));
-      this.setState({appInstalls: [install, ...this.state.appInstalls]});
-    } else {
-      const queryParams = {
-        installationId: install.uuid,
-        code: install.code,
-        orgSlug: organization.slug,
-      };
+    const queryParams = {
+      installationId: install.uuid,
+      code: install.code,
+      orgSlug: organization.slug,
+    };
+    if (sentryApp.redirectUrl) {
       const redirectUrl = addQueryParamsToExistingUrl(sentryApp.redirectUrl, queryParams);
       window.location.assign(redirectUrl);
     }
+    // TODO: Add SplitInstallationIdModal
   };
 
   handleInstall = async () => {
     const {organization} = this.props;
     const {sentryApp} = this.state;
 
-    return installSentryApp(this.api, organization.slug, sentryApp).then(
-      install => {
-        this.redirectUser(install);
-      },
-      () => {}
-    );
+    // installSentryApp adds a message on failure
+    const install = await installSentryApp(this.api, organization.slug, sentryApp);
+    if (!sentryApp.redirectUrl) {
+      addSuccessMessage(t(`${sentryApp.slug} successfully installed.`));
+      this.setState({appInstalls: [install, ...this.state.appInstalls]});
+    } else {
+      this.redirectUser(install);
+    }
   };
 
-  handleUninstall = (install: SentryAppInstallation) => {
-    uninstallSentryApp(this.api, install).then(
-      () => {
-        const appInstalls = this.state.appInstalls.filter(
-          i => i.app.slug !== this.state.sentryApp.slug
-        );
-        this.setState({appInstalls});
-      },
-      () => {
-        addErrorMessage(t(`Unable to uninstall ${this.state.sentryApp.name}`));
-      }
-    );
+  handleUninstall = async (install: SentryAppInstallation) => {
+    try {
+      await uninstallSentryApp(this.api, install);
+      const appInstalls = this.state.appInstalls.filter(
+        i => i.app.slug !== this.state.sentryApp.slug
+      );
+      return this.setState({appInstalls});
+    } catch (error) {
+      return addErrorMessage(t(`Unable to uninstall ${this.state.sentryApp.name}`));
+    }
   };
 
   renderPermissions() {
     const permissions = this.permissions;
-    if (
-      Object.keys(permissions).filter(scope => permissions[scope].length > 0).length === 0
-    ) {
+    if (!Object.keys(permissions).some(scope => permissions[scope].length > 0)) {
       return null;
     }
 
