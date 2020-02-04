@@ -8,6 +8,10 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import Group
 
 
+def format_project_event(project_slug, event_id):
+    return "{}:{}".format(project_slug, event_id)
+
+
 class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventDetailsEndpointTest, self).setUp()
@@ -17,6 +21,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         self.project = self.create_project()
+        self.project_2 = self.create_project()
 
         self.store_event(
             data={
@@ -63,7 +68,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == "a" * 32
         assert response.data["previousEventID"] is None
-        assert response.data["nextEventID"] == "b" * 32
+        assert response.data["nextEventID"] == format_project_event(self.project.slug, "b" * 32)
         assert response.data["projectSlug"] == self.project.slug
 
     def test_simple_out_of_range_pagination(self):
@@ -125,6 +130,43 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
         assert response.status_code == 200
+
+    def test_multi_project_pagination(self):
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "hello world",
+                "timestamp": iso_format(before_now(minutes=2, seconds=30)),
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project_2.id,
+        )
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project_2.organization.slug,
+                "project_slug": self.project_2.slug,
+                "event_id": "d" * 32,
+            },
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                url,
+                data={
+                    "field": ["project", "count(id)", "count_unique(issue.id)"],
+                    "statsPeriod": "24h",
+                    "sort": "-count_id",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == "d" * 32
+        assert response.data["previousEventID"] == format_project_event(self.project.slug, "a" * 32)
+        assert response.data["nextEventID"] == format_project_event(self.project.slug, "b" * 32)
+        assert response.data["latestEventID"] == format_project_event(self.project.slug, "c" * 32)
+        assert response.data["oldestEventID"] == format_project_event(self.project.slug, "a" * 32)
 
     def test_no_access_missing_feature(self):
         url = reverse(
@@ -225,10 +267,18 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json", data={"field": ["message", "count()"]})
         assert response.data["eventID"] == "b" * 32
-        assert response.data["nextEventID"] == "c" * 32, "c is newer & matches message"
-        assert response.data["previousEventID"] == "d" * 32, "d is older & matches message"
-        assert response.data["oldestEventID"] == "e" * 32, "e is oldest matching message"
-        assert response.data["latestEventID"] == "1" * 32, "1 is newest matching message"
+        assert response.data["nextEventID"] == format_project_event(
+            self.project.slug, "c" * 32
+        ), "c is newer & matches message"
+        assert response.data["previousEventID"] == format_project_event(
+            self.project.slug, "d" * 32
+        ), "d is older & matches message"
+        assert response.data["oldestEventID"] == format_project_event(
+            self.project.slug, "e" * 32
+        ), "e is oldest matching message"
+        assert response.data["latestEventID"] == format_project_event(
+            self.project.slug, "1" * 32
+        ), "1 is newest matching message"
 
     def test_event_links_with_date_range(self):
         # Create older in and out of range events
@@ -256,10 +306,18 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 url, format="json", data={"field": ["message", "count()"], "statsPeriod": "7d"}
             )
         assert response.data["eventID"] == "b" * 32
-        assert response.data["nextEventID"] == "c" * 32, "c is newer & matches message + range"
-        assert response.data["previousEventID"] == "2" * 32, "d is older & matches message + range"
-        assert response.data["oldestEventID"] == "2" * 32, "3 is outside range, no match"
-        assert response.data["latestEventID"] == "c" * 32, "c is newest matching message"
+        assert response.data["nextEventID"] == format_project_event(
+            self.project.slug, "c" * 32
+        ), "c is newer & matches message + range"
+        assert response.data["previousEventID"] == format_project_event(
+            self.project.slug, "2" * 32
+        ), "d is older & matches message + range"
+        assert response.data["oldestEventID"] == format_project_event(
+            self.project.slug, "2" * 32
+        ), "3 is outside range, no match"
+        assert response.data["latestEventID"] == format_project_event(
+            self.project.slug, "c" * 32
+        ), "c is newest matching message"
 
     def test_event_links_with_tag_fields(self):
         # Create events that overlap with other event messages but
@@ -308,8 +366,12 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["eventID"] == "1" * 32
         assert response.data["previousEventID"] is None, "no matching tags"
         assert response.data["oldestEventID"] is None, "no older matching events"
-        assert response.data["nextEventID"] == "2" * 32, "2 is older and has matching tags "
-        assert response.data["latestEventID"] == "2" * 32, "2 is oldest matching message"
+        assert response.data["nextEventID"] == format_project_event(
+            self.project.slug, "2" * 32
+        ), "2 is older and has matching tags "
+        assert response.data["latestEventID"] == format_project_event(
+            self.project.slug, "2" * 32
+        ), "2 is oldest matching message"
 
     def test_event_links_with_transaction_events(self):
         prototype = {
@@ -346,8 +408,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 data={"field": ["important", "count()"], "query": "transaction.duration:>2"},
             )
         assert response.status_code == 200
-        assert response.data["nextEventID"] == "d" * 32
-        assert response.data["previousEventID"] == "f" * 32
+        assert response.data["nextEventID"] == format_project_event(self.project.slug, "d" * 32)
+        assert response.data["previousEventID"] == format_project_event(self.project.slug, "f" * 32)
 
     def test_event_links_with_transaction_events_aggregate_fields(self):
         prototype = {
@@ -387,8 +449,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200
-        assert response.data["nextEventID"] == "d" * 32
-        assert response.data["previousEventID"] == "f" * 32
+        assert response.data["nextEventID"] == format_project_event(self.project.slug, "d" * 32)
+        assert response.data["previousEventID"] == format_project_event(self.project.slug, "f" * 32)
 
     def test_event_links_with_transaction_events_aggregate_conditions(self):
         prototype = {
@@ -428,5 +490,5 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200
-        assert response.data["nextEventID"] == "d" * 32
-        assert response.data["previousEventID"] == "f" * 32
+        assert response.data["nextEventID"] == format_project_event(self.project.slug, "d" * 32)
+        assert response.data["previousEventID"] == format_project_event(self.project.slug, "f" * 32)

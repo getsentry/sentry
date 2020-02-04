@@ -413,6 +413,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.landing_path)
             self.wait_until_loaded()
 
+            # Dismiss assistant as it is in the way.
+            self.browser.element('[aria-label="Got It"]').click()
+
             # Look at the results for our query.
             self.browser.element('[data-test-id="card-{}"]'.format(query.name)).click()
             self.wait_until_loaded()

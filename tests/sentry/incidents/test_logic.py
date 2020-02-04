@@ -44,8 +44,6 @@ from sentry.incidents.logic import (
     get_incident_aggregates,
     get_incident_event_stats,
     get_incident_subscribers,
-    get_incident_suspect_commits,
-    get_incident_suspects,
     get_triggers_for_alert_rule,
     INCIDENT_START_ROLLUP,
     ProjectsNotAssociatedWithAlertRuleError,
@@ -71,20 +69,16 @@ from sentry.incidents.models import (
     IncidentSnapshot,
     IncidentStatus,
     IncidentSubscription,
-    IncidentSuspectCommit,
     IncidentType,
 )
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
-from sentry.models.commit import Commit
 from sentry.models.integration import Integration
-from sentry.models.repository import Repository
 from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import iso_format
 
 
 class CreateIncidentTest(TestCase):
     record_event = patcher("sentry.analytics.base.Analytics.record_event")
-    calculate_incident_suspects = patcher("sentry.incidents.tasks.calculate_incident_suspects")
 
     def test_simple(self):
         incident_type = IncidentType.CREATED
@@ -152,9 +146,6 @@ class CreateIncidentTest(TestCase):
             "incident_id": six.text_type(incident.id),
             "incident_type": six.text_type(IncidentType.CREATED.value),
         }
-        self.calculate_incident_suspects.apply_async.assert_called_once_with(
-            kwargs={"incident_id": incident.id}
-        )
 
 
 @freeze_time()
@@ -566,136 +557,6 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
         assert list(get_incident_subscribers(incident)) == []
         subscription = subscribe_to_incident(incident, self.user)[0]
         assert list(get_incident_subscribers(incident)) == [subscription]
-
-
-class GetIncidentSuspectsTest(TestCase, BaseIncidentsTest):
-    def test_simple(self):
-        release = self.create_release(project=self.project, version="v12")
-
-        self.repo = Repository.objects.create(
-            organization_id=self.organization.id, name=self.organization.id
-        )
-        commit_id = "a" * 40
-        release.set_commits(
-            [
-                {
-                    "id": commit_id,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                }
-            ]
-        )
-        incident = self.create_incident(self.organization)
-        commit = Commit.objects.get(releasecommit__release=release)
-        IncidentSuspectCommit.objects.create(incident=incident, commit=commit, order=1)
-        assert [commit] == list(get_incident_suspects(incident, [self.project]))
-        assert [] == list(get_incident_suspects(incident, []))
-
-
-class GetIncidentSuspectCommitsTest(TestCase, BaseIncidentsTest):
-    def test_simple(self):
-        release = self.create_release(project=self.project, version="v12")
-
-        included_commits = set([letter * 40 for letter in ("a", "b", "c", "d")])
-        commit_iter = iter(included_commits)
-
-        one_min_ago = iso_format(before_now(minutes=1))
-        event = self.store_event(
-            data={
-                "fingerprint": ["group-1"],
-                "message": "Kaboom!",
-                "platform": "python",
-                "stacktrace": {
-                    "frames": [
-                        {"filename": "sentry/tasks.py"},
-                        {"filename": "sentry/models/release.py"},
-                    ]
-                },
-                "release": release.version,
-                "timestamp": one_min_ago,
-            },
-            project_id=self.project.id,
-        )
-        group = event.group
-        self.repo = Repository.objects.create(
-            organization_id=self.organization.id, name=self.organization.id
-        )
-        release.set_commits(
-            [
-                {
-                    "id": next(commit_iter),
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
-                },
-                {
-                    "id": next(commit_iter),
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
-                },
-                {
-                    "id": next(commit_iter),
-                    "repository": self.repo.name,
-                    "author_email": "ross@example.com",
-                    "author_name": "Ross",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
-                },
-            ]
-        )
-        release_2 = self.create_release(project=self.project, version="v13")
-        event_2 = self.store_event(
-            data={
-                "fingerprint": ["group-2"],
-                "message": "Kaboom!",
-                "platform": "python",
-                "stacktrace": {
-                    "frames": [
-                        {"filename": "sentry/tasks.py"},
-                        {"filename": "sentry/models/group.py"},
-                    ]
-                },
-                "release": release_2.version,
-                "timestamp": one_min_ago,
-            },
-            project_id=self.project.id,
-        )
-        group_2 = event_2.group
-        excluded_id = "z" * 40
-        release_2.set_commits(
-            [
-                {
-                    "id": next(commit_iter),
-                    "repository": self.repo.name,
-                    "author_email": "hello@example.com",
-                    "author_name": "Hello",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/group.py", "type": "M"}],
-                },
-                {
-                    "id": excluded_id,
-                    "repository": self.repo.name,
-                    "author_email": "hello@example.com",
-                    "author_name": "Hello",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/not_group.py", "type": "M"}],
-                },
-            ]
-        )
-
-        commit_ids = (
-            Commit.objects.filter(releasecommit__release__in=[release, release_2])
-            .exclude(key=excluded_id)
-            .values_list("id", flat=True)
-        )
-        incident = self.create_incident(self.organization, groups=[group, group_2])
-        assert set(get_incident_suspect_commits(incident)) == set(commit_ids)
 
 
 @freeze_time()

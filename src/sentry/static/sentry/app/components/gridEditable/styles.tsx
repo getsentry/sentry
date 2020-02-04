@@ -202,22 +202,22 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
  */
 export const GridHeadCellStatic = styled('th')`
   height: ${GRID_HEAD_ROW_HEIGHT}px;
-  min-width: 24px;
-  display: block;
+  display: flex;
+  align-items: center;
   padding: ${space(2)};
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
   text-transform: uppercase;
-  white-space: nowrap;
   text-overflow: ellipsis;
+  white-space: nowrap;
   overflow: hidden;
 
   &:first-child {
     border-top-left-radius: ${p => p.theme.borderRadius};
+    padding: ${space(1)} 0 ${space(1)} ${space(3)};
   }
 `;
 
@@ -280,6 +280,10 @@ export const GridBodyCell = styled('td')`
   border-bottom: 1px solid ${p => p.theme.borderLight};
 
   font-size: ${p => p.theme.fontSizeMedium};
+
+  &:first-child {
+    padding: ${space(1)} 0 ${space(1)} ${space(3)};
+  }
 
   &:last-child {
     border-right: none;
