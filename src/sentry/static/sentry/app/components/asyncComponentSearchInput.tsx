@@ -3,6 +3,7 @@ import debounce from 'lodash/debounce';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
 import Input from 'app/views/settings/components/forms/controls/input';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Client} from 'app/api';
@@ -60,7 +61,7 @@ type State = {
  */
 class AsyncComponentSearchInput extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
-    placeholder: 'Search...',
+    placeholder: t('Search...'),
     debounceWait: 200,
   };
 
