@@ -832,7 +832,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        print (response["Link"])
         links = parse_link_header(response["Link"])
         for link in links:
             assert "field=issue.id" in link
@@ -841,7 +840,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert "sort=-count_id" in link
             assert "query=language%3AC%2B%2B" in link
 
-        print (links)
         assert len(response.data["data"]) == 2
         data = response.data["data"]
         assert data[0]["count_id"] == 3
