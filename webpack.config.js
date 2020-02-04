@@ -185,6 +185,14 @@ const cacheGroups = {
 };
 
 const babelOptions = {...babelConfig, cacheDirectory: true};
+const babelLoaderConfig = {loader: 'babel-loader', options: babelOptions};
+
+const tsLoaderConfig = {
+  loader: 'ts-loader',
+  options: {
+    transpileOnly: false,
+  },
+};
 
 /**
  * Main Webpack config for Sentry React SPA.
@@ -225,23 +233,7 @@ let appConfig = {
         test: /\.tsx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-        use: [
-          ...(!IS_CI
-            ? [
-                {
-                  loader: 'babel-loader',
-                  options: babelOptions,
-                },
-              ]
-            : [
-                {
-                  loader: 'ts-loader',
-                  options: {
-                    transpileOnly: false,
-                  },
-                },
-              ]),
-        ],
+        use: [!IS_CI ? babelLoaderConfig : tsLoaderConfig],
       },
       {
         test: /\.po$/,
