@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from uuid import uuid4
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -70,11 +69,11 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             )
 
             if not rule:
-                uuid = uuid4().hex
-                kwargs.update({"uuid": uuid})
+                client = tasks.RedisRuleStatus()
+                uuid_context = {"uuid": client.uuid}
+                kwargs.update(uuid_context)
                 tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
-                context = {"uuid": uuid}
-                return Response(context, status=202)
+                return Response(uuid_context, status=202)
 
             self.create_audit_entry(
                 request=request,

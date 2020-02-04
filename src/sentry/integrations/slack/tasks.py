@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+from uuid import uuid4
 
 from django.conf import settings
 
@@ -23,16 +24,32 @@ LIST_TYPES = [
 
 
 class RedisRuleStatus(object):
-    def __init__(self, uuid):
-        self.uuid = uuid
+    def __init__(self, uuid=None):
+        self._uuid = uuid or self._generate_uuid()
 
         cluster_id = getattr(settings, "SENTRY_RULE_TASK_REDIS_CLUSTER", "default")
         self.client = redis_clusters.get(cluster_id)
-        self.set_value("pending")
+        self._set_inital_value()
+
+    @property
+    def uuid(self):
+        return self._uuid
 
     def set_value(self, status, rule_id=None):
         value = self._format_value(status, rule_id)
         self.client.set(self._get_redis_key(), u"{}".format(value), ex=60 * 60)
+
+    def get_value(self):
+        key = self._get_redis_key()
+        value = self.client.get(key)
+        return json.loads(value)
+
+    def _generate_uuid(self):
+        return uuid4().hex
+
+    def _set_inital_value(self):
+        value = json.dumps({"status": "pending"})
+        self.client.set(self._get_redis_key(), u"{}".format(value), ex=60 * 60, nx=True)
 
     def _get_redis_key(self):
         return u"slack-channel-task:1:{}".format(self.uuid)
