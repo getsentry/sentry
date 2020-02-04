@@ -12,9 +12,8 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncComponent from 'app/components/asyncComponent';
 import PluginIcon from 'app/plugins/components/pluginIcon';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Tag from 'app/views/settings/components/tag';
-import HookStore from 'app/stores/hookStore';
-import {Hooks} from 'app/types/hooks';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
@@ -24,26 +23,10 @@ import ExternalLink from 'app/components/links/externalLink';
 import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin';
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
+import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
 
 const tabs = ['information', 'configurations'];
-
-const defaultFeatureGateComponents = {
-  IntegrationFeatures: p =>
-    p.children({
-      disabled: false,
-      disabledReason: null,
-      ungatedFeatures: p.features,
-      gatedFeatureGroups: [],
-    }),
-  FeatureList: p => (
-    <ul>
-      {p.features.map((f, i) => (
-        <li key={i}>{f.description}</li>
-      ))}
-    </ul>
-  ),
-} as ReturnType<Hooks['integrations:feature-gates']>;
 
 type State = {
   plugins: PluginWithProjectList[];
@@ -136,8 +119,8 @@ class PluginDetailedView extends AsyncComponent<
           Body={Body}
           nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/${plugin.id}/`}
           needProject
+          needOrg
           onFinish={path => {
-            console.log('path', path);
             closeModal();
             router.push(path);
           }}
@@ -188,10 +171,7 @@ class PluginDetailedView extends AsyncComponent<
       ),
     }));
 
-    const featureListHooks = HookStore.get('integrations:feature-gates');
-    featureListHooks.push(() => defaultFeatureGateComponents);
-
-    const {FeatureList, IntegrationFeatures} = featureListHooks[0]();
+    const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
     const featureProps = {organization, features};
 
     // const {tab} = this.state;

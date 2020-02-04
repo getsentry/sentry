@@ -2,16 +2,20 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import space from 'app/styles/space';
+// import space from 'app/styles/space';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Alert from 'app/components/alert';
-import PluginIcon from 'app/plugins/components/pluginIcon';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
-import {enablePlugin} from 'app/actionCreators/plugins';
-import {PluginNoProject, PluginProjectItem, Organization} from 'app/types';
+import {
+  addErrorMessage,
+  addSuccessMessage,
+  addLoadingMessage,
+} from 'app/actionCreators/indicator';
+import {PluginNoProject, PluginProjectItem, Organization, AvatarProject} from 'app/types';
 
 export type Props = {
   api: Client;
@@ -20,8 +24,6 @@ export type Props = {
   organization: Organization;
   onResetConfiguration: (projectId: string) => void;
   onEnablePlugin: (projectId: string) => void;
-  onRemove?: () => void;
-  onDisable?: () => void;
   className?: string;
 };
 
@@ -45,20 +47,25 @@ export class InstalledPlugin extends React.Component<Props> {
     };
   }
 
-  handleReset = async () => {
-    //TODO(steve): add loading
+  pluginUpdate = async (data: object) => {
     const {organization, projectItem, plugin} = this.props;
+    await this.props.api.requestPromise(
+      `/projects/${organization.slug}/${projectItem.projectSlug}/plugins/${plugin.id}/`,
+      {
+        method: 'POST',
+        data,
+      }
+    );
+  };
+
+  handleReset = async () => {
     try {
-      await this.props.api.requestPromise(
-        `/projects/${organization.slug}/${projectItem.projectSlug}/plugins/${plugin.id}/`,
-        {
-          method: 'POST',
-          data: {reset: true},
-        }
-      );
+      addLoadingMessage(t('Removing...'));
+      await this.pluginUpdate({reset: true});
+      addSuccessMessage(t('Configuration was removed'));
       this.props.onResetConfiguration(this.props.projectItem.projectId);
     } catch (_err) {
-      console.error(_err);
+      addErrorMessage(t('Unable to remove configuration'));
     }
   };
 
@@ -70,17 +77,24 @@ export class InstalledPlugin extends React.Component<Props> {
   }
 
   enablePlugin = async () => {
-    const {organization, projectItem, plugin} = this.props;
-    const params = {
-      orgId: organization.slug,
-      projectId: projectItem.projectSlug,
-      pluginId: plugin.id,
-    };
-    //XXX(Steve): messaging says plugin, might want to do something different
-    //action handles messaging errors so we don't have to here
-    await enablePlugin(params);
-    this.props.onEnablePlugin(projectItem.projectId);
+    try {
+      addLoadingMessage(t('Enabling...'));
+      await this.pluginUpdate({enabled: true});
+      addSuccessMessage(t('Configuration was enabled'));
+      this.props.onEnablePlugin(this.props.projectItem.projectId);
+    } catch (_err) {
+      addErrorMessage(t('Unable to enable configuration'));
+    }
   };
+
+  get projectForBadge(): AvatarProject {
+    //this function returns the project as needed for the ProjectBadge component
+    const {projectItem} = this.props;
+    return {
+      slug: projectItem.projectSlug,
+      platform: projectItem.projectPlatform,
+    };
+  }
 
   render() {
     const {className, plugin, organization, projectItem} = this.props;
@@ -91,8 +105,7 @@ export class InstalledPlugin extends React.Component<Props> {
           {({hasAccess}) => (
             <IntegrationFlex className={className}>
               <IntegrationItemBox>
-                <PluginIcon pluginId={plugin.id} size={22} />
-                <IntegrationName>{projectItem.projectName}</IntegrationName>
+                <ProjectBadge project={this.projectForBadge} />
               </IntegrationItemBox>
               <div>
                 {!projectItem.enabled && this.hasConfiguration() && (
@@ -155,12 +168,6 @@ const IntegrationFlex = styled('div')`
 // const IntegrationItemBox = styled('div')`
 //   flex: 1;
 // `;
-
-const IntegrationName = styled('div')`
-  font-size: 1.6rem;
-  padding-left: ${space(1)};
-  display: flex;
-`;
 
 const IntegrationItemBox = styled('div')`
   flex: 1;
