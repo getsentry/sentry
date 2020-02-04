@@ -78,18 +78,25 @@ def backfill_eventstream(apps, schema_editor):
             print("Skipped {} as group or project information is invalid.\n".format(event))
             continue
 
-        eventstream.insert(
-            group=event.group,
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            primary_hash=primary_hash,
-            skip_consume=True,
-        )
-        processed += 1
+        try:
+            eventstream.insert(
+                group=event.group,
+                event=event,
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                primary_hash=primary_hash,
+                skip_consume=True,
+            )
+            processed += 1
+        except Exception as error:
+            print(
+                "An error occured while trying to instert the following event: {}\n.----\n{}".format(
+                    event, error
+                )
+            )
 
-    print("Event migration done. Processed {} of {} events.\n".format(processed, count))
+    print("Event migration done. Migrated {} of {} events.\n".format(processed, count))
 
 
 class Migration(migrations.Migration):
