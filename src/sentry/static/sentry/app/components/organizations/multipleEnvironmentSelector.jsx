@@ -1,9 +1,9 @@
 import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
+import styled from '@emotion/styled';
 import {analytics} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';

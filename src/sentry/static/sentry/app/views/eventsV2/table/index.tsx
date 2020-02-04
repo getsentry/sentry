@@ -1,8 +1,8 @@
 import React from 'react';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import space from 'app/styles/space';
 import {Organization, Tag} from 'app/types';
@@ -12,6 +12,7 @@ import Pagination from 'app/components/pagination';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
 import EventView, {isAPIPayloadSimilar} from '../eventView';
+
 import TableView from './tableView';
 import {TableData} from './types';
 

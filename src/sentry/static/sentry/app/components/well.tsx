@@ -1,6 +1,7 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
+
+import styled from '@emotion/styled';
 
 type Props = {
   hasImage: boolean | undefined;

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import {Metadata} from 'app/sentryTypes';
 import {getTitle} from 'app/utils/events';
 

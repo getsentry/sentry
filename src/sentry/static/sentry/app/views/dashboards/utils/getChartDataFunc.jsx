@@ -1,7 +1,8 @@
 import {getChartDataForWidget, getChartDataByDay} from 'app/views/discover/result/utils';
 
-import {isTimeSeries} from './isTimeSeries';
 import {WIDGET_DISPLAY} from '../constants';
+
+import {isTimeSeries} from './isTimeSeries';
 
 /**
  * Get data function based on widget properties

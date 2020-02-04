@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';

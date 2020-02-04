@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment';
 
+import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
@@ -44,7 +44,6 @@ import Result from './result';
 import ResultLoading from './result/loading';
 import SavedQueryList from './sidebar/savedQueryList';
 import createResultManager from './resultManager';
-
 import {SavedQuery} from './types';
 
 type Props = {

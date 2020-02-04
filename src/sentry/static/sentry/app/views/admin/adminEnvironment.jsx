@@ -1,7 +1,7 @@
 import React from 'react';
 import moment from 'moment';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';

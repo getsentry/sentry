@@ -6,7 +6,6 @@ import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 
-import QueryFields from './queryFields';
 import {createSavedQuery, generateQueryName} from '../utils';
 import {
   ButtonSpinner,
@@ -16,6 +15,8 @@ import {
 } from '../styles';
 import {SavedQuery} from '../types';
 import {QueryBuilder} from '../queryBuilder';
+
+import QueryFields from './queryFields';
 
 type NewQueryProps = {
   organization: Organization;

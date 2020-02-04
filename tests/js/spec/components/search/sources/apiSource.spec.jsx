@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import {ApiSource} from 'app/components/search/sources/apiSource';
 
 describe('ApiSource', function() {

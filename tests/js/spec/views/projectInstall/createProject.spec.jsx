@@ -1,6 +1,6 @@
 import React from 'react';
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import {CreateProject} from 'app/views/projectInstall/createProject';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 

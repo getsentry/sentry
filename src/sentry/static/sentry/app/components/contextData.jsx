@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import isString from 'lodash/isString';
 import isNumber from 'lodash/isNumber';
 import isArray from 'lodash/isArray';

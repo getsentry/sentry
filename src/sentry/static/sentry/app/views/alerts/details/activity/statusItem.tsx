@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {tct} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
 import getDynamicText from 'app/utils/getDynamicText';

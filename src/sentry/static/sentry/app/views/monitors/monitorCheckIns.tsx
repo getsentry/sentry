@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Monitor} from 'app/views/monitors/types';
 import {PanelBody, PanelItem} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';

@@ -1,9 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import styled from '@emotion/styled';
-
 import {t} from 'app/locale';
-
 import Count from 'app/components/count';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';

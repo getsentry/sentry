@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectHeaderProjectSelector from 'app/components/projectHeader/projectSelector';
 import ProjectsStore from 'app/stores/projectsStore';
 

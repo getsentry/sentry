@@ -1,10 +1,9 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import styled from '@emotion/styled';
 import {Organization, SavedQuery} from 'app/types';
 import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
-
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';

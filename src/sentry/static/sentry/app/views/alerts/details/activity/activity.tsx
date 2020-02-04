@@ -1,8 +1,8 @@
 import React from 'react';
 import groupBy from 'lodash/groupBy';
 import moment from 'moment';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import {User} from 'app/types';
 import {t} from 'app/locale';
@@ -15,6 +15,7 @@ import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 
 import {Incident, IncidentActivityType, ActivityType, NoteType} from '../../types';
+
 import ActivityPlaceholder from './activityPlaceholder';
 import DateDivider from './dateDivider';
 import StatusItem from './statusItem';

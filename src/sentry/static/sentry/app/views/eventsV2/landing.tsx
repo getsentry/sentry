@@ -4,9 +4,9 @@ import React from 'react';
 import * as ReactRouter from 'react-router';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
-import styled from '@emotion/styled';
-
 import {Location} from 'history';
+
+import styled from '@emotion/styled';
 import {Organization, SavedQuery} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
@@ -26,11 +26,12 @@ import localStorage from 'app/utils/localStorage';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
+import backgroundSpace from '../../../images/spot/background-space.svg';
+
 import {DEFAULT_EVENT_VIEW} from './data';
 import {getPrebuiltQueries, decodeScalar} from './utils';
 import EventView from './eventView';
 import QueryList from './queryList';
-import backgroundSpace from '../../../images/spot/background-space.svg';
 
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 

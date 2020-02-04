@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {selectText} from 'app/utils/selectText';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';

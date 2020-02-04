@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import {PanelItem} from 'app/components/panels';
 import {Repository, RepositoryStatus} from 'app/types';

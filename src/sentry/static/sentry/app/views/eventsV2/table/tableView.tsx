@@ -1,7 +1,7 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import styled from '@emotion/styled';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
@@ -22,13 +22,14 @@ import {
 } from '../utils';
 import EventView, {pickRelevantLocationQueryStrings} from '../eventView';
 import SortLink, {Alignments} from '../sortLink';
+import {ColumnValueType} from '../eventQueryParams';
+import {generateEventDetailsRoute, generateEventSlug} from '../eventDetails/utils';
+
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
-import {ColumnValueType} from '../eventQueryParams';
 import DraggableColumns, {
   DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER,
 } from './draggableColumns';
-import {generateEventDetailsRoute, generateEventSlug} from '../eventDetails/utils';
 
 export type TableViewProps = {
   location: Location;

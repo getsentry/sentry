@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Release} from 'app/types';
 import AvatarList from 'app/components/avatar/avatarList';
 import {t, tn} from 'app/locale';

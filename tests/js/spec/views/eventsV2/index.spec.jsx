@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {DiscoverLanding} from 'app/views/eventsV2/landing';
 
 describe('EventsV2 > Landing', function() {

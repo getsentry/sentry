@@ -21,6 +21,7 @@ import {
   IncidentStatus,
   NoteType,
 } from '../../types';
+
 import Activity from './activity';
 
 function makeDefaultErrorJson() {

@@ -1,7 +1,7 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
 import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
@@ -21,6 +21,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 import {Incident} from '../types';
+
 import Activity from './activity';
 import Chart from './chart';
 import SideHeader from './sideHeader';

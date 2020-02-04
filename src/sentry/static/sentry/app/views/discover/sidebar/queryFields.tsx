@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
 import NumberField from 'app/components/forms/numberField';
@@ -21,11 +21,12 @@ import {
   DocsIcon,
   DocsLink,
 } from '../styles';
-import Orderby from './orderby';
 import {NON_CONDITIONS_FIELDS} from '../data';
 import {getOrderbyFields} from '../utils';
 import {SavedQuery, ReactSelectOption} from '../types';
 import {QueryBuilder} from '../queryBuilder';
+
+import Orderby from './orderby';
 
 type QueryFieldsProps = {
   queryBuilder: QueryBuilder;

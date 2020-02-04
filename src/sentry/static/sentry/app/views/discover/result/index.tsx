@@ -10,16 +10,6 @@ import InlineSvg from 'app/components/inlineSvg';
 import PageHeading from 'app/components/pageHeading';
 
 import {
-  getChartData,
-  getChartDataByDay,
-  getRowsPageRange,
-  downloadAsCsv,
-  getVisualization,
-} from './utils';
-import Table from './table';
-import Pagination from './pagination';
-import VisualizationsToggle from './visualizationsToggle';
-import {
   HeadingContainer,
   ResultSummary,
   ResultContainer,
@@ -36,6 +26,17 @@ import {
   getQueryStringFromQuery,
 } from '../utils';
 import {SavedQuery} from '../types';
+
+import {
+  getChartData,
+  getChartDataByDay,
+  getRowsPageRange,
+  downloadAsCsv,
+  getVisualization,
+} from './utils';
+import Table from './table';
+import Pagination from './pagination';
+import VisualizationsToggle from './visualizationsToggle';
 
 type ResultProps = {
   data: any;

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import ProjectContext from 'app/views/projects/projectContext';
 import space from 'app/styles/space';
 

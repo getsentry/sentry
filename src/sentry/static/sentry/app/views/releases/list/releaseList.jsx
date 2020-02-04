@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {PanelItem} from 'app/components/panels';
 import Count from 'app/components/count';
 import ReleaseStats from 'app/components/releaseStats';

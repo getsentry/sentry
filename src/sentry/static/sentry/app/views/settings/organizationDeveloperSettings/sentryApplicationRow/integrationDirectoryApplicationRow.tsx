@@ -2,9 +2,9 @@ import React from 'react';
 import {Link} from 'react-router';
 import capitalize from 'lodash/capitalize';
 import omit from 'lodash/omit';
-import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
+import styled from '@emotion/styled';
 import SentryTypes from 'app/sentryTypes';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';

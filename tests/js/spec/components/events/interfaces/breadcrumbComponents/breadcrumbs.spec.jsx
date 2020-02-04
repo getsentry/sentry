@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {shallow} from 'sentry-test/enzyme';
 import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
 import Breadcrumb from 'app/components/events/interfaces/breadcrumbs/breadcrumb';

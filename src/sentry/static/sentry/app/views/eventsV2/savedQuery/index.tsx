@@ -1,13 +1,12 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
+import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {Organization, SavedQuery} from 'app/types';
 import withApi from 'app/utils/withApi';
-
 import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
@@ -17,6 +16,7 @@ import space from 'app/styles/space';
 
 import EventView from '../eventView';
 import {getDiscoverLandingUrl} from '../utils';
+
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
 type Props = {

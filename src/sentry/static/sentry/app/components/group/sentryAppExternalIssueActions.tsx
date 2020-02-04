@@ -1,8 +1,8 @@
 import React, {ReactElement} from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import InlineSvg from 'app/components/inlineSvg';
