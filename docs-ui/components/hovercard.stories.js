@@ -15,7 +15,7 @@ const positionOptions = {
 const showOptions = {
   true: true,
   false: false,
-  null: null,
+  undefined: undefined,
 };
 
 const shrinkToFitOptions = {
@@ -46,7 +46,7 @@ storiesOf('UI|Hovercard', module).add(
         header={text('Header', 'Hovercard Header')}
         body={text('Body', 'Hovercard body (can also be a React node)')}
         position={select('position', positionOptions, 'top', 'Hovercard positioning')}
-        show={select('show', showOptions, null, 'Force show/unshow')}
+        show={select('show', showOptions, undefined, 'Force show/unshow')}
         tipColor={select('tipColor', tipColorOptions, null, 'Tip color')}
         shrinkToFit={select('shrinkToFit', shrinkToFitOptions, null, 'Shrink to fit')}
       >
