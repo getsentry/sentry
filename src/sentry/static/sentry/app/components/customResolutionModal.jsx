@@ -7,7 +7,7 @@ import {SelectAsyncField} from 'app/components/forms';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
+import Version from 'app/components/versionV2';
 
 export default class CustomResolutionModal extends React.Component {
   static propTypes = {

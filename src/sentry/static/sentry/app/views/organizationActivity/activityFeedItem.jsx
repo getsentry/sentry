@@ -73,7 +73,7 @@ class ActivityItem extends React.Component {
 
     const versionLink = data.version ? (
       <VersionHoverCard orgId={orgId} projectId={project.slug} version={data.version}>
-        <Version version={data.version} orgId={orgId} projectId={null} />
+        <Version version={data.version} orgId={orgId} />
       </VersionHoverCard>
     ) : null;
 

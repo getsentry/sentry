@@ -6,7 +6,7 @@ import {PanelItem} from 'app/components/panels';
 import Count from 'app/components/count';
 import ReleaseStats from 'app/components/releaseStats';
 import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
+import Version from 'app/components/versionV2';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 

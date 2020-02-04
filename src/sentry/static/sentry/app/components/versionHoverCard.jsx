@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {Release} from '@sentry/release-parser';
 
 import {t, tct} from 'app/locale';
 import AvatarList from 'app/components/avatar/avatarList';
@@ -120,7 +121,11 @@ class VersionHoverCard extends React.Component {
       mostRecentDeploySlice = Object.keys(recentDeploysByEnviroment).slice(0, 3);
     }
     return {
-      header: <span className="truncate">{tct('Release [version]', {version})}</span>,
+      header: (
+        <span className="truncate">
+          {tct('Release [version]', {version: new Release(version || '').describe()})}
+        </span>
+      ),
       body: (
         <div>
           <div className="row row-flex">

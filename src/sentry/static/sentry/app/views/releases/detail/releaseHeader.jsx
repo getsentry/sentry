@@ -12,7 +12,7 @@ import PageHeading from 'app/components/pageHeading';
 import ReleaseStats from 'app/components/releaseStats';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
+import Version from 'app/components/versionV2';
 
 import ReleaseDetailsActions from './releaseDetailActions';
 
@@ -46,7 +46,7 @@ export default class ReleaseHeader extends React.Component {
         <div className="row">
           <div className="col-sm-4 col-xs-12">
             <PageHeading>{t('Release')} </PageHeading>
-            <StyledVersion orgId={orgId} version={release.version} anchor={false} />
+            <StyledVersion version={release.version} anchor={false} />
             {!!release.url && (
               <div>
                 <ExternalLink href={release.url}>

@@ -9,8 +9,8 @@ import Tooltip from 'app/components/tooltip';
 
 type Props = {
   version: string;
-  orgId: string;
   anchor?: boolean;
+  orgId?: string;
   /**
    * Should link to Release preserve user's global selection values
    */
