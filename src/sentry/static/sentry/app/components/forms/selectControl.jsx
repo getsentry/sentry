@@ -163,8 +163,7 @@ const SelectControl = props => {
   // Compatibility with old select2 API
   const choicesOrOptions =
     convertFromSelect2Choices(typeof choices === 'function' ? choices(props) : choices) ||
-    options ||
-    [];
+    options;
 
   // Value is expected to be object like the options list, we map it back from
   // the options list
