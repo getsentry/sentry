@@ -106,7 +106,7 @@ def process_event(message, projects):
     payload = message["payload"]
     start_time = float(message["start_time"])
     event_id = message["event_id"]
-    project_id = message["project_id"]
+    project_id = int(message["project_id"])
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
 
@@ -175,7 +175,7 @@ def process_attachment_chunk(message, projects):
 @metrics.wraps("ingest_consumer.process_individual_attachment")
 def process_individual_attachment(message, projects):
     event_id = message["event_id"]
-    project_id = message["project_id"]
+    project_id = int(message["project_id"])
     cache_key = cache_key_for_event({"event_id": event_id, "project": project_id})
 
     try:
@@ -210,7 +210,7 @@ def process_individual_attachment(message, projects):
 
 @metrics.wraps("ingest_consumer.process_userreport")
 def process_userreport(message, projects):
-    project_id = message["project_id"]
+    project_id = int(message["project_id"])
     start_time = to_datetime(message["start_time"])
     feedback = json.loads(message["payload"])
 
