@@ -61,9 +61,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
     def flush_batch(self, batch):
         attachment_chunks = []
-        user_reports = []
-        events = []
-        attachments = []
+        other_messages = []
 
         projects_to_fetch = []
 
@@ -72,13 +70,13 @@ class IngestConsumerWorker(AbstractBatchWorker):
             projects_to_fetch.append(message["project_id"])
 
             if message_type in ("event", "transaction"):
-                events.append(message)
+                other_messages.append((process_event, message))
             elif message_type == "attachment_chunk":
                 attachment_chunks.append(message)
             elif message_type == "attachment":
-                attachments.append(message)
+                other_messages.append((process_individual_attachment, message))
             elif message_type == "user_report":
-                user_reports.append(message)
+                other_messages.append((process_userreport, message))
             else:
                 raise ValueError("Unknown message type: {}".format(message_type))
 
@@ -93,23 +91,9 @@ class IngestConsumerWorker(AbstractBatchWorker):
             ):
                 pass
 
-        with metrics.timer("ingest_consumer.process_user_report_batch"):
+        with metrics.timer("ingest_consumer.process_other_messages_batch"):
             for _ in self.pool.imap_unordered(
-                lambda msg: process_userreport(msg, projects=projects), user_reports, chunksize=100
-            ):
-                pass
-
-        with metrics.timer("ingest_consumer.process_event_batch"):
-            for _ in self.pool.imap_unordered(
-                lambda msg: process_event(msg, projects=projects), events, chunksize=100
-            ):
-                pass
-
-        with metrics.timer("ingest_consumer.process_individual_attachment_batch"):
-            for _ in self.pool.imap_unordered(
-                lambda msg: process_individual_attachment(msg, projects=projects),
-                attachments,
-                chunksize=100,
+                lambda (f, msg): f(msg, projects=projects), other_messages, chunksize=100
             ):
                 pass
 
@@ -117,6 +101,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
         pass
 
 
+@metrics.wraps("ingest_consumer.process_event")
 def process_event(message, projects):
     payload = message["payload"]
     start_time = float(message["start_time"])
@@ -174,6 +159,7 @@ def process_event(message, projects):
     event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
 
 
+@metrics.wraps("ingest_consumer.process_attachment_chunk")
 def process_attachment_chunk(message, projects):
     payload = message["payload"]
     event_id = message["event_id"]
@@ -186,6 +172,7 @@ def process_attachment_chunk(message, projects):
     )
 
 
+@metrics.wraps("ingest_consumer.process_individual_attachment")
 def process_individual_attachment(message, projects):
     event_id = message["event_id"]
     project_id = message["project_id"]
@@ -221,6 +208,7 @@ def process_individual_attachment(message, projects):
     attachment.delete()
 
 
+@metrics.wraps("ingest_consumer.process_userreport")
 def process_userreport(message, projects):
     project_id = message["project_id"]
     start_time = to_datetime(message["start_time"])
