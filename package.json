@@ -20,7 +20,7 @@
     "@emotion/babel-preset-css-prop": "^10.0.27",
     "@emotion/core": "^10.0.27",
     "@emotion/styled": "^10.0.27",
-    "@sentry/apm": "5.12.2",
+    "@sentry/apm": "5.12.3",
     "@sentry/browser": "5.12.1",
     "@sentry/integrations": "5.12.0",
     "@sentry/release-parser": "^0.4.0",
@@ -129,7 +129,7 @@
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.2.0",
-    "@sentry/node": "^5.12.1",
+    "@sentry/node": "^5.12.3",
     "@storybook/addon-a11y": "^5.3.3",
     "@storybook/addon-actions": "^5.3.3",
     "@storybook/addon-docs": "^5.3.3",
