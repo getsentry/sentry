@@ -75,7 +75,7 @@ const PanelWithProtectedBorder = styled(Panel)`
   overflow: hidden;
   z-index: ${Z_INDEX_PANEL};
 `;
-export const Body: React.FC = props => (
+export const Body = props => (
   <PanelWithProtectedBorder>
     <PanelBody>{props.children}</PanelBody>
   </PanelWithProtectedBorder>
@@ -309,7 +309,7 @@ const GridStatusFloat = styled('div')`
   z-index: ${Z_INDEX_GRID_STATUS};
   background: ${p => p.theme.white};
 `;
-export const GridBodyCellStatus: React.FC = props => (
+export const GridBodyCellStatus = props => (
   <GridStatusWrapper>
     <GridStatusFloat>{props.children}</GridStatusFloat>
   </GridStatusWrapper>

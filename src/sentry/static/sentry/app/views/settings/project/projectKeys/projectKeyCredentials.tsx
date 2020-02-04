@@ -21,7 +21,7 @@ const DEFAULT_PROPS = {
 type Props = {
   projectId: string;
   data: ProjectKey;
-} & Partial<typeof DEFAULT_PROPS>;
+} & typeof DEFAULT_PROPS;
 
 class ProjectKeyCredentials extends React.Component<Props> {
   static defaultProps = DEFAULT_PROPS;
