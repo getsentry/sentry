@@ -319,6 +319,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   /**
    * Callback for when triggers change
+   *
+   * Re-validate triggers on every change and reset indicators when no errors
    */
   handleChangeTriggers = (
     triggers: Trigger[],
@@ -328,18 +330,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.setState(state => {
       let triggerErrors = state.triggerErrors;
 
-      // If we have an existing trigger error, we should attempt to
-      // re-validate triggers when triggers has a change
-      //
-      // Otherwise wait until submit to validate triggers
-      // if (Array.from(state.triggerErrors).length > 0) {
       const newTriggerErrors = this.validateTriggers(triggers, triggerIndex, changeObj);
       triggerErrors = newTriggerErrors;
 
       if (Array.from(newTriggerErrors).length === 0) {
         clearIndicators();
       }
-      // }
 
       return {triggers, triggerErrors};
     });
