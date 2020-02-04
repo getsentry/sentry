@@ -2,7 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {Organization, PluginWithProjectList, PluginNoProject} from 'app/types';
+import {
+  Organization,
+  PluginWithProjectList,
+  PluginNoProject,
+  PluginProjectItem,
+} from 'app/types';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -11,23 +16,17 @@ import Tag from 'app/views/settings/components/tag';
 import HookStore from 'app/stores/hookStore';
 import {Hooks} from 'app/types/hooks';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-// import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/links/externalLink';
-// import Alert, {Props as AlertProps} from 'app/components/alert';
+import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin';
+import {openModal} from 'app/actionCreators/modal';
+import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
 
-// import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
-// import Button from 'app/components/button';
-// import InlineSvg from 'app/components/inlineSvg';
-// import InstalledIntegration, {
-//   Props as InstalledIntegrationProps,
-// } from 'app/views/organizationIntegrations/installedIntegration';
-// import marked, {singleLineRenderer} from 'app/utils/marked';
-// import {growDown, highlight} from 'app/styles/animations';
+const tabs = ['information', 'configurations'];
 
 const defaultFeatureGateComponents = {
   IntegrationFeatures: p =>
@@ -54,8 +53,6 @@ type State = {
 type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string; pluginSlug: string}, {}>;
-
-const tabs = ['information', 'configurations'];
 
 class PluginDetailedView extends AsyncComponent<
   Props & AsyncComponent['props'],
@@ -90,6 +87,66 @@ class PluginDetailedView extends AsyncComponent<
 
   handleExternalInstall = () => {};
 
+  handleResetConfiguration = (projectId: string) => {
+    //make a copy of our project list
+    const projectList = this.plugin.projectList.slice();
+    //find the index of the project
+    const index = projectList.findIndex(item => item.projectId === projectId);
+    //should match but quit if it doesn't
+    if (index < 0) {
+      return;
+    }
+    //remove from array
+    projectList.splice(index, 1);
+    //update state
+    this.setState({
+      plugins: [{...this.state.plugins[0], projectList}],
+    });
+  };
+
+  handleEnablePlugin = (projectId: string) => {
+    //make a copy of our project list
+    const projectList = this.plugin.projectList.slice();
+    //find the index of the project
+    const index = projectList.findIndex(item => item.projectId === projectId);
+    //should match but quit if it doesn't
+    if (index < 0) {
+      return;
+    }
+
+    //update item in array
+    projectList[index] = {
+      ...projectList[index],
+      enabled: true,
+    };
+
+    //update state
+    this.setState({
+      plugins: [{...this.state.plugins[0], projectList}],
+    });
+  };
+
+  handleAddToProject = () => {
+    const plugin = this.plugin;
+    const {organization, router} = this.props;
+    openModal(
+      ({closeModal, Header, Body}) => (
+        <ContextPickerModal
+          Header={Header}
+          Body={Body}
+          nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/${plugin.id}/`}
+          needProject
+          onFinish={path => {
+            console.log('path', path);
+            closeModal();
+            router.push(path);
+          }}
+        />
+      ),
+      {}
+    );
+  };
+
   onTabChange = value => {
     this.setState({tab: value});
   };
@@ -105,10 +162,6 @@ class PluginDetailedView extends AsyncComponent<
     return {
       key: plugin.slug,
     };
-  }
-
-  renderConfigurationList() {
-    return <React.Fragment></React.Fragment>;
   }
 
   renderBody() {
@@ -171,8 +224,9 @@ class PluginDetailedView extends AsyncComponent<
                         data-test-id="add-button"
                         disabled={disabled || !hasAccess}
                         organization={organization}
+                        onClick={this.handleAddToProject}
                       >
-                        {t('Add to project')}
+                        {t('Add to Project')}
                       </AddButton>
                     </Tooltip>
                   )}
@@ -197,7 +251,18 @@ class PluginDetailedView extends AsyncComponent<
             <FeatureList {...featureProps} provider={this.mapPluginToProvider()} />
           </InformationCard>
         ) : (
-          this.renderConfigurationList()
+          <div>
+            {plugin.projectList.map((projectItem: PluginProjectItem) => (
+              <InstalledPlugin
+                key={projectItem.projectId}
+                organization={organization}
+                plugin={plugin}
+                projectItem={projectItem}
+                onResetConfiguration={this.handleResetConfiguration}
+                onEnablePlugin={this.handleEnablePlugin}
+              />
+            ))}
+          </div>
         )}
       </React.Fragment>
     );

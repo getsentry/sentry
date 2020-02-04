@@ -174,4 +174,4 @@ class PluginConfigMixin(ProviderMixin):
         we prefix them with `plugins`.
         """
         if f is not None:
-            return u"plugins-{}".format(f)
+            return u"integrations-{}".format(f)

@@ -316,14 +316,16 @@ export type Plugin = PluginNoProject & {
   enabled: boolean;
 };
 
+export type PluginProjectItem = {
+  projectId: string;
+  projectSlug: string;
+  projectName: string;
+  enabled: boolean;
+  configured: boolean;
+};
+
 export type PluginWithProjectList = PluginNoProject & {
-  projectList: Array<{
-    projectId: string;
-    projectSlug: string;
-    projectName: string;
-    enabled: boolean;
-    configured: boolean;
-  }>;
+  projectList: PluginProjectItem[];
 };
 
 export type GlobalSelection = {
