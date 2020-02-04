@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 from sentry.utils.samples import load_data
@@ -802,6 +803,49 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
+
+    def test_next_prev_link_headers(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        events = [("a", "group_1"), ("b", "group_2"), ("c", "group_2"), ("d", "group_2")]
+        for e in events:
+            self.store_event(
+                data={
+                    "event_id": e[0] * 32,
+                    "timestamp": self.min_ago,
+                    "fingerprint": [e[1]],
+                    "user": {"email": "foo@example.com"},
+                    "tags": {"language": "C++"},
+                },
+                project_id=project.id,
+            )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["count(id)", "issue.id", "context.key"],
+                    "sort": "-count_id",
+                    "query": "language:C++",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        print (response["Link"])
+        links = parse_link_header(response["Link"])
+        for link in links:
+            assert "field=issue.id" in link
+            assert "field=count%28id%29" in link
+            assert "field=context.key" in link
+            assert "sort=-count_id" in link
+            assert "query=language%3AC%2B%2B" in link
+
+        print (links)
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert data[0]["count_id"] == 3
+        assert data[1]["count_id"] == 1
 
     def test_reference_event(self):
         self.login_as(user=self.user)
