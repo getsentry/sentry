@@ -285,7 +285,14 @@ def build_incident_attachment(incident):
     if incident.status == IncidentStatus.CLOSED.value:
         status = "Resolved"
         color = RESOLVED_COLOR
+    elif incident.status == IncidentStatus.WARNING.value:
+        status = "Warning"
+        color = LEVEL_TO_COLOR["warning"]
+    elif incident.status == IncidentStatus.CRITICAL.value:
+        status = "Critical"
+        color = LEVEL_TO_COLOR["critical"]
     else:
+        # Fail safe? Throw error?
         status = "Fired"
         color = LEVEL_TO_COLOR["error"]
 
@@ -293,11 +300,12 @@ def build_incident_attachment(incident):
         {"title": "Status", "value": status, "short": True},
         {"title": "Events", "value": aggregates["count"], "short": True},
         {"title": "Users", "value": aggregates["unique_users"], "short": True},
+        {"title": "Query", "value": incident.query, "short": True},
     ]
 
     ts = incident.date_started
 
-    title = u"INCIDENT: {} (#{})".format(incident.title, incident.identifier)
+    title = u"{}: {} (#{})".format(status, incident.alert_rule.name)
 
     return {
         "fallback": title,
