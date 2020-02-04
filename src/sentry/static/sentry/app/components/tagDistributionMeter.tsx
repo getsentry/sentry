@@ -1,5 +1,6 @@
 import React from 'react';
 import {Link} from 'react-router';
+import {LocationDescriptor} from 'history';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
@@ -10,7 +11,36 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {percent} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 
-export default class TagDistributionMeter extends React.Component {
+type DefaultProps = {
+  isLoading: boolean;
+  hasError: boolean;
+  renderLoading: () => React.ReactNode;
+  renderEmpty: () => React.ReactNode;
+  renderError: () => React.ReactNode;
+};
+
+export type TagSegment = {
+  count: number;
+  name: string;
+  value: string;
+  url: LocationDescriptor;
+  isOther?: boolean;
+};
+
+type Props = DefaultProps & {
+  title: string;
+  segments: TagSegment[];
+  totalValues: number;
+  onTagClick?: (title: string, value: TagSegment) => void;
+};
+
+type SegmentValue = {
+  to: LocationDescriptor;
+  onClick: () => void;
+  index: number;
+};
+
+export default class TagDistributionMeter extends React.Component<Props> {
   static propTypes = {
     title: PropTypes.string.isRequired,
     totalValues: PropTypes.number,
@@ -30,7 +60,7 @@ export default class TagDistributionMeter extends React.Component {
     onTagClick: PropTypes.func,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     isLoading: false,
     hasError: false,
     renderLoading: () => null,
@@ -102,25 +132,20 @@ export default class TagDistributionMeter extends React.Component {
             </React.Fragment>
           );
 
-          const segmentProps = {
-            isOther: value.isOther,
+          const segmentProps: SegmentValue = {
             index,
-          };
-          if (!value.isOther) {
-            segmentProps.to = value.url;
-            segmentProps.onClick = () => {
+            to: value.url,
+            onClick: () => {
               if (onTagClick) {
                 onTagClick(title, value);
               }
-            };
-          } else {
-            segmentProps.as = 'span';
-          }
+            },
+          };
 
           return (
             <div key={value.value} style={{width: pct + '%'}}>
               <Tooltip title={tooltipHtml} containerDisplayMode="block">
-                <Segment {...segmentProps} />
+                {value.isOther ? <OtherSegment /> : <Segment {...segmentProps} />}
               </Tooltip>
             </div>
           );
@@ -141,6 +166,7 @@ export default class TagDistributionMeter extends React.Component {
         name: t('Other'),
         value: 'other',
         count: totalValues - totalVisible,
+        url: '',
       });
     }
 
@@ -175,7 +201,7 @@ const SegmentBar = styled('div')`
   border-radius: 2px;
 `;
 
-const Title = styled('div', {shouldForwardProp: isPropValid})`
+const Title = styled('div')`
   display: flex;
   font-size: ${p => p.theme.fontSizeSmall};
   justify-content: space-between;
@@ -204,11 +230,20 @@ const Percent = styled('div')`
   color: ${p => p.theme.gray4};
 `;
 
-const Segment = styled(Link, {shouldForwardProp: isPropValid})`
+const OtherSegment = styled('span')`
   display: block;
   width: 100%;
   height: 16px;
   color: inherit;
   outline: none;
-  background-color: ${p => (p.isOther ? COLORS[COLORS.length - 1] : COLORS[p.index])};
+  background-color: ${COLORS[COLORS.length - 1]};
+`;
+
+const Segment = styled(Link, {shouldForwardProp: isPropValid})<SegmentValue>`
+  display: block;
+  width: 100%;
+  height: 16px;
+  color: inherit;
+  outline: none;
+  background-color: ${p => COLORS[p.index]};
 `;

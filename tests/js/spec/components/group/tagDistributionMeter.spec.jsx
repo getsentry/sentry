@@ -66,7 +66,8 @@ describe('TagDistributionMeter', function() {
 
     it('should call renderSegments() if values present', function() {
       element.setState({loading: false, error: false});
-      expect(element.find('Segment').length).toEqual(3);
+      expect(element.find('Segment').length).toEqual(2);
+      expect(element.find('OtherSegment').length).toEqual(1);
     });
   });
 });

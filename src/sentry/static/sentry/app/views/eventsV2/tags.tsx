@@ -10,14 +10,14 @@ import {Client} from 'app/api';
 import SentryTypes from 'app/sentryTypes';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Placeholder from 'app/components/placeholder';
-import TagDistributionMeter from 'app/components/tagDistributionMeter';
+import TagDistributionMeter, {TagSegment} from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {SectionHeading} from './styles';
 
-import {fetchTagFacets, fetchTotalCount, Tag, TagTopValue} from './utils';
+import {fetchTagFacets, fetchTotalCount, Tag} from './utils';
 import EventView, {isAPIPayloadSimilar} from './eventView';
 
 type Props = {
@@ -103,7 +103,7 @@ class Tags extends React.Component<Props, State> {
     const {organization, eventView} = this.props;
     const {totalValues} = this.state;
 
-    const segments: TagTopValue[] = tag.topValues.map(segment => {
+    const segments: TagSegment[] = tag.topValues.map(segment => {
       const url = eventView.getResultsViewUrlTarget(organization.slug);
       url.query = generateQueryWithTag(url.query, {
         key: tag.key,
@@ -119,7 +119,7 @@ class Tags extends React.Component<Props, State> {
         key={tag.key}
         title={tag.key}
         segments={segments}
-        totalValues={totalValues}
+        totalValues={Number(totalValues)}
         renderLoading={() => <StyledPlaceholder height="16px" />}
         onTagClick={this.onTagClick}
       />

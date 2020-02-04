@@ -15,6 +15,7 @@ import {Event, Organization, OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
+import {TagSegment} from 'app/components/tagDistributionMeter';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
 import {appendTagCondition} from 'app/utils/queryString';
@@ -97,18 +98,9 @@ export function isAggregateField(field: string): boolean {
   );
 }
 
-export type TagTopValue = {
-  name: string;
-  url: {
-    pathname: string;
-    query: any;
-  };
-  value: string;
-};
-
 export type Tag = {
   key: string;
-  topValues: Array<TagTopValue>;
+  topValues: Array<TagSegment>;
 };
 
 /**
