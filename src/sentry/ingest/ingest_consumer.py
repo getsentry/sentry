@@ -93,7 +93,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
         with metrics.timer("ingest_consumer.process_other_messages_batch"):
             for _ in self.pool.imap_unordered(
-                lambda (f, msg): f(msg, projects=projects), other_messages, chunksize=100
+                lambda args: args[0](args[1], projects=projects), other_messages, chunksize=100
             ):
                 pass
 
