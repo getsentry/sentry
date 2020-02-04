@@ -69,8 +69,7 @@ from sentry.models import (
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
 from sentry.snuba.models import QueryAggregations
-from sentry.utils import json
-import sentry.utils.loremipsum as loremipsum
+from sentry.utils import loremipsum, json
 
 
 def get_fixture_path(name):

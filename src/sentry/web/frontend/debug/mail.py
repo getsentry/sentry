@@ -36,11 +36,11 @@ from sentry.models import (
 )
 from sentry.event_manager import EventManager
 from sentry.plugins.sentry_mail.activity import emails
+from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import load_data
-import sentry.utils.loremipsum as loremipsum
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
