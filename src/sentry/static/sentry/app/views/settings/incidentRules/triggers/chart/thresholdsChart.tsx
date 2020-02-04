@@ -12,9 +12,12 @@ import theme from 'app/utils/theme';
 
 import {Trigger, AlertRuleThresholdType} from '../../types';
 
-type Props = {
-  xAxis: EChartOption.XAxis;
+type DefaultProps = {
   data: Series[];
+};
+
+type Props = DefaultProps & {
+  xAxis: EChartOption.XAxis;
   triggers: Trigger[];
   maxValue?: number;
 };
@@ -53,7 +56,7 @@ const COLOR = {
  * Metric Alert rule.
  */
 export default class ThresholdsChart extends React.PureComponent<Props, State> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     data: [],
   };
 

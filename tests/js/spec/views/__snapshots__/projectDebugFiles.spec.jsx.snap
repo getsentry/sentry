@@ -212,9 +212,7 @@ exports[`ProjectDebugFiles renders 1`] = `
             <div
               className="css-1ehogmz-FlexBox e1vnwt6f0"
             >
-              <EmptyStateWarning
-                small={false}
-              >
+              <EmptyStateWarning>
                 <EmptyStreamWrapper
                   data-test-id="empty-state"
                 >
@@ -327,9 +325,7 @@ exports[`ProjectDebugFiles renders empty 1`] = `
       disablePadding={true}
       flex={false}
     >
-      <EmptyStateWarning
-        small={false}
-      >
+      <EmptyStateWarning>
         <p>
           There are no debug symbols for this project.
         </p>

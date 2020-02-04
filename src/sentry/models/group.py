@@ -337,6 +337,9 @@ class Group(Model):
     def is_ignored(self):
         return self.get_status() == GroupStatus.IGNORED
 
+    def is_unresolved(self):
+        return self.get_status() == GroupStatus.UNRESOLVED
+
     # TODO(dcramer): remove in 9.0 / after plugins no long ref
     is_muted = is_ignored
 
@@ -463,9 +466,9 @@ class Group(Model):
         return "%s - %s" % (self.qualified_short_id.encode("utf-8"), self.title.encode("utf-8"))
 
     def count_users_seen(self):
-        return tagstore.get_groups_user_counts([self.project_id], [self.id], environment_ids=None)[
-            self.id
-        ]
+        return tagstore.get_groups_user_counts(
+            [self.project_id], [self.id], environment_ids=None, start=self.first_seen
+        )[self.id]
 
     @classmethod
     def calculate_score(cls, times_seen, last_seen):

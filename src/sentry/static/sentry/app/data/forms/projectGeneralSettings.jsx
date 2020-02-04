@@ -359,6 +359,9 @@ export const fields = {
     ),
     visible: ({features}) => features.has('datascrubbers-v2'),
     validate: ({id, form}) => {
+      if (form[id] === '') {
+        return [];
+      }
       try {
         JSON.parse(form[id]);
       } catch (e) {

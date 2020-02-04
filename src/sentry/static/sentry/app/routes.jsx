@@ -843,6 +843,20 @@ function routes() {
         />
       </Route>
 
+      <Redirect from="sentry-apps/" to="integrations/" />
+      <Route name="Sentry Apps" path="sentry-apps/">
+        <Route
+          name="Details"
+          path=":appSlug"
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/sentryAppDetailedView'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
+
       <Route name="Integrations" path="integrations/">
         <IndexRoute
           componentPromise={() =>
