@@ -1,15 +1,18 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
-
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {
+  installSentryApp,
+  uninstallSentryApp,
+} from 'app/actionCreators/sentryAppInstallations';
 import AsyncComponent from 'app/components/asyncComponent';
 import HookStore from 'app/stores/hookStore';
 import marked, {singleLineRenderer} from 'app/utils/marked';
@@ -17,16 +20,15 @@ import InlineSvg from 'app/components/inlineSvg';
 import Tag from 'app/views/settings/components/tag';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
-// import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
 import {Hooks} from 'app/types/hooks';
-import {IntegrationFeature, SentryApp, Organization} from 'app/types';
-import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
-
-// type Props = {
-//   closeModal: () => void;
-// } & SentryAppDetailsModalOptions &
-//   AsyncComponent['props'];
+import {
+  IntegrationFeature,
+  SentryApp,
+  Organization,
+  SentryAppInstallation,
+} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
+import {UninstallButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
 
 type State = {
   sentryApp: SentryApp;
@@ -54,15 +56,19 @@ const defaultFeatureGateComponents = {
   ),
 } as ReturnType<Hooks['integrations:feature-gates']>;
 
-export default class SentryAppDetailsModal extends AsyncComponent<
+class SentryAppDetailedView extends AsyncComponent<
   Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
   getEndpoints(): ([string, string, any] | [string, string])[] {
-    const {appSlug} = this.props.params;
+    const {
+      organization,
+      params: {appSlug},
+    } = this.props;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
       ['sentryApp', `/sentry-apps/${appSlug}/`],
       ['featureData', `/sentry-apps/${appSlug}/features/`],
+      ['appInstalls', `/organizations/${organization.slug}/sentry-app-installations/`],
     ];
 
     return baseEndpoints;
@@ -79,18 +85,52 @@ export default class SentryAppDetailsModal extends AsyncComponent<
     return toPermissions(this.state.sentryApp.scopes);
   }
 
-  async onInstall() {
-    // const {onInstall, closeModal, view} = this.props;
-    // //we want to make sure install finishes before we close the modal
-    // //and we should close the modal if there is an error as well
-    // try {
-    //   await onInstall();
-    // } catch (_err) {
-    //   /* stylelint-disable-next-line no-empty-block */
-    // }
-    // // let onInstall handle redirection post install on the external install flow
-    // view !== 'external_install' && closeModal();
-  }
+  isInstalled = () => {
+    return this.state.appInstalls.find(i => i.app.slug === this.state.sentryApp.slug);
+  };
+
+  redirectUser = (install: SentryAppInstallation) => {
+    const {organization} = this.props;
+    const {sentryApp} = this.state;
+    if (!sentryApp.redirectUrl) {
+      addSuccessMessage(t(`${sentryApp.slug} successfully installed.`));
+      this.setState({appInstalls: [install, ...this.state.appInstalls]});
+    } else {
+      const queryParams = {
+        installationId: install.uuid,
+        code: install.code,
+        orgSlug: organization.slug,
+      };
+      const redirectUrl = addQueryParamsToExistingUrl(sentryApp.redirectUrl, queryParams);
+      window.location.assign(redirectUrl);
+    }
+  };
+
+  handleInstall = async () => {
+    const {organization} = this.props;
+    const {sentryApp} = this.state;
+
+    return installSentryApp(this.api, organization.slug, sentryApp).then(
+      install => {
+        this.redirectUser(install);
+      },
+      () => {}
+    );
+  };
+
+  handleUninstall = (install: SentryAppInstallation) => {
+    uninstallSentryApp(this.api, install).then(
+      () => {
+        const appInstalls = this.state.appInstalls.filter(
+          i => i.app.slug !== this.state.sentryApp.slug
+        );
+        this.setState({appInstalls});
+      },
+      () => {
+        addErrorMessage(t(`Unable to uninstall ${this.state.sentryApp.name}`));
+      }
+    );
+  };
 
   renderPermissions() {
     const permissions = this.permissions;
@@ -145,8 +185,6 @@ export default class SentryAppDetailsModal extends AsyncComponent<
     const {organization} = this.props;
     const {featureData, sentryApp} = this.state;
 
-    const isInstalled = true; // TODO: figure out isInstalled !!!!
-
     // Prepare the features list
     const features = (featureData || []).map(f => ({
       featureGate: f.featureGate,
@@ -171,6 +209,42 @@ export default class SentryAppDetailsModal extends AsyncComponent<
               <Name>{sentryApp.name}</Name>
               <Flex>{features.length && this.featureTags(features)}</Flex>
             </NameContainer>
+            <IntegrationFeatures {...featureProps}>
+              {({disabled, disabledReason}) => (
+                <div
+                  style={{
+                    marginLeft: 'auto',
+                    alignSelf: 'center',
+                  }}
+                >
+                  {disabled && <DisabledNotice reason={disabledReason} />}
+
+                  <Access organization={organization} access={['org:integrations']}>
+                    {({hasAccess}) => {
+                      return !this.isInstalled() ? (
+                        <Button
+                          size="small"
+                          priority="primary"
+                          disabled={!hasAccess || disabled}
+                          onClick={() => this.handleInstall()}
+                          style={{marginLeft: space(1)}}
+                          data-test-id="install"
+                        >
+                          {t('Accept & Install')}
+                        </Button>
+                      ) : (
+                        <UninstallButton
+                          install={this.isInstalled()}
+                          app={this.state.sentryApp}
+                          onClickUninstall={this.handleUninstall}
+                          onUninstallModalOpen={() => {}} //TODO: Implement tracking analytics
+                        />
+                      );
+                    }}
+                  </Access>
+                </div>
+              )}
+            </IntegrationFeatures>
           </Flex>
           <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
             <li className="active">
@@ -180,36 +254,10 @@ export default class SentryAppDetailsModal extends AsyncComponent<
           <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
           <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
 
-          <IntegrationFeatures {...featureProps}>
-            {({disabled, disabledReason}) => (
-              <React.Fragment>
-                {!disabled && this.renderPermissions()}
-                <Footer>
-                  <Author>{t('Authored By %s', sentryApp.author)}</Author>
-                  <div>
-                    {disabled && <DisabledNotice reason={disabledReason} />}
-
-                    <Access organization={organization} access={['org:integrations']}>
-                      {({hasAccess}) =>
-                        hasAccess && (
-                          <Button
-                            size="small"
-                            priority="primary"
-                            disabled={isInstalled || disabled}
-                            onClick={() => this.onInstall()}
-                            style={{marginLeft: space(1)}}
-                            data-test-id="install"
-                          >
-                            {t('Accept & Install')}
-                          </Button>
-                        )
-                      }
-                    </Access>
-                  </div>
-                </Footer>
-              </React.Fragment>
-            )}
-          </IntegrationFeatures>
+          {this.renderPermissions()}
+          <Footer>
+            <Author>{t('Authored By %s', sentryApp.author)}</Author>
+          </Footer>
         </Flex>
       </React.Fragment>
     );
@@ -295,3 +343,5 @@ const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
   margin-top: 7px;
   color: ${p => p.theme.success};
 `;
+
+export default withOrganization(SentryAppDetailedView);

@@ -169,8 +169,6 @@ class IntegrationDetailedView extends AsyncComponent<
   };
 
   renderBody() {
-    console.log('props: ', this.props);
-    console.log('state: ', this.state);
     const {configurations, tab} = this.state;
     const information = this.getInformation();
     const {organization} = this.props;
