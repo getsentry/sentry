@@ -241,3 +241,14 @@ class SlackNotifyActionTest(RuleTestCase):
 
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 0
+
+    # this happens if an issue is marked as resolved in the next release
+    def test_dont_notify_resolved(self):
+        event = self.get_event()
+        event.group.status = GroupStatus.RESOLVED
+        event.group.save()
+
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 0
