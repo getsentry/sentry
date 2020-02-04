@@ -13,7 +13,7 @@ import PullRequestLink from 'app/components/pullRequestLink';
 import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/version';
+import Version from 'app/components/versionV2';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import marked from 'app/utils/marked';
 import space from 'app/styles/space';
