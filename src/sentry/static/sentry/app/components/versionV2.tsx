@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Release} from '@sentry/release-parser';
+import styled from '@emotion/styled';
 
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Link from 'app/components/links/link';
@@ -20,9 +21,10 @@ type Props = {
    */
   projectId?: string;
   className?: string;
+  truncate?: boolean;
 };
 
-const VersionV2 = ({
+const Version = ({
   version,
   orgId,
   anchor = true,
@@ -30,6 +32,7 @@ const VersionV2 = ({
   tooltipRawVersion,
   projectId,
   className,
+  truncate,
 }: Props) => {
   const parsedVersion = new Release(version);
   const LinkComponent = preserveGlobalSelection ? GlobalSelectionLink : Link;
@@ -46,12 +49,16 @@ const VersionV2 = ({
           }}
           className={className}
         >
-          <span>{parsedVersion.describe()}</span>
+          <VersionText truncate={truncate}>{parsedVersion.describe()}</VersionText>
         </LinkComponent>
       );
     }
 
-    return <span className={className}>{parsedVersion.describe()}</span>;
+    return (
+      <VersionText className={className} truncate={truncate}>
+        {parsedVersion.describe()}
+      </VersionText>
+    );
   };
 
   return (
@@ -61,7 +68,17 @@ const VersionV2 = ({
   );
 };
 
-VersionV2.propTypes = {
+const VersionText = styled('span')<{truncate?: boolean}>`
+  ${p =>
+    p.truncate &&
+    `max-width: 100%;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;`}
+`;
+
+Version.propTypes = {
   version: PropTypes.string.isRequired,
   orgId: PropTypes.string,
   anchor: PropTypes.bool,
@@ -73,4 +90,4 @@ VersionV2.propTypes = {
   className: PropTypes.string,
 };
 
-export default VersionV2;
+export default Version;

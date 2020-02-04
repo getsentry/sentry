@@ -19,11 +19,12 @@ describe('Version', () => {
   });
 
   it('links to release page', () => {
-    const wrapper = mount(<Version version={VERSION} orgId={ORG_ID} />);
+    const wrapper = mount(<Version version={VERSION} orgId={ORG_ID} projectId="1" />);
 
-    expect(wrapper.find('Link').prop('to')).toBe(
-      '/organizations/sentry/releases-v2/foo.bar.Baz%401.0.0%2B20200101/'
-    );
+    expect(wrapper.find('Link').prop('to')).toEqual({
+      pathname: '/organizations/sentry/releases/foo.bar.Baz%401.0.0%2B20200101/',
+      query: {project: '1'},
+    });
   });
 
   it('shows raw version in tooltip', () => {
