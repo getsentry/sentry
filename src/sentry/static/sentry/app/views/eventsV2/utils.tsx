@@ -18,16 +18,7 @@ import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
 import {appendTagCondition} from 'app/utils/queryString';
-import {
-  COL_WIDTH_UNDEFINED,
-  COL_WIDTH_DEFAULT,
-  COL_WIDTH_BOOLEAN,
-  COL_WIDTH_DATETIME,
-  COL_WIDTH_NUMBER,
-  COL_WIDTH_STRING,
-  COL_WIDTH_STRING_SHORT,
-  COL_WIDTH_STRING_LONG,
-} from 'app/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
 import {
   AGGREGATE_ALIASES,
@@ -69,7 +60,7 @@ export function explodeField(field: FieldType): Column {
   return {
     aggregation: results.aggregation,
     field: results.field,
-    width: field.width || COL_WIDTH_DEFAULT,
+    width: field.width || COL_WIDTH_UNDEFINED,
   };
 }
 
@@ -165,42 +156,6 @@ export type MetaType = {
   [key: string]: FieldTypes;
 };
 
-export function getDefaultWidth(key: Aggregation | Field): number {
-  if (AGGREGATIONS[key]) {
-    return COL_WIDTH_NUMBER;
-  }
-
-  // Some columns have specific lengths due to longer content.
-  switch (key) {
-    case 'title':
-      return COL_WIDTH_STRING_LONG + 50;
-    case 'url':
-    case 'transaction':
-      return COL_WIDTH_STRING_LONG;
-    case 'user':
-    case 'project':
-      return COL_WIDTH_STRING_SHORT;
-    case 'event.type':
-      return COL_WIDTH_STRING_SHORT - 50;
-    default:
-      break;
-  }
-
-  switch (FIELDS[key]) {
-    case 'string':
-      return COL_WIDTH_STRING;
-    case 'boolean':
-      return COL_WIDTH_BOOLEAN;
-    case 'number':
-    case 'duration':
-      return COL_WIDTH_NUMBER;
-    case 'never': // never is usually a timestamp
-      return COL_WIDTH_DATETIME;
-    default:
-      return COL_WIDTH_DEFAULT;
-  }
-}
-
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -249,13 +204,13 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   aggregation: '',
   field: '',
   name: '',
-  width: COL_WIDTH_DEFAULT,
+  width: COL_WIDTH_UNDEFINED,
 
   type: 'never',
   isDragging: false,
   isSortable: false,
 
-  eventViewField: Object.freeze({field: '', width: COL_WIDTH_DEFAULT}),
+  eventViewField: Object.freeze({field: '', width: COL_WIDTH_UNDEFINED}),
 };
 
 export function decodeColumnOrder(
@@ -279,10 +234,7 @@ export function decodeColumnOrder(
     }
     column.key = col.aggregationField;
     column.type = column.aggregation ? 'number' : FIELDS[column.field];
-    column.width =
-      col.width && col.width !== COL_WIDTH_UNDEFINED
-        ? col.width
-        : getDefaultWidth(aggregationField[0]);
+    column.width = col.width;
 
     column.name = column.key;
     column.isSortable = AGGREGATIONS[column.aggregation]
