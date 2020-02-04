@@ -8,7 +8,7 @@ import {openInviteMembersModal} from 'app/actionCreators/modal';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Alert from 'app/components/alert';
 import Hovercard from 'app/components/hovercard';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCommit} from 'app/icons';
 import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -135,7 +135,7 @@ const tagColors = {
   path: theme.blueLight,
 };
 
-const CommitIcon = styled(p => <InlineSvg src="icon-commit" size="16px" {...p} />)`
+const CommitIcon = styled(p => <IconCommit size="md" {...p} />)`
   margin-right: ${space(0.5)};
   flex-shrink: 0;
 `;
@@ -184,7 +184,7 @@ const OwnershipValue = styled('code')`
   line-height: 1.2;
 `;
 
-const EmailAlert = styled(p => <Alert iconSize="16px" {...p} />)`
+const EmailAlert = styled(p => <Alert {...p} />)`
   margin: 10px -13px -13px;
   border-radius: 0;
   border-color: #ece0b0;

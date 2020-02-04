@@ -10,7 +10,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AsyncView from 'app/views/asyncView';
 import Badge from 'app/components/badge';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconMail} from 'app/icons';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -111,7 +111,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
         <SettingsPageHeader title="Members" />
 
         <StyledPanel>
-          <InlineSvg src="icon-mail" size="36px" />
+          <IconMail size="xl" />
           <TextContainer>
             <Heading>{t('Invite new members')}</Heading>
             <SubText>

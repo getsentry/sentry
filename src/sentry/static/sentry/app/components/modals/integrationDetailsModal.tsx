@@ -11,11 +11,11 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import HookStore from 'app/stores/hookStore';
-import InlineSvg from 'app/components/inlineSvg';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';
+import {IconClose, IconWarning} from 'app/icons';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import space from 'app/styles/space';
 import {IntegrationDetailsModalOptions} from 'app/actionCreators/modal';
@@ -110,7 +110,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
     if (!provider.canAdd && metadata.aspects.externalInstall) {
       alerts.push({
         type: 'warning',
-        icon: 'icon-exit',
+        icon: <IconClose />,
         text: metadata.aspects.externalInstall.noticeText,
       });
     }
@@ -223,7 +223,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <Flex alignItems="center" flex={1} {...p}>
-    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
+    <IconWarning />
     <Box ml={1}>{reason}</Box>
   </Flex>
 ))`

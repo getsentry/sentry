@@ -38,7 +38,6 @@ const ActionButtons = ({
   const appDashboardButton = showDashboard ? (
     <StyledButton
       size="small"
-      icon="icon-stats"
       to={`/settings/${org.slug}/developer-settings/${app.slug}/dashboard/`}
     >
       {t('Dashboard')}
@@ -49,7 +48,6 @@ const ActionButtons = ({
     <StyledButton
       disabled={!!disablePublishReason}
       title={disablePublishReason}
-      icon="icon-upgrade"
       size="small"
       onClick={onPublish}
     >

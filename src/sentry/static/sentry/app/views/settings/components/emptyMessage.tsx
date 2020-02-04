@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import InlineSvg from 'app/components/inlineSvg';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 
@@ -28,9 +27,8 @@ const Title = styled('div')`
   }
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
-  display: block;
-  color: ${p => p.theme.gray1};
+const IconWrapper = styled('div')`
+  display: flex;
   ${MarginStyles};
 `;
 
@@ -41,7 +39,7 @@ const Action = styled('div')`
 type Props = {
   title?: React.ReactNode;
   description?: React.ReactNode;
-  icon?: string;
+  icon?: string | object;
   action?: React.ReactElement;
   size?: 'large' | 'medium';
 };
@@ -52,7 +50,7 @@ type WrapperProps = Pick<EmptyMessageProps, 'size'>;
 const EmptyMessage = styled(
   ({title, description, icon, children, action, ...props}: EmptyMessageProps) => (
     <div data-test-id="empty-message" {...props}>
-      {icon && <StyledInlineSvg src={icon} size="36px" />}
+      {icon && <IconWrapper>{icon}</IconWrapper>}
       {title && <Title>{title}</Title>}
       {description && <Description>{description}</Description>}
       {children && <Description noMargin>{children}</Description>}
@@ -73,7 +71,7 @@ const EmptyMessage = styled(
 EmptyMessage.propTypes = {
   title: PropTypes.node,
   description: PropTypes.node,
-  icon: PropTypes.string,
+  icon: PropTypes.object,
   action: PropTypes.element,
   // Currently only the `large` option changes the size - can add more size options as necessary
   size: PropTypes.oneOf(['large', 'medium']),

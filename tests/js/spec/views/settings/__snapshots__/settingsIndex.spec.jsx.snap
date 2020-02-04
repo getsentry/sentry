@@ -66,15 +66,11 @@ exports[`SettingsIndex renders 1`] = `
             My Account
           </HomeLinkIcon>
         </HomePanelHeader>
-        <HomePanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
-        >
-          <h3>
+        <HomePanelBody>
+          <h6>
             Quick links
             :
-          </h3>
+          </h6>
           <ul>
             <li>
               <HomeLink
@@ -143,15 +139,11 @@ exports[`SettingsIndex renders 1`] = `
             </OrganizationName>
           </HomeLinkIcon>
         </HomePanelHeader>
-        <HomePanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
-        >
-          <h3>
+        <HomePanelBody>
+          <h6>
             Quick links
             :
-          </h3>
+          </h6>
           <ul>
             <li>
               <HomeLink
@@ -186,9 +178,8 @@ exports[`SettingsIndex renders 1`] = `
             <HomeIcon
               color="orange"
             >
-              <InlineSvg
-                size="48px"
-                src="icon-docs"
+              <IconDocs
+                size="xl"
               />
             </HomeIcon>
           </ExternalHomeLink>
@@ -198,15 +189,11 @@ exports[`SettingsIndex renders 1`] = `
             Documentation
           </ExternalHomeLink>
         </HomePanelHeader>
-        <HomePanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
-        >
-          <h3>
+        <HomePanelBody>
+          <h6>
             Quick links
             :
-          </h3>
+          </h6>
           <ul>
             <li>
               <ExternalHomeLink
@@ -242,23 +229,18 @@ exports[`SettingsIndex renders 1`] = `
             <HomeIcon
               color="purple"
             >
-              <InlineSvg
-                size="48px"
-                src="icon-support"
+              <IconSupport
+                size="xl"
               />
             </HomeIcon>
             Support
           </SupportLinkComponent>
         </HomePanelHeader>
-        <HomePanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
-        >
-          <h3>
+        <HomePanelBody>
+          <h6>
             Quick links
             :
-          </h3>
+          </h6>
           <ul>
             <li>
               <SupportLinkComponent
@@ -291,23 +273,18 @@ exports[`SettingsIndex renders 1`] = `
             to="/settings/account/api/"
           >
             <HomeIcon>
-              <InlineSvg
-                size="48px"
-                src="icon-lock"
+              <IconLock
+                size="xl"
               />
             </HomeIcon>
             API Keys
           </HomeLinkIcon>
         </HomePanelHeader>
-        <HomePanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
-        >
-          <h3>
+        <HomePanelBody>
+          <h6>
             Quick links
             :
-          </h3>
+          </h6>
           <ul>
             <li>
               <HomeLink

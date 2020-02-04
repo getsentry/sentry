@@ -9,8 +9,8 @@ import {inputStyles} from 'app/styles/input';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {IconProject, IconSearch} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
-import InlineSvg from 'app/components/inlineSvg';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import PlatformIconTile from 'app/components/platformIconTile';
@@ -96,7 +96,7 @@ class PlatformPicker extends React.Component {
             ))}
           </CategoryNav>
           <SearchBar>
-            <InlineSvg src="icon-search" />
+            <IconSearch />
             <input
               type="text"
               ref={this.searchInput}
@@ -127,7 +127,7 @@ class PlatformPicker extends React.Component {
         </PlatformList>
         {platformList.length === 0 && (
           <EmptyMessage
-            icon="icon-project"
+            icon={<IconProject />}
             title={t("We don't have an SDK for that yet!")}
           >
             {tct(

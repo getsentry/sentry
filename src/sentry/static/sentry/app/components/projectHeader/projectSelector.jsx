@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import IdBadge from 'app/components/idBadge';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron} from 'app/icons';
 import Link from 'app/components/links/link';
 import ProjectSelector from 'app/components/projectSelector';
 import space from 'app/styles/space';
@@ -54,7 +54,7 @@ const ProjectHeaderProjectSelector = withRouter(
     render() {
       return (
         <ProjectSelector {...this.props} onSelect={this.handleSelect}>
-          {({getActorProps, selectedItem, activeProject}) => (
+          {({getActorProps, activeProject}) => (
             <DropdownLabel>
               {activeProject ? (
                 <IdBadge
@@ -96,7 +96,7 @@ const DropdownLabel = styled(FlexY)`
   margin-right: ${space(1)};
 `;
 
-const DropdownIcon = styled(props => <InlineSvg {...props} src="icon-chevron-down" />)`
+const DropdownIcon = styled(props => <IconChevron direction="down" {...props} />)`
   margin-left: ${space(0.5)};
   font-size: 10px;
 `;

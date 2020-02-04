@@ -19,9 +19,9 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
 import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
-import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconAdd, IconChevron, IconClose, IconUser} from 'app/icons';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TextOverflow from 'app/components/textOverflow';
@@ -275,7 +275,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                   py={0}
                 >
                   <IconContainer>
-                    <ClearAssigneeIcon />
+                    <StyledIconClose />
                   </IconContainer>
                   <Label>{t('Clear Assignee')}</Label>
                 </MenuItemWrapper>
@@ -289,7 +289,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               >
                 <MenuItemWrapper>
                   <IconContainer>
-                    <InviteMemberIcon />
+                    <StyledIconAdd />
                   </IconContainer>
                   <Label>{t('Invite Member')}</Label>
                 </MenuItemWrapper>
@@ -302,9 +302,9 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                   {assignedTo ? (
                     <ActorAvatar actor={assignedTo} className="avatar" size={24} />
                   ) : (
-                    <IconUser src="icon-user" />
+                    <StyledIconUser size="md" />
                   )}
-                  <StyledChevron src="icon-chevron-down" />
+                  <StyledIconChevron direction="down" size="xs" />
                 </DropdownButton>
               );
             }}
@@ -355,13 +355,8 @@ const getSvgStyle = () => `
   opacity: 0.3;
 `;
 
-const IconUser = styled(InlineSvg)`
+const StyledIconUser = styled(IconUser)`
   color: ${p => p.theme.gray3};
-  height: 20px;
-  width: 20px;
-
-  /* We need this to center with Avatar */
-  margin-right: 2px;
 `;
 
 const IconContainer = styled('div')`
@@ -393,23 +388,19 @@ const InviteMemberLink = styled(Link)`
 `;
 
 const Label = styled(TextOverflow)`
-  margin-left: 6px;
-`;
-
-const ClearAssigneeIcon = styled(props => (
-  <InlineSvg {...props} src="icon-circle-close" />
-))`
-  ${getSvgStyle};
-`;
-
-const InviteMemberIcon = styled(props => <InlineSvg {...props} src="icon-circle-add" />)`
-  ${getSvgStyle};
-`;
-
-const StyledChevron = styled(InlineSvg)`
   margin-left: ${space(1)};
-  width: 12px;
-  height: 12px;
+`;
+
+const StyledIconClose = styled(props => <IconClose {...props} />)`
+  ${getSvgStyle};
+`;
+
+const StyledIconAdd = styled(props => <IconAdd {...props} />)`
+  ${getSvgStyle};
+`;
+
+const StyledIconChevron = styled(IconChevron)`
+  margin-left: ${space(1)};
 `;
 
 const DropdownButton = styled('div')`

@@ -682,27 +682,26 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                               <Component
                                                                 className="css-1jdzfs8-StyledChevronDown e1yghndz0"
                                                               >
-                                                                <InlineSvg
+                                                                <IconChevron
                                                                   className="css-1jdzfs8-StyledChevronDown e1yghndz0"
-                                                                  src="icon-chevron-down"
+                                                                  direction="down"
+                                                                  size="xs"
                                                                 >
-                                                                  <ForwardRef
-                                                                    className="e1yghndz0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
-                                                                    src="icon-chevron-down"
+                                                                  <svg
+                                                                    className="css-1jdzfs8-StyledChevronDown e1yghndz0"
+                                                                    fill="currentColor"
+                                                                    height="12px"
+                                                                    transform="rotate(180)"
+                                                                    viewBox="0 0 16 16"
+                                                                    width="12px"
                                                                   >
-                                                                    <svg
-                                                                      className="e1yghndz0 css-eqsg9h-InlineSvg-StyledChevronDown enyz4ql0"
-                                                                      height="1em"
-                                                                      viewBox={Object {}}
-                                                                      width="1em"
-                                                                    >
-                                                                      <use
-                                                                        href="#test"
-                                                                        xlinkHref="#test"
+                                                                    <g>
+                                                                      <path
+                                                                        d="M15.23,12.37a.79.79,0,0,1-.53-.22L8,5.44,1.3,12.15a.77.77,0,0,1-1.07,0,.75.75,0,0,1,0-1.06L7.47,3.85a.75.75,0,0,1,1.06,0l7.24,7.24a.75.75,0,0,1,0,1.06A.79.79,0,0,1,15.23,12.37Z"
                                                                       />
-                                                                    </svg>
-                                                                  </ForwardRef>
-                                                                </InlineSvg>
+                                                                    </g>
+                                                                  </svg>
+                                                                </IconChevron>
                                                               </Component>
                                                             </StyledChevronDown>
                                                           </span>

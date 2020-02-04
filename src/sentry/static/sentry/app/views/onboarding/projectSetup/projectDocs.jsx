@@ -21,6 +21,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import getDynamicText from 'app/utils/getDynamicText';
 import withOrganization from 'app/utils/withOrganization';
+import {IconWarning} from 'app/icons';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -105,7 +106,7 @@ class ProjectDocs extends React.Component {
     }
 
     return (
-      <Alert type="warning" icon="icon-circle-info">
+      <Alert type="warning" icon={<IconWarning />}>
         {tct(
           `Looks like this getting started example is still undergoing some
            work and doesn't include an example for triggering an event quite

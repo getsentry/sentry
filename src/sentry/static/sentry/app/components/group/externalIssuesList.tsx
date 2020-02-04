@@ -16,6 +16,7 @@ import AlertLink from 'app/components/alertLink';
 import AsyncComponent from 'app/components/asyncComponent';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
+import {IconGeneric} from 'app/icons';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import PluginActions from 'app/components/group/pluginActions';
@@ -209,7 +210,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
             <span>Linked Issues</span>
           </h6>
           <AlertLink
-            icon="icon-generic-box"
+            icon={<IconGeneric size="md" />}
             priority="muted"
             size="small"
             to={`/settings/${this.props.organization.slug}/integrations`}

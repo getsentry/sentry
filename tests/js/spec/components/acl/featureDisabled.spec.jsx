@@ -24,7 +24,7 @@ describe('FeatureDisabled', function() {
     ).toEqual(
       expect.stringContaining('This feature is not enabled on your Sentry installation.')
     );
-    expect(wrapper.exists('HelpButton')).toBe(true);
+    expect(wrapper.exists('Button')).toBe(true);
   });
 
   it('renders with custom message', function() {
@@ -82,7 +82,7 @@ describe('FeatureDisabled', function() {
       routerContext
     );
 
-    wrapper.find('HelpButton').simulate('click');
+    wrapper.find('Button').simulate('click');
     wrapper.update();
 
     expect(wrapper.exists('HelpDescription')).toBe(true);

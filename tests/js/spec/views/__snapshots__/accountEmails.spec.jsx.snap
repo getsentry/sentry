@@ -80,7 +80,7 @@ exports[`AccountEmails renders with emails 1`] = `
       />
     </Form>
     <AlertLink
-      icon="icon-stack"
+      icon={<IconStack />}
       priority="warning"
       size="normal"
       to="/settings/account/notifications"

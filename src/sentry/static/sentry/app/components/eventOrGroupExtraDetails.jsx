@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 
 import {tct} from 'app/locale';
 import EventAnnotation from 'app/components/events/eventAnnotation';
-import InlineSvg from 'app/components/inlineSvg';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import {IconChat} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
 import ShortId from 'app/components/shortId';
 import Times from 'app/components/group/times';
@@ -62,8 +62,7 @@ class EventOrGroupExtraDetails extends React.Component {
         <StyledTimes lastSeen={lastSeen} firstSeen={firstSeen} />
         {numComments > 0 && (
           <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
-            <GroupExtraIcon
-              src="icon-comment-sm"
+            <StyledIconChat
               mentioned={
                 subscriptionDetails && subscriptionDetails.reason === 'mentioned'
               }
@@ -134,9 +133,8 @@ const GroupShortId = styled(ShortId)`
   color: ${p => p.theme.gray3};
 `;
 
-const GroupExtraIcon = styled(InlineSvg)`
+const StyledIconChat = styled(IconChat)`
   color: ${p => (p.isMentioned ? p.theme.green : null)};
-  font-size: 11px;
   margin-right: 4px;
 `;
 

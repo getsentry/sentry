@@ -279,17 +279,15 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     </div>
   </Metadata>
   <Alert
-    iconSize="24px"
     key="0"
     type="warning"
   >
     <Component
-      className="css-bcq0ox-Alert ejthpj82"
-      iconSize="24px"
+      className="css-bcq0ox-Alert ejthpj83"
       type="warning"
     >
       <div
-        className="ref-warning css-bcq0ox-Alert ejthpj82"
+        className="ref-warning css-bcq0ox-Alert ejthpj83"
       >
         <StyledTextBlock>
           <div

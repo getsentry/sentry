@@ -5,6 +5,7 @@ import SentryTypes from 'app/sentryTypes';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
 import {getFullUrl, getCurlCommand} from 'app/components/events/interfaces/utils';
 import {isUrl} from 'app/utils';
+import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
 
@@ -94,7 +95,7 @@ class RequestInterface extends React.Component {
           </span>
           {fullUrl && (
             <span className="external-icon">
-              <em className="icon-open" />
+              <IconOpen />
             </span>
           )}
         </ExternalLink>

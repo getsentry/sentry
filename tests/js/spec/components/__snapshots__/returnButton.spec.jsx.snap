@@ -8,10 +8,7 @@ exports[`returnButton renders 1`] = `
     title="Save"
   >
     <SubmitButton>
-      <InlineSvg
-        size="0.75em"
-        src="icon-return-key"
-      />
+      <IconReturn />
     </SubmitButton>
   </Tooltip>
 </ClickTargetStyled>

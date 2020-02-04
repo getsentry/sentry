@@ -6,7 +6,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import {DISCOVER2_DOCS_URL} from 'app/constants';
 import {Form, SelectField} from 'app/components/forms';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron, IconDocs} from 'app/icons';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
 
@@ -196,10 +196,10 @@ class TableModalEditColumnBodyForm extends React.Component<
 const TableModalEditColumnFooter = () => (
   <FooterContent href={`${DISCOVER2_DOCS_URL}query-builder/`} target="_blank">
     <div>
-      <InlineSvg src="icon-docs" /> {t('Read the docs')}
+      <IconDocs /> {t('Read the docs')}
     </div>
     <div>
-      <InlineSvg src="icon-chevron-right" />
+      <IconChevron direction="right" />
     </div>
   </FooterContent>
 );

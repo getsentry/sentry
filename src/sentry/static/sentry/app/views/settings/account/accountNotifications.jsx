@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron, IconMail} from 'app/icons';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Link from 'app/components/links/link';
 import {PanelFooter} from 'app/components/panels';
@@ -66,7 +66,7 @@ export default class AccountNotifications extends AsyncView {
                 return null;
               }}
             />
-            <AlertLink to="/settings/account/emails" icon="icon-mail">
+            <AlertLink to="/settings/account/emails" icon={<IconMail />}>
               {t('Looking to add or remove an email address? Use the emails panel.')}
             </AlertLink>
           </Box>
@@ -97,7 +97,7 @@ class FineTuningFooter extends React.Component {
       <PanelFooter css={{borderTop: 'none'}}>
         <FineTuneLink to={`${baseUrl}${path}`}>
           <span>{text}</span>
-          <InlineSvg src="icon-chevron-right" size="15px" />
+          <IconChevron direction="right" />
         </FineTuneLink>
       </PanelFooter>
     );

@@ -7,7 +7,7 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ServiceIncidentStore from 'app/stores/serviceIncidentStore';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconWarning} from 'app/icons';
 
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
@@ -68,12 +68,7 @@ const ServiceIncidents = createReactClass({
           orientation={orientation}
           collapsed={collapsed}
           active={active}
-          icon={
-            <InlineSvg
-              src="icon-circle-exclamation"
-              className="animated pulse infinite"
-            />
-          }
+          icon={<IconWarning className="animated pulse infinite" />}
           label={t('Service status')}
           onClick={onShowPanel}
         />

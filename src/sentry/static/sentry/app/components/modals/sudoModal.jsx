@@ -12,6 +12,7 @@ import Form from 'app/views/settings/components/forms/form';
 import InputField from 'app/views/settings/components/forms/inputField';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import U2fContainer from 'app/components/u2f/u2fContainer';
+import {IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 
 class SudoModal extends React.Component {
@@ -127,11 +128,7 @@ class SudoModal extends React.Component {
               </TextBlock>
 
               {this.state.error && (
-                <Alert
-                  css={{marginBottom: 0}}
-                  type="error"
-                  icon="icon-circle-exclamation"
-                >
+                <Alert css={{marginBottom: 0}} type="error" icon={<IconWarning />}>
                   {t('Incorrect password')}
                 </Alert>
               )}

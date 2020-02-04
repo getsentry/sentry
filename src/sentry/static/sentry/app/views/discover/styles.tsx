@@ -10,7 +10,7 @@ import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron, IconDocs} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
 
 const HEADER_HEIGHT = 60;
@@ -111,10 +111,6 @@ export const DocsLink = styled(ExternalLink)`
   }
 `;
 
-export const StyledInlineSvg = styled(InlineSvg)`
-  justify-content: flex-end;
-`;
-
 export const DiscoverDocs = styled('span')`
   align-items: center;
   display: flex;
@@ -127,10 +123,12 @@ export const DocsLabel = styled('span')`
   flex-grow: 1;
 `;
 
-export const DocsIcon = styled(InlineSvg)`
-  width: 20px;
-  height: 20px;
+export const DocsIcon = styled(IconDocs)`
   margin-right: 8px;
+`;
+
+export const DocsChevron = styled(IconChevron)`
+  margin-left: 8px;
 `;
 
 export const Body = styled('div')`

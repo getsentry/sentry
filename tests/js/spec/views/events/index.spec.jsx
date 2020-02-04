@@ -137,7 +137,7 @@ describe('EventsContainer', function() {
       wrapper.update();
 
       wrapper
-        .find('MultipleEnvironmentSelector HeaderItem StyledClose')
+        .find('MultipleEnvironmentSelector HeaderItem StyledIconClose')
         .simulate('click');
 
       await tick();

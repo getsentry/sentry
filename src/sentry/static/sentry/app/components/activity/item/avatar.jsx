@@ -3,8 +3,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
-import InlineSvg from 'app/components/inlineSvg';
 import Placeholder from 'app/components/placeholder';
+import {IconSentry} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
 
 class ActivityAvatar extends React.Component {
@@ -28,7 +28,7 @@ class ActivityAvatar extends React.Component {
       // Return Sentry avatar
       return (
         <SystemAvatar className={className} size={size}>
-          <Logo src="icon-sentry" size={`${Math.round(size * 0.8)}px`} />
+          <IconLogo size={`${Math.round(size * 0.8)}px`} />
         </SystemAvatar>
       );
     }
@@ -54,6 +54,6 @@ const SystemAvatar = styled('span')`
   height: ${p => p.size}px;
 `;
 
-const Logo = styled(InlineSvg)`
+const IconLogo = styled(IconSentry)`
   color: ${p => p.theme.gray5};
 `;

@@ -3,7 +3,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import FieldControlState from 'app/views/settings/components/forms/field/fieldControlState';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconQuestion} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
@@ -53,7 +53,7 @@ class FieldControl extends React.Component<Props> {
           {disabled && disabledReason && (
             <DisabledIndicator className="disabled-indicator">
               <Tooltip title={disabledReason}>
-                <StyledInlineSvg src="icon-circle-question" size="18px" />
+                <StyledIconQuestion />
               </Tooltip>
             </DisabledIndicator>
           )}
@@ -91,7 +91,7 @@ const FieldControlWrapper = styled('div')`
   flex-shrink: 0;
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
+const StyledIconQuestion = styled(IconQuestion)`
   display: block;
   color: ${p => p.theme.gray1};
   margin: 0 auto;

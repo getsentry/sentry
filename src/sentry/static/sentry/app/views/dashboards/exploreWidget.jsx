@@ -12,6 +12,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import {IconStack} from 'app/icons';
 
 class ExploreWidget extends React.Component {
   static propTypes = {
@@ -79,7 +80,7 @@ class ExploreWidget extends React.Component {
                           disabled={!hasFeature}
                           title={hasFeature ? '' : t('You do not have access to Events')}
                         >
-                          <InlineSvg src="icon-stack" />
+                          <IconStack />
                         </ExploreAction>
                       )}
                     </Feature>

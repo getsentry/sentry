@@ -9,8 +9,8 @@ import {t} from 'app/locale';
 import ActivityAuthor from 'app/components/activity/author';
 import ActivityItem from 'app/components/activity/item';
 import Clipboard from 'app/components/clipboard';
-import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
+import {IconCopy} from 'app/icons';
 import space from 'app/styles/space';
 
 type Props = {
@@ -48,7 +48,7 @@ class EventUserFeedback extends React.Component<Props> {
               <Clipboard value={report.email}>
                 <Email>
                   {report.email}
-                  <CopyIcon src="icon-copy" />
+                  <StyledIconCopy size="xs" />
                 </Email>
               </Clipboard>
               {report.eventID && (
@@ -83,6 +83,6 @@ const ViewEventLink = styled(Link)`
   font-size: 0.9em;
 `;
 
-const CopyIcon = styled(InlineSvg)`
-  margin-left: ${space(0.25)};
+const StyledIconCopy = styled(IconCopy)`
+  margin-left: ${space(0.5)};
 `;

@@ -3,10 +3,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import RepoLabel from 'app/components/repoLabel';
 import TimeSince from 'app/components/timeSince';
+import {IconOpen} from 'app/icons';
 
 export default class ReleaseDeploys extends React.Component {
   static propTypes = {
@@ -39,7 +39,7 @@ export default class ReleaseDeploys extends React.Component {
                         <div className="col-xs-6">
                           <ReleaseRepoLabel>
                             {deploy.environment}
-                            <InlineSvg src="icon-open" style={{marginLeft: 6}} />
+                            <IconOpen />
                           </ReleaseRepoLabel>
                         </div>
                         <div className="col-xs-6 align-right">

@@ -25,6 +25,7 @@ import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import InlineSvg from 'app/components/inlineSvg';
+import {IconRefresh} from 'app/icons';
 import {combineStatus} from 'app/components/events/interfaces/debugmeta';
 import {Assembly} from 'app/components/events/interfaces/assembly';
 import {parseAssembly} from 'app/components/events/interfaces/utils';
@@ -498,7 +499,7 @@ export class Frame extends React.Component {
           title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
         >
           <RepeatedContent>
-            <span className="icon-refresh" />
+            <IconRefresh />
             <span>{timesRepeated}</span>
           </RepeatedContent>
         </RepeatedFrames>

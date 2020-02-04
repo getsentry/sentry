@@ -18,7 +18,7 @@ import Tag from 'app/views/settings/components/tag';
 import Button from 'app/components/button';
 import Alert, {Props as AlertProps} from 'app/components/alert';
 import Tooltip from 'app/components/tooltip';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconWarning} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
 import InstalledIntegration, {
   Props as InstalledIntegrationProps,
@@ -364,7 +364,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
     }}
     {...p}
   >
-    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
+    <IconWarning size="lg" />
     <div style={{marginLeft: `${space(1)}`}}>{reason}</div>
   </div>
 ))`

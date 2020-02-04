@@ -11,7 +11,7 @@ import {t} from 'app/locale';
 import Duration from 'app/components/duration';
 import EventView from 'app/views/eventsV2/eventView';
 import Feature from 'app/components/acl/feature';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconEdit, IconTelescope} from 'app/icons';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
@@ -171,7 +171,7 @@ export default class DetailsBody extends React.Component<Props> {
                         pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts-v2/metric-rules/${incident?.alertRule.id}/`,
                       }}
                     >
-                      <InlineSvg src="icon-edit" size="14px" />
+                      <IconEdit />
                       {t('Edit alert rule')}
                     </SideHeaderLink>
                   </SideHeader>
@@ -192,7 +192,7 @@ export default class DetailsBody extends React.Component<Props> {
                               ((initiallyLoaded && projects) as Project[]) || []
                             )}
                           >
-                            <InlineSvg src="icon-telescope" />
+                            <IconTelescope />
                             {t('View in Discover')}
                           </SideHeaderLink>
                         )}

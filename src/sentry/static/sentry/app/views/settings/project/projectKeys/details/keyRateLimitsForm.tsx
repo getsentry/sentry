@@ -11,6 +11,7 @@ import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import {IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 
 const RATE_LIMIT_FORMAT_MAP = new Map([
@@ -89,7 +90,7 @@ class KeyRateLimitsForm extends React.Component<Props> {
               <PanelHeader>{t('Rate Limits')}</PanelHeader>
 
               <PanelBody>
-                <PanelAlert type="info" icon="icon-circle-exclamation">
+                <PanelAlert type="info" icon={<IconWarning />}>
                   {t(
                     `Rate limits provide a flexible way to manage your event
                       volume. If you have a noisy project or environment you

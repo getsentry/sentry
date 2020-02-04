@@ -10,10 +10,10 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/links/externalLink';
 import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
-import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel} from 'app/components/panels';
+import {IconDocs, IconLock, IconStack, IconSupport} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import SentryTypes from 'app/sentryTypes';
 import SettingsLayout from 'app/views/settings/components/settingsLayout';
@@ -97,7 +97,7 @@ class SettingsIndex extends React.Component<Props> {
               </HomePanelHeader>
 
               <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
+                <h6>{t('Quick links')}:</h6>
                 <ul>
                   <li>
                     <HomeLink to="/settings/account/security/">
@@ -130,7 +130,7 @@ class SettingsIndex extends React.Component<Props> {
                     </AvatarContainer>
                   ) : (
                     <HomeIcon color="green">
-                      <InlineSvg src="icon-stack" size="44px" />
+                      <IconStack size="xl" />
                     </HomeIcon>
                   )}
                   <OrganizationName>
@@ -139,7 +139,7 @@ class SettingsIndex extends React.Component<Props> {
                 </HomeLinkIcon>
               </HomePanelHeader>
               <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
+                <h6>{t('Quick links')}:</h6>
                 <ul>
                   <li>
                     <HomeLink to={`${organizationSettingsUrl}projects/`}>
@@ -164,7 +164,7 @@ class SettingsIndex extends React.Component<Props> {
               <HomePanelHeader>
                 <ExternalHomeLink isCentered href={LINKS.DOCUMENTATION}>
                   <HomeIcon color="orange">
-                    <InlineSvg src="icon-docs" size="48px" />
+                    <IconDocs size="xl" />
                   </HomeIcon>
                 </ExternalHomeLink>
                 <ExternalHomeLink href={LINKS.DOCUMENTATION}>
@@ -173,7 +173,7 @@ class SettingsIndex extends React.Component<Props> {
               </HomePanelHeader>
 
               <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
+                <h6>{t('Quick links')}:</h6>
                 <ul>
                   <li>
                     <ExternalHomeLink href={LINKS.DOCUMENATATION_QUICKSTART}>
@@ -198,14 +198,14 @@ class SettingsIndex extends React.Component<Props> {
               <HomePanelHeader>
                 <SupportLinkComponent isCentered {...supportLinkProps}>
                   <HomeIcon color="purple">
-                    <InlineSvg src="icon-support" size="48px" />
+                    <IconSupport size="xl" />
                   </HomeIcon>
                   {t('Support')}
                 </SupportLinkComponent>
               </HomePanelHeader>
 
               <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
+                <h6>{t('Quick links')}:</h6>
                 <ul>
                   <li>
                     <SupportLinkComponent {...supportLinkProps}>
@@ -230,14 +230,14 @@ class SettingsIndex extends React.Component<Props> {
               <HomePanelHeader>
                 <HomeLinkIcon to={LINKS.API}>
                   <HomeIcon>
-                    <InlineSvg src="icon-lock" size="48px" />
+                    <IconLock size="xl" />
                   </HomeIcon>
                   {t('API Keys')}
                 </HomeLinkIcon>
               </HomePanelHeader>
 
               <HomePanelBody>
-                <h3>{t('Quick links')}:</h3>
+                <h6>{t('Quick links')}:</h6>
                 <ul>
                   <li>
                     <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
@@ -265,44 +265,31 @@ class SettingsIndex extends React.Component<Props> {
 export {SettingsIndex};
 export default withLatestContext(SettingsIndex);
 
-const HomePanelHeader = styled(PanelHeader)`
-  background: #fff;
+const HomePanelBody = styled('div')`
+  padding: 24px 24px 0 24px;
+  line-height: 1.5;
+  border-top: 1px solid ${p => p.theme.borderLight};
+`;
+
+const HomePanelHeader = styled('div')`
+  padding: 32px 24px;
   flex-direction: column;
   text-align: center;
   justify-content: center;
   font-size: 18px;
-  text-transform: unset;
-  padding: 35px 30px;
-`;
-
-const HomePanelBody = styled(PanelBody)`
-  padding: 30px;
-
-  h3 {
-    font-size: 14px;
-  }
-
-  ul {
-    margin: 0;
-    li {
-      line-height: 1.6;
-      /* Bullet color */
-      color: ${p => p.theme.gray1};
-    }
-  }
+  font-weight: 600;
 `;
 
 const HomeIcon = styled('div')<{color?: string}>`
   background: ${p => p.theme[p.color || 'gray2']};
-  color: #fff;
+  color: ${p => p.theme.white};
   width: ${HOME_ICON_SIZE}px;
   height: ${HOME_ICON_SIZE}px;
   border-radius: ${HOME_ICON_SIZE}px;
-  margin-bottom: 20px;
-
-  ${InlineSvg} {
-    margin-top: 14px;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
 `;
 
 type CenterableProps = {

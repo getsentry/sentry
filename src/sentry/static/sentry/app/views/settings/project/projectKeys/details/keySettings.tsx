@@ -24,6 +24,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
 import getDynamicText from 'app/utils/getDynamicText';
+import {IconWarning} from 'app/icons';
 
 type Props = {
   api: Client;
@@ -170,7 +171,7 @@ class KeySettings extends React.Component<Props, State> {
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
-                <PanelAlert type="info" icon="icon-circle-exclamation">
+                <PanelAlert type="info" icon={<IconWarning />}>
                   {t(
                     'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
                   )}

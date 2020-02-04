@@ -8,6 +8,7 @@ import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import space from 'app/styles/space';
 import {CONFIG_DOCS_URL} from 'app/constants';
+import {IconChevron, IconInfo, IconLock} from 'app/icons';
 
 const installText = (features: string[], featureName: string): string =>
   `# ${t('Enables the %s feature', featureName)}\n${features
@@ -78,14 +79,14 @@ class FeatureDisabled extends React.Component<Props, State> {
         <FeatureDisabledMessage>
           {message}
           {!hideHelpToggle && (
-            <HelpButton
-              icon={showHelp ? 'icon-chevron-down' : 'icon-circle-info'}
-              priority="link"
-              size="xsmall"
-              onClick={this.toggleHelp}
-            >
+            <Button priority="link" size="xsmall" onClick={this.toggleHelp}>
+              {showHelp ? (
+                <IconChevron direction="down" size="xs" />
+              ) : (
+                <IconInfo size="xs" />
+              )}
               {t('Help')}
-            </HelpButton>
+            </Button>
           )}
         </FeatureDisabledMessage>
         {showDescription && (
@@ -121,7 +122,7 @@ class FeatureDisabled extends React.Component<Props, State> {
     const AlertComponent = typeof alert === 'boolean' ? Alert : alert;
 
     return (
-      <AlertComponent type="warning" icon="icon-lock">
+      <AlertComponent type="warning" icon={<IconLock />}>
         <AlertWrapper>{this.renderFeatureDisabled()}</AlertWrapper>
       </AlertComponent>
     );
@@ -131,10 +132,6 @@ class FeatureDisabled extends React.Component<Props, State> {
 const FeatureDisabledMessage = styled('div')`
   display: flex;
   justify-content: space-between;
-`;
-
-const HelpButton = styled(Button)`
-  font-size: 0.8em;
 `;
 
 const HelpDescription = styled('div')`
@@ -153,11 +150,10 @@ const HelpDescription = styled('div')`
 `;
 
 const AlertWrapper = styled('div')`
-  ${HelpButton} {
-    color: #6d6319;
-    &:hover {
-      color: #88750b;
-    }
+  color: #6d6319;
+
+  &:hover {
+    color: #88750b;
   }
 
   pre,

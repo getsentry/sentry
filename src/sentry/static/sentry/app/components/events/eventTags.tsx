@@ -13,7 +13,7 @@ import {t} from 'app/locale';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconInfo} from 'app/icons';
 
 type EventTagsProps = {
   event: Event;
@@ -63,7 +63,7 @@ class EventTags extends React.Component<EventTagsProps> {
                 search: locationSearch,
               }}
             >
-              <InlineSvg src="icon-circle-info" size="14px" />
+              <IconInfo />
             </Link>
           </VersionHoverCard>
         )}

@@ -1,9 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCheckmark, IconClose} from 'app/icons';
 import {t} from 'app/locale';
 import Tag from 'app/views/settings/components/tag';
 
@@ -31,9 +30,9 @@ const DebugFileFeature = ({available, feature}: Props) => {
   let icon: React.ReactNode = null;
 
   if (available === true) {
-    icon = <Icon type="success" src="icon-checkmark-sm" />;
+    icon = <IconCheckmark />;
   } else if (available === false) {
-    icon = <Icon type="error" src="icon-close" />;
+    icon = <IconClose />;
   }
 
   return (
@@ -50,10 +49,5 @@ DebugFileFeature.propTypes = {
   available: PropTypes.bool,
   feature: PropTypes.oneOf(Object.keys(FEATURE_TOOLTIPS)).isRequired,
 };
-
-const Icon = styled(InlineSvg)<{type: 'error' | 'success'}>`
-  color: ${p => p.theme.alert[p.type].iconColor};
-  margin-right: 1ex;
-`;
 
 export default DebugFileFeature;

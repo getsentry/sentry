@@ -15,6 +15,7 @@ import profiler from 'app/utils/profiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
+import {IconWarning} from 'app/icons';
 
 import ReleaseHeader from './releaseHeader';
 
@@ -116,7 +117,7 @@ class OrganizationReleaseDetails extends AsyncView {
 
       return (
         <PageContent>
-          <Alert type="error" icon="icon-circle-exclamation">
+          <Alert type="error" icon={<IconWarning />}>
             {t(
               'This release may not be in your selected project' +
                 (selected_projects.length > 1 ? 's' : '')

@@ -172,7 +172,7 @@ class InputInline extends React.Component<Props, State> {
         />
         {!isFocused && !disabled && (
           <div onClick={this.onClickIcon}>
-            <InputButton src="icon-edit-pencil" size="1em" />
+            <InputButton src="icon-edit" size="1em" />
           </div>
         )}
       </Wrapper>

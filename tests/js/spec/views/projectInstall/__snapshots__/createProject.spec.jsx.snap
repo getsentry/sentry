@@ -338,26 +338,21 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
             <div
               className="css-11q7t03-SearchBar exv4dm81"
             >
-              <InlineSvg
-                src="icon-search"
-              >
-                <ForwardRef
-                  className="css-tbsmsq-InlineSvg enyz4ql0"
-                  src="icon-search"
+              <IconSearch>
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
                 >
-                  <svg
-                    className="css-tbsmsq-InlineSvg enyz4ql0"
-                    height="1em"
-                    viewBox={Object {}}
-                    width="1em"
-                  >
-                    <use
-                      href="#test"
-                      xlinkHref="#test"
-                    />
-                  </svg>
-                </ForwardRef>
-              </InlineSvg>
+                  <path
+                    d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                  />
+                  <path
+                    d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+                  />
+                </svg>
+              </IconSearch>
               <input
                 label="Filter Platforms"
                 onChange={[Function]}
@@ -1945,26 +1940,21 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
             <div
               className="css-11q7t03-SearchBar exv4dm81"
             >
-              <InlineSvg
-                src="icon-search"
-              >
-                <ForwardRef
-                  className="css-tbsmsq-InlineSvg enyz4ql0"
-                  src="icon-search"
+              <IconSearch>
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
                 >
-                  <svg
-                    className="css-tbsmsq-InlineSvg enyz4ql0"
-                    height="1em"
-                    viewBox={Object {}}
-                    width="1em"
-                  >
-                    <use
-                      href="#test"
-                      xlinkHref="#test"
-                    />
-                  </svg>
-                </ForwardRef>
-              </InlineSvg>
+                  <path
+                    d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                  />
+                  <path
+                    d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+                  />
+                </svg>
+              </IconSearch>
               <input
                 label="Filter Platforms"
                 onChange={[Function]}
@@ -2963,26 +2953,21 @@ exports[`CreateProject should fill in project name if its empty when platform is
             <div
               className="css-11q7t03-SearchBar exv4dm81"
             >
-              <InlineSvg
-                src="icon-search"
-              >
-                <ForwardRef
-                  className="css-tbsmsq-InlineSvg enyz4ql0"
-                  src="icon-search"
+              <IconSearch>
+                <svg
+                  fill="currentColor"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
                 >
-                  <svg
-                    className="css-tbsmsq-InlineSvg enyz4ql0"
-                    height="1em"
-                    viewBox={Object {}}
-                    width="1em"
-                  >
-                    <use
-                      href="#test"
-                      xlinkHref="#test"
-                    />
-                  </svg>
-                </ForwardRef>
-              </InlineSvg>
+                  <path
+                    d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                  />
+                  <path
+                    d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+                  />
+                </svg>
+              </IconSearch>
               <input
                 label="Filter Platforms"
                 onChange={[Function]}

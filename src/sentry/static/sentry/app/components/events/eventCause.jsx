@@ -5,7 +5,7 @@ import flatMap from 'lodash/flatMap';
 import styled from '@emotion/styled';
 
 import CommitRow from 'app/components/commitRow';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconAdd, IconSubtract} from 'app/icons';
 import withApi from 'app/utils/withApi';
 
 import {t} from 'app/locale';
@@ -58,10 +58,10 @@ class EventCause extends React.Component {
     this.props.api.request(
       `/projects/${this.props.orgId}/${this.props.projectId}/events/${event.id}/committers/`,
       {
-        success: (data, _, jqXHR) => {
+        success: (data, _) => {
           this.setState(data);
         },
-        error: error => {
+        error: () => {
           this.setState({
             committers: undefined,
           });
@@ -102,11 +102,11 @@ class EventCause extends React.Component {
               <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
                 {expanded ? (
                   <React.Fragment>
-                    {t('Show less')} <InlineSvg src="icon-circle-subtract" size="16px" />
+                    {t('Show less')} <IconSubtract circle />
                   </React.Fragment>
                 ) : (
                   <React.Fragment>
-                    {t('Show more')} <InlineSvg src="icon-circle-add" size="16px" />
+                    {t('Show more')} <IconAdd circle />
                   </React.Fragment>
                 )}
               </ExpandButton>

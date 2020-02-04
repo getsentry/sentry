@@ -7,12 +7,12 @@ import {MEMBER_ROLES} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {uniqueId} from 'app/utils/guid';
-import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
 import HookOrDefault from 'app/components/hookOrDefault';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 import {Organization, Team} from 'app/types';
+import {IconCheckmark, IconMail, IconQuestion, IconWarning} from 'app/icons';
 import withLatestContext from 'app/utils/withLatestContext';
 import withTeams from 'app/utils/withTeams';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -263,7 +263,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
       return (
         <StatusMessage status="success">
-          <InlineSvg src="icon-checkmark-sm" size="16px" />
+          <IconCheckmark />
           {errorCount > 0
             ? tct('Sent [invites], [failed] failed to send.', tctComponents)
             : tct('Sent [invites]', tctComponents)}
@@ -274,7 +274,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     if (this.hasDuplicateEmails) {
       return (
         <StatusMessage status="error">
-          <InlineSvg src="icon-warning-sm" size="16px" />
+          <IconWarning size="16px" />
           {t('Duplicate emails between invite rows.')}
         </StatusMessage>
       );
@@ -307,7 +307,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
       <React.Fragment>
         <Heading>
-          <InlineSvg src="icon-mail" size="36px" />
+          <IconMail size="lg" />
           {t('Invite New Members')}
           {!this.willInvite && (
             <Tooltip
@@ -318,7 +318,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                  invitation.`
               )}
             >
-              <InlineSvg src="icon-circle-question" size="16px" />
+              <IconQuestion />
             </Tooltip>
           )}
         </Heading>

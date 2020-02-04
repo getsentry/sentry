@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import {IconQuestion} from 'app/icons';
 import ConfigStore from 'app/stores/configStore';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
@@ -42,10 +43,11 @@ export default class AdminEnvironment extends AsyncView {
                   <Button
                     priority="link"
                     href="https://github.com/getsentry/sentry/releases"
-                    icon="icon-circle-question"
                     size="small"
                     external
-                  />
+                  >
+                    <IconQuestion size="xs" />
+                  </Button>
                 </Tooltip>
               )}
             </VersionLabel>

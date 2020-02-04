@@ -8,6 +8,7 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalLink from 'app/components/links/externalLink';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';
+import {IconMail} from 'app/icons';
 
 const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
 
@@ -30,7 +31,7 @@ class UserContextType extends React.Component {
           {user.email}
           {EMAIL_REGEX.test(user.email) && (
             <ExternalLink href={`mailto:${user.email}`} className="external-icon">
-              <em className="icon-envelope" />
+              <IconMail />
             </ExternalLink>
           )}
         </pre>,

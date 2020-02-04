@@ -1,5 +1,8 @@
 import React from 'react';
 import classNames from 'classnames';
+import styled from '@emotion/styled';
+
+import {IconSearch} from 'app/icons';
 
 type Props = {
   query: string;
@@ -86,7 +89,7 @@ class SearchBar extends React.PureComponent<Props, State> {
               onBlur={this.onQueryBlur}
               onChange={this.onQueryChange}
             />
-            <span className="icon-search" />
+            <StyledIconSearch />
             {this.state.query !== this.props.defaultQuery && (
               <div>
                 <a className="search-clear-form" onClick={this.clearSearch}>
@@ -100,5 +103,12 @@ class SearchBar extends React.PureComponent<Props, State> {
     );
   }
 }
+
+const StyledIconSearch = styled(IconSearch)`
+  position: absolute;
+  color: ${p => p.theme.gray2};
+  left: 12px;
+  top: 12px;
+`;
 
 export default SearchBar;

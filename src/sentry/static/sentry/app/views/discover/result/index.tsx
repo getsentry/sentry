@@ -6,8 +6,8 @@ import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import InlineSvg from 'app/components/inlineSvg';
 import PageHeading from 'app/components/pageHeading';
+import {IconEdit} from 'app/icons';
 
 import {
   getChartData,
@@ -53,9 +53,6 @@ type ResultState = {
 };
 
 class Result extends React.Component<ResultProps, ResultState> {
-  // This is the ref of the table container component
-  private container: any;
-
   constructor(props: ResultProps) {
     super(props);
     this.state = {
@@ -89,6 +86,9 @@ class Result extends React.Component<ResultProps, ResultState> {
   componentWillUnmount() {
     window.removeEventListener('resize', this.throttledUpdateDimensions);
   }
+
+  // This is the ref of the table container component
+  private container: any;
 
   setDimensions = (ref: any) => {
     this.container = ref;
@@ -188,7 +188,7 @@ class Result extends React.Component<ResultProps, ResultState> {
           {getDynamicText({value: this.props.savedQuery!.name, fixed: 'saved query'})}
         </PageHeading>
         <SavedQueryAction onClick={this.props.onToggleEdit}>
-          <InlineSvg src="icon-edit" />
+          <IconEdit />
         </SavedQueryAction>
       </React.Fragment>
     );

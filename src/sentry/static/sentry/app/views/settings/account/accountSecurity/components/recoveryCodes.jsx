@@ -14,7 +14,7 @@ import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCopy, IconDownload, IconPrint} from 'app/icons';
 import space from 'app/styles/space';
 
 class RecoveryCodes extends React.Component {
@@ -48,18 +48,18 @@ class RecoveryCodes extends React.Component {
           <Actions>
             <Clipboard hideUnsupported value={formattedCodes}>
               <Button size="small">
-                <InlineSvg src="icon-copy" />
+                <IconCopy />
               </Button>
             </Clipboard>
             <Button size="small" onClick={this.printCodes}>
-              <InlineSvg src="icon-print" />
+              <IconPrint />
             </Button>
             <Button
               size="small"
               download="sentry-recovery-codes.txt"
               href={`data:text/plain;charset=utf-8,${formattedCodes}`}
             >
-              <InlineSvg src="icon-download" />
+              <IconDownload />
             </Button>
             <Confirm
               onConfirm={this.props.onRegenerateBackupCodes}

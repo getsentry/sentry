@@ -10,7 +10,6 @@ import Access from 'app/components/acl/access';
 import Count from 'app/components/count';
 import DropdownControl from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
-import InlineSvg from 'app/components/inlineSvg';
 import LoadingError from 'app/components/loadingError';
 import MenuItem from 'app/components/menuItem';
 import PageHeading from 'app/components/pageHeading';
@@ -20,6 +19,7 @@ import SubscribeButton from 'app/components/subscribeButton';
 import getDynamicText from 'app/utils/getDynamicText';
 import isPropValid from '@emotion/is-prop-valid';
 import space from 'app/styles/space';
+import {IconCheckmark, IconChevron, IconOpen} from 'app/icons';
 
 import {Incident} from '../types';
 import {isOpen} from '../utils';
@@ -57,7 +57,7 @@ export default class DetailsHeader extends React.Component<Props> {
           buttonProps={{size: 'small', disabled: !incident}}
         >
           <StyledMenuItem onSelect={onStatusChange}>
-            <ResolveIcon src="icon-circle-check" /> {t('Resolve this incident')}
+            <StyledIconCheckmark circle /> {t('Resolve this incident')}
           </StyledMenuItem>
         </DropdownControl>
       </Access>
@@ -99,7 +99,7 @@ export default class DetailsHeader extends React.Component<Props> {
             </IncidentsLink>
             {dateStarted && (
               <React.Fragment>
-                <Chevron src="icon-chevron-right" size={space(2)} />
+                <StyledIconChevron direction="right" size="xs" />
                 <IncidentDate>{dateStarted}</IncidentDate>
               </React.Fragment>
             )}
@@ -138,7 +138,7 @@ export default class DetailsHeader extends React.Component<Props> {
               <ItemValue>
                 <Count value={incident.totalEvents} />
                 <OpenLink to={eventLink}>
-                  <InlineSvg src="icon-open" size="14" />
+                  <IconOpen />
                 </OpenLink>
               </ItemValue>
             )}
@@ -236,11 +236,6 @@ const IncidentsLink = styled(Link)`
   color: inherit;
 `;
 
-const Chevron = styled(InlineSvg)`
-  color: ${p => p.theme.gray1};
-  margin: 0 ${space(0.5)};
-`;
-
 const StyledMenuItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: left;
@@ -255,7 +250,12 @@ const OpenLink = styled(Link)`
   margin-left: ${space(1)};
 `;
 
-const ResolveIcon = styled(InlineSvg)`
+const StyledIconCheckmark = styled(IconCheckmark)`
   color: ${p => p.theme.greenLight};
-  margin-right: ${space(0.5)};
+  vertical-align: middle;
+`;
+
+const StyledIconChevron = styled(IconChevron)`
+  color: ${p => p.theme.gray1};
+  margin: 0 ${space(0.5)};
 `;

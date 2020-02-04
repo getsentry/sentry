@@ -7,7 +7,7 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import EventWaiter from 'app/views/onboarding/projectSetup/eventWaiter';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCheckmark} from 'app/icons';
 import space from 'app/styles/space';
 import testablePose from 'app/utils/testablePose';
 
@@ -42,7 +42,7 @@ const Waiting = props => (
 
 const Success = ({organization, firstIssue, ...props}) => (
   <StatusWrapper {...props}>
-    <ReceivedIndicator src="icon-checkmark-sm" />
+    <ReceivedIndicator />
     <PosedText>{t('First event was received!')}</PosedText>
     {firstIssue !== true && (
       <PosedButton
@@ -113,7 +113,11 @@ const WaitingIndicator = styled(posed.div(indicatorPoses))`
 `;
 
 const PosedReceivedIndicator = posed(
-  React.forwardRef((props, ref) => <InlineSvg {...props} ref={ref} />)
+  React.forwardRef((props, ref) => (
+    <div {...props} ref={ref}>
+      <IconCheckmark />
+    </div>
+  ))
 )(indicatorPoses);
 
 const ReceivedIndicator = styled(PosedReceivedIndicator)`

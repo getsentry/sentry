@@ -1,9 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Breadcrumb from 'app/components/events/interfaces/breadcrumbs/breadcrumb';
+import {IconSearch} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PlatformContext} from 'app/components/events/interfaces/breadcrumbs/platformContext';
 
@@ -48,8 +51,6 @@ class BreadcrumbsInterface extends React.Component {
     project: SentryTypes.Project,
   };
 
-  static MAX_CRUMBS_WHEN_COLLAPSED = 10;
-
   constructor(...args) {
     super(...args);
     this.state = {
@@ -57,6 +58,8 @@ class BreadcrumbsInterface extends React.Component {
       queryValue: '',
     };
   }
+
+  static MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
   onCollapseToggle = () => {
     this.setState({
@@ -157,7 +160,7 @@ class BreadcrumbsInterface extends React.Component {
           value={this.state.queryValue}
           onChange={this.setQuery}
         />
-        <span className="icon-search" />
+        <StyledIconSearch size="xs" />
         {this.state.queryValue && (
           <div>
             <a className="search-clear-form" onClick={this.clearSearch}>
@@ -232,5 +235,11 @@ class BreadcrumbsInterface extends React.Component {
     );
   }
 }
+
+const StyledIconSearch = styled(IconSearch)`
+  position: absolute;
+  left: 8px;
+  top: 8px;
+`;
 
 export default BreadcrumbsInterface;

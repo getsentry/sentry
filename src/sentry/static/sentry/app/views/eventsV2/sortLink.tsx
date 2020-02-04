@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import InlineSvg from 'app/components/inlineSvg';
+import {IconArrow} from 'app/icons';
 import Link from 'app/components/links/link';
 
 import EventView, {Field, Sort, isFieldSortable} from './eventView';
@@ -61,10 +61,10 @@ class SortLink extends React.Component<Props> {
     }
 
     if (currentSort.kind === 'desc') {
-      return <InlineSvg src="icon-chevron-down" />;
+      return <IconArrow direction="down" size="xs" />;
     }
 
-    return <InlineSvg src="icon-chevron-up" />;
+    return <IconArrow direction="up" size="xs" />;
   }
 
   render() {

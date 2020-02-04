@@ -6,9 +6,9 @@ import React from 'react';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import Hovercard from 'app/components/hovercard';
-import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 import {isUrl} from 'app/utils';
+import {IconInfo} from 'app/icons';
 
 class ExceptionMechanism extends React.Component {
   static propTypes = {
@@ -60,7 +60,7 @@ class ExceptionMechanism extends React.Component {
         body={description}
         containerClassName="pill-icon"
       >
-        <InlineSvg src="icon-circle-info" size="14px" />
+        <IconInfo />
       </Hovercard>
     );
 

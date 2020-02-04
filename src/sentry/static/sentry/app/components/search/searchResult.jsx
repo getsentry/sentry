@@ -4,10 +4,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import IdBadge from 'app/components/idBadge';
-import InlineSvg from 'app/components/inlineSvg';
 import PluginIcon from 'app/plugins/components/pluginIcon';
+import {IconInput, IconLink, IconSettings} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
-import SettingsSearch from 'app/views/settings/components/settingsSearch';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 
 class SearchResult extends React.Component {
@@ -126,15 +125,15 @@ class SearchResult extends React.Component {
     }
 
     if (isSettings) {
-      return <ResultTypeIcon src="icon-settings" />;
+      return <IconSettings />;
     }
 
     if (isField) {
-      return <ResultTypeIcon src="icon-input" />;
+      return <IconInput />;
     }
 
     if (isRoute) {
-      return <ResultTypeIcon src="icon-link" />;
+      return <IconLink />;
     }
 
     if (isIntegration) {
@@ -182,15 +181,6 @@ const Wrapper = styled('div')`
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
-`;
-
-const ResultTypeIcon = styled(InlineSvg)`
-  font-size: 1.2em;
-  flex-shrink: 0;
-
-  ${SettingsSearch} & {
-    color: inherit;
-  }
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`

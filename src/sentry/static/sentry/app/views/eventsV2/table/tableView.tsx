@@ -7,7 +7,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {t} from 'app/locale';
 import {assert} from 'app/types/utils';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconStack} from 'app/icons';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 
@@ -221,7 +221,7 @@ class TableView extends React.Component<TableViewProps> {
     rowIndex?: number
   ): React.ReactNode[] => {
     if (isHeader) {
-      return [<StyledIconStack key="header-icon" src="icon-stack" size="14px" />];
+      return [<StyledIconStack key="header-icon" />];
     }
     const {organization, location} = this.props;
     const eventSlug = generateEventSlug(dataRow);
@@ -237,7 +237,7 @@ class TableView extends React.Component<TableViewProps> {
     return [
       <Tooltip key={`eventlink${rowIndex}`} title={t('View Details')}>
         <Link to={target} data-test-id="view-events">
-          <InlineSvg src="icon-stack" size="14px" />
+          <IconStack />
         </Link>
       </Tooltip>,
     ];
@@ -486,7 +486,7 @@ const ExpandAggregateRow = (props: {
   return <React.Fragment>{children({willExpand: false})}</React.Fragment>;
 };
 
-const StyledIconStack = styled(InlineSvg)`
+const StyledIconStack = styled(IconStack)`
   vertical-align: top;
   color: ${p => p.theme.gray3};
 `;

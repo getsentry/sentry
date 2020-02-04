@@ -16,6 +16,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {IconInfo} from 'app/icons';
 
 class DataForwardingStats extends AsyncComponent {
   getEndpoints() {
@@ -140,7 +141,7 @@ class ProjectDataForwarding extends AsyncComponent {
               </TextBlock>
               <PermissionAlert />
 
-              <Alert icon="icon-circle-info">
+              <Alert icon={<IconInfo />}>
                 {tct(
                   `Sentry forwards [em:all applicable events] to the provider, in
                 some cases this may be a significant volume of data.`,

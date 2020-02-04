@@ -11,10 +11,10 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectSelector';
-import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 
 import HeaderItem from 'app/components/organizations/headerItem';
+import {IconProject} from 'app/icons';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
 
@@ -185,7 +185,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     return shouldForceProject ? (
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
-        icon={<StyledInlineSvg src="icon-project" />}
+        icon={<IconProject size="md" />}
         locked
         lockedMessage={
           forceProject
@@ -201,7 +201,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     ) : loadingProjects ? (
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
-        icon={<StyledInlineSvg src="icon-project" />}
+        icon={<IconProject size="md" />}
         loading={loadingProjects}
       >
         {t('Loading\u2026')}
@@ -250,7 +250,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
                 <StyledHeaderItem
                   data-test-id="global-header-project-selector"
                   active={hasSelected || isOpen}
-                  icon={<StyledInlineSvg src="icon-project" />}
+                  icon={<IconProject size="md" />}
                   hasSelected={hasSelected}
                   hasChanges={this.state.hasChanges}
                   isOpen={isOpen}
@@ -351,12 +351,6 @@ const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
   width: 100%;
   ${p => p.locked && 'cursor: default'};
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  height: 18px;
-  width: 18px;
-  transform: translateY(-2px);
 `;
 
 const StyledLink = styled(Link)`

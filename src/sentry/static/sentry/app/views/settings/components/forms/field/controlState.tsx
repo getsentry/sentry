@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {fadeOut, pulse} from 'app/styles/animations';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCheckmark, IconWarning} from 'app/icons';
 import Spinner from 'app/views/settings/components/forms/spinner';
 
 type Props = {
@@ -27,7 +27,7 @@ class ControlState extends React.Component<Props> {
         ) : isSaved ? (
           <ControlStateWrapper>
             <FieldIsSaved>
-              <InlineSvg src="icon-checkmark-sm" size="18px" />
+              <IconCheckmark />
             </FieldIsSaved>
           </ControlStateWrapper>
         ) : null}
@@ -35,7 +35,7 @@ class ControlState extends React.Component<Props> {
         {error ? (
           <ControlStateWrapper>
             <FieldError>
-              <InlineSvg src="icon-warning-sm" size="18px" />
+              <IconWarning />
             </FieldError>
           </ControlStateWrapper>
         ) : null}

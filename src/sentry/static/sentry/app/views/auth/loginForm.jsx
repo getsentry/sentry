@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 
 import {formFooterClass} from 'app/views/auth/login';
 import {t} from 'app/locale';
+import {IconGithub, IconGoogle, IconVsts} from 'app/icons';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import Form from 'app/components/forms/form';
@@ -21,17 +22,20 @@ const LoginProviders = ({vstsLoginLink, githubLoginLink, googleLoginLink}) => (
   <ProviderWrapper>
     <ProviderHeading>{t('External Account Login')}</ProviderHeading>
     {googleLoginLink && (
-      <Button align="left" size="small" icon="icon-google" href={googleLoginLink}>
+      <Button align="left" size="small" href={googleLoginLink}>
+        <IconGoogle />
         {t('Sign in with Google')}
       </Button>
     )}
     {githubLoginLink && (
-      <Button align="left" size="small" icon="icon-github" href={githubLoginLink}>
+      <Button align="left" size="small" href={githubLoginLink}>
+        <IconGithub />
         {t('Sign in with GitHub')}
       </Button>
     )}
     {vstsLoginLink && (
-      <Button align="left" size="small" icon="icon-vsts" href={vstsLoginLink}>
+      <Button align="left" size="small" href={vstsLoginLink}>
+        <IconVsts />
         {t('Sign in with Azure DevOps')}
       </Button>
     )}

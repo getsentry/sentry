@@ -12,7 +12,7 @@ type Props = {
 
 type IconProps = Pick<Props, 'size'>;
 
-const StyledIcon = styled('img')<IconProps>`
+const StyledIcon = styled('div')<IconProps>`
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   border-radius: 2px;
@@ -30,11 +30,12 @@ class Icon extends React.Component<Props> {
     return (
       <StyledIcon
         size={size}
-        src={this.state.imgSrc}
         onError={() => {
           this.setState({imgSrc: ICON_PATHS[integration.provider.key] || DEFAULT_ICON});
         }}
-      />
+      >
+        {this.state.imgSrc}
+      </StyledIcon>
     );
   }
 }

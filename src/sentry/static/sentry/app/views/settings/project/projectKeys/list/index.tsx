@@ -22,6 +22,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
+import {IconWarning} from 'app/icons';
 
 import KeyRow from './keyRow';
 
@@ -135,7 +136,7 @@ class ProjectKeys extends AsyncView<Props, State> {
     return (
       <Panel>
         <EmptyMessage
-          icon="icon-circle-exclamation"
+          icon={<IconWarning />}
           description={t('There are no keys active for this project.')}
         />
       </Panel>

@@ -15,7 +15,7 @@ import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Checkbox from 'app/components/checkbox';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconOpen, IconWarning} from 'app/icons';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -89,7 +89,7 @@ const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) 
   return link ? (
     <Link to={link} target="_blank">
       <DateTime date={date} />
-      <StyledInlineSvg src="icon-open" size="12px" />
+      <IconOpen size="xs" />
     </Link>
   ) : (
     <DateTime date={date} />
@@ -261,7 +261,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
                   </PanelItem>
                 ))
               ) : (
-                <EmptyMessage icon="icon-circle-exclamation">
+                <EmptyMessage icon={<IconWarning />}>
                   {t('No requests found in the last 30 days.')}
                 </EmptyMessage>
               )}
@@ -346,9 +346,4 @@ const StyledErrorsOnlyButton = styled(Button)`
   margin-left: -1px;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  margin-left: 6px;
-  color: ${p => p.theme.gray3};
 `;

@@ -7,8 +7,8 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
-import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconAdd, IconCheckmark, IconDownload, IconEdit, IconWarning} from 'app/icons';
 
 import {
   GridColumn,
@@ -394,7 +394,7 @@ class GridEditable<
     const onClick = canEdit ? () => this.openModalAddColumnAt() : undefined;
     return (
       <HeaderButton disabled={!canEdit} onClick={onClick} data-test-id="grid-add-column">
-        <InlineSvg src="icon-circle-add" />
+        <IconAdd circle />
         {t('Add Column')}
       </HeaderButton>
     );
@@ -410,7 +410,7 @@ class GridEditable<
         onClick={onClick}
         data-test-id="grid-download-csv"
       >
-        <InlineSvg src="icon-download" />
+        <IconDownload />
         {t('Download CSV')}
       </HeaderButton>
     );
@@ -425,7 +425,7 @@ class GridEditable<
           onClick={onClick}
           data-test-id="grid-edit-enable"
         >
-          <InlineSvg src="icon-edit-pencil" />
+          <IconEdit />
           {t('Edit Columns')}
         </HeaderButton>
       );
@@ -433,7 +433,7 @@ class GridEditable<
 
     return (
       <HeaderButton onClick={onClick} data-test-id="grid-edit-disable">
-        <InlineSvg src="icon-circle-check" />
+        <IconCheckmark circle />
         {t('Save & Close')}
       </HeaderButton>
     );
@@ -533,7 +533,7 @@ class GridEditable<
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <GridStatusErrorAlert type="error" icon="icon-circle-exclamation">
+          <GridStatusErrorAlert type="error" icon={<IconWarning />}>
             {error}
           </GridStatusErrorAlert>
         </GridBodyCellStatus>

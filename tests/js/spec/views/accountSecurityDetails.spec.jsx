@@ -185,7 +185,7 @@ describe('AccountSecurityDetails', function() {
       expect(wrapper.find(downloadCodes)).toHaveLength(1);
       wrapper.find(downloadCodes).simulate('click');
 
-      expect(wrapper.find('Button InlineSvg[src="icon-print"]')).toHaveLength(1);
+      expect(wrapper.find('Button IconPrint')).toHaveLength(1);
       expect(wrapper.find('iframe[name="printable"]')).toHaveLength(1);
       expect(wrapper.find(`Clipboard[value="${codes}"]`)).toHaveLength(1);
     });

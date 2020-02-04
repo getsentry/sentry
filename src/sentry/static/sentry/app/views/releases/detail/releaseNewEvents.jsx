@@ -4,6 +4,7 @@ import {Link} from 'react-router';
 import SentryTypes from 'app/sentryTypes';
 import Alert from 'app/components/alert';
 import {t} from 'app/locale';
+import {IconOpen} from 'app/icons';
 
 import GroupList from './groupList';
 
@@ -13,7 +14,7 @@ const ReleaseNewEvents = props => {
 
   return (
     <div>
-      <Alert icon="icon-open" iconSize="14px" type="warning">
+      <Alert type="warning" icon={<IconOpen />}>
         <Link
           to={{
             pathname: `/organizations/${orgId}/issues/`,

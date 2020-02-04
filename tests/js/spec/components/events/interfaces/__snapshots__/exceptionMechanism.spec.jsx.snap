@@ -63,10 +63,7 @@ exports[`ExceptionMechanism basic attributes should add the help_link to the des
         }
         position="top"
       >
-        <InlineSvg
-          size="14px"
-          src="icon-circle-info"
-        />
+        <IconInfo />
       </Hovercard>
     </Pill>
   </Pills>
@@ -95,10 +92,7 @@ exports[`ExceptionMechanism basic attributes should not add the help_link if not
         }
         position="top"
       >
-        <InlineSvg
-          size="14px"
-          src="icon-circle-info"
-        />
+        <IconInfo />
       </Hovercard>
     </Pill>
   </Pills>
@@ -127,10 +121,7 @@ exports[`ExceptionMechanism basic attributes should render a description hoverca
         }
         position="top"
       >
-        <InlineSvg
-          size="14px"
-          src="icon-circle-info"
-        />
+        <IconInfo />
       </Hovercard>
     </Pill>
   </Pills>

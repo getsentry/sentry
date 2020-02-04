@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron} from 'app/icons';
 
 class DropdownButton extends React.Component {
   static propTypes = {
@@ -26,7 +26,7 @@ DropdownButton.defaultProps = {
 };
 
 const StyledChevronDown = styled(props => (
-  <InlineSvg src="icon-chevron-down" {...props} />
+  <IconChevron direction="down" size="xs" {...props} />
 ))`
   margin-left: 0.33em;
 `;

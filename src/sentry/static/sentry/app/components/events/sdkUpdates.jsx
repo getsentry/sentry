@@ -7,6 +7,7 @@ import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {IconUpgrade} from 'app/icons';
 
 const AlertUl = styled('ul')`
   margin-top: ${space(1)};
@@ -95,7 +96,7 @@ class EventSdkUpdateSuggestion extends React.Component {
         {title}
         {t(' so you can')}
         <AlertUl>
-          {suggestion.enables.map((suggestion2, i) => {
+          {suggestion.enables.map(suggestion2 => {
             return (
               <li key={getSuggestionComponentKey(suggestion2)}>
                 <EventSdkUpdateSuggestion event={event} suggestion={suggestion2} />
@@ -123,7 +124,7 @@ class EventSdkUpdates extends React.Component {
           return (
             <Alert
               type="info"
-              icon="icon-upgrade"
+              icon={<IconUpgrade />}
               key={getSuggestionComponentKey(suggestion)}
             >
               {t('We recommend you ')}

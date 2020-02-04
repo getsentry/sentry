@@ -7,6 +7,7 @@ import * as Sentry from '@sentry/browser';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import DetailedError from 'app/components/errors/detailedError';
+import {IconWarning} from 'app/icons';
 
 type Props = {
   mini?: boolean;
@@ -40,9 +41,6 @@ class ErrorBoundary extends React.Component<Props, State> {
     error: null,
   };
 
-  // XXX: browserHistory.listen does not have a correct return type.
-  unlistenBrowserHistory: any;
-
   componentDidMount() {
     // Listen for route changes so we can clear error
     this.unlistenBrowserHistory = browserHistory.listen(() =>
@@ -64,6 +62,9 @@ class ErrorBoundary extends React.Component<Props, State> {
     }
   }
 
+  // XXX: browserHistory.listen does not have a correct return type.
+  unlistenBrowserHistory: any;
+
   render() {
     const {error} = this.state;
 
@@ -80,7 +81,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
     if (mini) {
       return (
-        <Alert type="error" icon="icon-circle-exclamation" className={className}>
+        <Alert type="error" icon={<IconWarning />} className={className}>
           {message || t('There was a problem rendering this component')}
         </Alert>
       );

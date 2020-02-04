@@ -28,11 +28,22 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
-import InlineSvg from 'app/components/inlineSvg';
 import DropdownLink from 'app/components/dropdownLink';
 import MemberListStore from 'app/stores/memberListStore';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {
+  IconClock,
+  IconClose,
+  IconEllipsis,
+  IconPin,
+  IconSearch,
+  IconSliders,
+  IconStar,
+  IconTag,
+  IconToggle,
+  IconUser,
+} from 'app/icons';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -96,6 +107,25 @@ const getDropdownElementStyles = p => `
 `;
 
 class SmartSearchBar extends React.Component {
+  /**
+   * Returns an array of query terms, including incomplete terms
+   *
+   * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
+   */
+  static getQueryTerms = (query, cursor) => {
+    return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
+  };
+
+  /**
+   * Given a query, and the current cursor position, return the string-delimiting
+   * index of the search term designated by the cursor.
+   */
+  static getLastTermIndex = (query, cursor) => {
+    // TODO: work with quoted-terms
+    const cursorOffset = query.slice(cursor).search(/\s|$/);
+    return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
+  };
+
   static propTypes = {
     api: PropTypes.object,
 
@@ -183,25 +213,6 @@ class SmartSearchBar extends React.Component {
 
   static contextTypes = {
     router: PropTypes.object,
-  };
-
-  /**
-   * Given a query, and the current cursor position, return the string-delimiting
-   * index of the search term designated by the cursor.
-   */
-  static getLastTermIndex = (query, cursor) => {
-    // TODO: work with quoted-terms
-    const cursorOffset = query.slice(cursor).search(/\s|$/);
-    return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
-  };
-
-  /**
-   * Returns an array of query terms, including incomplete terms
-   *
-   * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
-   */
-  static getQueryTerms = (query, cursor) => {
-    return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
   };
 
   static defaultProps = {
@@ -918,7 +929,7 @@ class SmartSearchBar extends React.Component {
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
-    const pinIconSrc = !!pinnedSearch ? 'icon-pin-filled' : 'icon-pin';
+    const pinIconSrc = !!pinnedSearch ? <StyledIconPin solid /> : <StyledIconPin />;
     const hasQuery = !!this.state.query;
 
     const input = (
@@ -960,7 +971,7 @@ class SmartSearchBar extends React.Component {
         isOpen={this.state.dropdownVisible}
       >
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
-          <SearchSvg src="icon-search" />
+          <IconSearch />
         </SearchLabel>
 
         {useFormWrapper ? (
@@ -981,7 +992,7 @@ class SmartSearchBar extends React.Component {
               }}
               onClick={this.clearSearch}
             >
-              <InlineSvg src="icon-close" size="11" />
+              <IconClose size="xs" />
             </InputButton>
           )}
           {hasPinnedSearch && (
@@ -999,7 +1010,7 @@ class SmartSearchBar extends React.Component {
               collapseIntoEllipsisMenu={1}
               isActive={!!pinnedSearch}
             >
-              <InlineSvg src={pinIconSrc} />
+              {pinIconSrc}
             </InputButton>
           )}
           {canCreateSavedSearch && (
@@ -1032,7 +1043,7 @@ class SmartSearchBar extends React.Component {
               aria-label={t('Toggle search builder')}
               onClick={onSidebarToggle}
             >
-              <InlineSvg src="icon-sliders" size="13" />
+              <IconSliders direction="right" />
             </SearchBuilderButton>
           )}
 
@@ -1050,7 +1061,7 @@ class SmartSearchBar extends React.Component {
                   type="button"
                   aria-label={t('Show more')}
                 >
-                  <EllipsisIcon src="icon-ellipsis-filled" />
+                  <IconEllipsis size="sm" />
                 </EllipsisButton>
               }
             >
@@ -1060,7 +1071,7 @@ class SmartSearchBar extends React.Component {
                   data-test-id="pin-icon"
                   onClick={this.onTogglePinnedSearch}
                 >
-                  <MenuIcon src={pinIconSrc} size="13" />
+                  {pinIconSrc}
                   {!!pinnedSearch ? 'Unpin Search' : 'Pin Search'}
                 </DropdownElement>
               )}
@@ -1083,7 +1094,7 @@ class SmartSearchBar extends React.Component {
               )}
               {hasSearchBuilder && (
                 <DropdownElement showBelowMediaQuery={2} last onClick={onSidebarToggle}>
-                  <MenuIcon src="icon-sliders" size="12" />
+                  <IconSliders direction="right" />
                   Toggle sidebar
                 </DropdownElement>
               )}
@@ -1169,6 +1180,10 @@ const StyledForm = styled('form')`
   flex-grow: 1;
 `;
 
+const StyledIconPin = styled(IconPin)`
+  color: ${p => p.theme.gray2};
+`;
+
 const StyledInput = styled('input')`
   color: ${p => p.theme.foreground};
   background: transparent;
@@ -1219,19 +1234,9 @@ const StyledButtonBar = styled(ButtonBar)`
   margin-right: ${space(1)};
 `;
 
-const MenuIcon = styled(InlineSvg)`
-  margin-right: ${space(1)};
-`;
-
 const EllipsisButton = styled(InputButton)`
   /* this is necessary because DropdownLink wraps the button in an unstyled span */
   margin: 6px 0 0 0;
-`;
-
-const EllipsisIcon = styled(InlineSvg)`
-  width: 12px;
-  height: 12px;
-  transform: rotate(90deg);
 `;
 
 const SearchLabel = styled('label')`
@@ -1240,11 +1245,6 @@ const SearchLabel = styled('label')`
   margin: 0;
   padding-left: ${space(1)};
   color: ${p => p.theme.gray2};
-`;
-
-const SearchSvg = styled(InlineSvg)`
-  margin-top: ${space(0.25)};
-  margin-left: ${space(0.25)};
 `;
 
 function getTitleForType(type) {
@@ -1265,26 +1265,26 @@ function getTitleForType(type) {
 
 function getIconForTypeAndTag(type, tagName) {
   if (type === 'recent-search') {
-    return 'icon-clock';
+    return <IconClock />;
   }
 
   if (type === 'default') {
-    return 'icon-star-outline';
+    return <IconStar />;
   }
 
   // Change based on tagName and default to "icon-tag"
   switch (tagName) {
     case 'is':
-      return 'icon-toggle';
+      return <IconToggle />;
     case 'assigned':
     case 'bookmarks':
-      return 'icon-user';
+      return <IconUser />;
     case 'firstSeen':
     case 'lastSeen':
     case 'event.timestamp':
-      return 'icon-av_timer';
+      return <IconClock />;
     default:
-      return 'icon-tag';
+      return <IconTag />;
   }
 }
 
@@ -1311,7 +1311,7 @@ function createSearchGroups(
   const recentSearchGroup = recentSearchItems && {
     title: t('Recent Searches'),
     type: 'header',
-    icon: 'icon-clock',
+    icon: <IconClock />,
     children: [...recentSearchItems],
   };
 

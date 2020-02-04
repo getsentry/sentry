@@ -9,13 +9,13 @@ import ConfigStore from 'app/stores/configStore';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
 import IdBadge from 'app/components/idBadge';
-import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
 import SidebarMenuItem, {getMenuItemStyles} from 'app/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
 import TextOverflow from 'app/components/textOverflow';
+import {IconSentry} from 'app/icons';
 import withApi from 'app/utils/withApi';
 
 import Divider from './divider.styled';
@@ -67,7 +67,7 @@ const SidebarDropdown = withApi(
           />
         ) : (
           <SentryLink to="/">
-            <InlineSvg css={{fontSize: 32}} src="icon-sentry" />
+            <IconSentry size="lg" />
           </SentryLink>
         );
 

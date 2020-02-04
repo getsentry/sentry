@@ -1910,7 +1910,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
           onCursor={[Function]}
         >
           <Pagination
-            className="css-yneqnx e1vkspke0"
+            className="css-1vzq2o e1vkspke0"
             onCursor={[Function]}
           />
         </Styled(Pagination)>

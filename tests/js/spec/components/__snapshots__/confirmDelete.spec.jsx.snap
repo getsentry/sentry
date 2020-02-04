@@ -31,16 +31,14 @@ exports[`ConfirmDelete renders 1`] = `
           className="modal-body"
         >
           <Alert
-            iconSize="24px"
             type="error"
           >
             <Component
-              className="css-1c7awzo-Alert ejthpj82"
-              iconSize="24px"
+              className="css-1c7awzo-Alert ejthpj83"
               type="error"
             >
               <div
-                className="ref-error css-1c7awzo-Alert ejthpj82"
+                className="ref-error css-1c7awzo-Alert ejthpj83"
               >
                 <StyledTextBlock>
                   <div

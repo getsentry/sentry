@@ -8,6 +8,7 @@ import Alert from 'app/components/alert';
 import SentryTypes from 'app/sentryTypes';
 import getPlatformName from 'app/utils/getPlatformName';
 import withConfig from 'app/utils/withConfig';
+import {IconInfo} from 'app/icons';
 
 class InstallPromptBanner extends React.Component {
   static propTypes = {
@@ -73,7 +74,7 @@ class InstallPromptBanner extends React.Component {
     return (
       <React.Fragment>
         {!hideBanner && (
-          <StyledAlert type="warning" icon="icon-circle-exclamation" system="system">
+          <StyledAlert type="warning" icon={<IconInfo />} system="system">
             <a onClick={() => this.recordAnalytics()} href={this.url}>
               {t(
                 "You're almost there! Start capturing errors with just a few lines of code."

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {IconChevron} from 'app/icons';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {Query} from 'history';
@@ -51,12 +51,12 @@ class Pagination extends React.Component<Props> {
 
     const links = parseLinkHeader(pageLinks);
 
-    let previousPageClassName = 'btn btn-default btn-lg prev';
+    let previousPageClassName = 'btn btn-default flex btn-lg prev';
     if (links.previous.results === false) {
       previousPageClassName += ' disabled';
     }
 
-    let nextPageClassName = 'btn btn-default btn-lg next';
+    let nextPageClassName = 'btn btn-default flex btn-lg next';
     if (links.next.results === false) {
       nextPageClassName += ' disabled';
     }
@@ -70,7 +70,7 @@ class Pagination extends React.Component<Props> {
             }}
             className={previousPageClassName}
           >
-            <span title={t('Previous')} className="icon-arrow-left" />
+            <IconChevron size="md" direction="left" />
           </a>
           <a
             onClick={() => {
@@ -78,7 +78,7 @@ class Pagination extends React.Component<Props> {
             }}
             className={nextPageClassName}
           >
-            <span title={t('Next')} className="icon-arrow-right" />
+            <IconChevron size="md" direction="right" />
           </a>
         </div>
       </div>
@@ -91,9 +91,4 @@ export default styled(Pagination)`
   align-items: center;
   justify-content: flex-end;
   margin: 20px 0 0 0;
-
-  .icon-arrow-right,
-  .icon-arrow-left {
-    font-size: 20px !important;
-  }
 `;

@@ -13,6 +13,7 @@ import Tooltip from 'app/components/tooltip';
 import {IntegrationProvider, Integration, Organization} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {IconWarning} from 'app/icons';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
@@ -106,7 +107,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 
     const message = (
       <React.Fragment>
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconWarning />}>
           Deleting this integration has consequences!
         </Alert>
         {body}
@@ -124,7 +125,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     const {body, actionText} = integration.provider.aspects.disable_dialog;
     const message = (
       <React.Fragment>
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconWarning />}>
           This integration cannot be removed on Sentry
         </Alert>
         {body}

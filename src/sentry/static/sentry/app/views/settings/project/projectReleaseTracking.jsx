@@ -12,6 +12,7 @@ import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginList from 'app/components/pluginList';
+import {IconWarning} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
@@ -110,7 +111,7 @@ class ProjectReleaseTracking extends AsyncView {
       <div>
         <SettingsPageHeader title={t('Release Tracking')} />
         {!hasWrite && (
-          <Alert icon="icon-circle-exclamation" type="warning">
+          <Alert type="warning" icon={<IconWarning />}>
             {t(
               'You do not have sufficient permissions to access Release tokens, placeholders are displayed below.'
             )}

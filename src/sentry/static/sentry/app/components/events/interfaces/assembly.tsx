@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
-import InlineSvg from 'app/components/inlineSvg';
+import {IconReturn} from 'app/icons';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -25,7 +25,7 @@ const Assembly: React.FC<Props> = ({
 }) => {
   return (
     <AssemblyWrapper>
-      <Icon src="icon-return-key" />
+      <StyledIconReturn />
       <AssemblyInfo>
         <Caption>Assembly:</Caption>
         {name || '-'}
@@ -72,7 +72,7 @@ const AssemblyWrapper = styled('div')`
   padding: 0 ${space(3)} 0 50px;
 `;
 
-const Icon = styled(InlineSvg)`
+const StyledIconReturn = styled(IconReturn)`
   transform: scaleX(-1);
   position: absolute;
   top: 4px;

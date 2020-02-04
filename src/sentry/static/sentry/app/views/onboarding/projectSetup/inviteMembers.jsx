@@ -17,6 +17,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
+import {IconGroup} from 'app/icons';
 
 const recordAnalyticsUserInvited = ({organization, project}) =>
   analytics('onboarding_v2.user_invited', {
@@ -70,7 +71,7 @@ class InviteMembers extends React.Component {
     return (
       <React.Fragment>
         {invitedEmails.length > 0 && (
-          <Alert type="success" icon="icon-user-multi">
+          <Alert type="success" icon={<IconGroup />}>
             {tct('[emailList] has been invited to your organization.', {
               emailList: <strong>{invitedEmails.join(', ')}</strong>,
             })}

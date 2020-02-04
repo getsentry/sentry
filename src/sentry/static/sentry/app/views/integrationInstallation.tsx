@@ -14,6 +14,7 @@ import Field from 'app/views/settings/components/forms/field';
 import HookStore from 'app/stores/hookStore';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
+import {IconWarning} from 'app/icons';
 
 type Props = RouteComponentProps<{providerId: string; installationId: string}, {}>;
 
@@ -153,7 +154,7 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
         </p>
 
         {selectedOrg && organization && !this.hasAccess(organization) && (
-          <Alert type="error" icon="icon-circle-exclamation">
+          <Alert type="error" icon={<IconWarning />}>
             <p>
               {tct(
                 `You do not have permission to install integrations in

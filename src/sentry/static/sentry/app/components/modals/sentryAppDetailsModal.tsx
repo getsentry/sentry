@@ -13,7 +13,7 @@ import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import HookStore from 'app/stores/hookStore';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconWarning} from 'app/icons';
 import Tag from 'app/views/settings/components/tag';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
@@ -274,7 +274,7 @@ const Author = styled(Box)`
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <Flex alignItems="center" flex={1} {...p}>
-    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
+    <IconWarning size="lg" />
     <Box ml={1}>{reason}</Box>
   </Flex>
 ))`

@@ -8,9 +8,10 @@ import SentryTypes from 'app/sentryTypes';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
+import {IconInfo} from 'app/icons';
 
 const DEFAULT_NO_ACCESS_MESSAGE = (
-  <Alert type="error" icon="icon-circle-info">
+  <Alert type="error" icon={<IconInfo />}>
     {t('You do not have sufficient permissions to access this.')}
   </Alert>
 );

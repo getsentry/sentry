@@ -1,8 +1,8 @@
 import React from 'react';
 
-import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
+import {IconClose} from 'app/icons';
 
 import ConditionRow from './condition';
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
@@ -58,7 +58,7 @@ export default class Conditions extends React.Component<ConditionsProps> {
             />
             <div>
               <a onClick={() => this.removeRow(idx)}>
-                <InlineSvg src="icon-circle-close" height="38px" />
+                <IconClose size="xl" circle />
               </a>
             </div>
           </SelectListItem>

@@ -1,12 +1,10 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
-
 import {defined} from 'app/utils';
-import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import {Context} from 'app/components/forms/form';
+import {IconQuestion} from 'app/icons';
 
 type Value = string | number | boolean;
 
@@ -31,11 +29,6 @@ type FormFieldState = {
   error: string | null;
   value: Value;
 };
-
-const StyledInlineSvg = styled(InlineSvg)`
-  display: block;
-  color: ${p => p.theme.gray3};
-`;
 
 export default class FormField<
   Props extends FormFieldProps = FormFieldProps,
@@ -66,14 +59,14 @@ export default class FormField<
     meta: PropTypes.any, // eslint-disable-line react/no-unused-prop-types
   };
 
+  static contextTypes = {
+    form: PropTypes.object,
+  };
+
   static defaultProps = {
     hideErrorMessage: false,
     disabled: false,
     required: false,
-  };
-
-  static contextTypes = {
-    form: PropTypes.object,
   };
 
   constructor(props: Props, context: Context) {
@@ -176,7 +169,7 @@ export default class FormField<
     }
     return (
       <Tooltip title={disabledReason}>
-        <StyledInlineSvg src="icon-circle-question" size="18px" />
+        <IconQuestion size="md" />
       </Tooltip>
     );
   }

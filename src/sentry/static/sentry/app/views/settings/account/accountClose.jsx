@@ -18,6 +18,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import {IconWarning} from 'app/icons';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
@@ -127,7 +128,7 @@ class AccountClose extends AsyncView {
           {t('This will permanently remove all associated data for your user')}.
         </TextBlock>
 
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconWarning />}>
           <Important>
             {t('Closing your account is permanent and cannot be undone')}!
           </Important>

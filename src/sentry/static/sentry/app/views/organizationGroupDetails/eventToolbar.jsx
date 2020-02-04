@@ -12,6 +12,7 @@ import FileSize from 'app/components/fileSize';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
+import {IconNext, IconPrevious} from 'app/icons';
 
 const formatDateDelta = (reference, observed) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -96,11 +97,11 @@ const GroupEventToolbar = createReactClass({
           className="btn btn-default"
           title={t('Oldest')}
         >
-          <span className="icon-skip-back" />
+          <IconPrevious size="xs" />
         </Link>
       ) : (
         <a key="oldest" className="btn btn-default disabled">
-          <span className="icon-skip-back" />
+          <IconPrevious size="xs" />
         </a>
       ),
       evt.previousEventID ? (
@@ -139,11 +140,11 @@ const GroupEventToolbar = createReactClass({
           className="btn btn-default"
           title={t('Newest')}
         >
-          <span className="icon-skip-forward" />
+          <IconNext size="xs" />
         </Link>
       ) : (
         <a key="latest" className="btn btn-default disabled">
-          <span className="icon-skip-forward" />
+          <IconNext size="xs" />
         </a>
       ),
     ];
