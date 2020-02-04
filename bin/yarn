@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# NOTE: this needs to be synced with the node version in:
+#   - .nvmrc (mainly, the dockerfile and travis's nvm use this)
+#   - package.json (for volta)
+node_version="10.16.3"
+
+if ! command -v node >/dev/null; then
+    cat <<EOF
+You don't seem to have node installed. We want version ${node_version}.
+It's recommended to use https://github.com/volta-cli/volta.
+EOF
+    exit 1
+fi
+
+if [[ "$(/usr/bin/env node -v)" != "v${node_version}" ]]; then
+    cat <<EOF
+Your node version doesn't match ${node_version}.
+It's recommended to use https://github.com/volta-cli/volta.
+EOF
+    exit 1
+fi
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd -P)"
+exec "${HERE}/yarn-vendored" "$@"

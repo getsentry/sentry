@@ -61,10 +61,7 @@ setup-git:
 	pre-commit install --install-hooks
 	@echo ""
 
-node-version-check:
-	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/creationix/nvm'; exit 1)
-
-install-yarn-pkgs: node-version-check
+install-yarn-pkgs:
 	@echo "--> Installing Yarn packages (for development)"
 	@command -v $(YARN) 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
@@ -79,7 +76,7 @@ install-sentry-dev:
 	@echo "--> Installing Sentry (for development)"
 	$(PIP) install -e ".[dev]"
 
-build-js-po: node-version-check
+build-js-po:
 	mkdir -p build
 	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
 
@@ -119,7 +116,7 @@ test-cli:
 	rm -r test_cli
 	@echo ""
 
-test-js: node-version-check
+test-js:
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
 	@echo "--> Running JavaScript tests"
@@ -153,7 +150,7 @@ test-symbolicator:
 	py.test tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
 	@echo ""
 
-test-acceptance: node-version-check
+test-acceptance:
 	sentry init
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
@@ -202,7 +199,7 @@ publish:
 	python setup.py sdist bdist_wheel upload
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
+.PHONY: develop build reset-db clean setup-git install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
 
 
 ############################
