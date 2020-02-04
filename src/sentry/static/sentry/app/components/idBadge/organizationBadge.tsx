@@ -8,15 +8,18 @@ import {Organization} from 'app/types';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import withOrganization from 'app/utils/withOrganization';
 
-type Props = {
+type DefaultProps = {
+  avatarSize: OrganizationAvatar['props']['size'];
+  // If true, will use default max-width, or specify one as a string
+  hideOverflow: boolean | string;
+  hideAvatar: boolean;
+};
+
+type Props = DefaultProps & {
   // A full organization is not used, but required to satisfy types with
   // withOrganization()
   organization: Organization;
   className?: string;
-  avatarSize?: OrganizationAvatar['props']['size'];
-  // If true, will use default max-width, or specify one as a string
-  hideOverflow?: boolean | string;
-  hideAvatar?: boolean;
 };
 
 class OrganizationBadge extends React.Component<Props> {
@@ -28,7 +31,7 @@ class OrganizationBadge extends React.Component<Props> {
     hideAvatar: PropTypes.bool,
   };
 
-  static defaultProps: Partial<Props> = {
+  static defaultProps: DefaultProps = {
     avatarSize: 24,
     hideAvatar: false,
     hideOverflow: true,

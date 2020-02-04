@@ -11,15 +11,18 @@ import space from 'app/styles/space';
 import EventView from './eventView';
 import {getDiscoverLandingUrl} from './utils';
 
-type Props = {
-  eventView: EventView;
+type DefaultProps = {
   event: Event | undefined;
+};
+
+type Props = DefaultProps & {
+  eventView: EventView;
   organization: Organization;
   location: Location;
 };
 
 class DiscoverBreadcrumb extends React.Component<Props> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     event: undefined,
   };
 

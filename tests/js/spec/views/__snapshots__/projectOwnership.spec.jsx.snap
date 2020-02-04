@@ -9,13 +9,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       noTitleStyles={false}
       title="Issue Owners"
     />
-    <PermissionAlert
-      access={
-        Array [
-          "project:write",
-        ]
-      }
-    />
+    <PermissionAlert />
     <Panel>
       <PanelHeader>
         Ownership Rules

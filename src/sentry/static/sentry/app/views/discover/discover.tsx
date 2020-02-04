@@ -47,7 +47,11 @@ import createResultManager from './resultManager';
 
 import {SavedQuery} from './types';
 
-type Props = {
+type DefaultProps = {
+  utc: boolean;
+};
+
+type Props = DefaultProps & {
   organization: Organization;
   location: any;
   params: any;
@@ -59,7 +63,6 @@ type Props = {
   view: string;
   toggleEditMode: () => void;
   isLoading: boolean;
-  utc: boolean;
 };
 
 type State = {
@@ -72,7 +75,7 @@ type State = {
 };
 
 export default class Discover extends React.Component<Props, State> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     utc: true,
   };
 

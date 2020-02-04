@@ -16,14 +16,7 @@ type Props = {
   onChange: (id: string, e: React.MouseEvent) => void;
 };
 
-const RadioGroup: React.FC<Props> = ({
-  value,
-  disabled,
-  choices,
-  label,
-  onChange,
-  ...props
-}) => {
+const RadioGroup = ({value, disabled, choices, label, onChange, ...props}: Props) => {
   return (
     <div {...props} role="radiogroup" aria-labelledby={label}>
       {(choices || []).map(([id, name, description], index) => {

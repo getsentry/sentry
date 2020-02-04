@@ -24,7 +24,7 @@ type Props = {
   name?: string;
   columnLabels: object;
   columnKeys: string[];
-} & Partial<DefaultProps> &
+} & DefaultProps &
   InputField['props'];
 
 export default class TableField extends React.Component<Props> {

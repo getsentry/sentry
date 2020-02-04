@@ -11,6 +11,10 @@ import {FieldObject, JsonFormObject} from './type';
 import FieldFromConfig from './fieldFromConfig';
 import FormPanel from './formPanel';
 
+type DefaultProps = {
+  additionalFieldProps: {[key: string]: any};
+};
+
 type Props = {
   /**
    * Fields that are grouped by "section"
@@ -23,7 +27,11 @@ type Props = {
    */
   fields?: FieldObject[];
   location?: Location;
-} & Omit<React.ComponentProps<typeof FormPanel>, 'highlighted' | 'fields'>;
+} & DefaultProps &
+  Omit<
+    React.ComponentProps<typeof FormPanel>,
+    'highlighted' | 'fields' | 'additionalFieldProps'
+  >;
 
 type Context = {
   location?: Location;
@@ -73,12 +81,12 @@ class JsonForm extends React.Component<Props, State> {
     disabled: PropTypes.bool,
   };
 
-  static defaultProps = {
-    additionalFieldProps: {},
-  };
-
   static contextTypes = {
     location: PropTypes.object,
+  };
+
+  static defaultProps: DefaultProps = {
+    additionalFieldProps: {},
   };
 
   state: State = {

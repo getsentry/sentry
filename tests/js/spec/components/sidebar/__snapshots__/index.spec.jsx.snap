@@ -562,7 +562,6 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     <UserBadge
                       avatarSize={32}
                       className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
-                      hideEmail={false}
                       user={
                         Object {
                           "email": "foo@example.com",
@@ -3346,7 +3345,6 @@ exports[`Sidebar renders without org and router 1`] = `
                     <UserBadge
                       avatarSize={32}
                       className="css-1b4dtj5-UserBadgeNoOverflow e1fowdfw2"
-                      hideEmail={false}
                       user={
                         Object {
                           "email": "foo@example.com",

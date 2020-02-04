@@ -22,7 +22,7 @@ type Props = ReleasesV2RowData & {
   organizationId: string;
 };
 
-const ReleasesV2TableRow: React.FC<Props> = ({
+const ReleasesV2TableRow = ({
   release,
   crashFreeUsersPercent,
   graphData,

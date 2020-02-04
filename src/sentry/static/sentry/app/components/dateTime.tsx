@@ -4,12 +4,15 @@ import moment from 'moment-timezone';
 
 import ConfigStore from 'app/stores/configStore';
 
-type Props = {
+type DefaultProps = {
+  seconds: boolean;
+};
+
+type Props = DefaultProps & {
   date: moment.MomentInput;
   dateOnly?: boolean;
   timeOnly?: boolean;
   shortDate?: boolean;
-  seconds?: boolean;
   utc?: boolean;
 };
 
@@ -23,7 +26,7 @@ class DateTime extends React.Component<Props> {
     utc: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     seconds: true,
   };
 

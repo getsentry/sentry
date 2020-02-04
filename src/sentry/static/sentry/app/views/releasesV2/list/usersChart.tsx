@@ -5,16 +5,19 @@ import LazyLoad from 'react-lazyload';
 import {t} from 'app/locale';
 import BarChart from 'app/components/barChart';
 
-type Props = {
+type DefaultProps = {
+  height: number;
+};
+
+type Props = DefaultProps & {
   statsPeriod: '24h' | '14d';
   data: {
     [statsPeriod: string]: [number, number][];
   };
-  height?: number;
 };
 
 class UsersChart extends React.Component<Props> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     height: 24,
   };
 

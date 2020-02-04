@@ -21,34 +21,32 @@ type ChildrenRenderProps = {
   close: () => void;
 };
 
+const defaultProps = {
+  /**
+   * Button priority
+   */
+  priority: 'primary' as React.ComponentProps<typeof Button>['priority'],
+  /**
+   * Disables the confirm button
+   */
+  disableConfirmButton: false,
+  /**
+   * Text to show in the cancel button
+   */
+  cancelText: t('Cancel') as React.ReactNode,
+  /**
+   * Text to show in the confirmation button
+   */
+  confirmText: t('Confirm') as React.ReactNode,
+  // Stop event propgation when opening the confirm modal
+  stopPropagation: false,
+};
+
 type Props = {
   /**
    * Callback when user confirms
    */
   onConfirm: () => void;
-
-  /**
-   * Text to show in the confirmation button
-   */
-  confirmText: React.ReactNode;
-
-  /**
-   * Text to show in the cancel button
-   */
-  cancelText: React.ReactNode;
-
-  /**
-   * Button priority
-   */
-  priority: React.ComponentProps<typeof Button>['priority'];
-
-  /**
-   * Disables the confirm button
-   */
-  disableConfirmButton: boolean;
-
-  // Stop event propgation when opening the confirm modal
-  stopPropagation: boolean;
 
   /**
    * If true, will skip the confirmation modal and call `onConfirm` callback
@@ -93,7 +91,7 @@ type Props = {
    * Header of modal
    */
   header?: React.ReactNode;
-};
+} & typeof defaultProps;
 
 type State = {
   /**
@@ -134,13 +132,7 @@ class Confirm extends React.PureComponent<Props, State> {
     stopPropagation: PropTypes.bool,
   };
 
-  static defaultProps = {
-    priority: 'primary',
-    disableConfirmButton: false,
-    cancelText: t('Cancel'),
-    confirmText: t('Confirm'),
-    stopPropagation: false,
-  };
+  static defaultProps = defaultProps;
 
   state: State = {
     isModalOpen: false,

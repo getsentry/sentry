@@ -10,10 +10,13 @@ import {closeModal, ModalRenderProps, ModalOptions} from 'app/actionCreators/mod
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
 
-type Props = {
-  children?: (renderProps: ModalRenderProps) => React.ReactNode;
+type DefaultProps = {
   options: ModalOptions;
   visible: boolean;
+};
+
+type Props = DefaultProps & {
+  children?: (renderProps: ModalRenderProps) => React.ReactNode;
   onClose?: () => void;
 };
 
@@ -43,7 +46,7 @@ class GlobalModal extends React.Component<Props> {
     onClose: PropTypes.func,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     visible: false,
     options: {},
   };

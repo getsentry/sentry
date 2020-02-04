@@ -4,11 +4,7 @@ import React from 'react';
 import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
 import {NavigationSection, NavigationProps} from 'app/views/settings/types';
 
-type Props = NavigationProps & {
-  /**
-   * The configuration for this navigation panel
-   */
-  navigationObjects: NavigationSection[];
+type DefaultProps = {
   /**
    * Additional navigation configuration driven by hooks
    */
@@ -19,8 +15,16 @@ type Props = NavigationProps & {
   hooks: React.ReactElement[];
 };
 
+type Props = DefaultProps &
+  NavigationProps & {
+    /**
+     * The configuration for this navigation panel
+     */
+    navigationObjects: NavigationSection[];
+  };
+
 class SettingsNavigation extends React.Component<Props> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     hooks: [],
     hookConfigs: [],
   };

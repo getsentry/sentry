@@ -70,7 +70,7 @@ type Props = {
   height?: string;
 };
 
-const PlatformIcon: React.FC<Props> = ({platform, size, width, height, ...props}) => {
+const PlatformIcon = ({platform, size, width, height, ...props}: Props) => {
   const icon = getIcon(platform);
 
   return (

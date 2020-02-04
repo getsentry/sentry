@@ -13,7 +13,7 @@ type Props = {
   isSmall?: boolean;
 };
 
-const Status: React.FC<Props> = ({className, incident, isSmall}: Props) => {
+const Status = ({className, incident, isSmall}: Props) => {
   const isIncidentOpen = incident.status !== IncidentStatus.CLOSED;
 
   // TODO(incidents): Make this work

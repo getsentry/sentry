@@ -9,9 +9,12 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {Integration} from 'app/types';
 
-type Props = {
+type DefaultProps = {
+  compact: boolean;
+};
+
+type Props = DefaultProps & {
   integration: Integration;
-  compact?: boolean;
 };
 export default class IntegrationItem extends React.Component<Props> {
   static propTypes = {
@@ -19,7 +22,7 @@ export default class IntegrationItem extends React.Component<Props> {
     compact: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     compact: false,
   };
 

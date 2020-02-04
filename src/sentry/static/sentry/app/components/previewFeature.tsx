@@ -8,7 +8,7 @@ type Props = {
   type?: AlertProps['type'];
 };
 
-const PreviewFeature: React.FC<Props> = ({type = 'info'}) => {
+const PreviewFeature = ({type = 'info'}: Props) => {
   return (
     <Alert type={type} icon="icon-labs">
       {t(

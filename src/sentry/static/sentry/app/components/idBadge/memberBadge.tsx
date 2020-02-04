@@ -9,11 +9,6 @@ import space from 'app/styles/space';
 import SentryTypes from 'app/sentryTypes';
 import omit from 'lodash/omit';
 
-const defaultProps = {
-  useLink: true,
-  hideEmail: false,
-};
-
 type Props = {
   avatarSize: UserAvatar['props']['size'];
   member: Member;
@@ -21,7 +16,9 @@ type Props = {
   displayName?: string;
   displayEmail?: string;
   orgId?: string;
-} & Partial<typeof defaultProps>;
+  useLink?: boolean;
+  hideEmail?: boolean;
+};
 
 function getUser(member: Member): AvatarUser {
   if (member.user) {
@@ -44,8 +41,8 @@ const MemberBadge = ({
   member,
   orgId,
   avatarSize,
-  useLink,
-  hideEmail,
+  useLink = true,
+  hideEmail = false,
 }: Props) => {
   const user = getUser(member);
   const title =
@@ -87,8 +84,6 @@ MemberBadge.propTypes = {
   useLink: PropTypes.bool,
   hideEmail: PropTypes.bool,
 };
-
-MemberBadge.defaultProps = defaultProps;
 
 const StyledUserBadge = styled('div')`
   display: flex;

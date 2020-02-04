@@ -19,7 +19,11 @@ import EventView from '../eventView';
 import {getDiscoverLandingUrl} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
-type Props = {
+type DefaultProps = {
+  disabled: boolean;
+};
+
+type Props = DefaultProps & {
   api: Client;
 
   /**
@@ -34,7 +38,6 @@ type Props = {
   eventView: EventView;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
-  disabled?: boolean;
 };
 
 type State = {
@@ -100,7 +103,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     }
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     disabled: false,
   };
 

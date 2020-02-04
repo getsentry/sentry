@@ -15,13 +15,13 @@ type Props = {
   className?: string;
 };
 
-const EventMessage: React.FC<Props> = ({
+const EventMessage = ({
   className,
   level,
   levelIndicatorSize,
   message,
   annotations,
-}) => {
+}: Props) => {
   return (
     <div className={className}>
       {level && (

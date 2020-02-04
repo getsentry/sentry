@@ -12,19 +12,17 @@ import {Context} from 'app/components/forms/form';
 
 type Resource = typeof EVENT_CHOICES[number];
 
-type Props = {
-  permissions: Permissions;
-  events: WebhookEvent[];
-  onChange: (events: WebhookEvent[]) => void;
+type DefaultProps = {
   webhookDisabled: boolean;
 };
 
-export default class Subscriptions extends React.Component<Props> {
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
-    form: PropTypes.object,
-  };
+type Props = DefaultProps & {
+  permissions: Permissions;
+  events: WebhookEvent[];
+  onChange: (events: WebhookEvent[]) => void;
+};
 
+export default class Subscriptions extends React.Component<Props> {
   static propTypes = {
     permissions: PropTypes.object.isRequired,
     events: PropTypes.array.isRequired,
@@ -32,7 +30,12 @@ export default class Subscriptions extends React.Component<Props> {
     webhookDisabled: PropTypes.bool.isRequired,
   };
 
-  static defaultProps = {
+  static contextTypes = {
+    router: PropTypes.object.isRequired,
+    form: PropTypes.object,
+  };
+
+  static defaultProps: DefaultProps = {
     webhookDisabled: false,
   };
 

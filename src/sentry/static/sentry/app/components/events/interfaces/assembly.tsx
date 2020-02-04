@@ -16,13 +16,7 @@ interface Props {
   filePath: string;
 }
 
-const Assembly: React.FC<Props> = ({
-  name,
-  version,
-  culture,
-  publicKeyToken,
-  filePath,
-}) => {
+const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => {
   return (
     <AssemblyWrapper>
       <Icon src="icon-return-key" />

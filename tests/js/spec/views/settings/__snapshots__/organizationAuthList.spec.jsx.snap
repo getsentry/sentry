@@ -8,13 +8,7 @@ exports[`OrganizationAuthList renders 1`] = `
     noTitleStyles={false}
     title="Authentication"
   />
-  <PermissionAlert
-    access={
-      Array [
-        "org:write",
-      ]
-    }
-  />
+  <PermissionAlert />
   <Panel>
     <PanelHeader>
       Choose a provider
@@ -102,13 +96,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
     noTitleStyles={false}
     title="Authentication"
   />
-  <PermissionAlert
-    access={
-      Array [
-        "org:write",
-      ]
-    }
-  />
+  <PermissionAlert />
   <Panel>
     <PanelHeader>
       Choose a provider

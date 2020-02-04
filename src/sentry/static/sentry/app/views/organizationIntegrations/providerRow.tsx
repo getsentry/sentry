@@ -19,7 +19,11 @@ import space from 'app/styles/space';
 import {growDown, highlight} from 'app/styles/animations';
 import {IntegrationProvider, Integration} from 'app/types';
 
-type Props = {
+type DefaultProps = {
+  enabledPlugins: string[];
+};
+
+type Props = DefaultProps & {
   provider: IntegrationProvider;
   orgId: string;
   onInstall: (integration: Integration) => void;
@@ -27,16 +31,11 @@ type Props = {
   onDisable: (integration: Integration) => void;
   onReinstall: (integration: Integration) => void;
   onCloseModal?: () => void;
-  enabledPlugins: string[];
   newlyInstalledIntegrationId: string;
   integrations: Integration[];
 };
 
 export default class ProviderRow extends React.Component<Props> {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   static propTypes = {
     provider: PropTypes.object.isRequired,
     integrations: PropTypes.array.isRequired,
@@ -50,7 +49,11 @@ export default class ProviderRow extends React.Component<Props> {
     onCloseModal: PropTypes.func,
   };
 
-  static defaultProps = {
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+  };
+
+  static defaultProps: DefaultProps = {
     enabledPlugins: [],
   };
 

@@ -1,8 +1,12 @@
 import React from 'react';
 import classNames from 'classnames';
 
-class Radio extends React.Component<React.HTMLProps<HTMLInputElement>> {
-  static defaultProps = {
+type DefaultProps = {
+  checked: boolean;
+};
+
+class Radio extends React.Component<React.HTMLProps<HTMLInputElement> & DefaultProps> {
+  static defaultProps: DefaultProps = {
     checked: false,
   };
 
