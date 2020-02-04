@@ -9,6 +9,8 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconWarning} from 'app/icons';
+import theme from 'app/utils/theme';
 
 import {
   GridColumn,
@@ -30,7 +32,6 @@ import {
   GridBody,
   GridBodyCell,
   GridBodyCellStatus,
-  GridStatusErrorAlert,
   GridResizer,
 } from './styles';
 import GridHeadCell from './gridHeadCell';
@@ -492,14 +493,10 @@ class GridEditable<
   };
 
   renderError() {
-    const {error} = this.props;
-
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <GridStatusErrorAlert type="error" icon="icon-circle-exclamation">
-            {error}
-          </GridStatusErrorAlert>
+          <IconWarning color={theme.gray2} size="lg" />
         </GridBodyCellStatus>
       </GridRow>
     );

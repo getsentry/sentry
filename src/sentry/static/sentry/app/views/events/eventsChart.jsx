@@ -13,6 +13,8 @@ import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import {IconWarning} from 'app/icons';
+import theme from 'app/utils/theme';
 
 import EventsRequest from './utils/eventsRequest';
 import YAxisSelector from './yAxisSelector';
@@ -166,10 +168,17 @@ class EventsChart extends React.Component {
             includePrevious={includePrevious}
             yAxis={yAxis}
           >
-            {({loading, reloading, timeseriesData, previousTimeseriesData}) => {
+            {({loading, reloading, errored, timeseriesData, previousTimeseriesData}) => {
               return (
                 <ReleaseSeries utc={utc} api={api} projects={projects}>
                   {({releaseSeries}) => {
+                    if (errored) {
+                      return (
+                        <ErrorPanel>
+                          <IconWarning color={theme.gray2} size="lg" />
+                        </ErrorPanel>
+                      );
+                    }
                     if (loading && !reloading) {
                       return <LoadingPanel data-test-id="events-request-loading" />;
                     }
@@ -238,4 +247,18 @@ const TransparentLoadingMask = styled(LoadingMask)`
   ${p => !p.visible && 'display: none;'};
   opacity: 0.4;
   z-index: 1;
+`;
+
+const ErrorPanel = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  flex: 1;
+  flex-shrink: 0;
+  overflow: hidden;
+  height: 200px;
+  position: relative;
+  border-color: transparent;
+  margin-bottom: 0;
 `;

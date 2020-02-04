@@ -21,6 +21,7 @@ type TableProps = {
   eventView: EventView;
   organization: Organization;
   tags: {[key: string]: Tag};
+  setError: (string) => void;
   title: string;
 };
 
@@ -87,7 +88,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location} = this.props;
+    const {eventView, organization, location, setError} = this.props;
     const url = `/organizations/${organization.slug}/eventsv2/`;
 
     const tableFetchID = Symbol('tableFetchID');
@@ -126,6 +127,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
           pageLinks: null,
           tableData: null,
         });
+        setError(err.responseJSON.detail);
       });
   };
 

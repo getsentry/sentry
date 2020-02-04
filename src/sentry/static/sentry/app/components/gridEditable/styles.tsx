@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
 import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
@@ -315,10 +314,6 @@ export const GridBodyCellStatus = props => (
     <GridStatusFloat>{props.children}</GridStatusFloat>
   </GridStatusWrapper>
 );
-export const GridStatusErrorAlert = styled(Alert)`
-  width: 100%;
-  margin: ${space(2)};
-`;
 
 /**
  * We have a fat GridResizer and we use the ::after pseudo-element to draw
