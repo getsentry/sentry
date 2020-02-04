@@ -275,7 +275,10 @@ class ContextPickerModal extends React.Component<Props> {
   }
 }
 
-type ContainerProps = {};
+type ContainerProps = Omit<
+  Props,
+  'projects' | 'loading' | 'organizations' | 'organization' | 'onSelectOrganization'
+>;
 
 type ContainerState = {
   organizations?: Organization[];
