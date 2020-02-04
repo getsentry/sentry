@@ -88,6 +88,8 @@ Version.propTypes = {
   preserveGlobalSelection: PropTypes.bool,
   tooltipRawVersion: PropTypes.bool,
   className: PropTypes.string,
+  projectId: PropTypes.string,
+  truncate: PropTypes.bool,
 };
 
 export default Version;
