@@ -35,7 +35,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         ),
         FeatureDescription(
             """
-            Link Sentry issues to existing Asana tickets
+            Link Sentry issues to existing Asana tickets.
             """,
             IntegrationFeatures.ISSUE_BASIC,
         ),
