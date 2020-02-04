@@ -2,6 +2,8 @@ import {uniqueId} from 'app/utils/guid';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Organization} from 'app/types';
 import {Hooks} from 'app/types/hooks';
+import HookStore from 'app/stores/hookStore';
+import React from 'react';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION';
 const USE_INTEGRATION_DIRECTORY = 'USE_INTEGRATION_DIRECTORY';
@@ -132,4 +134,32 @@ export const trackIntegrationEvent = (
     console.log('trackIntegrationEvent', fullParams);
   }
   return trackAnalyticsEvent(fullParams);
+};
+
+/**
+ * In sentry.io the features list supports rendering plan details. If the hook
+ * is not registered for rendering the features list like this simply show the
+ * features as a normal list.
+ */
+const defaultFeatureGateComponents = {
+  IntegrationFeatures: p =>
+    p.children({
+      disabled: false,
+      disabledReason: null,
+      ungatedFeatures: p.features,
+      gatedFeatureGroups: [],
+    }),
+  FeatureList: p => (
+    <ul>
+      {p.features.map((f, i) => (
+        <li key={i}>{f.description}</li>
+      ))}
+    </ul>
+  ),
+} as ReturnType<Hooks['integrations:feature-gates']>;
+
+export const getIntegrationFeatureGate = () => {
+  const defaultHook = () => defaultFeatureGateComponents;
+  const featureHook = HookStore.get('integrations:feature-gates')[0] || defaultHook;
+  return featureHook();
 };

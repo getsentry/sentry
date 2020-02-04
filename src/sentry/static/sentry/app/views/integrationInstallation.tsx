@@ -5,13 +5,15 @@ import styled from '@emotion/styled';
 import {Organization, IntegrationProvider, Integration} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {
+  trackIntegrationEvent,
+  getIntegrationFeatureGate,
+} from 'app/utils/integrationUtil';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Field from 'app/views/settings/components/forms/field';
-import HookStore from 'app/stores/hookStore';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
 
@@ -134,10 +136,7 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
       org.slug,
     ]);
 
-    const featureListHooks = HookStore.get('integrations:feature-gates');
-    const FeatureList = featureListHooks.length
-      ? featureListHooks[0]().FeatureList
-      : null;
+    const {FeatureList} = getIntegrationFeatureGate();
 
     return (
       <NarrowLayout>

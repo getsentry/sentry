@@ -3,14 +3,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {
+  trackIntegrationEvent,
+  getIntegrationFeatureGate,
+} from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
-import HookStore from 'app/stores/hookStore';
 import InlineSvg from 'app/components/inlineSvg';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
@@ -20,33 +22,10 @@ import marked, {singleLineRenderer} from 'app/utils/marked';
 import space from 'app/styles/space';
 import {IntegrationDetailsModalOptions} from 'app/actionCreators/modal';
 import {Integration} from 'app/types';
-import {Hooks} from 'app/types/hooks';
 
 type Props = {
   closeModal: () => void;
 } & IntegrationDetailsModalOptions;
-
-/**
- * In sentry.io the features list supports rendering plan details. If the hook
- * is not registered for rendering the features list like this simply show the
- * features as a normal list.
- */
-const defaultFeatureGateComponents = {
-  IntegrationFeatures: p =>
-    p.children({
-      disabled: false,
-      disabledReason: null,
-      ungatedFeatures: p.features,
-      gatedFeatureGroups: [],
-    }),
-  FeatureList: p => (
-    <ul>
-      {p.features.map((f, i) => (
-        <li key={i}>{f.description}</li>
-      ))}
-    </ul>
-  ),
-} as ReturnType<Hooks['integrations:feature-gates']>;
 
 class IntegrationDetailsModal extends React.Component<Props> {
   static propTypes = {
@@ -151,10 +130,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
       ),
     }));
 
-    const featureListHooks = HookStore.get('integrations:feature-gates');
-    featureListHooks.push(() => defaultFeatureGateComponents);
-
-    const {FeatureList, IntegrationFeatures} = featureListHooks[0]();
+    const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
     const featureProps = {organization, features};
 
     return (
