@@ -16,7 +16,6 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 from hashlib import sha1
-from loremipsum import Generator
 from uuid import uuid4
 
 from sentry.event_manager import EventManager
@@ -71,8 +70,7 @@ from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import json
-
-loremipsum = Generator()
+import sentry.utils.loremipsum as loremipsum
 
 
 def get_fixture_path(name):

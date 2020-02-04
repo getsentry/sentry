@@ -13,7 +13,6 @@ from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
-from loremipsum import Generator
 from random import Random
 
 from sentry import eventstore
@@ -41,14 +40,13 @@ from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import load_data
+import sentry.utils.loremipsum as loremipsum
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
 from six.moves import xrange
 
 logger = logging.getLogger(__name__)
-
-loremipsum = Generator()
 
 
 def get_random(request):
