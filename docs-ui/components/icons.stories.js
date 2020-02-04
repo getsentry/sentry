@@ -3,57 +3,41 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
-import InlineSvg from 'app/components/inlineSvg';
+import * as newIconset from 'app/icons';
 
 storiesOf('Style|Icons', module).add(
   'SVG',
-  withInfo('All SVG icons, to be used with `InlineSvg`')(() => {
-    const context = require.context('app/icons', true, /\.svg/);
-    const icons = context.keys().map(key => key.replace('./', '').replace('.svg', ''));
-
+  withInfo('Replace `InlineSvg` with the following Icon Components')(() => {
     return (
-      <Swatches>
-        {icons.map(icon => (
-          <Swatch key={icon}>
-            <IconWrapper>
-              <InlineSvg height={20} width={20} src={icon} />
-            </IconWrapper>
-            <Text>{icon.replace('icon-', '')}</Text>
-          </Swatch>
-        ))}
-      </Swatches>
+      <div>
+        <h4>New Icons</h4>
+        <Swatches>
+          {Object.entries(newIconset).map(([key, Icon]) => (
+            <Swatch key={key}>
+              <Icon />
+              <LabelWrapper>{key}</LabelWrapper>
+            </Swatch>
+          ))}
+        </Swatches>
+      </div>
     );
   })
 );
 
 const Swatches = styled('div')`
   display: grid;
-  grid-template-columns: repeat(auto-fill, 80px);
-  grid-gap: 16px;
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
+  grid-template-columns: repeat(auto-fill, 160px);
+  grid-gap: 8px;
 `;
 
 const Swatch = styled('div')`
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background-color: white;
-  border: 1px solid ${p => p.theme.borderLight};
-  color: ${p => p.theme.gray5};
-  height: 80px;
-  text-align: center;
-  word-break: break-all;
-  line-height: 1.4em;
+  overflow: hidden;
+  min-height: 32px;
 `;
 
-const Text = styled('div')`
-  font-size: 10px;
-  white-space: nowrap;
+const LabelWrapper = styled('div')`
+  font-size: 12px;
+  margin-left: 16px;
 `;

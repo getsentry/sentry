@@ -189,6 +189,21 @@ const theme = {
 
   ...colors,
 
+  iconSizes: {
+    xs: '12px',
+    sm: '16px',
+    md: '20px',
+    lg: '24px',
+    xl: '32px',
+  },
+
+  iconDirections: {
+    up: '0',
+    right: '90',
+    down: '180',
+    left: '270',
+  },
+
   // Try to keep these ordered plz
   zIndex: {
     traceView: {
