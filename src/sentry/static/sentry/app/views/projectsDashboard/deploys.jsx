@@ -5,10 +5,11 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import Link from 'app/components/links/link';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import getDynamicText from 'app/utils/getDynamicText';
+import Version from 'app/components/versionV2';
 
 const DEPLOY_COUNT = 2;
 
@@ -63,13 +64,15 @@ class Deploy extends React.Component {
     return (
       <DeployRow justifyContent="space-between">
         <Environment>{deploy.environment}</Environment>
-        <Version>
-          <StyledLink
-            to={`/organizations/${organization.slug}/releases/${deploy.version}/?project=${project.id}`}
-          >
-            {deploy.version}
-          </StyledLink>
-        </Version>
+
+        <StyledTextOverflow>
+          <StyledVersion
+            version={deploy.version}
+            orgId={organization.slug}
+            projectId={project.id}
+          />
+        </StyledTextOverflow>
+
         <Flex width={90} justifyContent="flex-end">
           <DeployTimeWrapper>
             {getDynamicText({
@@ -100,16 +103,14 @@ const Environment = styled(TextOverflow)`
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-const Version = styled(TextOverflow)`
+const StyledTextOverflow = styled(TextOverflow)`
   display: flex;
   flex: 1;
   margin-right: 8px;
 `;
 
-const StyledLink = styled(Link)`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
+const StyledVersion = styled(Version)`
+  ${overflowEllipsis}
 `;
 
 const DeployTimeWrapper = styled('div')`

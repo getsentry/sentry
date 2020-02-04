@@ -15,6 +15,10 @@ type Props = {
    */
   preserveGlobalSelection?: boolean;
   tooltipRawVersion?: boolean;
+  /**
+   * Will add project project ID to the linked url
+   */
+  projectId?: string;
   className?: string;
 };
 
@@ -24,6 +28,7 @@ const VersionV2 = ({
   anchor = true,
   preserveGlobalSelection,
   tooltipRawVersion,
+  projectId,
   className,
 }: Props) => {
   const parsedVersion = new Release(version);
@@ -33,9 +38,12 @@ const VersionV2 = ({
     if (anchor && orgId) {
       return (
         <LinkComponent
-          to={`/organizations/${orgId}/releases-v2/${encodeURIComponent(
-            parsedVersion.raw
-          )}/`}
+          to={{
+            pathname: `/organizations/${orgId}/releases/${encodeURIComponent(
+              parsedVersion.raw
+            )}/`,
+            query: {project: projectId},
+          }}
           className={className}
         >
           <span>{parsedVersion.describe()}</span>
