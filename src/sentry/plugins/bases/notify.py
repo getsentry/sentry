@@ -141,7 +141,7 @@ class NotificationPlugin(Plugin):
         if not self.is_configured(project=project):
             return False
 
-        if group.is_ignored():
+        if not group.is_unresolved():
             return False
 
         # If the plugin doesn't support digests or they are not enabled,
