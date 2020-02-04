@@ -3,7 +3,9 @@ import logging
 from json import loads
 
 import jsonschema
+import pytz
 from confluent_kafka import Consumer, KafkaException, TopicPartition
+from dateutil.parser import parse as parse_date
 from django.conf import settings
 
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
@@ -197,4 +199,5 @@ class QuerySubscriptionConsumer(object):
             metrics.incr("snuba_query_subscriber.message_payload_invalid")
             raise InvalidSchemaError("Message payload does not match schema")
 
+        payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
         return payload

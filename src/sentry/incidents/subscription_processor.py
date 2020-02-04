@@ -24,7 +24,7 @@ from sentry.incidents.models import (
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import metrics, redis
-from sentry.utils.dates import to_datetime
+from sentry.utils.dates import to_datetime, to_timestamp
 
 
 logger = logging.getLogger(__name__)
@@ -129,7 +129,7 @@ class SubscriptionProcessor(object):
 
         aggregation = QueryAggregations(self.alert_rule.aggregation)
         aggregation_name = query_aggregation_to_snuba[aggregation][2]
-        aggregation_value = subscription_update["values"][aggregation_name]
+        aggregation_value = subscription_update["values"]["data"][aggregation_name]
 
         for trigger in self.triggers:
             alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
@@ -172,7 +172,7 @@ class SubscriptionProcessor(object):
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
-                detected_at = to_datetime(self.last_update)
+                detected_at = self.last_update
                 self.active_incident = create_incident(
                     self.alert_rule.organization,
                     IncidentType.ALERT_TRIGGERED,
@@ -356,7 +356,7 @@ def get_alert_rule_stats(alert_rule, subscription, triggers):
     trigger_keys = build_trigger_stat_keys(alert_rule, subscription, triggers)
     results = get_redis_client().mget(alert_rule_keys + trigger_keys)
     results = tuple(0 if result is None else int(result) for result in results)
-    last_update = results[0]
+    last_update = to_datetime(results[0])
     trigger_results = results[1:]
     trigger_alert_counts = {}
     trigger_resolve_counts = {}
@@ -387,7 +387,7 @@ def update_alert_rule_stats(alert_rule, subscription, last_update, alert_counts,
             )
 
     last_update_key = build_alert_rule_stat_keys(alert_rule, subscription)[0]
-    pipeline.set(last_update_key, last_update, ex=REDIS_TTL)
+    pipeline.set(last_update_key, int(to_timestamp(last_update)), ex=REDIS_TTL)
     pipeline.execute()
 
 
