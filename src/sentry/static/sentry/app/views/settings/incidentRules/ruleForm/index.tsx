@@ -143,20 +143,32 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const otherErrors = errors.get(triggerIndex) || {};
     const isResolveChanged = changeObj?.hasOwnProperty('resolveThreshold');
-    if (!isValid) {
-      errors.set(triggerIndex, {
-        ...otherErrors,
-        [isResolveChanged ? 'resolveThreshold' : 'alertThreshold']: isResolveChanged
-          ? trigger.thresholdType === AlertRuleThresholdType.BELOW
-            ? t('Resolution threshold must be greater than alert')
-            : t('Resolution threshold must be less than alert')
-          : trigger.thresholdType === AlertRuleThresholdType.BELOW
-          ? t('Alert threshold must be less than resolution')
-          : t('Alert threshold must be greater than resolution'),
-      });
+
+    if (isValid) {
+      return true;
     }
 
-    return isValid;
+    // Not valid... let's figure out an error message
+    const isBelow = trigger.thresholdType === AlertRuleThresholdType.BELOW;
+    const thresholdKey = isResolveChanged ? 'resolveThreshold' : 'alertThreshold';
+    let errorMessage;
+
+    if (isResolveChanged) {
+      errorMessage = isBelow
+        ? t('Resolution threshold must be greater than alert')
+        : t('Resolution threshold must be less than alert');
+    } else {
+      errorMessage = isBelow
+        ? t('Alert threshold must be less than resolution')
+        : t('Alert threshold must be greater than resolution');
+    }
+
+    errors.set(triggerIndex, {
+      ...otherErrors,
+      [thresholdKey]: errorMessage,
+    });
+
+    return false;
   };
 
   validateFieldInTrigger({errors, triggerIndex, field, message, isValid}) {
