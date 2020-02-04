@@ -1383,6 +1383,28 @@ SENTRY_DEVSERVICES = {
         "ports": {"3021/tcp": 3021},
         "command": ["run"],
     },
+    "reverse_proxy": {
+        "image": "us.gcr.io/sentryio/reverse_proxy:latest",
+        "pull": False,
+        "ports": {"80/tcp": 80},
+        "environment": {
+            # for MacOS use 'host.docker.internal' to connect to localhost, for Win/Linux use localhost
+            "SENTRY_HOST": "host.docker.internal" if sys.platform == "darwin" else "localhost",
+            "RELAY_PORT": "3000",
+            "SENTRY_PORT": "8000",
+        },
+    },
+    # "relay": {
+    #     "image": "us.gcr.io/sentryio/relay:latest",
+    #     "pull": True,
+    #     "ports": {"3021/tcp": 3000},
+    #     "command": ["run"],
+    #     "volumes": {"config": {"bind": "/relay_config"}},
+    #     "file_overrides":[
+    #         {"volume":"config", "volume_path": "/relay_config/config.yml", "host_path":"../../relay_config/config.yml"},
+    #         {"volume":"config", "volume_path": "/relay_config/credential.json", "host_path":"../../relay_config/credentials.json"}
+    #     ]
+    # },
 }
 
 # Max file size for avatar photo uploads
