@@ -92,6 +92,9 @@ class IntegrationFeatures(Enum):
     COMMITS = "commits"
     CHAT_UNFURL = "chat-unfurl"
     ALERT_RULE = "alert-rule"
+    # features currently only existing on plugins:
+    DATA_FORWARDING = "data-forwarding"
+    SESSION_REPLAY = "session-replay"
 
 
 class IntegrationProvider(PipelineProvider):
