@@ -5,6 +5,7 @@ set -e
 export RELAY_PORT=${RELAY_PORT:-3000}
 export SENTRY_PORT=${SENTRY_PORT:-8000}
 export SENTRY_HOST=${SENTRY_HOST:-host.docker.internal}
+export RELAY_HOST=${RELAY_HOST:-sentry_relay.sentry}
 export ESC='$'
 
 # replace the env variables into nginx configuration files

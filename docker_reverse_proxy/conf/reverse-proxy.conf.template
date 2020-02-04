@@ -1,5 +1,5 @@
 upstream relay {
-    server sentry_relay.sentry:${RELAY_PORT};
+    server ${RELAY_HOST}:${RELAY_PORT};
 }
 
 upstream sentry {
@@ -12,23 +12,23 @@ server {
 
     location /api/store/ {
         proxy_set_header X-MY-LOCATION old_store;
-		proxy_pass http://relay;
-	}
+        proxy_pass http://relay;
+    }
     location ~ ^/api/\d+/store/${ESC} {
         proxy_set_header X-MY-LOCATION store;
-		proxy_pass http://relay;
+        proxy_pass http://relay;
     }
     location ~ ^/api/\d+/minidump/${ESC} {
-		proxy_pass http://relay;
+        proxy_pass http://relay;
     }
     location ~ ^/api/\d+/ureal/${ESC} {
-		proxy_pass http://relay;
+        proxy_pass http://relay;
     }
     location ~ ^/api/\d+/security/${ESC} {
-		proxy_pass http://relay;
+        proxy_pass http://relay;
     }
     location ~ ^/api/\d+/csp-report/${ESC} {
-		proxy_pass http://relay;
+        proxy_pass http://relay;
     }
 
     location / {
