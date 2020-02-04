@@ -5,10 +5,10 @@ from uuid import uuid4
 
 from django.conf import settings
 
-from sentry import http
 from sentry.utils import json
 from sentry.tasks.base import instrumented_task
 from sentry.models import Integration, Project, Rule
+from sentry.integrations.slack.utils import get_channel_id_with_timeout
 
 from sentry.utils.redis import redis_clusters
 from sentry.mediators import project_rules
@@ -97,52 +97,32 @@ def find_channel_id_for_rule(
         redis_rule_status.set_value("failed")
         return
 
-    token_payload = {"token": integration.metadata["access_token"]}
-    payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
+    (prefix, item_id, _timed_out) = get_channel_id_with_timeout(integration, channel_name, 3 * 60)
 
-    session = http.build_session()
-    for list_type, result_name, prefix in LIST_TYPES:
-        cursor = ""
-        while cursor is not None:
-            # XXX(meredith): change limit to 1000 instead of 1
-            items = session.get(
-                "https://slack.com/api/%s.list" % list_type,
-                params=dict(payload, **{"cursor": cursor, "limit": 1}),
-            )
-            items = items.json()
-            if not items.get("ok"):
-                redis_rule_status.set_value("failed")
-                return
+    if item_id:
+        for action in actions:
+            # need to make sure we are adding the right prefix
+            if action.get("channel") and action.get("channel").strip("#@") == channel_name:
+                action["channel"] = prefix + channel_name
+                break
 
-            cursor = items.get("response_metadata", {}).get("next_cursor", None)
-            if cursor == "":
-                cursor = None
+        kwargs = {
+            "name": name,
+            "environment": environment,
+            "project": project,
+            "action_match": action_match,
+            "conditions": conditions,
+            "actions": actions,
+            "frequency": frequency,
+        }
 
-            item_id = {c["name"]: c["id"] for c in items[result_name]}.get(channel_name)
-            if item_id:
-                for action in actions:
-                    # need to make sure we are adding the right prefix
-                    if action.get("channel") and action.get("channel").strip("#@") == channel_name:
-                        action["channel"] = prefix + channel_name
-                        break
+        if rule_id:
+            rule = Rule.objects.get(id=rule_id)
+            rule = project_rules.Updater.run(rule=rule, pending_save=False, **kwargs)
+        else:
+            rule = project_rules.Creator.run(pending_save=False, **kwargs)
 
-                kwargs = {
-                    "name": name,
-                    "environment": environment,
-                    "project": project,
-                    "action_match": action_match,
-                    "conditions": conditions,
-                    "actions": actions,
-                    "frequency": frequency,
-                }
-
-                if rule_id:
-                    rule = Rule.objects.get(id=rule_id)
-                    rule = project_rules.Updater.run(rule=rule, pending_save=False, **kwargs)
-                else:
-                    rule = project_rules.Creator.run(pending_save=False, **kwargs)
-
-                redis_rule_status.set_value("success", rule.id)
-                return
+        redis_rule_status.set_value("success", rule.id)
+        return
     # if we never find the channel name we failed :(
     redis_rule_status.set_value("failed")

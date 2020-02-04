@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import time
 
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
@@ -41,6 +42,7 @@ LEVEL_TO_COLOR = {
 MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
+SLACK_DEFAULT_TIMEOUT = 10
 
 
 def format_actor_option(actor):
@@ -336,6 +338,18 @@ def strip_channel_name(name):
 
 
 def get_channel_id(organization, integration_id, name):
+    name = strip_channel_name(name)
+    try:
+        integration = Integration.objects.get(
+            provider="slack", organizations=organization, id=integration_id
+        )
+    except Integration.DoesNotExist:
+        return None
+
+    return get_channel_id_with_timeout(integration, name, SLACK_DEFAULT_TIMEOUT)
+
+
+def get_channel_id_with_timeout(integration, name, timeout):
     """
     Fetches the internal slack id of a channel.
     :param organization: The organization that is using this integration
@@ -346,15 +360,6 @@ def get_channel_id(organization, integration_id, name):
         2. channel_id: string or `None`
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
-    import time
-
-    name = strip_channel_name(name)
-    try:
-        integration = Integration.objects.get(
-            provider="slack", organizations=organization, id=integration_id
-        )
-    except Integration.DoesNotExist:
-        return None
 
     token_payload = {"token": integration.metadata["access_token"]}
 
@@ -366,15 +371,11 @@ def get_channel_id(organization, integration_id, name):
     # This means some users are unable to create/update alert rules. To avoid this, we attempt
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set here - arbitrarily - to 10 seconds.
-    timeout = time.time() + 10
+    time_to_quit = time.time() + timeout
     session = http.build_session()
     for list_type, result_name, prefix in LIST_TYPES:
         cursor = ""
-        while cursor is not None:
-
-            if time.time() > timeout:
-                return (prefix, None, True)
-
+        while True:
             items = session.get(
                 "https://slack.com/api/%s.list" % list_type,
                 # Slack limits the response of `<list_type>.list` to 1000 channels
@@ -387,15 +388,16 @@ def get_channel_id(organization, integration_id, name):
                 )
                 return (prefix, None, False)
 
-            cursor = items.get("response_metadata", {}).get("next_cursor", None)
-            # Slack can return "" as the next cursor so must set to None or else we end
-            # up in a loop and getting rate limited
-            if cursor == "":
-                cursor = None
-
             item_id = {c["name"]: c["id"] for c in items[result_name]}.get(name)
             if item_id:
                 return (prefix, item_id, False)
+
+            cursor = items.get("response_metadata", {}).get("next_cursor", None)
+            if time.time() > time_to_quit:
+                return (prefix, None, True)
+
+            if not cursor:
+                break
 
     return (prefix, None, False)
 
