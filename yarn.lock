@@ -1451,6 +1451,11 @@
     lru_map "^0.3.3"
     tslib "^1.9.3"
 
+"@sentry/release-parser@^0.4.0":
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-0.4.0.tgz#9b8e868d8ecee8313dc32bdef1478cd06ea7b7fd"
+  integrity sha512-wnXqyFZrOlnsnI8qcY6T2wlEih5zWXwPMcmh6/F9iyyhG/NmcK8zJ67aOZrkT1X7MYN6kssUm8Gfa3DR7aT0Zg==
+
 "@sentry/types@5.11.0":
   version "5.11.0"
   resolved "https://registry.yarnpkg.com/@sentry/types/-/types-5.11.0.tgz#40f0f3174362928e033ddd9725d55e7c5cb7c5b6"

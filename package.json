@@ -23,6 +23,7 @@
     "@sentry/apm": "5.11.2",
     "@sentry/browser": "5.11.2",
     "@sentry/integrations": "5.11.1",
+    "@sentry/release-parser": "^0.4.0",
     "@types/classnames": "^2.2.0",
     "@types/clipboard": "^2.0.1",
     "@types/color": "^3.0.0",
