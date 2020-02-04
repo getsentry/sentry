@@ -99,14 +99,14 @@ export const Grid = styled('table')`
   display: grid;
 
   /* Overwritten by GridEditable.setGridTemplateColumns */
-  grid-template-columns: repeat(auto-fill, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(50px, auto));
 
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
 
-  overflow-x: scroll;
   z-index: ${Z_INDEX_GRID};
+  overflow-x: scroll;
 `;
 export const GridRow = styled('tr')`
   display: contents;
@@ -135,6 +135,7 @@ export const GridHeadCell = styled('th')`
   min-width: 0;
   height: ${GRID_HEAD_ROW_HEIGHT}px;
   border-right: 1px solid transparent;
+  border-left: 1px solid transparent;
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
 
