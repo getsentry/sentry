@@ -1,12 +1,12 @@
 import React from 'react';
 import get from 'lodash/get';
-import * as ReactRouter from 'react-router';
+import {InjectedRouter} from 'react-router/lib/Router';
 
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import NavigationActions from 'app/actions/navigationActions';
 
-export function navigateTo(to: string, router: ReactRouter.InjectedRouter) {
+export function navigateTo(to: string, router: InjectedRouter) {
   // Check for placeholder params
   const needOrg = to.indexOf(':orgId') > -1;
   const needProject = to.indexOf(':projectId') > -1;
