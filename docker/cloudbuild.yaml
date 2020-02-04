@@ -1,5 +1,5 @@
 steps:
-- name: 'gcr.io/kaniko-project/executor:latest'
+- name: 'gcr.io/kaniko-project/executor:0.16.0'
   args: [
     '--cache=true',
     '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
