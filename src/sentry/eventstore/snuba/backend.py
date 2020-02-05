@@ -129,13 +129,13 @@ class SnubaEventStorage(EventStorage):
             ]
             self.bind_nodes(event_list)
 
-            events = [event for event in event_list if len(event.data)]
+            nodestore_events = [event for event in event_list if len(event.data)]
 
-            if events:
-                event_ids = {event.event_id for event in events}
-                project_ids = {event.project_id for event in events}
-                start = min(event.datetime for event in events)
-                end = max(event.datetime for event in events) + timedelta(seconds=1)
+            if nodestore_events:
+                event_ids = {event.event_id for event in nodestore_events}
+                project_ids = {event.project_id for event in nodestore_events}
+                start = min(event.datetime for event in nodestore_events)
+                end = max(event.datetime for event in nodestore_events) + timedelta(seconds=1)
 
                 result = snuba.aliased_query(
                     selected_columns=cols,
@@ -144,7 +144,7 @@ class SnubaEventStorage(EventStorage):
                     conditions=filter.conditions,
                     filter_keys={"project_id": project_ids, "event_id": event_ids},
                     orderby=orderby,
-                    limit=len(events),
+                    limit=len(nodestore_events),
                     offset=DEFAULT_OFFSET,
                     referrer=referrer,
                     dataset=snuba.Dataset.Events,
@@ -157,7 +157,7 @@ class SnubaEventStorage(EventStorage):
                     for event in events:
                         node_data = next(
                             e
-                            for e in events
+                            for e in nodestore_events
                             if event.event_id == e.event_id and event.project_id == e.project_id
                         ).data.data
                         event.data.bind_data(node_data)
