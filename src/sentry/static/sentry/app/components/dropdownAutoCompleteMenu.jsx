@@ -607,4 +607,4 @@ const BubbleWithMinWidth = styled(DropdownBubble)`
 
 export default DropdownAutoCompleteMenu;
 
-export {AutoCompleteRoot};
+export {AutoCompleteRoot, AutoCompleteItem};
