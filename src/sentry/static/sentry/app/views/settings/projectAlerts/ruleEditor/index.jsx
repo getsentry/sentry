@@ -108,40 +108,42 @@ class RuleEditor extends React.Component {
     if (Date.now() > quitTime) {
       addErrorMessage(t('Looking for that channel took too long :('));
       this.setState({loading: false});
-    } else {
-      const {api, organization, project} = this.props;
-      const {uuid} = this.state;
-      const origRule = {...this.state.rule};
+      return;
+    }
 
-      const response = await api
-        .requestPromise(
-          `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
-        )
-        .catch(() => {
-          addErrorMessage(t('An error occurred'));
-          this.setState({loading: false});
-        });
+    const {api, organization, project} = this.props;
+    const {uuid} = this.state;
+    const origRule = {...this.state.rule};
+    let response;
 
-      const {status, rule, error} = response;
+    try {
+      response = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
+      );
+    } catch {
+      addErrorMessage(t('An error occurred'));
+      this.setState({loading: false});
+    }
 
-      if (status === 'pending') {
-        setTimeout(() => {
-          this.pollHandler(quitTime);
-        }, 1000);
-        return;
-      }
+    const {status, rule, error} = response;
 
-      if (status === 'failed') {
-        this.setState({
-          error: {actions: [error]} || {__all__: 'Unknown error'},
-          loading: false,
-        });
-        addErrorMessage(t('An error occurred'));
-      }
-      if (rule && status === 'success') {
-        const isNew = !origRule.id;
-        this.handleRuleSuccess(isNew, rule);
-      }
+    if (status === 'pending') {
+      setTimeout(() => {
+        this.pollHandler(quitTime);
+      }, 1000);
+      return;
+    }
+
+    if (status === 'failed') {
+      this.setState({
+        error: {actions: [error]},
+        loading: false,
+      });
+      addErrorMessage(t('An error occurred'));
+    }
+    if (rule && status === 'success') {
+      const isNew = !origRule.id;
+      this.handleRuleSuccess(isNew, rule);
     }
   };
 
