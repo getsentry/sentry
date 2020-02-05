@@ -10,6 +10,7 @@ from requests import HTTPError
 from sentry import http
 from sentry.plugins.bases import notify
 from sentry.utils import json
+from sentry_plugins.base import CorePluginMixin
 
 
 class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
@@ -34,7 +35,7 @@ class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
     )
 
 
-class OpsGeniePlugin(notify.NotificationPlugin):
+class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
     author = "Sentry Team"
     author_url = "https://github.com/getsentry"
     title = "OpsGenie"
