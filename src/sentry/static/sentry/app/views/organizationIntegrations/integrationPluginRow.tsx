@@ -40,7 +40,7 @@ export default class PluginRow extends React.Component<Props> {
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
               <StyledLink
-                to={`/settings/${slug}/plugins/${plugin.slug}?tab=configurations`}
+                to={`/settings/${slug}/plugins/${plugin.slug}/?tab=configurations`}
               >{`${plugin.projectList.length} Configurations`}</StyledLink>
             </ProviderDetails>
           </Container>

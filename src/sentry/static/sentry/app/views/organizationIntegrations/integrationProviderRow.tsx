@@ -46,7 +46,7 @@ export default class ProviderRow extends React.Component<Props> {
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
               <StyledLink
-                to={`/settings/${slug}/integrations/${provider.key}?tab=configurations`}
+                to={`/settings/${slug}/integrations/${provider.key}/?tab=configurations`}
               >{`${integrations.length} Configurations`}</StyledLink>
             </ProviderDetails>
           </div>
