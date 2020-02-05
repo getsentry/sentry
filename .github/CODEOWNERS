@@ -22,6 +22,8 @@
 /src/sentry/relay/                 @getsentry/owners-ingest
 /src/sentry/utils/data_filters.py  @getsentry/owners-ingest
 /src/sentry/web/api.py             @getsentry/owners-ingest
+/src/sentry/scripts/quotas/        @getsentry/owners-ingest
+/src/sentry/scripts/tsdb/          @getsentry/owners-ingest
 
 # Security
 /src/sentry/net/  @getsentry/security

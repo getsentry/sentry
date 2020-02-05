@@ -69,7 +69,7 @@ type Props = {
    * Id of the project (most likely from the URL)
    * on which the modal was opened
    */
-  comingFromProjectId: string;
+  comingFromProjectId?: string;
 };
 
 class ContextPickerModal extends React.Component<Props> {
@@ -236,6 +236,7 @@ class ContextPickerModal extends React.Component<Props> {
           <div>{t('Select an organization/project to continue')}</div>
           {needOrg && (
             <StyledSelectControl
+              deprecatedSelectControl
               ref={ref => {
                 this.orgSelect = ref;
                 if (shouldShowProjectSelector) {
@@ -254,10 +255,12 @@ class ContextPickerModal extends React.Component<Props> {
 
           {organization && needProject && projects && (
             <StyledSelectControl
+              deprecatedSelectControl
               ref={ref => {
                 this.projectSelect = ref;
                 this.focusProjectSelector();
-                this.focusProjectOption(comingFromProjectId, projects);
+                comingFromProjectId &&
+                  this.focusProjectOption(comingFromProjectId, projects);
               }}
               placeholder={t('Select a Project')}
               name="project"
@@ -273,7 +276,10 @@ class ContextPickerModal extends React.Component<Props> {
   }
 }
 
-type ContainerProps = {};
+type ContainerProps = Omit<
+  Props,
+  'projects' | 'loading' | 'organizations' | 'organization' | 'onSelectOrganization'
+>;
 
 type ContainerState = {
   organizations?: Organization[];

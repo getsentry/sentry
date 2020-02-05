@@ -7,10 +7,10 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import {
   Organization,
   Integration,
-  Plugin,
   SentryApp,
   IntegrationProvider,
   SentryAppInstallation,
+  PluginWithProjectList,
 } from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {RequestOptions} from 'app/api';
@@ -24,7 +24,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/integrationProviderRow';
-import SentryAppInstallationDetail from 'app/views/organizationIntegrations/sentryAppInstallationDetail';
+import PluginRow from 'app/views/organizationIntegrations/integrationPluginRow';
+import IntegrationDirectoryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow/integrationDirectoryApplicationRow';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
@@ -33,7 +34,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 
-type AppOrProvider = SentryApp | IntegrationProvider;
+type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -43,7 +44,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 type State = {
   integrations: Integration[];
   newlyInstalledIntegrationId: string;
-  plugins: Plugin[];
+  plugins: PluginWithProjectList[];
   appInstalls: SentryAppInstallation[];
   orgOwnedApps: SentryApp[];
   publishedApps: SentryApp[];
@@ -51,8 +52,14 @@ type State = {
   extraApp?: SentryApp;
 };
 
-function isSentryApp(integration: AppOrProvider): integration is SentryApp {
-  return (integration as SentryApp).uuid !== undefined;
+function isSentryApp(integration: AppOrProviderOrPlugin): integration is SentryApp {
+  return !!(integration as SentryApp).uuid;
+}
+
+function isPlugin(
+  integration: AppOrProviderOrPlugin
+): integration is PluginWithProjectList {
+  return integration.hasOwnProperty('shortName');
 }
 
 class OrganizationIntegrations extends AsyncComponent<
@@ -95,14 +102,13 @@ class OrganizationIntegrations extends AsyncComponent<
 
   getEndpoints(): ([string, string, any] | [string, string])[] {
     const {orgId} = this.props.params;
-    const query = {plugins: ['vsts', 'github', 'bitbucket']};
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
-      ['plugins', `/organizations/${orgId}/plugins/`, {query}],
       ['orgOwnedApps', `/organizations/${orgId}/sentry-apps/`],
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
+      ['plugins', `/organizations/${orgId}/plugins/configs/`],
     ];
     /**
      * optional app to load for super users
@@ -190,21 +196,12 @@ class OrganizationIntegrations extends AsyncComponent<
     );
   };
 
-  handleRemoveAppInstallation = (app: SentryApp): void => {
-    const appInstalls = this.state.appInstalls.filter(i => i.app.slug !== app.slug);
-    this.setState({appInstalls});
-  };
-
-  handleAppInstallation = (install: SentryAppInstallation): void => {
-    this.setState({appInstalls: [install, ...this.state.appInstalls]});
-  };
-
   getAppInstall = (app: SentryApp) => {
     return this.state.appInstalls.find(i => i.app.slug === app.slug);
   };
 
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
-  getInstallValue(integration: AppOrProvider) {
+  getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
     if (isSentryApp(integration)) {
       const install = this.getAppInstall(integration);
@@ -212,11 +209,13 @@ class OrganizationIntegrations extends AsyncComponent<
         return install.status === 'pending' ? 1 : 2;
       }
       return 0;
+    } else if (isPlugin(integration)) {
+      return integration.projectList.length > 0 ? 2 : 0;
     }
     return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
-  sortIntegrations(integrations: AppOrProvider[]) {
+  sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
     return integrations
       .sort((a, b) => a.name.localeCompare(b.name))
       .sort((a, b) => this.getInstallValue(b) - this.getInstallValue(a));
@@ -233,21 +232,40 @@ class OrganizationIntegrations extends AsyncComponent<
         key={`row-${provider.key}`}
         data-test-id="integration-row"
         provider={provider}
-        orgId={this.props.params.orgId}
         integrations={integrations}
-        onInstall={this.onInstall}
-        onRemove={this.onRemove}
-        onDisable={this.onDisable}
-        onReinstall={this.onInstall}
-        newlyInstalledIntegrationId={this.state.newlyInstalledIntegrationId}
       />
     );
+  };
+
+  renderPlugin = (plugin: PluginWithProjectList) => {
+    //find the integration installations for that provider
+    if (plugin.projectList.length) {
+      const legacyIds = [
+        'jira',
+        'bitbucket',
+        'github',
+        'slack',
+        'pagerduty',
+        'clubhouse',
+        'vsts',
+      ];
+      const isLegacy = legacyIds.includes(plugin.id);
+      return (
+        <PluginRow
+          key={`row-plugin-${plugin.id}`}
+          data-test-id="integration-row"
+          plugin={plugin}
+          isLegacy={isLegacy}
+          organization={this.props.organization}
+        />
+      );
+    }
+    return null;
   };
 
   //render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
-
     if (app.status === 'internal') {
       return (
         <SentryApplicationRow
@@ -261,31 +279,33 @@ class OrganizationIntegrations extends AsyncComponent<
         />
       );
     }
-
-    return (
-      <SentryAppInstallationDetail
-        key={`sentry-app-row-${app.slug}`}
-        data-test-id="integration-row"
-        api={this.api}
-        organization={organization}
-        install={this.getAppInstall(app)}
-        onAppUninstall={() => this.handleRemoveAppInstallation(app)}
-        onAppInstall={this.handleAppInstallation}
-        app={app}
-      />
-    );
+    if (app.status === 'published') {
+      return (
+        <IntegrationDirectoryApplicationRow
+          key={`sentry-app-row-${app.slug}`}
+          data-test-id="integration-row"
+          organization={organization}
+          install={this.getAppInstall(app)}
+          app={app}
+          isOnIntegrationPage
+        />
+      );
+    }
+    return null;
   };
 
-  renderIntegration = (integration: AppOrProvider) => {
+  renderIntegration = (integration: AppOrProviderOrPlugin) => {
     if (isSentryApp(integration)) {
       return this.renderSentryApp(integration);
+    } else if (isPlugin(integration)) {
+      return this.renderPlugin(integration);
     }
     return this.renderProvider(integration);
   };
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {reloading, orgOwnedApps, publishedApps, extraApp} = this.state;
+    const {reloading, orgOwnedApps, publishedApps, extraApp, plugins} = this.state;
     const published = publishedApps || [];
     // If we have an extra app in state from query parameter, add it as org owned app
     if (extraApp) {
@@ -306,8 +326,9 @@ class OrganizationIntegrations extends AsyncComponent<
      */
 
     const publicApps = published.concat(orgOwned.filter(a => a.status === 'published'));
+
     const publicIntegrations = this.sortIntegrations(
-      (publicApps as AppOrProvider[]).concat(this.providers)
+      (publicApps as AppOrProviderOrPlugin[]).concat(this.providers).concat(plugins)
     );
 
     const title = t('Integrations');

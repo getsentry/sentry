@@ -48,7 +48,7 @@ class ConfigValidator(object):
             try:
                 value = self.validate_field(name=key, value=value)
             except (forms.ValidationError, serializers.ValidationError, PluginError) as e:
-                errors[key] = e.message
+                errors[key] = six.text_type(e)
 
             if not errors.get(key):
                 cleaned[key] = value
@@ -165,3 +165,13 @@ class PluginConfigMixin(ProviderMixin):
 
     def setup(self, bindings):
         pass
+
+    @staticmethod
+    def feature_flag_name(f):
+        """
+        FeatureDescriptions are set using the IntegrationFeatures constants,
+        however we expose them here as mappings to organization feature flags, thus
+        we prefix them with `integrations`.
+        """
+        if f is not None:
+            return u"integrations-{}".format(f)

@@ -16,13 +16,13 @@ import {ReleasesV2RowData} from 'app/views/releasesV2/list/types';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import HealthStatus from 'app/views/releasesV2/list/healthStatus';
 import LatestDeployOrReleaseTime from 'app/views/releases/list/latestDeployOrReleaseTime';
-import Version from 'app/views/releasesV2/list/version';
+import Version from 'app/components/versionV2';
 
 type Props = ReleasesV2RowData & {
   organizationId: string;
 };
 
-const ReleasesV2TableRow: React.FC<Props> = ({
+const ReleasesV2TableRow = ({
   release,
   crashFreeUsersPercent,
   graphData,
@@ -44,6 +44,7 @@ const ReleasesV2TableRow: React.FC<Props> = ({
             orgId={organizationId}
             version={release.name}
             preserveGlobalSelection
+            tooltipRawVersion
           />
           <LatestDeployOrReleaseTime release={release} />
         </Column>

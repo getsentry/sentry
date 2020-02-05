@@ -66,8 +66,8 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         try:
             start, end = get_date_range_from_params(request.GET, optional=True)
-        except InvalidParams as exc:
-            return Response({"detail": exc.message}, status=400)
+        except InvalidParams as e:
+            return Response({"detail": six.text_type(e)}, status=400)
 
         try:
             return self._get_events_snuba(request, group, environments, query, tags, start, end)
@@ -94,14 +94,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         snuba_filter = get_filter(request.GET.get("query", None), params)
         snuba_filter.conditions.append(["event.type", "!=", "transaction"])
 
-        snuba_cols = None if full else eventstore.full_columns
-
-        data_fn = partial(
-            eventstore.get_events,
-            additional_columns=snuba_cols,
-            referrer="api.group-events",
-            filter=snuba_filter,
-        )
+        data_fn = partial(eventstore.get_events, referrer="api.group-events", filter=snuba_filter)
 
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(

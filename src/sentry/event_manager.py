@@ -282,6 +282,7 @@ class EventManager(object):
         is_renormalize=False,
         remove_other=None,
         project_config=None,
+        sent_at=None,
     ):
         self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
@@ -302,6 +303,7 @@ class EventManager(object):
         self._remove_other = remove_other
         self._normalized = False
         self.project_config = project_config
+        self.sent_at = sent_at
 
     def process_csp_report(self):
         """Only called from the CSP report endpoint."""
@@ -369,6 +371,7 @@ class EventManager(object):
             is_renormalize=self._is_renormalize,
             remove_other=self._remove_other,
             normalize_user_agent=True,
+            sent_at=self.sent_at.isoformat() if self.sent_at is not None else None,
             **DEFAULT_STORE_NORMALIZER_ARGS
         )
 
@@ -1102,6 +1105,8 @@ class EventManager(object):
             extra["level"] = data["level"]
         if group.culprit != data["culprit"]:
             extra["culprit"] = data["culprit"]
+        if group.first_seen > event.datetime:
+            extra["first_seen"] = event.datetime
 
         is_regression = self._handle_regression(group, event, release)
 

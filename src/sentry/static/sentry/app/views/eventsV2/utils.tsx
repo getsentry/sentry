@@ -15,18 +15,11 @@ import {Event, Organization, OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
+import {TagSegment} from 'app/components/tagDistributionMeter';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
 import {appendTagCondition} from 'app/utils/queryString';
-import {
-  COL_WIDTH_UNDEFINED,
-  COL_WIDTH_DEFAULT,
-  COL_WIDTH_BOOLEAN,
-  COL_WIDTH_DATETIME,
-  COL_WIDTH_NUMBER,
-  COL_WIDTH_STRING,
-  COL_WIDTH_STRING_LONG,
-} from 'app/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
 import {
   AGGREGATE_ALIASES,
@@ -68,7 +61,7 @@ export function explodeField(field: FieldType): Column {
   return {
     aggregation: results.aggregation,
     field: results.field,
-    width: field.width || COL_WIDTH_DEFAULT,
+    width: field.width || COL_WIDTH_UNDEFINED,
   };
 }
 
@@ -96,18 +89,9 @@ export function isAggregateField(field: string): boolean {
   );
 }
 
-export type TagTopValue = {
-  name: string;
-  url: {
-    pathname: string;
-    query: any;
-  };
-  value: string;
-};
-
 export type Tag = {
   key: string;
-  topValues: Array<TagTopValue>;
+  topValues: Array<TagSegment>;
 };
 
 /**
@@ -164,37 +148,6 @@ export type MetaType = {
   [key: string]: FieldTypes;
 };
 
-export function getDefaultWidth(key: Aggregation | Field): number {
-  if (AGGREGATIONS[key]) {
-    return COL_WIDTH_NUMBER;
-  }
-
-  // Some columns have specific lengths due to longer content.
-  switch (key) {
-    case 'title':
-      return COL_WIDTH_STRING_LONG + 50;
-    case 'url':
-    case 'transaction':
-      return COL_WIDTH_STRING_LONG;
-    default:
-      break;
-  }
-
-  switch (FIELDS[key]) {
-    case 'string':
-      return COL_WIDTH_STRING;
-    case 'boolean':
-      return COL_WIDTH_BOOLEAN;
-    case 'number':
-      return COL_WIDTH_NUMBER;
-    case 'duration':
-    case 'never': // never is usually a timestamp
-      return COL_WIDTH_DATETIME;
-    default:
-      return COL_WIDTH_DEFAULT;
-  }
-}
-
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -243,13 +196,13 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   aggregation: '',
   field: '',
   name: '',
-  width: COL_WIDTH_DEFAULT,
+  width: COL_WIDTH_UNDEFINED,
 
   type: 'never',
   isDragging: false,
   isSortable: false,
 
-  eventViewField: Object.freeze({field: '', width: COL_WIDTH_DEFAULT}),
+  eventViewField: Object.freeze({field: '', width: COL_WIDTH_UNDEFINED}),
 };
 
 export function decodeColumnOrder(
@@ -273,10 +226,7 @@ export function decodeColumnOrder(
     }
     column.key = col.aggregationField;
     column.type = column.aggregation ? 'number' : FIELDS[column.field];
-    column.width =
-      col.width && col.width !== COL_WIDTH_UNDEFINED
-        ? col.width
-        : getDefaultWidth(aggregationField[0]);
+    column.width = col.width;
 
     column.name = column.key;
     column.isSortable = AGGREGATIONS[column.aggregation]
@@ -384,13 +334,29 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
   link.remove();
 }
 
+// transform a given aggregated field to its un-aggregated form.
+// the given field can be transformed into another field, or undefined if it'll need to be dropped.
+type AggregateTransformer = (field: string) => string | undefined;
+
+// a map between a field alias to a transform function to convert the aggregated field alias into
+// its un-aggregated form
+const TRANSFORM_AGGREGATES: {[field: string]: AggregateTransformer} = {
+  p99: () => 'transaction.duration',
+  p95: () => 'transaction.duration',
+  p75: () => 'transaction.duration',
+  last_seen: () => 'timestamp',
+  latest_event: () => 'id',
+  apdex: () => undefined,
+  impact: () => undefined,
+};
+
 export function getExpandedResults(
   eventView: EventView,
   additionalConditions: {[key: string]: string},
   dataRow?: TableDataRow | Event
 ): EventView {
   let nextView = eventView.clone();
-  const fieldsToRemove: number[] = [];
+  const fieldsToUpdate: number[] = [];
 
   // Workaround around readonly typing
   const aggregateAliases: string[] = [...AGGREGATE_ALIASES];
@@ -398,9 +364,9 @@ export function getExpandedResults(
   nextView.fields.forEach((field: FieldType, index: number) => {
     const column = explodeField(field);
 
-    // Remove aggregates as the expanded results have no aggregates.
+    // Mark aggregated fields to be transformed into its un-aggregated form
     if (column.aggregation || aggregateAliases.includes(column.field)) {
-      fieldsToRemove.push(index);
+      fieldsToUpdate.push(index);
       return;
     }
 
@@ -423,10 +389,79 @@ export function getExpandedResults(
     }
   });
 
-  // Remove fields from view largest index to smallest to not
-  // disturbe lower indexes until the end.
-  fieldsToRemove.reverse().forEach((i: number) => {
-    nextView = nextView.withDeletedColumn(i, undefined);
+  const transformedFields = new Set();
+  const fieldsToDelete: number[] = [];
+
+  // make a best effort to transform aggregated columns with its non-aggregated form
+  fieldsToUpdate.forEach((indexToUpdate: number) => {
+    const currentField: FieldType = nextView.fields[indexToUpdate];
+    const exploded = explodeField(currentField);
+
+    // check if we can use an aggregated transform function
+
+    const fieldNameAlias = TRANSFORM_AGGREGATES[exploded.aggregation]
+      ? exploded.aggregation
+      : TRANSFORM_AGGREGATES[exploded.field]
+      ? exploded.field
+      : undefined;
+
+    const transform = fieldNameAlias && TRANSFORM_AGGREGATES[fieldNameAlias];
+
+    if (fieldNameAlias && transform) {
+      const nextFieldName = transform(fieldNameAlias);
+
+      if (!nextFieldName || transformedFields.has(nextFieldName)) {
+        // this field is either duplicated in another column, or nextFieldName is undefined.
+        // in either case, we remove this column
+        fieldsToDelete.push(indexToUpdate);
+        return;
+      }
+
+      const updatedColumn = {
+        aggregation: '',
+        field: nextFieldName,
+        width: exploded.width,
+      };
+
+      transformedFields.add(nextFieldName);
+      nextView = nextView.withUpdatedColumn(indexToUpdate, updatedColumn, undefined);
+
+      return;
+    }
+
+    // otherwise just use exploded.field as a column
+
+    if (!exploded.field) {
+      // edge case: transform count() into id
+
+      if (exploded.aggregation !== 'count') {
+        fieldsToDelete.push(indexToUpdate);
+        return;
+      }
+
+      exploded.field = 'id';
+    }
+
+    if (transformedFields.has(exploded.field)) {
+      // this field is duplicated in another column. we remove this column
+      fieldsToDelete.push(indexToUpdate);
+      return;
+    }
+
+    transformedFields.add(exploded.field);
+
+    const updatedColumn = {
+      aggregation: '',
+      field: exploded.field,
+      width: exploded.width,
+    };
+
+    nextView = nextView.withUpdatedColumn(indexToUpdate, updatedColumn, undefined);
+  });
+
+  // delete any columns marked for deletion
+  fieldsToDelete.reverse().forEach((index: number) => {
+    nextView = nextView.withDeletedColumn(index, undefined);
   });
 
   // filter out any aggregates from the search conditions.

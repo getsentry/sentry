@@ -6,6 +6,8 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
+from sentry.integrations.slack import tasks
+from sentry.mediators import project_rules
 from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
 
 
@@ -46,16 +48,36 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         serializer = RuleSerializer(context={"project": project}, data=request.data, partial=True)
 
         if serializer.is_valid():
-            rule = serializer.save(rule=rule)
+            data = serializer.validated_data
+            kwargs = {
+                "name": data["name"],
+                "environment": data.get("environment"),
+                "project": project,
+                "action_match": data["actionMatch"],
+                "conditions": data["conditions"],
+                "actions": data["actions"],
+                "frequency": data.get("frequency"),
+            }
+
+            if data.get("pending_save"):
+                client = tasks.RedisRuleStatus()
+                kwargs.update({"uuid": client.uuid, "rule_id": rule.id})
+                tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
+
+                context = {"uuid": client.uuid}
+                return Response(context, status=202)
+
+            updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
+
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
-                target_object=rule.id,
+                target_object=updated_rule.id,
                 event=AuditLogEntryEvent.RULE_EDIT,
-                data=rule.get_audit_log_data(),
+                data=updated_rule.get_audit_log_data(),
             )
 
-            return Response(serialize(rule, request.user))
+            return Response(serialize(updated_rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

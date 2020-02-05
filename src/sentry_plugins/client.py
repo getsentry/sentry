@@ -6,7 +6,7 @@ import json
 import requests
 
 from bs4 import BeautifulSoup
-from cached_property import cached_property
+from django.utils.functional import cached_property
 from requests.exceptions import ConnectionError, HTTPError
 
 from sentry.http import build_session

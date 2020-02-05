@@ -1112,11 +1112,6 @@ SENTRY_MAX_HTTP_BODY_SIZE = 4096 * 4  # 16kb
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
 SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
-# how many frames are fat
-SENTRY_MAX_STACKTRACE_FRAMES = 50
-# how many frames there can be at all
-SENTRY_STACKTRACE_FRAMES_HARD_LIMIT = 250
-SENTRY_MAX_EXCEPTIONS = 25
 
 # Gravatar service base url
 SENTRY_GRAVATAR_BASE_URL = "https://secure.gravatar.com"
@@ -1735,3 +1730,8 @@ SOUTH_MIGRATION_CONVERSIONS = (
 # of models, similar to how syncdb used to work. The former is more correct, the latter
 # is much faster.
 MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
+# Specifies the list of django apps to include in the lockfile. If Falsey then include
+# all apps with migrations
+MIGRATIONS_LOCKFILE_APP_WHITELIST = ()
+# Where to write the lockfile to.
+MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

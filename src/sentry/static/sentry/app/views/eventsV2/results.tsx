@@ -27,7 +27,9 @@ import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import Alert from 'app/components/alert';
 
+import {DEFAULT_EVENT_VIEW} from './data';
 import Table from './table';
 import Tags from './tags';
 import ResultsHeader from './resultsHeader';
@@ -49,21 +51,25 @@ type Props = {
 
 type State = {
   eventView: EventView;
+  error: string;
 };
 
 class Results extends React.Component<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props): State {
+  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
     const eventView = EventView.fromLocation(nextProps.location);
-    return {eventView};
+    return {eventView, error: prevState.error};
   }
 
   state = {
     eventView: EventView.fromLocation(this.props.location),
+    error: '',
   };
 
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+
+    this.checkEventView();
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -74,6 +80,23 @@ class Results extends React.Component<Props, State> {
     ) {
       loadOrganizationTags(api, organization.slug, selection);
     }
+    this.checkEventView();
+  }
+
+  checkEventView() {
+    const {eventView} = this.state;
+    if (eventView.isValid()) {
+      return;
+    }
+    // If the view is not valid, redirect to a known valid state.
+    const {location, organization} = this.props;
+    const nextEventView = EventView.fromNewQueryWithLocation(
+      DEFAULT_EVENT_VIEW,
+      location
+    );
+    ReactRouter.browserHistory.replace(
+      nextEventView.getResultsViewUrlTarget(organization.slug)
+    );
   }
 
   handleSearch = (query: string) => {
@@ -129,9 +152,24 @@ class Results extends React.Component<Props, State> {
     return <Tags eventView={eventView} organization={organization} location={location} />;
   };
 
+  renderError = error => {
+    if (!error) {
+      return '';
+    }
+    return (
+      <Alert type="error" icon="icon-circle-exclamation">
+        {error}
+      </Alert>
+    );
+  };
+
+  setError = error => {
+    this.setState({error});
+  };
+
   render() {
     const {organization, location, router} = this.props;
-    const {eventView} = this.state;
+    const {eventView, error} = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
 
@@ -162,6 +200,7 @@ class Results extends React.Component<Props, State> {
             />
             <StyledPageContent>
               <Top>
+                {this.renderError(error)}
                 <StyledSearchBar
                   organization={organization}
                   projectIds={eventView.project}
@@ -193,6 +232,7 @@ class Results extends React.Component<Props, State> {
                   eventView={eventView}
                   location={location}
                   title={title}
+                  setError={this.setError}
                 />
               </Main>
               <Side eventView={eventView}>{this.renderTagsTable()}</Side>
@@ -212,6 +252,7 @@ export const StyledPageContent = styled(PageContent)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
     grid-template-columns: 66% auto;
+    grid-template-rows: 330px auto;
     grid-column-gap: ${space(3)};
   }
 

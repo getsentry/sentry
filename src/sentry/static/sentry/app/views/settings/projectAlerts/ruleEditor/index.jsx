@@ -2,7 +2,6 @@ import $ from 'jquery';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
@@ -41,40 +40,42 @@ const ACTION_MATCH_CHOICES = [
   ['none', t('none')],
 ];
 
+const POLLING_MAX_TIME_LIMIT = 3 * 60000;
+
 const AlertRuleRow = styled('h6')`
   display: flex;
   align-items: center;
 `;
 
-const RuleEditor = createReactClass({
-  displayName: 'RuleEditor',
-
-  propTypes: {
+class RuleEditor extends React.Component {
+  static propTypes = {
     api: PropTypes.object,
     actions: PropTypes.array.isRequired,
     conditions: PropTypes.array.isRequired,
     project: PropTypes.object.isRequired,
     organization: PropTypes.object.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       rule: null,
       loading: false,
       error: null,
       environments: [],
+      uuid: null,
     };
-  },
+  }
 
   componentDidMount() {
     this.fetchData();
-  },
+  }
 
   componentDidUpdate() {
     if (this.state.error) {
       $(document.body).scrollTop($(this.formNode).offset().top);
     }
-  },
+  }
 
   fetchData() {
     const {
@@ -101,9 +102,71 @@ const RuleEditor = createReactClass({
     Promise.all(promises).then(([environments, rule]) => {
       this.setState({environments, rule});
     });
-  },
+  }
 
-  handleSubmit(e) {
+  pollHandler = async quitTime => {
+    if (Date.now() > quitTime) {
+      addErrorMessage(t('Looking for that channel took too long :('));
+      this.setState({loading: false});
+      return;
+    }
+
+    const {api, organization, project} = this.props;
+    const {uuid} = this.state;
+    const origRule = {...this.state.rule};
+    let response;
+
+    try {
+      response = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
+      );
+    } catch {
+      addErrorMessage(t('An error occurred'));
+      this.setState({loading: false});
+    }
+
+    const {status, rule, error} = response;
+
+    if (status === 'pending') {
+      setTimeout(() => {
+        this.pollHandler(quitTime);
+      }, 1000);
+      return;
+    }
+
+    if (status === 'failed') {
+      this.setState({
+        error: {actions: [error]},
+        loading: false,
+      });
+      addErrorMessage(t('An error occurred'));
+    }
+    if (rule && status === 'success') {
+      const isNew = !origRule.id;
+      this.handleRuleSuccess(isNew, rule);
+    }
+  };
+
+  fetchStatus() {
+    // pollHander calls itself until it gets either a sucesss
+    // or failed status but we don't want to poll forever so we pass
+    // in a hard stop time of 3 minutes before we bail.
+    const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
+    setTimeout(() => {
+      this.pollHandler(quitTime);
+    }, 1000);
+  }
+
+  handleRuleSuccess = (isNew, rule) => {
+    this.setState({error: null, loading: false, rule});
+    // Redirect to correct ID if /new
+    if (isNew) {
+      browserHistory.replace(recreateRoute(`${rule.id}/`, {...this.props, stepBack: -1}));
+    }
+    addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
+  };
+
+  handleSubmit = e => {
     e.preventDefault();
 
     const data = {...this.state.rule};
@@ -124,15 +187,16 @@ const RuleEditor = createReactClass({
     this.props.api.request(endpoint, {
       method: isNew ? 'POST' : 'PUT',
       data,
-      success: resp => {
-        this.setState({error: null, loading: false, rule: resp});
-        // Redirect to correct ID if /new
-        if (isNew) {
-          browserHistory.replace(
-            recreateRoute(`${resp.id}/`, {...this.props, stepBack: -1})
-          );
+      success: (resp, _, jqXHR) => {
+        // if we get a 202 back it means that we have an async task
+        // running to lookup and verfity the channel id for Slack.
+        if (jqXHR.status === 202) {
+          this.setState({error: null, loading: true, uuid: resp.uuid});
+          this.fetchStatus();
+          addMessage(t('Looking through all your channels...'));
+        } else {
+          this.handleRuleSuccess(isNew, resp);
         }
-        addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
       },
       error: response => {
         this.setState({
@@ -142,7 +206,7 @@ const RuleEditor = createReactClass({
         addErrorMessage(t('An error occurred'));
       },
     });
-  },
+  };
 
   hasError(field) {
     const {error} = this.state;
@@ -150,7 +214,7 @@ const RuleEditor = createReactClass({
       return false;
     }
     return !!error[field];
-  },
+  }
 
   handleEnvironmentChange(val) {
     // If 'All Environments' is selected the value should be null
@@ -159,7 +223,7 @@ const RuleEditor = createReactClass({
     } else {
       this.handleChange('environment', val);
     }
-  },
+  }
 
   handleChange(prop, val) {
     this.setState(state => {
@@ -167,7 +231,7 @@ const RuleEditor = createReactClass({
       rule[prop] = val;
       return {rule};
     });
-  },
+  }
 
   handlePropertyChange(type) {
     return idx => {
@@ -177,7 +241,7 @@ const RuleEditor = createReactClass({
         this.setState({rule});
       };
     };
-  },
+  }
 
   handleAddRow(type) {
     return id => {
@@ -188,7 +252,7 @@ const RuleEditor = createReactClass({
         };
       });
     };
-  },
+  }
 
   handleDeleteRow(type) {
     return idx => {
@@ -199,7 +263,7 @@ const RuleEditor = createReactClass({
         };
       });
     };
-  },
+  }
 
   render() {
     const {projectId} = this.props.params;
@@ -251,6 +315,7 @@ const RuleEditor = createReactClass({
               {t(
                 'Every time %s of these conditions are met:',
                 <SelectField
+                  deprecatedSelectControl
                   clearable={false}
                   className={this.hasError('actionMatch') ? ' error' : ''}
                   style={{marginBottom: 0, marginLeft: 5, marginRight: 5, width: 100}}
@@ -280,6 +345,7 @@ const RuleEditor = createReactClass({
 
             <h6>{t('In this environment')}:</h6>
             <SelectField
+              deprecatedSelectControl
               clearable={false}
               className={this.hasError('environment') ? ' error' : ''}
               style={{marginBottom: 0, marginLeft: 5, marginRight: 5}}
@@ -312,6 +378,7 @@ const RuleEditor = createReactClass({
               {t(
                 'Perform these actions at most once every %s for an issue.',
                 <SelectField
+                  deprecatedSelectControl
                   clearable={false}
                   name="frequency"
                   className={this.hasError('frequency') ? ' error' : ''}
@@ -336,8 +403,8 @@ const RuleEditor = createReactClass({
         </Panel>
       </form>
     );
-  },
-});
+  }
+}
 
 export {RuleEditor};
 

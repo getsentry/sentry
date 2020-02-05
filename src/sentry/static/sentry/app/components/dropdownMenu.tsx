@@ -47,7 +47,18 @@ type RenderProps = {
   };
 };
 
-type Props = {
+type DefaultProps = {
+  /**
+   * Keeps dropdown menu open when menu is clicked
+   */
+  keepMenuOpen: boolean;
+  /**
+   * closes menu on "Esc" keypress
+   */
+  closeOnEscape: boolean;
+};
+
+type Props = DefaultProps & {
   onOpen?: Function;
   onClose?: Function;
   /**
@@ -67,18 +78,10 @@ type Props = {
    */
   isOpen?: boolean;
   /**
-   * Keeps dropdown menu open when menu is clicked
-   */
-  keepMenuOpen?: boolean;
-  /**
    * Compatibility for <DropdownLink>
    * This will change where we attach event handlers
    */
   alwaysRenderMenu?: boolean;
-  /**
-   * closes menu on "Esc" keypress
-   */
-  closeOnEscape?: boolean;
   /**
    * If this is set to true, the dropdown behaves as a "nested dropdown" and is
    * triggered on mouse enter and mouse leave
@@ -107,7 +110,7 @@ class DropdownMenu extends React.Component<Props, State> {
     isNestedDropdown: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     keepMenuOpen: false,
     closeOnEscape: true,
   };

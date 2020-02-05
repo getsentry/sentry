@@ -16,7 +16,6 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 from hashlib import sha1
-from loremipsum import Generator
 from uuid import uuid4
 
 from sentry.event_manager import EventManager
@@ -70,9 +69,7 @@ from sentry.models import (
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
 from sentry.snuba.models import QueryAggregations
-from sentry.utils import json
-
-loremipsum = Generator()
+from sentry.utils import loremipsum, json
 
 
 def get_fixture_path(name):
@@ -466,10 +463,12 @@ class Factories(object):
         return useremail
 
     @staticmethod
-    def store_event(data, project_id, assert_no_errors=True):
+    def store_event(data, project_id, assert_no_errors=True, sent_at=None):
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
-        manager = EventManager(data)
+        if sent_at is None:
+            sent_at = timezone.now()
+        manager = EventManager(data, sent_at=sent_at)
         manager.normalize()
         if assert_no_errors:
             errors = manager.get_data().get("errors")
