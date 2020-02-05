@@ -1,5 +1,6 @@
 import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import Results from 'app/views/eventsV2/results';
@@ -25,6 +26,7 @@ const generateFields = () => {
 describe('EventsV2 > Results', function() {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
+  let eventResultsMock;
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
@@ -52,7 +54,7 @@ describe('EventsV2 > Results', function() {
       url: '/organizations/org-slug/releases/',
       body: [],
     });
-    MockApiClient.addMockResponse({
+    eventResultsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
@@ -103,6 +105,42 @@ describe('EventsV2 > Results', function() {
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
+  });
+
+  it('loads data when moving from an invalid to valid EventView', function() {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    // Start off with an invalid view (empty is invalid)
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+    // No request as eventview was invalid.
+    expect(eventResultsMock).not.toHaveBeenCalled();
+
+    // Should redirect.
+    expect(browserHistory.replace).toHaveBeenCalled();
+
+    // Update location simulating a redirect.
+    wrapper.setProps({location: {query: {...generateFields()}}});
+    wrapper.update();
+
+    // Should load events once
+    expect(eventResultsMock).toHaveBeenCalled();
   });
 
   it('pagination cursor should be cleared when making a search', function() {

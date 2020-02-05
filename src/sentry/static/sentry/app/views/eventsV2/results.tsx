@@ -30,6 +30,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import Alert from 'app/components/alert';
 
+import {DEFAULT_EVENT_VIEW} from './data';
 import Table from './table';
 import Tags from './tags';
 import ResultsHeader from './resultsHeader';
@@ -71,6 +72,7 @@ class Results extends React.Component<Props, State> {
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    this.checkEventView();
     this.fetchTotalCount();
   }
 
@@ -84,6 +86,7 @@ class Results extends React.Component<Props, State> {
       loadOrganizationTags(api, organization.slug, selection);
     }
 
+    this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
     if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
@@ -94,6 +97,10 @@ class Results extends React.Component<Props, State> {
   async fetchTotalCount() {
     const {api, organization, location} = this.props;
     const {eventView} = this.state;
+    if (!eventView.isValid()) {
+      return;
+    }
+
     try {
       const totals = await fetchTotalCount(
         api,
@@ -104,6 +111,22 @@ class Results extends React.Component<Props, State> {
     } catch (err) {
       Sentry.captureException(err);
     }
+  }
+
+  checkEventView() {
+    const {eventView} = this.state;
+    if (eventView.isValid()) {
+      return;
+    }
+    // If the view is not valid, redirect to a known valid state.
+    const {location, organization} = this.props;
+    const nextEventView = EventView.fromNewQueryWithLocation(
+      DEFAULT_EVENT_VIEW,
+      location
+    );
+    ReactRouter.browserHistory.replace(
+      nextEventView.getResultsViewUrlTarget(organization.slug)
+    );
   }
 
   handleSearch = (query: string) => {
