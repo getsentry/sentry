@@ -22,7 +22,6 @@ const Z_INDEX_GRID = 5;
 const Z_INDEX_GRID_RESIZER = 1;
 
 type GridEditableProps = {
-  numColumn?: number;
   isEditable?: boolean;
   isEditing?: boolean;
   isDragging?: boolean;
@@ -107,6 +106,7 @@ export const Grid = styled('table')`
   z-index: ${Z_INDEX_GRID};
   overflow-x: scroll;
 `;
+
 export const GridRow = styled('tr')`
   display: contents;
 
@@ -127,7 +127,7 @@ export const GridHead = styled('thead')`
   display: contents;
 `;
 
-export const GridHeadCell = styled('th')`
+export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   position: relative; /* Used by GridResizer */
@@ -148,7 +148,8 @@ export const GridHeadCell = styled('th')`
   }
 
   &:hover {
-    border-color: ${p => p.theme.borderDark};
+    border-left-color: ${p => (p.isFirst ? 'transparent' : p.theme.borderDark)};
+    border-right-color: ${p => p.theme.borderDark};
   }
 `;
 
