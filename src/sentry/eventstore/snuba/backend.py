@@ -47,7 +47,6 @@ class SnubaEventStorage(EventStorage):
     def get_events(
         self,
         filter,
-        additional_columns=None,
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
