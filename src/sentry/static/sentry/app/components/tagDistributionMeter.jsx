@@ -9,6 +9,7 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {percent} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
+import Version from 'app/components/versionV2';
 
 export default class TagDistributionMeter extends React.Component {
   static propTypes = {
@@ -53,11 +54,20 @@ export default class TagDistributionMeter extends React.Component {
     const pct = percent(largestSegment.count, totalValues);
     const pctLabel = Math.floor(pct);
 
+    let label = null;
+    switch (title) {
+      case 'release':
+        label = <Version version={largestSegment.name} anchor={false} />;
+        break;
+      default:
+        label = largestSegment.name || t('n/a');
+    }
+
     return (
       <Title>
         <TitleType>{title}</TitleType>
         <TitleDescription>
-          <Label>{largestSegment.name || t('n/a')}</Label>
+          <Label>{label}</Label>
           {isLoading || hasError ? null : <Percent>{pctLabel}%</Percent>}
         </TitleDescription>
       </Title>
@@ -95,9 +105,17 @@ export default class TagDistributionMeter extends React.Component {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
 
+          let tooltipValue = null;
+          switch (value.key) {
+            case 'release':
+              tooltipValue = <Version version={value.name} anchor={false} />;
+              break;
+            default:
+              tooltipValue = value.name || t('n/a');
+          }
           const tooltipHtml = (
             <React.Fragment>
-              <div className="truncate">{value.name || t('n/a')}</div>
+              <div className="truncate">{tooltipValue}</div>
               {pctLabel}%
             </React.Fragment>
           );

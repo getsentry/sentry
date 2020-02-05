@@ -13,6 +13,7 @@ import ReleaseStats from 'app/components/releaseStats';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/versionV2';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 import ReleaseDetailsActions from './releaseDetailActions';
 
@@ -47,6 +48,9 @@ export default class ReleaseHeader extends React.Component {
           <div className="col-sm-4 col-xs-12">
             <PageHeading>{t('Release')} </PageHeading>
             <StyledVersion version={release.version} anchor={false} />
+            <FullVersionWrapper>
+              <TextCopyInput>{release.version}</TextCopyInput>
+            </FullVersionWrapper>
             {!!release.url && (
               <div>
                 <ExternalLink href={release.url}>
@@ -118,4 +122,21 @@ const StyledVersion = styled(Version)`
   line-height: 1.2;
   display: block;
   margin: 6px 0;
+`;
+
+const FullVersionWrapper = styled('div')`
+  width: 285px;
+  max-width: 100%;
+  input {
+    padding-top: 0;
+    padding-bottom: 0;
+    line-height: 1.5;
+  }
+  button > span {
+    padding: 2px 5px;
+  }
+  svg {
+    width: 0.9em;
+    height: 0.9em;
+  }
 `;
