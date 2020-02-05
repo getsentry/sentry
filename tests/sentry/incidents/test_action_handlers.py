@@ -72,7 +72,9 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=six.text_type(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == set([(new_user.id, new_user.email)])
+        assert set(handler.get_targets()) == set(
+            [(self.user.id, self.user.email), (new_user.id, new_user.email)]
+        )
 
 
 @freeze_time()
