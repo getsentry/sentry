@@ -10,6 +10,7 @@ from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry_plugins.utils import get_secret_field_config
 from sentry.utils import json, metrics
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,15 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
     description = "Forward Sentry events to Amazon SQS."
     conf_key = "amazon-sqs"
     required_field = "queue_url"
+    # TODO(phillip): Probably need a better feature description
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Forward Sentry errors and events to Amazon SQS.
+            """,
+            IntegrationFeatures.DATA_FORWARDING,
+        )
+    ]
 
     def get_config(self, project, **kwargs):
         return [

@@ -165,3 +165,13 @@ class PluginConfigMixin(ProviderMixin):
 
     def setup(self, bindings):
         pass
+
+    @staticmethod
+    def feature_flag_name(f):
+        """
+        FeatureDescriptions are set using the IntegrationFeatures constants,
+        however we expose them here as mappings to organization feature flags, thus
+        we prefix them with `integrations`.
+        """
+        if f is not None:
+            return u"integrations-{}".format(f)
