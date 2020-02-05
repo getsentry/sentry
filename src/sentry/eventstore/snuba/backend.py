@@ -140,14 +140,12 @@ class SnubaEventStorage(EventStorage):
                     events = [self.__make_event(evt) for evt in result["data"]]
 
                     # Bind previously fetched node data
+                    nodestore_dict = {
+                        (e.event_id, e.project_id): e.data.data for e in nodestore_events
+                    }
                     for event in events:
-                        node_data = next(
-                            e
-                            for e in nodestore_events
-                            if event.event_id == e.event_id and event.project_id == e.project_id
-                        ).data.data
+                        node_data = nodestore_dict[(event.event_id, event.project_id)]
                         event.data.bind_data(node_data)
-
                     return events
 
             return []
