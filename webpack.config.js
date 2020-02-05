@@ -230,12 +230,8 @@ let appConfig = {
         test: /\.tsx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-
-        // Note there is an emotion bug if we run babel-loader in conjunction with ts-loader
-        // See https://github.com/emotion-js/emotion/issues/1748
-        //
-        // However, we don't want to lose typechecking in CI, so we have a CI task
-        // that will run explicitly ts-loader
+        // Make sure we typecheck in CI, but not for local dev since that is run with
+        // the fork-ts plugin
         use: !IS_CI ? babelLoaderConfig : [babelLoaderConfig, tsLoaderConfig],
       },
       {
