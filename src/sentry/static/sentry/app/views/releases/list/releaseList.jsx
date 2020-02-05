@@ -49,16 +49,16 @@ const ReleaseList = props => {
                     </VersionWrapper>
                     <LatestDeployOrReleaseTime orgId={orgId} release={release} />
                   </VersionColumn>
-                  <ProjectsColumn>
-                    <ProjectList
-                      projects={projects.filter(fullProject =>
-                        release.projects.map(p => p.slug).includes(fullProject.slug)
-                      )}
-                    />
-                  </ProjectsColumn>
                   <StatsColumn>
                     <ReleaseStats release={release} />
                   </StatsColumn>
+                  <ProjectsColumn>
+                    <ProjectList
+                      projects={projects.filter(project =>
+                        release.projects.map(p => p.slug).includes(project.slug)
+                      )}
+                    />
+                  </ProjectsColumn>
                   <CountColumn>
                     <Count className="release-count" value={release.newGroups || 0} />
                   </CountColumn>

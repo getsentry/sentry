@@ -8,7 +8,7 @@ const Layout = styled('div')`
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
-  grid-template-areas: 'release-name projects stats new-count last-event';
+  grid-template-areas: 'release-name stats projects new-count last-event';
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 2fr minmax(0, 2fr) 1fr;
