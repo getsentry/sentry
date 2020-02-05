@@ -10,11 +10,9 @@ import isEqual from 'lodash/isEqual';
 import {Organization, GlobalSelection} from 'app/types';
 
 import {Client} from 'app/api';
-import {t} from 'app/locale';
 import {Panel} from 'app/components/panels';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
-import Count from 'app/components/count';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -24,7 +22,6 @@ import space from 'app/styles/space';
 
 import SearchBar from 'app/views/events/searchBar';
 import EventsChart from 'app/views/events/eventsChart';
-import YAxisSelector from 'app/views/events/yAxisSelector';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -36,8 +33,8 @@ import Alert from 'app/components/alert';
 import Table from './table';
 import Tags from './tags';
 import ResultsHeader from './resultsHeader';
-import {ChartControls, InlineContainer, SectionHeading} from './styles';
-import EventView, {Field} from './eventView';
+import ChartFooter from './chartFooter';
+import EventView, {Field, isAPIPayloadSimilar} from './eventView';
 import {generateTitle, fetchTotalCount} from './utils';
 
 const CHART_AXIS_OPTIONS = [
@@ -77,15 +74,19 @@ class Results extends React.Component<Props, State> {
     this.fetchTotalCount();
   }
 
-  componentDidUpdate(prevProps: Props) {
-    const {api, organization, selection} = this.props;
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    const {api, location, organization, selection} = this.props;
+    const {eventView} = this.state;
     if (
       !isEqual(prevProps.selection.projects, selection.projects) ||
       !isEqual(prevProps.selection.datetime, selection.datetime)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
     }
-    if (!isEqual(prevProps.location.query, this.props.location.query)) {
+
+    const currentQuery = eventView.getEventsAPIPayload(location);
+    const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
+    if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
       this.fetchTotalCount();
     }
   }
@@ -238,18 +239,12 @@ class Results extends React.Component<Props, State> {
                     ),
                     fixed: 'events chart',
                   })}
-                  <ChartControls>
-                    <InlineContainer>
-                      <SectionHeading>{t('Count')}</SectionHeading>
-                      {totalValues === null ? '-' : <Count value={Number(totalValues)} />}
-                    </InlineContainer>
-
-                    <YAxisSelector
-                      selected={yAxisValue}
-                      options={yAxisOptions}
-                      onChange={this.handleYAxisChange}
-                    />
-                  </ChartControls>
+                  <ChartFooter
+                    total={totalValues}
+                    yAxisValue={yAxisValue}
+                    yAxisOptions={yAxisOptions}
+                    onChange={this.handleYAxisChange}
+                  />
                 </StyledPanel>
               </Top>
               <Main eventView={eventView}>
