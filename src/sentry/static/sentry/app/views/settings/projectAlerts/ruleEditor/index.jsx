@@ -40,6 +40,8 @@ const ACTION_MATCH_CHOICES = [
   ['none', t('none')],
 ];
 
+const POLLING_MAX_TIME_LIMIT = 3 * 60000;
+
 const AlertRuleRow = styled('h6')`
   display: flex;
   align-items: center;
@@ -102,44 +104,55 @@ class RuleEditor extends React.Component {
     });
   }
 
-  fetchStatus() {
-    this.pollHandler();
-  }
+  pollHandler = async quitTime => {
+    if (Date.now() > quitTime) {
+      addErrorMessage(t('Looking for that channel took too long :('));
+      this.setState({loading: false});
+    } else {
+      const {api, organization, project} = this.props;
+      const {uuid} = this.state;
+      const origRule = {...this.state.rule};
 
-  pollHandler = async () => {
-    const {api, organization, project} = this.props;
-    const {uuid} = this.state;
-    const origRule = {...this.state.rule};
+      const response = await api
+        .requestPromise(
+          `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
+        )
+        .catch(() => {
+          addErrorMessage(t('An error occurred'));
+          this.setState({loading: false});
+        });
 
-    const response = await api
-      .requestPromise(`/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`)
-      .catch(() => {
+      const {status, rule, error} = response;
+
+      if (status === 'pending') {
+        setTimeout(() => {
+          this.pollHandler(quitTime);
+        }, 1000);
+        return;
+      }
+
+      if (status === 'failed') {
+        this.setState({
+          error: {actions: [error]} || {__all__: 'Unknown error'},
+          loading: false,
+        });
         addErrorMessage(t('An error occurred'));
-        this.setState({loading: false});
-      });
-
-    const {status, rule, error} = response;
-
-    if (status === 'pending') {
-      setTimeout(this.pollHandler, 1000);
-      return;
-    }
-
-    if (status === 'failed') {
-      this.setState({
-        error: {actions: [error]} || {__all__: 'Unknown error'},
-        loading: false,
-      });
-      addErrorMessage(t('An error occurred'));
-    }
-    if (rule && status === 'success') {
-      const isNew = !origRule.id;
-      this.handleRuleSuccess(isNew, rule);
+      }
+      if (rule && status === 'success') {
+        const isNew = !origRule.id;
+        this.handleRuleSuccess(isNew, rule);
+      }
     }
   };
 
-  startPolling() {
-    setTimeout(this.pollHandler, 1000);
+  fetchStatus() {
+    // pollHander calls itself until it gets either a sucesss
+    // or failed status but we don't want to poll forever so we pass
+    // in a hard stop time of 3 minutes before we bail.
+    const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
+    setTimeout(() => {
+      this.pollHandler(quitTime);
+    }, 1000);
   }
 
   handleRuleSuccess = (isNew, rule) => {
@@ -178,7 +191,7 @@ class RuleEditor extends React.Component {
         if (jqXHR.status === 202) {
           this.setState({error: null, loading: true, uuid: resp.uuid});
           this.fetchStatus();
-          addMessage(t('Looking through all your damn channels...'));
+          addMessage(t('Looking through all your channels...'));
         } else {
           this.handleRuleSuccess(isNew, resp);
         }
