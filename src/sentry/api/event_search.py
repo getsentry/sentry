@@ -800,7 +800,7 @@ def get_filter(query=None, params=None):
                         kwargs["group_ids"].extend(to_list(group.id))
                     except Exception:
                         raise InvalidSearchQuery(
-                            u"invalid value '{}' for 'issue:' filter".format(term.value.value)
+                            u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
                         )
             elif name in FIELD_ALIASES:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
@@ -841,7 +841,7 @@ def get_filter(query=None, params=None):
                     kwargs["group_ids"] = to_list(group.id)
                 except Exception:
                     raise InvalidSearchQuery(
-                        u"invalid value '{}' for 'issue' query param".format(term.value.value)
+                        u"Invalid value '{}' for 'issue' query param".format(term.value.value)
                     )
 
     return eventstore.Filter(**kwargs)
