@@ -6,7 +6,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 import logging
 
-from sentry import options
 from sentry.eventstore.base import EventStorage
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
@@ -57,17 +56,6 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
-        if not options.get("eventstore.use-nodestore"):
-            return self.__get_events(
-                filter,
-                additional_columns=additional_columns,
-                orderby=orderby,
-                limit=limit,
-                offset=offset,
-                referrer=referrer,
-                should_bind_nodes=False,
-            )
-
         return self.__get_events(
             filter,
             orderby=orderby,
@@ -100,7 +88,6 @@ class SnubaEventStorage(EventStorage):
     def __get_events(
         self,
         filter,
-        additional_columns=None,
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
@@ -108,7 +95,7 @@ class SnubaEventStorage(EventStorage):
         should_bind_nodes=False,
     ):
         assert filter, "You must provide a filter"
-        cols = self.__get_columns(additional_columns)
+        cols = self.__get_columns()
         orderby = orderby or DESC_ORDERING
 
         result = snuba.aliased_query(
@@ -223,13 +210,8 @@ class SnubaEventStorage(EventStorage):
 
         return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 
-    def __get_columns(self, additional_columns=None):
-        columns = EventStorage.minimal_columns
-
-        if additional_columns:
-            columns = set(columns + additional_columns)
-
-        return [col.value.event_name for col in columns]
+    def __get_columns(self):
+        return [col.value.event_name for col in EventStorage.minimal_columns]
 
     def __get_event_id_from_filter(self, filter=None, orderby=None):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
