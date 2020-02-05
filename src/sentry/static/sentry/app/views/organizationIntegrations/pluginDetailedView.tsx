@@ -13,7 +13,6 @@ import withOrganization from 'app/utils/withOrganization';
 import AsyncComponent from 'app/components/asyncComponent';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import Tag from 'app/views/settings/components/tag';
-import marked, {singleLineRenderer} from 'app/utils/marked';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
 import Button from 'app/components/button';
