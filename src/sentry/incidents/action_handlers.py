@@ -49,18 +49,15 @@ class EmailActionHandler(ActionHandler):
             AlertRuleTriggerAction.TargetType.USER.value,
             AlertRuleTriggerAction.TargetType.TEAM.value,
         ):
-            alert_settings = self.project.get_member_alert_settings("mail:alert")
-            disabled_users = set(
-                user_id for user_id, setting in alert_settings.items() if setting == 0
-            )
             if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
+                alert_settings = self.project.get_member_alert_settings("mail:alert")
+                disabled_users = set(
+                    user_id for user_id, setting in alert_settings.items() if setting == 0
+                )
                 if target.id not in disabled_users:
                     targets = [(target.id, target.email)]
             elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
                 targets = target.member_set.values_list("user_id", "user__email")
-                targets = [
-                    (user_id, email) for user_id, email in targets if user_id not in disabled_users
-                ]
         # TODO: We need some sort of verification system to make sure we're not being
         # used as an email relay.
         # elif self.action.target_type == AlertRuleTriggerAction.TargetType.SPECIFIC.value:
