@@ -155,10 +155,6 @@ const IntegrationFlex = styled('div')`
   align-items: center;
 `;
 
-// const IntegrationItemBox = styled('div')`
-//   flex: 1;
-// `;
-
 const IntegrationItemBox = styled('div')`
   flex: 1;
   box-sizing: border-box;

@@ -137,6 +137,14 @@ class PluginDetailedView extends AsyncComponent<
     };
   }
 
+  getTabDiplay(tab: Tab) {
+    //we want to show project configurations to make it more clear
+    if (tab === 'configurations') {
+      return 'project configurations';
+    }
+    return tab;
+  }
+
   renderBody() {
     const plugin = this.plugin;
     const {tab} = this.state;
@@ -203,7 +211,7 @@ class PluginDetailedView extends AsyncComponent<
               className={tab === tabName ? 'active' : ''}
               onClick={() => this.onTabChange(tabName)}
             >
-              <a style={{textTransform: 'capitalize'}}>{tabName}</a>
+              <a style={{textTransform: 'capitalize'}}>{this.getTabDiplay(tabName)}</a>
             </li>
           ))}
         </ul>
