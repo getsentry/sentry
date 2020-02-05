@@ -4,7 +4,7 @@ import space from 'app/styles/space';
 
 const Layout = styled('div')`
   display: grid;
-  grid-template-columns: 1.25fr minmax(0, 1fr) 1fr 1fr 1fr;
+  grid-template-columns: 1.25fr 1fr minmax(0, 1fr) 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
