@@ -140,7 +140,7 @@ class QuerySubscriptionConsumer(object):
             return
 
         try:
-            subscription = QuerySubscription.objects.get(
+            subscription = QuerySubscription.objects.get_from_cache(
                 subscription_id=contents["subscription_id"]
             )
         except QuerySubscription.DoesNotExist:
