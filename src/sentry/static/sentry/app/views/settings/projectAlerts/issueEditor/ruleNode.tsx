@@ -166,11 +166,11 @@ const InlineInput = styled(Input)`
 const RuleNodeForm = styled('div')`
   display: grid;
   grid-gap: ${space(1)};
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
   align-items: center;
   white-space: nowrap;
 `;
 
 const DeleteButton = styled(Button)`
-  height: 100%;
+  height: 36px;
 `;
