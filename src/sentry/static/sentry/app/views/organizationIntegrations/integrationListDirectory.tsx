@@ -59,10 +59,7 @@ function isSentryApp(integration: AppOrProviderOrPlugin): integration is SentryA
 function isPlugin(
   integration: AppOrProviderOrPlugin
 ): integration is PluginWithProjectList {
-  if (integration.hasOwnProperty('doc')) {
-    return true;
-  }
-  return false;
+  return integration.hasOwnProperty('shortName');
 }
 
 class OrganizationIntegrations extends AsyncComponent<
@@ -252,13 +249,14 @@ class OrganizationIntegrations extends AsyncComponent<
         'clubhouse',
         'vsts',
       ];
-      const legacy = legacyIds.includes(plugin.id);
+      const isLegacy = legacyIds.includes(plugin.id);
       return (
         <PluginRow
           key={`row-plugin-${plugin.id}`}
           data-test-id="integration-row"
           plugin={plugin}
-          legacy={legacy}
+          isLegacy={isLegacy}
+          organization={this.props.organization}
         />
       );
     }

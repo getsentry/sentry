@@ -1,5 +1,4 @@
 import {withTheme} from 'emotion-theming';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import Link from 'app/components/links/link';
@@ -7,40 +6,36 @@ import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import CircleIndicator from 'app/components/circleIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {PluginWithProjectList} from 'app/types';
+import {PluginWithProjectList, Organization} from 'app/types';
 
 type Props = {
   plugin: PluginWithProjectList;
-  legacy: boolean;
+  isLegacy: boolean;
+  organization: Organization;
 };
 
 export default class PluginRow extends React.Component<Props> {
-  static propTypes = {
-    plugin: PropTypes.object.isRequired,
-  };
-
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   get isEnabled() {
+    // It's possible to only have items in projectList that are disabled configs (enabled=false).
+    // But for the purpose of showing things that are installed, that might be OK.
     return this.props.plugin.projectList.length > 0;
   }
 
   render() {
-    const {plugin, legacy} = this.props;
     const {
+      plugin,
+      isLegacy,
       organization: {slug},
-    } = this.context;
+    } = this.props;
+
     return (
       <PanelItem p={0} flexDirection="column" data-test-id={plugin.id}>
-        <Flex style={{alignItems: 'center', padding: '16px'}}>
+        <FlexContainer>
           <PluginIcon size={36} pluginId={plugin.id} />
-          <div style={{flex: '1', padding: '0 16px'}}>
+          <Container>
             <ProviderName to={`/settings/${slug}/plugins/${plugin.slug}`}>
-              {`${plugin.name} ${legacy ? '(Legacy)' : ''}`}
+              {`${plugin.name} ${isLegacy ? '(Legacy)' : ''}`}
             </ProviderName>
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
@@ -48,8 +43,8 @@ export default class PluginRow extends React.Component<Props> {
                 to={`/settings/${slug}/plugins/${plugin.slug}?tab=configurations`}
               >{`${plugin.projectList.length} Configurations`}</StyledLink>
             </ProviderDetails>
-          </div>
-        </Flex>
+          </Container>
+        </FlexContainer>
       </PanelItem>
     );
   }
@@ -57,6 +52,16 @@ export default class PluginRow extends React.Component<Props> {
 
 const Flex = styled('div')`
   display: flex;
+`;
+
+const FlexContainer = styled(Flex)`
+  align-items: center;
+  padding: ${space(2)};
+`;
+
+const Container = styled('div')`
+  flex: 1;
+  padding: 0 ${space(2)};
 `;
 
 const ProviderName = styled(Link)`
