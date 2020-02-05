@@ -7,11 +7,10 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
-from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
-from sentry.signals import alert_rule_created
-
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
+from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
+from sentry.signals import alert_rule_created
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):

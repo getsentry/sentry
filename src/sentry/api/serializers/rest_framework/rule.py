@@ -56,7 +56,7 @@ class RuleNodeField(serializers.Field):
         # Update data from cleaned form values
         data.update(form.cleaned_data)
 
-        if getattr(form, "_pending_save", False) and form._pending_save:
+        if getattr(form, "_pending_save", False):
             data["pending_save"] = True
         return data
 
