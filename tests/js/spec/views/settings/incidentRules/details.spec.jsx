@@ -77,13 +77,13 @@ describe('Incident Rules Details', function() {
     // has existing trigger
     expect(
       wrapper
-        .find('input[name="alertThresholdInput"]')
+        .find('input[name="alertThreshold"]')
         .first()
         .prop('value')
     ).toEqual(70);
     expect(
       wrapper
-        .find('input[name="resolutionThresholdInput"]')
+        .find('input[name="resolveThreshold"]')
         .first()
         .prop('value')
     ).toEqual(36);
@@ -94,11 +94,11 @@ describe('Incident Rules Details', function() {
     wrapper.find('button[aria-label="Add Warning Trigger"]').simulate('click');
 
     wrapper
-      .find('input[name="alertThresholdInput"]')
+      .find('input[name="alertThreshold"]')
       .at(1)
       .simulate('change', {target: {value: 13}});
     wrapper
-      .find('input[name="resolutionThresholdInput"]')
+      .find('input[name="resolveThreshold"]')
       .at(1)
       .simulate('change', {target: {value: 12}});
 
@@ -157,13 +157,13 @@ describe('Incident Rules Details', function() {
     // Has correct values
     expect(
       wrapper
-        .find('input[name="alertThresholdInput"]')
+        .find('input[name="alertThreshold"]')
         .at(1)
         .prop('value')
     ).toBe(13);
     expect(
       wrapper
-        .find('input[name="resolutionThresholdInput"]')
+        .find('input[name="resolveThreshold"]')
         .at(1)
         .prop('value')
     ).toBe(12);

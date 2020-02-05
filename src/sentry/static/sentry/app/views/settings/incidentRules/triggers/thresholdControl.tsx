@@ -47,7 +47,7 @@ function ThresholdControl({
     );
   };
 
-  const thresholdName = AlertRuleThreshold.INCIDENT === type ? 'alert' : 'resolution';
+  const thresholdName = AlertRuleThreshold.INCIDENT === type ? 'alert' : 'resolve';
 
   return (
     <div {...props}>
@@ -64,10 +64,10 @@ function ThresholdControl({
       />
       <Input
         disabled={disabled}
-        name={`${thresholdName}ThresholdInput`}
+        name={`${thresholdName}Threshold`}
         type="number"
         placeholder="300"
-        value={threshold}
+        value={threshold ?? ''}
         onChange={onChangeThreshold}
       />
     </div>
