@@ -107,11 +107,12 @@ const ThreadsSelector = ({threads, event, activeThread, onChange}: Props) => {
 export default ThreadsSelector;
 
 const StyledDropdownButton = styled(DropdownButton)`
-  width: 100%;
   > *:first-child {
     grid-template-columns: 1fr 15px;
   }
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  width: 100%;
+
+  @media (min-width: ${props => props.theme.breakpoints[3]}) {
     width: 420px;
   }
 `;

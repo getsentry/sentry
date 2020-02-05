@@ -91,19 +91,16 @@ class CrashHeader extends React.Component {
     const {title, beforeTitle, hideGuide, stackView, stackType, newestFirst} = this.props;
 
     let titleNode = (
-      <h3
+      <StyledH3
         className="pull-left"
         style={{
           marginBottom: 0,
           maxWidth: '100%',
-          width: '100%',
-          marginRight: space(1),
-          marginLeft: space(1),
           whiteSpace: 'nowrap',
         }}
       >
         {title}
-        <small style={{marginLeft: 5}}>
+        <small>
           (
           <Tooltip title={t('Toggle stacktrace order')}>
             <a onClick={this.handleToggleOrder} style={{borderBottom: '1px dotted #aaa'}}>
@@ -112,7 +109,7 @@ class CrashHeader extends React.Component {
           </Tooltip>
           )
         </small>
-      </h3>
+      </StyledH3>
     );
 
     if (!hideGuide) {
@@ -129,54 +126,60 @@ class CrashHeader extends React.Component {
           {beforeTitle}
           {titleNode}
         </TitleInfo>
-        <ButtonGroup className="btn-group">
-          {this.hasSystemFrames() && (
+        <ButtonGroupWrapper>
+          <ButtonGroup className="btn-group">
+            {this.hasSystemFrames() && (
+              <a
+                className={
+                  (stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'
+                }
+                onClick={() => this.setStackView('app')}
+              >
+                {t('App Only')}
+              </a>
+            )}
             <a
               className={
-                (stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'
+                (stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'
               }
-              onClick={() => this.setStackView('app')}
+              onClick={() => this.setStackView('full')}
             >
-              {t('App Only')}
+              {t('Full')}
             </a>
-          )}
-          <a
-            className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={() => this.setStackView('full')}
-          >
-            {t('Full')}
-          </a>
-          <a
-            className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={() => this.setStackView('raw')}
-          >
-            {t('Raw')}
-          </a>
-        </ButtonGroup>
-        {this.hasMinified() && (
-          <ButtonGroup className="btn-group">
-            {[
-              <a
-                key="original"
-                className={
-                  (stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'
-                }
-                onClick={() => this.setStackType('original')}
-              >
-                {this.getOriginalButtonLabel()}
-              </a>,
-              <a
-                key="minified"
-                className={
-                  (stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'
-                }
-                onClick={() => this.setStackType('minified')}
-              >
-                {this.getMinifiedButtonLabel()}
-              </a>,
-            ]}
+            <a
+              className={
+                (stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'
+              }
+              onClick={() => this.setStackView('raw')}
+            >
+              {t('Raw')}
+            </a>
           </ButtonGroup>
-        )}
+          {this.hasMinified() && (
+            <ButtonGroup className="btn-group">
+              {[
+                <a
+                  key="original"
+                  className={
+                    (stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'
+                  }
+                  onClick={() => this.setStackType('original')}
+                >
+                  {this.getOriginalButtonLabel()}
+                </a>,
+                <a
+                  key="minified"
+                  className={
+                    (stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'
+                  }
+                  onClick={() => this.setStackType('minified')}
+                >
+                  {this.getMinifiedButtonLabel()}
+                </a>,
+              ]}
+            </ButtonGroup>
+          )}
+        </ButtonGroupWrapper>
       </Wrapper>
     );
   }
@@ -187,29 +190,51 @@ export default CrashHeader;
 const Wrapper = styled('div')`
   display: flex;
   margin-bottom: ${space(3)};
+  flex-direction: column;
   flex-wrap: wrap;
-  margin-right: -${space(1)};
-
-  > .btn-group {
-    padding-right: ${space(1)};
-  }
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
     align-items: center;
+    flex-direction: row;
   }
 `;
 
 const TitleInfo = styled('div')`
   display: flex;
-  flex: 1 0 auto;
+  flex: 1;
   max-width: 100%;
   flex-direction: column;
-  align-items: center;
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
     flex-direction: row;
+    flex-shrink: 2;
+    align-items: center;
   }
 `;
 
 const ButtonGroup = styled('div')`
   padding-top: ${space(1.5)};
   padding-bottom: ${space(1.5)};
+`;
+
+const ButtonGroupWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  margin-right: -${space(1)};
+  > .btn-group {
+    padding-right: ${space(1)};
+  }
+  @media (min-width: ${props => props.theme.breakpoints[1]}) {
+    flex-direction: row;
+  }
+`;
+
+const StyledH3 = styled('h3')`
+  > small {
+    margin-right: ${space(1)};
+  }
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    > small {
+      margin-left: ${space(1)};
+    }
+  }
 `;
