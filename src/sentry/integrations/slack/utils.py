@@ -109,7 +109,7 @@ def build_attachment_text(group, event=None):
 
 
 def build_assigned_text(group, identity, assignee):
-    actor = Actor.from_actor_id(assignee)
+    actor = Actor.from_actor_identifier(assignee)
 
     try:
         assigned_actor = actor.resolve()
