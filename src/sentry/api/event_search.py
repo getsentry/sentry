@@ -16,6 +16,7 @@ from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
 from sentry.models import Project
+from sentry.models.group import Group
 from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
@@ -790,6 +791,17 @@ def get_filter(query=None, params=None):
             elif name == "issue.id" and term.value.value != "":
                 # A blank term value means that this is a has filter
                 kwargs["group_ids"].extend(to_list(term.value.value))
+            elif name == "issue" and term.value.value != "":
+                if params and "organization_id" in params:
+                    try:
+                        group = Group.objects.by_qualified_short_id(
+                            params["organization_id"], term.value.value
+                        )
+                        kwargs["group_ids"].extend(to_list(group.id))
+                    except Exception:
+                        raise InvalidSearchQuery(
+                            u"invalid value '{}' for 'issue:' filter".format(term.value.value)
+                        )
             elif name in FIELD_ALIASES:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
@@ -820,6 +832,17 @@ def get_filter(query=None, params=None):
         # Deprecated alias, use `group_ids` instead
         if "issue.id" in params:
             kwargs["group_ids"] = to_list(params["issue.id"])
+        if "issue" in params:
+            if "organization_id" in params:
+                try:
+                    group = Group.objects.by_qualified_short_id(
+                        params["organization_id"], params["issue"]
+                    )
+                    kwargs["group_ids"] = to_list(group.id)
+                except Exception:
+                    raise InvalidSearchQuery(
+                        u"invalid value '{}' for 'issue' query param".format(term.value.value)
+                    )
 
     return eventstore.Filter(**kwargs)
 
