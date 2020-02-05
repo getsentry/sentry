@@ -6,11 +6,11 @@ import styled from '@emotion/styled';
 import * as newIconset from 'app/icons';
 
 storiesOf('Style|Icons', module).add(
-  'SVG',
-  withInfo('Replace `InlineSvg` with the following Icon Components')(() => {
+  'Icon Set',
+  withInfo('Replace `InlineSvg` with icon components')(() => {
     return (
-      <div>
-        <h4>New Icons</h4>
+      <SwatchWrapper>
+        <Header>Icon Set</Header>
         <Swatches>
           {Object.entries(newIconset).map(([key, Icon]) => (
             <Swatch key={key}>
@@ -19,10 +19,24 @@ storiesOf('Style|Icons', module).add(
             </Swatch>
           ))}
         </Swatches>
-      </div>
+      </SwatchWrapper>
     );
   })
 );
+
+const Header = styled('h5')`
+  margin-bottom: 16px;
+`;
+
+const LabelWrapper = styled('div')`
+  font-size: 14px;
+  margin-left: 16px;
+`;
+
+const SwatchWrapper = styled('div')`
+  border: 1px solid ${p => p.theme.borderLight};
+  padding: 24px;
+`;
 
 const Swatches = styled('div')`
   display: grid;
@@ -33,11 +47,9 @@ const Swatches = styled('div')`
 const Swatch = styled('div')`
   display: flex;
   align-items: center;
-  overflow: hidden;
   min-height: 32px;
-`;
 
-const LabelWrapper = styled('div')`
-  font-size: 12px;
-  margin-left: 16px;
+  svg {
+    min-width: 32px;
+  }
 `;
