@@ -171,7 +171,7 @@ class PluginConfigMixin(ProviderMixin):
         """
         FeatureDescriptions are set using the IntegrationFeatures constants,
         however we expose them here as mappings to organization feature flags, thus
-        we prefix them with `plugins`.
+        we prefix them with `integrations`.
         """
         if f is not None:
             return u"integrations-{}".format(f)

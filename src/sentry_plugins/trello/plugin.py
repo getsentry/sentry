@@ -26,7 +26,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     auth_provider = None
     resource_links = [("Trello Setup Instructions", SETUP_URL)] + CorePluginMixin.resource_links
     required_field = "key"
-    features = [
+    feature_descriptions = [
         FeatureDescription(
             """
             Create and link Sentry issue groups directly to an Trello card in any of your
@@ -41,7 +41,6 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             IntegrationFeatures.ISSUE_BASIC,
         ),
     ]
-
 
     def get_config(self, project, **kwargs):
         """

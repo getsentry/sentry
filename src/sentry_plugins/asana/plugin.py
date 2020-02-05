@@ -25,7 +25,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
     conf_key = "asana"
     auth_provider = "asana"
     required_field = "workspace"
-    features = [
+    feature_descriptions = [
         FeatureDescription(
             """
             Create and link Sentry issue groups directly to an Asana ticket in any of your
@@ -35,7 +35,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         ),
         FeatureDescription(
             """
-            Link Sentry issues to existing Asana tickets
+            Link Sentry issues to existing Asana tickets.
             """,
             IntegrationFeatures.ISSUE_BASIC,
         ),

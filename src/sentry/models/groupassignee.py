@@ -243,4 +243,4 @@ class GroupAssignee(Model):
     def assigned_actor(self):
         from sentry.api.fields.actor import Actor
 
-        return Actor.from_actor_id(self.assigned_actor_id())
+        return Actor.from_actor_identifier(self.assigned_actor_id())

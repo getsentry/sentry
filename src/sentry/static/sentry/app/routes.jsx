@@ -844,7 +844,7 @@ function routes() {
       </Route>
 
       <Redirect from="sentry-apps/" to="integrations/" />
-      <Route name="Sentry Apps" path="sentry-apps/">
+      <Route name="Integrations" path="sentry-apps/">
         <Route
           name="Details"
           path=":appSlug"

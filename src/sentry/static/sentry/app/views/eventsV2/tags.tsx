@@ -31,6 +31,7 @@ type State = {
   loading: boolean;
   tags: Tag[];
   totalValues: null | number;
+  error: string;
 };
 
 class Tags extends React.Component<Props, State> {
@@ -45,6 +46,7 @@ class Tags extends React.Component<Props, State> {
     loading: true,
     tags: [],
     totalValues: null,
+    error: '',
   };
 
   componentDidMount() {
@@ -85,6 +87,7 @@ class Tags extends React.Component<Props, State> {
       })
       .catch(err => {
         Sentry.captureException(err);
+        this.setState({loading: false, error: err});
       });
   };
 
@@ -139,15 +142,26 @@ class Tags extends React.Component<Props, State> {
     );
   }
 
+  renderBody = () => {
+    const {loading, error, tags} = this.state;
+    if (loading) {
+      return this.renderPlaceholders();
+    }
+    if (error) {
+      return <EmptyStateWarning small />;
+    }
+    if (tags.length > 0) {
+      return tags.map(tag => this.renderTag(tag));
+    } else {
+      return <EmptyStateWarning small>{t('No tags')}</EmptyStateWarning>;
+    }
+  };
+
   render() {
     return (
       <TagSection>
         <StyledHeading>{t('Event Tag Summary')}</StyledHeading>
-        {this.state.loading && this.renderPlaceholders()}
-        {this.state.tags.length > 0 && this.state.tags.map(tag => this.renderTag(tag))}
-        {!this.state.loading && !this.state.tags.length && (
-          <EmptyStateWarning small>{t('No tags')}</EmptyStateWarning>
-        )}
+        {this.renderBody()}
       </TagSection>
     );
   }

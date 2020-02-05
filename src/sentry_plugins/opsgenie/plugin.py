@@ -45,13 +45,13 @@ class OpsGeniePlugin(notify.NotificationPlugin):
     version = sentry.VERSION
     project_conf_form = OpsGenieOptionsForm
     required_field = "api_key"
-    features = [
+    feature_descriptions = [
         FeatureDescription(
             """
             Configure rule based OpsGenie alerts to automatically be triggered in a specific service
             """,
             IntegrationFeatures.ALERT_RULE,
-        ),
+        )
     ]
 
     logger = logging.getLogger("sentry.plugins.opsgenie")

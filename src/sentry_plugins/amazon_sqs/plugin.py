@@ -27,8 +27,8 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
     description = "Forward Sentry events to Amazon SQS."
     conf_key = "amazon-sqs"
     required_field = "queue_url"
-    #TODO(phillip): Probably need a better feature description
-    features = [
+    # TODO(phillip): Probably need a better feature description
+    feature_descriptions = [
         FeatureDescription(
             """
             Forward Sentry errors and events to Amazon SQS.

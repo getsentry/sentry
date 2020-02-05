@@ -36,13 +36,13 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
         ("Documentation", "http://docs.sessionstack.com/integrations/sentry/")
     ]
 
-    features = [
+    feature_descriptions = [
         FeatureDescription(
             """
-            Watch the session replay of your users when they encounter an error in Sentry.
+            Watch the SessionStack session replay of a user in a video widget embedded in the Sentry UI for an issue.
             """,
             IntegrationFeatures.SESSION_REPLAY,
-        ),
+        )
     ]
 
     def get_resource_links(self):
