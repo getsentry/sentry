@@ -13,7 +13,8 @@ from operator import attrgetter
 from random import randrange
 
 import lxml
-import toronado
+
+# import toronado
 from django.conf import settings
 from django.core import mail
 from django.core.mail import EmailMultiAlternatives
@@ -42,7 +43,7 @@ logger = logging.getLogger("sentry.mail")
 
 def inline_css(value):
     tree = lxml.html.document_fromstring(value)
-    toronado.inline(tree)
+    # toronado.inline(tree)
     # CSS media query support is inconistent when the DOCTYPE declaration is
     # missing, so we force it to HTML5 here.
     return lxml.html.tostring(tree, doctype="<!DOCTYPE html>")
