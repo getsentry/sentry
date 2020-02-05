@@ -7,21 +7,10 @@ import {IconAdd, IconArrow, IconBookmark, IconGroup, IconPin} from 'app/icons';
 
 storiesOf('Style|Icons', module).add(
   'Icon Props',
-  withInfo('These are the props you can assign to the icon components')(() => {
+  withInfo('Props you can assign to the icon components')(() => {
     return (
-      <div>
-        <Examples>
-          <Header>Circle Prop</Header>
-          <Swatch>
-            <IconAdd />
-            <LabelWrapper>IconAdd</LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconAdd circle />
-            <LabelWrapper>IconPin</LabelWrapper>
-          </Swatch>
-        </Examples>
-        <Examples>
+      <SwatchWrapper>
+        <ColorSwatches>
           <Header>Color Prop</Header>
           <Swatch>
             <IconBookmark solid />
@@ -29,44 +18,18 @@ storiesOf('Style|Icons', module).add(
           </Swatch>
           <Swatch>
             <IconBookmark solid color="#6C5FC7" />
-            <LabelWrapper>IconBookmark</LabelWrapper>
+            <LabelWrapper>
+              IconBookmark <Highlight>solid color="#6C5FC7"</Highlight>
+            </LabelWrapper>
           </Swatch>
-        </Examples>
-        <Examples>
-          <Header>Solid Prop</Header>
-          <Swatch>
-            <IconPin />
-            <LabelWrapper>IconPin</LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconPin solid />
-            <LabelWrapper>IconPin</LabelWrapper>
-          </Swatch>
-        </Examples>
-        <Examples>
-          <Header>Directionality Prop</Header>
-          <Swatch>
-            <IconArrow />
-            <LabelWrapper>IconArrow</LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconArrow direction="left" />
-            <LabelWrapper>IconArrow</LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconArrow direction="down" />
-            <LabelWrapper>IconArrow</LabelWrapper>
-          </Swatch>
-          <Swatch>
-            <IconArrow direction="right" />
-            <LabelWrapper>IconArrow</LabelWrapper>
-          </Swatch>
-        </Examples>
-        <Examples>
+        </ColorSwatches>
+        <SizeSwatches>
           <Header>Size Prop</Header>
           <Swatch>
             <IconGroup size="xs" />
-            <LabelWrapper>IconGroup size="xs"</LabelWrapper>
+            <LabelWrapper>
+              IconGroup <Highlight>size="xs"</Highlight>
+            </LabelWrapper>
           </Swatch>
           <Swatch>
             <IconGroup />
@@ -74,39 +37,134 @@ storiesOf('Style|Icons', module).add(
           </Swatch>
           <Swatch>
             <IconGroup size="md" />
-            <LabelWrapper>IconGroup size="md"</LabelWrapper>
+            <LabelWrapper>
+              IconGroup <Highlight>size="md"</Highlight>
+            </LabelWrapper>
           </Swatch>
           <Swatch>
             <IconGroup size="lg" />
-            <LabelWrapper>IconGroup size="lg"</LabelWrapper>
+            <LabelWrapper>
+              IconGroup <Highlight>size="lg"</Highlight>
+            </LabelWrapper>
           </Swatch>
           <Swatch>
             <IconGroup size="xl" />
-            <LabelWrapper>IconGroup size="xl"</LabelWrapper>
+            <LabelWrapper>
+              IconGroup <Highlight>size="xl"</Highlight>
+            </LabelWrapper>
           </Swatch>
-        </Examples>
-      </div>
+        </SizeSwatches>
+        <DirectionSwatches>
+          <Header>Direction Prop</Header>
+          <Swatch>
+            <IconArrow />
+            <LabelWrapper>IconArrow</LabelWrapper>
+          </Swatch>
+          <Swatch>
+            <IconArrow direction="left" />
+            <LabelWrapper>
+              IconArrow <Highlight>direction="left"</Highlight>
+            </LabelWrapper>
+          </Swatch>
+          <Swatch>
+            <IconArrow direction="down" />
+            <LabelWrapper>
+              IconArrow <Highlight>direction="down"</Highlight>
+            </LabelWrapper>
+          </Swatch>
+          <Swatch>
+            <IconArrow direction="right" />
+            <LabelWrapper>
+              IconArrow <Highlight>direction="right"</Highlight>
+            </LabelWrapper>
+          </Swatch>
+        </DirectionSwatches>
+        <CircleSwatches>
+          <Header>Circle Prop</Header>
+          <Swatch>
+            <IconAdd />
+            <LabelWrapper>IconAdd</LabelWrapper>
+          </Swatch>
+          <Swatch>
+            <IconAdd circle />
+            <LabelWrapper>
+              IconAdd <Highlight>circle</Highlight>
+            </LabelWrapper>
+          </Swatch>
+        </CircleSwatches>
+        <SolidSwatches>
+          <Header>Solid Prop</Header>
+          <Swatch>
+            <IconPin />
+            <LabelWrapper>IconPin</LabelWrapper>
+          </Swatch>
+          <Swatch>
+            <IconPin solid />
+            <LabelWrapper>
+              IconPin <Highlight>solid</Highlight>
+            </LabelWrapper>
+          </Swatch>
+        </SolidSwatches>
+      </SwatchWrapper>
     );
   })
 );
 
-const Swatch = styled('div')`
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  min-height: 32px;
-`;
-
-const LabelWrapper = styled('div')`
-  font-size: 12px;
-  margin-left: 16px;
-`;
-
-const Examples = styled('div')`
-  border: 1px solid ${p => p.theme.gray1};
-  padding: 16px 24px;
+const Highlight = styled('span')`
+  color: ${p => p.theme.purple};
+  font-weight: 600;
 `;
 
 const Header = styled('h5')`
   margin-bottom: 8px;
+`;
+
+const LabelWrapper = styled('div')`
+  font-size: 14px;
+  margin-left: 16px;
+`;
+
+const SwatchWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(5, auto);
+  grid-gap: 16px;
+`;
+
+const Swatches = styled('div')`
+  border: 1px solid ${p => p.theme.borderLight};
+  padding: 24px;
+`;
+
+const ColorSwatches = styled(Swatches)`
+  grid-column: 1/2;
+  grid-row: 1/2;
+`;
+
+const SizeSwatches = styled(Swatches)`
+  grid-column: 1/2;
+  grid-row: 2/6;
+`;
+
+const DirectionSwatches = styled(Swatches)`
+  grid-column: 2/3;
+  grid-row: 1/4;
+`;
+
+const CircleSwatches = styled(Swatches)`
+  grid-column: 2/3;
+`;
+
+const SolidSwatches = styled(Swatches)`
+  grid-column: 2/3;
+`;
+
+const Swatch = styled('div')`
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+
+  svg {
+    min-width: 32px;
+  }
 `;
