@@ -1,11 +1,12 @@
 import React from 'react';
 import get from 'lodash/get';
+import {InjectedRouter} from 'react-router/lib/Router';
 
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import NavigationActions from 'app/actions/navigationActions';
 
-export function navigateTo(to, router) {
+export function navigateTo(to: string, router: InjectedRouter) {
   // Check for placeholder params
   const needOrg = to.indexOf(':orgId') > -1;
   const needProject = to.indexOf(':projectId') > -1;
@@ -34,6 +35,6 @@ export function navigateTo(to, router) {
   }
 }
 
-export function setLastRoute(route) {
+export function setLastRoute(route: string) {
   NavigationActions.setLastRoute(route);
 }
