@@ -3,11 +3,11 @@
 from __future__ import unicode_literals, print_function
 
 import os
-import pytz
 import types
 from datetime import timedelta, datetime
 
 from django.db import migrations
+from django.utils import timezone
 
 from sentry import options
 from sentry.eventstore.models import Event as NewEvent
@@ -35,7 +35,7 @@ def backfill_eventstream(apps, schema_editor):
     retention_days = options.get("system.event-retention-days") or DEFAULT_RETENTION
 
     def get_events(last_days):
-        to_date = datetime.now(pytz.utc)
+        to_date = timezone.now()
         from_date = to_date - timedelta(days=last_days)
         return Event.objects.filter(
             datetime__gte=from_date, datetime__lte=to_date, group_id__isnull=False
