@@ -241,11 +241,7 @@ class Results extends React.Component<Props, State> {
                   <ChartControls>
                     <InlineContainer>
                       <SectionHeading>{t('Count')}</SectionHeading>
-                      {typeof totalValues === 'number' ? (
-                        <Count value={totalValues} />
-                      ) : (
-                        '-'
-                      )}
+                      {totalValues === null ? '-' : <Count value={Number(totalValues)} />}
                     </InlineContainer>
 
                     <YAxisSelector
