@@ -169,9 +169,9 @@ class PluginConfigMixin(ProviderMixin):
     @staticmethod
     def feature_flag_name(f):
         """
-        FeatureDescriptions are set using the IntegrationFeatures constants,
-        however we expose them here as mappings to organization feature flags, thus
-        we prefix them with `integrations`.
+        For the time being, we want the features for plugins to be treated separately than integrations
+        (integration features prefix with integrations-). This is because in Saas Sentry,
+        users can install the Trello and Asana plugins but not Jira even though both utilize issue-commits.
+        By not prefixing, we can avoid making new feature flags for data-forwarding which are restricted.
         """
-        if f is not None:
-            return u"integrations-{}".format(f)
+        return f
