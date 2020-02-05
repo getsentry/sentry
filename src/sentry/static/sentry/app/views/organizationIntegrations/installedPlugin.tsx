@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-// import space from 'app/styles/space';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -28,10 +27,8 @@ export type Props = {
 };
 
 export class InstalledPlugin extends React.Component<Props> {
-  removeConfirmProps() {
-    // const {plugin} = this.props;
-
-    const message = (
+  getConfirmMessage() {
+    return (
       <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">
           {t(
@@ -40,11 +37,6 @@ export class InstalledPlugin extends React.Component<Props> {
         </Alert>
       </React.Fragment>
     );
-    return {
-      message,
-      confirmText: 'Delete Installation',
-      onConfirm: () => this.handleReset(),
-    };
   }
 
   pluginUpdate = async (data: object) => {
@@ -72,9 +64,6 @@ export class InstalledPlugin extends React.Component<Props> {
   handleUninstallClick = () => {
     //TODO: Analytics
   };
-  hasConfiguration() {
-    return this.props.projectItem.configured;
-  }
 
   enablePlugin = async () => {
     try {
@@ -108,16 +97,15 @@ export class InstalledPlugin extends React.Component<Props> {
                 <ProjectBadge project={this.projectForBadge} />
               </IntegrationItemBox>
               <div>
-                {!projectItem.enabled && this.hasConfiguration() && (
+                {!projectItem.enabled ? (
                   <Button size="small" priority="primary" onClick={this.enablePlugin}>
                     {t('Enable')}
                   </Button>
-                )}
-                {projectItem.enabled && this.hasConfiguration() && (
+                ) : (
                   <StyledButton
                     borderless
                     icon="icon-settings"
-                    disabled={!this.hasConfiguration() || !hasAccess}
+                    disabled={!hasAccess}
                     to={`/settings/${organization.slug}/projects/${projectItem.projectSlug}/plugins/${plugin.id}/`}
                     data-test-id="integration-configure-button"
                   >
@@ -130,7 +118,9 @@ export class InstalledPlugin extends React.Component<Props> {
                   priority="danger"
                   onConfirming={this.handleUninstallClick}
                   disabled={!hasAccess}
-                  {...this.removeConfirmProps()}
+                  confirmText="Delete Installation"
+                  onConfirm={() => this.handleReset()}
+                  message={this.getConfirmMessage()}
                 >
                   <StyledButton
                     disabled={!hasAccess}

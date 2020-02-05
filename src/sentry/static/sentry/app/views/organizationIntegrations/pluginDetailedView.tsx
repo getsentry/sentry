@@ -12,7 +12,6 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncComponent from 'app/components/asyncComponent';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Tag from 'app/views/settings/components/tag';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import Access from 'app/components/acl/access';
@@ -61,14 +60,6 @@ class PluginDetailedView extends AsyncComponent<
   get plugin() {
     return this.state.plugins[0];
   }
-
-  onInstall = () => {};
-
-  onRemove = () => {};
-
-  onDisable = () => {};
-
-  handleExternalInstall = () => {};
 
   handleResetConfiguration = (projectId: string) => {
     //make a copy of our project list
