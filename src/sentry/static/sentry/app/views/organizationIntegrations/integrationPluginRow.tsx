@@ -39,13 +39,13 @@ export default class PluginRow extends React.Component<Props> {
         <Flex style={{alignItems: 'center', padding: '16px'}}>
           <PluginIcon size={36} pluginId={plugin.id} />
           <div style={{flex: '1', padding: '0 16px'}}>
-            <ProviderName to={`/settings/${slug}/integrations/${plugin.id}`}>
+            <ProviderName to={`/settings/${slug}/plugins/${plugin.slug}`}>
               {`${plugin.name} ${legacy ? '(Legacy)' : ''}`}
             </ProviderName>
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
               <StyledLink
-                to={`/settings/${slug}/integrations/${plugin.id}?tab=configurations`}
+                to={`/settings/${slug}/plugins/${plugin.slug}?tab=configurations`}
               >{`${plugin.projectList.length} Configurations`}</StyledLink>
             </ProviderDetails>
           </div>
