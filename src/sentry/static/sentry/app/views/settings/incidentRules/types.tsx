@@ -19,13 +19,17 @@ export type UnsavedTrigger = {
   label: string;
   thresholdType: AlertRuleThresholdType;
   alertThreshold: number;
-  resolveThreshold: number | '';
+  resolveThreshold: number | '' | null;
   actions: Action[];
 };
 
 export type ThresholdControlValue = {
   thresholdType: AlertRuleThresholdType;
-  threshold: number | '';
+
+  /**
+   * Resolve threshold is optional, so it can be null
+   */
+  threshold: number | '' | null;
 };
 
 export type SavedTrigger = UnsavedTrigger & {
