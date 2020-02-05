@@ -151,7 +151,7 @@ class RuleNode extends React.Component<Props> {
       <React.Fragment>
         {data && <input type="hidden" name="id" value={data.id} />}
         {this.renderRow()}
-        <Button onClick={onDelete} type="button" size="small" icon="icon-trash" />
+        <DeleteButton onClick={onDelete} type="button" size="small" icon="icon-trash" />
       </React.Fragment>
     );
   }
@@ -169,4 +169,8 @@ const RuleNodeForm = styled('div')`
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   align-items: center;
   white-space: nowrap;
+`;
+
+const DeleteButton = styled(Button)`
+  height: 100%;
 `;
