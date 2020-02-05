@@ -1,4 +1,4 @@
-FROM nginx:1.16-alpine
+FROM nginx:1.16.1
 
 # cleanup unused nginx config
 RUN rm /etc/nginx/conf.d/default.conf
