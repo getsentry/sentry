@@ -40,7 +40,7 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
         # to the dev server
         from django.conf import settings
 
-        port = 8888 if settings.USE_RELAY_DEVSERVICES else 8000
+        port = 8888 if settings.SENTRY_USE_RELAY else 8000
         bind = "127.0.0.1:{}".format(port)
 
     if ":" in bind:

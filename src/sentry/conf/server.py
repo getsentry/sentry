@@ -1332,7 +1332,7 @@ SENTRY_WATCHERS = (
 # If Relay is used a reverse proxy server will be run at the 8000 (the port formally used by Sentry) that
 # will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
 # rest will be forwarded to Sentry)
-USE_RELAY_DEVSERVICES = False
+SENTRY_USE_RELAY = True
 
 SENTRY_DEVSERVICES = {
     "redis": {
@@ -1406,7 +1406,7 @@ SENTRY_DEVSERVICES = {
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
         "pull": True,
-        "ports": {"3021/tcp": 3000},
+        "ports": {"3000/tcp": 3000},
         "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
     },

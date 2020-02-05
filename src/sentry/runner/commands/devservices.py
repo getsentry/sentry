@@ -81,7 +81,7 @@ def up(project, exclude):
     if "kafka" in settings.SENTRY_EVENTSTREAM:
         pass
     elif "snuba" in settings.SENTRY_EVENTSTREAM:
-        if not settings.USE_RELAY_DEVSERVICES:
+        if not settings.SENTRY_USE_RELAY:
             click.secho(
                 "! Skipping kafka and zookeeper since your eventstream backend does not require it",
                 err=True,
@@ -89,7 +89,7 @@ def up(project, exclude):
             )
             exclude |= {"kafka", "zookeeper"}
     else:
-        if settings.USE_RELAY_DEVSERVICES:
+        if settings.SENTRY_USE_RELAY:
             click.secho(
                 "! Skipping snuba, and clickhouse since your eventstream backend does not require it",
                 err=True,
@@ -104,7 +104,7 @@ def up(project, exclude):
             )
             exclude |= {"kafka", "zookeeper", "snuba", "clickhouse"}
 
-    if not settings.USE_RELAY_DEVSERVICES:
+    if not settings.SENTRY_USE_RELAY:
         click.secho(
             "! Skipping relay, and reverse_proxy since you are not using Relay.",
             err=True,
