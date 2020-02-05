@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import EventAttachment
+from sentry.search.utils import tokenize_query
 
 
 class EventAttachmentsEndpoint(ProjectEndpoint):
@@ -32,6 +35,16 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         queryset = EventAttachment.objects.filter(
             project_id=project.id, event_id=event.event_id
         ).select_related("file")
+
+        query = request.GET.get("query")
+        if query:
+            tokens = tokenize_query(query)
+            for key, value in six.iteritems(tokens):
+                if key == "query":
+                    value = " ".join(value)
+                    queryset = queryset.filter(name__icontains=value)
+                else:
+                    queryset = queryset.none()
 
         return self.paginate(
             request=request,
