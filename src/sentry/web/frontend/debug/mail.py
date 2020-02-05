@@ -13,7 +13,6 @@ from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
-from loremipsum import Generator
 from random import Random
 
 from sentry import eventstore
@@ -37,6 +36,7 @@ from sentry.models import (
 )
 from sentry.event_manager import EventManager
 from sentry.plugins.sentry_mail.activity import emails
+from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
 from sentry.utils.http import absolute_uri
@@ -47,8 +47,6 @@ from sentry.web.helpers import render_to_response, render_to_string
 from six.moves import xrange
 
 logger = logging.getLogger(__name__)
-
-loremipsum = Generator()
 
 
 def get_random(request):
