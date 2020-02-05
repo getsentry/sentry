@@ -419,6 +419,12 @@ def batching_kafka_options(group):
     type=click.Choice(["events", "transactions", "attachments"]),
 )
 @batching_kafka_options("ingest-consumer")
+@click.option(
+    "--concurrency",
+    type=int,
+    default=1,
+    help="Spawn this many threads to process messages. Defaults to 1.",
+)
 @configuration
 def ingest_consumer(consumer_type, **options):
     """

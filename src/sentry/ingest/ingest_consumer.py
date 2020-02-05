@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
+import atexit
 import logging
 import msgpack
 from six import BytesIO
 
+import multiprocessing.dummy
+import multiprocessing as _multiprocessing
 
 from django.conf import settings
 from django.core.cache import cache
@@ -13,7 +16,7 @@ from sentry.cache import default_cache
 from sentry.models import Project, File, EventAttachment
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kafka import create_batching_kafka_consumer
@@ -48,36 +51,62 @@ class ConsumerType(object):
 
 
 class IngestConsumerWorker(AbstractBatchWorker):
+    def __init__(self, concurrency):
+        self.pool = _multiprocessing.dummy.Pool(concurrency)
+        atexit.register(self.pool.close)
+
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
-        message_type = message["type"]
-
-        if message_type in ("event", "transaction"):
-            process_event(message)
-        elif message_type == "attachment_chunk":
-            process_attachment_chunk(message)
-        elif message_type == "attachment":
-            process_individual_attachment(message)
-        elif message_type == "user_report":
-            process_userreport(message)
-        else:
-            raise ValueError("Unknown message type: {}".format(message_type))
-
-        # Return *something* so that it counts against batch size
-        return True
+        return message
 
     def flush_batch(self, batch):
-        pass
+        attachment_chunks = []
+        other_messages = []
+
+        projects_to_fetch = []
+
+        for message in batch:
+            message_type = message["type"]
+            projects_to_fetch.append(message["project_id"])
+
+            if message_type in ("event", "transaction"):
+                other_messages.append((process_event, message))
+            elif message_type == "attachment_chunk":
+                attachment_chunks.append(message)
+            elif message_type == "attachment":
+                other_messages.append((process_individual_attachment, message))
+            elif message_type == "user_report":
+                other_messages.append((process_userreport, message))
+            else:
+                raise ValueError("Unknown message type: {}".format(message_type))
+
+        projects = {p.id: p for p in Project.objects.get_many_from_cache(projects_to_fetch)}
+
+        # attachment_chunk messages need to be processed before attachment/event messages.
+        with metrics.timer("ingest_consumer.process_attachment_chunk_batch"):
+            for _ in self.pool.imap_unordered(
+                lambda msg: process_attachment_chunk(msg, projects=projects),
+                attachment_chunks,
+                chunksize=100,
+            ):
+                pass
+
+        with metrics.timer("ingest_consumer.process_other_messages_batch"):
+            for _ in self.pool.imap_unordered(
+                lambda args: args[0](args[1], projects=projects), other_messages, chunksize=100
+            ):
+                pass
 
     def shutdown(self):
         pass
 
 
-def process_event(message):
+@metrics.wraps("ingest_consumer.process_event")
+def process_event(message, projects):
     payload = message["payload"]
     start_time = float(message["start_time"])
     event_id = message["event_id"]
-    project_id = message["project_id"]
+    project_id = int(message["project_id"])
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
 
@@ -93,8 +122,8 @@ def process_event(message):
         return  # message already processed do not reprocess
 
     try:
-        project = Project.objects.get_from_cache(id=project_id)
-    except Project.DoesNotExist:
+        project = projects[project_id]
+    except KeyError:
         logger.error("Project for ingested event does not exist: %s", project_id)
         return
 
@@ -130,7 +159,8 @@ def process_event(message):
     event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
 
 
-def process_attachment_chunk(message):
+@metrics.wraps("ingest_consumer.process_attachment_chunk")
+def process_attachment_chunk(message, projects):
     payload = message["payload"]
     event_id = message["event_id"]
     project_id = message["project_id"]
@@ -142,14 +172,15 @@ def process_attachment_chunk(message):
     )
 
 
-def process_individual_attachment(message):
+@metrics.wraps("ingest_consumer.process_individual_attachment")
+def process_individual_attachment(message, projects):
     event_id = message["event_id"]
-    project_id = message["project_id"]
+    project_id = int(message["project_id"])
     cache_key = cache_key_for_event({"event_id": event_id, "project": project_id})
 
     try:
-        project = Project.objects.get_from_cache(id=project_id)
-    except Project.DoesNotExist:
+        project = projects[project_id]
+    except KeyError:
         logger.error("Project for ingested event does not exist: %s", project_id)
         return
 
@@ -177,14 +208,15 @@ def process_individual_attachment(message):
     attachment.delete()
 
 
-def process_userreport(message):
-    project_id = message["project_id"]
+@metrics.wraps("ingest_consumer.process_userreport")
+def process_userreport(message, projects):
+    project_id = int(message["project_id"])
     start_time = to_datetime(message["start_time"])
     feedback = json.loads(message["payload"])
 
     try:
-        project = Project.objects.get_from_cache(id=project_id)
-    except Project.DoesNotExist:
+        project = projects[project_id]
+    except KeyError:
         logger.error("Project for ingested event does not exist: %s", project_id)
         return False
 
@@ -196,7 +228,7 @@ def process_userreport(message):
         return False
 
 
-def get_ingest_consumer(consumer_type, once=False, **options):
+def get_ingest_consumer(consumer_type, once=False, concurrency=None, **options):
     """
     Handles events coming via a kafka queue.
 
@@ -204,5 +236,5 @@ def get_ingest_consumer(consumer_type, once=False, **options):
     """
     topic_name = ConsumerType.get_topic_name(consumer_type)
     return create_batching_kafka_consumer(
-        topic_name=topic_name, worker=IngestConsumerWorker(), **options
+        topic_name=topic_name, worker=IngestConsumerWorker(concurrency=concurrency), **options
     )
