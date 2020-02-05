@@ -346,6 +346,11 @@ def get_channel_id(organization, integration_id, name):
     except Integration.DoesNotExist:
         return None
 
+    # XXX(meredith): For large accounts that have many, many channels it's
+    # possible for us to timeout while attempting to paginate through to find the channel id
+    # This means some users are unable to create/update alert rules. To avoid this, we attempt
+    # to find the channel id asynchronously if it takes longer than a certain amount of time,
+    # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
     return get_channel_id_with_timeout(integration, name, SLACK_DEFAULT_TIMEOUT)
 
 
@@ -366,11 +371,6 @@ def get_channel_id_with_timeout(integration, name, timeout):
     # Look for channel ID
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
-    # XXX(meredith): For large accounts that have many, many channels it's
-    # possible for us to timeout while attempting to paginate through to find the channel id
-    # This means some users are unable to create/update alert rules. To avoid this, we attempt
-    # to find the channel id asynchronously if it takes longer than a certain amount of time,
-    # which I have set here - arbitrarily - to 10 seconds.
     time_to_quit = time.time() + timeout
     session = http.build_session()
     for list_type, result_name, prefix in LIST_TYPES:

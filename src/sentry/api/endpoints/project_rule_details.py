@@ -6,10 +6,9 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
-from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
-
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
+from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
 
 
 class ProjectRuleDetailsEndpoint(ProjectEndpoint):
@@ -60,17 +59,15 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
                 "frequency": data.get("frequency"),
             }
 
-            updated_rule = project_rules.Updater.run(
-                rule=rule, pending_save=data.get("pending_save", False), request=request, **kwargs
-            )
-
-            if not updated_rule:
+            if data.get("pending_save"):
                 client = tasks.RedisRuleStatus()
                 kwargs.update({"uuid": client.uuid, "rule_id": rule.id})
                 tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
 
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
+
+            updated_rule = project_rules.Updater.run(rule=rule, request=request, **kwargs)
 
             self.create_audit_entry(
                 request=request,

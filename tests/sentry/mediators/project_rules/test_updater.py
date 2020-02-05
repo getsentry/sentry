@@ -12,12 +12,7 @@ class TestUpdater(TestCase):
             teams=[self.create_team()], name="foo", fire_project_created=True
         )
         self.rule = self.project.rule_set.all()[0]
-        self.updater = Updater(rule=self.rule, project=self.project, pending_save=False)
-
-    def test_pending_save(self):
-        self.updater.pending_save = True
-        result = self.updater.call()
-        assert result is None
+        self.updater = Updater(rule=self.rule, project=self.project)
 
     def test_update_name(self):
         self.updater.name = "Cool New Rule"

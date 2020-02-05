@@ -16,12 +16,9 @@ class Updater(Mediator):
     actions = Param(Iterable, required=False)
     conditions = Param(Iterable, required=False)
     frequency = Param(int, required=False)
-    pending_save = Param(bool)
     request = Param("rest_framework.request.Request", required=False)
 
     def call(self):
-        if self.pending_save:
-            return None
         self._update_name()
         self._update_environment()
         self._update_project()

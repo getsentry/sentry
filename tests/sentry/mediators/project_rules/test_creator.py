@@ -31,13 +31,7 @@ class TestCreator(TestCase):
                 }
             ],
             frequency=5,
-            pending_save=False,
         )
-
-    def test_pending_save(self):
-        self.creator.pending_save = True
-        result = self.creator.call()
-        assert result is None
 
     def test_creates_rule(self):
         r = self.creator.call()

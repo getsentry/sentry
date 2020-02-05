@@ -64,16 +64,14 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 "frequency": data.get("frequency"),
             }
 
-            rule = project_rules.Creator.run(
-                pending_save=data.get("pending_save", False), request=request, **kwargs
-            )
-
-            if not rule:
+            if data.get("pending_save"):
                 client = tasks.RedisRuleStatus()
                 uuid_context = {"uuid": client.uuid}
                 kwargs.update(uuid_context)
                 tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
                 return Response(uuid_context, status=202)
+
+            rule = project_rules.Creator.run(request=request, **kwargs)
 
             self.create_audit_entry(
                 request=request,

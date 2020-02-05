@@ -15,7 +15,6 @@ class Creator(Mediator):
     actions = Param(Iterable)
     conditions = Param(Iterable)
     frequency = Param(int)
-    pending_save = Param(bool)
     request = Param("rest_framework.request.Request", required=False)
 
     def call(self):
@@ -23,9 +22,6 @@ class Creator(Mediator):
         return self.rule
 
     def _create_rule(self):
-        if self.pending_save:
-            return None
-
         kwargs = self._get_kwargs()
         rule = Rule.objects.create(**kwargs)
         return rule

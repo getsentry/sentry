@@ -7,20 +7,10 @@ from django.conf import settings
 
 from sentry.utils import json
 from sentry.tasks.base import instrumented_task
-from sentry.models import Integration, Project, Rule
-from sentry.integrations.slack.utils import get_channel_id_with_timeout
-
-from sentry.utils.redis import redis_clusters
 from sentry.mediators import project_rules
-
-MEMBER_PREFIX = "@"
-CHANNEL_PREFIX = "#"
-
-LIST_TYPES = [
-    ("channels", "channels", CHANNEL_PREFIX),
-    ("groups", "groups", CHANNEL_PREFIX),
-    ("users", "members", MEMBER_PREFIX),
-]
+from sentry.models import Integration, Project, Rule
+from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
+from sentry.utils.redis import redis_clusters
 
 
 class RedisRuleStatus(object):
@@ -86,7 +76,7 @@ def find_channel_id_for_rule(
         if action.get("workspace") and action.get("channel"):
             integration_id = action["workspace"]
             # we need to strip the prefix when searching on the channel name
-            channel_name = action["channel"].strip("#@")
+            channel_name = strip_channel_name(action["channel"])
             break
 
     try:
@@ -97,12 +87,15 @@ def find_channel_id_for_rule(
         redis_rule_status.set_value("failed")
         return
 
+    # we dont' know exactly how long it will take to paginate through all of the slack
+    # endpoints but need some time limit imposed. 3 minutes should be more than enough time,
+    # we can always update later
     (prefix, item_id, _timed_out) = get_channel_id_with_timeout(integration, channel_name, 3 * 60)
 
     if item_id:
         for action in actions:
-            # need to make sure we are adding the right prefix
-            if action.get("channel") and action.get("channel").strip("#@") == channel_name:
+            # need to make sure we are adding back the right prefix
+            if action.get("channel") and strip_channel_name(action.get("channel")) == channel_name:
                 action["channel"] = prefix + channel_name
                 break
 

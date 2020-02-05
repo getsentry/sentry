@@ -5,9 +5,8 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
-from sentry.models import Rule, RuleStatus
-
 from sentry.integrations.slack import tasks
+from sentry.models import Rule, RuleStatus
 
 
 class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
