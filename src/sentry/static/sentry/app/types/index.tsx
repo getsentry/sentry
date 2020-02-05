@@ -320,7 +320,7 @@ export type PluginProjectItem = {
   projectId: string;
   projectSlug: string;
   projectName: string;
-  projectPlatform: string;
+  projectPlatform: string | null;
   enabled: boolean;
   configured: boolean;
 };

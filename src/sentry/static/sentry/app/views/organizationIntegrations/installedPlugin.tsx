@@ -81,7 +81,7 @@ export class InstalledPlugin extends React.Component<Props> {
     const {projectItem} = this.props;
     return {
       slug: projectItem.projectSlug,
-      platform: projectItem.projectPlatform,
+      platform: projectItem.projectPlatform ? projectItem.projectPlatform : undefined,
     };
   }
 

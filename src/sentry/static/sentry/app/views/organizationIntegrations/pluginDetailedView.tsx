@@ -153,11 +153,7 @@ class PluginDetailedView extends AsyncComponent<
     // Prepare the features list
     const features = plugin.featureDescriptions.map(f => ({
       featureGate: f.featureGate,
-      description: (
-        <FeatureListItem
-          dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}}
-        />
-      ),
+      description: <FeatureListItem>{f.description}</FeatureListItem>,
     }));
 
     const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
@@ -211,7 +207,7 @@ class PluginDetailedView extends AsyncComponent<
               className={tab === tabName ? 'active' : ''}
               onClick={() => this.onTabChange(tabName)}
             >
-              <a style={{textTransform: 'capitalize'}}>{this.getTabDiplay(tabName)}</a>
+              <a style={{textTransform: 'capitalize'}}>{t(this.getTabDiplay(tabName))}</a>
             </li>
           ))}
         </ul>
@@ -310,11 +306,15 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   font-size: 0.9em;
 `;
 
+type InformationCardProps = {
+  children: React.ReactNode;
+  plugin: PluginNoProject;
+};
+
 const InformationCard = ({children, plugin}: InformationCardProps) => {
-  const description = marked(plugin.description);
   return (
     <React.Fragment>
-      <Description dangerouslySetInnerHTML={{__html: description}} />
+      <Description>{plugin.description}</Description>
       {children}
       <Metadata>
         {plugin.author && <AuthorName>{t('By %s', plugin.author.name)}</AuthorName>}
@@ -330,11 +330,6 @@ const InformationCard = ({children, plugin}: InformationCardProps) => {
       </Metadata>
     </React.Fragment>
   );
-};
-
-type InformationCardProps = {
-  children: React.ReactNode;
-  plugin: PluginNoProject;
 };
 
 export default withOrganization(PluginDetailedView);
