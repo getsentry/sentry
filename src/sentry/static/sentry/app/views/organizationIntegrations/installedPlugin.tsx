@@ -41,6 +41,7 @@ export class InstalledPlugin extends React.Component<Props> {
 
   pluginUpdate = async (data: object) => {
     const {organization, projectItem, plugin} = this.props;
+    // no try/catch so the caller will have to have it
     await this.props.api.requestPromise(
       `/projects/${organization.slug}/${projectItem.projectSlug}/plugins/${plugin.id}/`,
       {
