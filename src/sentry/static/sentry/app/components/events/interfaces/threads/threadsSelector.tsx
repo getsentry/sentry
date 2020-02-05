@@ -84,7 +84,7 @@ const ThreadsSelector = ({threads, event, activeThread, onChange}: Props) => {
           `}
         >
           {({isOpen, selectedItem}) => (
-            <StyledDropdownButton isOpen={isOpen} align="left">
+            <StyledDropdownButton size="small" isOpen={isOpen} align="left">
               {selectedItem ? (
                 <ThreadsSelectorSelectedOption
                   id={selectedItem.thread.id}
