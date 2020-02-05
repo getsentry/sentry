@@ -1,0 +1,39 @@
+---
+relay:
+  mode: managed
+  upstream: "http://host.docker.internal:8888/"
+  # upstream: "http://localhost:8088/"
+  # upstream: "http://raduw-sentry.eu.ngrok.io/"
+  host: 127.0.0.1
+  port: 3000
+  tls_port: ~
+  tls_identity_path: ~
+  tls_identity_password: ~
+logging:
+  level: DEBUG
+  log_failed_payloads: true
+  # this is NOT the default (enable it for testing)
+  enable_backtraces: false
+#metrics:
+#  statsd: "localhost:4500"
+#  prefix: "sentry.relay"
+limits:
+  max_event_payload_size: 256KB
+  max_attachment_payload_size: 50MB
+  max_active_events: 2000000
+cache:
+  event_buffer_size: 2000000
+processing:
+  enabled: true
+  kafka_config:
+    - {name: "bootstrap.servers", value: "host.docker.internal"}
+  topics:
+    events: "ingest-events"
+    attachments: "ingest-attachments"
+    transactions: "ingest-transactions"
+    outcomes: "event-outcomes"
+  redis: redis://host.docker.internal
+  attachment_chunk_size: 5000
+sentry:
+  dsn: "http://58d4d1ac76f74c11bf337e6275bc7297@localhost:8088/6"
+  enabled: true

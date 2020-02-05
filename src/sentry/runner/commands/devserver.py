@@ -27,11 +27,22 @@ from sentry.runner.decorators import configuration, log_options
     default=False,
     help="This enables running sentry with pure separation of the frontend and backend",
 )
-@click.argument("bind", default="127.0.0.1:8000", metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND")
+@click.argument(
+    "bind", default=None, metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND", required=False
+)
 @log_options()
 @configuration
 def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, environment, bind):
     "Starts a lightweight web server for development."
+    if bind is None:
+        # default configuration, the dev server address depends on weather we have a reverse proxy
+        # in front that splits the requests between Relay and the dev server or we pass everything
+        # to the dev server
+        from django.conf import settings
+
+        port = 8888 if settings.USE_RELAY_DEVSERVICES else 8000
+        bind = "127.0.0.1:{}".format(port)
+
     if ":" in bind:
         host, port = bind.split(":", 1)
         port = int(port)
