@@ -25,11 +25,12 @@ import ContextPickerModal from 'app/components/contextPickerModal';
 import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
 
-const tabs = ['information', 'configurations'];
+type Tab = 'information' | 'configurations';
+const tabs: Tab[] = ['information', 'configurations'];
 
 type State = {
   plugins: PluginWithProjectList[];
-  tab: string;
+  tab: Tab;
 };
 
 type Props = {
@@ -43,7 +44,7 @@ class PluginDetailedView extends AsyncComponent<
   componentDidMount() {
     const {location} = this.props;
     const value =
-      typeof location.query.tab === 'string' ? location.query.tab : 'information';
+      location.query.tab === 'configurations' ? 'configurations' : 'information';
 
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({tab: value});
@@ -51,11 +52,9 @@ class PluginDetailedView extends AsyncComponent<
 
   getEndpoints(): ([string, string, any] | [string, string])[] {
     const {orgId, pluginSlug} = this.props.params;
-    const baseEndpoints: ([string, string, any] | [string, string])[] = [
+    return [
       ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${pluginSlug}`],
     ];
-
-    return baseEndpoints;
   }
   get plugin() {
     return this.state.plugins[0];
@@ -110,7 +109,7 @@ class PluginDetailedView extends AsyncComponent<
           Body={Body}
           nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/${plugin.id}/`}
           needProject
-          needOrg
+          needOrg={false}
           onFinish={path => {
             closeModal();
             router.push(path);
@@ -121,7 +120,7 @@ class PluginDetailedView extends AsyncComponent<
     );
   };
 
-  onTabChange = value => {
+  onTabChange = (value: Tab) => {
     this.setState({tab: value});
   };
 
@@ -143,15 +142,6 @@ class PluginDetailedView extends AsyncComponent<
     const {tab} = this.state;
     const {organization} = this.props;
 
-    //TODO: Use sytled component
-    const buttonProps = {
-      style: {marginLeft: space(1)},
-      size: 'small',
-      priority: 'primary',
-    };
-
-    const AddButton = p => <Button {...buttonProps} {...p} />;
-
     // Prepare the features list
     const features = plugin.featureDescriptions.map(f => ({
       featureGate: f.featureGate,
@@ -165,7 +155,6 @@ class PluginDetailedView extends AsyncComponent<
     const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
     const featureProps = {organization, features};
 
-    // const {tab} = this.state;
     return (
       <React.Fragment>
         <Flex>
@@ -194,8 +183,9 @@ class PluginDetailedView extends AsyncComponent<
                       <AddButton
                         data-test-id="add-button"
                         disabled={disabled || !hasAccess}
-                        organization={organization}
                         onClick={this.handleAddToProject}
+                        size="small"
+                        priority="primary"
                       >
                         {t('Add to Project')}
                       </AddButton>
@@ -290,6 +280,10 @@ const AuthorName = styled('div')`
 
 const FeatureListItem = styled('span')`
   line-height: 24px;
+`;
+
+const AddButton = styled(Button)`
+  margin-left: ${space(1)};
 `;
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
