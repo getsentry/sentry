@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.utils.http import absolute_uri
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry_plugins.base import CorePluginMixin
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from .client import TrelloApiClient
 
 
@@ -25,6 +26,21 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
     auth_provider = None
     resource_links = [("Trello Setup Instructions", SETUP_URL)] + CorePluginMixin.resource_links
     required_field = "key"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Create and link Sentry issue groups directly to an Trello card in any of your
+            projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+        FeatureDescription(
+            """
+            Link Sentry issues to existing Trello cards
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+    ]
 
     def get_config(self, project, **kwargs):
         """
