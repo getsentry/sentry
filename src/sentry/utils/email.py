@@ -12,7 +12,7 @@ from functools import partial
 from operator import attrgetter
 from random import randrange
 
-import lxml
+import lxml.html
 
 # import toronado
 from django.conf import settings
