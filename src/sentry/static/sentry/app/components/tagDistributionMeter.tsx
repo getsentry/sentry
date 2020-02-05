@@ -26,6 +26,7 @@ export type TagSegment = {
   value: string;
   url: LocationDescriptor;
   isOther?: boolean;
+  key?: string;
 };
 
 type Props = DefaultProps & {
@@ -84,7 +85,7 @@ export default class TagDistributionMeter extends React.Component<Props> {
     const pct = percent(largestSegment.count, totalValues);
     const pctLabel = Math.floor(pct);
 
-    let label = null;
+    let label: React.ReactNode = null;
     switch (title) {
       case 'release':
         label = <Version version={largestSegment.name} anchor={false} />;
@@ -135,7 +136,7 @@ export default class TagDistributionMeter extends React.Component<Props> {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
 
-          let tooltipValue = null;
+          let tooltipValue: React.ReactNode = null;
           switch (value.key) {
             case 'release':
               tooltipValue = <Version version={value.name} anchor={false} />;
