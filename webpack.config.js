@@ -33,6 +33,9 @@ const USE_HOT_MODULE_RELOAD =
 const NO_DEV_SERVER = env.NO_DEV_SERVER;
 const IS_CI = !!env.CI || !!env.TRAVIS;
 
+// We only use ts-loader directly in CI for a specific job
+const USE_TS_LOADER = env.TEST_SUITE === 'js-build';
+
 // Deploy previews are built using netlify. We can check if we're in netlifys
 // build process by checking the existence of the PULL_REQUEST env var.
 //
@@ -185,13 +188,13 @@ const cacheGroups = {
 };
 
 const babelOptions = {...babelConfig, cacheDirectory: true};
-const babelLoaderConfig = {loader: 'babel-loader', options: babelOptions};
+const babelLoaderConfig = {
+  loader: 'babel-loader',
+  options: babelOptions,
+};
 
 const tsLoaderConfig = {
   loader: 'ts-loader',
-  options: {
-    transpileOnly: false,
-  },
 };
 
 /**
@@ -224,16 +227,19 @@ let appConfig = {
         test: /\.jsx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-        use: {
-          loader: 'babel-loader',
-          options: babelOptions,
-        },
+        use: babelLoaderConfig,
       },
       {
         test: /\.tsx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-        use: [!IS_CI ? babelLoaderConfig : tsLoaderConfig],
+
+        // Note there is an emotion bug if we run babel-loader in conjunction with ts-loader
+        // See https://github.com/emotion-js/emotion/issues/1748
+        //
+        // However, we don't want to lose typechecking in CI, so we have a CI task
+        // that will run explicitly ts-loader
+        use: USE_TS_LOADER ? [babelLoaderConfig, tsLoaderConfig] : babelLoaderConfig,
       },
       {
         test: /\.po$/,
