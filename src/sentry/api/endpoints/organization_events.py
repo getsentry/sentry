@@ -4,10 +4,12 @@ import logging
 import six
 import uuid
 from functools import partial
+from django.utils.http import urlquote
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry.api.base import LINK_HEADER
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import get_json_meta_type
 from sentry.api.helpers.events import get_direct_hit_response
@@ -16,6 +18,7 @@ from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerial
 from sentry import eventstore, features
 from sentry.snuba import discover
 from sentry.utils import snuba
+from sentry.utils.http import absolute_uri
 from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
@@ -91,6 +94,29 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
+    def build_cursor_link(self, request, name, cursor):
+        # The base API function only uses the last query parameter, but this endpoint
+        # needs all the parameters, particularly for the "field" query param.
+        querystring = u"&".join(
+            u"{0}={1}".format(urlquote(query[0]), urlquote(value))
+            for query in request.GET.lists()
+            if query[0] != "cursor"
+            for value in query[1]
+        )
+
+        base_url = absolute_uri(urlquote(request.path))
+        if querystring:
+            base_url = u"{0}?{1}".format(base_url, querystring)
+        else:
+            base_url = base_url + "?"
+
+        return LINK_HEADER.format(
+            uri=base_url,
+            cursor=six.text_type(cursor),
+            name=name,
+            has_results="true" if bool(cursor) else "false",
+        )
+
     def get(self, request, organization):
         if not features.has("organizations:discover-basic", organization, actor=request.user):
             return Response(status=404)
