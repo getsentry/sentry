@@ -17,7 +17,7 @@ class Notifier(object):
         """
 
     def should_notify(self, group, event):
-        if group.is_ignored():
+        if not group.is_unresolved():
             return False
 
         project = group.project

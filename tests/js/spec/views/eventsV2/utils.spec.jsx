@@ -310,8 +310,8 @@ describe('getExpandedResults()', function() {
     let result = getExpandedResults(view, {}, {});
 
     expect(result.fields).toEqual([
-      {field: 'id', width: 300}, // expect count() to be converted to id
-      {field: 'timestamp', width: 300},
+      {field: 'id', width: -1}, // expect count() to be converted to id
+      {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
     ]);
@@ -333,8 +333,8 @@ describe('getExpandedResults()', function() {
     result = getExpandedResults(view, {}, {});
 
     expect(result.fields).toEqual([
-      {field: 'id', width: 300}, // expect count() to be converted to id
-      {field: 'timestamp', width: 300},
+      {field: 'id', width: -1}, // expect count() to be converted to id
+      {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
     ]);
@@ -367,10 +367,10 @@ describe('getExpandedResults()', function() {
     result = getExpandedResults(view, {}, {});
 
     expect(result.fields).toEqual([
-      {field: 'timestamp', width: 300},
-      {field: 'id', width: 300},
+      {field: 'timestamp', width: -1},
+      {field: 'id', width: -1},
       {field: 'title'},
-      {field: 'transaction.duration', width: 300},
+      {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
       {field: 'title'},
     ]);
@@ -451,7 +451,7 @@ describe('explodeField', function() {
     expect(explodeField({field: 'foobar'})).toEqual({
       aggregation: '',
       field: 'foobar',
-      width: 300,
+      width: -1,
     });
 
     // has width
