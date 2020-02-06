@@ -172,7 +172,7 @@ export default class DetailsBody extends React.Component<Props> {
                       }}
                     >
                       <InlineSvg src="icon-edit" size="14px" />
-                      {t('Edit alert rule')}
+                      {t('View Rule')}
                     </SideHeaderLink>
                   </SideHeader>
 
