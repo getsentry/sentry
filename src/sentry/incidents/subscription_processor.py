@@ -129,7 +129,7 @@ class SubscriptionProcessor(object):
 
         aggregation = QueryAggregations(self.alert_rule.aggregation)
         aggregation_name = query_aggregation_to_snuba[aggregation][2]
-        aggregation_value = subscription_update["values"]["data"][aggregation_name]
+        aggregation_value = subscription_update["values"]["data"][0][aggregation_name]
 
         for trigger in self.triggers:
             alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
