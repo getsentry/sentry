@@ -19,6 +19,12 @@ from sentry.utils.http import absolute_uri
 @six.add_metaclass(abc.ABCMeta)
 class ActionHandler(object):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
+    incident_status = {
+        IncidentStatus.OPEN: "Open",
+        IncidentStatus.CLOSED: "Resolved",
+        IncidentStatus.CRITICAL: "Critical",
+        IncidentStatus.WARNING: "Warning",
+    }
 
     def __init__(self, action, incident, project):
         self.action = action
@@ -96,12 +102,6 @@ class EmailActionHandler(ActionHandler):
     def generate_email_context(self, status):
         trigger = self.action.alert_rule_trigger
         alert_rule = trigger.alert_rule
-        incident_status = {
-            IncidentStatus.OPEN: "Open",
-            IncidentStatus.CLOSED: "Resolved",
-            IncidentStatus.CRITICAL: "Critical",
-            IncidentStatus.WARNING: "Warning",
-        }
 
         return {
             "link": absolute_uri(
@@ -133,7 +133,7 @@ class EmailActionHandler(ActionHandler):
             "threshold": trigger.alert_threshold
             if status == TriggerStatus.ACTIVE
             else trigger.resolve_threshold,
-            "status": incident_status[self.incident.status],
+            "status": self.incident_status[self.incident.status],
             "is_critical": self.incident.status == IncidentStatus.CRITICAL,
             "is_warning": self.incident.status == IncidentStatus.WARNING,
             "unsubscribe_link": None,
