@@ -10,6 +10,7 @@ type Props = {
   onChange: ({target: {value: string}}) => void;
   placeholder: string;
   smaller?: boolean;
+  width?: string;
 };
 
 class SearchInput extends React.Component<Props> {
@@ -18,9 +19,9 @@ class SearchInput extends React.Component<Props> {
   };
 
   render() {
-    const {placeholder, value, onChange, smaller} = this.props;
+    const {placeholder, value, onChange, smaller, width} = this.props;
     return (
-      <SearchWrapper smaller={!!smaller}>
+      <SearchWrapper smaller={!!smaller} width={width ? width : ''}>
         <SearchIcon />
         <SearchField placeholder={placeholder} value={value || ''} onChange={onChange} />
         {value && value.length > 0 && (
@@ -56,9 +57,10 @@ const SearchReset = styled(props => <InlineSvg src="icon-circle-close" {...props
   }
 `;
 
-const SearchWrapper = styled('div')<{smaller: boolean}>`
+const SearchWrapper = styled('div')<{smaller: boolean; width: string}>`
   position: relative;
   display: inline-block;
+  width: ${p => (p.width ? p.width : 'auto')};
   ${SearchIcon} {
     top: ${p => (p.smaller ? '7px' : '11px')};
   }
