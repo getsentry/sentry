@@ -414,25 +414,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             )
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @sudo_required
-    def delete(self, request, organization):
-        """
-        Delete an Organization
-        ``````````````````````
-
-        Schedules an organization for deletion.  This API endpoint cannot
-        be invoked without a user context for security reasons.  This means
-        that at present an organization can only be deleted from the
-        Sentry UI.
-
-        Deletion happens asynchronously and therefor is not immediate.
-        However once deletion has begun the state of a project changes and
-        will be hidden from most public views.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          team should be created for.
-        :auth: required, user-context-needed
-        """
+    def handle_delete(self, request, organization):
         if not request.user.is_authenticated():
             return self.respond({"detail": ERR_NO_USER}, status=401)
 
@@ -442,6 +424,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         updated = Organization.objects.filter(
             id=organization.id, status=OrganizationStatus.VISIBLE
         ).update(status=OrganizationStatus.PENDING_DELETION)
+
         if updated:
             transaction_id = uuid4().hex
             countdown = 86400
@@ -481,4 +464,28 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
             access=request.access,
         )
+
+        return context
+
+    @sudo_required
+    def delete(self, request, organization):
+        """
+        Delete an Organization
+        ``````````````````````
+
+        Schedules an organization for deletion.  This API endpoint cannot
+        be invoked without a user context for security reasons.  This means
+        that at present an organization can only be deleted from the
+        Sentry UI.
+
+        Deletion happens asynchronously and therefore is not immediate.
+        However once deletion has begun the state of a project changes and
+        will be hidden from most public views.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          team should be created for.
+        :auth: required, user-context-needed
+        """
+        context = self.handle_delete(request, organization)
+
         return self.respond(context, status=202)
