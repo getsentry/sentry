@@ -7,6 +7,7 @@ import space from 'app/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 40;
+const GRID_BODY_ROW_BORDER_BOX_HEIGHT = GRID_BODY_ROW_HEIGHT + 1; // add border-bottom height
 export const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
 
 /**
@@ -328,7 +329,7 @@ export const GridResizer = styled('div')<{dataRows: number; isLast?: boolean}>`
   right: ${p => (p.isLast ? '0px' : '-5px')};
   width: ${p => (p.isLast ? '6px' : '9px')};
 
-  height: ${p => GRID_HEAD_ROW_HEIGHT + p.dataRows * GRID_BODY_ROW_HEIGHT}px;
+  height: ${p => GRID_HEAD_ROW_HEIGHT + p.dataRows * GRID_BODY_ROW_BORDER_BOX_HEIGHT}px;
 
   padding-left: 4px;
   padding-right: ${p => (p.isLast ? '0px' : '4px')};
