@@ -5,32 +5,87 @@
 {% load sentry_assets %}
 
 {% block activity %}
-    <h3>
-        <a href="{{ link }}">Alert Rule Trigger {{ status }} on Incident {{ incident_name }}.</a>
-    </h3>
+    <table>
+      <tr>
+        <td>
+        <h3 class="alert-title">
+            <a class="alert-title-link" href="{{ link }}">{{ incident_name }}</a>
+        </h3>
+        </td>
+        <td>
+          <div class="alert-header">
+          Status
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Created on {{ triggered_at }}
+        </td>
+        <td>
+          {% if is_critical %}
+            <img class="alert-critical" src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-exclamation.png' %}" width="16px" height="16px" alt="Critical" />
+          {% elif is_warning %}
+            <img class="alert-warning" src="{% absolute_asset_url 'sentry' 'images/email/icon-warning.png' %}" width="16px" height="16px" alt="Warning" />
+          {% endif %}
 
+          <span class="alert-status">{{ status }}</span>
+        </td>
+      </tr>
+    </table>
+
+
+    <hr />
 
   {% if enhanced_privacy %}
     <div class="notice">
-      Details about this incident alert are not shown in this email since enhanced privacy
-      controls are enabled. For more details about this incident, <a href="{{ link }}">view on Sentry.</a>
+      Details about this alert are not shown in this email since enhanced privacy
+      controls are enabled. For more details about this alert, <a href="{{ link }}">view on Sentry.</a>
     </div>
 
   {% else %}
-      <table >
+      <table class="alert-rule-table">
+        <thead>
+          <th>
+            Metric
+          </th>
+          <th>
+            Environment
+          </th>
+          <th>
+            Threshold
+          </th>
+          <th>
+            Time Interval
+          </th>
+        </thead>
+
+        <tbody>
         <tr>
-            <td>Rule: <a href="{{ rule_link }}">{{ rule_link }}</a></td>
-        </tr>
-        <tr>
-          <td>Aggregate: {{ aggregate }} </td>
-        </tr>
-        <tr>
-          <td>Query: {{ query }}</td>
-        </tr>
-        <tr>
-          <td>Threshold: {{ threshold }}</td>
-        </tr>
-        </tr>
+          <td>
+            {{ aggregate }}
+          </td>
+          <td>
+            {{ environment }}
+          </td>
+        <td>
+          {{ threshold }}
+          </td>
+          <td>
+            {{ time_window }}
+          </td>
+
+
+        </tbody>
       </table>
+
+      <div>
+        <div class="alert-header">
+          Query
+        </div>
+        <div class="alert-query-box">
+          {{ query }}
+        </div>
+      </div>
   {% endif %}
 {% endblock %}

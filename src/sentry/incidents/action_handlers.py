@@ -4,8 +4,14 @@ import abc
 
 import six
 from django.core.urlresolvers import reverse
+from django.template.defaultfilters import pluralize
 
-from sentry.incidents.models import AlertRuleTriggerAction, QueryAggregations, TriggerStatus
+from sentry.incidents.models import (
+    AlertRuleTriggerAction,
+    QueryAggregations,
+    TriggerStatus,
+    IncidentStatus,
+)
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -80,7 +86,7 @@ class EmailActionHandler(ActionHandler):
     def build_message(self, context, status, user_id):
         display = self.status_display[status]
         return MessageBuilder(
-            subject=u"Incident Alert Rule {} for Project {}".format(display, self.project.slug),
+            subject=u"Alert Rule {} for Project {}".format(display, self.project.slug),
             template=u"sentry/emails/incidents/trigger.txt",
             html_template=u"sentry/emails/incidents/trigger.html",
             type="incident.alert_rule_{}".format(display.lower()),
@@ -90,6 +96,13 @@ class EmailActionHandler(ActionHandler):
     def generate_email_context(self, status):
         trigger = self.action.alert_rule_trigger
         alert_rule = trigger.alert_rule
+        incident_status = {
+            IncidentStatus.OPEN: "Open",
+            IncidentStatus.CLOSED: "Resolved",
+            IncidentStatus.CRITICAL: "Critical",
+            IncidentStatus.WARNING: "Warning",
+        }
+
         return {
             "link": absolute_uri(
                 reverse(
@@ -111,12 +124,19 @@ class EmailActionHandler(ActionHandler):
                 )
             ),
             "incident_name": self.incident.title,
+            # TODO(alerts): Add environment
+            "environment": "All",
+            "time_window": format_duration(alert_rule.time_window),
+            "triggered_at": trigger.date_added,
             "aggregate": self.query_aggregations_display[QueryAggregations(alert_rule.aggregation)],
             "query": alert_rule.query,
             "threshold": trigger.alert_threshold
             if status == TriggerStatus.ACTIVE
             else trigger.resolve_threshold,
-            "status": self.status_display[status],
+            "status": incident_status[self.incident.status],
+            "is_critical": self.incident.status == IncidentStatus.CRITICAL,
+            "is_warning": self.incident.status == IncidentStatus.WARNING,
+            "unsubscribe_link": None,
         }
 
 
@@ -140,3 +160,23 @@ class SlackActionHandler(ActionHandler):
         send_incident_alert_notification(
             self.action.integration, self.incident, self.action.target_identifier
         )
+
+
+def format_duration(seconds):
+    """
+    Format seconds into a duration string
+    """
+
+    if seconds >= 86400:
+        days = seconds / 86400
+        return "{} day{}".format(days, pluralize(days))
+
+    if seconds >= 3600:
+        hours = seconds / 3600
+        return "{} hour{}".format(hours, pluralize(hours))
+
+    if seconds >= 60:
+        minutes = seconds / 60
+        return "{} minute{}".format(minutes, pluralize(minutes))
+
+    return "{} second{}".format(seconds, pluralize(seconds))
