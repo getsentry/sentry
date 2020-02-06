@@ -34,7 +34,7 @@ export default class PluginRow extends React.Component<Props> {
         <FlexContainer>
           <PluginIcon size={36} pluginId={plugin.id} />
           <Container>
-            <ProviderName to={`/settings/${slug}/plugins/${plugin.slug}`}>
+            <ProviderName to={`/settings/${slug}/plugins/${plugin.slug}/`}>
               {`${plugin.name} ${isLegacy ? '(Legacy)' : ''}`}
             </ProviderName>
             <ProviderDetails>
