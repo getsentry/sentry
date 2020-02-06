@@ -89,11 +89,15 @@ class Results extends React.Component<Props, State> {
       return;
     }
     // If the view is not valid, redirect to a known valid state.
-    const {location, organization} = this.props;
+    const {location, organization, selection} = this.props;
     const nextEventView = EventView.fromNewQueryWithLocation(
       DEFAULT_EVENT_VIEW,
       location
     );
+    if (nextEventView.project.length === 0 && selection.projects) {
+      nextEventView.project = selection.projects;
+    }
+
     ReactRouter.browserHistory.replace(
       nextEventView.getResultsViewUrlTarget(organization.slug)
     );
