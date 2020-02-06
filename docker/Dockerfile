@@ -103,7 +103,6 @@ ENV PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     # Sentry config params
     SENTRY_CONF=/etc/sentry \
-    SENTRY_FILESTORE_DIR=/var/lib/sentry/files \
     # Disable some unused uWSGI features, saving dependencies
     # Thank to https://stackoverflow.com/a/25260588/90297
     UWSGI_PROFILE_OVERRIDE=ssl=false;xml=false;routing=false \
