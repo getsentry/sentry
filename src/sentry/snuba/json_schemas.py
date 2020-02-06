@@ -17,7 +17,15 @@ SUBSCRIPTION_PAYLOAD_VERSIONS = {
             "values": {
                 "type": "object",
                 "properties": {
-                    "data": {"minProperties": 1, "additionalProperties": {"type": "number"}}
+                    "data": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "minProperties": 1,
+                            "additionalProperties": {"type": "number"},
+                        },
+                    }
                 },
                 "required": ["data"],
             },

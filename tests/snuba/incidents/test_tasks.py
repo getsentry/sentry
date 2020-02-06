@@ -118,7 +118,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
             "version": 1,
             "payload": {
                 "subscription_id": self.subscription.subscription_id,
-                "values": {"data": {value_name: self.trigger.alert_threshold + 1}},
+                "values": {"data": [{value_name: self.trigger.alert_threshold + 1}]},
                 "timestamp": "2020-01-01T01:23:45.1234",
             },
         }

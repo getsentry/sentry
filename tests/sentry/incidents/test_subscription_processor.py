@@ -122,7 +122,7 @@ class ProcessUpdateTest(TestCase):
             ]
             value = randint(0, 100) if value is None else value
             data = {aggregation_type[2]: value}
-        values = {"data": data}
+        values = {"data": [data]}
         return {
             "subscription_id": subscription.subscription_id if subscription else uuid4().hex,
             "values": values,
