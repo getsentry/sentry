@@ -112,11 +112,13 @@ else:
     NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "node_modules")
 
 NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
+
 RELAY_CONFIG_DIR = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "relay_config")
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay_config")
 )
+
 REVERSE_PROXY_CONFIG = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "reverse_proxy_config", "nginx.conf")
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy_config", "nginx.conf")
 )
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
@@ -1332,7 +1334,7 @@ SENTRY_WATCHERS = (
 # If Relay is used a reverse proxy server will be run at the 8000 (the port formally used by Sentry) that
 # will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
 # rest will be forwarded to Sentry)
-SENTRY_USE_RELAY = True
+SENTRY_USE_RELAY = False
 
 SENTRY_DEVSERVICES = {
     "redis": {
