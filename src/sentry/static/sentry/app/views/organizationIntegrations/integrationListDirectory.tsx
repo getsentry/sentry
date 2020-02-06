@@ -80,12 +80,12 @@ class OrganizationIntegrations extends AsyncComponent<
     organization: SentryTypes.Organization,
   };
 
-  componentDidMount() {
-    // eslint-disable-next-line react/no-did-mount-set-state
-    this.setState({
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
       list: [],
       displayedList: [],
-    });
+    };
   }
 
   onLoadAllEndpointsSuccess() {
@@ -262,6 +262,23 @@ class OrganizationIntegrations extends AsyncComponent<
       .sort((a, b) => this.getInstallValue(b) - this.getInstallValue(a));
   }
 
+  onSearchChange = ({target}) => {
+    const {list} = this.state;
+    const fuse = new Fuse(list, {
+      threshold: 0.1,
+      location: 0,
+      distance: 100,
+      keys: ['slug', 'key', 'name', 'id'],
+    });
+
+    this.setState({searchInput: target.value}, () => {
+      if (!target.value) {
+        return this.setState({displayedList: this.state.list});
+      }
+      const result = fuse.search(target.value);
+      return this.setState({displayedList: result});
+    });
+  };
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     //find the integration installations for that provider
@@ -349,13 +366,6 @@ class OrganizationIntegrations extends AsyncComponent<
     const {orgId} = this.props.params;
     const {reloading, list, displayedList} = this.state;
 
-    const fuse = new Fuse(list, {
-      threshold: 0.1,
-      location: 0,
-      distance: 100,
-      keys: ['slug', 'key', 'name', 'id'],
-    });
-
     const title = t('Integrations');
     const tags = [
       'Source Control',
@@ -377,15 +387,7 @@ class OrganizationIntegrations extends AsyncComponent<
         />
         <SearchInput
           value={this.state.searchInput || ''}
-          onChange={({target}) => {
-            this.setState({searchInput: target.value}, () => {
-              if (target.value === '') {
-                return this.setState({displayedList: this.state.list});
-              }
-              const result = fuse.search(target.value);
-              return this.setState({displayedList: result});
-            });
-          }}
+          onChange={this.onSearchChange}
           placeholder="Find a new integration, or one you already use."
         />
         <TagsContainer>
