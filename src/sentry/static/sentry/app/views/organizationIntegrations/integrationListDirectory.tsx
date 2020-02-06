@@ -403,6 +403,7 @@ class OrganizationIntegrations extends AsyncComponent<
           value={this.state.searchInput || ''}
           onChange={this.onSearchChange}
           placeholder="Find a new integration, or one you already use."
+          width="100%"
         />
         <TagsContainer>
           {tags.map(tag => (
