@@ -3,7 +3,6 @@ import keyBy from 'lodash/keyBy';
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import Fuse from 'fuse.js';
 
 import {
   Organization,
@@ -34,6 +33,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
@@ -262,21 +262,31 @@ class OrganizationIntegrations extends AsyncComponent<
       .sort((a, b) => this.getInstallValue(b) - this.getInstallValue(a));
   }
 
-  onSearchChange = ({target}) => {
-    const {list} = this.state;
-    const fuse = new Fuse(list, {
-      threshold: 0.1,
-      location: 0,
-      distance: 100,
-      keys: ['slug', 'key', 'name', 'id'],
-    });
+  async componentDidUpdate(_, prevState: State) {
+    if (this.state.list.length !== prevState.list.length) {
+      await this.createSearch();
+    }
+  }
 
+  async createSearch() {
+    const {list} = this.state;
+    this.setState({
+      fuzzy: await createFuzzySearch(list || [], {
+        threshold: 0.1,
+        location: 0,
+        distance: 100,
+        keys: ['slug', 'key', 'name', 'id'],
+      }),
+    });
+  }
+
+  onSearchChange = async ({target}) => {
     this.setState({searchInput: target.value}, () => {
       if (!target.value) {
         return this.setState({displayedList: this.state.list});
       }
-      const result = fuse.search(target.value);
-      return this.setState({displayedList: result});
+      const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
+      return this.setState({displayedList: result.map(i => i.item)});
     });
   };
   // Rendering
