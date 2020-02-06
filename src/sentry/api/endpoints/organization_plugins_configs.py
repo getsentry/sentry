@@ -105,6 +105,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
                         "projectName": project.name,  # TODO(steve): do we need?
                         "enabled": plugin_info["enabled"],
                         "configured": plugin_info["configured"],  # TODO(steve): do we need?
+                        "projectPlatform": project.platform,
                     }
                 )
             serialized_plugins.append(serialized_plugin)

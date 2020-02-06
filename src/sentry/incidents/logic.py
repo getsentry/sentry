@@ -1049,12 +1049,10 @@ def create_alert_rule_trigger_action(
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Slack action must specify channel")
 
-        channel_result = get_channel_id(
+        prefix, channel_id, _ = get_channel_id(
             trigger.alert_rule.organization, integration.id, target_identifier
         )
-        if channel_result is not None:
-            channel_id = channel_result[1]
-        else:
+        if channel_id is None:
             raise InvalidTriggerActionError(
                 "Could not find channel %s. Channel may not exist, or Sentry may not "
                 "have been granted permission to access it" % target_identifier
@@ -1101,11 +1099,11 @@ def update_alert_rule_trigger_action(
             from sentry.integrations.slack.utils import get_channel_id
 
             integration = updated_fields.get("integration", trigger_action.integration)
-            channel_id = get_channel_id(
+            prefix, channel_id, _ = get_channel_id(
                 trigger_action.alert_rule_trigger.alert_rule.organization,
                 integration.id,
                 target_identifier,
-            )[1]
+            )
             # Use the channel name for display
             updated_fields["target_display"] = target_identifier
             updated_fields["target_identifier"] = channel_id
