@@ -27,3 +27,6 @@
 
 # Security
 /src/sentry/net/  @getsentry/security
+
+# Build & Releases
+/docker @getsentry/releases
