@@ -1030,7 +1030,7 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_issue_filter(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("issue:1", {"organization_id": 1})
-        assert "invalid value '" in six.text_type(err)
+        assert "Invalid value '" in six.text_type(err)
         assert "' for 'issue:' filter" in six.text_type(err)
 
     def test_environment_param(self):
