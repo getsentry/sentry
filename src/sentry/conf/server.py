@@ -114,11 +114,11 @@ else:
 NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
 
 RELAY_CONFIG_DIR = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay_config")
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay")
 )
 
 REVERSE_PROXY_CONFIG = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy_config", "nginx.conf")
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", "nginx.conf")
 )
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
