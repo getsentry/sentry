@@ -28,6 +28,7 @@ const ReleaseList = props => {
                     orgId={orgId}
                     version={release.version}
                     preserveGlobalSelection
+                    tooltipRawVersion
                   />
                 </VersionWrapper>
                 <LatestDeployOrReleaseTime orgId={orgId} release={release} />

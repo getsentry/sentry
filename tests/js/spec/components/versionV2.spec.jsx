@@ -30,6 +30,8 @@ describe('Version', () => {
   it('shows raw version in tooltip', () => {
     const wrapper = mount(<Version version={VERSION} orgId={ORG_ID} tooltipRawVersion />);
 
-    expect(wrapper.find('Tooltip').prop('title')).toBe(VERSION);
+    const tooltipContent = mount(wrapper.find('Tooltip').prop('title'));
+
+    expect(tooltipContent.text()).toBe(VERSION);
   });
 });

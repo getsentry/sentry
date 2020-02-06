@@ -10,7 +10,26 @@ exports[`Version renders 1`] = `
     disabled={true}
     isHoverable={true}
     position="top"
-    title="foo.bar.Baz@1.0.0+20200101"
+    title={
+      <ForwardRef(render)>
+        <ForwardRef(render)>
+          foo.bar.Baz@1.0.0+20200101
+        </ForwardRef(render)>
+        <Clipboard
+          errorMessage="Error copying to clipboard"
+          hideMessages={false}
+          successMessage="Copied to clipboard"
+          value="foo.bar.Baz@1.0.0+20200101"
+        >
+          <ForwardRef(render)>
+            <IconCopy
+              color="white"
+              size="xs"
+            />
+          </ForwardRef(render)>
+        </Clipboard>
+      </ForwardRef(render)>
+    }
   >
     <Link
       to={

@@ -6,6 +6,10 @@ import styled from '@emotion/styled';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
+import {IconCopy} from 'app/icons';
+import Clipboard from 'app/components/clipboard';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 type Props = {
   version: string;
@@ -61,8 +65,22 @@ const Version = ({
     );
   };
 
+  const renderTooltipContent = () => {
+    return (
+      <TooltipContent>
+        <TooltipVersionWrapper>{parsedVersion.raw}</TooltipVersionWrapper>
+
+        <Clipboard value={parsedVersion.raw}>
+          <TooltipClipboardIconWrapper>
+            <IconCopy size="xs" color="white" />
+          </TooltipClipboardIconWrapper>
+        </Clipboard>
+      </TooltipContent>
+    );
+  };
+
   return (
-    <Tooltip title={parsedVersion.raw} disabled={!tooltipRawVersion} isHoverable>
+    <Tooltip title={renderTooltipContent()} disabled={!tooltipRawVersion} isHoverable>
       {renderVersion()}
     </Tooltip>
   );
@@ -91,5 +109,24 @@ Version.propTypes = {
   projectId: PropTypes.string,
   truncate: PropTypes.bool,
 };
+
+const TooltipContent = styled('span')`
+  display: flex;
+  align-items: center;
+`;
+
+const TooltipVersionWrapper = styled('span')`
+  ${overflowEllipsis}
+`;
+
+const TooltipClipboardIconWrapper = styled('span')`
+  margin-left: ${space(0.5)};
+  position: relative;
+  bottom: -${space(0.25)};
+
+  &:hover {
+    cursor: pointer;
+  }
+`;
 
 export default Version;
