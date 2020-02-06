@@ -364,7 +364,7 @@ class OrganizationIntegrations extends AsyncComponent<
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {reloading, list, displayedList} = this.state;
+    const {reloading, displayedList} = this.state;
 
     const title = t('Integrations');
     const tags = [
