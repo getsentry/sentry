@@ -89,7 +89,7 @@ class OrganizationIntegrations extends AsyncComponent<
   }
 
   onLoadAllEndpointsSuccess() {
-    const {integrations, publishedApps, orgOwnedApps, extraApp, plugins} = this.state;
+    const {publishedApps, orgOwnedApps, extraApp, plugins} = this.state;
     const published = publishedApps || [];
     // If we have an extra app in state from query parameter, add it as org owned app
     if (extraApp) {
@@ -117,9 +117,13 @@ class OrganizationIntegrations extends AsyncComponent<
 
     const list = this.sortIntegrations(combined);
 
-    this.setState({list, displayedList: list});
+    this.setState({list, displayedList: list}, () => this.setAnalytics());
+  }
 
+  setAnalytics() {
     //count the number of installed apps
+
+    const {integrations, publishedApps} = this.state;
     const integrationsInstalled = new Set();
     //add installed integrations
     integrations.forEach((integration: Integration) => {
