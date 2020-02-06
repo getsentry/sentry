@@ -809,13 +809,14 @@ class EventManager(object):
         # Capture the actual size that goes into node store.
         event_metrics["bytes.stored.event"] = len(json.dumps(dict(event.data.items())))
 
-        # Load attachments first, but persist them at the very last after
-        # posting to eventstream to make sure all counters and eventstream are
-        # incremented for sure.
-        attachments = self.get_attachments(cache_key, event)
-        for attachment in attachments:
-            key = "bytes.stored.%s" % (attachment.type,)
-            event_metrics[key] = (event_metrics.get(key) or 0) + len(attachment.data)
+        if not issueless_event:
+            # Load attachments first, but persist them at the very last after
+            # posting to eventstream to make sure all counters and eventstream are
+            # incremented for sure.
+            attachments = self.get_attachments(cache_key, event)
+            for attachment in attachments:
+                key = "bytes.stored.%s" % (attachment.type,)
+                event_metrics[key] = (event_metrics.get(key) or 0) + len(attachment.data)
 
         # Write the event to Nodestore
         event.data.save()
@@ -873,9 +874,10 @@ class EventManager(object):
                 skip_consume=raw,
             )
 
-        # Do this last to ensure signals get emitted even if connection to the
-        # file store breaks temporarily.
-        self.save_attachments(attachments, event)
+        if not issueless_event:
+            # Do this last to ensure signals get emitted even if connection to the
+            # file store breaks temporarily.
+            self.save_attachments(attachments, event)
 
         metric_tags = {"from_relay": "_relay_processed" in self._data}
 
