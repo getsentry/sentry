@@ -14,33 +14,35 @@ type ThreadInfo = {
   filename?: string;
 };
 
-function filterThreadInfo(thread: Thread, event: Event, simplified: boolean): ThreadInfo {
+function filterThreadInfo(thread: Thread, event: Event): ThreadInfo {
   const stacktrace = getThreadStacktrace(thread, event, false);
   const threadInfo: ThreadInfo = {
     label: NOT_FOUND_FRAME,
   };
 
-  if (!simplified && stacktrace) {
-    const relevantFrame: Frame = getRelevantFrame(stacktrace);
+  if (!stacktrace) {
+    return threadInfo;
+  }
 
-    if (relevantFrame.filename) {
-      threadInfo.filename = trimFilename(relevantFrame.filename);
-    }
+  const relevantFrame: Frame = getRelevantFrame(stacktrace);
 
-    if (relevantFrame.function) {
-      threadInfo.label = relevantFrame.function;
-      return threadInfo;
-    }
+  if (relevantFrame.filename) {
+    threadInfo.filename = trimFilename(relevantFrame.filename);
+  }
 
-    if (relevantFrame.package) {
-      threadInfo.label = trimPackage(relevantFrame.package);
-      return threadInfo;
-    }
+  if (relevantFrame.function) {
+    threadInfo.label = relevantFrame.function;
+    return threadInfo;
+  }
 
-    if (relevantFrame.module) {
-      threadInfo.label = relevantFrame.module;
-      return threadInfo;
-    }
+  if (relevantFrame.package) {
+    threadInfo.label = trimPackage(relevantFrame.package);
+    return threadInfo;
+  }
+
+  if (relevantFrame.module) {
+    threadInfo.label = relevantFrame.module;
+    return threadInfo;
   }
 
   return threadInfo;
