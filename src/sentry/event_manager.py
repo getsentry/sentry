@@ -733,13 +733,13 @@ class EventManager(object):
                     tags={"organization_id": project.organization_id, "platform": platform},
                 )
                 raise
-            else:
-                event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
             event.group = group
         else:
             group = None
             is_new = False
             is_regression = False
+
+        with metrics.timer("event_manager.event_saved_signal"):
             event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
 
         # store a reference to the group id to guarantee validation of isolation
@@ -778,7 +778,9 @@ class EventManager(object):
         if release:
             counters.append((tsdb.models.release, release.id))
 
-        tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
+        with metrics.timer("event_manager.tsdb_incr_group_and_release_counters") as metrics_tags:
+            metrics_tags["has_group"] = "true" if group else "false"
+            tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
         frequencies = []
 
@@ -828,7 +830,9 @@ class EventManager(object):
                     (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value,))
                 )
 
-            tsdb.record_multi(counters, timestamp=event.datetime, environment_id=environment.id)
+            with metrics.timer("event_manager.tsdb_record_users_affected") as metrics_tags:
+                metrics_tags["has_group"] = "true" if group else "false"
+                tsdb.record_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
         if release:
             if is_new:
@@ -853,20 +857,21 @@ class EventManager(object):
                 project.update(first_event=date)
                 first_event_received.send_robust(project=project, event=event, sender=Project)
 
-        eventstream.insert(
-            group=group,
-            event=event,
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            primary_hash=hashes[0],
-            # We are choosing to skip consuming the event back
-            # in the eventstream if it's flagged as raw.
-            # This means that we want to publish the event
-            # through the event stream, but we don't care
-            # about post processing and handling the commit.
-            skip_consume=raw,
-        )
+        with metrics.timer("event_manager.eventstream.insert"):
+            eventstream.insert(
+                group=group,
+                event=event,
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                primary_hash=hashes[0],
+                # We are choosing to skip consuming the event back
+                # in the eventstream if it's flagged as raw.
+                # This means that we want to publish the event
+                # through the event stream, but we don't care
+                # about post processing and handling the commit.
+                skip_consume=raw,
+            )
 
         # Do this last to ensure signals get emitted even if connection to the
         # file store breaks temporarily.
@@ -885,9 +890,16 @@ class EventManager(object):
         return event
 
     def _get_event_user(self, project, data):
+        with metrics.timer("event_manager.get_event_user") as metrics_tags:
+            return self.get_event_user_impl(project, data, metrics_tags)
+
+    def _get_event_user_impl(self, project, data, metrics_tags):
         user_data = data.get("user")
         if not user_data:
+            metrics_tags["event_has_user"] = "false"
             return
+
+        metrics_tags["event_has_user"] = "true"
 
         ip_address = user_data.get("ip_address")
 
@@ -912,13 +924,17 @@ class EventManager(object):
         cache_key = u"euserid:1:{}:{}".format(project.id, euser.hash)
         euser_id = cache.get(cache_key)
         if euser_id is None:
+            metrics_tags["cache_hit"] = "false"
             try:
                 with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
+                metrics_tags["created"] = "true"
             except IntegrityError:
+                metrics_tags["created"] = "false"
                 try:
                     euser = EventUser.objects.get(project_id=project.id, hash=euser.hash)
                 except EventUser.DoesNotExist:
+                    metrics_tags["created"] = "lol"
                     # why???
                     e_userid = -1
                 else:
@@ -926,6 +942,9 @@ class EventManager(object):
                         euser.update(name=user_data["name"])
                     e_userid = euser.id
                 cache.set(cache_key, e_userid, 3600)
+        else:
+            metrics_tags["cache_hit"] = "true"
+
         return euser
 
     def _find_hashes(self, project, hash_list):
