@@ -238,29 +238,30 @@ class OrganizationIntegrations extends AsyncComponent<
   };
 
   renderPlugin = (plugin: PluginWithProjectList) => {
-    //find the integration installations for that provider
-    if (plugin.projectList.length) {
-      const legacyIds = [
-        'jira',
-        'bitbucket',
-        'github',
-        'slack',
-        'pagerduty',
-        'clubhouse',
-        'vsts',
-      ];
-      const isLegacy = legacyIds.includes(plugin.id);
-      return (
-        <PluginRow
-          key={`row-plugin-${plugin.id}`}
-          data-test-id="integration-row"
-          plugin={plugin}
-          isLegacy={isLegacy}
-          organization={this.props.organization}
-        />
-      );
+    const legacyIds = [
+      'jira',
+      'bitbucket',
+      'github',
+      'gitlab',
+      'slack',
+      'pagerduty',
+      'clubhouse',
+      'vsts',
+    ];
+    const isLegacy = legacyIds.includes(plugin.id);
+    //hide legacy integrations if we don't have any projects with them
+    if (isLegacy && !plugin.projectList.length) {
+      return null;
     }
-    return null;
+    return (
+      <PluginRow
+        key={`row-plugin-${plugin.id}`}
+        data-test-id="integration-row"
+        plugin={plugin}
+        isLegacy={isLegacy}
+        organization={this.props.organization}
+      />
+    );
   };
 
   //render either an internal or non-internal app
