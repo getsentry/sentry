@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import random
 import logging
 from importlib import import_module
+import six
+from six.moves.urllib import parse_qs as urlparse_parse_qs
 
 from cgi import parse_qsl
 from django.conf import settings
@@ -129,6 +131,15 @@ def module_member(name):
     mod, member = name.rsplit(".", 1)
     module = import_module(mod)
     return getattr(module, member)
+
+
+def parse_qs(value):
+    """Like urlparse.parse_qs but transform list values to single items"""
+    return drop_lists(urlparse_parse_qs(value))
+
+
+def drop_lists(value):
+    return dict((key, val[0]) for key, val in six.iteritems(value))
 
 
 if __name__ == "__main__":
