@@ -261,8 +261,7 @@ export const StyledPageContent = styled(PageContent)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
     grid-template-columns: 66% auto;
-    grid-template-rows: 330px auto;
-    grid-column-gap: ${space(3)};
+    grid-gap: ${space(3)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
