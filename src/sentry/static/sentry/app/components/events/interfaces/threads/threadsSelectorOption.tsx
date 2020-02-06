@@ -16,7 +16,7 @@ type Props = {
 };
 
 type ThreadInfo = {
-  label?: string;
+  label: string;
   filename?: string;
 };
 
@@ -26,7 +26,7 @@ const ThreadsSelectorOption = ({id, name, details, crashed, crashedInfo}: Props)
     <DetailsWrapper>
       <StyledNameId>{name ? `#${id}: ${name}` : `#${id}`}</StyledNameId>
       <LabelsWrapper>
-        {details.label && <StyledOptionLabel>{details.label}</StyledOptionLabel>}
+        <StyledOptionLabel>{details.label}</StyledOptionLabel>
         {details.filename && (
           <StyledFileNameWrapper>
             {'('}

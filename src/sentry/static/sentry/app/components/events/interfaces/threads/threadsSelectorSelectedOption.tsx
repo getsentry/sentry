@@ -10,14 +10,14 @@ type Props = {
 };
 
 type ThreadInfo = {
-  label?: string;
+  label: string;
   filename?: string;
 };
 
 const ThreadsSelectorSelectedOption = ({id, details}: Props) => (
   <Wrapper>
     <StyledThreadID>{`Thread #${id}:`}</StyledThreadID>
-    {details.label && <StyledOptionLabel>{details.label}</StyledOptionLabel>}
+    <StyledOptionLabel>{details.label}</StyledOptionLabel>
   </Wrapper>
 );
 
