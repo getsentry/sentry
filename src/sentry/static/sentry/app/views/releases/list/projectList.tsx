@@ -5,15 +5,19 @@ import {tct} from 'app/locale';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {Project} from 'app/types';
 import space from 'app/styles/space';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import {AutoCompleteItem} from 'app/components/dropdownAutoCompleteMenu';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import Hovercard from 'app/components/hovercard';
+
+const MAX_PROJECTS_IN_HOVERCARD = 5;
 
 type Props = {
   projects: Project[];
+  orgId: string;
+  version: string;
   maxLines?: number;
 };
 
-const ProjectList = ({projects, maxLines = 2}: Props) => {
+const ProjectList = ({projects, orgId, version, maxLines = 2}: Props) => {
   let visibleProjects: Project[], hiddenProjects: Project[];
 
   if (projects.length <= maxLines) {
@@ -25,27 +29,35 @@ const ProjectList = ({projects, maxLines = 2}: Props) => {
     hiddenProjects = projects.slice(maxLines - 1, projects.length);
   }
 
+  const hovercardBody = (
+    <HovercardContentWrapper>
+      <ProjectList
+        projects={hiddenProjects}
+        orgId={orgId}
+        version={version}
+        maxLines={MAX_PROJECTS_IN_HOVERCARD}
+      />
+    </HovercardContentWrapper>
+  );
+
   return (
     <React.Fragment>
       {visibleProjects.map(project => (
         <StyledProjectBadge project={project} avatarSize={14} key={project.slug} />
       ))}
       {hiddenProjects.length > 0 && (
-        <StyledDropdownAutoComplete
-          maxHeight={400}
-          items={hiddenProjects.map(p => ({
-            searchKey: p.slug,
-            label: <StyledProjectBadge project={p} avatarSize={14} />,
-          }))}
-          alignMenu="left"
-          searchPlaceholder="Filter projects"
+        <StyledHovercard
+          body={hovercardBody}
+          show={hiddenProjects.length <= MAX_PROJECTS_IN_HOVERCARD ? undefined : false}
         >
-          {() =>
-            tct('and [count] more', {
+          <GlobalSelectionLink
+            to={`/organizations/${orgId}/releases/${encodeURIComponent(version)}/`}
+          >
+            {tct('and [count] more', {
               count: hiddenProjects.length,
-            })
-          }
-        </StyledDropdownAutoComplete>
+            })}
+          </GlobalSelectionLink>
+        </StyledHovercard>
       )}
     </React.Fragment>
   );
@@ -57,14 +69,19 @@ const StyledProjectBadge = styled(ProjectBadge)`
   }
 `;
 
-const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
-  ${AutoCompleteItem} {
-    &,
-    &:hover {
-      background: transparent;
-      cursor: default;
-    }
+const StyledHovercard = styled(Hovercard)`
+  width: auto;
+  max-width: 295px;
+`;
+const HovercardContentWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  ${StyledProjectBadge} {
+    margin-left: ${space(1)};
+    margin-right: ${space(1)};
+    margin-bottom: ${space(0.5)};
   }
 `;
-
 export default ProjectList;

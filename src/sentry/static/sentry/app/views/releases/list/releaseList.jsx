@@ -57,6 +57,8 @@ const ReleaseList = props => {
                       projects={projects.filter(project =>
                         release.projects.map(p => p.slug).includes(project.slug)
                       )}
+                      orgId={orgId}
+                      version={release.version}
                     />
                   </ProjectsColumn>
                   <CountColumn>

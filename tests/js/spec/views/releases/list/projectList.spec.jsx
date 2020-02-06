@@ -11,9 +11,12 @@ const projects = [
 ];
 
 describe('ProjectList', () => {
-  it('shows the correct amount of projects and hide the rest', () => {
-    const wrapper = mountWithTheme(<ProjectList maxLines={3} projects={projects} />);
+  it('shows the correct amount of projects and hides the rest', () => {
+    const wrapper = mountWithTheme(
+      <ProjectList maxLines={3} projects={projects} />,
+      TestStubs.routerContext()
+    );
     expect(wrapper.find('StyledProjectBadge').length).toBe(2);
-    expect(wrapper.find('StyledDropdownAutoComplete').text()).toBe('and 3 more');
+    expect(wrapper.find('StyledHovercard').text()).toBe('and 3 more');
   });
 });
