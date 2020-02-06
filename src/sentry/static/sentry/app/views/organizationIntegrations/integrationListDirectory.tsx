@@ -81,6 +81,7 @@ class OrganizationIntegrations extends AsyncComponent<
   };
 
   componentDidMount() {
+    // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({
       list: [],
       displayedList: [],
@@ -348,7 +349,6 @@ class OrganizationIntegrations extends AsyncComponent<
     const {orgId} = this.props.params;
     const {reloading, list, displayedList} = this.state;
 
-    console.log({list});
     const fuse = new Fuse(list, {
       threshold: 0.1,
       location: 0,
