@@ -186,6 +186,7 @@ def register_extensions():
         ExampleIntegrationProvider,
         AliasedIntegrationProvider,
         ExampleRepositoryProvider,
+        ServerExampleProvider,
     )
     from sentry.integrations.github import GitHubIntegrationProvider
     from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
@@ -200,6 +201,7 @@ def register_extensions():
     integrations.register(BitbucketIntegrationProvider)
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)
+    integrations.register(ServerExampleProvider)
     integrations.register(GitHubIntegrationProvider)
     integrations.register(GitHubEnterpriseIntegrationProvider)
     integrations.register(GitlabIntegrationProvider)
