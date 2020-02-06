@@ -359,7 +359,7 @@ class BaseAuth(object):
         return uri
 
 
-class BaseOAuth(BaseAuth):
+class OAuthAuth(BaseAuth):
     """OAuth base class"""
 
     SETTINGS_KEY_NAME = ""
@@ -371,7 +371,7 @@ class BaseOAuth(BaseAuth):
 
     def __init__(self, request, redirect):
         """Init method"""
-        super(BaseOAuth, self).__init__(request, redirect)
+        super(OAuthAuth, self).__init__(request, redirect)
         self.redirect_uri = self.build_absolute_uri(self.redirect)
 
     @classmethod
@@ -405,7 +405,7 @@ class BaseOAuth(BaseAuth):
         return {}
 
 
-class ConsumerBasedOAuth(BaseOAuth):
+class BaseOAuth1(OAuthAuth):
     """Consumer based mechanism OAuth authentication, fill the needed
     parameters to communicate properly with authentication service.
 
@@ -509,7 +509,7 @@ class ConsumerBasedOAuth(BaseOAuth):
         return OAuthConsumer(*self.get_key_and_secret())
 
 
-class BaseOAuth2(BaseOAuth):
+class BaseOAuth2(OAuthAuth):
     """Base class for OAuth2 providers.
 
     OAuth2 draft details at:
