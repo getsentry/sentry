@@ -891,7 +891,7 @@ class EventManager(object):
 
     def _get_event_user(self, project, data):
         with metrics.timer("event_manager.get_event_user") as metrics_tags:
-            return self.get_event_user_impl(project, data, metrics_tags)
+            return self._get_event_user_impl(project, data, metrics_tags)
 
     def _get_event_user_impl(self, project, data, metrics_tags):
         user_data = data.get("user")

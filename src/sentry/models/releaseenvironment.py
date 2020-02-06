@@ -34,7 +34,7 @@ class ReleaseEnvironment(Model):
     @classmethod
     def get_or_create(cls, project, release, environment, datetime, **kwargs):
         with metrics.timer("models.releaseenvironment.get_or_create") as metric_tags:
-            return cls._get_or_create(project, release, environment, datetime, metric_tags)
+            return cls._get_or_create_impl(project, release, environment, datetime, metric_tags)
 
     @classmethod
     def _get_or_create_impl(cls, project, release, environment, datetime, metric_tags):
