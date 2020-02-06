@@ -129,6 +129,16 @@ class SubscriptionProcessor(object):
 
         aggregation = QueryAggregations(self.alert_rule.aggregation)
         aggregation_name = query_aggregation_to_snuba[aggregation][2]
+        if len(subscription_update["values"]["data"]) > 1:
+            logger.warning(
+                "Subscription returned more than 1 row of data",
+                extra={
+                    "subscription_id": self.subscription.id,
+                    "dataset": self.subscription.dataset,
+                    "snuba_subscription_id": self.subscription.subscription_id,
+                    "result": subscription_update,
+                },
+            )
         aggregation_value = subscription_update["values"]["data"][0][aggregation_name]
 
         for trigger in self.triggers:
