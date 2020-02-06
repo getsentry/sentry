@@ -90,16 +90,6 @@ const Version = ({
   );
 };
 
-const VersionText = styled('span')<{truncate?: boolean}>`
-  ${p =>
-    p.truncate &&
-    `max-width: 100%;
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;`}
-`;
-
 Version.propTypes = {
   version: PropTypes.string.isRequired,
   orgId: PropTypes.string,
@@ -113,6 +103,16 @@ Version.propTypes = {
   projectId: PropTypes.string,
   truncate: PropTypes.bool,
 };
+
+const VersionText = styled('span')<{truncate?: boolean}>`
+  ${p =>
+    p.truncate &&
+    `max-width: 100%;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;`}
+`;
 
 const TooltipContent = styled('span')`
   display: flex;

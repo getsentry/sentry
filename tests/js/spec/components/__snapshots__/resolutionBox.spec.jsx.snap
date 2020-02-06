@@ -239,6 +239,7 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
       <Version
         key="1"
         orgId="org"
+        tooltipRawVersion={true}
         version="1.0"
       />
       <span
@@ -317,6 +318,7 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
       <Version
         key="2"
         orgId="org"
+        tooltipRawVersion={true}
         version="1.0"
       />
       <span

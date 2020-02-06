@@ -11,7 +11,9 @@ exports[`Version renders 1`] = `
     isHoverable={true}
     position="top"
     title={
-      <ForwardRef(render)>
+      <ForwardRef(render)
+        onClick={[Function]}
+      >
         <ForwardRef(render)>
           foo.bar.Baz@1.0.0+20200101
         </ForwardRef(render)>

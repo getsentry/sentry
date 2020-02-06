@@ -1,9 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import {Release} from '@sentry/release-parser';
 
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import AvatarList from 'app/components/avatar/avatarList';
 import Button from 'app/components/button';
 import Hovercard from 'app/components/hovercard';
@@ -14,6 +13,9 @@ import RepoLabel from 'app/components/repoLabel';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import Clipboard from 'app/components/clipboard';
+import {IconCopy} from 'app/icons';
+import Version from 'app/components/versionV2';
 
 class VersionHoverCard extends React.Component {
   static propTypes = {
@@ -122,9 +124,18 @@ class VersionHoverCard extends React.Component {
     }
     return {
       header: (
-        <span className="truncate">
-          {tct('Release [version]', {version: new Release(version || '').describe()})}
-        </span>
+        <HeaderWrapper>
+          {t('Release')}
+          <VersionWrapper>
+            <StyledVersion version={version} truncate />
+
+            <Clipboard value={version}>
+              <ClipboardIconWrapper>
+                <IconCopy size="xs" />
+              </ClipboardIconWrapper>
+            </Clipboard>
+          </VersionWrapper>
+        </HeaderWrapper>
       ),
       body: (
         <div>
@@ -213,4 +224,25 @@ const StyledTimeSince = styled(TimeSince)`
   left: 98px;
   width: 50%;
   padding: 3px 0;
+`;
+
+const HeaderWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+const VersionWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+`;
+const StyledVersion = styled(Version)`
+  margin-right: ${space(0.5)};
+  max-width: 190px;
+`;
+const ClipboardIconWrapper = styled('span')`
+  &:hover {
+    cursor: pointer;
+  }
 `;
