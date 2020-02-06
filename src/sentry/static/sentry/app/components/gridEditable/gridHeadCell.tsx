@@ -11,13 +11,15 @@ import {
 } from './styles';
 import {GridColumnHeader} from './types';
 
-export type GridHeadCellProps<Column> = {
-  isColumnDragging: boolean;
-  gridHeadCellButtonProps: {[prop: string]: any};
-  isLast: boolean;
-
+type DefaultProps = {
+  isFirst: boolean;
   isEditing: boolean;
   isDeletable: boolean;
+};
+
+export type GridHeadCellProps<Column> = DefaultProps & {
+  isColumnDragging: boolean;
+  gridHeadCellButtonProps: {[prop: string]: any};
 
   indexColumnOrder: number;
   column: Column;
@@ -35,6 +37,7 @@ export type GridHeadCellProps<Column> = {
     toggleModalEditColumn: (index?: number, column?: Column) => void;
   };
 };
+
 export type GridHeadCellState = {
   isHovering: boolean;
 };
@@ -48,9 +51,10 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
   GridHeadCellProps<Column>,
   GridHeadCellState
 > {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     isEditing: false,
     isDeletable: true,
+    isFirst: false,
   };
 
   state = {
@@ -121,10 +125,10 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
   }
 
   render() {
-    const {isEditing, children, column, gridHeadCellButtonProps} = this.props;
+    const {isEditing, isFirst, children, column, gridHeadCellButtonProps} = this.props;
 
     return (
-      <GridHeadCellWrapper>
+      <GridHeadCellWrapper isFirst={isFirst}>
         <GridHeadCellButton
           isDragging={column.isDragging}
           {...gridHeadCellButtonProps}
