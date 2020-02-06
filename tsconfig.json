@@ -25,6 +25,9 @@
     "strictBindCallApply": false,
     "experimentalDecorators": true,
 
+    "skipLibCheck": true,
+    "isolatedModules": true,
+
     "esModuleInterop": true,
     "jsx": "preserve",
     "baseUrl": ".",
