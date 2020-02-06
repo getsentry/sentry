@@ -10,21 +10,21 @@ type Props = {
 };
 
 type ThreadInfo = {
-  label: string;
+  label?: string;
   filename?: string;
 };
 
 const ThreadsSelectorSelectedOption = ({id, details}: Props) => (
   <Wrapper>
     <StyledThreadID>{`Thread #${id}:`}</StyledThreadID>
-    <StyledOptionLabel>{details.label}</StyledOptionLabel>
+    {details.label && <StyledOptionLabel>{details.label}</StyledOptionLabel>}
   </Wrapper>
 );
 
 export default ThreadsSelectorSelectedOption;
 
 const Wrapper = styled('div')`
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: auto 1fr;
   display: grid;
 `;
 

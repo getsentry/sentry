@@ -112,7 +112,9 @@ const StyledDropdownButton = styled(DropdownButton)`
   }
   width: 100%;
 
+  min-width: 150px;
+
   @media (min-width: ${props => props.theme.breakpoints[3]}) {
-    width: 420px;
+    max-width: 420px;
   }
 `;
