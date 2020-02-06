@@ -82,6 +82,7 @@ export const Config = PropTypes.shape({
     ip_address: PropTypes.string,
     email: PropTypes.string,
     id: PropTypes.number,
+    isStaff: PropTypes.bool,
   }),
   sentryConfig: PropTypes.shape({
     dsn: PropTypes.string,

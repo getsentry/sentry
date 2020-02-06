@@ -14,6 +14,7 @@ import * as Router from 'react-router';
 import * as Sentry from '@sentry/browser';
 import {ExtraErrorData} from '@sentry/integrations';
 import {Integrations} from '@sentry/apm';
+import SentryRRWeb from '@sentry/rrweb';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
@@ -24,18 +25,10 @@ import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
 
-// App setup
-if (window.__initialData) {
-  ConfigStore.loadInitialData(window.__initialData);
-}
+function getSentryIntegrations(config) {
+  const tracesSampleRate = config ? config.apmSampling : 0;
 
-// SDK INIT  --------------------------------------------------------
-const config = ConfigStore.getConfig();
-// Only enable self-tracing when isApmDataSamplingEnabled is true
-const tracesSampleRate = config ? config.apmSampling : 0;
-Sentry.init({
-  ...window.__SENTRY__OPTIONS,
-  integrations: [
+  const integrations = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
@@ -44,7 +37,26 @@ Sentry.init({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
       tracesSampleRate,
     }),
-  ],
+  ];
+  if (window.__SENTRY__USER && window.__SENTRY__USER.isStaff) {
+    // eslint-disable-next-line no-console
+    console.log('[sentry] Instrumenting session with rrweb');
+    integrations.push(new SentryRRWeb());
+  }
+  return integrations;
+}
+
+// App setup
+if (window.__initialData) {
+  ConfigStore.loadInitialData(window.__initialData);
+}
+
+// SDK INIT  --------------------------------------------------------
+const config = ConfigStore.getConfig();
+// Only enable self-tracing when isApmDataSamplingEnabled is true
+Sentry.init({
+  ...window.__SENTRY__OPTIONS,
+  integrations: getSentryIntegrations(config),
 });
 
 if (window.__SENTRY__USER) {

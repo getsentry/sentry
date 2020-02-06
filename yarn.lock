@@ -1456,6 +1456,11 @@
   resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-0.4.0.tgz#9b8e868d8ecee8313dc32bdef1478cd06ea7b7fd"
   integrity sha512-wnXqyFZrOlnsnI8qcY6T2wlEih5zWXwPMcmh6/F9iyyhG/NmcK8zJ67aOZrkT1X7MYN6kssUm8Gfa3DR7aT0Zg==
 
+"@sentry/rrweb@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry/rrweb/-/rrweb-0.1.0.tgz#935258d214dd5482d925c96db8d4e60279154ec7"
+  integrity sha512-uOHGJ7rR8gm4LfSdJ2Oz5vlu4d74VdEj1SaRktoB8tTUOFBXWsPgCkEsUQ7hj0KufMrWGmerVsV3hg9me3gKMQ==
+
 "@sentry/types@5.12.0":
   version "5.12.0"
   resolved "https://registry.yarnpkg.com/@sentry/types/-/types-5.12.0.tgz#5367e53c74261beea01502e3f7b6f3d822682a31"
