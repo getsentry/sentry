@@ -26,7 +26,7 @@ SYMBOLICATOR_TIMEOUT = 5
 logger = logging.getLogger(__name__)
 
 
-VALID_LAYOUTS = ("native", "symstore", "symstore_index2", "ssqp")
+VALID_LAYOUTS = ("native", "symstore", "symstore_index2", "ssqp", "debuginfod", "unified")
 
 VALID_FILE_TYPES = ("pe", "pdb", "mach_debug", "mach_code", "elf_debug", "elf_code", "breakpad")
 
