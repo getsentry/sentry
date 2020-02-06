@@ -349,7 +349,12 @@ class OrganizationIntegrations extends AsyncComponent<
     const {reloading, list, displayedList} = this.state;
 
     console.log({list});
-    const fuse = new Fuse(list, {keys: ['slug']});
+    const fuse = new Fuse(list, {
+      threshold: 0.1,
+      location: 0,
+      distance: 100,
+      keys: ['slug', 'key', 'name', 'id'],
+    });
 
     const title = t('Integrations');
     const tags = [
@@ -374,8 +379,11 @@ class OrganizationIntegrations extends AsyncComponent<
           value={this.state.searchInput || ''}
           onChange={({target}) => {
             this.setState({searchInput: target.value}, () => {
+              if (target.value === '') {
+                return this.setState({displayedList: this.state.list});
+              }
               const result = fuse.search(target.value);
-              this.setState({displayedList: result});
+              return this.setState({displayedList: result});
             });
           }}
           placeholder="Find a new integration, or one you already use."
