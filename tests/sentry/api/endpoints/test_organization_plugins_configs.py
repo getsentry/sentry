@@ -9,7 +9,7 @@ class OrganizationPluginsTest(APITestCase):
     def setUp(self):
         self.projectA = self.create_project()
         self.organization = self.projectA.organization
-        self.projectB = self.create_project(organization=self.organization)
+        self.projectB = self.create_project(organization=self.organization, platform="react")
 
         self.url = reverse(
             "sentry-api-0-organization-plugins-configs",
@@ -44,6 +44,7 @@ class OrganizationPluginsTest(APITestCase):
                 "projectName": self.projectA.name,
                 "enabled": False,
                 "configured": True,
+                "projectPlatform": None,
             }
         ]
 
@@ -58,6 +59,7 @@ class OrganizationPluginsTest(APITestCase):
                 "projectName": self.projectA.name,
                 "enabled": True,
                 "configured": True,
+                "projectPlatform": None,
             }
         ]
 
@@ -72,6 +74,7 @@ class OrganizationPluginsTest(APITestCase):
             "projectName": self.projectA.name,
             "enabled": False,
             "configured": True,
+            "projectPlatform": None,
         }
         assert filter(lambda x: x["projectId"] == self.projectB.id, projectList)[0] == {
             "projectId": self.projectB.id,
@@ -79,6 +82,7 @@ class OrganizationPluginsTest(APITestCase):
             "projectName": self.projectB.name,
             "enabled": False,
             "configured": True,
+            "projectPlatform": 'react',
         }
 
     def test_query_parameter(self):

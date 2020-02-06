@@ -142,8 +142,10 @@ export type EventAttachment = {
   event_id: string;
 };
 
+export type EntryTypeData = {[key: string]: any | any[]};
+
 type EntryType = {
-  data: {[key: string]: any} | any[];
+  data: EntryTypeData;
   type: string;
 };
 
@@ -305,20 +307,28 @@ export type PluginNoProject = {
   isHidden: boolean;
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  features: string[];
+  featureDescriptions: Array<{
+    description: string;
+    featureGate: string;
+  }>;
 };
 
 export type Plugin = PluginNoProject & {
   enabled: boolean;
 };
 
+export type PluginProjectItem = {
+  projectId: string;
+  projectSlug: string;
+  projectName: string;
+  projectPlatform: string | null;
+  enabled: boolean;
+  configured: boolean;
+};
+
 export type PluginWithProjectList = PluginNoProject & {
-  projectList: Array<{
-    projectId: string;
-    projectSlug: string;
-    projectName: string;
-    enabled: boolean;
-    configured: boolean;
-  }>;
+  projectList: PluginProjectItem[];
 };
 
 export type GlobalSelection = {

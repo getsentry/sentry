@@ -61,8 +61,8 @@ class TransformAliasesAndQueryTest(SnubaTestCase, TestCase):
         result = transform_aliases_and_query(
             aggregations=[["count", "", "count"]],
             filter_keys={"project_id": [self.project.id]},
-            start=before_now(minutes=5),
-            end=before_now(),
+            start=before_now(minutes=10),
+            end=before_now(minutes=-1),
             groupby=["time"],
             orderby=["time"],
             rollup=3600,
