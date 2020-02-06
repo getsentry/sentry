@@ -12,12 +12,10 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {callIfFunction} from 'app/utils/callIfFunction';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
 import EventsRequest from './utils/eventsRequest';
-import YAxisSelector from './yAxisSelector';
 
 class EventsAreaChart extends React.Component {
   static propTypes = {
@@ -103,27 +101,8 @@ class EventsChart extends React.Component {
     utc: PropTypes.bool,
     router: PropTypes.object,
     showLegend: PropTypes.bool,
-    yAxisOptions: PropTypes.array,
-    yAxisValue: PropTypes.string,
-    onYAxisChange: PropTypes.func,
+    yAxis: PropTypes.string,
   };
-
-  handleYAxisChange = value => {
-    const {onYAxisChange} = this.props;
-    callIfFunction(onYAxisChange, value);
-  };
-
-  getYAxisValue() {
-    const {yAxisValue, yAxisOptions} = this.props;
-    if (yAxisValue) {
-      return yAxisValue;
-    }
-    if (yAxisOptions && yAxisOptions.length) {
-      return yAxisOptions[0].value;
-    }
-
-    return undefined;
-  }
 
   render() {
     const {
@@ -137,12 +116,11 @@ class EventsChart extends React.Component {
       projects,
       environments,
       showLegend,
-      yAxisOptions,
+      yAxis,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !start && !end;
-    const yAxis = this.getYAxisValue();
 
     return (
       <ChartZoom
@@ -196,13 +174,6 @@ class EventsChart extends React.Component {
                           timeseriesData={timeseriesData}
                           previousTimeseriesData={previousTimeseriesData}
                         />
-                        {yAxisOptions && (
-                          <YAxisSelector
-                            selected={yAxis}
-                            options={yAxisOptions}
-                            onChange={this.handleYAxisChange}
-                          />
-                        )}
                       </React.Fragment>
                     );
                   }}
