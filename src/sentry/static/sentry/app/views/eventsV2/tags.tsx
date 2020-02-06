@@ -17,7 +17,7 @@ import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {SectionHeading} from './styles';
 
-import {fetchTagFacets, fetchTotalCount, Tag} from './utils';
+import {fetchTagFacets, Tag} from './utils';
 import EventView, {isAPIPayloadSimilar} from './eventView';
 
 type Props = {
@@ -25,6 +25,7 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   location: Location;
+  totalValues: null | number;
 };
 
 type State = {
@@ -68,27 +69,19 @@ class Tags extends React.Component<Props, State> {
 
   fetchData = async () => {
     const {api, organization, eventView, location} = this.props;
+    this.setState({loading: true, error: '', tags: []});
 
-    this.setState({loading: true, tags: [], totalValues: null});
-
-    const facetPromise = fetchTagFacets(
-      api,
-      organization.slug,
-      eventView.getFacetsAPIPayload(location)
-    );
-    const totalValuePromise = fetchTotalCount(
-      api,
-      organization.slug,
-      eventView.getEventsAPIPayload(location)
-    );
-    Promise.all([facetPromise, totalValuePromise])
-      .then(values => {
-        this.setState({loading: false, tags: values[0], totalValues: values[1]});
-      })
-      .catch(err => {
-        Sentry.captureException(err);
-        this.setState({loading: false, error: err});
-      });
+    try {
+      const tags = await fetchTagFacets(
+        api,
+        organization.slug,
+        eventView.getFacetsAPIPayload(location)
+      );
+      this.setState({loading: false, tags});
+    } catch (err) {
+      Sentry.captureException(err);
+      this.setState({loading: false, error: err});
+    }
   };
 
   onTagClick = (tag: string) => {
@@ -103,8 +96,7 @@ class Tags extends React.Component<Props, State> {
   };
 
   renderTag(tag: Tag) {
-    const {organization, eventView} = this.props;
-    const {totalValues} = this.state;
+    const {organization, eventView, totalValues} = this.props;
 
     const segments: TagSegment[] = tag.topValues.map(segment => {
       const url = eventView.getResultsViewUrlTarget(organization.slug);

@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Organization, SavedQuery} from 'app/types';
@@ -10,13 +9,13 @@ import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
 import DiscoverBreadcrumb from './breadcrumb';
 import EventInputName from './eventInputName';
 import EventView from './eventView';
 import SavedQueryButtonGroup from './savedQuery';
+import {HeaderBox, HeaderControls} from './styles';
 
 type Props = {
   api: Client;
@@ -89,7 +88,7 @@ class ResultsHeader extends React.Component<Props, State> {
           organization={organization}
           eventView={eventView}
         />
-        <Controller>
+        <HeaderControls>
           <Feature
             organization={organization}
             features={['discover-query']}
@@ -107,36 +106,10 @@ class ResultsHeader extends React.Component<Props, State> {
               />
             )}
           </Feature>
-        </Controller>
+        </HeaderControls>
       </HeaderBox>
     );
   }
 }
-
-const HeaderBox = styled('div')`
-  padding: ${space(2)} ${space(4)};
-  background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(2)};
-  margin: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: grid;
-    grid-template-rows: 1fr 30px;
-    grid-template-columns: 65% auto;
-    grid-column-gap: ${space(3)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 325px;
-  }
-`;
-
-const Controller = styled('div')`
-  display: flex;
-  justify-self: end;
-  grid-row: 1/2;
-  grid-column: 2/3;
-`;
 
 export default withApi(ResultsHeader);

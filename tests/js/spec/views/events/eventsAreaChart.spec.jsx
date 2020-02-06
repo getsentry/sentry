@@ -50,28 +50,4 @@ describe('EventsChart > EventsAreaChart', function() {
     const areaChart = wrapper.find('AreaChart');
     expect(areaChart.props().legend).toHaveProperty('data');
   });
-
-  it('responds to y-axis changes', function() {
-    const options = [
-      {label: 'users', value: 'user_count'},
-      {label: 'events', value: 'event_count'},
-    ];
-    wrapper.setProps({yAxisOptions: options});
-    wrapper.update();
-    const selector = wrapper.find('YAxisSelector');
-    expect(selector).toHaveLength(1);
-
-    // Open the selector
-    selector.find('StyledDropdownButton button').simulate('click');
-
-    // Click one of the options.
-    selector
-      .find('DropdownMenu MenuItem a')
-      .first()
-      .simulate('click');
-    wrapper.update();
-
-    const eventsRequest = wrapper.find('EventsRequest');
-    expect(eventsRequest.props().yAxis).toEqual('user_count');
-  });
 });

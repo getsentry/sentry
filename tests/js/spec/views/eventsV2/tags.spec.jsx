@@ -22,13 +22,6 @@ describe('Tags', function() {
         },
       ],
     });
-
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/events-meta/`,
-      body: {
-        count: 2,
-      },
-    });
   });
 
   afterEach(function() {
@@ -48,6 +41,7 @@ describe('Tags', function() {
       <Tags
         eventView={view}
         api={api}
+        totalValues={2}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
         location={{query: {}}}
@@ -85,6 +79,7 @@ describe('Tags', function() {
         eventView={view}
         api={api}
         organization={org}
+        totalValues={2}
         selection={{projects: [], environments: [], datetime: {}}}
         location={initialData.router.location}
       />,
