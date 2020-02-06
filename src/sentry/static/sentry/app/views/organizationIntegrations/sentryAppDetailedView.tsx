@@ -27,6 +27,8 @@ import {
 } from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
+import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
+import {openModal} from 'app/actionCreators/modal';
 import {UninstallButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
 
 type State = {
@@ -83,7 +85,6 @@ class SentryAppDetailedView extends AsyncComponent<
       const redirectUrl = addQueryParamsToExistingUrl(sentryApp.redirectUrl, queryParams);
       window.location.assign(redirectUrl);
     }
-    // TODO: Add SplitInstallationIdModal
   };
 
   handleInstall = async () => {
@@ -95,6 +96,17 @@ class SentryAppDetailedView extends AsyncComponent<
     if (!sentryApp.redirectUrl) {
       addSuccessMessage(t(`${sentryApp.slug} successfully installed.`));
       this.setState({appInstalls: [install, ...this.state.appInstalls]});
+
+      //hack for split so we can show the install ID to users for them to copy
+      //Will remove once the proper fix is in place
+      if (['split', 'split-dev', 'split-testing'].includes(sentryApp.slug)) {
+        openModal(({closeModal}) => (
+          <SplitInstallationIdModal
+            installationId={install.uuid}
+            closeModal={closeModal}
+          />
+        ));
+      }
     } else {
       this.redirectUser(install);
     }
