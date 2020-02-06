@@ -88,7 +88,9 @@ export default class TagDistributionMeter extends React.Component<Props> {
     let label: React.ReactNode = null;
     switch (title) {
       case 'release':
-        label = <Version version={largestSegment.name} anchor={false} />;
+        label = (
+          <Version version={largestSegment.name} anchor={false} tooltipRawVersion />
+        );
         break;
       default:
         label = largestSegment.name || t('n/a');

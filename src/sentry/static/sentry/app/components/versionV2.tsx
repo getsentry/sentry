@@ -67,7 +67,11 @@ const Version = ({
 
   const renderTooltipContent = () => {
     return (
-      <TooltipContent>
+      <TooltipContent
+        onClick={e => {
+          e.stopPropagation();
+        }}
+      >
         <TooltipVersionWrapper>{parsedVersion.raw}</TooltipVersionWrapper>
 
         <Clipboard value={parsedVersion.raw}>

@@ -70,6 +70,7 @@ class Deploy extends React.Component {
             version={deploy.version}
             orgId={organization.slug}
             projectId={project.id}
+            tooltipRawVersion
           />
         </StyledTextOverflow>
 

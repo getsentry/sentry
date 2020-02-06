@@ -47,7 +47,7 @@ class EventTags extends React.Component<Props> {
           }}
         >
           {tag.key === 'release' ? (
-            <Version version={tag.value} anchor={false} />
+            <Version version={tag.value} anchor={false} tooltipRawVersion />
           ) : (
             <DeviceName>{tag.value}</DeviceName>
           )}

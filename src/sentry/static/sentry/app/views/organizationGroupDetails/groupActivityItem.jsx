@@ -36,7 +36,7 @@ class GroupActivityItem extends React.Component {
         return data.version
           ? t('%(author)s marked this issue as resolved in %(version)s', {
               author,
-              version: <Version version={data.version} orgId={orgId} />,
+              version: <Version version={data.version} orgId={orgId} tooltipRawVersion />,
             })
           : t('%s marked this issue as resolved in the upcoming release', author);
       case 'set_resolved_in_commit':
@@ -108,7 +108,12 @@ class GroupActivityItem extends React.Component {
           ? t('%(author)s marked this issue as a regression in %(version)s', {
               author,
               version: (
-                <Version version={data.version} orgId={orgId} projectId={projectId} />
+                <Version
+                  version={data.version}
+                  orgId={orgId}
+                  projectId={projectId}
+                  tooltipRawVersion
+                />
               ),
             })
           : t('%s marked this issue as a regression', author);
