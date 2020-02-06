@@ -142,8 +142,10 @@ export type EventAttachment = {
   event_id: string;
 };
 
+export type EntryTypeData = {[key: string]: any | any[]};
+
 type EntryType = {
-  data: {[key: string]: any} | any[];
+  data: EntryTypeData;
   type: string;
 };
 
