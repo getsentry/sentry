@@ -24,7 +24,7 @@ const ThreadsSelectorSelectedOption = ({id, details}: Props) => (
 export default ThreadsSelectorSelectedOption;
 
 const Wrapper = styled('div')`
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: auto 1fr;
   display: grid;
 `;
 
