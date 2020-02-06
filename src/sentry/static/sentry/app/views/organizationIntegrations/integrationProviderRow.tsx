@@ -40,7 +40,7 @@ export default class ProviderRow extends React.Component<Props> {
         <Flex style={{alignItems: 'center', padding: '16px'}}>
           <PluginIcon size={36} pluginId={provider.key} />
           <div style={{flex: '1', padding: '0 16px'}}>
-            <ProviderName to={`/settings/${slug}/integrations/${provider.key}`}>
+            <ProviderName to={`/settings/${slug}/integrations/${provider.key}/`}>
               {provider.name}
             </ProviderName>
             <ProviderDetails>
