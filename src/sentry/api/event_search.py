@@ -832,17 +832,6 @@ def get_filter(query=None, params=None):
         # Deprecated alias, use `group_ids` instead
         if "issue.id" in params:
             kwargs["group_ids"] = to_list(params["issue.id"])
-        if "issue" in params:
-            if "organization_id" in params:
-                try:
-                    group = Group.objects.by_qualified_short_id(
-                        params["organization_id"], params["issue"]
-                    )
-                    kwargs["group_ids"] = to_list(group.id)
-                except Exception:
-                    raise InvalidSearchQuery(
-                        u"Invalid value '{}' for 'issue' query param".format(term.value.value)
-                    )
 
     return eventstore.Filter(**kwargs)
 
