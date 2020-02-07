@@ -415,6 +415,7 @@ class EventManager(object):
     def get_data(self):
         return self._data
 
+    @metrics.wraps("event_manager.get_event_instance")
     def _get_event_instance(self, project_id=None):
         data = self._data
         event_id = data.get("event_id")
@@ -545,6 +546,7 @@ class EventManager(object):
                 file=file,
             )
 
+    @metrics.wraps("event_manager.save")
     def save(self, project_id, raw=False, assume_normalized=False, cache_key=None):
         """
         We re-insert events with duplicate IDs into Snuba, which is responsible
@@ -567,10 +569,13 @@ class EventManager(object):
 
         data = self._data
 
-        project = Project.objects.get_from_cache(id=project_id)
-        project._organization_cache = Organization.objects.get_from_cache(
-            id=project.organization_id
-        )
+        with metrics.timer("event_manager.save.project.get_from_cache"):
+            project = Project.objects.get_from_cache(id=project_id)
+
+        with metrics.timer("event_manager.save.organization.get_from_cache"):
+            project._organization_cache = Organization.objects.get_from_cache(
+                id=project.organization_id
+            )
 
         # Pull out the culprit
         culprit = self.get_culprit()
