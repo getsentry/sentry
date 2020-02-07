@@ -20,6 +20,7 @@ from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
 from .endpoints.data_export import DataExportEndpoint
 from .endpoints.data_export_details import DataExportDetailsEndpoint
+from .endpoints.data_export_download import DataExportDownloadEndpoint
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
     DebugFilesEndpoint,
@@ -583,6 +584,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/data-export/(?P<data_export_id>[^\/]+)/$",
                     DataExportDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-data-export-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/data-export/(?P<data_export_id>[^\/]+)/download/$",
+                    DataExportDownloadEndpoint.as_view(),
+                    name="sentry-api-0-organization-data-export-download",
                 ),
                 # Incidents
                 url(
