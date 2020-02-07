@@ -595,7 +595,10 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             {"nonFieldErrors": ["User does not belong to this organization"]},
         )
 
-    def test_slack(self):
+    def test_slack(self, responses):
+        # TODO(dfuller): WHAT SHOULD THIS DO
+        responses.add(responses.GET, "https://slack.com/api/channels.list")
+
         self.run_fail_validation_test(
             {
                 "type": AlertRuleTriggerAction.get_registered_type(

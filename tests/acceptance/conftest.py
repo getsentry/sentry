@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 import os
 import json
+import pytest
 import subprocess
 import time
 
@@ -28,7 +29,7 @@ def pytest_configure(config):
             last_built = int(time.time()) - data["built"]
 
             if last_built <= 3600:
-                print(  # noqa: B314
+                print (  # noqa: B314
                     u"""
 ###################
 #
@@ -46,7 +47,7 @@ def pytest_configure(config):
     except Exception:
         pass
 
-    print(  # noqa: B314
+    print (  # noqa: B314
         """
 ###################
 #
@@ -64,3 +65,8 @@ def pytest_configure(config):
             "NODE_OPTIONS": "--max-old-space-size=4096",
         },
     )
+
+
+@pytest.fixture(autouse=True)
+def allow_percy(responses):
+    responses.add_passthru("https://percy.io")

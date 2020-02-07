@@ -54,3 +54,24 @@ def pytest_collection_modifyitems(config, items):
         marker = "group_%s" % group_num
         config.addinivalue_line("markers", marker)
         item.add_marker(getattr(pytest.mark, marker))
+
+
+# TODO(dcramer): this shouhld go into tests/symbolicator/conftest.py, but fails currently:
+# ImportError while loading conftest '/Users/dcramer/Development/sentry/tests/symbolicator/conftest.py'.
+# tests/symbolicator/__init__.py:5: in <module>
+#     from sentry.utils.safe import get_path
+# src/sentry/utils/safe.py:49: in <module>
+#     max_size=settings.SENTRY_MAX_VARIABLE_SIZE,
+# ../../.virtualenvs/sentry/lib/python2.7/site-packages/django/conf/__init__.py:56: in __getattr__
+#     self._setup(name)
+# ../../.virtualenvs/sentry/lib/python2.7/site-packages/django/conf/__init__.py:39: in _setup
+#     % (desc, ENVIRONMENT_VARIABLE))
+# E   ImproperlyConfigured: Requested setting SENTRY_MAX_VARIABLE_SIZE, but settings are not configured. You must either define the environment variable DJANGO_SETTINGS_MODULE or call settings.configure() before accessing settings.
+@pytest.fixture(autouse=True)
+def add_passthru_for_symbolicator(responses):
+    responses.add_passthru("http://localhost:3021")
+
+
+@pytest.fixture(autouse=True)
+def add_mock_for_snuba(responses):
+    responses.add_passthru("http://localhost:1218")
