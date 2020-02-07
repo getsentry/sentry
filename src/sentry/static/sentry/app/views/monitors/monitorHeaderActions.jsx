@@ -11,6 +11,7 @@ import {logException} from 'app/utils/logging';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {IconEdit} from 'app/icons/iconEdit';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 
@@ -71,14 +72,15 @@ class MonitorHeaderActions extends React.Component {
         <div className="btn-group">
           <Button
             size="small"
-            icon="icon-edit"
             to={`/organizations/${orgId}/monitors/${monitor.id}/edit/`}
           >
+            <IconEdit size="xs" />
+            &nbsp;
             {t('Edit')}
           </Button>
         </div>
         <div className="btn-group" style={{marginLeft: 10}}>
-          <Button size="small" icon="icon-edit" onClick={this.toggleStatus}>
+          <Button size="small" onClick={this.toggleStatus}>
             {monitor.status !== 'disabled' ? t('Pause') : t('Enable')}
           </Button>
         </div>
