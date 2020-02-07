@@ -111,7 +111,7 @@ class Tags extends React.Component<Props, State> {
     // Ensure we don't show >100% if there's a slight mismatch between the facets
     // endpoint and the totals endpoint
     const maxTotalValues =
-      segments.length === 1
+      segments.length > 0
         ? Math.max(Number(totalValues), segments[0].count)
         : totalValues;
     return (
