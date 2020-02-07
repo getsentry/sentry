@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from django.template.defaultfilters import pluralize
 
 from sentry.incidents.models import (
+    AlertRuleThresholdType,
     AlertRuleTriggerAction,
     QueryAggregations,
     TriggerStatus,
@@ -102,6 +103,13 @@ class EmailActionHandler(ActionHandler):
     def generate_email_context(self, status):
         trigger = self.action.alert_rule_trigger
         alert_rule = trigger.alert_rule
+        is_active = status == TriggerStatus.ACTIVE
+        is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE
+
+        # if alert threshold and threshold type is above then show '>'
+        # if resolve threshold and threshold type is *BELOW* then show '>'
+        # we can simplify this to be the below statement
+        show_greater_than_string = is_active == is_threshold_type_above
 
         return {
             "link": absolute_uri(
@@ -130,9 +138,10 @@ class EmailActionHandler(ActionHandler):
             "triggered_at": trigger.date_added,
             "aggregate": self.query_aggregations_display[QueryAggregations(alert_rule.aggregation)],
             "query": alert_rule.query,
-            "threshold": trigger.alert_threshold
-            if status == TriggerStatus.ACTIVE
-            else trigger.resolve_threshold,
+            "threshold": trigger.alert_threshold if is_active else trigger.resolve_threshold,
+            # if alert threshold and threshold type is above then show '>'
+            # if resolve threshold and threshold type is *BELOW* then show '>'
+            "threshold_direction_string": ">" if show_greater_than_string else "<",
             "status": self.incident_status[self.incident.status],
             "is_critical": self.incident.status == IncidentStatus.CRITICAL,
             "is_warning": self.incident.status == IncidentStatus.WARNING,
