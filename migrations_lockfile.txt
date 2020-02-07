@@ -1,4 +1,3 @@
-Django migrations lock file. This helps us avoid migration conflicts on master.
 If you have a conflict in this file, it means that someone has committed a migration
 ahead of you.
 
