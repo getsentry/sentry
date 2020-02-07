@@ -175,7 +175,7 @@ describe('EventsRequest', function() {
             },
           ],
           previousTimeseriesData: {
-            seriesName: 'Previous Period',
+            seriesName: 'Previous',
             data: [
               expect.objectContaining({
                 name: expect.anything(),

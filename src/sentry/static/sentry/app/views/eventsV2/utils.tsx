@@ -225,7 +225,19 @@ export function decodeColumnOrder(
       column.field = aggregationField[1] as Field;
     }
     column.key = col.aggregationField;
-    column.type = column.aggregation ? 'number' : FIELDS[column.field];
+
+    // Aggregations on any field make numbers.
+    // Otherwise use the FIELDS data to infer types.
+    if (
+      AGGREGATIONS[column.aggregation] &&
+      AGGREGATIONS[column.aggregation].type === '*'
+    ) {
+      column.type = 'number';
+    } else if (FIELDS[column.aggregation]) {
+      column.type = FIELDS[column.aggregation];
+    } else {
+      column.type = FIELDS[column.field];
+    }
     column.width = col.width;
 
     column.name = column.key;
