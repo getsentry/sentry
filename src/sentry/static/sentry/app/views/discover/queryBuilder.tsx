@@ -21,7 +21,7 @@ const API_LIMIT = 10000;
 
 const DEFAULTS = {
   projects: [],
-  fields: ['id', 'issue.id', 'project.name', 'platform', 'timestamp'],
+  fields: ['id', 'issue', 'project.name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
   orderby: '-timestamp',

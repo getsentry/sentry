@@ -1011,7 +1011,7 @@ class GetSnubaQueryArgsTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             get_filter("(user.email:foo@example.com OR user.email:bar@example.com")
 
-    def test_issue_filter(self):
+    def test_issue_id_filter(self):
         filter = get_filter("issue.id:1")
         assert not filter.conditions
         assert filter.filter_keys == {"group_id": [1]}
@@ -1026,6 +1026,12 @@ class GetSnubaQueryArgsTest(TestCase):
         assert filter.conditions == [["user.email", "=", "foo@example.com"]]
         assert filter.filter_keys == {"group_id": [1]}
         assert filter.group_ids == [1]
+
+    def test_issue_filter(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("issue:1", {"organization_id": 1})
+        assert "Invalid value '" in six.text_type(err)
+        assert "' for 'issue:' filter" in six.text_type(err)
 
     def test_environment_param(self):
         params = {"environment": ["", "prod"]}
@@ -1182,11 +1188,12 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
     def test_field_alias_expansion(self):
-        fields = ["title", "last_seen", "latest_event", "project", "user", "message"]
+        fields = ["title", "last_seen", "latest_event", "project", "issue", "user", "message"]
         result = resolve_field_list(fields, {})
         assert result["selected_columns"] == [
             "title",
             "project.id",
+            "issue.id",
             "user.id",
             "user.username",
             "user.email",
@@ -1200,6 +1207,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "project.id",
+            "issue.id",
             "user.id",
             "user.username",
             "user.email",

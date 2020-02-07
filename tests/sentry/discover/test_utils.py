@@ -67,9 +67,13 @@ class TransformAliasesAndQueryTest(SnubaTestCase, TestCase):
             orderby=["time"],
             rollup=3600,
         )
-        data = result["data"]
-        assert isinstance(data[-1]["time"], int)
-        assert data[-1]["count"] == 1
+
+        # If the date range spans across two hours, then one row will have results
+        # and the other one won't.
+        for row in result["data"]:
+            assert isinstance(row["time"], int)
+            if "count" in row:
+                assert row["count"] == 1
 
     def test_conversion_of_release_filter_key(self):
         result = transform_aliases_and_query(

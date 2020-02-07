@@ -20,6 +20,7 @@ from sentry.snuba import discover
 from sentry.utils import snuba
 from sentry.utils.http import absolute_uri
 from sentry.models.project import Project
+from sentry.models.group import Group
 
 logger = logging.getLogger(__name__)
 
@@ -123,8 +124,9 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
         except OrganizationEventsError as exc:
             raise ParseError(detail=six.text_type(exc))
         except NoProjects:
-
             return Response([])
+
+        params["organization_id"] = organization.id
 
         has_global_views = features.has(
             "organizations:global-views", organization, actor=request.user
@@ -229,9 +231,23 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 if tests["trace"]:
                     row["trace"] = uuid.UUID(row["trace"]).hex
 
+        fields = request.GET.getlist("field")
+        issues = {}
+        if "issue" in fields:  # Look up the short ID and return that in the results
+            issue_ids = set(row["issue.id"] for row in results)
+            issues = {
+                i.id: i.qualified_short_id
+                for i in Group.objects.filter(
+                    id__in=issue_ids, project_id__in=project_ids, project__organization=organization
+                )
+            }
+            for result in results:
+                if "issue.id" in result:
+                    result["issue"] = issues[result["issue.id"]]
+
         if not ("project.id" in first_row or "projectid" in first_row):
             return results
-        fields = request.GET.getlist("field")
+
         projects = {
             p["id"]: p["slug"]
             for p in Project.objects.filter(organization=organization, id__in=project_ids).values(

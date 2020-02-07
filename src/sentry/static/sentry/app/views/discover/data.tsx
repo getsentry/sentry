@@ -90,7 +90,7 @@ export const COLUMNS = [
   {name: 'stack.stack_level', type: TYPES.NUMBER},
 ];
 
-export const NON_SNUBA_FIELDS = ['project.name'];
+export const NON_SNUBA_FIELDS = ['project.name', 'issue'];
 
 export const NON_CONDITIONS_FIELDS = [...NON_SNUBA_FIELDS, 'project.id'];
 
