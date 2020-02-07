@@ -4,7 +4,7 @@ import random
 import logging
 from importlib import import_module
 import six
-from six.moves.urllib import parse_qs as urlparse_parse_qs
+from six.moves.urllib.parse import parse_qs as urlparse_parse_qs
 
 from cgi import parse_qsl
 from django.conf import settings
