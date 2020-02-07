@@ -14,7 +14,7 @@ from __future__ import absolute_import
 
 import simplejson
 
-from social_auth.backends import ConsumerBasedOAuth, OAuthBackend
+from social_auth.backends import BaseOAuth1, OAuthBackend
 from social_auth.utils import dsa_urlopen
 
 # Bitbucket configuration
@@ -67,7 +67,7 @@ class BitbucketBackend(OAuthBackend):
         return token
 
 
-class BitbucketAuth(ConsumerBasedOAuth):
+class BitbucketAuth(BaseOAuth1):
     """Bitbucket OAuth authentication mechanism"""
 
     AUTHORIZATION_URL = BITBUCKET_AUTHORIZATION_URL
