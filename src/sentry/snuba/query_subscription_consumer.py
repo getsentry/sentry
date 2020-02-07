@@ -4,6 +4,7 @@ from json import loads
 
 import jsonschema
 import pytz
+import sentry_sdk
 from confluent_kafka import Consumer, KafkaException, TopicPartition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -126,52 +127,57 @@ class QuerySubscriptionConsumer(object):
         :param message:
         :return:
         """
-        try:
-            contents = self.parse_message_value(message.value())
-        except InvalidMessageError:
-            # If the message is in an invalid format, just log the error
-            # and continue
-            logger.exception(
-                "Subscription update could not be parsed",
-                extra={
-                    "offset": message.offset(),
-                    "partition": message.partition(),
-                    "value": message.value(),
-                },
-            )
-            return
+        with sentry_sdk.push_scope() as scope:
+            try:
+                contents = self.parse_message_value(message.value())
+            except InvalidMessageError:
+                # If the message is in an invalid format, just log the error
+                # and continue
+                logger.exception(
+                    "Subscription update could not be parsed",
+                    extra={
+                        "offset": message.offset(),
+                        "partition": message.partition(),
+                        "value": message.value(),
+                    },
+                )
+                return
+            scope.set_tag("query_subscription_id", contents["subscription_id"])
 
-        try:
-            subscription = QuerySubscription.objects.get_from_cache(
-                subscription_id=contents["subscription_id"]
-            )
-        except QuerySubscription.DoesNotExist:
-            metrics.incr("snuba_query_subscriber.subscription_doesnt_exist")
-            logger.error(
-                "Received subscription update, but subscription does not exist",
-                extra={
-                    "offset": message.offset(),
-                    "partition": message.partition(),
-                    "value": message.value(),
-                },
-            )
-            return
+            try:
+                subscription = QuerySubscription.objects.get_from_cache(
+                    subscription_id=contents["subscription_id"]
+                )
+            except QuerySubscription.DoesNotExist:
+                metrics.incr("snuba_query_subscriber.subscription_doesnt_exist")
+                logger.error(
+                    "Received subscription update, but subscription does not exist",
+                    extra={
+                        "offset": message.offset(),
+                        "partition": message.partition(),
+                        "value": message.value(),
+                    },
+                )
+                return
 
-        if subscription.type not in subscriber_registry:
-            metrics.incr("snuba_query_subscriber.subscription_type_not_registered")
-            logger.error(
-                "Received subscription update, but no subscription handler registered",
-                extra={
-                    "offset": message.offset(),
-                    "partition": message.partition(),
-                    "value": message.value(),
-                },
-            )
-            return
+            if subscription.type not in subscriber_registry:
+                metrics.incr("snuba_query_subscriber.subscription_type_not_registered")
+                logger.error(
+                    "Received subscription update, but no subscription handler registered",
+                    extra={
+                        "offset": message.offset(),
+                        "partition": message.partition(),
+                        "value": message.value(),
+                    },
+                )
+                return
 
-        callback = subscriber_registry[subscription.type]
-        with metrics.timer("snuba_query_subscriber.callback.duration", instance=subscription.type):
-            callback(contents, subscription)
+            callback = subscriber_registry[subscription.type]
+            with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
+                "snuba_query_subscriber.callback.duration", instance=subscription.type
+            ):
+                span.set_data("payload", contents)
+                callback(contents, subscription)
 
     def parse_message_value(self, value):
         """
