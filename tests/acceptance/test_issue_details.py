@@ -76,6 +76,11 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.visit_issue(event.group.id)
         self.browser.snapshot("issue details python formdata")
 
+    def test_pii_tooltips(self):
+        event = self.create_sample_event(platform="pii-tooltips")
+        self.visit_issue(event.group.id)
+        self.browser.snapshot("issue details pii tooltips")
+
     def test_cocoa_event(self):
         event = self.create_sample_event(platform="cocoa")
         self.visit_issue(event.group.id)
