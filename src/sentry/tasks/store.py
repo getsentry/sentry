@@ -477,16 +477,17 @@ def _do_save_event(
         # event.project.organization is populated after this statement.
         event = manager.save(project_id, assume_normalized=True, cache_key=cache_key)
 
-        # This is where we can finally say that we have accepted the event.
-        track_outcome(
-            event.project.organization_id,
-            event.project.id,
-            key_id,
-            Outcome.ACCEPTED,
-            None,
-            timestamp,
-            event_id,
-        )
+        with metrics.timer("tasks.store.track_outcome"):
+            # This is where we can finally say that we have accepted the event.
+            track_outcome(
+                event.project.organization_id,
+                event.project.id,
+                key_id,
+                Outcome.ACCEPTED,
+                None,
+                timestamp,
+                event_id,
+            )
 
     except HashDiscarded:
         project = Project.objects.get_from_cache(id=project_id)
