@@ -225,7 +225,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       return;
     }
 
-    this.setState({
+    this.setStateAndUpdateParents({
       conditions,
       intervalChoices,
       placeholder,

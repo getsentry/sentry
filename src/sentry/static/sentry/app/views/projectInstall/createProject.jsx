@@ -70,7 +70,7 @@ class CreateProject extends React.Component {
     platform,
     hasIssueAlertOptionsEnabled,
     organization,
-    inFlight
+    canSubmitForm
   ) => {
     const createProjectFormCaptured = (
       <CreateProjectForm onSubmit={this.createProject}>
@@ -130,7 +130,7 @@ class CreateProject extends React.Component {
           <Button
             data-test-id="create-project"
             priority="primary"
-            disabled={inFlight || !team || projectName === ''}
+            disabled={canSubmitForm}
           >
             {t('Create Project')}
           </Button>
@@ -146,6 +146,17 @@ class CreateProject extends React.Component {
       <StickyWrapper>{createProjectFormCaptured}</StickyWrapper>
     );
   };
+
+  canSubmitForm(inFlight, team, projectName, dataFragment, hasIssueAlertOptionsEnabled) {
+    return (
+      inFlight ||
+      !team ||
+      projectName === '' ||
+      (hasIssueAlertOptionsEnabled &&
+        dataFragment?.shouldCreateCustomRule === true &&
+        dataFragment?.conditions?.some?.(condition => !condition.value))
+    );
+  }
 
   createProject = async e => {
     e.preventDefault();
@@ -241,8 +252,15 @@ class CreateProject extends React.Component {
 
   render() {
     const {organization, hasIssueAlertOptionsEnabled} = this.props;
-    const {projectName, team, platform, error, inFlight} = this.state;
+    const {projectName, team, platform, error, inFlight, dataFragment} = this.state;
     const teams = this.props.teams.filter(filterTeam => filterTeam.hasAccess);
+    const canSubmitForm = this.canSubmitForm(
+      inFlight,
+      team,
+      projectName,
+      dataFragment,
+      hasIssueAlertOptionsEnabled
+    );
     return (
       <React.Fragment>
         {error && <Alert type="error">{error}</Alert>}
@@ -274,7 +292,7 @@ class CreateProject extends React.Component {
             platform,
             hasIssueAlertOptionsEnabled,
             organization,
-            inFlight
+            canSubmitForm
           )}
         </div>
       </React.Fragment>
