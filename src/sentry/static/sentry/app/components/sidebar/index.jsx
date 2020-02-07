@@ -17,7 +17,20 @@ import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import HookStore from 'app/stores/hookStore';
 import InlineSvg from 'app/components/inlineSvg';
-import {IconSettings} from 'app/icons';
+import {
+  IconActivity,
+  IconGraph,
+  IconIssues,
+  IconLab,
+  IconProject,
+  IconReleases,
+  IconSettings,
+  IconSiren,
+  IconStack,
+  IconStats,
+  IconSupport,
+  IconTelescope,
+} from 'app/icons';
 import PreferencesStore from 'app/stores/preferencesStore';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -302,7 +315,7 @@ class Sidebar extends React.Component {
                     {...sidebarItemProps}
                     index
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-projects" />}
+                    icon={<IconProject size="md" />}
                     label={t('Projects')}
                     to={`/organizations/${organization.slug}/projects/`}
                   />
@@ -314,7 +327,7 @@ class Sidebar extends React.Component {
                         evt
                       )
                     }
-                    icon={<InlineSvg src="icon-issues" />}
+                    icon={<IconIssues size="md" />}
                     label={t('Issues')}
                     to={`/organizations/${organization.slug}/issues/`}
                     id="issues"
@@ -334,7 +347,7 @@ class Sidebar extends React.Component {
                             evt
                           )
                         }
-                        icon={<InlineSvg src="icon-stack" />}
+                        icon={<IconStack size="md" />}
                         label={t('Events')}
                         to={`/organizations/${organization.slug}/events/`}
                         id="events"
@@ -357,7 +370,7 @@ class Sidebar extends React.Component {
                               evt
                             )
                           }
-                          icon={<InlineSvg src="icon-telescope" />}
+                          icon={<IconTelescope size="md" />}
                           label={t('Discover')}
                           to={getDiscoverLandingUrl(organization)}
                           id="discover-v2"
@@ -376,7 +389,7 @@ class Sidebar extends React.Component {
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-siren" size="22" />}
+                      icon={<IconSiren size="md" />}
                       label={t('Alerts')}
                       to={`/organizations/${organization.slug}/alerts/`}
                       id="alerts"
@@ -391,7 +404,7 @@ class Sidebar extends React.Component {
                         evt
                       )
                     }
-                    icon={<InlineSvg src="icon-releases" />}
+                    icon={<IconReleases size="md" />}
                     label={t('Releases')}
                     to={`/organizations/${organization.slug}/releases/`}
                     id="releases"
@@ -404,7 +417,7 @@ class Sidebar extends React.Component {
                         evt
                       )
                     }
-                    icon={<InlineSvg src="icon-support" size="22" />}
+                    icon={<IconSupport size="md" />}
                     label={t('User Feedback')}
                     to={`/organizations/${organization.slug}/user-feedback/`}
                     id="user-feedback"
@@ -417,7 +430,7 @@ class Sidebar extends React.Component {
                       {...sidebarItemProps}
                       index
                       onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-health" />}
+                      icon={<IconGraph size="md" />}
                       label={t('Dashboards')}
                       to={`/organizations/${organization.slug}/dashboards/`}
                       id="customizable-dashboards"
@@ -433,7 +446,7 @@ class Sidebar extends React.Component {
                       <SidebarItem
                         {...sidebarItemProps}
                         onClick={this.hidePanel}
-                        icon={<InlineSvg src="icon-discover" />}
+                        icon={<IconTelescope size="md" />}
                         label={t('Discover')}
                         to={`/organizations/${organization.slug}/discover/`}
                         id="discover"
@@ -449,7 +462,7 @@ class Sidebar extends React.Component {
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-labs" />}
+                      icon={<IconLab size="md" />}
                       label={t('Monitors')}
                       to={`/organizations/${organization.slug}/monitors/`}
                       id="monitors"
@@ -464,7 +477,7 @@ class Sidebar extends React.Component {
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-releases" />}
+                      icon={<IconReleases size="md" />}
                       label={t('Releases v2')}
                       to={`/organizations/${organization.slug}/releases-v2/`}
                       id="releasesv2"
@@ -476,7 +489,7 @@ class Sidebar extends React.Component {
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-activity" size="22px" />}
+                    icon={<IconActivity size="md" />}
                     label={t('Activity')}
                     to={`/organizations/${organization.slug}/activity/`}
                     id="activity"
@@ -484,7 +497,7 @@ class Sidebar extends React.Component {
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-stats" />}
+                    icon={<IconStats size="md" />}
                     label={t('Stats')}
                     to={`/organizations/${organization.slug}/stats/`}
                     id="stats"
