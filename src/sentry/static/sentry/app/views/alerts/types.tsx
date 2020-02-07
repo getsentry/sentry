@@ -54,6 +54,12 @@ export type NoteType = {
   mentions: [string, string][];
 };
 
+export enum IncidentType {
+  DETECTED,
+  CREATED,
+  TRIGGERED,
+}
+
 export enum IncidentActivityType {
   CREATED,
   DETECTED,
@@ -62,7 +68,8 @@ export enum IncidentActivityType {
 }
 
 export enum IncidentStatus {
-  DETECTED,
-  CREATED,
-  CLOSED,
+  OPENED = 1,
+  CLOSED = 2,
+  WARNING = 10,
+  CRITICAL = 20,
 }
