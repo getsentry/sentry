@@ -1,6 +1,6 @@
 {% spaceless %}
 {% autoescape off %}
-# Alert Rule Trigger {{ status }} on {{ incident_name }}.
+# Alert Rule Trigger on {{ incident_name }}.
 
 {% if enhanced_privacy %}
 Details about this alert are not shown in this email since enhanced privacy
@@ -9,6 +9,7 @@ controls are enabled. For more details about this alert alert, view on Sentry:
 {% else %}
 Incident: {{ link }}
 Rule: {{ rule_link }}
+Status: {{ status }}
 
 Metric: {{ aggregate }}
 Environment: {{ environment }}
