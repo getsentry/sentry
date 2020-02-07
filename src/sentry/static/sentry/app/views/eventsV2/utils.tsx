@@ -368,7 +368,7 @@ export function getExpandedResults(
   dataRow?: TableDataRow | Event
 ): EventView {
   let nextView = eventView.clone();
-  const fieldsToUpdate: number[] = [];
+  const fieldsToTransform: number[] = [];
 
   // Workaround around readonly typing
   const aggregateAliases: string[] = [...AGGREGATE_ALIASES];
@@ -378,7 +378,7 @@ export function getExpandedResults(
 
     // Mark aggregated fields to be transformed into its un-aggregated form
     if (column.aggregation || aggregateAliases.includes(column.field)) {
-      fieldsToUpdate.push(index);
+      fieldsToTransform.push(index);
       return;
     }
 
@@ -405,7 +405,7 @@ export function getExpandedResults(
   const fieldsToDelete: number[] = [];
 
   // make a best effort to transform aggregated columns with its non-aggregated form
-  fieldsToUpdate.forEach((indexToUpdate: number) => {
+  fieldsToTransform.forEach((indexToUpdate: number) => {
     const currentField: FieldType = nextView.fields[indexToUpdate];
     const exploded = explodeField(currentField);
 
