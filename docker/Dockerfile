@@ -8,10 +8,6 @@ LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry"
 LABEL org.opencontainers.image.vendor="Functional Software, Inc."
 LABEL org.opencontainers.image.authors="oss@sentry.io"
 
-# Sane defaults for pip
-ENV PIP_NO_CACHE_DIR=off \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Needed for GPG
     dirmngr \
@@ -113,7 +109,7 @@ ENV PIP_NO_CACHE_DIR=off \
     # UWSGI dogstatsd plugin
     UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd
 
-COPY --from=sdist /tmp/dist/*.whl /tmp/dist/
+COPY --from=sdist /dist/*.whl /tmp/dist/
 RUN set -x \
     && buildDeps="" \
     # uwsgi
