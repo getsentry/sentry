@@ -57,7 +57,7 @@ export default class DetailsBody extends React.Component<Props> {
         .filter(({slug}) => incident.projects.includes(slug))
         .map(({id}) => Number(id)),
       version: 2 as const,
-      range: `${incident.alertRule.timeWindow}s`,
+      range: `${incident.alertRule.timeWindow}m`,
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
