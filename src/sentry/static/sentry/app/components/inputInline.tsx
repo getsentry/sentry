@@ -2,8 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
-
-import InlineSvg from 'app/components/inlineSvg';
+import {IconEdit} from 'app/icons/iconEdit';
 import space from 'app/styles/space';
 
 type Props = {
@@ -172,7 +171,7 @@ class InputInline extends React.Component<Props, State> {
         />
         {!isFocused && !disabled && (
           <div onClick={this.onClickIcon}>
-            <InputButton src="icon-edit-pencil" size="1em" />
+            <StyledIconEdit />
           </div>
         )}
       </Wrapper>
@@ -205,7 +204,7 @@ const Input = styled('div')<{
     background-color: ${p => (p.isDisabled ? 'transparent' : p.theme.offWhite2)};
   }
 `;
-const InputButton = styled(InlineSvg)`
+const StyledIconEdit = styled(IconEdit)`
   color: ${p => p.theme.gray2};
   margin-left: ${space(0.5)};
 
