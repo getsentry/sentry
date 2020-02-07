@@ -80,7 +80,7 @@ export const FIELDS = {
   project: 'string',
   environment: 'string',
   release: 'string',
-  'issue.id': 'string',
+  issue: 'string',
 
   message: 'string',
   location: 'string',
