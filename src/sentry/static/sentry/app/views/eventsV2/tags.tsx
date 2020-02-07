@@ -108,13 +108,18 @@ class Tags extends React.Component<Props, State> {
 
       return segment;
     });
-
+    // Ensure we don't show >100% if there's a slight mismatch between the facets
+    // endpoint and the totals endpoint
+    const maxTotalValues =
+      segments.length > 0
+        ? Math.max(Number(totalValues), segments[0].count)
+        : totalValues;
     return (
       <TagDistributionMeter
         key={tag.key}
         title={tag.key}
         segments={segments}
-        totalValues={Number(totalValues)}
+        totalValues={Number(maxTotalValues)}
         renderLoading={() => <StyledPlaceholder height="16px" />}
         onTagClick={this.onTagClick}
       />
