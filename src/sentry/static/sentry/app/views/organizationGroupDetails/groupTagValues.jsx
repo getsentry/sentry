@@ -22,6 +22,9 @@ class GroupTagValues extends React.Component {
   static propTypes = {
     api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
+    location: PropTypes.shape({
+      query: PropTypes.object,
+    }),
   };
 
   state = {
