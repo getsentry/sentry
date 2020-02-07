@@ -42,7 +42,9 @@ export default class PluginRow extends React.Component<Props> {
               {plugin.projectList.length ? (
                 <StyledLink
                   to={`/settings/${slug}/plugins/${plugin.slug}/?tab=configurations`}
-                >{`${plugin.projectList.length} Configurations`}</StyledLink>
+                >{`${plugin.projectList.length} Configuration${
+                  plugin.projectList.length > 1 ? 's' : ''
+                }`}</StyledLink>
               ) : null}
             </ProviderDetails>
           </Container>

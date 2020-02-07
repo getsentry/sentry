@@ -48,7 +48,9 @@ export default class ProviderRow extends React.Component<Props> {
               {integrations.length ? (
                 <StyledLink
                   to={`/settings/${slug}/integrations/${provider.key}/?tab=configurations`}
-                >{`${integrations.length} Configurations`}</StyledLink>
+                >{`${integrations.length} Configuration${
+                  integrations.length > 1 ? 's' : ''
+                }`}</StyledLink>
               ) : null}
             </ProviderDetails>
           </div>
