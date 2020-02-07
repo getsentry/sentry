@@ -113,7 +113,7 @@ ENV PIP_NO_CACHE_DIR=off \
     # UWSGI dogstatsd plugin
     UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd
 
-COPY --from=sdist /dist/requirements.txt /tmp/dist/requirements.txt
+COPY --from=sdist /tmp/dist/*.whl /tmp/dist/
 RUN set -x \
     && buildDeps="" \
     # uwsgi
