@@ -36,6 +36,7 @@ class ReleaseSeries extends React.Component {
     utc: PropTypes.bool,
     // Array of releases, if empty, component will fetch releases itself
     releases: PropTypes.arrayOf(SentryTypes.Release),
+    tooltip: SentryTypes.EChartsTooltip,
   };
 
   state = {
@@ -74,7 +75,7 @@ class ReleaseSeries extends React.Component {
   }
 
   getReleaseSeries = releases => {
-    const {utc, organization, router} = this.props;
+    const {utc, organization, router, tooltip} = this.props;
 
     return {
       seriesName: 'Releases',
@@ -87,7 +88,7 @@ class ReleaseSeries extends React.Component {
             type: 'solid',
           },
         },
-        tooltip: {
+        tooltip: tooltip || {
           formatter: ({data}) => {
             return `<div>${moment
               .tz(data.value, utc ? 'UTC' : getUserTimezone())
