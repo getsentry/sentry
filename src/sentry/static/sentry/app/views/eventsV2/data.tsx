@@ -219,7 +219,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
     },
   },
   issue: {
-    sortField: 'issue',
+    sortField: null,
     renderFunc: (data, {organization}) => {
       const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
       return (
