@@ -106,7 +106,7 @@ class IntegrationDetailedView extends AsyncComponent<
     const origIntegrations = [...this.state.configurations];
 
     const integrations = this.state.configurations.filter(i => i.id !== integration.id);
-    this.setState({integrations});
+    this.setState({configurations: integrations});
 
     const options: RequestOptions = {
       method: 'DELETE',
