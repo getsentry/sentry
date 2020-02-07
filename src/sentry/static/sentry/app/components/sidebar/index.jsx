@@ -16,9 +16,9 @@ import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import HookStore from 'app/stores/hookStore';
-import InlineSvg from 'app/components/inlineSvg';
 import {
   IconActivity,
+  IconChevron,
   IconGraph,
   IconIssues,
   IconLab,
@@ -570,7 +570,7 @@ class Sidebar extends React.Component {
                 <SidebarCollapseItem
                   data-test-id="sidebar-collapse"
                   {...sidebarItemProps}
-                  icon={<StyledInlineSvg src="icon-collapse" collapsed={collapsed} />}
+                  icon={<StyledIconChevron collapsed={collapsed} />}
                   label={collapsed ? t('Expand') : t('Collapse')}
                   onClick={this.toggleSidebar}
                 />
@@ -715,13 +715,19 @@ const SidebarSection = styled(SidebarSectionGroup)`
 
 const ExpandedIcon = css`
   transition: 0.3s transform ease;
-  transform: rotate(0deg);
+  transform: rotate(270deg);
 `;
 const CollapsedIcon = css`
-  transform: rotate(180deg);
+  transform: rotate(90deg);
 `;
-const StyledInlineSvg = styled(({collapsed, ...props}) => (
-  <InlineSvg css={[ExpandedIcon, collapsed && CollapsedIcon]} {...props} />
+const StyledIconChevron = styled(({collapsed, ...props}) => (
+  <IconChevron
+    direction="left"
+    size="md"
+    circle
+    css={[ExpandedIcon, collapsed && CollapsedIcon]}
+    {...props}
+  />
 ))``;
 
 const SidebarCollapseItem = styled(SidebarItem)`
