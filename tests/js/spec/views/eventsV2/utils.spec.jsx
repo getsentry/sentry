@@ -155,10 +155,9 @@ describe('decodeColumnOrder', function() {
   });
 
   it('can decode aggregate functions with no arguments', function() {
-    const results = decodeColumnOrder([{field: 'count()', width: 123}]);
+    let results = decodeColumnOrder([{field: 'count()', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
-
     expect(results[0]).toEqual({
       key: 'count()',
       name: 'count()',
@@ -173,6 +172,12 @@ describe('decodeColumnOrder', function() {
       isSortable: true,
       type: 'number',
     });
+
+    results = decodeColumnOrder([{field: 'p75()', width: 123}]);
+    expect(results[0].type).toEqual('duration');
+
+    results = decodeColumnOrder([{field: 'p99()', width: 123}]);
+    expect(results[0].type).toEqual('duration');
   });
 
   it('can decode elements with aggregate functions with arguments', function() {
@@ -189,7 +194,7 @@ describe('decodeColumnOrder', function() {
       eventViewField: {field: 'avg(transaction.duration)'},
       isDragging: false,
       isSortable: true,
-      type: 'number',
+      type: 'duration',
     });
   });
 });

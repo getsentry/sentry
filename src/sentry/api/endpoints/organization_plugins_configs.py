@@ -108,6 +108,8 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
                         "projectPlatform": project.platform,
                     }
                 )
+            # sort by the projectSlug
+            serialized_plugin["projectList"].sort(key=lambda x: x["projectSlug"])
             serialized_plugins.append(serialized_plugin)
 
         return Response(serialized_plugins)

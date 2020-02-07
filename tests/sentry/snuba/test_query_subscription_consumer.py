@@ -34,7 +34,7 @@ class BaseQuerySubscriptionTest(object):
     def valid_payload(self):
         return {
             "subscription_id": "1234",
-            "values": {"data": {"hello": 50}},
+            "values": {"data": [{"hello": 50}]},
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 

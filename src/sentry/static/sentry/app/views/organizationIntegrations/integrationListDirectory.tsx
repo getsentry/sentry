@@ -33,6 +33,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
@@ -50,6 +51,9 @@ type State = {
   publishedApps: SentryApp[];
   config: {providers: IntegrationProvider[]};
   extraApp?: SentryApp;
+  searchInput: string;
+  list: AppOrProviderOrPlugin[];
+  displayedList: AppOrProviderOrPlugin[];
 };
 
 function isSentryApp(integration: AppOrProviderOrPlugin): integration is SentryApp {
@@ -76,8 +80,49 @@ class OrganizationIntegrations extends AsyncComponent<
     organization: SentryTypes.Organization,
   };
 
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      list: [],
+      displayedList: [],
+    };
+  }
+
   onLoadAllEndpointsSuccess() {
+    const {publishedApps, orgOwnedApps, extraApp, plugins} = this.state;
+    const published = publishedApps || [];
+    // If we have an extra app in state from query parameter, add it as org owned app
+    if (extraApp) {
+      orgOwnedApps.push(extraApp);
+    }
+
+    // we dont want the app to render twice if its the org that created
+    // the published app.
+    const orgOwned = orgOwnedApps.filter(app => {
+      return !published.find(p => p.slug === app.slug);
+    });
+
+    /**
+     * We should have three sections:
+     * 1. Public apps and integrations available to everyone
+     * 2. Unpublished apps available to that org
+     * 3. Internal apps available to that org
+     */
+
+    const combined = ([] as AppOrProviderOrPlugin[])
+      .concat(published)
+      .concat(orgOwned.filter(a => a.status === 'published'))
+      .concat(this.providers)
+      .concat(plugins);
+
+    const list = this.sortIntegrations(combined);
+
+    this.setState({list, displayedList: list}, () => this.trackPageViewed());
+  }
+
+  trackPageViewed() {
     //count the number of installed apps
+
     const {integrations, publishedApps} = this.state;
     const integrationsInstalled = new Set();
     //add installed integrations
@@ -221,6 +266,33 @@ class OrganizationIntegrations extends AsyncComponent<
       .sort((a, b) => this.getInstallValue(b) - this.getInstallValue(a));
   }
 
+  async componentDidUpdate(_, prevState: State) {
+    if (this.state.list.length !== prevState.list.length) {
+      await this.createSearch();
+    }
+  }
+
+  async createSearch() {
+    const {list} = this.state;
+    this.setState({
+      fuzzy: await createFuzzySearch(list || [], {
+        threshold: 0.1,
+        location: 0,
+        distance: 100,
+        keys: ['slug', 'key', 'name', 'id'],
+      }),
+    });
+  }
+
+  onSearchChange = async ({target}) => {
+    this.setState({searchInput: target.value}, () => {
+      if (!target.value) {
+        return this.setState({displayedList: this.state.list});
+      }
+      const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
+      return this.setState({displayedList: result.map(i => i.item)});
+    });
+  };
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     //find the integration installations for that provider
@@ -306,31 +378,7 @@ class OrganizationIntegrations extends AsyncComponent<
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {reloading, orgOwnedApps, publishedApps, extraApp, plugins} = this.state;
-    const published = publishedApps || [];
-    // If we have an extra app in state from query parameter, add it as org owned app
-    if (extraApp) {
-      orgOwnedApps.push(extraApp);
-    }
-
-    // we dont want the app to render twice if its the org that created
-    // the published app.
-    const orgOwned = orgOwnedApps.filter(app => {
-      return !published.find(p => p.slug === app.slug);
-    });
-
-    /**
-     * We should have three sections:
-     * 1. Public apps and integrations available to everyone
-     * 2. Unpublished apps available to that org
-     * 3. Internal apps available to that org
-     */
-
-    const publicApps = published.concat(orgOwned.filter(a => a.status === 'published'));
-
-    const publicIntegrations = this.sortIntegrations(
-      (publicApps as AppOrProviderOrPlugin[]).concat(this.providers).concat(plugins)
-    );
+    const {reloading, displayedList} = this.state;
 
     const title = t('Integrations');
     const tags = [
@@ -352,9 +400,10 @@ class OrganizationIntegrations extends AsyncComponent<
           onInstall={this.onInstall}
         />
         <SearchInput
-          value=""
-          onChange={() => {}}
+          value={this.state.searchInput || ''}
+          onChange={this.onSearchChange}
           placeholder="Find a new integration, or one you already use."
+          width="100%"
         />
         <TagsContainer>
           {tags.map(tag => (
@@ -366,7 +415,7 @@ class OrganizationIntegrations extends AsyncComponent<
             <Heading>{t('Integrations')}</Heading>
             {reloading && <StyledLoadingIndicator mini />}
           </PanelHeader>
-          <PanelBody>{publicIntegrations.map(this.renderIntegration)}</PanelBody>
+          <PanelBody>{displayedList.map(this.renderIntegration)}</PanelBody>
         </Panel>
       </React.Fragment>
     );
