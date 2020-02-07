@@ -45,9 +45,13 @@ export default class ProviderRow extends React.Component<Props> {
             </ProviderName>
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
-              <StyledLink
-                to={`/settings/${slug}/integrations/${provider.key}/?tab=configurations`}
-              >{`${integrations.length} Configurations`}</StyledLink>
+              {integrations.length ? (
+                <StyledLink
+                  to={`/settings/${slug}/integrations/${provider.key}/?tab=configurations`}
+                >{`${integrations.length} Configuration${
+                  integrations.length > 1 ? 's' : ''
+                }`}</StyledLink>
+              ) : null}
             </ProviderDetails>
           </div>
         </Flex>
@@ -94,12 +98,6 @@ const Status = styled(
   color: ${(p: StatusProps) => (p.enabled ? p.theme.success : p.theme.gray2)};
   margin-left: ${space(0.5)};
   margin-right: ${space(0.75)};
-  &:after {
-    content: '|';
-    color: ${p => p.theme.gray1};
-    margin-left: ${space(0.75)};
-    font-weight: normal;
-  }
 `;
 
 const StatusWrapper = styled('div')`
@@ -109,4 +107,10 @@ const StatusWrapper = styled('div')`
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.gray2};
+  &:before {
+    content: '|';
+    color: ${p => p.theme.gray1};
+    margin-right: ${space(0.75)};
+    font-weight: normal;
+  }
 `;
