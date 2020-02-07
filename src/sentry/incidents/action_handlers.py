@@ -171,21 +171,21 @@ class SlackActionHandler(ActionHandler):
         )
 
 
-def format_duration(seconds):
+def format_duration(minutes):
     """
-    Format seconds into a duration string
+    Format minutes into a duration string
     """
 
-    if seconds >= 86400:
-        days = seconds / 86400
+    if minutes >= 1440:
+        days = minutes / 1440
         return "{} day{}".format(days, pluralize(days))
 
-    if seconds >= 3600:
-        hours = seconds / 3600
+    if minutes >= 60:
+        hours = minutes / 60
         return "{} hour{}".format(hours, pluralize(hours))
 
-    if seconds >= 60:
-        minutes = seconds / 60
+    if minutes >= 1:
         return "{} minute{}".format(minutes, pluralize(minutes))
 
+    seconds = minutes / 60
     return "{} second{}".format(seconds, pluralize(seconds))
