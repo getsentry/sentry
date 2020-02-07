@@ -32,6 +32,25 @@ class CreateSnubaSubscriptionTest(TestCase):
         assert subscription.time_window == int(time_window.total_seconds())
         assert subscription.resolution == int(resolution.total_seconds())
 
+    def test_translated_query(self):
+        type = "something"
+        dataset = QueryDatasets.EVENTS
+        query = "event.type:error"
+        aggregation = QueryAggregations.TOTAL
+        time_window = timedelta(minutes=10)
+        resolution = timedelta(minutes=1)
+        subscription = create_snuba_subscription(
+            self.project, type, dataset, query, aggregation, time_window, resolution
+        )
+        assert subscription.project == self.project
+        assert subscription.type == type
+        assert subscription.subscription_id != ""
+        assert subscription.dataset == dataset.value
+        assert subscription.query == query
+        assert subscription.aggregation == aggregation.value
+        assert subscription.time_window == int(time_window.total_seconds())
+        assert subscription.resolution == int(resolution.total_seconds())
+
 
 class UpdateSnubaSubscriptionTest(TestCase):
     def test(self):
