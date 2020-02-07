@@ -24,7 +24,7 @@ class Columns(Enum):
     PLATFORM = Column("events.platform", "platform", "platform", "platform.name")
     ENVIRONMENT = Column("events.environment", "environment", "environment", "environment")
     RELEASE = Column("events.tags[sentry:release]", "tags[sentry:release]", "release", "release")
-    DIST = Column("events.tags[sentry:dist]", "tags[sentry:dist]", "tags[sentry:dist]", "dist")
+    DIST = Column("events.tags[sentry:dist]", "tags[sentry:dist]", "dist", "dist")
     TITLE = Column("events.title", "title", "title", "title")
     TYPE = Column("events.type", "type", "type", "event.type")
     TAGS_KEY = Column("events.tags.key", "tags.key", "tags.key", "tags.key")
