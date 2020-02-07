@@ -759,7 +759,7 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_group_tag_value_iter(
-        self, project_id, group_id, environment_id, key, offset=0, callbacks=()
+        self, project_id, group_id, environment_id, key, callbacks=(), **kwargs
     ):
         filters = {
             "project_id": get_project_list(project_id),
@@ -777,10 +777,9 @@ class SnubaTagStorage(TagStorage):
                 ["max", "timestamp", "last_seen"],
             ],
             orderby="-first_seen",  # Closest thing to pre-existing `-id` order
-            # TODO: This means they can't actually iterate all GroupTagValues.
-            offset=offset,
             limit=1000,
             referrer="tagstore.get_group_tag_value_iter",
+            **kwargs
         )
 
         group_tag_values = [

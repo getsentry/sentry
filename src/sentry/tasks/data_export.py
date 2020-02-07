@@ -106,7 +106,7 @@ def process_issue_by_tag(payload):
         if len(gtv_list_raw) == 0:
             break
         file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, iteration)
-        convert_to_csv(gtv_list, fields, file_name, iteration == 0)
+        convert_to_csv(gtv_list_raw, fields, file_name, iteration == 0)
         iteration += 1
 
 
