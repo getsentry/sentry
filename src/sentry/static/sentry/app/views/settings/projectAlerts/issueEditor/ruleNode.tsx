@@ -48,20 +48,18 @@ class RuleNode extends React.Component<Props> {
     }
 
     return (
-      <SelectWrapper>
-        <SelectControl
-          deprecatedSelectControl
-          clearable={false}
-          placeholder={t('Select integration')}
-          noResultsText={t('No integrations available')}
-          height="35"
-          name={name}
-          value={initialVal}
-          choices={fieldConfig.choices}
-          key={name}
-          onChange={val => this.props.onPropertyChange(name, val)}
-        />
-      </SelectWrapper>
+      <SelectControl
+        deprecatedSelectControl
+        clearable={false}
+        placeholder={t('Select integration')}
+        noResultsText={t('No integrations available')}
+        height="35"
+        name={name}
+        value={initialVal}
+        choices={fieldConfig.choices}
+        key={name}
+        onChange={val => this.props.onPropertyChange(name, val)}
+      />
     );
   };
 
@@ -108,7 +106,7 @@ class RuleNode extends React.Component<Props> {
     return getFieldTypes[fieldConfig.type](name, fieldConfig);
   };
 
-  getComponent() {
+  renderRow() {
     const {data, node} = this.props;
 
     if (!node) {
@@ -149,25 +147,17 @@ class RuleNode extends React.Component<Props> {
   render() {
     const {data, onDelete} = this.props;
 
-    const component = this.getComponent();
-
     return (
       <React.Fragment>
         {data && <input type="hidden" name="id" value={data.id} />}
-        {component}
-        <div>
-          <Button onClick={onDelete} type="button" size="small" icon="icon-trash" />
-        </div>
+        {this.renderRow()}
+        <DeleteButton onClick={onDelete} type="button" size="small" icon="icon-trash" />
       </React.Fragment>
     );
   }
 }
 
 export default RuleNode;
-
-const SelectWrapper = styled('div')`
-  width: 204px;
-`;
 
 const InlineInput = styled(Input)`
   width: auto;
@@ -176,8 +166,11 @@ const InlineInput = styled(Input)`
 const RuleNodeForm = styled('div')`
   display: grid;
   grid-gap: ${space(1)};
-  grid-auto-flow: column;
-  grid-auto-columns: min-content;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
   align-items: center;
   white-space: nowrap;
+`;
+
+const DeleteButton = styled(Button)`
+  height: 36px;
 `;

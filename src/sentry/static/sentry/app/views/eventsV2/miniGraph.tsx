@@ -12,6 +12,8 @@ import {getInterval} from 'app/components/charts/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingContainer from 'app/components/loading/loadingContainer';
+import {IconWarning} from 'app/icons';
+import theme from 'app/utils/theme';
 
 import EventView from './eventView';
 
@@ -82,12 +84,19 @@ class MiniGraph extends React.Component<Props> {
         environment={environment as string[]}
         includePrevious={false}
       >
-        {({loading, timeseriesData}) => {
+        {({loading, timeseriesData, errored}) => {
+          if (errored) {
+            return (
+              <StyledGraphContainer>
+                <IconWarning color={theme.gray2} size="md" />
+              </StyledGraphContainer>
+            );
+          }
           if (loading) {
             return (
-              <StyledLoadingContainer>
+              <StyledGraphContainer>
                 <LoadingIndicator mini />
-              </StyledLoadingContainer>
+              </StyledGraphContainer>
             );
           }
 
@@ -142,7 +151,7 @@ class MiniGraph extends React.Component<Props> {
   }
 }
 
-const StyledLoadingContainer = styled(props => {
+const StyledGraphContainer = styled(props => {
   return <LoadingContainer {...props} maskBackgroundColor="transparent" />;
 })`
   height: 100px;

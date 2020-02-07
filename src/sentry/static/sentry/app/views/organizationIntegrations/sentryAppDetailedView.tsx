@@ -14,13 +14,11 @@ import {
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
 import AsyncComponent from 'app/components/asyncComponent';
-import HookStore from 'app/stores/hookStore';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import InlineSvg from 'app/components/inlineSvg';
 import Tag from 'app/views/settings/components/tag';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
-import {Hooks} from 'app/types/hooks';
 import {
   IntegrationFeature,
   SentryApp,
@@ -28,6 +26,9 @@ import {
   SentryAppInstallation,
 } from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
+import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
+import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
+import {openModal} from 'app/actionCreators/modal';
 import {UninstallButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
 
 type State = {
@@ -38,23 +39,6 @@ type State = {
 type Props = {
   organization: Organization;
 } & RouteComponentProps<{appSlug: string}, {}>;
-
-const defaultFeatureGateComponents = {
-  IntegrationFeatures: p =>
-    p.children({
-      disabled: false,
-      disabledReason: null,
-      ungatedFeatures: p.features,
-      gatedFeatureGroups: [],
-    }),
-  FeatureList: p => (
-    <ul>
-      {p.features.map((f, i) => (
-        <li key={i}>{f.description}</li>
-      ))}
-    </ul>
-  ),
-} as ReturnType<Hooks['integrations:feature-gates']>;
 
 class SentryAppDetailedView extends AsyncComponent<
   Props & AsyncComponent['props'],
@@ -101,7 +85,6 @@ class SentryAppDetailedView extends AsyncComponent<
       const redirectUrl = addQueryParamsToExistingUrl(sentryApp.redirectUrl, queryParams);
       window.location.assign(redirectUrl);
     }
-    // TODO: Add SplitInstallationIdModal
   };
 
   handleInstall = async () => {
@@ -113,6 +96,17 @@ class SentryAppDetailedView extends AsyncComponent<
     if (!sentryApp.redirectUrl) {
       addSuccessMessage(t(`${sentryApp.slug} successfully installed.`));
       this.setState({appInstalls: [install, ...this.state.appInstalls]});
+
+      //hack for split so we can show the install ID to users for them to copy
+      //Will remove once the proper fix is in place
+      if (['split', 'split-dev', 'split-testing'].includes(sentryApp.slug)) {
+        openModal(({closeModal}) => (
+          <SplitInstallationIdModal
+            installationId={install.uuid}
+            closeModal={closeModal}
+          />
+        ));
+      }
     } else {
       this.redirectUser(install);
     }
@@ -189,9 +183,7 @@ class SentryAppDetailedView extends AsyncComponent<
       ),
     }));
 
-    const defaultHook = () => defaultFeatureGateComponents;
-    const featureHook = HookStore.get('integrations:feature-gates')[0] || defaultHook;
-    const {FeatureList, IntegrationFeatures} = featureHook();
+    const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
 
     const overview = sentryApp.overview || '';
     const featureProps = {organization, features};

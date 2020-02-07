@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/browser';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
@@ -27,12 +28,15 @@ import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import Alert from 'app/components/alert';
 
+import {DEFAULT_EVENT_VIEW} from './data';
 import Table from './table';
 import Tags from './tags';
 import ResultsHeader from './resultsHeader';
-import EventView, {Field} from './eventView';
-import {generateTitle} from './utils';
+import ChartFooter from './chartFooter';
+import EventView, {Field, isAPIPayloadSimilar} from './eventView';
+import {generateTitle, fetchTotalCount} from './utils';
 
 const CHART_AXIS_OPTIONS = [
   {label: 'count(id)', value: 'count(id)'},
@@ -49,31 +53,84 @@ type Props = {
 
 type State = {
   eventView: EventView;
+  error: string;
+  totalValues: null | number;
 };
 
 class Results extends React.Component<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props): State {
+  static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
     const eventView = EventView.fromLocation(nextProps.location);
-    return {eventView};
+    return {...prevState, eventView};
   }
 
   state = {
     eventView: EventView.fromLocation(this.props.location),
+    error: '',
+    totalValues: null,
   };
 
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    this.checkEventView();
+    this.fetchTotalCount();
   }
 
-  componentDidUpdate(prevProps: Props) {
-    const {api, organization, selection} = this.props;
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    const {api, location, organization, selection} = this.props;
+    const {eventView} = this.state;
     if (
       !isEqual(prevProps.selection.projects, selection.projects) ||
       !isEqual(prevProps.selection.datetime, selection.datetime)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
     }
+
+    this.checkEventView();
+    const currentQuery = eventView.getEventsAPIPayload(location);
+    const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
+    if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
+      this.fetchTotalCount();
+    }
+  }
+
+  async fetchTotalCount() {
+    const {api, organization, location} = this.props;
+    const {eventView} = this.state;
+    if (!eventView.isValid()) {
+      return;
+    }
+
+    try {
+      const totals = await fetchTotalCount(
+        api,
+        organization.slug,
+        eventView.getEventsAPIPayload(location)
+      );
+      this.setState({totalValues: totals});
+    } catch (err) {
+      Sentry.captureException(err);
+    }
+  }
+
+  checkEventView() {
+    const {eventView} = this.state;
+    if (eventView.isValid()) {
+      return;
+    }
+    // If the view is not valid, redirect to a known valid state.
+    const {location, organization, selection} = this.props;
+    const nextEventView = EventView.fromNewQueryWithLocation(
+      DEFAULT_EVENT_VIEW,
+      location
+    );
+    if (nextEventView.project.length === 0 && selection.projects) {
+      nextEventView.project = selection.projects;
+    }
+
+    ReactRouter.browserHistory.replace(
+      nextEventView.getResultsViewUrlTarget(organization.slug)
+    );
   }
 
   handleSearch = (query: string) => {
@@ -124,14 +181,38 @@ class Results extends React.Component<Props, State> {
 
   renderTagsTable = () => {
     const {organization, location} = this.props;
-    const {eventView} = this.state;
+    const {eventView, totalValues} = this.state;
 
-    return <Tags eventView={eventView} organization={organization} location={location} />;
+    // Move events-meta call out of Tags into this component
+    // so that we can push it into the chart footer.
+    return (
+      <Tags
+        totalValues={totalValues}
+        eventView={eventView}
+        organization={organization}
+        location={location}
+      />
+    );
+  };
+
+  renderError = error => {
+    if (!error) {
+      return '';
+    }
+    return (
+      <Alert type="error" icon="icon-circle-exclamation">
+        {error}
+      </Alert>
+    );
+  };
+
+  setError = error => {
+    this.setState({error});
   };
 
   render() {
     const {organization, location, router} = this.props;
-    const {eventView} = this.state;
+    const {eventView, error, totalValues} = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
 
@@ -149,6 +230,7 @@ class Results extends React.Component<Props, State> {
         .concat(CHART_AXIS_OPTIONS),
       'value'
     );
+    const yAxisValue = eventView.yAxis || yAxisOptions[0].value;
 
     return (
       <SentryDocumentTitle title={title} objSlug={organization.slug}>
@@ -162,6 +244,7 @@ class Results extends React.Component<Props, State> {
             />
             <StyledPageContent>
               <Top>
+                {this.renderError(error)}
                 <StyledSearchBar
                   organization={organization}
                   projectIds={eventView.project}
@@ -176,15 +259,19 @@ class Results extends React.Component<Props, State> {
                         query={eventView.getEventsAPIPayload(location).query}
                         organization={organization}
                         showLegend
-                        yAxisOptions={yAxisOptions}
-                        yAxisValue={eventView.yAxis}
-                        onYAxisChange={this.handleYAxisChange}
+                        yAxis={yAxisValue}
                         project={eventView.project as number[]}
                         environment={eventView.environment as string[]}
                       />
                     ),
                     fixed: 'events chart',
                   })}
+                  <ChartFooter
+                    total={totalValues}
+                    yAxisValue={yAxisValue}
+                    yAxisOptions={yAxisOptions}
+                    onChange={this.handleYAxisChange}
+                  />
                 </StyledPanel>
               </Top>
               <Main eventView={eventView}>
@@ -193,6 +280,7 @@ class Results extends React.Component<Props, State> {
                   eventView={eventView}
                   location={location}
                   title={title}
+                  setError={this.setError}
                 />
               </Main>
               <Side eventView={eventView}>{this.renderTagsTable()}</Side>

@@ -28,11 +28,12 @@ import ExceptionInterface from 'app/components/events/interfaces/exception';
 import GenericInterface from 'app/components/events/interfaces/generic';
 import MessageInterface from 'app/components/events/interfaces/message';
 import RequestInterface from 'app/components/events/interfaces/request';
+import RRWebIntegration from 'app/components/events/rrwebIntegration';
 import SentryTypes from 'app/sentryTypes';
 import SpansInterface from 'app/components/events/interfaces/spans';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
-import ThreadsInterface from 'app/components/events/interfaces/threads';
+import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -204,6 +205,9 @@ class EventEntries extends React.Component {
           projectId={project.slug}
           location={location}
         />
+        {!isShare && features.has('event-attachments') && (
+          <RRWebIntegration event={event} orgId={orgId} projectId={project.slug} />
+        )}
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
         {!objectIsEmpty(event.context) && <EventExtraData event={event} />}

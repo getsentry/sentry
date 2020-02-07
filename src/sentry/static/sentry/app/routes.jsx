@@ -829,8 +829,22 @@ function routes() {
         </Route>
       </Route>
 
+      <Redirect from="plugins/" to="integrations/" />
+      <Route name="Integrations" path="plugins/">
+        <Route
+          name="Integration Details"
+          path=":pluginSlug/"
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/pluginDetailedView'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
+
       <Redirect from="sentry-apps/" to="integrations/" />
-      <Route name="Sentry Apps" path="sentry-apps/">
+      <Route name="Integrations" path="sentry-apps/">
         <Route
           name="Details"
           path=":appSlug"
@@ -842,6 +856,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
       </Route>
+
       <Route name="Integrations" path="integrations/">
         <IndexRoute
           componentPromise={() =>

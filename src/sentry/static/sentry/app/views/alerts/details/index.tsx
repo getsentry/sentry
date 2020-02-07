@@ -89,9 +89,7 @@ class IncidentDetails extends React.Component<Props, State> {
 
     const {status} = this.state.incident;
 
-    const newStatus = isOpen(this.state.incident)
-      ? IncidentStatus.CLOSED
-      : IncidentStatus.CREATED;
+    const newStatus = isOpen(this.state.incident) ? IncidentStatus.CLOSED : status;
 
     this.setState(state => ({
       incident: {...(state.incident as Incident), status: newStatus},
