@@ -21,18 +21,14 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
-import Feature from 'app/components/acl/feature';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
-
-const NEW_PROJECT_ISSUE_ALERT_OPTIONS_FLAG = 'new-project-issue-alert-options';
-const SCOPED_NEW_PROJECT_ISSUE_ALERT_OPTIONS_FLAG =
-  'organizations:' + NEW_PROJECT_ISSUE_ALERT_OPTIONS_FLAG;
 
 class CreateProject extends React.Component {
   static propTypes = {
     api: PropTypes.object,
     teams: PropTypes.arrayOf(SentryTypes.Team),
     organization: SentryTypes.Organization,
+    hasIssueAlertOptionsEnabled: PropTypes.bool,
   };
 
   static contextTypes = {
@@ -57,9 +53,7 @@ class CreateProject extends React.Component {
       inFlight: false,
     };
 
-    if (
-      this.props.organization.features?.includes?.(NEW_PROJECT_ISSUE_ALERT_OPTIONS_FLAG)
-    ) {
+    if (this.props.hasIssueAlertOptionsEnabled) {
       this.state = {
         ...this.state,
         ...{
@@ -69,12 +63,20 @@ class CreateProject extends React.Component {
     }
   }
 
-  getProjectForm = (projectName, team, teams, platform, organization, inFlight) => {
+  getProjectForm = (
+    projectName,
+    team,
+    teams,
+    platform,
+    hasIssueAlertOptionsEnabled,
+    organization,
+    inFlight
+  ) => {
     const createProjectFormCaptured = (
       <CreateProjectForm onSubmit={this.createProject}>
         <div>
           <FormLabel>
-            {organization.features.includes(NEW_PROJECT_ISSUE_ALERT_OPTIONS_FLAG)
+            {hasIssueAlertOptionsEnabled
               ? t('Project name')
               : t('Give your project a name')}
           </FormLabel>
@@ -93,9 +95,7 @@ class CreateProject extends React.Component {
         </div>
         <div>
           <FormLabel>
-            {organization.features.includes(NEW_PROJECT_ISSUE_ALERT_OPTIONS_FLAG)
-              ? t('Name')
-              : t('Assign a Team')}
+            {hasIssueAlertOptionsEnabled ? t('Name') : t('Assign a Team')}
           </FormLabel>
           <TeamSelectInput>
             <SelectControl
@@ -137,7 +137,7 @@ class CreateProject extends React.Component {
         </div>
       </CreateProjectForm>
     );
-    return organization.features.includes(NEW_PROJECT_ISSUE_ALERT_OPTIONS_FLAG) ? (
+    return hasIssueAlertOptionsEnabled ? (
       <React.Fragment>
         <PageHeading withMargins>{t('Give your project a name')}</PageHeading>
         {createProjectFormCaptured}
@@ -149,10 +149,9 @@ class CreateProject extends React.Component {
 
   createProject = async e => {
     e.preventDefault();
-    const {organization, api} = this.props;
+    const {organization, api, hasIssueAlertOptionsEnabled} = this.props;
     const {projectName, platform, team, dataFragment} = this.state;
     const {slug} = organization;
-    // TODO: Guard
     const {
       shouldCreateCustomRule,
       name,
@@ -160,7 +159,8 @@ class CreateProject extends React.Component {
       actions,
       actionMatch,
       frequency,
-    } = dataFragment;
+      default_rules,
+    } = hasIssueAlertOptionsEnabled ? dataFragment : {};
 
     this.setState({inFlight: true});
 
@@ -197,7 +197,7 @@ class CreateProject extends React.Component {
         data: {
           name: projectName,
           platform,
-          default_rules: this.state.dataFragment.default_rules ?? true,
+          default_rules: default_rules ?? true,
         },
       })
       .catch(errorHandler);
@@ -240,10 +240,9 @@ class CreateProject extends React.Component {
     }));
 
   render() {
-    const {organization} = this.props;
+    const {organization, hasIssueAlertOptionsEnabled} = this.props;
     const {projectName, team, platform, error, inFlight} = this.state;
     const teams = this.props.teams.filter(filterTeam => filterTeam.hasAccess);
-
     return (
       <React.Fragment>
         {error && <Alert type="error">{error}</Alert>}
@@ -257,22 +256,23 @@ class CreateProject extends React.Component {
                for your API server and frontend client.`
             )}
           </HelpText>
-          <Feature features={[SCOPED_NEW_PROJECT_ISSUE_ALERT_OPTIONS_FLAG]}>
+          {hasIssueAlertOptionsEnabled && (
             <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
-          </Feature>
+          )}
           <PlatformPicker platform={platform} setPlatform={this.setPlatform} showOther />
-          <Feature features={[SCOPED_NEW_PROJECT_ISSUE_ALERT_OPTIONS_FLAG]}>
+          {hasIssueAlertOptionsEnabled && (
             <IssueAlertOptions
               onChange={updatedData => {
                 this.setState({dataFragment: updatedData});
               }}
             />
-          </Feature>
+          )}
           {this.getProjectForm(
             projectName,
             team,
             teams,
             platform,
+            hasIssueAlertOptionsEnabled,
             organization,
             inFlight
           )}
