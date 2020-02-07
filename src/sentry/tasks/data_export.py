@@ -1,14 +1,10 @@
 from __future__ import absolute_import
 
 import csv
-from datetime import datetime
 
-from sentry import tagstore
 from sentry.constants import ExportQueryType
-from sentry.models import EventUser, Group, Project, get_group_with_redirect
 from sentry.tasks.base import instrumented_task
 
-CURRENT_TIME = datetime.now()
 SNUBA_MAX_RESUILTS = 1000
 
 
@@ -50,6 +46,9 @@ def process_billing_report(data_export):
 
 
 def process_issue_by_tag(payload):
+    from sentry import tagstore
+    from sentry.models import EventUser, Group, Project, get_group_with_redirect
+
     """
     Convert tag payload to serialized JSON
     Adapted from 'src/sentry/web/frontend/group_tag_export.py'
@@ -91,6 +90,9 @@ def process_issue_by_tag(payload):
 
     # Iterate endlessly through the GroupTagValues
     iteration = 0
+    file_details = "{}-{}".format(payload["project_slug"], key)
+    file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, file_details)
+
     while True:
         gtv_list = tagstore.get_group_tag_value_iter(
             project_id=group.project_id,
@@ -102,31 +104,24 @@ def process_issue_by_tag(payload):
         )
 
         gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
-        # Break condition
         if len(gtv_list_raw) == 0:
             break
-        file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, iteration)
         convert_to_csv(gtv_list_raw, fields, file_name, iteration == 0)
         iteration += 1
 
 
-def get_file_name(type, iteration=-1, extension="csv"):
-    time_string = CURRENT_TIME.strftime("%m:%d:%Y")
-    file_name = "{}-{}-{}.{}".format(type, time_string, iteration, extension)
+def get_file_name(type, custom_string, extension="csv"):
+    file_name = "{}-{}.{}".format(type, custom_string, extension)
     return file_name
 
 
 def convert_to_csv(data, fields, file_name, include_header=False):
-    with open("/Users/leanderrodrigues/Downloads/" + file_name, "w") as csvfile:
+    with open("/tmp/" + file_name, "a") as csvfile:
         writer = csv.DictWriter(csvfile, fields)
         if include_header:
             writer.writeheader()
         writer.writerows(data)
         csvfile.close()
-    return
-
-
-def combine_csvs(csv_list):
     return
 
 
