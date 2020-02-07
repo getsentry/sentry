@@ -2,6 +2,8 @@ steps:
 - name: 'gcr.io/kaniko-project/executor:v0.17.1'
   args: [
     '--cache=true',
+    '--reproducible',
+    '--single-snapshot',
     '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
     '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
     '-f', './docker/Dockerfile'

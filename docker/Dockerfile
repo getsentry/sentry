@@ -85,8 +85,7 @@ RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
     && python setup.py bdist_wheel \
     && rm -r "$YARN_CACHE_FOLDER" \
     && mv /usr/src/sentry/dist /dist \
-    && { pkginfo -f requires_dist --single --sequence-delim=$'\n' \
-       /dist/sentry-*.whl | grep -v "extra == 'dev'" > /dist/requirements.txt }
+    && python -c "from pkginfo.utils import get_metadata; print '\n'.join(data for data in get_metadata('/dist/sentry-10.1.0.dev0-py27-none-any.whl').requires_dist if '; extra == \'dev\'' not in data)" > /dist/requirements.txt
 
 # This is the image to be run
 FROM python:2.7.16-slim-buster
