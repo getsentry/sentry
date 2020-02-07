@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import uniq from 'lodash/uniq';
+import flatten from 'lodash/flatten';
 
 import {PanelItem} from 'app/components/panels';
 import Count from 'app/components/count';
@@ -9,46 +11,72 @@ import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import Projects from 'app/utils/projects';
 
-import {LastEventColumn, Layout, CountColumn, VersionColumn, StatsColumn} from './layout';
+import {
+  LastEventColumn,
+  Layout,
+  CountColumn,
+  VersionColumn,
+  ProjectsColumn,
+  StatsColumn,
+} from './layout';
 import LatestDeployOrReleaseTime from './latestDeployOrReleaseTime';
+import ProjectList from './projectList';
 
 const ReleaseList = props => {
-  const {orgId} = props;
+  const {orgId, releaseList} = props;
+
+  const projectSlugs = uniq(
+    flatten(releaseList.map(release => release.projects.map(p => p.slug)))
+  );
 
   return (
     <div>
-      {props.releaseList.map(release => {
-        return (
-          <ReleasePanelItem key={release.version}>
-            <Layout>
-              <VersionColumn>
-                <VersionWrapper>
-                  <Version
-                    orgId={orgId}
-                    version={release.version}
-                    preserveGlobalSelection
-                  />
-                </VersionWrapper>
-                <LatestDeployOrReleaseTime orgId={orgId} release={release} />
-              </VersionColumn>
-              <StatsColumn>
-                <ReleaseStats release={release} />
-              </StatsColumn>
-              <CountColumn>
-                <Count className="release-count" value={release.newGroups || 0} />
-              </CountColumn>
-              <LastEventColumn>
-                {release.lastEvent ? (
-                  <TimeSince date={release.lastEvent} />
-                ) : (
-                  <span>—</span>
-                )}
-              </LastEventColumn>
-            </Layout>
-          </ReleasePanelItem>
-        );
-      })}
+      <Projects orgId={orgId} slugs={projectSlugs}>
+        {({projects}) =>
+          releaseList.map(release => {
+            return (
+              <ReleasePanelItem key={release.version}>
+                <Layout>
+                  <VersionColumn>
+                    <VersionWrapper>
+                      <Version
+                        orgId={orgId}
+                        version={release.version}
+                        preserveGlobalSelection
+                      />
+                    </VersionWrapper>
+                    <LatestDeployOrReleaseTime orgId={orgId} release={release} />
+                  </VersionColumn>
+                  <StatsColumn>
+                    <ReleaseStats release={release} />
+                  </StatsColumn>
+                  <ProjectsColumn>
+                    <ProjectList
+                      projects={projects.filter(project =>
+                        release.projects.map(p => p.slug).includes(project.slug)
+                      )}
+                      orgId={orgId}
+                      version={release.version}
+                    />
+                  </ProjectsColumn>
+                  <CountColumn>
+                    <Count className="release-count" value={release.newGroups || 0} />
+                  </CountColumn>
+                  <LastEventColumn>
+                    {release.lastEvent ? (
+                      <TimeSince date={release.lastEvent} />
+                    ) : (
+                      <span>—</span>
+                    )}
+                  </LastEventColumn>
+                </Layout>
+              </ReleasePanelItem>
+            );
+          })
+        }
+      </Projects>
     </div>
   );
 };
