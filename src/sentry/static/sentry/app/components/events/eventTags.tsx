@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {Link} from 'react-router';
 import isEmpty from 'lodash/isEmpty';
 import queryString from 'query-string';
@@ -10,10 +11,12 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import DeviceName from 'app/components/deviceName';
 import {isUrl, generateQueryWithTag} from 'app/utils';
 import {t} from 'app/locale';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 
 type DefaultProps = {
   hideGuide: boolean;
@@ -27,10 +30,6 @@ type Props = DefaultProps & {
 };
 
 class EventTags extends React.Component<Props> {
-  static defaultProps: DefaultProps = {
-    hideGuide: false,
-  };
-
   renderPill(tag: EventTag, streamPath: string, releasesPath: string) {
     const {orgId, projectId, location} = this.props;
     const query = generateQueryWithTag(location.query, tag);
@@ -74,7 +73,7 @@ class EventTags extends React.Component<Props> {
   }
 
   render() {
-    const {event, orgId, hideGuide} = this.props;
+    const {event, orgId} = this.props;
     const {tags} = event;
 
     if (isEmpty(tags)) {
@@ -83,20 +82,24 @@ class EventTags extends React.Component<Props> {
 
     const streamPath = `/organizations/${orgId}/issues/`;
     const releasesPath = `/organizations/${orgId}/releases/`;
+    const title = (
+      <GuideAnchor target="tags" position="top">
+        <h3>{t('Tags')}</h3>
+      </GuideAnchor>
+    );
 
     return (
-      <EventDataSection
-        title={t('Tags')}
-        type="tags"
-        className="p-b-1"
-        hideGuide={hideGuide}
-      >
-        <Pills className="no-margin">
+      <EventDataSection title={title} wrapTitle={false} type="tags">
+        <StyledPills>
           {tags.map(tag => this.renderPill(tag, streamPath, releasesPath))}
-        </Pills>
+        </StyledPills>
       </EventDataSection>
     );
   }
 }
+
+const StyledPills = styled(Pills)`
+  margin-bottom: ${space(3)};
+`;
 
 export default EventTags;

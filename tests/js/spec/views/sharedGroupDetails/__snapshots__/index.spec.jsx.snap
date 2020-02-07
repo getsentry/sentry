@@ -672,10 +672,10 @@ exports[`SharedGroupDetails renders 1`] = `
                                 "teams": Array [],
                               }
                             }
+                            showExampleCommit={false}
+                            showTagSummary={true}
                           >
-                            <div
-                              className="entries"
-                            >
+                            <div>
                                
                               <EventTags
                                 event={
@@ -698,131 +698,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                     "title": "ApiException",
                                   }
                                 }
-                                group={
-                                  Object {
-                                    "activity": Array [],
-                                    "annotations": Array [],
-                                    "assignedTo": null,
-                                    "count": "327482",
-                                    "culprit": "fetchData(app/components/group/suggestedOwners)",
-                                    "firstRelease": null,
-                                    "firstSeen": "2019-04-05T19:44:05.963Z",
-                                    "hasSeen": false,
-                                    "id": "1",
-                                    "isBookmarked": false,
-                                    "isPublic": false,
-                                    "isSubscribed": false,
-                                    "lastRelease": null,
-                                    "lastSeen": "2019-04-11T01:08:59Z",
-                                    "latestEvent": Object {
-                                      "dateCreated": "2019-05-21T18:01:48.762Z",
-                                      "entries": Array [
-                                        Object {
-                                          "data": Object {
-                                            "formatted": "Blocked script",
-                                          },
-                                          "id": "1",
-                                          "type": "message",
-                                        },
-                                      ],
-                                      "eventID": "12345678901234567890123456789012",
-                                      "groupID": "1",
-                                      "id": "1",
-                                      "message": "ApiException",
-                                      "tags": Array [],
-                                      "title": "ApiException",
-                                    },
-                                    "level": "warning",
-                                    "logger": null,
-                                    "metadata": Object {
-                                      "function": "fetchData",
-                                      "type": "RequestError",
-                                    },
-                                    "numComments": 0,
-                                    "participants": Array [],
-                                    "permalink": "https://foo.io/organizations/foo/issues/1234/",
-                                    "platform": "javascript",
-                                    "pluginActions": Array [],
-                                    "pluginContexts": Array [],
-                                    "pluginIssues": Array [],
-                                    "project": Object {
-                                      "environments": Array [],
-                                      "hasAccess": true,
-                                      "id": "2",
-                                      "isBookmarked": false,
-                                      "isMember": true,
-                                      "name": "Project Name",
-                                      "organization": Object {
-                                        "slug": "test-org",
-                                      },
-                                      "slug": "project-slug",
-                                      "teams": Array [],
-                                    },
-                                    "seenBy": Array [],
-                                    "shareId": null,
-                                    "shortId": "JAVASCRIPT-6QS",
-                                    "stats": Object {
-                                      "24h": Array [
-                                        Array [
-                                          1517281200,
-                                          2,
-                                        ],
-                                        Array [
-                                          1517310000,
-                                          1,
-                                        ],
-                                      ],
-                                      "30d": Array [
-                                        Array [
-                                          1514764800,
-                                          1,
-                                        ],
-                                        Array [
-                                          1515024000,
-                                          122,
-                                        ],
-                                      ],
-                                    },
-                                    "status": "unresolved",
-                                    "statusDetails": Object {},
-                                    "subscriptionDetails": null,
-                                    "tags": Array [],
-                                    "title": "ZeroDivisionError",
-                                    "type": "error",
-                                    "userCount": 35097,
-                                    "userReportCount": 0,
-                                  }
-                                }
-                                hideGuide={false}
                                 orgId="test-org"
-                                organization={
-                                  Object {
-                                    "access": Array [
-                                      "org:read",
-                                      "org:write",
-                                      "org:admin",
-                                      "org:integrations",
-                                      "project:read",
-                                      "project:write",
-                                      "project:admin",
-                                      "team:read",
-                                      "team:write",
-                                      "team:admin",
-                                    ],
-                                    "features": Array [],
-                                    "id": "3",
-                                    "name": "Organization Name",
-                                    "onboardingTasks": Array [],
-                                    "projects": Array [],
-                                    "scrapeJavaScript": true,
-                                    "slug": "org-slug",
-                                    "status": Object {
-                                      "id": "active",
-                                      "name": "active",
-                                    },
-                                    "teams": Array [],
-                                  }
-                                }
                                 projectId="project-slug"
                               />
                               <MessageInterface
@@ -878,64 +754,79 @@ exports[`SharedGroupDetails renders 1`] = `
                                       "title": "ApiException",
                                     }
                                   }
-                                  hideGuide={false}
                                   raw={false}
                                   title="Message"
                                   type="message"
                                   wrapTitle={true}
                                 >
-                                  <div
-                                    className=" box"
+                                  <DataSection
+                                    className=""
                                   >
                                     <div
-                                      className="box-header"
-                                      id="message"
+                                      className=" css-1tpn1lm-DataSection e1fbjd860"
                                     >
-                                      <a
-                                        className="permalink"
-                                        href="#message"
+                                      <SectionHeader
+                                        id="message"
                                       >
-                                        <em
-                                          className="icon-anchor"
-                                        />
-                                      </a>
-                                      <h3>
-                                        Message
-                                      </h3>
-                                    </div>
-                                    <div
-                                      className="box-content with-padding"
-                                    >
-                                      <pre
-                                        className="plain"
-                                      >
-                                        <Annotated
-                                          object={
-                                            Object {
-                                              "formatted": "Blocked script",
-                                            }
-                                          }
-                                          objectKey="formatted"
+                                        <div
+                                          className="css-1aabq9z-SectionHeader e1fbjd862"
+                                          id="message"
                                         >
-                                          <MetaData
-                                            object={
-                                              Object {
-                                                "formatted": "Blocked script",
-                                              }
-                                            }
-                                            prop="formatted"
-                                            required={false}
+                                          <Permalink
+                                            className="permalink"
+                                            href="#message"
                                           >
-                                            <ErrorBoundary
-                                              mini={true}
+                                            <a
+                                              className="permalink css-1p3e1t-Permalink e1fbjd861"
+                                              href="#message"
                                             >
-                                              Blocked script
-                                            </ErrorBoundary>
-                                          </MetaData>
-                                        </Annotated>
-                                      </pre>
+                                              <em
+                                                className="icon-anchor"
+                                              />
+                                            </a>
+                                          </Permalink>
+                                          <h3>
+                                            Message
+                                          </h3>
+                                        </div>
+                                      </SectionHeader>
+                                      <SectionContents>
+                                        <div
+                                          className="css-16dhebx-SectionContents e1fbjd863"
+                                        >
+                                          <pre
+                                            className="plain"
+                                          >
+                                            <Annotated
+                                              object={
+                                                Object {
+                                                  "formatted": "Blocked script",
+                                                }
+                                              }
+                                              prop="formatted"
+                                              required={false}
+                                            >
+                                              <MetaData
+                                                object={
+                                                  Object {
+                                                    "formatted": "Blocked script",
+                                                  }
+                                                }
+                                                prop="formatted"
+                                                required={false}
+                                              >
+                                                <ErrorBoundary
+                                                  mini={true}
+                                                >
+                                                  Blocked script
+                                                </ErrorBoundary>
+                                              </MetaData>
+                                            </Annotated>
+                                          </pre>
+                                        </div>
+                                      </SectionContents>
                                     </div>
-                                  </div>
+                                  </DataSection>
                                 </EventDataSection>
                               </MessageInterface>
                             </div>
