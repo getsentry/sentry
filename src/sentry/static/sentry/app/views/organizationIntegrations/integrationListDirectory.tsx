@@ -117,10 +117,10 @@ class OrganizationIntegrations extends AsyncComponent<
 
     const list = this.sortIntegrations(combined);
 
-    this.setState({list, displayedList: list}, () => this.setAnalytics());
+    this.setState({list, displayedList: list}, () => this.trackPageViewed());
   }
 
-  setAnalytics() {
+  trackPageViewed() {
     //count the number of installed apps
 
     const {integrations, publishedApps} = this.state;
