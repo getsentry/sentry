@@ -37,5 +37,5 @@
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
   "include": ["src"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "docs-ui/node_modules", "src/sentry/static/sentry/dist", "src/sentry/integration-docs"]
 }

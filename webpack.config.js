@@ -192,6 +192,9 @@ const babelLoaderConfig = {
 
 const tsLoaderConfig = {
   loader: 'ts-loader',
+  options: {
+    transpileOnly: env.NODE_ENV === 'production',
+  },
 };
 
 /**
