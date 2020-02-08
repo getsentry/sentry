@@ -57,13 +57,21 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             try:
                 test_results = plugin.test_configuration(project)
             except Exception as exc:
-                if isinstance(exc, HTTPError):
+                if isinstance(exc, HTTPError) and hasattr(exc.response, "text"):
                     test_results = "%s\n%s" % (exc, exc.response.text[:256])
                 elif hasattr(exc, "read") and callable(exc.read):
                     test_results = "%s\n%s" % (exc, exc.read()[:256])
                 else:
-                    logging.exception("Plugin(%s) raised an error during test", plugin_id)
-                    test_results = "There was an internal error with the Plugin"
+                    logging.exception(
+                        "Plugin(%s) raised an error during test, %s", plugin_id, six.text_type(exc)
+                    )
+                    if six.text_type(exc).lower().startswith("error communicating with"):
+                        test_results = six.text_type(exc)[:256]
+                    else:
+                        test_results = (
+                            "There was an internal error with the Plugin, %s"
+                            % six.text_type(exc)[:256]
+                        )
             if not test_results:
                 test_results = "No errors returned"
             return Response({"detail": test_results}, status=200)

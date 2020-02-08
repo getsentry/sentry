@@ -5,7 +5,6 @@ import sentry
 import six
 
 from django import forms
-from requests import HTTPError
 
 from sentry import http
 from sentry.plugins.bases import notify
@@ -103,6 +102,4 @@ class OpsGeniePlugin(notify.NotificationPlugin):
         if recipients:
             payload["recipients"] = recipients
 
-        resp = http.safe_urlopen(alert_url, json=payload, headers=headers)
-        if not resp.ok:
-            raise HTTPError("Unsuccessful response from OpsGenie: %s" % resp.json())
+        http.safe_urlopen(alert_url, json=payload, headers=headers).raise_for_status()

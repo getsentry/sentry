@@ -84,7 +84,7 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
             apikey=self.get_option("apikey", project), userkey=self.get_option("userkey", project)
         )
 
-    def notify(self, notification):
+    def notify(self, notification, **kwargs):
         event = notification.event
         group = event.group
         project = group.project

@@ -54,7 +54,12 @@ class NotificationPlugin(Plugin):
     def get_plugin_type(self):
         return "notification"
 
-    def notify(self, notification):
+    def notify(self, notification, raise_exception=False):
+        """
+        This calls the notify_users method of the plugin.
+        Normally this method eats the error and logs it but if we
+        set raise_exception=True like we do for tests, the exception is raised
+        """
         event = notification.event
         try:
             return self.notify_users(
@@ -70,6 +75,8 @@ class NotificationPlugin(Plugin):
                     "organization_id": event.group.project.organization_id,
                 },
             )
+            if raise_exception:
+                raise err
             return False
 
     def rule_notify(self, event, futures):
@@ -161,7 +168,7 @@ class NotificationPlugin(Plugin):
 
         event = create_sample_event(project, platform="python")
         notification = Notification(event=event)
-        return self.notify(notification)
+        return self.notify(notification, raise_exception=True)
 
     def get_notification_doc_html(self, **kwargs):
         return ""
