@@ -49,9 +49,6 @@ steps:
     docker tag us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA getsentry/sentry:latest
     docker push getsentry/sentry:latest
 timeout: 2400s
-options:
-  # We need more memory for Webpack builds & e2e onpremise tests
-  machineType: 'N1_HIGHCPU_8'
 secrets:
 - kmsKeyName: projects/sentryio/locations/global/keyRings/service-credentials/cryptoKeys/cloudbuild
   secretEnv:
