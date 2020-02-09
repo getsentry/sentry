@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import {ClassNames} from '@emotion/core';
+import {ClassNames} from '@emotion/react';
 
 import {t} from 'app/locale';
 import Search from 'app/components/search';

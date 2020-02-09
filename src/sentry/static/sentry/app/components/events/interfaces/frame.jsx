@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import scrollToElement from 'scroll-to-element';
 
 import {defined, objectIsEmpty, isUrl} from 'app/utils';

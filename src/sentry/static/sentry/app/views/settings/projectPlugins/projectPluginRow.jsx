@@ -1,4 +1,4 @@
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import {Flex} from 'reflexbox';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';

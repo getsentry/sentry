@@ -1,4 +1,4 @@
-import {ClassNames} from '@emotion/core';
+import {ClassNames} from '@emotion/react';
 import {browserHistory} from 'react-router';
 import Modal from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';

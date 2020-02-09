@@ -2,7 +2,7 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 
 import {t} from 'app/locale';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';

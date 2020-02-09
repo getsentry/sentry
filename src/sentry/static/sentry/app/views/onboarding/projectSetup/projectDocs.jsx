@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import PropTypes from 'prop-types';
 import React from 'react';
 import posed, {PoseGroup} from 'react-pose';

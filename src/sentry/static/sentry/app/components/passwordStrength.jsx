@@ -4,7 +4,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import zxcvbn from 'zxcvbn';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 
 import {tct} from 'app/locale';
 

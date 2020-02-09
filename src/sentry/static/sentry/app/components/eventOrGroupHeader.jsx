@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 
 import classNames from 'classnames';
 import capitalize from 'lodash/capitalize';

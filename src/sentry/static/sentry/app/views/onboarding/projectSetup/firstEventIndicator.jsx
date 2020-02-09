@@ -1,4 +1,4 @@
-import {keyframes} from '@emotion/core';
+import {keyframes} from '@emotion/react';
 import PropTypes from 'prop-types';
 import React from 'react';
 import posed, {PoseGroup} from 'react-pose';

@@ -5,7 +5,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import queryString from 'query-string';
 
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';

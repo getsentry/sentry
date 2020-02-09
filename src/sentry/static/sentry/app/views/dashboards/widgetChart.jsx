@@ -1,4 +1,4 @@
-import {ClassNames} from '@emotion/core';
+import {ClassNames} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';

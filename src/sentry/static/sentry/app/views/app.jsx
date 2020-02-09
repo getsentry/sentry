@@ -3,7 +3,7 @@ import {ThemeProvider} from 'emotion-theming';
 import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import get from 'lodash/get';
-import {Global, css} from '@emotion/core';
+import {Global, css} from '@emotion/react';
 
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';

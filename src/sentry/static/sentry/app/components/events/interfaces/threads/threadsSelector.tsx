@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {ClassNames} from '@emotion/core';
+import {ClassNames} from '@emotion/react';
 
 import {Thread} from 'app/types/events';
 import {Event, EntryTypeData} from 'app/types';
