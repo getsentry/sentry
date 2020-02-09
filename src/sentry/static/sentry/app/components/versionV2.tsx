@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {Release} from '@sentry/release-parser';
 
@@ -51,18 +50,6 @@ const VersionV2 = ({
       {renderVersion()}
     </Tooltip>
   );
-};
-
-VersionV2.propTypes = {
-  version: PropTypes.string.isRequired,
-  orgId: PropTypes.string,
-  anchor: PropTypes.bool,
-  /**
-   * Should link to Release preserve user's global selection values
-   */
-  preserveGlobalSelection: PropTypes.bool,
-  tooltipRawVersion: PropTypes.bool,
-  className: PropTypes.string,
 };
 
 export default VersionV2;
