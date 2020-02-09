@@ -9,6 +9,7 @@ import Button from 'app/components/button';
 import {createSavedSearch} from 'app/actionCreators/savedSearches';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {TextField} from 'app/components/forms';
+import {IconAdd} from 'app/icons';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
@@ -102,10 +103,9 @@ class CreateSavedSearchButton extends React.Component {
           containerDisplayMode="inline-flex"
           type="button"
           aria-label={t('Add to organization saved searches')}
-          icon="icon-add-to-list"
-          iconSize="16px"
           className={buttonClassName}
         >
+          <IconAdd size="xs" />
           {!iconOnly && t('Create Saved Search')}
         </Button>
         <Modal show={isModalOpen} animation={false} onHide={this.onToggle}>

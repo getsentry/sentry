@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
-import InlineSvg from 'app/components/inlineSvg';
 import SentryTypes from 'app/sentryTypes';
 import withOrganizations from 'app/utils/withOrganizations';
 import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
 import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
 import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
+import {IconAdd} from 'app/icons/iconAdd';
 
 import Divider from './divider.styled';
 
@@ -77,8 +77,8 @@ class SwitchOrganization extends React.Component {
                       style={{alignItems: 'center'}}
                     >
                       <MenuItemLabelWithIcon>
-                        <AddIcon src="icon-circle-add" />
-                        <span>{t('Create a new organization')}</span>
+                        <IconAdd circle />
+                        &nbsp;{t('Create a new organization')}
                       </MenuItemLabelWithIcon>
                     </SidebarMenuItem>
                   )}
@@ -95,13 +95,6 @@ const SwitchOrganizationContainer = withOrganizations(SwitchOrganization);
 
 export {SwitchOrganization};
 export default SwitchOrganizationContainer;
-
-const AddIcon = styled(InlineSvg)`
-  width: 15px;
-  height: 15px;
-  margin-right: 8px;
-  color: ${p => p.theme.gray2};
-`;
 
 const MenuItemLabelWithIcon = styled('span')`
   line-height: 1;

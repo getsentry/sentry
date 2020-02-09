@@ -9,7 +9,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconEdit, IconWarning} from 'app/icons';
+import {IconAdd, IconEdit, IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
 import {
@@ -362,8 +362,8 @@ class GridEditable<
     const onClick = canEdit ? () => this.openModalAddColumnAt() : undefined;
     return (
       <HeaderButton disabled={!canEdit} onClick={onClick} data-test-id="grid-add-column">
-        <InlineSvg src="icon-circle-add" />
-        {t('Add Column')}
+        <IconAdd size="xs" circle />
+        &nbsp;{t('Add Column')}
       </HeaderButton>
     );
   }

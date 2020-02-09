@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
+import {IconAdd} from 'app/icons/iconAdd';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -39,9 +40,9 @@ class ProjectAlertHeader extends React.Component<Props> {
                 disabled={!canEditRule}
                 priority="primary"
                 size="small"
-                icon="icon-circle-add"
               >
-                {t('New Alert Rule')}
+                <IconAdd size="xs" circle />
+                &nbsp;{t('New Alert Rule')}
               </Button>
             </Tooltip>
           </Actions>

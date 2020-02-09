@@ -23,6 +23,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
+import {IconAdd} from 'app/icons/iconAdd';
 
 const renderDisabledCheckbox = p => (
   <Hovercard
@@ -304,7 +305,8 @@ class ProjectSelector extends React.Component {
               hasProjectWrite ? null : t("You don't have permission to add a project")
             }
           >
-            <StyledAddIcon src="icon-circle-add" /> {t('Project')}
+            <IconAdd size="xs" circle />
+            &nbsp;{t('Project')}
           </AddButton>
         )}
         menuFooter={renderProps => {
@@ -494,10 +496,6 @@ const SettingsIconLink = styled(Link)`
   &:hover {
     color: ${p => p.theme.gray4};
   }
-`;
-
-const StyledAddIcon = styled(InlineSvg)`
-  margin-right: ${space(0.5)};
 `;
 
 const SettingsIcon = styled(InlineSvg)`

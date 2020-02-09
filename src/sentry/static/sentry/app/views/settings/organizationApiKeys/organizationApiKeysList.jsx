@@ -10,6 +10,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import {IconAdd} from 'app/icons/iconAdd';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -31,12 +32,12 @@ class OrganizationApiKeysList extends React.Component {
       <Button
         priority="primary"
         size="small"
-        icon="icon-circle-add"
         busy={busy}
         disabled={busy}
         onClick={onAddApiKey}
       >
-        {t('New API Key')}
+        <IconAdd size="xs" circle />
+        &nbsp;{t('New API Key')}
       </Button>
     );
     return (

@@ -9,6 +9,7 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import InputField from 'app/views/settings/components/forms/inputField';
 import Confirm from 'app/components/confirm';
+import {IconAdd} from 'app/icons/iconAdd';
 
 const RichListProps = {
   /**
@@ -171,13 +172,9 @@ class RichList extends React.PureComponent {
         onSelect={this.onSelectDropdownItem}
       >
         {({isOpen}) => (
-          <DropdownButton
-            disabled={disabled}
-            icon="icon-circle-add"
-            isOpen={isOpen}
-            size="small"
-          >
-            {this.props.addButtonText}
+          <DropdownButton disabled={disabled} isOpen={isOpen} size="small">
+            <IconAdd size="xs" circle />
+            &nbsp;{this.props.addButtonText}
           </DropdownButton>
         )}
       </DropdownAutoComplete>

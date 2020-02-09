@@ -6,6 +6,7 @@ import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {IconAdd} from 'app/icons/iconAdd';
 import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -74,9 +75,9 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
         priority="primary"
         size="small"
         to={`/settings/${orgId}/developer-settings/new-internal/`}
-        icon="icon-circle-add"
       >
-        {t('New Internal Integration')}
+        <IconAdd size="xs" circle />
+        &nbsp;{t('New Internal Integration')}
       </Button>
     );
 
@@ -109,9 +110,9 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
         priority="primary"
         size="small"
         to={`/settings/${orgId}/developer-settings/new-public/`}
-        icon="icon-circle-add"
       >
-        {t('New Public Integration')}
+        <IconAdd size="xs" circle />
+        &nbsp;{t('New Public Integration')}
       </Button>
     );
 

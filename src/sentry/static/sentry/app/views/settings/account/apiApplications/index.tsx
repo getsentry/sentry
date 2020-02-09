@@ -11,6 +11,7 @@ import {
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import {IconAdd} from 'app/icons/iconAdd';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Row from 'app/views/settings/account/apiApplications/row';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -54,13 +55,9 @@ class ApiApplications extends AsyncView<Props, State> {
 
   renderBody() {
     const action = (
-      <Button
-        priority="primary"
-        size="small"
-        onClick={this.handleCreateApplication}
-        icon="icon-circle-add"
-      >
-        {t('Create New Application')}
+      <Button priority="primary" size="small" onClick={this.handleCreateApplication}>
+        <IconAdd size="xs" circle />
+        &nbsp;{t('Create New Application')}
       </Button>
     );
 

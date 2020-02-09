@@ -13,6 +13,7 @@ import InstalledIntegration, {
   Props as InstalledIntegrationProps,
 } from 'app/views/organizationIntegrations/installedIntegration';
 import Link from 'app/components/links/link';
+import {IconAdd, IconUpgrade} from 'app/icons';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -92,19 +93,6 @@ export default class ProviderRow extends React.Component<Props> {
 
   // Rendering
 
-  get buttonProps() {
-    const upgradeable = !this.isEnabled && this.isEnabledPlugin && this.isUpgradable;
-
-    return {
-      icon: upgradeable ? 'icon-upgrade' : 'icon-circle-add',
-      children: this.isEnabled
-        ? t('Add Another')
-        : upgradeable
-        ? t('Update')
-        : t('Install'),
-    };
-  }
-
   renderIntegrations() {
     return this.integrations.map(integration => (
       <StyledInstalledIntegration
@@ -122,6 +110,8 @@ export default class ProviderRow extends React.Component<Props> {
   }
 
   render() {
+    const upgradeable = !this.isEnabled && this.isEnabledPlugin && this.isUpgradable;
+
     return (
       <PanelItem p={0} flexDirection="column" data-test-id={this.props.provider.key}>
         <Flex alignItems="center" p={2}>
@@ -134,7 +124,19 @@ export default class ProviderRow extends React.Component<Props> {
             </ProviderDetails>
           </Box>
           <Box>
-            <Button size="small" onClick={this.openModal} {...this.buttonProps} />
+            <Button size="small" onClick={this.openModal}>
+              {this.isEnabled && this.isUpgradable ? (
+                <IconUpgrade size="xs" />
+              ) : (
+                <IconAdd size="xs" circle />
+              )}
+              &nbsp;
+              {this.isEnabled
+                ? t('Add Another')
+                : upgradeable
+                ? t('Update')
+                : t('Install')}
+            </Button>
           </Box>
         </Flex>
         {this.renderIntegrations()}

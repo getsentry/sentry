@@ -28,6 +28,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import {combineStatus} from 'app/components/events/interfaces/debugmeta';
 import {Assembly} from 'app/components/events/interfaces/assembly';
 import {parseAssembly} from 'app/components/events/interfaces/utils';
+import {IconAdd, IconSubtract} from 'app/icons';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -422,7 +423,7 @@ export class Frame extends React.Component {
         className="btn btn-sm btn-default btn-toggle"
         css={this.getPlatform() === 'csharp' && {display: 'block !important'}} // remove important once we get rid of css files
       >
-        <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'} />
+        {this.state.isExpanded ? <IconSubtract /> : <IconAdd />} />
       </a>
     );
   }

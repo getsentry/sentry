@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {defined, objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import {IconAdd} from 'app/icons/iconAdd';
 import Input from 'app/views/settings/components/forms/controls/input';
 import InputField from 'app/views/settings/components/forms/inputField';
 import space from 'app/styles/space';
@@ -107,7 +108,8 @@ export default class TableField extends React.Component<Props> {
     };
 
     const button = (
-      <Button icon="icon-circle-add" onClick={addRow} size="xsmall" disabled={disabled}>
+      <Button onClick={addRow} size="xsmall" disabled={disabled}>
+        <StyledIconAdd size="xs" circle />
         {addButtonText}
       </Button>
     );
@@ -205,4 +207,8 @@ const RowInput = styled('div')`
 
 const RemoveButton = styled('div')`
   margin-left: ${space(1)};
+`;
+
+const StyledIconAdd = styled(IconAdd)`
+  margin-right: ${space(0.5)};
 `;

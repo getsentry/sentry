@@ -6,6 +6,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {IconAdd} from 'app/icons/iconAdd';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -54,9 +55,9 @@ class OrganizationTeams extends React.Component {
             organization,
           })
         }
-        icon="icon-circle-add"
       >
-        {t('Create Team')}
+        <IconAdd size="xs" circle />
+        &nbsp;{t('Create Team')}
       </Button>
     );
 

@@ -11,6 +11,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
+import {IconAdd} from 'app/icons/iconAdd';
 import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -99,9 +100,9 @@ class OrganizationProjects extends AsyncView {
             : undefined
         }
         to={`/organizations/${organization.slug}/projects/new/`}
-        icon="icon-circle-add"
       >
-        {t('Create Project')}
+        <IconAdd size="xs" circle />
+        &nbsp;{t('Create Project')}
       </Button>
     );
 

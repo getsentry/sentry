@@ -45,7 +45,7 @@ describe('TableField', function() {
     });
 
     it('renders button text', function() {
-      expect(wrapper.find('Button[icon="icon-circle-add"]').text()).toEqual('Add Thing');
+      expect(wrapper.find('Button[size="xsmall"]').text()).toEqual('Add Thing');
     });
 
     it("doesn't render columns if there's no initalData", function() {
@@ -54,7 +54,7 @@ describe('TableField', function() {
 
     describe('saves changes', function() {
       it('handles adding a new row', function() {
-        wrapper.find('Button[icon="icon-circle-add"]').simulate('click');
+        wrapper.find('Button[size="xsmall"]').simulate('click');
         expect(
           wrapper
             .find('HeaderLabel')
@@ -71,8 +71,8 @@ describe('TableField', function() {
 
       it('handles removing a row', function() {
         // add a couple new rows for funsies
-        wrapper.find('Button[icon="icon-circle-add"]').simulate('click');
-        wrapper.find('Button[icon="icon-circle-add"]').simulate('click');
+        wrapper.find('Button[size="xsmall"]').simulate('click');
+        wrapper.find('Button[size="xsmall"]').simulate('click');
 
         // delete the last row
         wrapper

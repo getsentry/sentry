@@ -10,6 +10,7 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectControl from 'app/components/forms/selectControl';
+import {IconAdd} from 'app/icons/iconAdd';
 
 const selectControlShape = PropTypes.shape(SelectControl.propTypes);
 
@@ -146,13 +147,9 @@ export default class ChoiceMapper extends React.Component {
         disabled={disabled}
       >
         {({isOpen}) => (
-          <DropdownButton
-            icon="icon-circle-add"
-            isOpen={isOpen}
-            size="xsmall"
-            disabled={disabled}
-          >
-            {addButtonText}
+          <DropdownButton isOpen={isOpen} size="xsmall" disabled={disabled}>
+            <IconAdd size="xs" circle />
+            &nbsp;{addButtonText}
           </DropdownButton>
         )}
       </DropdownAutoComplete>

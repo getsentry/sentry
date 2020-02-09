@@ -19,6 +19,7 @@ import SentryTypes from 'app/sentryTypes';
 import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconAdd} from 'app/icons/iconAdd';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
@@ -96,10 +97,10 @@ class Dashboard extends React.Component {
                   : undefined
               }
               to={`/organizations/${organization.slug}/projects/new/`}
-              icon="icon-circle-add"
               data-test-id="create-project"
             >
-              {t('Create Project')}
+              <IconAdd size="xs" circle />
+              &nbsp;{t('Create Project')}
             </Button>
           </ProjectsHeader>
         )}

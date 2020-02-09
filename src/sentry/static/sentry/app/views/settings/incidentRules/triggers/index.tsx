@@ -12,6 +12,7 @@ import CircleIndicator from 'app/components/circleIndicator';
 import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
+import {IconAdd} from 'app/icons/iconAdd';
 
 import {Trigger} from '../types';
 
@@ -146,13 +147,9 @@ class Triggers extends React.Component<Props> {
 
         {triggers.length < 2 && (
           <BorderlessPanel>
-            <FullWidthButton
-              type="button"
-              size="small"
-              icon="icon-circle-add"
-              onClick={onAdd}
-            >
-              {t('Add Warning Trigger')}
+            <FullWidthButton type="button" size="small" onClick={onAdd}>
+              <IconAdd size="xs" circle />
+              &nbsp;{t('Add Warning Trigger')}
             </FullWidthButton>
           </BorderlessPanel>
         )}

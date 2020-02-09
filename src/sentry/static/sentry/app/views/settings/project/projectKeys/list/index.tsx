@@ -17,6 +17,7 @@ import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import Pagination from 'app/components/pagination';
+import {IconAdd} from 'app/icons/iconAdd';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -181,13 +182,9 @@ class ProjectKeys extends AsyncView<Props, State> {
           title={t('Client Keys')}
           action={
             access.has('project:write') ? (
-              <Button
-                onClick={this.handleCreateKey}
-                size="small"
-                priority="primary"
-                icon="icon-circle-add"
-              >
-                {t('Generate New Key')}
+              <Button onClick={this.handleCreateKey} size="small" priority="primary">
+                <IconAdd size="xs" circle />
+                &nbsp;{t('Generate New Key')}
               </Button>
             ) : null
           }

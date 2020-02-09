@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {IconAdd} from 'app/icons/iconAdd';
 
 import {t} from 'app/locale';
 import {SentryApp, SentryAppInstallation} from 'app/types';
@@ -43,13 +44,9 @@ type InstallButtonProps = {
 };
 export const InstallButton = ({onClickInstall}: InstallButtonProps) => {
   return (
-    <Button
-      onClick={onClickInstall}
-      size="small"
-      icon="icon-circle-add"
-      className="btn btn-default"
-    >
-      {t('Install')}
+    <Button onClick={onClickInstall} size="small" className="btn btn-default">
+      <IconAdd size="xs" circle />
+      &nbsp;{t('Install')}
     </Button>
   );
 };

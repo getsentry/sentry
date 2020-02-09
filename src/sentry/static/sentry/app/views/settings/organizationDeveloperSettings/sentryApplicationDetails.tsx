@@ -27,6 +27,7 @@ import routeTitleGen from 'app/utils/routeTitle';
 import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {IconAdd} from 'app/icons/iconAdd';
 
 import styled from '@emotion/styled';
 import {
@@ -353,12 +354,12 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                 {t('Tokens')}
                 <Button
                   size="xsmall"
-                  icon="icon-circle-add"
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"
                   type="button"
                 >
-                  {t('New Token')}
+                  <IconAdd size="xs" circle />
+                  &nbsp;{t('New Token')}
                 </Button>
               </PanelHeader>
               <PanelBody>{this.renderTokens()}</PanelBody>

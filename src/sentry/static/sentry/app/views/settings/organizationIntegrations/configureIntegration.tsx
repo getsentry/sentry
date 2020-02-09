@@ -6,6 +6,7 @@ import AsyncView from 'app/views/asyncView';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import Button from 'app/components/button';
+import {IconAdd} from 'app/icons/iconAdd';
 import Form from 'app/views/settings/components/forms/form';
 import IntegrationAlertRules from 'app/views/organizationIntegrations/integrationAlertRules';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
@@ -72,13 +73,9 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           account={integration.domainName}
         >
           {onClick => (
-            <Button
-              priority="primary"
-              size="small"
-              icon="icon-circle-add"
-              onClick={() => onClick()}
-            >
-              Add Services
+            <Button priority="primary" size="small" onClick={() => onClick()}>
+              <IconAdd size="xs" circle />
+              {t('Add Services')}
             </Button>
           )}
         </AddIntegration>

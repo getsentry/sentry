@@ -46,10 +46,14 @@ exports[`OrganizationApiKeysList renders 1`] = `
     <StyledSettingsPageHeading
       action={
         <ForwardRef
-          icon="icon-circle-add"
           priority="primary"
           size="small"
         >
+          <IconAdd
+            circle={true}
+            size="xs"
+          />
+           
           New API Key
         </ForwardRef>
       }
@@ -59,10 +63,14 @@ exports[`OrganizationApiKeysList renders 1`] = `
       <SettingsPageHeading
         action={
           <ForwardRef
-            icon="icon-circle-add"
             priority="primary"
             size="small"
           >
+            <IconAdd
+              circle={true}
+              size="xs"
+            />
+             
             New API Key
           </ForwardRef>
         }
@@ -97,7 +105,6 @@ exports[`OrganizationApiKeysList renders 1`] = `
                   className="css-au7gsx-Action e1uay4fd3"
                 >
                   <forwardRef<Button>
-                    icon="icon-circle-add"
                     priority="primary"
                     size="small"
                   >
@@ -105,13 +112,11 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       align="center"
                       disabled={false}
                       forwardRef={null}
-                      icon="icon-circle-add"
                       priority="primary"
                       size="small"
                     >
                       <StyledButton
                         aria-disabled={false}
-                        aria-label="New API Key"
                         disabled={false}
                         forwardRef={null}
                         onClick={[Function]}
@@ -121,7 +126,6 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       >
                         <Component
                           aria-disabled={false}
-                          aria-label="New API Key"
                           className="css-z8at1v-StyledButton edwq9my0"
                           forwardRef={null}
                           onClick={[Function]}
@@ -130,7 +134,6 @@ exports[`OrganizationApiKeysList renders 1`] = `
                         >
                           <button
                             aria-disabled={false}
-                            aria-label="New API Key"
                             className="css-z8at1v-StyledButton edwq9my0"
                             onClick={[Function]}
                             role="button"
@@ -150,44 +153,30 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                 <span
                                   className="css-19gcr2f-ButtonLabel edwq9my1"
                                 >
-                                  <Icon
-                                    hasChildren={true}
-                                    size="small"
+                                  <IconAdd
+                                    circle={true}
+                                    size="xs"
                                   >
-                                    <Component
-                                      className="css-1299qb2-Icon edwq9my2"
-                                      hasChildren={true}
-                                      size="small"
+                                    <svg
+                                      fill="currentColor"
+                                      height="12px"
+                                      viewBox="0 0 16 16"
+                                      width="12px"
                                     >
-                                      <span
-                                        className="css-1299qb2-Icon edwq9my2"
-                                        size="small"
-                                      >
-                                        <StyledInlineSvg
-                                          size="12px"
-                                          src="icon-circle-add"
-                                        >
-                                          <ForwardRef
-                                            className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                            size="12px"
-                                            src="icon-circle-add"
-                                          >
-                                            <svg
-                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                              height="12px"
-                                              viewBox={Object {}}
-                                              width="12px"
-                                            >
-                                              <use
-                                                href="#test"
-                                                xlinkHref="#test"
-                                              />
-                                            </svg>
-                                          </ForwardRef>
-                                        </StyledInlineSvg>
-                                      </span>
-                                    </Component>
-                                  </Icon>
+                                      <g>
+                                        <path
+                                          d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                        />
+                                        <path
+                                          d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                        />
+                                        <path
+                                          d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                        />
+                                      </g>
+                                    </svg>
+                                  </IconAdd>
+                                   
                                   New API Key
                                 </span>
                               </Component>

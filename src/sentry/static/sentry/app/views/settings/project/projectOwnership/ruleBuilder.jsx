@@ -11,6 +11,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import Input from 'app/views/settings/components/forms/controls/input';
 import SentryTypes from 'app/sentryTypes';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {IconAdd} from 'app/icons/iconAdd';
 import SelectOwners from 'app/views/settings/project/projectOwnership/selectOwners';
 import space from 'app/styles/space';
 
@@ -97,7 +98,7 @@ class RuleBuilder extends React.Component {
                   key={v}
                   onClick={() => this.handleSelectCandidate(v, 'path')}
                 >
-                  <AddIcon src="icon-circle-add" />
+                  <StyledIconAdd circle />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
                   <TypeHint>[PATH]</TypeHint>
                 </RuleCandidate>
@@ -108,7 +109,7 @@ class RuleBuilder extends React.Component {
                   key={v}
                   onClick={() => this.handleSelectCandidate(v, 'url')}
                 >
-                  <AddIcon src="icon-circle-add" />
+                  <StyledIconAdd circle />
                   <StyledTextOverflow>{v}</StyledTextOverflow>
                   <TypeHint>[URL]</TypeHint>
                 </RuleCandidate>
@@ -154,9 +155,10 @@ class RuleBuilder extends React.Component {
             priority="primary"
             disabled={!isValid}
             onClick={this.handleAddRule}
-            icon="icon-circle-add"
             size="small"
-          />
+          >
+            <IconAdd circle />
+          </AddButton>
         </BuilderBar>
       </React.Fragment>
     );
@@ -186,7 +188,7 @@ const RuleCandidate = styled('div')`
   align-items: center;
 `;
 
-const AddIcon = styled(InlineSvg)`
+const StyledIconAdd = styled(IconAdd)`
   color: ${p => p.theme.borderDark};
   margin-right: 5px;
   flex-shrink: 0;

@@ -13,6 +13,7 @@ import HookOrDefault from 'app/components/hookOrDefault';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 import {Organization, Team} from 'app/types';
+import {IconAdd} from 'app/icons/iconAdd';
 import withLatestContext from 'app/utils/withLatestContext';
 import withTeams from 'app/utils/withTeams';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -368,13 +369,9 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           />
         ))}
 
-        <AddButton
-          disabled={disableInputs}
-          priority="link"
-          onClick={this.addInviteRow}
-          icon="icon-circle-add"
-        >
-          {t('Add another')}
+        <AddButton disabled={disableInputs} priority="link" onClick={this.addInviteRow}>
+          <IconAdd size="xs" circle />
+          &nbsp;{t('Add another')}
         </AddButton>
 
         <Footer>
