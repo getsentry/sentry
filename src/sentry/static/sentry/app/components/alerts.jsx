@@ -1,7 +1,7 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import {ThemeProvider} from 'emotion-theming';
+import {ThemeProvider} from '@emotion/react';
 
 import AlertStore from 'app/stores/alertStore';
 import AlertMessage from 'app/components/alertMessage';

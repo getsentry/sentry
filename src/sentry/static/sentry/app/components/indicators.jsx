@@ -1,5 +1,5 @@
 import {PoseGroup} from 'react-pose';
-import {ThemeProvider} from 'emotion-theming';
+import {ThemeProvider} from '@emotion/react';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';

@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import {ThemeProvider} from 'emotion-theming';
+import {ThemeProvider} from '@emotion/react';
 import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import get from 'lodash/get';

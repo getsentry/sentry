@@ -1,5 +1,5 @@
 import {Box, Flex} from 'reflexbox';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';

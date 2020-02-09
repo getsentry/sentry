@@ -1,6 +1,6 @@
 import 'focus-visible';
 import React from 'react';
-import {ThemeProvider} from 'emotion-theming';
+import {ThemeProvider} from '@emotion/react';
 
 import {create} from '@storybook/theming/create';
 
