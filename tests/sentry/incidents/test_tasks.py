@@ -30,7 +30,6 @@ from sentry.incidents.tasks import (
 from sentry.models import Commit, Repository
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.linksign import generate_signed_link
 from sentry.utils.http import absolute_uri
 
 
@@ -117,11 +116,6 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             + "?referrer=incident_activity_email"
         )
         assert context["comment"] == expected_comment
-        assert context["unsubscribe_link"] == generate_signed_link(
-            expected_recipient,
-            "sentry-account-email-unsubscribe-incident",
-            kwargs={"incident_id": incident.id},
-        )
 
     @freeze_time()
     def test_simple(self):
