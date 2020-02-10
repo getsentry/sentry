@@ -21,10 +21,9 @@ def delete_alert_email_user_options(apps, schema_editor):
     Planning time: 234.778 ms
     Execution time: 9730.608 ms
     """
-    for user_option in RangeQuerySetWrapperWithProgressBar(
-        UserOption.objects.filter(key="alert_email")
-    ):
-        user_option.delete()
+    for user_option in RangeQuerySetWrapperWithProgressBar(UserOption.objects.all()):
+        if user_option.key == "alert_email":
+            user_option.delete()
 
 
 class Migration(migrations.Migration):
