@@ -27,7 +27,7 @@ import {Incident} from '../types';
 import SparkLine from './sparkLine';
 import Status from '../status';
 
-const DEFAULT_QUERY_STATUS = '';
+const DEFAULT_QUERY_STATUS = 'open';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
 
@@ -147,7 +147,7 @@ class IncidentsListContainer extends React.Component<Props> {
 
     const openIncidentsQuery = {...query, status: 'open'};
     const closedIncidentsQuery = {...query, status: 'closed'};
-    const allIncidentsQuery = omit(query, 'status');
+    const allIncidentsQuery = {...query, status: 'all'};
 
     const status = query.status === undefined ? DEFAULT_QUERY_STATUS : query.status;
 
@@ -179,13 +179,6 @@ class IncidentsListContainer extends React.Component<Props> {
 
               <div className="btn-group">
                 <Button
-                  to={{pathname, query: allIncidentsQuery}}
-                  size="small"
-                  className={'btn' + (status === '' ? ' active' : '')}
-                >
-                  {t('All')}
-                </Button>
-                <Button
                   to={{pathname, query: openIncidentsQuery}}
                   size="small"
                   className={'btn' + (status === 'open' ? ' active' : '')}
@@ -198,6 +191,13 @@ class IncidentsListContainer extends React.Component<Props> {
                   className={'btn' + (status === 'closed' ? ' active' : '')}
                 >
                   {t('Resolved')}
+                </Button>
+                <Button
+                  to={{pathname, query: allIncidentsQuery}}
+                  size="small"
+                  className={'btn' + (status === 'all' ? ' active' : '')}
+                >
+                  {t('All')}
                 </Button>
               </div>
             </Actions>
