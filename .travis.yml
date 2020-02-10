@@ -172,14 +172,6 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
-    - python: 2.7
-      name: 'Distribution build'
-      env: TEST_SUITE=dist
-      before_install:
-        - *pip_install
-        - find "$NODE_DIR" -type d -empty -delete
-        - nvm install
-
     - <<: *postgres_default
       name: 'Symbolicator Integration'
       env: TEST_SUITE=symbolicator
