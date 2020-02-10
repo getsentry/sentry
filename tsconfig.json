@@ -24,10 +24,8 @@
     "target": "es5",
     "strictBindCallApply": false,
     "experimentalDecorators": true,
-
+    // Skip type checking of all declaration files
     "skipLibCheck": true,
-    "isolatedModules": true,
-
     "esModuleInterop": true,
     "jsx": "preserve",
     "baseUrl": ".",
