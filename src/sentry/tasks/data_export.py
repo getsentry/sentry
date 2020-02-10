@@ -7,8 +7,9 @@ import tempfile
 
 from django.db import transaction
 
+from sentry import tagstore
 from sentry.constants import ExportQueryType
-from sentry.models import File
+from sentry.models import EventUser, File, Group, Project, get_group_with_redirect
 from sentry.tasks.base import instrumented_task
 
 SNUBA_MAX_RESULTS = 1000
@@ -35,28 +36,27 @@ def serialize_issue_by_tag(key, item):
 @instrumented_task(name="sentry.tasks.data_export.compile_data", queue="data_export")
 def compile_data(data_export):
     if data_export.query_type == ExportQueryType.DISCOVER_V2:
-        # TODO(Leander): Implement logic for discover v2 CSVs
+        process_discover_v2(data_export)
         return
     elif data_export.query_type == ExportQueryType.BILLING_REPORT:
-        # TODO(Leander): Implement logic for billing report CSVs
+        process_billing_report(data_export)
         return
     elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
         file_path, file_name = process_issue_by_tag(data_export)
-    store_csv(data_export, file_path, file_name)
+        store_file(data_export, file_path, file_name)
 
 
 def process_discover_v2(data_export):
+    # TODO(Leander): Implement processing for Discover V2
     return
 
 
 def process_billing_report(data_export):
+    # TODO(Leander): Implement processing for Billing Reports
     return
 
 
 def process_issue_by_tag(data_export):
-    from sentry import tagstore
-    from sentry.models import EventUser, Group, Project, get_group_with_redirect
-
     """
     Convert tag payload to a CSV, returns (file_path, file_name) as a tuple
     (Adapted from 'src/sentry/web/frontend/group_tag_export.py')
@@ -115,7 +115,7 @@ def process_issue_by_tag(data_export):
         gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
         if len(gtv_list_raw) == 0:
             break
-        convert_to_csv(
+        add_to_file(
             data=gtv_list_raw, fields=fields, file_path=file_path, include_header=iteration == 0
         )
         iteration += 1
@@ -127,7 +127,7 @@ def get_file_name(type, custom_string, extension="csv"):
     return file_name
 
 
-def convert_to_csv(data, fields, file_path, include_header=False):
+def add_to_file(data, fields, file_path, include_header=False):
     """
     Converts a list of dicts (data) to a CSV, appending it to the file passed in
     Also accepts an  list of fields to determine the CSV columns' order
@@ -140,14 +140,16 @@ def convert_to_csv(data, fields, file_path, include_header=False):
         csvfile.close()
 
 
-def store_csv(data_export, file_path, file_name):
+def store_file(data_export, file_path, file_name):
+    """
+    Creates a new File object to store the reference to raw data, and connects it
+    to the current ExportData object
+    """
     with transaction.atomic():
-        # Create a new file to reference the CSV content
         file = File.objects.create(name=file_name, type="export.csv")
         with open(file_path, "r") as csvfile:
             # TODO(Leander): Add logging here
             file.putfile(csvfile)
-        # Update the ExportedData object
         data_export.update(file=file)
 
 
