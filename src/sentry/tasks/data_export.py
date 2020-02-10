@@ -1,11 +1,19 @@
 from __future__ import absolute_import
 
+from os import path
+
 import csv
+import tempfile
+
+from django.db import transaction
 
 from sentry.constants import ExportQueryType
+from sentry.models import File
 from sentry.tasks.base import instrumented_task
 
 SNUBA_MAX_RESUILTS = 1000
+
+tmp_dir = tempfile.mkdtemp()
 
 
 def serialize_issue_by_tag(key, item):
@@ -33,8 +41,8 @@ def compile_data(data_export):
         # TODO(Leander): Implement logic for billing report CSVs
         return
     elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
-        process_issue_by_tag(data_export.query_info)
-        return
+        file_path, file_name = process_issue_by_tag(data_export)
+    store_csv(data_export, file_path, file_name)
 
 
 def process_discover_v2(data_export):
@@ -45,15 +53,16 @@ def process_billing_report(data_export):
     return
 
 
-def process_issue_by_tag(payload):
+def process_issue_by_tag(data_export):
     from sentry import tagstore
     from sentry.models import EventUser, Group, Project, get_group_with_redirect
 
     """
-    Convert tag payload to serialized JSON
-    Adapted from 'src/sentry/web/frontend/group_tag_export.py'
+    Convert tag payload to a CSV, returns (file_path, file_name) as a tuple
+    (Adapted from 'src/sentry/web/frontend/group_tag_export.py')
     """
     # Get the pertaining project
+    payload = data_export.query_info
     project = Project.objects.get(slug=payload["project_slug"])
 
     # Get the pertaining issue
@@ -90,8 +99,9 @@ def process_issue_by_tag(payload):
 
     # Iterate endlessly through the GroupTagValues
     iteration = 0
-    file_details = "{}-{}".format(payload["project_slug"], key)
+    file_details = "{}-{}__{}".format(payload["project_slug"], key, data_export.id)
     file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, file_details)
+    file_path = path.join(tmp_dir, file_name)
 
     while True:
         gtv_list = tagstore.get_group_tag_value_iter(
@@ -102,12 +112,14 @@ def process_issue_by_tag(payload):
             callbacks=callbacks,
             offset=SNUBA_MAX_RESUILTS * iteration,
         )
-
         gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
         if len(gtv_list_raw) == 0:
             break
-        convert_to_csv(gtv_list_raw, fields, file_name, iteration == 0)
+        convert_to_csv(
+            data=gtv_list_raw, fields=fields, file_path=file_path, include_header=iteration == 0
+        )
         iteration += 1
+    return file_path, file_name
 
 
 def get_file_name(type, custom_string, extension="csv"):
@@ -115,14 +127,28 @@ def get_file_name(type, custom_string, extension="csv"):
     return file_name
 
 
-def convert_to_csv(data, fields, file_name, include_header=False):
-    with open("/tmp/" + file_name, "a") as csvfile:
+def convert_to_csv(data, fields, file_path, include_header=False):
+    """
+    Converts a list of dicts (data) to a CSV, appending it to the file passed in
+    Also accepts an  list of fields to determine the CSV columns' order
+    """
+    with open(file_path, "a") as csvfile:
         writer = csv.DictWriter(csvfile, fields)
         if include_header:
             writer.writeheader()
         writer.writerows(data)
         csvfile.close()
-    return
+
+
+def store_csv(data_export, file_path, file_name):
+    with transaction.atomic():
+        # Create a new file to reference the CSV content
+        file = File.objects.create(name=file_name, type="export.csv")
+        with open(file_path, "r") as csvfile:
+            # TODO(Leander): Add logging here
+            file.putfile(csvfile)
+        # Update the ExportedData object
+        data_export.update(file=file)
 
 
 def alert_error():
