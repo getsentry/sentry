@@ -3,18 +3,20 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import HeroIcon from 'app/components/heroIcon';
-import InlineSvg from 'app/components/inlineSvg';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {IconWarning} from 'app/icons';
+import theme from 'app/utils/theme';
 
 type Props = {
   small?: boolean;
+  children?: React.ReactNode;
 };
 
-const EmptyStateWarning: React.FC<Props> = ({small, children}) =>
+const EmptyStateWarning = ({small = false, children}: Props) =>
   small ? (
     <EmptyMessage>
       <SmallMessage>
-        <InlineSvg src="icon-circle-exclamation" width="34px" />
+        <IconWarning color={theme.gray2} size="lg" />
         {children}
       </SmallMessage>
     </EmptyMessage>
@@ -27,10 +29,6 @@ const EmptyStateWarning: React.FC<Props> = ({small, children}) =>
 
 EmptyStateWarning.propTypes = {
   small: PropTypes.bool,
-};
-
-EmptyStateWarning.defaultProps = {
-  small: false,
 };
 
 const EmptyStreamWrapper = styled('div')`

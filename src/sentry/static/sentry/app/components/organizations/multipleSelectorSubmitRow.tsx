@@ -10,7 +10,7 @@ type Props = {
   onSubmit: () => void;
 };
 
-const MultipleSelectorSubmitRow: React.FC<Props> = ({onSubmit}) => {
+const MultipleSelectorSubmitRow = ({onSubmit}: Props) => {
   return (
     <SubmitButtonContainer>
       <SubmitButton onClick={onSubmit} size="xsmall" priority="primary">

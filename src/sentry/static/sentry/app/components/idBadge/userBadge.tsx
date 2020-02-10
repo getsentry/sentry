@@ -7,24 +7,21 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import SentryTypes from 'app/sentryTypes';
 
-const defaultProps = {
-  hideEmail: false,
-};
-
 type Props = {
   avatarSize: UserAvatar['props']['size'];
   className?: string;
   displayName?: string;
   displayEmail?: string;
   user?: AvatarUser;
-} & Partial<typeof defaultProps>;
+  hideEmail?: boolean;
+};
 
 const UserBadge = ({
   className,
   displayName,
   displayEmail,
   avatarSize,
-  hideEmail,
+  hideEmail = false,
   user,
 }: Props) => {
   const title =
@@ -60,8 +57,6 @@ UserBadge.propTypes = {
   user: SentryTypes.User,
   hideEmail: PropTypes.bool,
 };
-
-UserBadge.defaultProps = defaultProps;
 
 const StyledUserBadge = styled('div')`
   display: flex;

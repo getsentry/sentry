@@ -476,8 +476,6 @@ ALLOWED_FUTURE_DELTA = timedelta(seconds=MAX_SECS_IN_FUTURE)
 
 DEFAULT_STORE_NORMALIZER_ARGS = dict(
     geoip_lookup=rust_geoip,
-    stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
-    max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
     max_secs_in_future=MAX_SECS_IN_FUTURE,
     max_secs_in_past=MAX_SECS_IN_PAST,
     enable_trimming=True,

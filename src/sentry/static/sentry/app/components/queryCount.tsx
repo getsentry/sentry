@@ -19,13 +19,13 @@ type Props = {
  * Render nothing by default if `count` is falsy.
  */
 
-const QueryCount: React.FC<Props> = ({
+const QueryCount = ({
   className,
   count,
   max,
   hideIfEmpty = true,
   inline = true,
-}) => {
+}: Props) => {
   const countOrMax = defined(count) && defined(max) && count >= max ? `${max}+` : count;
   const cx = classNames('query-count', className, {
     inline,

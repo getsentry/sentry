@@ -7,6 +7,7 @@ import types
 from datetime import timedelta, datetime
 
 from django.db import migrations
+from django.utils import timezone
 
 from sentry import options
 from sentry.eventstore.models import Event as NewEvent
@@ -34,7 +35,7 @@ def backfill_eventstream(apps, schema_editor):
     retention_days = options.get("system.event-retention-days") or DEFAULT_RETENTION
 
     def get_events(last_days):
-        to_date = datetime.now()
+        to_date = timezone.now()
         from_date = to_date - timedelta(days=last_days)
         return Event.objects.filter(
             datetime__gte=from_date, datetime__lte=to_date, group_id__isnull=False
@@ -69,24 +70,33 @@ def backfill_eventstream(apps, schema_editor):
 
     processed = 0
     for e in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
-        event = NewEvent(project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=e.data.data)
+        event = NewEvent(
+            project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=e.data.data
+        )
         primary_hash = event.get_primary_hash()
         if event.project is None or event.group is None:
             print("Skipped {} as group or project information is invalid.\n".format(event))
             continue
 
-        eventstream.insert(
-            group=event.group,
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=False,
-            primary_hash=primary_hash,
-            skip_consume=True,
-        )
-        processed += 1
+        try:
+            eventstream.insert(
+                group=event.group,
+                event=event,
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                primary_hash=primary_hash,
+                skip_consume=True,
+            )
+            processed += 1
+        except Exception as error:
+            print(
+                "An error occured while trying to instert the following event: {}\n.----\n{}".format(
+                    event, error
+                )
+            )
 
-    print("Event migration done. Processed {} of {} events.\n".format(processed, count))
+    print("Event migration done. Migrated {} of {} events.\n".format(processed, count))
 
 
 class Migration(migrations.Migration):

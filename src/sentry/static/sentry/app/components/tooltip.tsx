@@ -7,14 +7,20 @@ import styled from '@emotion/styled';
 
 import {domId} from 'app/utils/domId';
 
-type Props = {
+const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
+
+type DefaultProps = {
+  position: PopperJS.Placement;
+  containerDisplayMode: React.CSSProperties['display'];
+};
+
+type Props = DefaultProps & {
   children: React.ReactElement;
   disabled?: boolean;
   title: React.ReactNode;
-  position: PopperJS.Placement;
   popperStyle?: React.CSSProperties;
-  containerDisplayMode?: React.CSSProperties['display'];
   delay?: number;
+  isHoverable?: boolean;
 };
 
 type State = {
@@ -76,9 +82,15 @@ class Tooltip extends React.Component<Props, State> {
      * Time to wait (in milliseconds) before showing the tooltip
      */
     delay: PropTypes.number,
+
+    /**
+     * If true, user is able to hover tooltip without it disappearing.
+     * (nice if you want to be able to copy tooltip contents to clipboard)
+     */
+    isHoverable: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     position: 'top',
     containerDisplayMode: 'inline-block',
   };
@@ -102,27 +114,43 @@ class Tooltip extends React.Component<Props, State> {
   portalEl: HTMLElement;
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
+  delayHideTimeout: number | null = null;
 
   setOpen = () => {
     this.setState({isOpen: true});
   };
 
-  handleOpen = () => {
-    const {delay} = this.props;
+  setClose = () => {
+    this.setState({isOpen: false});
+  };
 
-    if (delay) {
-      this.delayTimeout = window.setTimeout(this.setOpen, delay);
+  handleOpen = () => {
+    const {delay, isHoverable} = this.props;
+
+    if (this.delayHideTimeout) {
+      window.clearTimeout(this.delayHideTimeout);
+      this.delayHideTimeout = null;
+    }
+
+    if (delay || isHoverable) {
+      this.delayTimeout = window.setTimeout(this.setOpen, delay || IS_HOVERABLE_DELAY);
     } else {
       this.setOpen();
     }
   };
 
   handleClose = () => {
-    this.setState({isOpen: false});
+    const {isHoverable} = this.props;
 
     if (this.delayTimeout) {
       window.clearTimeout(this.delayTimeout);
       this.delayTimeout = null;
+    }
+
+    if (isHoverable) {
+      this.delayHideTimeout = window.setTimeout(this.setClose, IS_HOVERABLE_DELAY);
+    } else {
+      this.setClose();
     }
   };
 
@@ -157,7 +185,7 @@ class Tooltip extends React.Component<Props, State> {
   }
 
   render() {
-    const {disabled, children, title, position, popperStyle} = this.props;
+    const {disabled, children, title, position, popperStyle, isHoverable} = this.props;
     const {isOpen} = this.state;
     if (disabled || title === '') {
       return children;
@@ -185,6 +213,8 @@ class Tooltip extends React.Component<Props, State> {
               style={style}
               data-placement={placement}
               popperStyle={popperStyle}
+              onMouseEnter={() => isHoverable && this.handleOpen()}
+              onMouseLeave={() => isHoverable && this.handleClose()}
             >
               {title}
               <TooltipArrow

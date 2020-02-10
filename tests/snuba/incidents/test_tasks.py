@@ -118,11 +118,8 @@ class HandleSnubaQueryUpdateTest(TestCase):
             "version": 1,
             "payload": {
                 "subscription_id": self.subscription.subscription_id,
-                "values": {value_name: self.trigger.alert_threshold + 1},
-                "timestamp": 1235,
-                "interval": 5,
-                "partition": 50,
-                "offset": 10,
+                "values": {"data": [{value_name: self.trigger.alert_threshold + 1}]},
+                "timestamp": "2020-01-01T01:23:45.1234",
             },
         }
         self.producer.produce(self.topic, json.dumps(message))

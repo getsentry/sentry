@@ -428,7 +428,8 @@ def _do_save_event(
     from sentry.ingest.outcomes_consumer import mark_signal_sent
 
     if cache_key and data is None:
-        data = default_cache.get(cache_key)
+        with metrics.timer("tasks.store.do_save_event.get_cache"):
+            data = default_cache.get(cache_key)
 
     if data is not None:
         data = CanonicalKeyDict(data)
@@ -450,7 +451,8 @@ def _do_save_event(
     # reprocessing.  If the data cannot be found we want to assume
     # that we need to delete the raw event.
     if not data or reprocessing.event_supports_reprocessing(data):
-        delete_raw_event(project_id, event_id, allow_hint_clear=True)
+        with metrics.timer("tasks.store.do_save_event.delete_raw_event"):
+            delete_raw_event(project_id, event_id, allow_hint_clear=True)
 
     # This covers two cases: where data is None because we did not manage
     # to fetch it from the default cache or the empty dictionary was
@@ -473,20 +475,22 @@ def _do_save_event(
 
     event = None
     try:
-        manager = EventManager(data)
-        # event.project.organization is populated after this statement.
-        event = manager.save(project_id, assume_normalized=True, cache_key=cache_key)
+        with metrics.timer("tasks.store.do_save_event.event_manager.save"):
+            manager = EventManager(data)
+            # event.project.organization is populated after this statement.
+            event = manager.save(project_id, assume_normalized=True, cache_key=cache_key)
 
-        # This is where we can finally say that we have accepted the event.
-        track_outcome(
-            event.project.organization_id,
-            event.project.id,
-            key_id,
-            Outcome.ACCEPTED,
-            None,
-            timestamp,
-            event_id,
-        )
+        with metrics.timer("tasks.store.do_save_event.track_outcome"):
+            # This is where we can finally say that we have accepted the event.
+            track_outcome(
+                event.project.organization_id,
+                event.project.id,
+                key_id,
+                Outcome.ACCEPTED,
+                None,
+                timestamp,
+                event_id,
+            )
 
     except HashDiscarded:
         project = Project.objects.get_from_cache(id=project_id)
@@ -517,14 +521,16 @@ def _do_save_event(
 
     finally:
         if cache_key:
-            default_cache.delete(cache_key)
+            with metrics.timer("tasks.store.do_save_event.delete_cache"):
+                default_cache.delete(cache_key)
 
-            # For the unlikely case that we did not manage to persist the
-            # event we also delete the key always.
-            if event is None or features.has(
-                "organizations:event-attachments", event.project.organization, actor=None
-            ):
-                attachment_cache.delete(cache_key)
+            with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
+                # For the unlikely case that we did not manage to persist the
+                # event we also delete the key always.
+                if event is None or features.has(
+                    "organizations:event-attachments", event.project.organization, actor=None
+                ):
+                    attachment_cache.delete(cache_key)
 
         if start_time:
             metrics.timing("events.time-to-process", time() - start_time, instance=data["platform"])

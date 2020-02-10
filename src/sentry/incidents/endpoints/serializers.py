@@ -10,6 +10,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
@@ -239,7 +240,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
      - `access`: An access object (from `request.access`)
     """
 
-    environment = serializers.ListField(required=False)
+    environment = serializers.ListField(child=EnvironmentField(), required=False)
     # TODO: These might be slow for many projects, since it will query for each
     # individually. If we find this to be a problem then we can look into batching.
     projects = serializers.ListField(child=ProjectField(), required=False)
