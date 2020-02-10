@@ -33,7 +33,7 @@ class ExportedData(Model):
 
     organization = FlexibleForeignKey("sentry.Organization")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
-    file = FlexibleForeignKey("sentry.File", null=True)
+    file = FlexibleForeignKey("sentry.File", null=True, db_constraint=False)
     date_added = models.DateTimeField(default=timezone.now)
     date_finished = models.DateTimeField(null=True)
     date_expired = models.DateTimeField(null=True)
