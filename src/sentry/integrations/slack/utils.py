@@ -379,7 +379,7 @@ def get_channel_id_with_timeout(integration, name, timeout):
             items = session.get(
                 "https://slack.com/api/%s.list" % list_type,
                 # Slack limits the response of `<list_type>.list` to 1000 channels
-                params=dict(payload, **{"cursor": cursor, "limit": 1000}),
+                params=dict(payload, cursor=cursor, limit=1000),
             )
             items = items.json()
             if not items.get("ok"):
