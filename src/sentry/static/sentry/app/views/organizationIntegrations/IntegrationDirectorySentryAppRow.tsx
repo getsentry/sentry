@@ -27,10 +27,6 @@ export default class IntegrationDirectorySentryAppRow extends React.PureComponen
     return this.props.app.status === 'internal';
   }
 
-  get isUnpublished() {
-    return this.props.app.status === 'unpublished';
-  }
-
   get isPublished() {
     return this.props.app.status === 'published';
   }
