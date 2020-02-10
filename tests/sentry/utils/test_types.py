@@ -70,6 +70,12 @@ class OptionsTypesTest(TestCase):
         assert Dict({}) == {}
         assert Dict({"foo": "bar"}) == {"foo": "bar"}
         assert Dict("{foo: bar}") == {"foo": "bar"}
+
+        # these valid yamls are accepted by PyYAML 5.1+
+        # https://github.com/yaml/pyyaml/pull/45
+        assert Dict("{foo:bar}") == {"foo:bar": None}
+        assert Dict("{foo:}") == {"foo": None}
+
         assert Dict() == {}
         with self.assertRaises(InvalidTypeError):
             assert Dict("[]")
@@ -78,8 +84,8 @@ class OptionsTypesTest(TestCase):
         with self.assertRaises(InvalidTypeError):
             assert Dict("")
         with self.assertRaises(InvalidTypeError):
-            # malformed yaml/json
-            assert Dict("{foo:bar}")
+            # malformed yaml (a plain scalar, "b: ar", cannot contain ": ")
+            assert Dict("{foo: b: ar}")
 
     def test_sequence(self):
         assert Sequence(()) == ()
@@ -94,5 +100,5 @@ class OptionsTypesTest(TestCase):
         with self.assertRaises(InvalidTypeError):
             Sequence("")
         with self.assertRaises(InvalidTypeError):
-            # malformed yaml/json
+            # malformed yaml
             Sequence("[1,")

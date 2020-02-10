@@ -116,7 +116,7 @@ class StringType(Type):
 
 
 class DictType(Type):
-    """Coerce a dict out of a json/yaml string"""
+    """Coerce a dict out of a yaml string"""
 
     name = "dictionary"
     expected_types = (dict,)
@@ -133,7 +133,7 @@ class DictType(Type):
 
 
 class SequenceType(Type):
-    """Coerce a tuple out of a json/yaml string or a list"""
+    """Coerce a tuple out of a yaml string or a list"""
 
     name = "sequence"
     default = ()
