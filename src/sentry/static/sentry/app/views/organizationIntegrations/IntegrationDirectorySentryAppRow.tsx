@@ -31,21 +31,18 @@ export default class IntegrationDirectorySentryAppRow extends React.PureComponen
     return this.props.app.status === 'unpublished';
   }
 
+  get isPublished() {
+    return !(this.isInternal || this.isUnpublished);
+  }
+
   renderStatus() {
     const {app} = this.props;
     const status = this.installationStatus;
-    if (this.isInternal || this.isUnpublished) {
-      return (
-        <React.Fragment>
-          <StatusIndicator status={status} />
-          <PublishStatus status={app.status} />
-        </React.Fragment>
-      );
-    }
 
     return (
       <React.Fragment>
         <StatusIndicator status={status} />
+        {!this.isPublished && <PublishStatus status={app.status} />}
       </React.Fragment>
     );
   }
