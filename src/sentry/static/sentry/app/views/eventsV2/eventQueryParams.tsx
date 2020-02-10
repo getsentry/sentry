@@ -81,6 +81,7 @@ export const FIELDS = {
   environment: 'string',
   release: 'string',
   issue: 'string',
+  dist: 'string',
 
   message: 'string',
   location: 'string',

@@ -24,6 +24,7 @@ class Columns(Enum):
     PLATFORM = Column("events.platform", "platform", "platform", "platform.name")
     ENVIRONMENT = Column("events.environment", "environment", "environment", "environment")
     RELEASE = Column("events.tags[sentry:release]", "tags[sentry:release]", "release", "release")
+    DIST = Column("events.tags[sentry:dist]", "tags[sentry:dist]", "dist", "dist")
     TITLE = Column("events.title", "title", "title", "title")
     TYPE = Column("events.type", "type", "type", "event.type")
     TAGS_KEY = Column("events.tags.key", "tags.key", "tags.key", "tags.key")
@@ -156,9 +157,7 @@ class Columns(Enum):
         "stack.stack_level",
     )
     CONTEXTS_KEY = Column("events.contexts.key", "contexts.key", None, "contexts.key")
-    CONTEXTS_VALUE = Column(
-        "events.contexts.value", "contexts.value", None, "contexts.value"
-    )
+    CONTEXTS_VALUE = Column("events.contexts.value", "contexts.value", None, "contexts.value")
     # Transactions specific columns
     TRANSACTION_OP = Column(None, None, "transaction_op", "transaction.op")
     TRANSACTION_DURATION = Column(None, None, "duration", "transaction.duration")
