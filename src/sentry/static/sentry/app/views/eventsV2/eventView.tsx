@@ -707,6 +707,13 @@ class EventView {
     fields.splice(columnIndex, 1);
     newEventView.fields = fields;
 
+    // Ensure there is at least one auto width column
+    // To ensure a well formed table results.
+    const hasAutoIndex = fields.find(field => field.width === COL_WIDTH_UNDEFINED);
+    if (!hasAutoIndex) {
+      newEventView.fields[0].width = COL_WIDTH_UNDEFINED;
+    }
+
     // if the deleted column is one of the sorted columns, we need to remove
     // it from the list of sorts
     const columnToBeDeleted = this.fields[columnIndex];

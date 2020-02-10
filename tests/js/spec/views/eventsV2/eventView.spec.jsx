@@ -1507,6 +1507,34 @@ describe('EventView.withDeletedColumn()', function() {
 
       expect(eventView2).toMatchObject(nextState);
     });
+
+    it('ensures there is at one auto-width column on deletion', function() {
+      const modifiedState = {
+        ...state,
+        fields: [
+          {field: 'id', width: 75},
+          {field: 'title', width: 100},
+          {field: 'project', width: 80},
+          {field: 'environment', width: 99},
+        ],
+      };
+
+      const eventView = new EventView(modifiedState);
+      let updated = eventView.withDeletedColumn(0, meta);
+      let updatedFields = [
+        {field: 'title', width: -1},
+        {field: 'project', width: 80},
+        {field: 'environment', width: 99},
+      ];
+      expect(updated.fields).toEqual(updatedFields);
+
+      updated = updated.withDeletedColumn(0, meta);
+      updatedFields = [
+        {field: 'project', width: -1},
+        {field: 'environment', width: 99},
+      ];
+      expect(updated.fields).toEqual(updatedFields);
+    });
   });
 });
 
