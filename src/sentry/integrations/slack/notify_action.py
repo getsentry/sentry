@@ -118,7 +118,14 @@ class SlackNotifyServiceAction(EventAction):
             resp.raise_for_status()
             resp = resp.json()
             if not resp.get("ok"):
-                self.logger.info("rule.fail.slack_post", extra={"error": resp.get("error")})
+                self.logger.info(
+                    "rule.fail.slack_post",
+                    extra={
+                        "error": resp.get("error"),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                    },
+                )
 
         key = u"slack:{}:{}".format(integration_id, channel)
 
