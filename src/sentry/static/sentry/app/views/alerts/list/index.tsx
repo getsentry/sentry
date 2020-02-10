@@ -2,7 +2,6 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import moment from 'moment';
-import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
