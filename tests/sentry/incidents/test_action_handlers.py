@@ -85,7 +85,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         expected = {
             "link": absolute_uri(
                 reverse(
-                    "sentry-incident",
+                    "sentry-metric-alert",
                     kwargs={
                         "organization_slug": incident.organization.slug,
                         "incident_id": incident.identifier,
@@ -97,6 +97,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                     "sentry-alert-rule",
                     kwargs={
                         "organization_slug": incident.organization.slug,
+                        "project_slug": self.project.slug,
                         "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
                     },
                 )

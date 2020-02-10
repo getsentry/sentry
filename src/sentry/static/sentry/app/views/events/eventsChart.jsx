@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
 import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
@@ -60,12 +61,17 @@ class EventsAreaChart extends React.Component {
       right: 16,
       top: 16,
       selectedMode: false,
-      icon: 'line',
+      icon: 'circle',
+      itemHeight: 8,
+      itemWidth: 8,
+      itemGap: 12,
+      align: 'left',
       textStyle: {
-        fontSize: '11',
+        verticalAlign: 'top',
+        fontSize: 11,
         fontFamily: 'Rubik',
       },
-      data: ['Current Period', 'Previous Period'],
+      data: ['Current', 'Previous'],
     };
 
     return (
@@ -102,6 +108,7 @@ class EventsChart extends React.Component {
     router: PropTypes.object,
     showLegend: PropTypes.bool,
     yAxis: PropTypes.string,
+    onTooltipUpdate: PropTypes.func,
   };
 
   render() {
@@ -117,10 +124,34 @@ class EventsChart extends React.Component {
       environments,
       showLegend,
       yAxis,
+      onTooltipUpdate,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !start && !end;
+
+    let tooltip = null;
+    if (onTooltipUpdate) {
+      tooltip = {
+        formatter(seriesData) {
+          // Releases are the only markline we use right now.
+          if (seriesData.componentType === 'markLine') {
+            onTooltipUpdate({
+              values: [{name: t('Release'), value: seriesData.data.name}],
+              timestamp: seriesData.data.coord[0],
+            });
+
+            return null;
+          }
+          const series = Array.isArray(seriesData) ? seriesData : [seriesData];
+          onTooltipUpdate({
+            values: series.map(item => ({name: item.seriesName, value: item.data[1]})),
+            timestamp: series[0].data[0],
+          });
+          return null;
+        },
+      };
+    }
 
     return (
       <ChartZoom
@@ -148,7 +179,7 @@ class EventsChart extends React.Component {
           >
             {({loading, reloading, errored, timeseriesData, previousTimeseriesData}) => {
               return (
-                <ReleaseSeries utc={utc} api={api} projects={projects}>
+                <ReleaseSeries tooltip={tooltip} utc={utc} api={api} projects={projects}>
                   {({releaseSeries}) => {
                     if (errored) {
                       return (
@@ -173,6 +204,7 @@ class EventsChart extends React.Component {
                           releaseSeries={releaseSeries}
                           timeseriesData={timeseriesData}
                           previousTimeseriesData={previousTimeseriesData}
+                          tooltip={tooltip}
                         />
                       </React.Fragment>
                     );
