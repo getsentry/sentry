@@ -25,8 +25,7 @@ import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarni
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/integrationProviderRow';
 import PluginRow from 'app/views/organizationIntegrations/integrationPluginRow';
-import IntegrationDirectoryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow/integrationDirectoryApplicationRow';
-import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
+import IntegrationDirectorySentryAppRow from 'app/views/organizationIntegrations/IntegrationDirectorySentryAppRow';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -154,6 +153,8 @@ class OrganizationIntegrations extends AsyncComponent<
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
       ['plugins', `/organizations/${orgId}/plugins/configs/`],
+      // ['unPublishedApps', '/sentry-apps/', {query: {status: 'unpublished'}}],
+      // ['internalApps', '/sentry-apps/', {query: {status: 'internal'}}],
     ];
     /**
      * optional app to load for super users
@@ -339,32 +340,16 @@ class OrganizationIntegrations extends AsyncComponent<
   //render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
-    if (app.status === 'internal') {
-      return (
-        <SentryApplicationRow
-          key={`sentry-app-row-${app.slug}`}
-          data-test-id="internal-integration-row"
-          onRemoveApp={() => this.handleRemoveInternalSentryApp(app)}
-          organization={organization}
-          install={this.getAppInstall(app)}
-          app={app}
-          isOnIntegrationPage
-        />
-      );
-    }
-    if (app.status === 'published') {
-      return (
-        <IntegrationDirectoryApplicationRow
-          key={`sentry-app-row-${app.slug}`}
-          data-test-id="integration-row"
-          organization={organization}
-          install={this.getAppInstall(app)}
-          app={app}
-          isOnIntegrationPage
-        />
-      );
-    }
-    return null;
+
+    return (
+      <IntegrationDirectorySentryAppRow
+        key={`sentry-app-row-${app.slug}`}
+        data-test-id="integration-row"
+        organization={organization}
+        install={this.getAppInstall(app)}
+        app={app}
+      />
+    );
   };
 
   renderIntegration = (integration: AppOrProviderOrPlugin) => {
