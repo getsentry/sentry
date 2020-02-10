@@ -38,23 +38,29 @@ export const ChartControls = styled('div')`
   border-top: 1px solid ${p => p.theme.borderLight};
 `;
 
-export const HeaderBox = styled('div')`
+export const ContentBox = styled('div')`
   padding: ${space(2)} ${space(4)};
-  background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(2)};
   margin: 0;
+  background-color: ${p => p.theme.white};
+  flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
-    grid-template-rows: 1fr 30px;
-    grid-template-columns: 65% auto;
-    grid-column-gap: ${space(3)};
+    grid-template-columns: 66% auto;
+    align-content: start;
+    grid-gap: ${space(3)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: auto 325px;
   }
+`;
+
+export const HeaderBox = styled(ContentBox)`
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  grid-row-gap: ${space(1)};
+  background-color: transparent;
+  flex-grow: 0;
 `;
 
 export const HeaderControls = styled('div')`
