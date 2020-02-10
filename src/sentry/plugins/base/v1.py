@@ -61,6 +61,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     author = None
     author_url = None
     resource_links = ()
+    feature_descriptions = []
 
     # Configuration specifics
     conf_key = None

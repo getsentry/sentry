@@ -17,7 +17,7 @@ import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {SectionHeading} from './styles';
 
-import {fetchTagFacets, fetchTotalCount, Tag} from './utils';
+import {fetchTagFacets, Tag} from './utils';
 import EventView, {isAPIPayloadSimilar} from './eventView';
 
 type Props = {
@@ -25,12 +25,14 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   location: Location;
+  totalValues: null | number;
 };
 
 type State = {
   loading: boolean;
   tags: Tag[];
   totalValues: null | number;
+  error: string;
 };
 
 class Tags extends React.Component<Props, State> {
@@ -45,6 +47,7 @@ class Tags extends React.Component<Props, State> {
     loading: true,
     tags: [],
     totalValues: null,
+    error: '',
   };
 
   componentDidMount() {
@@ -66,26 +69,19 @@ class Tags extends React.Component<Props, State> {
 
   fetchData = async () => {
     const {api, organization, eventView, location} = this.props;
+    this.setState({loading: true, error: '', tags: []});
 
-    this.setState({loading: true, tags: [], totalValues: null});
-
-    const facetPromise = fetchTagFacets(
-      api,
-      organization.slug,
-      eventView.getFacetsAPIPayload(location)
-    );
-    const totalValuePromise = fetchTotalCount(
-      api,
-      organization.slug,
-      eventView.getEventsAPIPayload(location)
-    );
-    Promise.all([facetPromise, totalValuePromise])
-      .then(values => {
-        this.setState({loading: false, tags: values[0], totalValues: values[1]});
-      })
-      .catch(err => {
-        Sentry.captureException(err);
-      });
+    try {
+      const tags = await fetchTagFacets(
+        api,
+        organization.slug,
+        eventView.getFacetsAPIPayload(location)
+      );
+      this.setState({loading: false, tags});
+    } catch (err) {
+      Sentry.captureException(err);
+      this.setState({loading: false, error: err});
+    }
   };
 
   onTagClick = (tag: string) => {
@@ -100,8 +96,7 @@ class Tags extends React.Component<Props, State> {
   };
 
   renderTag(tag: Tag) {
-    const {organization, eventView} = this.props;
-    const {totalValues} = this.state;
+    const {organization, eventView, totalValues} = this.props;
 
     const segments: TagSegment[] = tag.topValues.map(segment => {
       const url = eventView.getResultsViewUrlTarget(organization.slug);
@@ -113,13 +108,18 @@ class Tags extends React.Component<Props, State> {
 
       return segment;
     });
-
+    // Ensure we don't show >100% if there's a slight mismatch between the facets
+    // endpoint and the totals endpoint
+    const maxTotalValues =
+      segments.length > 0
+        ? Math.max(Number(totalValues), segments[0].count)
+        : totalValues;
     return (
       <TagDistributionMeter
         key={tag.key}
         title={tag.key}
         segments={segments}
-        totalValues={Number(totalValues)}
+        totalValues={Number(maxTotalValues)}
         renderLoading={() => <StyledPlaceholder height="16px" />}
         onTagClick={this.onTagClick}
       />
@@ -139,15 +139,26 @@ class Tags extends React.Component<Props, State> {
     );
   }
 
+  renderBody = () => {
+    const {loading, error, tags} = this.state;
+    if (loading) {
+      return this.renderPlaceholders();
+    }
+    if (error) {
+      return <EmptyStateWarning small />;
+    }
+    if (tags.length > 0) {
+      return tags.map(tag => this.renderTag(tag));
+    } else {
+      return <EmptyStateWarning small>{t('No tags')}</EmptyStateWarning>;
+    }
+  };
+
   render() {
     return (
       <TagSection>
         <StyledHeading>{t('Event Tag Summary')}</StyledHeading>
-        {this.state.loading && this.renderPlaceholders()}
-        {this.state.tags.length > 0 && this.state.tags.map(tag => this.renderTag(tag))}
-        {!this.state.loading && !this.state.tags.length && (
-          <EmptyStateWarning small>{t('No tags')}</EmptyStateWarning>
-        )}
+        {this.renderBody()}
       </TagSection>
     );
   }

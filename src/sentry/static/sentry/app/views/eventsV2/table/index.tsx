@@ -1,6 +1,5 @@
 import React from 'react';
 import {Location} from 'history';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
@@ -10,7 +9,6 @@ import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
 import Pagination from 'app/components/pagination';
 
-import {DEFAULT_EVENT_VIEW} from '../data';
 import EventView, {isAPIPayloadSimilar} from '../eventView';
 import TableView from './tableView';
 import {TableData} from './types';
@@ -21,6 +19,7 @@ type TableProps = {
   eventView: EventView;
   organization: Organization;
   tags: {[key: string]: Tag};
+  setError: (msg: string) => void;
   title: string;
 };
 
@@ -51,32 +50,18 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   componentDidMount() {
-    if (!this.props.eventView.isValid()) {
-      this.goToAllEvents();
-      return;
-    }
-
     this.fetchData();
   }
 
   componentDidUpdate(prevProps: TableProps) {
-    if (!this.state.isLoading && this.shouldRefetchData(prevProps)) {
+    // Reload data if we aren't already loading, or if we've moved
+    // from an invalid view state to a valid one.
+    if (
+      (!this.state.isLoading && this.shouldRefetchData(prevProps)) ||
+      (prevProps.eventView.isValid() === false && this.props.eventView.isValid())
+    ) {
       this.fetchData();
     }
-    if (!this.props.eventView.isValid()) {
-      this.goToAllEvents();
-      return;
-    }
-  }
-
-  goToAllEvents() {
-    const {location, organization} = this.props;
-    const nextEventView = EventView.fromNewQueryWithLocation(
-      DEFAULT_EVENT_VIEW,
-      location
-    );
-
-    browserHistory.replace(nextEventView.getResultsViewUrlTarget(organization.slug));
   }
 
   shouldRefetchData = (prevProps: TableProps): boolean => {
@@ -87,14 +72,16 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location} = this.props;
-    const url = `/organizations/${organization.slug}/eventsv2/`;
+    const {eventView, organization, location, setError} = this.props;
 
+    if (!eventView.isValid()) {
+      return;
+    }
+    const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
+    const apiPayload = eventView.getEventsAPIPayload(location);
 
     this.setState({isLoading: true, tableFetchID});
-
-    const apiPayload = eventView.getEventsAPIPayload(location);
 
     this.props.api
       .requestPromise(url, {
@@ -126,6 +113,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
           pageLinks: null,
           tableData: null,
         });
+        setError(err.responseJSON.detail);
       });
   };
 

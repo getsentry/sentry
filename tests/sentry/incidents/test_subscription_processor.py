@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 import unittest
-from datetime import timedelta
-from time import time
+from datetime import datetime, timedelta
 from random import randint
 from uuid import uuid4
 
+import pytz
 import six
 from django.utils import timezone
 from exam import fixture, patcher
@@ -109,18 +109,20 @@ class ProcessUpdateTest(TestCase):
 
     def build_subscription_update(self, subscription, time_delta=None, value=None):
         if time_delta is not None:
-            timestamp = int(to_timestamp(timezone.now() + time_delta))
+            timestamp = timezone.now() + time_delta
         else:
-            timestamp = int(time())
+            timestamp = timezone.now()
+        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
 
-        values = {}
+        data = {}
 
         if subscription:
             aggregation_type = query_aggregation_to_snuba[
                 QueryAggregations(subscription.aggregation)
             ]
             value = randint(0, 100) if value is None else value
-            values = {aggregation_type[2]: value}
+            data = {aggregation_type[2]: value}
+        values = {"data": [data]}
         return {
             "subscription_id": subscription.subscription_id if subscription else uuid4().hex,
             "values": values,
@@ -722,7 +724,8 @@ class TestGetAlertRuleStats(TestCase):
         triggers = [AlertRuleTrigger(id=3), AlertRuleTrigger(id=4)]
         client = get_redis_client()
         pipeline = client.pipeline()
-        pipeline.set("{alert_rule:1:project:2}:last_update", 1234)
+        timestamp = datetime.now().replace(tzinfo=pytz.utc, microsecond=0)
+        pipeline.set("{alert_rule:1:project:2}:last_update", int(to_timestamp(timestamp)))
         for key, value in [
             ("{alert_rule:1:project:2}:trigger:3:alert_triggered", 1),
             ("{alert_rule:1:project:2}:trigger:3:resolve_triggered", 2),
@@ -733,7 +736,7 @@ class TestGetAlertRuleStats(TestCase):
         pipeline.execute()
 
         last_update, alert_counts, resolve_counts = get_alert_rule_stats(alert_rule, sub, triggers)
-        assert last_update == 1234
+        assert last_update == timestamp
         assert alert_counts == {3: 1, 4: 3}
         assert resolve_counts == {3: 2, 4: 4}
 
@@ -742,7 +745,8 @@ class TestUpdateAlertRuleStats(TestCase):
     def test(self):
         alert_rule = AlertRule(id=1)
         sub = QuerySubscription(project_id=2)
-        update_alert_rule_stats(alert_rule, sub, 1234, {3: 20, 4: 3}, {3: 10, 4: 15})
+        date = datetime.utcnow().replace(tzinfo=pytz.utc)
+        update_alert_rule_stats(alert_rule, sub, date, {3: 20, 4: 3}, {3: 10, 4: 15})
         client = get_redis_client()
         results = map(
             int,
@@ -757,4 +761,4 @@ class TestUpdateAlertRuleStats(TestCase):
             ),
         )
 
-        assert results == [1234, 20, 10, 3, 15]
+        assert results == [int(to_timestamp(date)), 20, 10, 3, 15]

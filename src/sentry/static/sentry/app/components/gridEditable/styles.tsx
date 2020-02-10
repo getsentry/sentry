@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
 import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 40;
+const GRID_BODY_ROW_BORDER_BOX_HEIGHT = GRID_BODY_ROW_HEIGHT + 1; // add border-bottom height
 export const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
 
 /**
@@ -23,7 +23,6 @@ const Z_INDEX_GRID = 5;
 const Z_INDEX_GRID_RESIZER = 1;
 
 type GridEditableProps = {
-  numColumn?: number;
   isEditable?: boolean;
   isEditing?: boolean;
   isDragging?: boolean;
@@ -108,6 +107,7 @@ export const Grid = styled('table')`
   z-index: ${Z_INDEX_GRID};
   overflow-x: scroll;
 `;
+
 export const GridRow = styled('tr')`
   display: contents;
 
@@ -128,7 +128,7 @@ export const GridHead = styled('thead')`
   display: contents;
 `;
 
-export const GridHeadCell = styled('th')`
+export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   position: relative; /* Used by GridResizer */
@@ -149,7 +149,8 @@ export const GridHeadCell = styled('th')`
   }
 
   &:hover {
-    border-color: ${p => p.theme.borderDark};
+    border-left-color: ${p => (p.isFirst ? 'transparent' : p.theme.borderDark)};
+    border-right-color: ${p => p.theme.borderDark};
   }
 `;
 
@@ -315,10 +316,6 @@ export const GridBodyCellStatus = props => (
     <GridStatusFloat>{props.children}</GridStatusFloat>
   </GridStatusWrapper>
 );
-export const GridStatusErrorAlert = styled(Alert)`
-  width: 100%;
-  margin: ${space(2)};
-`;
 
 /**
  * We have a fat GridResizer and we use the ::after pseudo-element to draw
@@ -333,7 +330,7 @@ export const GridResizer = styled('div')<{dataRows: number; isLast?: boolean}>`
   right: ${p => (p.isLast ? '0px' : '-5px')};
   width: ${p => (p.isLast ? '6px' : '9px')};
 
-  height: ${p => GRID_HEAD_ROW_HEIGHT + p.dataRows * GRID_BODY_ROW_HEIGHT}px;
+  height: ${p => GRID_HEAD_ROW_HEIGHT + p.dataRows * GRID_BODY_ROW_BORDER_BOX_HEIGHT}px;
 
   padding-left: 4px;
   padding-right: ${p => (p.isLast ? '0px' : '4px')};

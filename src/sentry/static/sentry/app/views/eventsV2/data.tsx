@@ -9,6 +9,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import pinIcon from 'app/../images/graph/icon-location-filled.svg';
 import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
+import ShortId from 'app/components/shortId';
 import floatFormat from 'app/utils/floatFormat';
 
 import {Container, NumberContainer, OverflowLink, StyledDateTime} from './styles';
@@ -195,6 +196,7 @@ type SpecialFields = {
   user: SpecialField;
   last_seen: SpecialField;
   'issue.id': SpecialField;
+  issue: SpecialField;
 };
 
 /**
@@ -211,6 +213,19 @@ export const SPECIAL_FIELDS: SpecialFields = {
         <Container>
           <OverflowLink to={target} aria-label={data['issue.id']}>
             {data['issue.id']}
+          </OverflowLink>
+        </Container>
+      );
+    },
+  },
+  issue: {
+    sortField: null,
+    renderFunc: (data, {organization}) => {
+      const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
+      return (
+        <Container>
+          <OverflowLink to={target} aria-label={data['issue.id']}>
+            <ShortId shortId={`${data.issue}`} />
           </OverflowLink>
         </Container>
       );

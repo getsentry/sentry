@@ -7,10 +7,10 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import {
   Organization,
   Integration,
-  Plugin,
   SentryApp,
   IntegrationProvider,
   SentryAppInstallation,
+  PluginWithProjectList,
 } from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {RequestOptions} from 'app/api';
@@ -24,6 +24,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/integrationProviderRow';
+import PluginRow from 'app/views/organizationIntegrations/integrationPluginRow';
 import IntegrationDirectoryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow/integrationDirectoryApplicationRow';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -32,8 +33,9 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 
-type AppOrProvider = SentryApp | IntegrationProvider;
+type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -43,16 +45,25 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 type State = {
   integrations: Integration[];
   newlyInstalledIntegrationId: string;
-  plugins: Plugin[];
+  plugins: PluginWithProjectList[];
   appInstalls: SentryAppInstallation[];
   orgOwnedApps: SentryApp[];
   publishedApps: SentryApp[];
   config: {providers: IntegrationProvider[]};
   extraApp?: SentryApp;
+  searchInput: string;
+  list: AppOrProviderOrPlugin[];
+  displayedList: AppOrProviderOrPlugin[];
 };
 
-function isSentryApp(integration: AppOrProvider): integration is SentryApp {
-  return (integration as SentryApp).uuid !== undefined;
+function isSentryApp(integration: AppOrProviderOrPlugin): integration is SentryApp {
+  return !!(integration as SentryApp).uuid;
+}
+
+function isPlugin(
+  integration: AppOrProviderOrPlugin
+): integration is PluginWithProjectList {
+  return integration.hasOwnProperty('shortName');
 }
 
 class OrganizationIntegrations extends AsyncComponent<
@@ -69,8 +80,49 @@ class OrganizationIntegrations extends AsyncComponent<
     organization: SentryTypes.Organization,
   };
 
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      list: [],
+      displayedList: [],
+    };
+  }
+
   onLoadAllEndpointsSuccess() {
+    const {publishedApps, orgOwnedApps, extraApp, plugins} = this.state;
+    const published = publishedApps || [];
+    // If we have an extra app in state from query parameter, add it as org owned app
+    if (extraApp) {
+      orgOwnedApps.push(extraApp);
+    }
+
+    // we dont want the app to render twice if its the org that created
+    // the published app.
+    const orgOwned = orgOwnedApps.filter(app => {
+      return !published.find(p => p.slug === app.slug);
+    });
+
+    /**
+     * We should have three sections:
+     * 1. Public apps and integrations available to everyone
+     * 2. Unpublished apps available to that org
+     * 3. Internal apps available to that org
+     */
+
+    const combined = ([] as AppOrProviderOrPlugin[])
+      .concat(published)
+      .concat(orgOwned.filter(a => a.status === 'published'))
+      .concat(this.providers)
+      .concat(plugins);
+
+    const list = this.sortIntegrations(combined);
+
+    this.setState({list, displayedList: list}, () => this.trackPageViewed());
+  }
+
+  trackPageViewed() {
     //count the number of installed apps
+
     const {integrations, publishedApps} = this.state;
     const integrationsInstalled = new Set();
     //add installed integrations
@@ -95,14 +147,13 @@ class OrganizationIntegrations extends AsyncComponent<
 
   getEndpoints(): ([string, string, any] | [string, string])[] {
     const {orgId} = this.props.params;
-    const query = {plugins: ['vsts', 'github', 'bitbucket']};
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
-      ['plugins', `/organizations/${orgId}/plugins/`, {query}],
       ['orgOwnedApps', `/organizations/${orgId}/sentry-apps/`],
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
+      ['plugins', `/organizations/${orgId}/plugins/configs/`],
     ];
     /**
      * optional app to load for super users
@@ -195,7 +246,7 @@ class OrganizationIntegrations extends AsyncComponent<
   };
 
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
-  getInstallValue(integration: AppOrProvider) {
+  getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
     if (isSentryApp(integration)) {
       const install = this.getAppInstall(integration);
@@ -203,16 +254,45 @@ class OrganizationIntegrations extends AsyncComponent<
         return install.status === 'pending' ? 1 : 2;
       }
       return 0;
+    } else if (isPlugin(integration)) {
+      return integration.projectList.length > 0 ? 2 : 0;
     }
     return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
-  sortIntegrations(integrations: AppOrProvider[]) {
+  sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
     return integrations
       .sort((a, b) => a.name.localeCompare(b.name))
       .sort((a, b) => this.getInstallValue(b) - this.getInstallValue(a));
   }
 
+  async componentDidUpdate(_, prevState: State) {
+    if (this.state.list.length !== prevState.list.length) {
+      await this.createSearch();
+    }
+  }
+
+  async createSearch() {
+    const {list} = this.state;
+    this.setState({
+      fuzzy: await createFuzzySearch(list || [], {
+        threshold: 0.1,
+        location: 0,
+        distance: 100,
+        keys: ['slug', 'key', 'name', 'id'],
+      }),
+    });
+  }
+
+  onSearchChange = async ({target}) => {
+    this.setState({searchInput: target.value}, () => {
+      if (!target.value) {
+        return this.setState({displayedList: this.state.list});
+      }
+      const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
+      return this.setState({displayedList: result.map(i => i.item)});
+    });
+  };
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     //find the integration installations for that provider
@@ -225,6 +305,33 @@ class OrganizationIntegrations extends AsyncComponent<
         data-test-id="integration-row"
         provider={provider}
         integrations={integrations}
+      />
+    );
+  };
+
+  renderPlugin = (plugin: PluginWithProjectList) => {
+    const legacyIds = [
+      'jira',
+      'bitbucket',
+      'github',
+      'gitlab',
+      'slack',
+      'pagerduty',
+      'clubhouse',
+      'vsts',
+    ];
+    const isLegacy = legacyIds.includes(plugin.id);
+    //hide legacy integrations if we don't have any projects with them
+    if (isLegacy && !plugin.projectList.length) {
+      return null;
+    }
+    return (
+      <PluginRow
+        key={`row-plugin-${plugin.id}`}
+        data-test-id="integration-row"
+        plugin={plugin}
+        isLegacy={isLegacy}
+        organization={this.props.organization}
       />
     );
   };
@@ -260,39 +367,18 @@ class OrganizationIntegrations extends AsyncComponent<
     return null;
   };
 
-  renderIntegration = (integration: AppOrProvider) => {
+  renderIntegration = (integration: AppOrProviderOrPlugin) => {
     if (isSentryApp(integration)) {
       return this.renderSentryApp(integration);
+    } else if (isPlugin(integration)) {
+      return this.renderPlugin(integration);
     }
     return this.renderProvider(integration);
   };
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {reloading, orgOwnedApps, publishedApps, extraApp} = this.state;
-    const published = publishedApps || [];
-    // If we have an extra app in state from query parameter, add it as org owned app
-    if (extraApp) {
-      orgOwnedApps.push(extraApp);
-    }
-
-    // we dont want the app to render twice if its the org that created
-    // the published app.
-    const orgOwned = orgOwnedApps.filter(app => {
-      return !published.find(p => p.slug === app.slug);
-    });
-
-    /**
-     * We should have three sections:
-     * 1. Public apps and integrations available to everyone
-     * 2. Unpublished apps available to that org
-     * 3. Internal apps available to that org
-     */
-
-    const publicApps = published.concat(orgOwned.filter(a => a.status === 'published'));
-    const publicIntegrations = this.sortIntegrations(
-      (publicApps as AppOrProvider[]).concat(this.providers)
-    );
+    const {reloading, displayedList} = this.state;
 
     const title = t('Integrations');
     const tags = [
@@ -314,9 +400,10 @@ class OrganizationIntegrations extends AsyncComponent<
           onInstall={this.onInstall}
         />
         <SearchInput
-          value=""
-          onChange={() => {}}
+          value={this.state.searchInput || ''}
+          onChange={this.onSearchChange}
           placeholder="Find a new integration, or one you already use."
+          width="100%"
         />
         <TagsContainer>
           {tags.map(tag => (
@@ -328,7 +415,7 @@ class OrganizationIntegrations extends AsyncComponent<
             <Heading>{t('Integrations')}</Heading>
             {reloading && <StyledLoadingIndicator mini />}
           </PanelHeader>
-          <PanelBody>{publicIntegrations.map(this.renderIntegration)}</PanelBody>
+          <PanelBody>{displayedList.map(this.renderIntegration)}</PanelBody>
         </Panel>
       </React.Fragment>
     );

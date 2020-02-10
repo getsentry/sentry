@@ -26,7 +26,7 @@
     "experimentalDecorators": true,
 
     "esModuleInterop": true,
-    "jsx": "react",
+    "jsx": "preserve",
     "baseUrl": ".",
     "outDir": "src/sentry/static/sentry/dist",
     "paths": {

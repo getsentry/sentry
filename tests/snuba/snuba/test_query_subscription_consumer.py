@@ -4,7 +4,9 @@ import json
 from copy import deepcopy
 from uuid import uuid4
 
+import pytz
 from confluent_kafka import Producer
+from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.test.utils import override_settings
 from exam import fixture
@@ -32,11 +34,8 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
     def valid_payload(self):
         return {
             "subscription_id": self.subscription_id,
-            "values": {"hello": 50},
-            "timestamp": 1235,
-            "interval": 5,
-            "partition": 50,
-            "offset": 10,
+            "values": {"data": [{"hello": 50}]},
+            "timestamp": "2020-01-01T01:23:45.1234",
         }
 
     @fixture
@@ -96,12 +95,17 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         )
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
         consumer.run()
-        mock_callback.assert_called_once_with(self.valid_payload, sub)
+
+        payload = self.valid_payload
+        payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
+        mock_callback.assert_called_once_with(payload, sub)
 
     def test_shutdown(self):
         self.producer.produce(self.topic, json.dumps(self.valid_wrapper))
         valid_wrapper_2 = deepcopy(self.valid_wrapper)
         valid_wrapper_2["payload"]["values"]["hello"] = 25
+        valid_wrapper_3 = deepcopy(valid_wrapper_2)
+        valid_wrapper_3["payload"]["values"]["hello"] = 5000
         self.producer.produce(self.topic, json.dumps(valid_wrapper_2))
         self.producer.flush()
 
@@ -128,18 +132,23 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         )
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=100)
         consumer.run()
-        mock.assert_has_calls(
-            [call(self.valid_payload, sub), call(valid_wrapper_2["payload"], sub)]
-        )
+        valid_payload = self.valid_payload
+        valid_payload["timestamp"] = parse_date(valid_payload["timestamp"]).replace(tzinfo=pytz.utc)
+        valid_wrapper_2["payload"]["timestamp"] = parse_date(
+            valid_wrapper_2["payload"]["timestamp"]
+        ).replace(tzinfo=pytz.utc)
+        mock.assert_has_calls([call(valid_payload, sub), call(valid_wrapper_2["payload"], sub)])
         # Offset should be committed for the first message, so second run should process
         # the second message again
-        valid_wrapper_3 = deepcopy(valid_wrapper_2)
-        valid_wrapper_3["payload"]["values"]["hello"] = 5000
         self.producer.produce(self.topic, json.dumps(valid_wrapper_3))
         self.producer.flush()
         mock.reset_mock()
         counts[0] = 0
         consumer.run()
+        valid_wrapper_3["payload"]["timestamp"] = parse_date(
+            valid_wrapper_3["payload"]["timestamp"]
+        ).replace(tzinfo=pytz.utc)
+
         mock.assert_has_calls(
             [call(valid_wrapper_2["payload"], sub), call(valid_wrapper_3["payload"], sub)]
         )
