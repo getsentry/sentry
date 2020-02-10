@@ -198,9 +198,6 @@ lint-js:
 	bin/lint --js --parseable
 	@echo ""
 
-publish:
-	python setup.py sdist bdist_wheel upload
-
 
 .PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
 
