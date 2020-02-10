@@ -153,7 +153,6 @@ class PagerDutyInstallationRedirect(PipelineView):
 
         app_id = options.get("pagerduty.app-id")
         setup_url = absolute_uri("/extensions/pagerduty/setup/")
-        setup_url = "https://meredith.ngrok.io/extensions/pagerduty/setup/"
 
         return (
             u"https://%s.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=2"
