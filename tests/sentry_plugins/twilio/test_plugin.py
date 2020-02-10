@@ -10,7 +10,7 @@ class TwilioConfigurationFormTest(TestCase):
         form = TwilioConfigurationForm(
             data={
                 "sms_from": "3305093095",
-                "sms_to": "330-509-3095, (330)-509-3095, +13305093095",
+                "sms_to": "330-509-3095, (330)-509-3095, +13305093095, 4045550144",
                 "auth_token": "foo",
                 "account_sid": "bar",
             }
@@ -21,7 +21,7 @@ class TwilioConfigurationFormTest(TestCase):
             form.clean(),
             {
                 "auth_token": u"foo",
-                "sms_to": u"+13305093095,+13305093095,+13305093095",
+                "sms_to": u"+13305093095,+14045550144",
                 "sms_from": u"+13305093095",
                 "account_sid": u"bar",
             },
