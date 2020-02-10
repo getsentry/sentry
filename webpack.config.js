@@ -347,7 +347,7 @@ let appConfig = {
     },
 
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+    extensions: ['.jsx', '.js', '.json', '.d.ts', '.ts', '.tsx', '.less'],
   },
   output: {
     path: distPath,
