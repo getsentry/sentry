@@ -57,7 +57,7 @@ describe('IncidentsList', function() {
 
     wrapper = await createWrapper();
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain("You don't have any Incidents yet");
+    expect(wrapper.text()).toContain("You don't have any Alerts yet");
   });
 
   it('toggles all/open', async function() {
