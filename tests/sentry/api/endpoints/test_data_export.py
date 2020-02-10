@@ -37,7 +37,6 @@ class DataExportTest(APITestCase):
                 "dateCreated": data_export.date_added,
                 "dateFinished": None,
                 "dateExpired": None,
-                "storageUrl": None,
                 "query": {"type": data["query_type"], "info": data["query_info"]},
                 "status": ExportStatus.Early,
             }
