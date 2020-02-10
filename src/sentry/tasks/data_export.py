@@ -11,7 +11,7 @@ from sentry.constants import ExportQueryType
 from sentry.models import File
 from sentry.tasks.base import instrumented_task
 
-SNUBA_MAX_RESUILTS = 1000
+SNUBA_MAX_RESULTS = 1000
 
 tmp_dir = tempfile.mkdtemp()
 
@@ -97,12 +97,12 @@ def process_issue_by_tag(data_export):
         callbacks = []
         fields = ["value", "times_seen", "last_seen", "first_seen"]
 
-    # Iterate endlessly through the GroupTagValues
     iteration = 0
-    file_details = "{}-{}__{}".format(payload["project_slug"], key, data_export.id)
+    file_details = u"{}-{}__{}".format(payload["project_slug"], key, data_export.id)
     file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, file_details)
     file_path = path.join(tmp_dir, file_name)
 
+    # Iterate through all the GroupTagValues
     while True:
         gtv_list = tagstore.get_group_tag_value_iter(
             project_id=group.project_id,
@@ -110,7 +110,7 @@ def process_issue_by_tag(data_export):
             environment_id=None,
             key=lookup_key,
             callbacks=callbacks,
-            offset=SNUBA_MAX_RESUILTS * iteration,
+            offset=SNUBA_MAX_RESULTS * iteration,
         )
         gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
         if len(gtv_list_raw) == 0:
@@ -123,7 +123,7 @@ def process_issue_by_tag(data_export):
 
 
 def get_file_name(type, custom_string, extension="csv"):
-    file_name = "{}-{}.{}".format(type, custom_string, extension)
+    file_name = u"{}-{}.{}".format(type, custom_string, extension)
     return file_name
 
 
