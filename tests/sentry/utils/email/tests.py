@@ -66,6 +66,28 @@ class MessageBuilderTest(TestCase):
             "text/html",
         )
 
+    def test_inline_css(self):
+        msg = MessageBuilder(
+            subject="Test",
+            body="hello world",
+            html_body="<head><style type='text/css'>h1 { color: red; }</style></head><h1>foobar</h1><h2><b>hello world</b></h2>",
+            headers={"X-Test": "foo"},
+        )
+        msg.send(["foo@example.com"])
+
+        assert len(mail.outbox) == 1
+
+        out = mail.outbox[0]
+        assert out.to == ["foo@example.com"]
+        assert out.subject == "Test"
+        assert out.extra_headers["X-Test"] == "foo"
+        assert out.body == "hello world"
+        assert len(out.alternatives) == 1
+        assert out.alternatives[0] == (
+            '<!DOCTYPE html>\n<html><head></head><body><h1 style="color: red">foobar</h1><h2><b>hello world</b></h2></body></html>',
+            "text/html",
+        )
+
     def test_explicit_reply_to(self):
         msg = MessageBuilder(
             subject="Test",
