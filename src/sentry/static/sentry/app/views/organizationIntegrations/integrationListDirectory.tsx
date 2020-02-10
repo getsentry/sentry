@@ -153,8 +153,6 @@ class OrganizationIntegrations extends AsyncComponent<
       ['publishedApps', '/sentry-apps/', {query: {status: 'published'}}],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
       ['plugins', `/organizations/${orgId}/plugins/configs/`],
-      // ['unPublishedApps', '/sentry-apps/', {query: {status: 'unpublished'}}],
-      // ['internalApps', '/sentry-apps/', {query: {status: 'internal'}}],
     ];
     /**
      * optional app to load for super users

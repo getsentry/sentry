@@ -1,11 +1,8 @@
 import React from 'react';
 import {Link} from 'react-router';
 import capitalize from 'lodash/capitalize';
-import omit from 'lodash/omit';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
-import SentryTypes from 'app/sentryTypes';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -36,12 +33,11 @@ export default class IntegrationDirectorySentryAppRow extends React.PureComponen
 
   renderStatus() {
     const {app} = this.props;
-    const isInternal = this.isInternal;
     const status = this.installationStatus;
     if (this.isInternal || this.isUnpublished) {
       return (
         <React.Fragment>
-          <StatusIndicator status={status} isInternal={isInternal} />
+          <StatusIndicator status={status} />
           <PublishStatus status={app.status} />
         </React.Fragment>
       );
@@ -49,7 +45,7 @@ export default class IntegrationDirectorySentryAppRow extends React.PureComponen
 
     return (
       <React.Fragment>
-        <StatusIndicator status={status} isInternal={isInternal} />
+        <StatusIndicator status={status} />
       </React.Fragment>
     );
   }
@@ -135,15 +131,13 @@ const color = {
   [PENDING]: 'yellowOrange',
 };
 
-type StatusIndicatorProps = {status: string; theme?: any; isInternal: boolean};
+type StatusIndicatorProps = {status: string; theme?: any};
 
 const StatusIndicator = styled(({status, ...props}: StatusIndicatorProps) => {
-  //need to omit isInternal
-  const propsToPass = omit(props, ['isInternal']);
   return (
     <FlexContainer>
       <CircleIndicator size={6} color={theme[color[status]]} />
-      <div {...propsToPass}>{t(`${status}`)}</div>
+      <div {...props}>{t(`${status}`)}</div>
     </FlexContainer>
   );
 })`
