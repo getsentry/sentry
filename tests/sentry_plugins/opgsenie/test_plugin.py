@@ -11,16 +11,6 @@ from sentry.utils import json
 
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
-INVALID_METHOD = (
-    '{"status":"invalid method","message":"You must use HTTP POST to submit your event"}'
-)
-
-SUCCESS = """{
-  "status": "success",
-  "message": "Event processed",
-  "incident_key": "73af7a305bd7012d7c06002500d5d1a6"
-}"""
-
 
 class OpsGeniePluginTest(PluginTestCase):
     @fixture
@@ -42,7 +32,7 @@ class OpsGeniePluginTest(PluginTestCase):
 
     @responses.activate
     def test_simple_notification(self):
-        responses.add("POST", "https://api.opsgenie.com/v2/alerts", body=SUCCESS)
+        responses.add("POST", "https://api.opsgenie.com/v2/alerts")
         self.plugin.set_option("api_key", "abcdef", self.project)
         self.plugin.set_option("alert_url", "https://api.opsgenie.com/v2/alerts", self.project)
         self.plugin.set_option("recipients", "me", self.project)
