@@ -71,7 +71,6 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
             "details": {
                 "Sentry ID": six.text_type(group.id),
                 "Sentry Group": getattr(group, "title", group.message).encode("utf-8"),
-                "Checksum": group.checksum,
                 "Project ID": group.project.slug,
                 "Project Name": group.project.name,
                 "Logger": group.logger,

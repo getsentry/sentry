@@ -76,7 +76,6 @@ class OpsGeniePluginTest(PluginTestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Rules": '["my rule"]',
-                "Checksum": "",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
