@@ -16,6 +16,7 @@ from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry import eventstore
 from sentry.models import Project
+from sentry.models.group import Group
 from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
@@ -95,13 +96,15 @@ boolean_term         = (paren_term / search_term) space? (boolean_operator space
 paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
 search_term          = key_val_term / quoted_raw_search / raw_search
 key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter
-                       / numeric_filter / aggregate_filter / aggregate_date_filter / has_filter / is_filter / basic_filter)
+                       / numeric_filter / aggregate_filter / aggregate_date_filter / has_filter
+                       / is_filter / quoted_basic_filter / basic_filter)
                        space?
 raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
 # standard key:val filter
 basic_filter         = negation? search_key sep search_value
+quoted_basic_filter  = negation? search_key sep quoted_value
 # filter for dates
 time_filter          = search_key sep? operator date_format
 # filter for relative dates
@@ -470,9 +473,18 @@ class SearchVisitor(NodeVisitor):
 
         return node.text == "!"
 
+    def visit_quoted_basic_filter(self, node, children):
+        (negation, search_key, _, search_value) = children
+        operator = "!=" if self.is_negated(negation) else "="
+        search_value = SearchValue(search_value)
+        return self._handle_basic_filter(search_key, operator, search_value)
+
     def visit_basic_filter(self, node, children):
         (negation, search_key, _, search_value) = children
         operator = "!=" if self.is_negated(negation) else "="
+        if not search_value.raw_value:
+            raise InvalidSearchQuery("Empty string after '%s:'" % search_key.name)
+
         return self._handle_basic_filter(search_key, operator, search_value)
 
     def _handle_basic_filter(self, search_key, operator, search_value):
@@ -504,7 +516,7 @@ class SearchVisitor(NodeVisitor):
         return SearchFilter(SearchKey(u"tags[%s]" % (search_key.name)), operator, search_value)
 
     def visit_is_filter(self, node, children):
-        raise InvalidSearchQuery('"is" queries are not supported on this search')
+        raise InvalidSearchQuery('"is:" queries are only supported in issue search.')
 
     def visit_search_key(self, node, children):
         key = children[0]
@@ -776,8 +788,20 @@ def get_filter(query=None, params=None):
                     projects = get_projects(params)
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
-            elif name == "issue.id":
+            elif name == "issue.id" and term.value.value != "":
+                # A blank term value means that this is a has filter
                 kwargs["group_ids"].extend(to_list(term.value.value))
+            elif name == "issue" and term.value.value != "":
+                if params and "organization_id" in params:
+                    try:
+                        group = Group.objects.by_qualified_short_id(
+                            params["organization_id"], term.value.value
+                        )
+                        kwargs["group_ids"].extend(to_list(group.id))
+                    except Exception:
+                        raise InvalidSearchQuery(
+                            u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
+                        )
             elif name in FIELD_ALIASES:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
@@ -816,6 +840,7 @@ FIELD_ALIASES = {
     "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
     "latest_event": {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]},
     "project": {"fields": ["project.id"]},
+    "issue": {"fields": ["issue.id"]},
     "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
     # Long term these will become more complex functions but these are
     # field aliases.

@@ -195,13 +195,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
         </div>
       </SettingsPageHeading>
     </StyledSettingsPageHeading>
-    <PermissionAlert
-      access={
-        Array [
-          "project:write",
-        ]
-      }
-    >
+    <PermissionAlert>
       <WithOrganizationMockWrapper
         access={
           Array [
@@ -557,13 +551,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
         </div>
       </SettingsPageHeading>
     </StyledSettingsPageHeading>
-    <PermissionAlert
-      access={
-        Array [
-          "project:write",
-        ]
-      }
-    >
+    <PermissionAlert>
       <WithOrganizationMockWrapper
         access={
           Array [
@@ -919,13 +907,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
         </div>
       </SettingsPageHeading>
     </StyledSettingsPageHeading>
-    <PermissionAlert
-      access={
-        Array [
-          "project:write",
-        ]
-      }
-    >
+    <PermissionAlert>
       <WithOrganizationMockWrapper
         access={
           Array [

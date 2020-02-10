@@ -5,15 +5,18 @@ import ReactDOM from 'react-dom';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 
-type Props = {
-  value: string;
+type DefaultProps = {
   successMessage: string;
   errorMessage: string;
-  hideMessages: string;
+  hideMessages: boolean;
+};
+
+type Props = {
+  value: string;
   hideUnsupported?: boolean;
   onSuccess?: () => void;
   onError?: () => void;
-};
+} & DefaultProps;
 
 class Clipboard extends React.Component<Props> {
   static propTypes = {
@@ -30,7 +33,7 @@ class Clipboard extends React.Component<Props> {
     onError: PropTypes.func,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     hideMessages: false,
     successMessage: 'Copied to clipboard',
     errorMessage: 'Error copying to clipboard',

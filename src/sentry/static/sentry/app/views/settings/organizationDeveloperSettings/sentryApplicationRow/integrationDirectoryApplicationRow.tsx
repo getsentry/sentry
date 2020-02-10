@@ -91,7 +91,7 @@ export default class SentryApplicationRow extends React.PureComponent<Props> {
                 </SentryAppLink>
               ) : (
                 <SentryAppLink
-                  to={`/settings/${organization.slug}/sentry-apps/${app.slug}`}
+                  to={`/settings/${organization.slug}/sentry-apps/${app.slug}/`}
                 >
                   {app.name}
                 </SentryAppLink>

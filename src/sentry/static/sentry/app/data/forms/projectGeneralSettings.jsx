@@ -350,7 +350,7 @@ export const fields = {
     placeholder: t('Paste a JSON configuration here.'),
     multiline: true,
     autosize: true,
-    maxRows: 10,
+    maxRows: 20,
     help: tct(
       'Advanced JSON-based configuration for datascrubbing. Applied in addition to the settings above. [learn_more:Learn more]',
       {
@@ -359,6 +359,9 @@ export const fields = {
     ),
     visible: ({features}) => features.has('datascrubbers-v2'),
     validate: ({id, form}) => {
+      if (form[id] === '') {
+        return [];
+      }
       try {
         JSON.parse(form[id]);
       } catch (e) {

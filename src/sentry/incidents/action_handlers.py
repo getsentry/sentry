@@ -93,7 +93,7 @@ class EmailActionHandler(ActionHandler):
         return {
             "link": absolute_uri(
                 reverse(
-                    "sentry-incident",
+                    "sentry-metric-alert",
                     kwargs={
                         "organization_slug": self.incident.organization.slug,
                         "incident_id": self.incident.identifier,
@@ -105,6 +105,7 @@ class EmailActionHandler(ActionHandler):
                     "sentry-alert-rule",
                     kwargs={
                         "organization_slug": self.incident.organization.slug,
+                        "project_slug": self.project.slug,
                         "alert_rule_id": self.action.alert_rule_trigger.alert_rule_id,
                     },
                 )

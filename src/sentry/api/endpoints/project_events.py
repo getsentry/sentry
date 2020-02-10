@@ -50,11 +50,8 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
         full = request.GET.get("full", False)
 
-        cols = None if full else eventstore.full_columns
-
         data_fn = partial(
             eventstore.get_events,
-            additional_columns=cols,
             filter=eventstore.Filter(conditions=conditions, project_ids=[project.id]),
             referrer="api.project-events",
         )

@@ -94,14 +94,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         snuba_filter = get_filter(request.GET.get("query", None), params)
         snuba_filter.conditions.append(["event.type", "!=", "transaction"])
 
-        snuba_cols = None if full else eventstore.full_columns
-
-        data_fn = partial(
-            eventstore.get_events,
-            additional_columns=snuba_cols,
-            referrer="api.group-events",
-            filter=snuba_filter,
-        )
+        data_fn = partial(eventstore.get_events, referrer="api.group-events", filter=snuba_filter)
 
         serializer = EventSerializer() if full else SimpleEventSerializer()
         return self.paginate(

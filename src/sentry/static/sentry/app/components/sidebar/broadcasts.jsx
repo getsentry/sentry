@@ -3,13 +3,13 @@ import React from 'react';
 
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
+import {IconBroadcast} from 'app/icons/iconBroadcast';
 import withApi from 'app/utils/withApi';
 
 const MARK_SEEN_DELAY = 1000;
@@ -109,7 +109,7 @@ class Broadcasts extends React.Component {
       return;
     }
 
-    markBroadcastsAsSeen(this.props.api, unseenBroadcastIds).then(data => {
+    markBroadcastsAsSeen(this.props.api, unseenBroadcastIds).then(() => {
       this.setState(state => ({
         broadcasts: state.broadcasts.map(item => {
           item.hasSeen = true;
@@ -139,7 +139,7 @@ class Broadcasts extends React.Component {
           collapsed={collapsed}
           active={currentPanel === 'broadcasts'}
           badge={unseenPosts.length}
-          icon={<InlineSvg src="icon-broadcast" size="22px" />}
+          icon={<IconBroadcast size="md" />}
           label={t("What's new")}
           onClick={this.handleShowPanel}
           id="broadcasts"

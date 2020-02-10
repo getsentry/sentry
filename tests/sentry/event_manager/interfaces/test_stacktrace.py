@@ -5,7 +5,6 @@ from __future__ import absolute_import
 
 import pytest
 from sentry.utils.compat import mock
-from django.conf import settings
 
 from sentry import eventstore
 from sentry.interfaces.stacktrace import get_context, is_url
@@ -93,22 +92,6 @@ def test_ignores_results_with_empty_path(make_stacktrace_snapshot):
 
 def test_serialize_returns_frames(make_stacktrace_snapshot):
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "foo.py"}]))
-
-
-def test_frame_hard_limit(make_stacktrace_snapshot):
-    hard_limit = settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT
-    make_stacktrace_snapshot(
-        {
-            "frames": [
-                {
-                    "filename": "Application.java",
-                    "function": "main",
-                    "lineno": i,  # linenos from 1 to the hard limit + 1
-                }
-                for i in range(1, hard_limit + 2)
-            ]
-        }
-    )
 
 
 @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_stacktrace", mock.Mock(return_value="foo"))

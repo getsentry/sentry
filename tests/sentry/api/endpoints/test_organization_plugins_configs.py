@@ -7,9 +7,11 @@ from sentry.testutils import APITestCase
 
 class OrganizationPluginsTest(APITestCase):
     def setUp(self):
-        self.projectA = self.create_project()
+        self.projectA = self.create_project(slug="proj_a")
         self.organization = self.projectA.organization
-        self.projectB = self.create_project(organization=self.organization)
+        self.projectB = self.create_project(
+            slug="proj_b", organization=self.organization, platform="react"
+        )
 
         self.url = reverse(
             "sentry-api-0-organization-plugins-configs",
@@ -44,6 +46,7 @@ class OrganizationPluginsTest(APITestCase):
                 "projectName": self.projectA.name,
                 "enabled": False,
                 "configured": True,
+                "projectPlatform": None,
             }
         ]
 
@@ -58,6 +61,7 @@ class OrganizationPluginsTest(APITestCase):
                 "projectName": self.projectA.name,
                 "enabled": True,
                 "configured": True,
+                "projectPlatform": None,
             }
         ]
 
@@ -72,6 +76,7 @@ class OrganizationPluginsTest(APITestCase):
             "projectName": self.projectA.name,
             "enabled": False,
             "configured": True,
+            "projectPlatform": None,
         }
         assert filter(lambda x: x["projectId"] == self.projectB.id, projectList)[0] == {
             "projectId": self.projectB.id,
@@ -79,6 +84,7 @@ class OrganizationPluginsTest(APITestCase):
             "projectName": self.projectB.name,
             "enabled": False,
             "configured": True,
+            "projectPlatform": "react",
         }
 
     def test_query_parameter(self):
@@ -92,3 +98,16 @@ class OrganizationPluginsTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 404
         assert response.data["detail"] == "Plugin bad_plugin not found"
+
+    def test_sort_by_slug(self):
+        another = self.create_project(slug="another")
+        plugins.get("trello").set_option("key", "some_value", self.projectA)
+        plugins.get("trello").set_option("key", "some_value", self.projectB)
+        plugins.get("trello").set_option("key", "some_value", another)
+        url = self.url + "?plugins=trello"
+        response = self.client.get(url)
+        assert map(lambda x: x["projectSlug"], response.data[0]["projectList"]) == [
+            "another",
+            "proj_a",
+            "proj_b",
+        ]

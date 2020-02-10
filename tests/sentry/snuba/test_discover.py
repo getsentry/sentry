@@ -1166,11 +1166,16 @@ class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
         assert result == [["issue.id", "=", event.group_id]]
 
 
+def format_project_event(project_slug, event_id):
+    return "{}:{}".format(project_slug, event_id)
+
+
 class GetPaginationIdsTest(SnubaTestCase, TestCase):
     def setUp(self):
         super(GetPaginationIdsTest, self).setUp()
 
         self.project = self.create_project()
+        self.project_2 = self.create_project()
         self.min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1)
 
@@ -1207,6 +1212,17 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             },
             project_id=self.project.id,
         )
+        self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "message": "very bad",
+                "type": "default",
+                "platform": "python",
+                "timestamp": iso_format(before_now(minutes=2, seconds=30)),
+                "tags": {"foo": "1"},
+            },
+            project_id=self.project_2.id,
+        )
         self.event = eventstore.get_event_by_id(self.project.id, "b" * 32)
 
     def test_no_related_events(self):
@@ -1214,6 +1230,7 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             self.event,
             "foo:bar",
             {"project_id": [self.project.id], "start": self.min_ago, "end": self.day_ago},
+            self.organization,
         )
         assert result.previous is None
         assert result.next is None
@@ -1226,6 +1243,7 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
                 self.event,
                 "foo:(11",
                 {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+                self.organization,
             )
 
     def test_matching_conditions(self):
@@ -1233,11 +1251,12 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             self.event,
             "foo:1",
             {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+            self.organization,
         )
-        assert result.previous == "a" * 32
-        assert result.next == "c" * 32
-        assert result.oldest == "a" * 32
-        assert result.latest == "c" * 32
+        assert result.previous == format_project_event(self.project.slug, "a" * 32)
+        assert result.next == format_project_event(self.project.slug, "c" * 32)
+        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
+        assert result.latest == format_project_event(self.project.slug, "c" * 32)
 
     def test_reference_event_matching(self):
         # Create an event that won't match the reference
@@ -1259,12 +1278,13 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             self.event,
             "foo:1",
             {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+            self.organization,
             reference_event=reference,
         )
-        assert result.previous == "a" * 32
-        assert result.next == "c" * 32
-        assert result.oldest == "a" * 32
-        assert result.latest == "c" * 32
+        assert result.previous == format_project_event(self.project.slug, "a" * 32)
+        assert result.next == format_project_event(self.project.slug, "c" * 32)
+        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
+        assert result.latest == format_project_event(self.project.slug, "c" * 32)
 
     def test_date_params_included(self):
         # Create an event that is outside the date range
@@ -1283,11 +1303,29 @@ class GetPaginationIdsTest(SnubaTestCase, TestCase):
             self.event,
             "foo:1",
             {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+            self.organization,
         )
-        assert result.previous == "a" * 32
-        assert result.next == "c" * 32
-        assert result.oldest == "a" * 32
-        assert result.latest == "c" * 32
+        assert result.previous == format_project_event(self.project.slug, "a" * 32)
+        assert result.next == format_project_event(self.project.slug, "c" * 32)
+        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
+        assert result.latest == format_project_event(self.project.slug, "c" * 32)
+
+    def test_multi_projects(self):
+        result = discover.get_pagination_ids(
+            self.event,
+            "foo:1",
+            {
+                "project_id": [self.project.id, self.project_2.id],
+                "end": self.min_ago,
+                "start": self.day_ago,
+            },
+            self.organization,
+        )
+
+        assert result.previous == format_project_event(self.project.slug, "a" * 32)
+        assert result.next == format_project_event(self.project_2.slug, "e" * 32)
+        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
+        assert result.latest == format_project_event(self.project.slug, "c" * 32)
 
 
 class GetFacetsTest(SnubaTestCase, TestCase):

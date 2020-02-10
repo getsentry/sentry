@@ -16,7 +16,10 @@ if [ "$1" = 'sentry' ]; then
 	set -- tini -- "$@"
 	if [ "$(id -u)" = '0' ]; then
 		mkdir -p /data/files
-		find /data ! -user sentry -exec chown sentry {} \;
+		sentry_uid=$(id -u sentry)
+		if [ "$(stat -c %u /data)" != "$sentry_uid" ] || [ "$(stat -c %u /data/files)" != "$sentry_uid" ]; then
+			find /data ! -user sentry -exec chown sentry {} \;
+		fi
 		set -- gosu sentry "$@"
 	fi
 fi

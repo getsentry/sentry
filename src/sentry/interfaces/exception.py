@@ -5,11 +5,9 @@ __all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
 import re
 import six
 
-from django.conf import settings
-
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
-from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
+from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import get_path
 
 _type_value_re = re.compile("^(\w+):(.*)$")
@@ -222,16 +220,14 @@ class SingleException(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data, slim_frames=True):
+    def to_python(cls, data):
         if get_path(data, "stacktrace", "frames", filter=True):
-            stacktrace = Stacktrace.to_python(data["stacktrace"], slim_frames=slim_frames)
+            stacktrace = Stacktrace.to_python(data["stacktrace"])
         else:
             stacktrace = None
 
         if get_path(data, "raw_stacktrace", "frames", filter=True):
-            raw_stacktrace = Stacktrace.to_python(
-                data["raw_stacktrace"], slim_frames=slim_frames, raw=True
-            )
+            raw_stacktrace = Stacktrace.to_python(data["raw_stacktrace"], raw=True)
         else:
             raw_stacktrace = None
 
@@ -391,8 +387,7 @@ class Exception(Interface):
     def to_python(cls, data):
         return cls(
             values=[
-                v and SingleException.to_python(v, slim_frames=False)
-                for v in get_path(data, "values", default=[])
+                v and SingleException.to_python(v) for v in get_path(data, "values", default=[])
             ],
             exc_omitted=data.get("exc_omitted"),
         )
@@ -465,19 +460,3 @@ class Exception(Interface):
         if mechanism:
             for tag in mechanism.iter_tags():
                 yield tag
-
-
-def slim_exception_data(instance, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
-    """
-    Removes various excess metadata from middle frames which go beyond
-    ``frame_allowance``.
-    """
-    # TODO(dcramer): it probably makes sense to prioritize a certain exception
-    # rather than distributing allowance among all exceptions
-    frames = []
-    for exception in instance.values:
-        if exception is None or not exception.stacktrace:
-            continue
-        frames.extend(exception.stacktrace.frames)
-
-    slim_frame_data(frames, frame_allowance)

@@ -100,6 +100,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 : []
             }
             disabled={this.state.environments === null}
+            isClearable
           />
           <FormField
             name="query"
@@ -131,6 +132,8 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             choices={Object.entries(TIME_WINDOW_MAP)}
             required
             disabled={disabled}
+            getValue={value => Number(value)}
+            setValue={value => `${value}`}
           />
         </PanelBody>
       </Panel>
