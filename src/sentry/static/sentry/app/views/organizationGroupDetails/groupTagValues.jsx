@@ -22,7 +22,9 @@ class GroupTagValues extends React.Component {
   static propTypes = {
     api: PropTypes.object,
     group: SentryTypes.Group.isRequired,
-    query: PropTypes.object,
+    location: PropTypes.shape({
+      query: PropTypes.object,
+    }),
   };
 
   state = {
@@ -33,19 +35,22 @@ class GroupTagValues extends React.Component {
     pageLinks: '',
   };
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   }
 
   componentDidUpdate(prevProps) {
-    const queryHasChanged = !isEqual(prevProps.query, this.props.query);
+    const queryHasChanged = !isEqual(prevProps.location.query, this.props.location.query);
     if (queryHasChanged || prevProps.params.tagKey !== this.props.params.tagKey) {
       this.fetchData();
     }
   }
 
   fetchData = async () => {
-    const {params, query} = this.props;
+    const {
+      params,
+      location: {query},
+    } = this.props;
     this.setState({
       loading: true,
       error: false,
