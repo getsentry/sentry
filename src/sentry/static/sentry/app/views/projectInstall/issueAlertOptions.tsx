@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {ReactElement} from 'react';
 
 import SelectControl from 'app/components/forms/selectControl';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
@@ -40,10 +40,10 @@ type Props = AsyncComponent['props'] & {
 
 type State = AsyncComponent['state'] & {
   conditions: any;
-  intervalChoices: [string, string][];
-  placeholder: string;
+  intervalChoices: [string, string][] | undefined;
+  placeholder: string | undefined;
   threshold: number | undefined;
-  interval: string;
+  interval: string | undefined;
   alertSetting: any;
   metric: any;
 };
@@ -52,7 +52,7 @@ type RequestDataFragment = {
   default_rules: boolean;
   shouldCreateCustomRule: boolean;
   name: string;
-  conditions: {interval: string; id: string; value: number | undefined}[];
+  conditions: {interval: string; id: string; value: number}[] | undefined;
   actions: {id: string}[];
   actionMatch: string;
   frequency: number;
@@ -61,8 +61,8 @@ type RequestDataFragment = {
 function getConditionFrom(
   interval: string,
   metricValue: MetricValues,
-  threshold: number | undefined
-): {interval: string; id: string; value: number | undefined} {
+  threshold: number
+): {interval: string; id: string; value: number} {
   let condition;
   switch (metricValue) {
     case MetricValues.ERRORS:
@@ -81,6 +81,23 @@ function getConditionFrom(
   };
 }
 
+function unpackConditions(conditions: any[]) {
+  const equalityReducer = (acc, curr) => {
+    if (!acc || !curr || !isEqual(acc, curr)) {
+      return null;
+    }
+    return acc;
+  };
+
+  const intervalChoices = conditions
+    .map(condition => condition.formFields?.interval?.choices)
+    .reduce(equalityReducer);
+  const placeholder = conditions
+    .map(condition => condition.formFields?.value?.placeholder)
+    .reduce(equalityReducer);
+  return {intervalChoices, placeholder, interval: intervalChoices?.[0]?.[0]};
+}
+
 class IssueAlertOptions extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
@@ -95,8 +112,10 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     };
   }
 
-  getIssueAlertsChoices(hasProperlyLoadedConditions: boolean): any[][] {
-    const options: any = [
+  getIssueAlertsChoices(
+    hasProperlyLoadedConditions: boolean
+  ): [Actions, string | ReactElement][] {
+    const options: [Actions, string | ReactElement][] = [
       [Actions.ALERT_ON_EVERY_ISSUE, 'Alert me on every new issue'],
       [Actions.CREATE_ALERT_LATER, "I'll create my own alerts later"],
     ];
@@ -161,9 +180,16 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       default_rules,
       shouldCreateCustomRule,
       name: 'Send a notification for new issues',
-      conditions: [
-        getConditionFrom(this.state.interval, this.state.metric, this.state.threshold),
-      ],
+      conditions:
+        this.state.metric && this.state.interval && this.state.threshold
+          ? [
+              getConditionFrom(
+                this.state.interval,
+                this.state.metric,
+                this.state.threshold
+              ),
+            ]
+          : undefined,
       actions: [{id: 'sentry.rules.actions.notify_event.NotifyEventAction'}],
       actionMatch: 'all',
       frequency: 5,
@@ -200,26 +226,13 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       return;
     }
 
-    const equalityReducer = (acc, curr) => {
-      if (!acc || !curr || !isEqual(acc, curr)) {
-        return null;
-      }
-      return acc;
-    };
-
-    const intervalChoices = conditions
-      .map(condition => condition.formFields?.interval?.choices)
-      .reduce(equalityReducer);
-    const placeholder = conditions
-      .map(condition => condition.formFields?.value?.placeholder)
-      .reduce(equalityReducer);
-
-    if (!intervalChoices || !placeholder) {
+    const {intervalChoices, placeholder, interval} = unpackConditions(conditions);
+    if (!intervalChoices || !placeholder || !interval) {
       Sentry.withScope(scope => {
         scope.setExtra('props', this.props);
         scope.setExtra('state', this.state);
         Sentry.captureMessage(
-          'Interval choices or value placeholder sent from API endpoint is inconsistent'
+          'Interval choices or value placeholder sent from API endpoint is inconsistent or empty'
         );
       });
       return;
@@ -229,19 +242,11 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       conditions,
       intervalChoices,
       placeholder,
-      interval: intervalChoices[0]?.[0],
+      interval,
     });
   }
-  renderBody():
-    | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-    | string
-    | number
-    | {}
-    | React.ReactNodeArray
-    | React.ReactPortal
-    | boolean
-    | null
-    | undefined {
+
+  renderBody(): React.ReactElement {
     const issueAlertOptionsChoices = this.getIssueAlertsChoices(!!this.state.conditions);
     return (
       <React.Fragment>
@@ -249,9 +254,9 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           {t('Create an alert')}
         </PageHeadingWithTopMargins>
         <RadioGroupWithPadding
-          // @ts-ignore
+          //@ts-ignore
           choices={issueAlertOptionsChoices}
-          label="Options for creating an alert"
+          label={t('Options for creating an alert')}
           onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
           value={this.state.alertSetting}
         />

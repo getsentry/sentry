@@ -130,7 +130,7 @@ class CreateProject extends React.Component {
           <Button
             data-test-id="create-project"
             priority="primary"
-            disabled={canSubmitForm}
+            disabled={!canSubmitForm}
           >
             {t('Create Project')}
           </Button>
@@ -149,12 +149,12 @@ class CreateProject extends React.Component {
 
   canSubmitForm(inFlight, team, projectName, dataFragment, hasIssueAlertOptionsEnabled) {
     return (
-      inFlight ||
-      !team ||
-      projectName === '' ||
-      (hasIssueAlertOptionsEnabled &&
-        dataFragment?.shouldCreateCustomRule === true &&
-        dataFragment?.conditions?.some?.(condition => !condition.value))
+      !inFlight &&
+      team &&
+      projectName !== '' &&
+      (!hasIssueAlertOptionsEnabled ||
+        !dataFragment?.shouldCreateCustomRule ||
+        dataFragment?.conditions?.every?.(condition => condition.value))
     );
   }
 
@@ -216,7 +216,6 @@ class CreateProject extends React.Component {
     if (!projectData) {
       return;
     }
-    // TODO: Use org flag
 
     if (shouldCreateCustomRule) {
       const ruleCreationResult = await api
