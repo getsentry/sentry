@@ -9,7 +9,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconWarning} from 'app/icons';
+import {IconEdit, IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
 import {
@@ -37,7 +37,7 @@ import {
 import GridHeadCell from './gridHeadCell';
 import GridModalEditColumn from './gridModalEditColumn';
 
-import {COL_WIDTH_UNDEFINED, ColResizeMetadata} from './utils';
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED, ColResizeMetadata} from './utils';
 
 type GridEditableProps<DataRow, ColumnKey> = {
   onToggleEdit?: (nextValue: boolean) => void;
@@ -288,7 +288,7 @@ class GridEditable<
     const nextColumnOrder = [...this.props.columnOrder];
     nextColumnOrder[metadata.columnIndex] = {
       ...nextColumnOrder[metadata.columnIndex],
-      width: metadata.columnWidth + widthChange,
+      width: Math.max(metadata.columnWidth + widthChange, 0),
     };
 
     this.setGridTemplateColumns(nextColumnOrder);
@@ -312,10 +312,13 @@ class GridEditable<
     const prependColumns = this.props.grid.prependColumnWidths || [];
     const prepend = prependColumns.join(' ');
     const widths = columnOrder.map(item => {
-      if (item.width !== COL_WIDTH_UNDEFINED) {
+      if (item.width === COL_WIDTH_UNDEFINED) {
+        return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
+      }
+      if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
         return `${item.width}px`;
       }
-      return 'minmax(50px, auto)';
+      return `${COL_WIDTH_MINIMUM}px`;
     });
 
     grid.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
@@ -390,7 +393,7 @@ class GridEditable<
           onClick={onClick}
           data-test-id="grid-edit-enable"
         >
-          <InlineSvg src="icon-edit-pencil" />
+          <IconEdit size="xs" />
           {t('Edit Columns')}
         </HeaderButton>
       );
@@ -425,7 +428,7 @@ class GridEditable<
         columnOrder.map((column, i) => (
           <GridHeadCell
             openModalAddColumnAt={this.openModalAddColumnAt}
-            isLast={columnOrder.length - 1 === i}
+            isFirst={i === 0}
             key={`${i}.${column.key}`}
             isColumnDragging={this.props.isColumnDragging}
             isEditing={isEditing}

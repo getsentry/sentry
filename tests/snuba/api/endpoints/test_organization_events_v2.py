@@ -953,3 +953,97 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["trace"] == "string"
         assert response.data["data"][0]["trace"] == data["contexts"]["trace"]["trace_id"]
+
+    def test_issue_in_columns(self):
+        self.login_as(user=self.user)
+
+        project1 = self.create_project()
+        project2 = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "fingerprint": ["group_1"],
+            },
+            project_id=project1.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "fingerprint": ["group_1"],
+            },
+            project_id=project2.id,
+        )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url, format="json", data={"field": ["id", "issue"], "orderby": ["id"]}
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["id"] == event1.event_id
+        assert data[0]["issue.id"] == event1.group_id
+        assert data[0]["issue"] == event1.group.qualified_short_id
+        assert data[1]["id"] == event2.event_id
+        assert data[1]["issue.id"] == event2.group_id
+        assert data[1]["issue"] == event2.group.qualified_short_id
+
+    def test_issue_in_search_and_columns(self):
+        self.login_as(user=self.user)
+
+        project1 = self.create_project()
+        project2 = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "fingerprint": ["group_1"],
+            },
+            project_id=project1.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "fingerprint": ["group_1"],
+            },
+            project_id=project2.id,
+        )
+
+        tests = [
+            ("issue", "issue:%s" % event1.group.qualified_short_id),
+            ("issue.id", "issue:%s" % event1.group.qualified_short_id),
+            ("issue", "issue.id:%s" % event1.group_id),
+            ("issue.id", "issue.id:%s" % event1.group_id),
+        ]
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            for testdata in tests:
+                response = self.client.get(
+                    self.url, format="json", data={"field": [testdata[0]], "query": testdata[1]}
+                )
+
+                assert response.status_code == 200, response.content
+                data = response.data["data"]
+                assert len(data) == 1
+                assert data[0]["id"] == event1.event_id
+                assert data[0]["issue.id"] == event1.group_id
+                if testdata[0] == "issue":
+                    assert data[0]["issue"] == event1.group.qualified_short_id
+                else:
+                    assert data[0].get("issue", None) is None

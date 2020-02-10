@@ -14,8 +14,8 @@ type ThreadInfo = {
   filename?: string;
 };
 
-function filterThreadInfo(thread: Thread, event: Event, simplified: boolean): ThreadInfo {
-  const stacktrace = getThreadStacktrace(thread, event, simplified);
+function filterThreadInfo(thread: Thread, event: Event): ThreadInfo {
+  const stacktrace = getThreadStacktrace(thread, event, false);
   const threadInfo: ThreadInfo = {
     label: NOT_FOUND_FRAME,
   };

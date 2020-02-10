@@ -1456,6 +1456,11 @@
   resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-0.4.0.tgz#9b8e868d8ecee8313dc32bdef1478cd06ea7b7fd"
   integrity sha512-wnXqyFZrOlnsnI8qcY6T2wlEih5zWXwPMcmh6/F9iyyhG/NmcK8zJ67aOZrkT1X7MYN6kssUm8Gfa3DR7aT0Zg==
 
+"@sentry/rrweb@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry/rrweb/-/rrweb-0.1.0.tgz#935258d214dd5482d925c96db8d4e60279154ec7"
+  integrity sha512-uOHGJ7rR8gm4LfSdJ2Oz5vlu4d74VdEj1SaRktoB8tTUOFBXWsPgCkEsUQ7hj0KufMrWGmerVsV3hg9me3gKMQ==
+
 "@sentry/types@5.12.0":
   version "5.12.0"
   resolved "https://registry.yarnpkg.com/@sentry/types/-/types-5.12.0.tgz#5367e53c74261beea01502e3f7b6f3d822682a31"
@@ -2495,6 +2500,11 @@
   version "0.4.1"
   resolved "https://registry.yarnpkg.com/@types/reflux/-/reflux-0.4.1.tgz#1f91d5ede2172c535107e9f79755bda70234f9c1"
   integrity sha1-H5HV7eIXLFNRB+n3l1W9pwI0+cE=
+
+"@types/smoothscroll-polyfill@^0.3.0":
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/@types/smoothscroll-polyfill/-/smoothscroll-polyfill-0.3.1.tgz#77fb3a6e116bdab4a5959122e3b8e201224dcd49"
+  integrity sha512-+KkHw4y+EyeCtVXET7woHUhIbfWFCflc0E0mZnSV+ZdjPQeHt/9KPEuT7gSW/kFQ8O3EG30PLO++YhChDt8+Ag==
 
 "@types/source-list-map@*":
   version "0.1.2"
@@ -9839,6 +9849,11 @@ mitt@1.1.2:
   resolved "https://registry.yarnpkg.com/mitt/-/mitt-1.1.2.tgz#380e61480d6a615b660f07abb60d51e0a4e4bed6"
   integrity sha1-OA5hSA1qYVtmDwertg1R4KTkvtY=
 
+mitt@^1.1.3:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/mitt/-/mitt-1.2.0.tgz#cb24e6569c806e31bd4e3995787fe38a04fdf90d"
+  integrity sha512-r6lj77KlwqLhIUku9UWYes7KJtsczvolZkzp8hbaDPPaE24OmWl5s539Mytlj22siEQKosZ26qCBgda2PKwoJw==
+
 mixin-deep@^1.2.0:
   version "1.3.2"
   resolved "https://registry.yarnpkg.com/mixin-deep/-/mixin-deep-1.3.2.tgz#1120b43dc359a785dce65b55b82e257ccf479566"
@@ -12965,6 +12980,28 @@ rollup-pluginutils@2.8.1:
   dependencies:
     estree-walker "^0.6.1"
 
+rrweb-player@^0.4.0:
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/rrweb-player/-/rrweb-player-0.4.0.tgz#b55a2396525c6d6c50b2c45f2b69d905e51814c8"
+  integrity sha512-eC5vMZjdWOokrLUO3csU7TaztkiNodwyUiXmM8V6BlJCsEi/8vGnyidG5+js+YVY7JYIbsujiKo7AN2rlPGz/w==
+  dependencies:
+    rrweb "^0.7.25"
+
+rrweb-snapshot@^0.7.21:
+  version "0.7.24"
+  resolved "https://registry.yarnpkg.com/rrweb-snapshot/-/rrweb-snapshot-0.7.24.tgz#0e34330419b388b53ab1dfcf614dcc155b0fea17"
+  integrity sha512-eCrsJej/ohF0EQ8mFfgIVO+niKZ3kyVrFQwuL4IpRW+/aMNxaFk8wBgO4V9rkQhTSBMSHQnMPTZxEHh1MrtU3w==
+
+rrweb@^0.7.25:
+  version "0.7.27"
+  resolved "https://registry.yarnpkg.com/rrweb/-/rrweb-0.7.27.tgz#ae9d666594aaafd899085b8aefa9c616b83e378e"
+  integrity sha512-UvC1llhmrGmWw6wk2VbcQOtpw/snfCwlAt+Kq2+Jm2KU5sVAJTiGoz5uTKvwcub6wXfXTwjfZtsnB5uNVCG5qg==
+  dependencies:
+    "@types/smoothscroll-polyfill" "^0.3.0"
+    mitt "^1.1.3"
+    rrweb-snapshot "^0.7.21"
+    smoothscroll-polyfill "^0.4.3"
+
 rst-selector-parser@^2.2.3:
   version "2.2.3"
   resolved "https://registry.yarnpkg.com/rst-selector-parser/-/rst-selector-parser-2.2.3.tgz#81b230ea2fcc6066c89e3472de794285d9b03d91"
@@ -13345,6 +13382,11 @@ slice-ansi@^2.1.0:
     ansi-styles "^3.2.0"
     astral-regex "^1.0.0"
     is-fullwidth-code-point "^2.0.0"
+
+smoothscroll-polyfill@^0.4.3:
+  version "0.4.4"
+  resolved "https://registry.yarnpkg.com/smoothscroll-polyfill/-/smoothscroll-polyfill-0.4.4.tgz#3a259131dc6930e6ca80003e1cb03b603b69abf8"
+  integrity sha512-TK5ZA9U5RqCwMpfoMq/l1mrH0JAR7y7KRvOBx0n2869aLxch+gT9GhN3yUfjiw+d/DiF1mKo14+hd62JyMmoBg==
 
 snapdragon-node@^2.0.1:
   version "2.1.1"

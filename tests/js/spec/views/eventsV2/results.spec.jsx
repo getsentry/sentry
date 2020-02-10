@@ -76,6 +76,12 @@ describe('EventsV2 > Results', function() {
       },
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {
+        count: 2,
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/project-slug:deadbeef/',
       method: 'GET',
       body: {
@@ -183,5 +189,43 @@ describe('EventsV2 > Results', function() {
         statsPeriod: '14d',
       },
     });
+  });
+
+  it('renders a y-axis selector', function() {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), yAxis: 'count_id'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+    const selector = wrapper.find('YAxisSelector');
+    expect(selector).toHaveLength(1);
+
+    // Open the selector
+    selector.find('StyledDropdownButton button').simulate('click');
+
+    // Click one of the options.
+    selector
+      .find('DropdownMenu MenuItem a')
+      .first()
+      .simulate('click');
+    wrapper.update();
+
+    const eventsRequest = wrapper.find('EventsChart');
+    expect(eventsRequest.props().yAxis).toEqual('count_id');
   });
 });

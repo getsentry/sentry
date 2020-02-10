@@ -12,7 +12,7 @@ type Props = {
 };
 
 /**
- * This component is a short term hack for Split.
+ * This component is a hack for Split.
  * It will display the installation ID after installation so users can copy it and paste it in Split's website.
  * We also have a link for users to click so they can go to Split's website.
  */

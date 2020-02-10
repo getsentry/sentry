@@ -1,15 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/browser';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
-import uniqBy from 'lodash/uniqBy';
 import isEqual from 'lodash/isEqual';
 
 import {Organization, GlobalSelection} from 'app/types';
 
 import {Client} from 'app/api';
-import {Panel} from 'app/components/panels';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -20,10 +19,8 @@ import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 
 import SearchBar from 'app/views/events/searchBar';
-import EventsChart from 'app/views/events/eventsChart';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -33,13 +30,9 @@ import {DEFAULT_EVENT_VIEW} from './data';
 import Table from './table';
 import Tags from './tags';
 import ResultsHeader from './resultsHeader';
-import EventView, {Field} from './eventView';
-import {generateTitle} from './utils';
-
-const CHART_AXIS_OPTIONS = [
-  {label: 'count(id)', value: 'count(id)'},
-  {label: 'count_unique(users)', value: 'count_unique(user)'},
-];
+import ResultsChart from './resultsChart';
+import EventView, {isAPIPayloadSimilar} from './eventView';
+import {generateTitle, fetchTotalCount} from './utils';
 
 type Props = {
   api: Client;
@@ -52,35 +45,63 @@ type Props = {
 type State = {
   eventView: EventView;
   error: string;
+  totalValues: null | number;
 };
 
 class Results extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
     const eventView = EventView.fromLocation(nextProps.location);
-    return {eventView, error: prevState.error};
+    return {...prevState, eventView};
   }
 
   state = {
     eventView: EventView.fromLocation(this.props.location),
     error: '',
+    totalValues: null,
   };
 
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
-
     this.checkEventView();
+    this.fetchTotalCount();
   }
 
-  componentDidUpdate(prevProps: Props) {
-    const {api, organization, selection} = this.props;
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    const {api, location, organization, selection} = this.props;
+    const {eventView} = this.state;
     if (
       !isEqual(prevProps.selection.projects, selection.projects) ||
       !isEqual(prevProps.selection.datetime, selection.datetime)
     ) {
       loadOrganizationTags(api, organization.slug, selection);
     }
+
     this.checkEventView();
+    const currentQuery = eventView.getEventsAPIPayload(location);
+    const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
+    if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
+      this.fetchTotalCount();
+    }
+  }
+
+  async fetchTotalCount() {
+    const {api, organization, location} = this.props;
+    const {eventView} = this.state;
+    if (!eventView.isValid()) {
+      return;
+    }
+
+    try {
+      const totals = await fetchTotalCount(
+        api,
+        organization.slug,
+        eventView.getEventsAPIPayload(location)
+      );
+      this.setState({totalValues: totals});
+    } catch (err) {
+      Sentry.captureException(err);
+    }
   }
 
   checkEventView() {
@@ -89,11 +110,15 @@ class Results extends React.Component<Props, State> {
       return;
     }
     // If the view is not valid, redirect to a known valid state.
-    const {location, organization} = this.props;
+    const {location, organization, selection} = this.props;
     const nextEventView = EventView.fromNewQueryWithLocation(
       DEFAULT_EVENT_VIEW,
       location
     );
+    if (nextEventView.project.length === 0 && selection.projects) {
+      nextEventView.project = selection.projects;
+    }
+
     ReactRouter.browserHistory.replace(
       nextEventView.getResultsViewUrlTarget(organization.slug)
     );
@@ -147,9 +172,18 @@ class Results extends React.Component<Props, State> {
 
   renderTagsTable = () => {
     const {organization, location} = this.props;
-    const {eventView} = this.state;
+    const {eventView, totalValues} = this.state;
 
-    return <Tags eventView={eventView} organization={organization} location={location} />;
+    // Move events-meta call out of Tags into this component
+    // so that we can push it into the chart footer.
+    return (
+      <Tags
+        totalValues={totalValues}
+        eventView={eventView}
+        organization={organization}
+        location={location}
+      />
+    );
   };
 
   renderError = error => {
@@ -169,24 +203,9 @@ class Results extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router} = this.props;
-    const {eventView, error} = this.state;
+    const {eventView, error, totalValues} = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
-
-    // Make option set and add the default options in.
-    const yAxisOptions = uniqBy(
-      eventView
-        .getAggregateFields()
-        // Exclude last_seen and latest_event as they don't produce useful graphs.
-        .filter(
-          (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
-        )
-        .map((field: Field) => {
-          return {label: field.field, value: field.field};
-        })
-        .concat(CHART_AXIS_OPTIONS),
-      'value'
-    );
 
     return (
       <SentryDocumentTitle title={title} objSlug={organization.slug}>
@@ -207,24 +226,14 @@ class Results extends React.Component<Props, State> {
                   query={query}
                   onSearch={this.handleSearch}
                 />
-                <StyledPanel>
-                  {getDynamicText({
-                    value: (
-                      <EventsChart
-                        router={router}
-                        query={eventView.getEventsAPIPayload(location).query}
-                        organization={organization}
-                        showLegend
-                        yAxisOptions={yAxisOptions}
-                        yAxisValue={eventView.yAxis}
-                        onYAxisChange={this.handleYAxisChange}
-                        project={eventView.project as number[]}
-                        environment={eventView.environment as string[]}
-                      />
-                    ),
-                    fixed: 'events chart',
-                  })}
-                </StyledPanel>
+                <ResultsChart
+                  router={router}
+                  organization={organization}
+                  eventView={eventView}
+                  location={location}
+                  onAxisChange={this.handleYAxisChange}
+                  total={totalValues}
+                />
               </Top>
               <Main eventView={eventView}>
                 <Table
@@ -252,8 +261,8 @@ export const StyledPageContent = styled(PageContent)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
     grid-template-columns: 66% auto;
-    grid-template-rows: 330px auto;
-    grid-column-gap: ${space(3)};
+    align-content: start;
+    grid-gap: ${space(3)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
@@ -263,12 +272,6 @@ export const StyledPageContent = styled(PageContent)`
 
 export const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
-`;
-
-export const StyledPanel = styled(Panel)`
-  .echarts-for-react div:first-child {
-    width: 100% !important;
-  }
 `;
 
 export const Top = styled('div')`

@@ -34,14 +34,18 @@ export default class PluginRow extends React.Component<Props> {
         <FlexContainer>
           <PluginIcon size={36} pluginId={plugin.id} />
           <Container>
-            <ProviderName to={`/settings/${slug}/plugins/${plugin.slug}`}>
+            <ProviderName to={`/settings/${slug}/plugins/${plugin.slug}/`}>
               {`${plugin.name} ${isLegacy ? '(Legacy)' : ''}`}
             </ProviderName>
             <ProviderDetails>
               <Status enabled={this.isEnabled} />
-              <StyledLink
-                to={`/settings/${slug}/plugins/${plugin.slug}/?tab=configurations`}
-              >{`${plugin.projectList.length} Configurations`}</StyledLink>
+              {plugin.projectList.length ? (
+                <StyledLink
+                  to={`/settings/${slug}/plugins/${plugin.slug}/?tab=configurations`}
+                >{`${plugin.projectList.length} Configuration${
+                  plugin.projectList.length > 1 ? 's' : ''
+                }`}</StyledLink>
+              ) : null}
             </ProviderDetails>
           </Container>
         </FlexContainer>
@@ -98,12 +102,6 @@ const Status = styled(
   color: ${(p: StatusProps) => (p.enabled ? p.theme.success : p.theme.gray2)};
   margin-left: ${space(0.5)};
   margin-right: ${space(0.75)};
-  &:after {
-    content: '|';
-    color: ${p => p.theme.gray1};
-    margin-left: ${space(0.75)};
-    font-weight: normal;
-  }
 `;
 
 const StatusWrapper = styled('div')`
@@ -113,4 +111,10 @@ const StatusWrapper = styled('div')`
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.gray2};
+  &:before {
+    content: '|';
+    color: ${p => p.theme.gray1};
+    margin-right: ${space(0.75)};
+    font-weight: normal;
+  }
 `;
