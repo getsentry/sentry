@@ -68,7 +68,9 @@ export default class DetailsBody extends React.Component<Props> {
       return '';
     }
 
-    const direction = trigger.thresholdType === AlertRuleThresholdType.ABOVE ? '>' : '<';
+    const isAbove = trigger.thresholdType === AlertRuleThresholdType.ABOVE;
+    const isAlert = key === 'alertThreshold';
+    const direction = isAbove === isAlert ? '>' : '<';
 
     return `${direction} ${trigger[key]}`;
   }
