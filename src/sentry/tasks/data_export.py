@@ -98,6 +98,7 @@ def process_issue_by_tag(data_export):
         fields = ["value", "times_seen", "last_seen", "first_seen"]
 
     iteration = 0
+    # Example file name: ISSUE_BY_TAG-project10-user__721.csv
     file_details = u"{}-{}__{}".format(payload["project_slug"], key, data_export.id)
     file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, file_details)
     file_path = path.join(tmp_dir, file_name)
