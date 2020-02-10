@@ -95,6 +95,8 @@ export default class ResultsChart extends React.Component<Props, State> {
 }
 
 export const StyledPanel = styled(Panel)`
+  margin: 0;
+
   .echarts-for-react div:first-child {
     width: 100% !important;
   }
