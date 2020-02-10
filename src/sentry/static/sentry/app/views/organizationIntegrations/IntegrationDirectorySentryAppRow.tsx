@@ -32,7 +32,7 @@ export default class IntegrationDirectorySentryAppRow extends React.PureComponen
   }
 
   get isPublished() {
-    return !(this.isInternal || this.isUnpublished);
+    return this.props.app.status === 'published';
   }
 
   renderStatus() {
