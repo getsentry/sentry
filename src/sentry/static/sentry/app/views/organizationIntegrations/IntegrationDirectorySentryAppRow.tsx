@@ -26,12 +26,6 @@ type Props = {
 };
 
 export default class IntegrationDirectorySentryAppRow extends React.PureComponent<Props> {
-  static propTypes = {
-    app: SentryTypes.SentryApplication,
-    organization: SentryTypes.Organization.isRequired,
-    install: PropTypes.object,
-  };
-
   get isInternal() {
     return this.props.app.status === 'internal';
   }
