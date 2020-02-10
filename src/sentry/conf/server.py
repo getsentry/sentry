@@ -1641,7 +1641,7 @@ SENTRY_BUILTIN_SOURCES = {
 SENTRY_RELAY_WHITELIST_PK = [
     # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
     # This should NOT be part of any production environment.
-    # This key should match the key in /sentry/relay_config/credentials.json
+    # This key should match the key in /sentry/config/relay/credentials.json
     "SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"
 ]
 

@@ -1,5 +1,5 @@
 include setup.py README.md MANIFEST.in LICENSE AUTHORS
 recursive-include ./ requirements*.txt
-recursive-include ./relay_config *
+recursive-include ./config/relay *
 graft src/sentry
 global-exclude *~
