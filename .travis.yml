@@ -34,6 +34,7 @@ env:
     - DJANGO_VERSION=">=1.11,<1.12"
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
+    - NODE_OPTIONS=--max-old-space-size=4096
 
 before_install:
   - &pip_install pip install --no-cache-dir "pip>=20.0.2"
