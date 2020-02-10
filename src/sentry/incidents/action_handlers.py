@@ -142,7 +142,7 @@ class EmailActionHandler(ActionHandler):
             # if alert threshold and threshold type is above then show '>'
             # if resolve threshold and threshold type is *BELOW* then show '>'
             "threshold_direction_string": ">" if show_greater_than_string else "<",
-            "status": self.incident_status[self.incident.status],
+            "status": self.incident_status[IncidentStatus(self.incident.status)],
             "is_critical": self.incident.status == IncidentStatus.CRITICAL,
             "is_warning": self.incident.status == IncidentStatus.WARNING,
             "unsubscribe_link": None,
