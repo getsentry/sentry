@@ -9,7 +9,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconWarning} from 'app/icons';
+import {IconEdit, IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
 import {
@@ -393,7 +393,7 @@ class GridEditable<
           onClick={onClick}
           data-test-id="grid-edit-enable"
         >
-          <InlineSvg src="icon-edit-pencil" />
+          <IconEdit size="xs" />
           {t('Edit Columns')}
         </HeaderButton>
       );

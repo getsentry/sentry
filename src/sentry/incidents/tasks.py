@@ -87,7 +87,7 @@ def build_activity_context(activity, user):
         "action": action,
         "link": absolute_uri(
             reverse(
-                "sentry-incident",
+                "sentry-metric-alert",
                 kwargs={
                     "organization_slug": incident.organization.slug,
                     "incident_id": incident.identifier,

@@ -10,9 +10,21 @@ def delete_alert_email_user_options(apps, schema_editor):
     Processes user reports that are missing event data, and adds the appropriate data
     if the event exists in Clickhouse.
     """
+    from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
     UserOption = apps.get_model("sentry", "UserOption")
 
-    UserOption.objects.filter(key="alert_email").delete()
+    """
+    Seq Scan on sentry_useroption (cost=0.00..40142.93 rows=42564 width=65) (actual time=30.690..9720.536 rows=42407 loops=1)
+    Filter: ((key)::text = 'alert_email'::text)
+    Rows Removed by Filter: 1692315
+    Planning time: 234.778 ms
+    Execution time: 9730.608 ms
+    """
+    for user_option in RangeQuerySetWrapperWithProgressBar(
+        UserOption.objects.filter(key="alert_email")
+    ):
+        user_option.delete()
 
 
 class Migration(migrations.Migration):
@@ -31,10 +43,10 @@ class Migration(migrations.Migration):
     # By default we prefer to run in a transaction, but for migrations where you want
     # to `CREATE INDEX CONCURRENTLY` this needs to be set to False. Typically you'll
     # want to create an index concurrently when adding one to an existing table.
-    atomic = True
+    atomic = False
 
     dependencies = [
-        ("sentry", "0030_auto_20200201_0039"),
+        ("sentry", "0031_delete_alert_rules_and_incidents"),
     ]
 
     operations = [

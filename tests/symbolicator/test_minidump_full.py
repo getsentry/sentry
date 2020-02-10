@@ -8,6 +8,7 @@ from six import BytesIO
 
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 
 from sentry import eventstore
 from sentry.testutils import TransactionTestCase
@@ -17,10 +18,13 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
 
-class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
-    # For these tests to run, write `symbolicator.enabled: true` into your
-    # `~/.sentry/config.yml` and run `sentry devservices up`
+# IMPORTANT:
+# For these tests to run, write `symbolicator.enabled: true` into your
+# `~/.sentry/config.yml` and run `sentry devservices up`
 
+
+@override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
+class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
         self.project.update_option("sentry:builtin_symbol_sources", [])

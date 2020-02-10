@@ -88,7 +88,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "title": title,
             "title_link": absolute_uri(
                 reverse(
-                    "sentry-incident",
+                    "sentry-metric-alert",
                     kwargs={
                         "organization_slug": incident.organization.slug,
                         "incident_id": incident.identifier,

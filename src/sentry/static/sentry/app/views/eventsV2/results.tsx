@@ -4,13 +4,11 @@ import * as Sentry from '@sentry/browser';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
-import uniqBy from 'lodash/uniqBy';
 import isEqual from 'lodash/isEqual';
 
 import {Organization, GlobalSelection} from 'app/types';
 
 import {Client} from 'app/api';
-import {Panel} from 'app/components/panels';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -21,10 +19,8 @@ import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 
 import SearchBar from 'app/views/events/searchBar';
-import EventsChart from 'app/views/events/eventsChart';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -34,14 +30,9 @@ import {DEFAULT_EVENT_VIEW} from './data';
 import Table from './table';
 import Tags from './tags';
 import ResultsHeader from './resultsHeader';
-import ChartFooter from './chartFooter';
-import EventView, {Field, isAPIPayloadSimilar} from './eventView';
+import ResultsChart from './resultsChart';
+import EventView, {isAPIPayloadSimilar} from './eventView';
 import {generateTitle, fetchTotalCount} from './utils';
-
-const CHART_AXIS_OPTIONS = [
-  {label: 'count(id)', value: 'count(id)'},
-  {label: 'count_unique(users)', value: 'count_unique(user)'},
-];
 
 type Props = {
   api: Client;
@@ -216,22 +207,6 @@ class Results extends React.Component<Props, State> {
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
 
-    // Make option set and add the default options in.
-    const yAxisOptions = uniqBy(
-      eventView
-        .getAggregateFields()
-        // Exclude last_seen and latest_event as they don't produce useful graphs.
-        .filter(
-          (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
-        )
-        .map((field: Field) => {
-          return {label: field.field, value: field.field};
-        })
-        .concat(CHART_AXIS_OPTIONS),
-      'value'
-    );
-    const yAxisValue = eventView.yAxis || yAxisOptions[0].value;
-
     return (
       <SentryDocumentTitle title={title} objSlug={organization.slug}>
         <React.Fragment>
@@ -251,28 +226,14 @@ class Results extends React.Component<Props, State> {
                   query={query}
                   onSearch={this.handleSearch}
                 />
-                <StyledPanel>
-                  {getDynamicText({
-                    value: (
-                      <EventsChart
-                        router={router}
-                        query={eventView.getEventsAPIPayload(location).query}
-                        organization={organization}
-                        showLegend
-                        yAxis={yAxisValue}
-                        project={eventView.project as number[]}
-                        environment={eventView.environment as string[]}
-                      />
-                    ),
-                    fixed: 'events chart',
-                  })}
-                  <ChartFooter
-                    total={totalValues}
-                    yAxisValue={yAxisValue}
-                    yAxisOptions={yAxisOptions}
-                    onChange={this.handleYAxisChange}
-                  />
-                </StyledPanel>
+                <ResultsChart
+                  router={router}
+                  organization={organization}
+                  eventView={eventView}
+                  location={location}
+                  onAxisChange={this.handleYAxisChange}
+                  total={totalValues}
+                />
               </Top>
               <Main eventView={eventView}>
                 <Table
@@ -300,8 +261,8 @@ export const StyledPageContent = styled(PageContent)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
     grid-template-columns: 66% auto;
-    grid-template-rows: 330px auto;
-    grid-column-gap: ${space(3)};
+    align-content: start;
+    grid-gap: ${space(3)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
@@ -311,12 +272,6 @@ export const StyledPageContent = styled(PageContent)`
 
 export const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
-`;
-
-export const StyledPanel = styled(Panel)`
-  .echarts-for-react div:first-child {
-    width: 100% !important;
-  }
 `;
 
 export const Top = styled('div')`

@@ -15,8 +15,9 @@ import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
-import Projects from 'app/utils/projects';
 import SeenByList from 'app/components/seenByList';
+import {IconEdit} from 'app/icons/iconEdit';
+import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -171,8 +172,8 @@ export default class DetailsBody extends React.Component<Props> {
                         pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts-v2/metric-rules/${incident?.alertRule.id}/`,
                       }}
                     >
-                      <InlineSvg src="icon-edit" size="14px" />
-                      {t('Edit alert rule')}
+                      <IconEdit />
+                      {t('View Rule')}
                     </SideHeaderLink>
                   </SideHeader>
 

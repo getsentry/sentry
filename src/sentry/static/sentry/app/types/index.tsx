@@ -368,7 +368,7 @@ export type Config = {
   gravatarBaseUrl: string;
   messages: string[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: number};
+  userIdentity: {ip_address: string; email: string; id: number; isStaff: boolean};
   termsUrl: string | null;
   isAuthenticated: boolean;
   version: {
