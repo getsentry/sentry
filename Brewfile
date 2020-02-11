@@ -1,3 +1,5 @@
+brew 'pyenv'
+
 # required for pyenv's python-build
 brew 'openssl'
 brew 'readline'
