@@ -1854,6 +1854,34 @@ describe('EventView.getResultsViewUrlTarget()', function() {
   });
 });
 
+describe('EventView.getGlobalSelection', function() {
+  it('return default global selection', function() {
+    const eventView = new EventView({});
+
+    expect(eventView.getGlobalSelection()).toMatchObject({
+      project: [],
+      start: undefined,
+      end: undefined,
+      statsPeriod: undefined,
+      environment: [],
+    });
+  });
+
+  it('returns global selection', function() {
+    const state2 = {
+      project: [42],
+      start: 'start',
+      end: 'end',
+      statsPeriod: '42d',
+      environment: ['prod'],
+    };
+
+    const eventView = new EventView(state2);
+
+    expect(eventView.getGlobalSelection()).toMatchObject(state2);
+  });
+});
+
 describe('isAPIPayloadSimilar', function() {
   const state = {
     id: '1234',
@@ -2101,34 +2129,6 @@ describe('isAPIPayloadSimilar', function() {
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
       expect(results).toBe(true);
-    });
-  });
-
-  describe('getGlobalSelection', function() {
-    it('return default global selection', function() {
-      const eventView = new EventView({});
-
-      expect(eventView.getGlobalSelection()).toMatchObject({
-        project: [],
-        start: undefined,
-        end: undefined,
-        statsPeriod: undefined,
-        environment: [],
-      });
-    });
-
-    it('returns global selection', function() {
-      const state2 = {
-        project: [42],
-        start: 'start',
-        end: 'end',
-        statsPeriod: '42d',
-        environment: ['prod'],
-      };
-
-      const eventView = new EventView(state2);
-
-      expect(eventView.getGlobalSelection()).toMatchObject(state2);
     });
   });
 
