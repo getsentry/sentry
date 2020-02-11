@@ -3,6 +3,7 @@ import EventView, {
   pickRelevantLocationQueryStrings,
 } from 'app/views/eventsV2/eventView';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
+import {CHART_AXIS_OPTIONS} from 'app/views/eventsV2/data';
 
 const generateFields = fields => {
   return fields.map(field => {
@@ -1903,6 +1904,67 @@ describe('EventView.generateBlankQueryStringObject', function() {
   });
 });
 
+describe('EventView.getYAxisOptions', function() {
+  const state = {
+    fields: [],
+    sorts: [],
+    query: '',
+    project: [],
+    statsPeriod: '42d',
+    environment: [],
+  };
+
+  function generateYaxis(value) {
+    return {
+      value,
+      label: value,
+    };
+  }
+
+  it('should return default options', function() {
+    const thisEventView = new EventView(state);
+
+    expect(thisEventView.getYAxisOptions()).toEqual(CHART_AXIS_OPTIONS);
+  });
+
+  it('should add aggregate fields as options', function() {
+    let thisEventView = new EventView({
+      ...state,
+      fields: generateFields(['ignored-field', 'count(user)']),
+    });
+
+    expect(thisEventView.getYAxisOptions()).toEqual([
+      generateYaxis('count(user)'),
+      ...CHART_AXIS_OPTIONS,
+    ]);
+
+    // should de-duplicate entries
+    thisEventView = new EventView({
+      ...state,
+      fields: generateFields(['ignored-field', 'count(id)']),
+    });
+
+    expect(thisEventView.getYAxisOptions()).toEqual([...CHART_AXIS_OPTIONS]);
+  });
+
+  it('should exclude yAxis options that are not useful', function() {
+    const thisEventView = new EventView({
+      ...state,
+      fields: generateFields([
+        'ignored-field',
+        'count(user)',
+        'last_seen',
+        'latest_event',
+      ]),
+    });
+
+    expect(thisEventView.getYAxisOptions()).toEqual([
+      generateYaxis('count(user)'),
+      ...CHART_AXIS_OPTIONS,
+    ]);
+  });
+});
+
 describe('isAPIPayloadSimilar', function() {
   const state = {
     id: '1234',
@@ -2150,9 +2212,6 @@ describe('isAPIPayloadSimilar', function() {
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
       expect(results).toBe(true);
-    });
-  });
-
     });
   });
 });
