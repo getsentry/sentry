@@ -14,8 +14,8 @@ class EnvironmentField(serializers.Field):
     def to_internal_value(self, data):
         try:
             environment = Environment.objects.get(
-                organization_id=self.context["organization"].id, id=data
+                organization_id=self.context["organization"].id, name=data
             )
         except Environment.DoesNotExist:
             raise ValidationError("Environment is not part of this organization")
-        return environment.id
+        return environment

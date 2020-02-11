@@ -3,6 +3,7 @@ import EventView, {
   pickRelevantLocationQueryStrings,
 } from 'app/views/eventsV2/eventView';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
+import {CHART_AXIS_OPTIONS} from 'app/views/eventsV2/data';
 
 const generateFields = fields => {
   return fields.map(field => {
@@ -1507,6 +1508,34 @@ describe('EventView.withDeletedColumn()', function() {
 
       expect(eventView2).toMatchObject(nextState);
     });
+
+    it('ensures there is at one auto-width column on deletion', function() {
+      const modifiedState = {
+        ...state,
+        fields: [
+          {field: 'id', width: 75},
+          {field: 'title', width: 100},
+          {field: 'project', width: 80},
+          {field: 'environment', width: 99},
+        ],
+      };
+
+      const eventView = new EventView(modifiedState);
+      let updated = eventView.withDeletedColumn(0, meta);
+      let updatedFields = [
+        {field: 'title', width: -1},
+        {field: 'project', width: 80},
+        {field: 'environment', width: 99},
+      ];
+      expect(updated.fields).toEqual(updatedFields);
+
+      updated = updated.withDeletedColumn(0, meta);
+      updatedFields = [
+        {field: 'project', width: -1},
+        {field: 'environment', width: 99},
+      ];
+      expect(updated.fields).toEqual(updatedFields);
+    });
   });
 });
 
@@ -1826,6 +1855,167 @@ describe('EventView.getResultsViewUrlTarget()', function() {
   });
 });
 
+describe('EventView.getGlobalSelection', function() {
+  it('return default global selection', function() {
+    const eventView = new EventView({});
+
+    expect(eventView.getGlobalSelection()).toMatchObject({
+      project: [],
+      start: undefined,
+      end: undefined,
+      statsPeriod: undefined,
+      environment: [],
+    });
+  });
+
+  it('returns global selection', function() {
+    const state2 = {
+      project: [42],
+      start: 'start',
+      end: 'end',
+      statsPeriod: '42d',
+      environment: ['prod'],
+    };
+
+    const eventView = new EventView(state2);
+
+    expect(eventView.getGlobalSelection()).toMatchObject(state2);
+  });
+});
+
+describe('EventView.generateBlankQueryStringObject', function() {
+  it('should return blank values', function() {
+    const eventView = new EventView({});
+
+    expect(eventView.generateBlankQueryStringObject()).toEqual({
+      id: undefined,
+      name: undefined,
+      fields: undefined,
+      sorts: undefined,
+      query: undefined,
+      project: undefined,
+      start: undefined,
+      end: undefined,
+      statsPeriod: undefined,
+      environment: undefined,
+      yAxis: undefined,
+      cursor: undefined,
+    });
+  });
+});
+
+describe('EventView.getYAxisOptions', function() {
+  const state = {
+    fields: [],
+    sorts: [],
+    query: '',
+    project: [],
+    statsPeriod: '42d',
+    environment: [],
+  };
+
+  function generateYaxis(value) {
+    return {
+      value,
+      label: value,
+    };
+  }
+
+  it('should return default options', function() {
+    const thisEventView = new EventView(state);
+
+    expect(thisEventView.getYAxisOptions()).toEqual(CHART_AXIS_OPTIONS);
+  });
+
+  it('should add aggregate fields as options', function() {
+    let thisEventView = new EventView({
+      ...state,
+      fields: generateFields(['ignored-field', 'count(user)']),
+    });
+
+    expect(thisEventView.getYAxisOptions()).toEqual([
+      generateYaxis('count(user)'),
+      ...CHART_AXIS_OPTIONS,
+    ]);
+
+    // should de-duplicate entries
+    thisEventView = new EventView({
+      ...state,
+      fields: generateFields(['ignored-field', 'count(id)']),
+    });
+
+    expect(thisEventView.getYAxisOptions()).toEqual([...CHART_AXIS_OPTIONS]);
+  });
+
+  it('should exclude yAxis options that are not useful', function() {
+    const thisEventView = new EventView({
+      ...state,
+      fields: generateFields([
+        'ignored-field',
+        'count(user)',
+        'last_seen',
+        'latest_event',
+      ]),
+    });
+
+    expect(thisEventView.getYAxisOptions()).toEqual([
+      generateYaxis('count(user)'),
+      ...CHART_AXIS_OPTIONS,
+    ]);
+  });
+});
+
+describe('EventView.getYAxis', function() {
+  const state = {
+    fields: [],
+    sorts: [],
+    query: '',
+    project: [],
+    statsPeriod: '42d',
+    environment: [],
+  };
+
+  it('should return first default yAxis', function() {
+    const thisEventView = new EventView(state);
+
+    expect(thisEventView.getYAxis()).toEqual('count(id)');
+  });
+
+  it('should return valid yAxis', function() {
+    const thisEventView = new EventView({
+      ...state,
+      fields: generateFields([
+        'ignored-field',
+        'count(user)',
+        'last_seen',
+        'latest_event',
+      ]),
+      yAxis: 'count(user)',
+    });
+
+    expect(thisEventView.getYAxis()).toEqual('count(user)');
+  });
+
+  it('should ignore invalid yAxis', function() {
+    const invalid = [
+      'last_seen',
+      'latest_event',
+      'count(user)', // this is not one of the selected fields
+    ];
+
+    for (const option of invalid) {
+      const thisEventView = new EventView({
+        ...state,
+        fields: generateFields(['ignored-field', 'last_seen', 'latest_event']),
+        yAxis: option,
+      });
+
+      // yAxis defaults to the first entry of the default yAxis options
+      expect(thisEventView.getYAxis()).toEqual('count(id)');
+    }
+  });
+});
+
 describe('isAPIPayloadSimilar', function() {
   const state = {
     id: '1234',
@@ -2073,55 +2263,6 @@ describe('isAPIPayloadSimilar', function() {
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
       expect(results).toBe(true);
-    });
-  });
-
-  describe('getGlobalSelection', function() {
-    it('return default global selection', function() {
-      const eventView = new EventView({});
-
-      expect(eventView.getGlobalSelection()).toMatchObject({
-        project: [],
-        start: undefined,
-        end: undefined,
-        statsPeriod: undefined,
-        environment: [],
-      });
-    });
-
-    it('returns global selection', function() {
-      const state2 = {
-        project: [42],
-        start: 'start',
-        end: 'end',
-        statsPeriod: '42d',
-        environment: ['prod'],
-      };
-
-      const eventView = new EventView(state2);
-
-      expect(eventView.getGlobalSelection()).toMatchObject(state2);
-    });
-  });
-
-  describe('generateBlankQueryStringObject', function() {
-    it('should return blank values', function() {
-      const eventView = new EventView({});
-
-      expect(eventView.generateBlankQueryStringObject()).toEqual({
-        id: undefined,
-        name: undefined,
-        fields: undefined,
-        sorts: undefined,
-        query: undefined,
-        project: undefined,
-        start: undefined,
-        end: undefined,
-        statsPeriod: undefined,
-        environment: undefined,
-        yAxis: undefined,
-        cursor: undefined,
-      });
     });
   });
 });

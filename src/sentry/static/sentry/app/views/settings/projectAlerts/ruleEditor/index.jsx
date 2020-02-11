@@ -40,6 +40,7 @@ const ACTION_MATCH_CHOICES = [
   ['none', t('none')],
 ];
 
+const POLLING_INTERVAL = 1000;
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
 const AlertRuleRow = styled('h6')`
@@ -130,7 +131,7 @@ class RuleEditor extends React.Component {
     if (status === 'pending') {
       setTimeout(() => {
         this.pollHandler(quitTime);
-      }, 1000);
+      }, POLLING_INTERVAL);
       return;
     }
 
@@ -154,7 +155,7 @@ class RuleEditor extends React.Component {
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
     setTimeout(() => {
       this.pollHandler(quitTime);
-    }, 1000);
+    }, POLLING_INTERVAL);
   }
 
   handleRuleSuccess = (isNew, rule) => {

@@ -5,6 +5,7 @@ import json
 from django.db import transaction
 
 from sentry.api.event_search import get_filter
+from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.utils.snuba import _snuba_pool, SnubaError
 
@@ -174,7 +175,9 @@ def delete_snuba_subscription(subscription):
 def _create_in_snuba(
     project, dataset, query, aggregation, time_window, resolution, environment_names
 ):
-    conditions = get_filter(query).conditions
+    conditions = resolve_discover_aliases({"conditions": get_filter(query).conditions})[0][
+        "conditions"
+    ]
     if environment_names:
         conditions.append(["environment", "IN", environment_names])
     response = _snuba_pool.urlopen(

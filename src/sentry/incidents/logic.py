@@ -36,7 +36,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.snuba.discover import zerofill
-from sentry.models import Integration, Project, Environment
+from sentry.models import Integration, Project
 from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -635,12 +635,7 @@ def create_alert_rule(
 
         if environment:
             for e in environment:
-                try:
-                    env = Environment.objects.get(id=e)
-                    if env:
-                        AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=env)
-                except Environment.DoesNotExist:
-                    raise Environment.DoesNotExist()
+                AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=e)
 
         subscribe_projects_to_alert_rule(alert_rule, projects, environment)
 
@@ -793,14 +788,10 @@ def update_alert_rule(
         if environment:
             # Delete rows we don't have present in the updated data.
             AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).exclude(
-                id__in=environment
+                environment__in=environment
             ).delete()
             for e in environment:
-                env = Environment.objects.get(id=e)
-                if env:
-                    AlertRuleEnvironment.objects.get_or_create(
-                        alert_rule=alert_rule, environment=env
-                    )
+                AlertRuleEnvironment.objects.get_or_create(alert_rule=alert_rule, environment=e)
         else:
             AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).delete()
 

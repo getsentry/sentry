@@ -306,9 +306,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         operator.gt,
                         "alert threshold must be below resolution threshold",
                     )
-
-                if alert_op(critical["alert_threshold"], critical["resolve_threshold"]):
-                    raise serializers.ValidationError("Critical " + trigger_error)
+                if critical["resolve_threshold"] is not None:
+                    if alert_op(critical["alert_threshold"], critical["resolve_threshold"]):
+                        raise serializers.ValidationError("Critical " + trigger_error)
             elif len(triggers) == 2:
                 critical = triggers[0]
                 warning = triggers[1]
@@ -351,10 +351,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     elif resolve_op(critical["resolve_threshold"], warning["resolve_threshold"]):
                         raise serializers.ValidationError(resolve_error)
 
-                    if alert_op(critical["alert_threshold"], critical["resolve_threshold"]):
-                        raise serializers.ValidationError("Critical " + trigger_error)
-                    elif alert_op(warning["alert_threshold"], warning["resolve_threshold"]):
-                        raise serializers.ValidationError("Warning " + trigger_error)
+                    if critical["resolve_threshold"] is not None:
+                        if alert_op(critical["alert_threshold"], critical["resolve_threshold"]):
+                            raise serializers.ValidationError("Critical " + trigger_error)
+
+                    if warning["resolve_threshold"] is not None:
+                        if alert_op(warning["alert_threshold"], warning["resolve_threshold"]):
+                            raise serializers.ValidationError("Warning " + trigger_error)
             else:
                 raise serializers.ValidationError(
                     "Must send 1 or 2 triggers - A critical trigger, and an optional warning trigger"
