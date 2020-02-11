@@ -289,7 +289,9 @@ class OrganizationIntegrations extends AsyncComponent<
         return this.setState({displayedList: this.state.list});
       }
       const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
-      return this.setState({displayedList: result.map(i => i.item)});
+      return this.setState({
+        displayedList: this.sortIntegrations(result.map(i => i.item)),
+      });
     });
   };
   // Rendering
