@@ -162,7 +162,7 @@ class SlackActionEndpoint(Endpoint):
         user_id = data.get("user", {}).get("id")
 
         logging_data["channel_id"] = channel_id
-        logging_data["user_id"] = user_id
+        logging_data["slack_user_id"] = user_id
 
         integration = slack_request.integration
         logging_data["integration_id"] = integration.id
