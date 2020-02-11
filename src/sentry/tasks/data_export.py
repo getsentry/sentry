@@ -5,7 +5,6 @@ import tempfile
 
 from contextlib import contextmanager
 from django.db import transaction
-from django.core.files.storage import default_storage
 
 from sentry import tagstore
 from sentry.constants import ExportQueryType
@@ -13,8 +12,6 @@ from sentry.models import EventUser, File, Group, Project, get_group_with_redire
 from sentry.tasks.base import instrumented_task
 
 SNUBA_MAX_RESULTS = 1000
-
-tmp_dir = tempfile.mkdtemp()
 
 
 @instrumented_task(name="sentry.tasks.data_export.compile_data", queue="data_export")
@@ -36,7 +33,6 @@ def compile_data(data_export):
             file = File.objects.create(name=file_name, type="export.csv")
             file.putfile(tf)
             data_export.update(file=file)
-    test_download(data_export, file_name)
 
 
 def process_discover_v2(data_export, file):
@@ -124,12 +120,6 @@ def start_writer(file, fields):
 def get_file_name(type, custom_string, extension="csv"):
     file_name = u"{}-{}.{}".format(type, custom_string, extension)
     return file_name
-
-
-def test_download(data_export, file_name):
-    file = data_export.file
-    raw_file = file.getfile()
-    default_storage.save("/tmp/sentry-media/testing/" + file_name, raw_file)
 
 
 def alert_error():
