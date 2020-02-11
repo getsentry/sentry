@@ -1965,6 +1965,57 @@ describe('EventView.getYAxisOptions', function() {
   });
 });
 
+describe('EventView.getYAxis', function() {
+  const state = {
+    fields: [],
+    sorts: [],
+    query: '',
+    project: [],
+    statsPeriod: '42d',
+    environment: [],
+  };
+
+  it('should return first default yAxis', function() {
+    const thisEventView = new EventView(state);
+
+    expect(thisEventView.getYAxis()).toEqual('count(id)');
+  });
+
+  it('should return valid yAxis', function() {
+    const thisEventView = new EventView({
+      ...state,
+      fields: generateFields([
+        'ignored-field',
+        'count(user)',
+        'last_seen',
+        'latest_event',
+      ]),
+      yAxis: 'count(user)',
+    });
+
+    expect(thisEventView.getYAxis()).toEqual('count(user)');
+  });
+
+  it('should ignore invalid yAxis', function() {
+    const invalid = [
+      'last_seen',
+      'latest_event',
+      'count(user)', // this is not one of the selected fields
+    ];
+
+    for (const option of invalid) {
+      const thisEventView = new EventView({
+        ...state,
+        fields: generateFields(['ignored-field', 'last_seen', 'latest_event']),
+        yAxis: option,
+      });
+
+      // yAxis defaults to the first entry of the default yAxis options
+      expect(thisEventView.getYAxis()).toEqual('count(id)');
+    }
+  });
+});
+
 describe('isAPIPayloadSimilar', function() {
   const state = {
     id: '1234',
