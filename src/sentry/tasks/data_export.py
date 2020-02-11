@@ -6,6 +6,7 @@ import csv
 import tempfile
 
 from django.db import transaction
+from django.core.files.storage import default_storage
 
 from sentry import tagstore
 from sentry.constants import ExportQueryType
@@ -44,6 +45,7 @@ def compile_data(data_export):
     elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
         file_path, file_name = process_issue_by_tag(data_export)
         store_file(data_export, file_path, file_name)
+        test_download(data_export, file_name)
 
 
 def process_discover_v2(data_export):
@@ -152,6 +154,12 @@ def store_file(data_export, file_path, file_name):
             # TODO(Leander): Add logging here
             file.putfile(csvfile)
         data_export.update(file=file)
+
+
+def test_download(data_export, file_name):
+    file = data_export.file
+    raw_file = file.getfile()
+    default_storage.save("/tmp/sentry-media/testing/" + file_name, raw_file)
 
 
 def alert_error():
