@@ -116,14 +116,14 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     hasProperlyLoadedConditions: boolean
   ): [Actions, string | ReactElement][] {
     const options: [Actions, string | ReactElement][] = [
-      [Actions.ALERT_ON_EVERY_ISSUE, 'Alert me on every new issue'],
-      [Actions.CREATE_ALERT_LATER, "I'll create my own alerts later"],
+      [Actions.ALERT_ON_EVERY_ISSUE, t('Alert me on every new issue')],
+      [Actions.CREATE_ALERT_LATER, t("I'll create my own alerts later")],
     ];
     if (hasProperlyLoadedConditions) {
       options.unshift([
         Actions.CUSTOMIZED_ALERTS,
         <CustomizeAlertsGrid key={Actions.CUSTOMIZED_ALERTS}>
-          When there are more than
+          {t('When there are more than')}
           <InlineInput
             type="number"
             name=""
@@ -137,12 +137,12 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           <InlineSelectControl
             value={this.state.metric}
             choices={[
-              [MetricValues.ERRORS, 'occurrences of'],
-              [MetricValues.USERS, 'users affected by'],
+              [MetricValues.ERRORS, t('occurrences of')],
+              [MetricValues.USERS, t('users affected by')],
             ]}
             onChange={metric => this.setStateAndUpdateParents({metric: metric.value})}
           />
-          a unique error in
+          {t('a unique error in')}
           <InlineSelectControl
             value={this.state.interval}
             choices={this.state.intervalChoices}
