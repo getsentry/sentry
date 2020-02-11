@@ -124,7 +124,7 @@ class GroupTags extends React.Component {
                   </GlobalSelectionLink>
                 </Flex>
               </PanelHeader>
-              <PanelBody disablePadding={false}>
+              <PanelBody withPadding>
                 <ul style={{listStyleType: 'none', padding: 0, margin: 0}}>
                   {valueChildren}
                 </ul>
