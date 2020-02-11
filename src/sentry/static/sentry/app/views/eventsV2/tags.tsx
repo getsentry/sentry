@@ -9,6 +9,8 @@ import space from 'app/styles/space';
 import {Client} from 'app/api';
 import SentryTypes from 'app/sentryTypes';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {IconWarning} from 'app/icons';
+import theme from 'app/utils/theme';
 import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter, {TagSegment} from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
@@ -108,13 +110,18 @@ class Tags extends React.Component<Props, State> {
 
       return segment;
     });
-
+    // Ensure we don't show >100% if there's a slight mismatch between the facets
+    // endpoint and the totals endpoint
+    const maxTotalValues =
+      segments.length > 0
+        ? Math.max(Number(totalValues), segments[0].count)
+        : totalValues;
     return (
       <TagDistributionMeter
         key={tag.key}
         title={tag.key}
         segments={segments}
-        totalValues={Number(totalValues)}
+        totalValues={Number(maxTotalValues)}
         renderLoading={() => <StyledPlaceholder height="16px" />}
         onTagClick={this.onTagClick}
       />
@@ -145,7 +152,12 @@ class Tags extends React.Component<Props, State> {
     if (tags.length > 0) {
       return tags.map(tag => this.renderTag(tag));
     } else {
-      return <EmptyStateWarning small>{t('No tags')}</EmptyStateWarning>;
+      return (
+        <StyledError>
+          <StyledIconWarning color={theme.gray2} size="lg" />
+          {t('No tags found')}
+        </StyledError>
+      );
     }
   };
 
@@ -166,6 +178,16 @@ export const StyledHeading = styled(SectionHeading)`
 
 export const TagSection = styled('div')`
   margin: ${space(2)} 0;
+`;
+
+const StyledError = styled('div')`
+  color: ${p => p.theme.gray2};
+  display: flex;
+  align-items: center;
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  margin-right: ${space(1)};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`

@@ -4,14 +4,15 @@ import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import uniqBy from 'lodash/uniqBy';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
-import {SavedQuery, NewQuery} from 'app/types';
+import {SavedQuery, NewQuery, SelectValue} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
-import {SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
+import {SPECIAL_FIELDS, FIELD_FORMATTERS, CHART_AXIS_OPTIONS} from './data';
 import {
   MetaType,
   EventQuery,
@@ -707,6 +708,13 @@ class EventView {
     fields.splice(columnIndex, 1);
     newEventView.fields = fields;
 
+    // Ensure there is at least one auto width column
+    // To ensure a well formed table results.
+    const hasAutoIndex = fields.find(field => field.width === COL_WIDTH_UNDEFINED);
+    if (!hasAutoIndex) {
+      newEventView.fields[0].width = COL_WIDTH_UNDEFINED;
+    }
+
     // if the deleted column is one of the sorted columns, we need to remove
     // it from the list of sorts
     const columnToBeDeleted = this.fields[columnIndex];
@@ -903,6 +911,45 @@ class EventView {
     newEventView.sorts = [sort];
 
     return newEventView;
+  }
+
+  getYAxisOptions(): SelectValue<string>[] {
+    // Make option set and add the default options in.
+    return uniqBy(
+      this.getAggregateFields()
+        // Exclude last_seen and latest_event as they don't produce useful graphs.
+        .filter(
+          (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
+        )
+        .map((field: Field) => {
+          return {label: field.field, value: field.field};
+        })
+        .concat(CHART_AXIS_OPTIONS),
+      'value'
+    );
+  }
+
+  getYAxis(): string {
+    const yAxisOptions = this.getYAxisOptions();
+
+    const yAxis = this.yAxis;
+
+    const defaultOption = yAxisOptions[0].value;
+
+    if (!yAxis) {
+      return defaultOption;
+    }
+
+    // ensure current selected yAxis is one of the items in yAxisOptions
+    const result = yAxisOptions.findIndex((option: SelectValue<string>) => {
+      return option.value === yAxis;
+    });
+
+    if (result >= 0) {
+      return yAxis;
+    }
+
+    return defaultOption;
   }
 }
 

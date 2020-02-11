@@ -114,6 +114,51 @@ class TestAlertRuleSerializer(TestCase):
         )
         self.run_fail_validation_test({"aggregation": 50}, {"aggregation": invalid_values})
 
+    def test_simple_below_threshold(self):
+        payload = {
+            "name": "hello_im_a_test",
+            "time_window": 10,
+            "query": "level:error",
+            "threshold_type": 0,
+            "resolve_threshold": 1,
+            "alert_threshold": 0,
+            "aggregation": 0,
+            "threshold_period": 1,
+            "projects": [self.project.slug],
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 98,
+                    "resolveThreshold": None,
+                    "thresholdType": 1,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                }
+            ],
+        }
+        serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
+
+        assert serializer.is_valid(), serializer.errors
+
+        # Now do a two trigger test:
+        payload["triggers"].append(
+            {
+                "label": "warning",
+                "alertThreshold": 99,
+                "resolveThreshold": 100,
+                "thresholdType": 1,
+                "actions": [
+                    {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                    {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
+                ],
+            }
+        )
+
+        serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
+
+        assert serializer.is_valid(), serializer.errors
+
     def _run_changed_fields_test(self, alert_rule, params, expected):
         test_params = self.valid_params.copy()
         test_params.update(params)

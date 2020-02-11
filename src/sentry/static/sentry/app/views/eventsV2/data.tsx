@@ -25,6 +25,12 @@ export const AGGREGATE_ALIASES = [
   'latest_event',
 ] as const;
 
+// default list of yAxis options
+export const CHART_AXIS_OPTIONS = [
+  {label: 'count(id)', value: 'count(id)'},
+  {label: 'count_unique(users)', value: 'count_unique(user)'},
+];
+
 export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   id: undefined,
   name: t('All Events'),
@@ -219,7 +225,7 @@ export const SPECIAL_FIELDS: SpecialFields = {
     },
   },
   issue: {
-    sortField: 'issue',
+    sortField: null,
     renderFunc: (data, {organization}) => {
       const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
       return (

@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconEdit} from 'app/icons/iconEdit';
 import PageHeading from 'app/components/pageHeading';
 
 import {
@@ -188,7 +188,7 @@ class Result extends React.Component<ResultProps, ResultState> {
           {getDynamicText({value: this.props.savedQuery!.name, fixed: 'saved query'})}
         </PageHeading>
         <SavedQueryAction onClick={this.props.onToggleEdit}>
-          <InlineSvg src="icon-edit" />
+          <IconEdit />
         </SavedQueryAction>
       </React.Fragment>
     );

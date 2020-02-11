@@ -5,13 +5,14 @@ import sentry
 import six
 
 from django import forms
-from requests import HTTPError
 
-from sentry import http
+from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.bases import notify
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+
+from .client import OpsGenieApiClient
 
 
 class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
@@ -70,8 +71,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
             "source": "Sentry",
             "details": {
                 "Sentry ID": six.text_type(group.id),
-                "Sentry Group": getattr(group, "message_short", group.message).encode("utf-8"),
-                "Checksum": group.checksum,
+                "Sentry Group": getattr(group, "title", group.message).encode("utf-8"),
                 "Project ID": group.project.slug,
                 "Project Name": group.project.name,
                 "Logger": group.logger,
@@ -93,17 +93,15 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
         if not self.is_configured(group.project):
             return
 
-        api_key = self.get_option("api_key", group.project)
-        recipients = self.get_option("recipients", group.project)
-        alert_url = self.get_option("alert_url", group.project)
-
+        client = self.get_client(group.project)
         payload = self.build_payload(group, event, triggering_rules)
+        try:
+            client.trigger_incident(payload)
+        except Exception as e:
+            self.raise_error(e)
 
-        headers = {"Authorization": "GenieKey " + api_key}
-
-        if recipients:
-            payload["recipients"] = recipients
-
-        resp = http.safe_urlopen(alert_url, json=payload, headers=headers)
-        if not resp.ok:
-            raise HTTPError("Unsuccessful response from OpsGenie: %s" % resp.json())
+    def get_client(self, project):
+        api_key = self.get_option("api_key", project)
+        alert_url = self.get_option("alert_url", project)
+        recipients = self.get_option("recipients", project)
+        return OpsGenieApiClient(api_key, alert_url, recipients)

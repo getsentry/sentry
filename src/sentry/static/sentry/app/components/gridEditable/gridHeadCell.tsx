@@ -1,6 +1,7 @@
 import React from 'react';
 
 import InlineSvg from 'app/components/inlineSvg';
+import {IconEdit} from 'app/icons/iconEdit';
 
 import {
   GridHeadCell as GridHeadCellWrapper,
@@ -110,7 +111,7 @@ class GridHeadCell<Column extends GridColumnHeader> extends React.Component<
 
           <div>
             <GridHeadCellButtonHoverButton onClick={this.toggleModal}>
-              <InlineSvg src="icon-edit-pencil" />
+              <IconEdit size="xs" />
             </GridHeadCellButtonHoverButton>
             {deleteButton}
           </div>

@@ -81,6 +81,7 @@ export const FIELDS = {
   environment: 'string',
   release: 'string',
   issue: 'string',
+  dist: 'string',
 
   message: 'string',
   location: 'string',
@@ -143,6 +144,8 @@ export const FIELDS = {
   'transaction.duration': 'duration',
   'transaction.op': 'string',
   'transaction.status': 'string',
+  // TODO when these become real functions, we need to revisit how
+  // their types are inferred in decodeColumnOrder()
   apdex: 'number',
   impact: 'number',
   error_rate: 'number',
