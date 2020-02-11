@@ -173,15 +173,11 @@ class Tags extends React.Component<Props, State> {
 
 // These styled components are used in getsentry for a paywall.
 export const StyledHeading = styled(SectionHeading)`
-  margin: 0 0 ${space(1.5)} 0;
+  margin: 0 0 ${space(1)} 0;
 `;
 
 export const TagSection = styled('div')`
-  margin: ${space(2)} 0;
-
-  @media (min-width: ${theme.breakpoints[1]}) {
-    margin: 0 0 ${space(2)} 0;
-  }
+  margin: ${space(0.5)} 0;
 `;
 
 const StyledError = styled('div')`
