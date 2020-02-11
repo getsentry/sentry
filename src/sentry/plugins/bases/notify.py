@@ -12,7 +12,7 @@ from sentry import digests, ratelimits
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.exceptions import PluginError
-from sentry.integrations.exceptions import ApiError
+from sentry_plugins.exceptions import ApiError
 from sentry.plugins.base import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.models import ProjectOption
