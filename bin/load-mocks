@@ -26,10 +26,8 @@ from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_incident,
-    create_incident_activity,
-    create_initial_event_stats_snapshot,
 )
-from sentry.incidents.models import IncidentActivityType, IncidentType, AlertRuleThresholdType
+from sentry.incidents.models import IncidentType, AlertRuleThresholdType
 from sentry.models import (
     Activity,
     Broadcast,
