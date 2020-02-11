@@ -58,6 +58,19 @@ class SentryAppDetailedView extends AsyncComponent<
     return baseEndpoints;
   }
 
+  onLoadAllEndpointsSuccess() {
+    const {
+      organization,
+      params: {appSlug},
+      router,
+    } = this.props;
+
+    return (
+      this.state.sentryApp.status === 'internal' &&
+      router.push(`/settings/${organization.slug}/developer-settings/${appSlug}/`)
+    );
+  }
+
   featureTags(features: IntegrationFeature[]) {
     return features.map(feature => {
       const feat = feature.featureGate.replace(/integrations/g, '');
