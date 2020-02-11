@@ -258,7 +258,7 @@ class Results extends React.Component<Props, State> {
 // These styled components are used in getsentry to create a paywall page.
 // Be careful changing their interfaces.
 
-const StyledPageContent = styled(PageContent)`
+export const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
