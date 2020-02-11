@@ -100,6 +100,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 : []
             }
             disabled={this.state.environments === null}
+            multiple
             isClearable
           />
           <FormField

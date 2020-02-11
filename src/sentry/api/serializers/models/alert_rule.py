@@ -28,12 +28,12 @@ class AlertRuleSerializer(Serializer):
             )
             alert_rule_triggers.append(serialized)
 
-        environments = AlertRuleEnvironment.objects.filter(alert_rule__in=item_list)
-        for environment in environments:
-            alert_rule_environment = result[alert_rules[environment.alert_rule_id]].setdefault(
+        alert_rule_environments = AlertRuleEnvironment.objects.filter(alert_rule__in=item_list)
+        for are in alert_rule_environments:
+            alert_rule_environment = result[alert_rules[are.alert_rule.id]].setdefault(
                 "environment", []
             )
-            alert_rule_environment.append([environment.name])
+            alert_rule_environment.append([are.environment.name])
 
         return result
 
