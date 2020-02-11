@@ -4,6 +4,7 @@ import React from 'react';
 import isString from 'lodash/isString';
 import isNumber from 'lodash/isNumber';
 import isArray from 'lodash/isArray';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
 
 import {isUrl} from 'app/utils';
 
@@ -117,14 +118,28 @@ class ContextData extends React.Component {
   static propTypes = {
     data: PropTypes.any,
     preserveQuotes: PropTypes.bool,
+    withAnnotatedText: PropTypes.bool,
+    meta: PropTypes.any,
   };
 
   static defaultProps = {
     data: null,
+    withAnnotatedText: false,
   };
 
   renderValue = value => {
-    const {preserveQuotes} = this.props;
+    const {preserveQuotes, meta, withAnnotatedText} = this.props;
+
+    function getValueWithAnnotatedText(v, meta) {
+      return (
+        <AnnotatedText
+          value={v}
+          chunks={meta.chunks}
+          remarks={meta.rem}
+          errors={meta.err}
+        />
+      );
+    }
 
     /*eslint no-shadow:0*/
     function walk(value, depth) {
@@ -137,6 +152,11 @@ class ContextData extends React.Component {
       } else if (isString(value)) {
         const valueInfo = analyzeStringForRepr(value);
 
+        const valueToBeReturned =
+          withAnnotatedText && meta
+            ? getValueWithAnnotatedText(valueInfo.repr, meta)
+            : valueInfo.repr;
+
         const out = [
           <span
             key="value"
@@ -146,7 +166,7 @@ class ContextData extends React.Component {
               (valueInfo.isMultiLine ? ' val-string-multiline' : '')
             }
           >
-            {preserveQuotes ? `"${valueInfo.repr}"` : valueInfo.repr}
+            {preserveQuotes ? `"${valueToBeReturned}"` : valueToBeReturned}
           </span>,
         ];
 
@@ -160,7 +180,9 @@ class ContextData extends React.Component {
 
         return out;
       } else if (isNumber(value)) {
-        return <span>{value}</span>;
+        const valueToBeReturned =
+          withAnnotatedText && meta ? getValueWithAnnotatedText(value, meta) : value;
+        return <span>{valueToBeReturned}</span>;
       } else if (isArray(value)) {
         for (i = 0; i < value.length; i++) {
           children.push(
@@ -225,7 +247,13 @@ class ContextData extends React.Component {
   };
 
   render() {
-    const {data, preserveQuotes: _preserveQuotes, ...other} = this.props;
+    const {
+      data,
+      preserveQuotes: _preserveQuotes,
+      withAnnotatedText: _withAnnotatedText,
+      meta: _meta,
+      ...other
+    } = this.props;
 
     return (
       <pre className="val-string" {...other}>
