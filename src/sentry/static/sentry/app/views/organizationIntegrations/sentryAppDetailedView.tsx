@@ -30,11 +30,9 @@ import withOrganization from 'app/utils/withOrganization';
 import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
 import {openModal} from 'app/actionCreators/modal';
-import {
-  NOT_INSTALLED,
-  StatusIndicator,
-} from 'app/views/organizationIntegrations/IntegrationDirectorySentryAppRow';
 import {UninstallButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
+import IntegrationStatus from './integrationStatus';
+import {NOT_INSTALLED} from './constants';
 
 type State = {
   sentryApp: SentryApp;
@@ -353,7 +351,7 @@ const StatusWrapper = styled('div')`
 
 const Status = styled(p => (
   <StatusWrapper>
-    <StatusIndicator {...p} />
+    <IntegrationStatus {...p} />
   </StatusWrapper>
 ))``;
 

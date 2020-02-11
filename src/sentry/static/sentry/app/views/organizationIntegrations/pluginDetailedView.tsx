@@ -23,7 +23,7 @@ import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
-import {Status as StatusComponent} from 'app/views/organizationIntegrations/integrationPluginRow.tsx';
+import IntegrationStatus from './integrationStatus';
 
 type Tab = 'information' | 'configurations';
 const tabs: Tab[] = ['information', 'configurations'];
@@ -321,7 +321,7 @@ const StatusWrapper = styled('div')`
 
 const Status = styled(p => (
   <StatusWrapper>
-    <StatusComponent {...p} />
+    <IntegrationStatus {...p} />
   </StatusWrapper>
 ))``;
 

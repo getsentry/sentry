@@ -29,7 +29,7 @@ import marked, {singleLineRenderer} from 'app/utils/marked';
 import withOrganization from 'app/utils/withOrganization';
 import {growDown, highlight} from 'app/styles/animations';
 import {sortArray} from 'app/utils';
-import {Status as StatusComponent} from 'app/views/organizationIntegrations/integrationProviderRow.tsx';
+import IntegrationStatus from './integrationStatus';
 
 type State = {
   configurations: Integration[];
@@ -388,7 +388,7 @@ const StatusWrapper = styled('div')`
 
 const Status = styled(p => (
   <StatusWrapper>
-    <StatusComponent {...p} />
+    <IntegrationStatus {...p} />
   </StatusWrapper>
 ))``;
 

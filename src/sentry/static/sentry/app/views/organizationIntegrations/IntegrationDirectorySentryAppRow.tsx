@@ -11,9 +11,9 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
 import theme from 'app/utils/theme';
 
-export const INSTALLED = 'Installed';
-export const NOT_INSTALLED = 'Not Installed';
-export const PENDING = 'Pending';
+import {INSTALLED, NOT_INSTALLED, PENDING} from './constants';
+
+import IntegrationStatus from './integrationStatus';
 
 type Props = {
   app: SentryApp;
@@ -34,10 +34,9 @@ export default class IntegrationDirectorySentryAppRow extends React.PureComponen
   renderStatus() {
     const {app} = this.props;
     const status = this.installationStatus;
-
     return (
       <React.Fragment>
-        <StatusIndicator status={status} />
+        <IntegrationStatus status={status} />
         {!this.isPublished && <PublishStatus status={app.status} />}
       </React.Fragment>
     );
@@ -117,27 +116,6 @@ const SentryAppLink = styled(Link)`
 const FlexContainer = styled('div')`
   display: flex;
   align-items: center;
-`;
-const color = {
-  [INSTALLED]: 'success',
-  [NOT_INSTALLED]: 'gray2',
-  [PENDING]: 'yellowOrange',
-};
-
-type StatusIndicatorProps = {status: string; theme?: any};
-
-export const StatusIndicator = styled(({status, ...props}: StatusIndicatorProps) => {
-  return (
-    <FlexContainer>
-      <CircleIndicator size={6} color={theme[color[status]]} />
-      <div {...props}>{t(`${status}`)}</div>
-    </FlexContainer>
-  );
-})`
-  color: ${(props: StatusIndicatorProps) => props.theme[color[props.status]]};
-  margin-left: ${space(0.5)};
-  font-weight: light;
-  margin-right: ${space(0.75)};
 `;
 
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};

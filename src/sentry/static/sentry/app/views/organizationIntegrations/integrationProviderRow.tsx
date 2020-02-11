@@ -10,6 +10,7 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {IntegrationProvider, Integration} from 'app/types';
+import IntegrationStatus from './integrationStatus';
 
 type Props = {
   provider: IntegrationProvider;
@@ -44,7 +45,7 @@ export default class ProviderRow extends React.Component<Props> {
               {provider.name}
             </ProviderName>
             <ProviderDetails>
-              <Status enabled={this.isEnabled} />
+              <IntegrationStatus enabled={this.isEnabled} />
               {integrations.length ? (
                 <StyledLink
                   to={`/settings/${slug}/integrations/${provider.key}/?tab=configurations`}
@@ -73,36 +74,6 @@ const ProviderDetails = styled(Flex)`
   align-items: center;
   margin-top: 6px;
   font-size: 0.8em;
-`;
-
-type StatusProps = {
-  enabled: boolean;
-  theme?: any; //TS complains if we don't make this optional
-};
-
-export const Status = styled(
-  withTheme((props: StatusProps) => {
-    const {enabled, theme, ...p} = props;
-    return (
-      <StatusWrapper>
-        <CircleIndicator
-          enabled={enabled}
-          size={6}
-          color={enabled ? theme.success : theme.gray2}
-        />
-        <div {...p}>{enabled ? t('Installed') : t('Not Installed')}</div>
-      </StatusWrapper>
-    );
-  })
-)`
-  color: ${(p: StatusProps) => (p.enabled ? p.theme.success : p.theme.gray2)};
-  margin-left: ${space(0.5)};
-  margin-right: ${space(0.75)};
-`;
-
-const StatusWrapper = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const StyledLink = styled(Link)`
