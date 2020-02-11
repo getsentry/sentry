@@ -40,6 +40,9 @@ def basic_auth(user, password):
     return "Basic " + (user + ":" + password).encode("base64").replace("\n", "")
 
 
+# XXX: can likely remove the dedupe here after notify_users has test coverage;
+#      in theory only cleaned data would make it to the plugin via the form,
+#      and cleaned numbers are deduped already.
 def split_sms_to(data):
     return set(filter(bool, re.split(r"\s*,\s*|\s+", data)))
 
@@ -82,7 +85,7 @@ class TwilioConfigurationForm(forms.Form):
         for phone in phones:
             if not validate_phone(phone):
                 raise forms.ValidationError("{0} is not a valid phone number.".format(phone))
-        return ",".join(sorted(map(clean_phone, phones)))
+        return ",".join(sorted(set(map(clean_phone, phones))))
 
     def clean(self):
         # TODO: Ping Twilio and check credentials (?)
