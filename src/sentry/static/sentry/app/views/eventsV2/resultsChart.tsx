@@ -2,16 +2,15 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
-import uniqBy from 'lodash/uniqBy';
 
-import {Organization, SelectValue} from 'app/types';
+import {Organization} from 'app/types';
 
 import {Panel} from 'app/components/panels';
 import getDynamicText from 'app/utils/getDynamicText';
 import EventsChart from 'app/views/events/eventsChart';
 
 import ChartFooter, {TooltipData} from './chartFooter';
-import EventView, {Field} from './eventView';
+import EventView from './eventView';
 
 const defaultTooltip: TooltipData = {
   values: [],
@@ -32,11 +31,6 @@ type State = {
   tooltipData: TooltipData;
 };
 
-const CHART_AXIS_OPTIONS = [
-  {label: 'count(id)', value: 'count(id)'},
-  {label: 'count_unique(users)', value: 'count_unique(user)'},
-];
-
 export default class ResultsChart extends React.Component<Props, State> {
   state = {
     tooltipData: defaultTooltip,
@@ -49,21 +43,7 @@ export default class ResultsChart extends React.Component<Props, State> {
   render() {
     const {eventView, location, organization, router, total, onAxisChange} = this.props;
 
-    // Make option set and add the default options in.
-    const yAxisOptions: SelectValue<string>[] = uniqBy(
-      eventView
-        .getAggregateFields()
-        // Exclude last_seen and latest_event as they don't produce useful graphs.
-        .filter(
-          (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
-        )
-        .map((field: Field) => {
-          return {label: field.field, value: field.field};
-        })
-        .concat(CHART_AXIS_OPTIONS),
-      'value'
-    );
-    const yAxisValue = eventView.yAxis || yAxisOptions[0].value;
+    const yAxisValue = eventView.getYAxis();
 
     return (
       <StyledPanel onMouseLeave={() => this.handleTooltipUpdate(defaultTooltip)}>
@@ -86,7 +66,7 @@ export default class ResultsChart extends React.Component<Props, State> {
           hoverState={this.state.tooltipData}
           total={total}
           yAxisValue={yAxisValue}
-          yAxisOptions={yAxisOptions}
+          yAxisOptions={eventView.getYAxisOptions()}
           onChange={onAxisChange}
         />
       </StyledPanel>
@@ -95,6 +75,8 @@ export default class ResultsChart extends React.Component<Props, State> {
 }
 
 export const StyledPanel = styled(Panel)`
+  margin: 0;
+
   .echarts-for-react div:first-child {
     width: 100% !important;
   }

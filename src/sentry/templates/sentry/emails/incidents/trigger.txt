@@ -16,7 +16,5 @@ Threshold: {{ threshold }}
 
 {% endif %}
 
-Unsubscribe: {{ unsubscribe_link }}
-
 {% endautoescape %}
 {% endspaceless %}

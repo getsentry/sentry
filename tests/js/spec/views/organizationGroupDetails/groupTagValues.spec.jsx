@@ -24,7 +24,7 @@ describe('GroupTagValues', function() {
     const wrapper = mount(
       <GroupTagValues
         group={group}
-        query={{}}
+        location={{query: {}}}
         params={{orgId: 'org-slug', groupId: group.id, tagKey: 'user'}}
       />,
       routerContext
