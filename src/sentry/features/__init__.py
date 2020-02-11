@@ -61,6 +61,7 @@ default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:transaction-events", OrganizationFeature)  # NOQA
+default_manager.add("organizations:performance-view", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-query", OrganizationFeature)  # NOQA
 default_manager.add("organizations:event-attachments", OrganizationFeature)  # NOQA
@@ -111,6 +112,7 @@ requires_snuba = (
     "organizations:events",
     "organizations:events-v2",
     "organizations:transaction-events",
+    "organizations:performance-view",
     "organizations:global-views",
     "organizations:incidents",
 )
