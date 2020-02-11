@@ -40,6 +40,7 @@ export default class DetailsHeader extends React.Component<Props> {
     const {incident, onStatusChange} = this.props;
 
     const isIncidentOpen = incident && isOpen(incident);
+    const statusLabel = incident ? <Status isSmall incident={incident} /> : null;
 
     return (
       <Access
@@ -48,18 +49,21 @@ export default class DetailsHeader extends React.Component<Props> {
           incident ? <Status isSmall incident={incident} /> : null
         }
       >
-        <DropdownControl
-          data-test-id="status-dropdown"
-          label={incident && <Status isSmall incident={incident} />}
-          menuWidth="180px"
-          alignRight
-          disabled={!isIncidentOpen}
-          buttonProps={{size: 'small', disabled: !incident}}
-        >
-          <StyledMenuItem onSelect={onStatusChange}>
-            <ResolveIcon src="icon-circle-check" /> {t('Resolve this incident')}
-          </StyledMenuItem>
-        </DropdownControl>
+        {isIncidentOpen ? (
+          <DropdownControl
+            data-test-id="status-dropdown"
+            label={statusLabel}
+            menuWidth="180px"
+            alignRight
+            buttonProps={{size: 'small', disabled: !incident}}
+          >
+            <StyledMenuItem onSelect={onStatusChange}>
+              <ResolveIcon src="icon-circle-check" /> {t('Resolve this incident')}
+            </StyledMenuItem>
+          </DropdownControl>
+        ) : (
+          statusLabel
+        )}
       </Access>
     );
   }
