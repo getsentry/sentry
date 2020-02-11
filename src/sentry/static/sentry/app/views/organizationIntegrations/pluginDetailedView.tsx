@@ -64,6 +64,10 @@ class PluginDetailedView extends AsyncComponent<
     return this.state.plugins[0].projectList.length > 0;
   }
 
+  get status() {
+    return this.isEnabled ? 'Installed' : 'Not Installed';
+  }
+
   handleResetConfiguration = (projectId: string) => {
     //make a copy of our project list
     const projectList = this.plugin.projectList.slice();
@@ -170,7 +174,7 @@ class PluginDetailedView extends AsyncComponent<
           <TitleContainer>
             <Flex>
               <Title>{plugin.name}</Title>
-              <Status enabled={this.isEnabled} />
+              <Status status={this.status} />
             </Flex>
             <Flex>{this.featureTags()}</Flex>
           </TitleContainer>
@@ -319,11 +323,11 @@ const StatusWrapper = styled('div')`
   line-height: 1.5em;
 `;
 
-const Status = styled(p => (
+const Status = p => (
   <StatusWrapper>
     <IntegrationStatus {...p} />
   </StatusWrapper>
-))``;
+);
 
 type InformationCardProps = {
   children: React.ReactNode;

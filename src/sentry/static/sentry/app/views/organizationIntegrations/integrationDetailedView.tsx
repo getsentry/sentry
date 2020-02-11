@@ -65,6 +65,10 @@ class IntegrationDetailedView extends AsyncComponent<
     return this.state.configurations.length > 0;
   }
 
+  get status() {
+    return this.isEnabled ? 'Installed' : 'Not Installed';
+  }
+
   getEndpoints(): ([string, string, any] | [string, string])[] {
     const {orgId, providerKey} = this.props.params;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
@@ -218,7 +222,7 @@ class IntegrationDetailedView extends AsyncComponent<
           <TitleContainer>
             <Flex>
               <Title>{information.name}</Title>
-              <Status enabled={this.isEnabled} />
+              <Status status={this.status} />
             </Flex>
             <Flex>
               {information.features.length && this.featureTags(information.features)}
@@ -386,11 +390,11 @@ const StatusWrapper = styled('div')`
   line-height: 1.5em;
 `;
 
-const Status = styled(p => (
+const Status = p => (
   <StatusWrapper>
     <IntegrationStatus {...p} />
   </StatusWrapper>
-))``;
+);
 
 const InformationCard = ({children, alerts, information}: InformationCardProps) => {
   const {metadata} = information;

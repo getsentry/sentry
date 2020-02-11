@@ -20,6 +20,10 @@ export default class PluginRow extends React.Component<Props> {
     return this.props.plugin.projectList.length > 0;
   }
 
+  get status() {
+    return this.isEnabled ? 'Installed' : 'Not Installed';
+  }
+
   render() {
     const {
       plugin,
@@ -36,7 +40,7 @@ export default class PluginRow extends React.Component<Props> {
               {`${plugin.name} ${isLegacy ? '(Legacy)' : ''}`}
             </ProviderName>
             <ProviderDetails>
-              <IntegrationStatus enabled={this.isEnabled} />
+              <IntegrationStatus status={this.status} />
               {plugin.projectList.length ? (
                 <StyledLink
                   to={`/settings/${slug}/plugins/${plugin.slug}/?tab=configurations`}

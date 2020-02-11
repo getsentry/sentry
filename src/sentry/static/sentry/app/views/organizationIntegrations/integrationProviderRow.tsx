@@ -28,6 +28,10 @@ export default class ProviderRow extends React.Component<Props> {
     return this.props.integrations.length > 0;
   }
 
+  get status() {
+    return this.isEnabled ? 'Installed' : 'Not Installed';
+  }
+
   render() {
     const {provider, integrations} = this.props;
     const {
@@ -42,7 +46,7 @@ export default class ProviderRow extends React.Component<Props> {
               {provider.name}
             </ProviderName>
             <ProviderDetails>
-              <IntegrationStatus enabled={this.isEnabled} />
+              <IntegrationStatus status={this.status} />
               {integrations.length ? (
                 <StyledLink
                   to={`/settings/${slug}/integrations/${provider.key}/?tab=configurations`}

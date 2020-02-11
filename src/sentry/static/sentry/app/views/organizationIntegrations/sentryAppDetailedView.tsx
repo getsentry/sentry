@@ -349,10 +349,10 @@ const StatusWrapper = styled('div')`
   line-height: 1.5em;
 `;
 
-const Status = styled(p => (
+const Status = p => (
   <StatusWrapper>
     <IntegrationStatus {...p} />
   </StatusWrapper>
-))``;
+);
 
 export default withOrganization(SentryAppDetailedView);
