@@ -6,6 +6,7 @@ import responses
 import six
 from django.core import mail
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time
 from six.moves.urllib.parse import parse_qs
@@ -109,6 +110,13 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "query": action.alert_rule_trigger.alert_rule.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
             "status": handler.incident_status[IncidentStatus(incident.status)],
+            "environment": "All",
+            "is_critical": False,
+            "is_warning": False,
+            "threshold_direction_string": "<",
+            "time_window": "10 minutes",
+            "triggered_at": timezone.now(),
+            "unsubscribe_link": None,
         }
         assert expected == handler.generate_email_context(status)
 
