@@ -4,15 +4,15 @@ python: 2.7
 
 branches:
   only:
-  - master
+    - master
 
 cache:
   yarn: true
   directories:
     - "${HOME}/virtualenv/python$(python -c 'import platform; print(platform.python_version())')"
-    - "$NODE_DIR"
+    - '$NODE_DIR'
     - node_modules
-    - "${HOME}/google-cloud-sdk"
+    - '${HOME}/google-cloud-sdk'
 
 addons:
   apt:
@@ -35,9 +35,11 @@ env:
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - NODE_OPTIONS=--max-old-space-size=4096
+    - PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
 
 before_install:
   - &pip_install pip install --no-cache-dir "pip>=20.0.2"
+  - '[ "$TRAVIS_BRANCH" != "master" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1'
 
 script:
   # certain commands require sentry init to be run, but this is only true for
@@ -52,11 +54,11 @@ after_failure:
 
 after_script:
   - |
-      coverage_files=$(ls .artifacts/*coverage.xml || true)
-      if [[ -n "$coverage_files" || -f .artifacts/coverage/cobertura-coverage.xml ]]; then
-        pip install -U codecov
-        codecov -e TEST_SUITE
-      fi
+    coverage_files=$(ls .artifacts/*coverage.xml || true)
+    if [[ -n "$coverage_files" || -f .artifacts/coverage/cobertura-coverage.xml ]]; then
+      pip install -U codecov
+      codecov -e TEST_SUITE
+    fi
   - ./bin/yarn global add @zeus-ci/cli
   - $(./bin/yarn global bin)/zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
   - $(./bin/yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
@@ -109,7 +111,6 @@ base_acceptance: &acceptance_default
     - sudo install -m755 ~/chromedriver /usr/local/bin/
   before_script:
     - psql -c 'create database sentry;' -U postgres
-
 
 # each job in the matrix inherits `env/global` and uses everything above,
 # but custom `services`, `before_install`, `install`, and `before_script` directives
@@ -172,14 +173,6 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
-    - python: 2.7
-      name: 'Distribution build'
-      env: TEST_SUITE=dist
-      before_install:
-        - *pip_install
-        - find "$NODE_DIR" -type d -empty -delete
-        - nvm install
-
     - <<: *postgres_default
       name: 'Symbolicator Integration'
       env: TEST_SUITE=symbolicator
@@ -216,7 +209,7 @@ matrix:
       language: node_js
       env: STORYBOOK_BUILD=1
       before_install:
-         # Decrypt the credentials we added to the repo using the key we added with the Travis command line tool
+        # Decrypt the credentials we added to the repo using the key we added with the Travis command line tool
         - openssl aes-256-cbc -K $encrypted_020be61ef175_key -iv $encrypted_020be61ef175_iv -in .travis/storybook-credentials.tar.gz.enc -out credentials.tar.gz -d
         # If the SDK is not already cached, download it and unpack it
         - if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi

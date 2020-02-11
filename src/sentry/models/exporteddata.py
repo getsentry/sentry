@@ -33,12 +33,11 @@ class ExportedData(Model):
 
     organization = FlexibleForeignKey("sentry.Organization")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
+    file = FlexibleForeignKey("sentry.File", null=True, db_constraint=False)
     date_added = models.DateTimeField(default=timezone.now)
     date_finished = models.DateTimeField(null=True)
     date_expired = models.DateTimeField(null=True)
-    storage_url = models.URLField(null=True)
     query_type = BoundedPositiveIntegerField(choices=ExportQueryType.as_choices())
-    # TODO(Leander): Define a jsonschema to enforce query shape
     query_info = JSONField()
 
     @property

@@ -2,7 +2,6 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import moment from 'moment';
-import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -27,7 +26,7 @@ import {Incident} from '../types';
 import SparkLine from './sparkLine';
 import Status from '../status';
 
-const DEFAULT_QUERY_STATUS = '';
+const DEFAULT_QUERY_STATUS = 'open';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
 
@@ -84,7 +83,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderEmpty() {
     return (
       <EmptyStateWarning>
-        <p>{t("You don't have any Incidents yet")}</p>
+        <p>{t("You don't have any Alerts yet")}</p>
       </EmptyStateWarning>
     );
   }
@@ -147,7 +146,7 @@ class IncidentsListContainer extends React.Component<Props> {
 
     const openIncidentsQuery = {...query, status: 'open'};
     const closedIncidentsQuery = {...query, status: 'closed'};
-    const allIncidentsQuery = omit(query, 'status');
+    const allIncidentsQuery = {...query, status: 'all'};
 
     const status = query.status === undefined ? DEFAULT_QUERY_STATUS : query.status;
 
@@ -179,13 +178,6 @@ class IncidentsListContainer extends React.Component<Props> {
 
               <div className="btn-group">
                 <Button
-                  to={{pathname, query: allIncidentsQuery}}
-                  size="small"
-                  className={'btn' + (status === '' ? ' active' : '')}
-                >
-                  {t('All')}
-                </Button>
-                <Button
                   to={{pathname, query: openIncidentsQuery}}
                   size="small"
                   className={'btn' + (status === 'open' ? ' active' : '')}
@@ -198,6 +190,13 @@ class IncidentsListContainer extends React.Component<Props> {
                   className={'btn' + (status === 'closed' ? ' active' : '')}
                 >
                   {t('Resolved')}
+                </Button>
+                <Button
+                  to={{pathname, query: allIncidentsQuery}}
+                  size="small"
+                  className={'btn' + (status === 'all' ? ' active' : '')}
+                >
+                  {t('All')}
                 </Button>
               </div>
             </Actions>
