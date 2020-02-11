@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "allowJs": false,
+    "checkJs": false,
     "alwaysStrict": false,
     "declaration": false,
     "declarationMap": false,
@@ -24,7 +25,8 @@
     "target": "es5",
     "strictBindCallApply": false,
     "experimentalDecorators": true,
-
+    // Skip type checking of all declaration files
+    "skipLibCheck": true,
     "esModuleInterop": true,
     "jsx": "preserve",
     "baseUrl": ".",
@@ -36,5 +38,6 @@
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }
