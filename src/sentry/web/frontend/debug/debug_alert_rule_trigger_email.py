@@ -8,6 +8,7 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     TriggerStatus,
+    IncidentStatus,
 )
 from sentry.models.project import Project
 from sentry.models.organization import Organization
@@ -21,9 +22,14 @@ class DebugAlertRuleTriggerEmailView(View):
         organization = Organization(slug="myorg")
         project = Project(id=30, slug="myproj")
 
-        incident = Incident(identifier=123, organization=organization, title="Something broke")
+        incident = Incident(
+            identifier=123,
+            organization=organization,
+            title="Something broke",
+            status=IncidentStatus.CRITICAL,
+        )
         alert_rule = AlertRule(
-            id=1, organization=organization, aggregation=1, query="is:unresolved"
+            id=1, organization=organization, aggregation=1, query="is:unresolved", time_window=60
         )
         alert_rule_trigger = AlertRuleTrigger(
             id=5, alert_rule=alert_rule, alert_threshold=100, resolve_threshold=50
