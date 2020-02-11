@@ -9,7 +9,7 @@ type Props = {
   event: SentryTypes.Event;
 };
 
-const Sdk = ({event: {data}}: Props) => (
+const EventSdk = ({event: {sdk: data}}: Props) => (
   <EventDataSection type="sdk" title={t('SDK')} wrapTitle>
     <table className="table key-value">
       <tbody>
@@ -34,4 +34,4 @@ const Sdk = ({event: {data}}: Props) => (
   </EventDataSection>
 );
 
-export default Sdk;
+export default EventSdk;

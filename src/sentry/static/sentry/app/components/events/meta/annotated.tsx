@@ -2,12 +2,13 @@ import React from 'react';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import MetaData from 'app/components/events/meta/metaData';
+import {isFunction} from 'app/utils';
 
 type Props<Values> = {
   object: Values;
   objectKey: Extract<keyof Values, string>;
   required?: boolean;
-  children: (value: string | null | React.ReactNode) => React.ReactNode;
+  children: (value: string | null | React.ReactNode) => React.ReactNode | string;
 };
 /**
  * Returns the value of `object[prop]` and returns an annotated component if
@@ -18,22 +19,21 @@ const Annotated = <Values extends {}>({
   object,
   objectKey,
   required = false,
-  ...other
 }: Props<Values>) => (
   <MetaData object={object} prop={objectKey} required={required}>
     {(value, meta) => {
+      let toBeReturned = value;
       if (meta) {
-        value = (
+        toBeReturned = (
           <AnnotatedText
             value={value}
             chunks={meta.chunks}
             remarks={meta.rem}
             errors={meta.err}
-            props={other}
           />
         );
       }
-      return children(value);
+      return isFunction(children) ? children(toBeReturned) : toBeReturned;
     }}
   </MetaData>
 );
