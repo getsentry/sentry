@@ -47,7 +47,8 @@ def process_billing_report(data_export, file):
 
 def process_issue_by_tag(data_export, file):
     """
-    Convert tag payload to a CSV, returns (file_path, file_name) as a tuple
+    Convert the tag query to a CSV, writing it to the provided file.
+    Returns the suggested file name.
     (Adapted from 'src/sentry/web/frontend/group_tag_export.py')
     """
     # Get the pertaining project
