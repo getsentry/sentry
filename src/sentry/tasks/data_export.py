@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import csv
 import tempfile
 
-from contextlib import contextmanager
 from django.db import transaction
 
 from sentry import tagstore
@@ -14,8 +13,8 @@ from sentry.tasks.base import instrumented_task
 SNUBA_MAX_RESULTS = 1000
 
 
-@instrumented_task(name="sentry.tasks.data_export.compile_data", queue="data_export")
-def compile_data(data_export):
+@instrumented_task(name="sentry.tasks.data_export.assemble_download", queue="data_export")
+def assemble_download(data_export):
     # Create a temporary file
     with tempfile.TemporaryFile() as tf:
         # Process the query based on its type
@@ -92,30 +91,29 @@ def process_issue_by_tag(data_export, file):
     file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, file_details)
 
     # Iterate through all the GroupTagValues
-    with start_writer(file, fields) as writer:
-        iteration = 0
-        while True:
-            gtv_list = tagstore.get_group_tag_value_iter(
-                project_id=group.project_id,
-                group_id=group.id,
-                environment_id=None,
-                key=lookup_key,
-                callbacks=callbacks,
-                offset=SNUBA_MAX_RESULTS * iteration,
-            )
-            gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
-            if len(gtv_list_raw) == 0:
-                break
-            writer.writerows(gtv_list_raw)
-            iteration += 1
+    writer = create_writer(file, fields)
+    iteration = 0
+    while True:
+        gtv_list = tagstore.get_group_tag_value_iter(
+            project_id=group.project_id,
+            group_id=group.id,
+            environment_id=None,
+            key=lookup_key,
+            offset=SNUBA_MAX_RESULTS * iteration,
+            callbacks=callbacks,
+        )
+        gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
+        if len(gtv_list_raw) == 0:
+            break
+        writer.writerows(gtv_list_raw)
+        iteration += 1
     return file_name
 
 
-@contextmanager
-def start_writer(file, fields):
+def create_writer(file, fields):
     writer = csv.DictWriter(file, fields)
     writer.writeheader()
-    yield writer
+    return writer
 
 
 def get_file_name(type, custom_string, extension="csv"):
