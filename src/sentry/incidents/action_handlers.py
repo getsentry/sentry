@@ -8,7 +8,6 @@ from django.core.urlresolvers import reverse
 from sentry.incidents.models import AlertRuleTriggerAction, QueryAggregations, TriggerStatus
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
-from sentry.utils.linksign import generate_signed_link
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -76,11 +75,9 @@ class EmailActionHandler(ActionHandler):
     def email_users(self, status):
         email_context = self.generate_email_context(status)
         for user_id, email in self.get_targets():
-            email_context["unsubscribe_link"] = self.generate_unsubscribe_link(user_id)
             self.build_message(email_context, status, user_id).send_async(to=[email])
 
     def build_message(self, context, status, user_id):
-        context["unsubscribe_link"] = self.generate_unsubscribe_link(user_id)
         display = self.status_display[status]
         return MessageBuilder(
             subject=u"Incident Alert Rule {} for Project {}".format(display, self.project.slug),
@@ -88,13 +85,6 @@ class EmailActionHandler(ActionHandler):
             html_template=u"sentry/emails/incidents/trigger.html",
             type="incident.alert_rule_{}".format(display.lower()),
             context=context,
-        )
-
-    def generate_unsubscribe_link(self, user_id):
-        return generate_signed_link(
-            user_id,
-            "sentry-account-email-unsubscribe-project",
-            kwargs={"project_id": self.project.id},
         )
 
     def generate_email_context(self, status):
