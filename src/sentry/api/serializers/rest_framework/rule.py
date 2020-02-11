@@ -56,6 +56,8 @@ class RuleNodeField(serializers.Field):
         # Update data from cleaned form values
         data.update(form.cleaned_data)
 
+        if getattr(form, "_pending_save", False):
+            data["pending_save"] = True
         return data
 
 
@@ -91,6 +93,20 @@ class RuleSerializer(serializers.Serializer):
         if not value:
             raise serializers.ValidationError(u"Must select an action")
         return value
+
+    def validate(self, attrs):
+        # XXX(meredith): For rules that have the Slack integration as an action
+        # we need to check if the channel_id needs to be looked up via an async task.
+        # If the "pending_save" attribute is set we want to bubble that up to the
+        # project_rule(_details) endpoints by setting it on attrs
+        actions = attrs.get("actions", tuple())
+        for action in actions:
+            # remove this attribute because we don't want it to be saved in the rule
+            if action.pop("pending_save", None):
+                attrs["pending_save"] = True
+                break
+
+        return attrs
 
     def save(self, rule):
         rule.project = self.context["project"]

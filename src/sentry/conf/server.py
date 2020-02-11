@@ -297,10 +297,6 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.csrf",
                 "django.template.context_processors.request",
-                "social_auth.context_processors.social_auth_by_name_backends",
-                "social_auth.context_processors.social_auth_backends",
-                "social_auth.context_processors.social_auth_by_type_backends",
-                "social_auth.context_processors.social_auth_login_redirect",
             ]
         },
     }
@@ -812,6 +808,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": False,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": False,
+    # Enable Performance view
+    "organizations:performance-view": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Turns on grouping info.
@@ -1112,11 +1110,6 @@ SENTRY_MAX_HTTP_BODY_SIZE = 4096 * 4  # 16kb
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
 SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
-# how many frames are fat
-SENTRY_MAX_STACKTRACE_FRAMES = 50
-# how many frames there can be at all
-SENTRY_STACKTRACE_FRAMES_HARD_LIMIT = 250
-SENTRY_MAX_EXCEPTIONS = 25
 
 # Gravatar service base url
 SENTRY_GRAVATAR_BASE_URL = "https://secure.gravatar.com"

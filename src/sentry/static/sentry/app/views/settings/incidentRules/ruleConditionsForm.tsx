@@ -100,6 +100,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 : []
             }
             disabled={this.state.environments === null}
+            isClearable
           />
           <FormField
             name="query"
@@ -110,9 +111,10 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               'You can apply standard Sentry filter syntax to filter by status, user, etc.'
             )}
           >
-            {({onChange, onBlur, onKeyDown}) => {
+            {({onChange, onBlur, onKeyDown, value}) => {
               return (
                 <SearchBar
+                  query={value}
                   disabled={disabled}
                   useFormWrapper={false}
                   organization={organization}
@@ -131,6 +133,8 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             choices={Object.entries(TIME_WINDOW_MAP)}
             required
             disabled={disabled}
+            getValue={value => Number(value)}
+            setValue={value => `${value}`}
           />
         </PanelBody>
       </Panel>

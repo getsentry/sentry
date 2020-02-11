@@ -155,10 +155,9 @@ describe('decodeColumnOrder', function() {
   });
 
   it('can decode aggregate functions with no arguments', function() {
-    const results = decodeColumnOrder([{field: 'count()', width: 123}]);
+    let results = decodeColumnOrder([{field: 'count()', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
-
     expect(results[0]).toEqual({
       key: 'count()',
       name: 'count()',
@@ -173,6 +172,12 @@ describe('decodeColumnOrder', function() {
       isSortable: true,
       type: 'number',
     });
+
+    results = decodeColumnOrder([{field: 'p75()', width: 123}]);
+    expect(results[0].type).toEqual('duration');
+
+    results = decodeColumnOrder([{field: 'p99()', width: 123}]);
+    expect(results[0].type).toEqual('duration');
   });
 
   it('can decode elements with aggregate functions with arguments', function() {
@@ -189,7 +194,7 @@ describe('decodeColumnOrder', function() {
       eventViewField: {field: 'avg(transaction.duration)'},
       isDragging: false,
       isSortable: true,
-      type: 'number',
+      type: 'duration',
     });
   });
 });
@@ -310,8 +315,8 @@ describe('getExpandedResults()', function() {
     let result = getExpandedResults(view, {}, {});
 
     expect(result.fields).toEqual([
-      {field: 'id', width: 300}, // expect count() to be converted to id
-      {field: 'timestamp', width: 300},
+      {field: 'id', width: -1}, // expect count() to be converted to id
+      {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
     ]);
@@ -333,8 +338,8 @@ describe('getExpandedResults()', function() {
     result = getExpandedResults(view, {}, {});
 
     expect(result.fields).toEqual([
-      {field: 'id', width: 300}, // expect count() to be converted to id
-      {field: 'timestamp', width: 300},
+      {field: 'id', width: -1}, // expect count() to be converted to id
+      {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
     ]);
@@ -367,10 +372,10 @@ describe('getExpandedResults()', function() {
     result = getExpandedResults(view, {}, {});
 
     expect(result.fields).toEqual([
-      {field: 'timestamp', width: 300},
-      {field: 'id', width: 300},
+      {field: 'timestamp', width: -1},
+      {field: 'id', width: -1},
       {field: 'title'},
-      {field: 'transaction.duration', width: 300},
+      {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
       {field: 'title'},
     ]);
@@ -451,7 +456,7 @@ describe('explodeField', function() {
     expect(explodeField({field: 'foobar'})).toEqual({
       aggregation: '',
       field: 'foobar',
-      width: 300,
+      width: -1,
     });
 
     // has width

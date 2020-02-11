@@ -22,7 +22,7 @@ class UnsubscribeIncidentNotificationsView(UnsubscribeBaseView):
     def build_link(self, instance):
         return absolute_uri(
             reverse(
-                "sentry-incident",
+                "sentry-metric-alert",
                 kwargs={
                     "organization_slug": instance.organization.slug,
                     "incident_id": instance.identifier,

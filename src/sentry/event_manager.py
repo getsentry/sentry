@@ -415,6 +415,7 @@ class EventManager(object):
     def get_data(self):
         return self._data
 
+    @metrics.wraps("event_manager.get_event_instance")
     def _get_event_instance(self, project_id=None):
         data = self._data
         event_id = data.get("event_id")
@@ -545,6 +546,7 @@ class EventManager(object):
                 file=file,
             )
 
+    @metrics.wraps("event_manager.save")
     def save(self, project_id, raw=False, assume_normalized=False, cache_key=None):
         """
         We re-insert events with duplicate IDs into Snuba, which is responsible
@@ -567,10 +569,13 @@ class EventManager(object):
 
         data = self._data
 
-        project = Project.objects.get_from_cache(id=project_id)
-        project._organization_cache = Organization.objects.get_from_cache(
-            id=project.organization_id
-        )
+        with metrics.timer("event_manager.save.project.get_from_cache"):
+            project = Project.objects.get_from_cache(id=project_id)
+
+        with metrics.timer("event_manager.save.organization.get_from_cache"):
+            project._organization_cache = Organization.objects.get_from_cache(
+                id=project.organization_id
+            )
 
         # Pull out the culprit
         culprit = self.get_culprit()
@@ -646,56 +651,64 @@ class EventManager(object):
             pop_tag(data, "user")
             set_tag(data, "sentry:user", event_user.tag_value)
 
-        # At this point we want to normalize the in_app values in case the
-        # clients did not set this appropriately so far.
-        grouping_config = load_grouping_config(
-            get_grouping_config_dict_for_event_data(data, project)
-        )
-        normalize_stacktraces_for_grouping(data, grouping_config)
+        with metrics.timer("event_manager.load_grouping_config"):
+            # At this point we want to normalize the in_app values in case the
+            # clients did not set this appropriately so far.
+            grouping_config = load_grouping_config(
+                get_grouping_config_dict_for_event_data(data, project)
+            )
 
-        for plugin in plugins.for_project(project, version=None):
-            added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
-            if added_tags:
-                # plugins should not override user provided tags
-                for key, value in added_tags:
-                    if get_tag(data, key) is None:
-                        set_tag(data, key, value)
+        with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
+            normalize_stacktraces_for_grouping(data, grouping_config)
 
-        for path, iface in six.iteritems(event.interfaces):
-            for k, v in iface.iter_tags():
-                set_tag(data, k, v)
-            # Get rid of ephemeral interface data
-            if iface.ephemeral:
-                data.pop(iface.path, None)
+        with metrics.timer("event_manager.plugins"):
+            for plugin in plugins.for_project(project, version=None):
+                added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
+                if added_tags:
+                    # plugins should not override user provided tags
+                    for key, value in added_tags:
+                        if get_tag(data, key) is None:
+                            set_tag(data, key, value)
 
-        # The active grouping config was put into the event in the
-        # normalize step before.  We now also make sure that the
-        # fingerprint was set to `'{{ default }}' just in case someone
-        # removed it from the payload.  The call to get_hashes will then
-        # look at `grouping_config` to pick the right parameters.
-        data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
-        apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
+        with metrics.timer("event_manager.set_tags"):
+            for path, iface in six.iteritems(event.interfaces):
+                for k, v in iface.iter_tags():
+                    set_tag(data, k, v)
+                # Get rid of ephemeral interface data
+                if iface.ephemeral:
+                    data.pop(iface.path, None)
 
-        # Here we try to use the grouping config that was requested in the
-        # event.  If that config has since been deleted (because it was an
-        # experimental grouping config) we fall back to the default.
-        try:
-            hashes = event.get_hashes()
-        except GroupingConfigNotFound:
-            data["grouping_config"] = get_grouping_config_dict_for_project(project)
-            hashes = event.get_hashes()
+        with metrics.timer("event_manager.apply_server_fingerprinting"):
+            # The active grouping config was put into the event in the
+            # normalize step before.  We now also make sure that the
+            # fingerprint was set to `'{{ default }}' just in case someone
+            # removed it from the payload.  The call to get_hashes will then
+            # look at `grouping_config` to pick the right parameters.
+            data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
+            apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
+
+        with metrics.timer("event_manager.event.get_hashes"):
+            # Here we try to use the grouping config that was requested in the
+            # event.  If that config has since been deleted (because it was an
+            # experimental grouping config) we fall back to the default.
+            try:
+                hashes = event.get_hashes()
+            except GroupingConfigNotFound:
+                data["grouping_config"] = get_grouping_config_dict_for_project(project)
+                hashes = event.get_hashes()
 
         data["hashes"] = hashes
 
-        # we want to freeze not just the metadata and type in but also the
-        # derived attributes.  The reason for this is that we push this
-        # data into kafka for snuba processing and our postprocessing
-        # picks up the data right from the snuba topic.  For most usage
-        # however the data is dynamically overridden by Event.title and
-        # Event.location (See Event.as_dict)
-        materialized_metadata = self.materialize_metadata()
-        data.update(materialized_metadata)
-        data["culprit"] = culprit
+        with metrics.timer("event_manager.materialize_metadata"):
+            # we want to freeze not just the metadata and type in but also the
+            # derived attributes.  The reason for this is that we push this
+            # data into kafka for snuba processing and our postprocessing
+            # picks up the data right from the snuba topic.  For most usage
+            # however the data is dynamically overridden by Event.title and
+            # Event.location (See Event.as_dict)
+            materialized_metadata = self.materialize_metadata()
+            data.update(materialized_metadata)
+            data["culprit"] = culprit
 
         received_timestamp = event.data.get("received") or float(event.datetime.strftime("%s"))
 
@@ -733,13 +746,13 @@ class EventManager(object):
                     tags={"organization_id": project.organization_id, "platform": platform},
                 )
                 raise
-            else:
-                event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
             event.group = group
         else:
             group = None
             is_new = False
             is_regression = False
+
+        with metrics.timer("event_manager.event_saved_signal"):
             event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
 
         # store a reference to the group id to guarantee validation of isolation
@@ -778,7 +791,9 @@ class EventManager(object):
         if release:
             counters.append((tsdb.models.release, release.id))
 
-        tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
+        with metrics.timer("event_manager.tsdb_incr_group_and_release_counters") as metrics_tags:
+            metrics_tags["has_group"] = "true" if group else "false"
+            tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
         frequencies = []
 
@@ -807,13 +822,14 @@ class EventManager(object):
         # Capture the actual size that goes into node store.
         event_metrics["bytes.stored.event"] = len(json.dumps(dict(event.data.items())))
 
-        # Load attachments first, but persist them at the very last after
-        # posting to eventstream to make sure all counters and eventstream are
-        # incremented for sure.
-        attachments = self.get_attachments(cache_key, event)
-        for attachment in attachments:
-            key = "bytes.stored.%s" % (attachment.type,)
-            event_metrics[key] = (event_metrics.get(key) or 0) + len(attachment.data)
+        if not issueless_event:
+            # Load attachments first, but persist them at the very last after
+            # posting to eventstream to make sure all counters and eventstream are
+            # incremented for sure.
+            attachments = self.get_attachments(cache_key, event)
+            for attachment in attachments:
+                key = "bytes.stored.%s" % (attachment.type,)
+                event_metrics[key] = (event_metrics.get(key) or 0) + len(attachment.data)
 
         # Write the event to Nodestore
         event.data.save()
@@ -828,7 +844,9 @@ class EventManager(object):
                     (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value,))
                 )
 
-            tsdb.record_multi(counters, timestamp=event.datetime, environment_id=environment.id)
+            with metrics.timer("event_manager.tsdb_record_users_affected") as metrics_tags:
+                metrics_tags["has_group"] = "true" if group else "false"
+                tsdb.record_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
         if release:
             if is_new:
@@ -853,24 +871,26 @@ class EventManager(object):
                 project.update(first_event=date)
                 first_event_received.send_robust(project=project, event=event, sender=Project)
 
-        eventstream.insert(
-            group=group,
-            event=event,
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            primary_hash=hashes[0],
-            # We are choosing to skip consuming the event back
-            # in the eventstream if it's flagged as raw.
-            # This means that we want to publish the event
-            # through the event stream, but we don't care
-            # about post processing and handling the commit.
-            skip_consume=raw,
-        )
+        with metrics.timer("event_manager.eventstream.insert"):
+            eventstream.insert(
+                group=group,
+                event=event,
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                primary_hash=hashes[0],
+                # We are choosing to skip consuming the event back
+                # in the eventstream if it's flagged as raw.
+                # This means that we want to publish the event
+                # through the event stream, but we don't care
+                # about post processing and handling the commit.
+                skip_consume=raw,
+            )
 
-        # Do this last to ensure signals get emitted even if connection to the
-        # file store breaks temporarily.
-        self.save_attachments(attachments, event)
+        if not issueless_event:
+            # Do this last to ensure signals get emitted even if connection to the
+            # file store breaks temporarily.
+            self.save_attachments(attachments, event)
 
         metric_tags = {"from_relay": "_relay_processed" in self._data}
 
@@ -885,9 +905,16 @@ class EventManager(object):
         return event
 
     def _get_event_user(self, project, data):
+        with metrics.timer("event_manager.get_event_user") as metrics_tags:
+            return self._get_event_user_impl(project, data, metrics_tags)
+
+    def _get_event_user_impl(self, project, data, metrics_tags):
         user_data = data.get("user")
         if not user_data:
+            metrics_tags["event_has_user"] = "false"
             return
+
+        metrics_tags["event_has_user"] = "true"
 
         ip_address = user_data.get("ip_address")
 
@@ -912,13 +939,17 @@ class EventManager(object):
         cache_key = u"euserid:1:{}:{}".format(project.id, euser.hash)
         euser_id = cache.get(cache_key)
         if euser_id is None:
+            metrics_tags["cache_hit"] = "false"
             try:
                 with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
+                metrics_tags["created"] = "true"
             except IntegrityError:
+                metrics_tags["created"] = "false"
                 try:
                     euser = EventUser.objects.get(project_id=project.id, hash=euser.hash)
                 except EventUser.DoesNotExist:
+                    metrics_tags["created"] = "lol"
                     # why???
                     e_userid = -1
                 else:
@@ -926,6 +957,9 @@ class EventManager(object):
                         euser.update(name=user_data["name"])
                     e_userid = euser.id
                 cache.set(cache_key, e_userid, 3600)
+        else:
+            metrics_tags["cache_hit"] = "true"
+
         return euser
 
     def _find_hashes(self, project, hash_list):

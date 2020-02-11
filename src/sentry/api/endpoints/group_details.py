@@ -291,8 +291,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :param string status: the new status for the issue.  Valid values
                               are ``"resolved"``, ``resolvedInNextRelease``,
                               ``"unresolved"``, and ``"ignored"``.
-        :param string assignedTo: the actor id (or username) of the user or team that should be
-                                  assigned to this issue.
+        :param string assignedTo: the user or team that should be assigned to
+                                  this issue. Can be of the form ``"<user_id>"``,
+                                  ``"user:<user_id>"``, ``"<username>"``,
+                                  ``"<user_primary_email>"``, or ``"team:<team_id>"``.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the

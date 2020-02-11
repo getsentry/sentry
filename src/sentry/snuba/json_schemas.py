@@ -16,15 +16,22 @@ SUBSCRIPTION_PAYLOAD_VERSIONS = {
             "subscription_id": {"type": "string", "minLength": 1},
             "values": {
                 "type": "object",
-                "minProperties": 1,
-                "additionalProperties": {"type": "number"},
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "minProperties": 1,
+                            "additionalProperties": {"type": "number"},
+                        },
+                    }
+                },
+                "required": ["data"],
             },
-            "timestamp": {"type": "number", "minimum": 0},
-            "interval": {"type": "number", "minimum": 0},
-            "partition": {"type": "number"},
-            "offset": {"type": "number"},
+            "timestamp": {"type": "string", "format": "date-time"},
         },
-        "required": ["subscription_id", "values", "timestamp", "interval", "partition", "offset"],
+        "required": ["subscription_id", "values", "timestamp"],
         "additionalProperties": False,
     }
 }

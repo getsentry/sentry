@@ -5,7 +5,14 @@ import logging
 from datetime import timedelta
 from django.utils import timezone
 
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
+from sentry.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorFailure,
+    MonitorStatus,
+    MonitorType,
+)
 from sentry.tasks.base import instrumented_task
 
 
@@ -33,7 +40,7 @@ def check_monitors(current_datetime=None):
     ]
     for monitor in qs:
         logger.info("monitor.missed-checkin", extra={"monitor_id": monitor.id})
-        monitor.mark_failed()
+        monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
 
     qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related("monitor")[
         :10000
@@ -62,4 +69,4 @@ def check_monitors(current_datetime=None):
             status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
         ).exists()
         if not has_newer_result:
-            monitor.mark_failed()
+            monitor.mark_failed(reason=MonitorFailure.DURATION)
