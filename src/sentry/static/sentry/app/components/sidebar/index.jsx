@@ -268,9 +268,11 @@ class Sidebar extends React.Component {
       sidebarState.events = true;
     }
 
-    // TODO(mark) Once discover2 is on for all accounts if an organization
-    // doesn't have events, or discover-basic sidebarState.discover2 should = true
-    // so that we can show an upsell.
+    // If an organization doesn't have events, or discover-basic
+    // Enable the tab so we can show an upsell state in saas.
+    if (!sidebarState.events) {
+      sidebarState.discover2 = true;
+    }
 
     return sidebarState;
   }
