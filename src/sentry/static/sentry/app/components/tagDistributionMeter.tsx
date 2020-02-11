@@ -14,6 +14,7 @@ import Version from 'app/components/versionV2';
 
 type DefaultProps = {
   isLoading: boolean;
+  showReleasePackage: boolean;
   hasError: boolean;
   renderLoading: () => React.ReactNode;
   renderEmpty: () => React.ReactNode;
@@ -68,10 +69,18 @@ export default class TagDistributionMeter extends React.Component<Props> {
     renderLoading: () => null,
     renderEmpty: () => <p>{t('No recent data.')}</p>,
     renderError: () => null,
+    showReleasePackage: false,
   };
 
   renderTitle() {
-    const {segments, totalValues, title, isLoading, hasError} = this.props;
+    const {
+      segments,
+      totalValues,
+      title,
+      isLoading,
+      hasError,
+      showReleasePackage,
+    } = this.props;
 
     if (!Array.isArray(segments) || segments.length <= 0) {
       return (
@@ -89,7 +98,12 @@ export default class TagDistributionMeter extends React.Component<Props> {
     switch (title) {
       case 'release':
         label = (
-          <Version version={largestSegment.name} anchor={false} tooltipRawVersion />
+          <Version
+            version={largestSegment.name}
+            anchor={false}
+            tooltipRawVersion
+            withPackage={showReleasePackage}
+          />
         );
         break;
       default:
@@ -118,6 +132,7 @@ export default class TagDistributionMeter extends React.Component<Props> {
       renderLoading,
       renderError,
       renderEmpty,
+      showReleasePackage,
     } = this.props;
 
     if (isLoading) {
@@ -139,9 +154,15 @@ export default class TagDistributionMeter extends React.Component<Props> {
           const pctLabel = Math.floor(pct);
 
           let tooltipValue: React.ReactNode = null;
-          switch (value.key) {
+          switch (title) {
             case 'release':
-              tooltipValue = <Version version={value.name} anchor={false} />;
+              tooltipValue = (
+                <Version
+                  version={value.name}
+                  anchor={false}
+                  withPackage={showReleasePackage}
+                />
+              );
               break;
             default:
               tooltipValue = value.name || t('n/a');

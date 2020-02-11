@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Event, OrganizationSummary} from 'app/types';
+import Version from 'app/components/versionV2';
 
 import EventView from './eventView';
 import {getExpandedResults} from './utils';
@@ -27,7 +28,7 @@ const TagsTable = (props: Props) => {
       <StyledTable>
         <tbody>
           {tags.map(tag => {
-            let target;
+            let target, tagValue;
             const tagInQuery = eventView.query.includes(`${tag.key}:`);
             if (!tagInQuery) {
               const nextView = getExpandedResults(
@@ -37,16 +38,25 @@ const TagsTable = (props: Props) => {
               );
               target = nextView.getResultsViewUrlTarget(organization.slug);
             }
+
+            switch (tag.key) {
+              case 'release':
+                tagValue = <Version version={tag.value} anchor={false} withPackage />;
+                break;
+              default:
+                tagValue = tag.value;
+            }
+
             return (
               <StyledTr key={tag.key}>
                 <TagKey>{tag.key}</TagKey>
                 <TagValue>
                   {tagInQuery ? (
                     <Tooltip title={t('This tag is in the current filter conditions')}>
-                      <span>{tag.value}</span>
+                      <span>{tagValue}</span>
                     </Tooltip>
                   ) : (
-                    <Link to={target}>{tag.value}</Link>
+                    <Link to={target}>{tagValue}</Link>
                   )}
                 </TagValue>
               </StyledTr>

@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Release} from '@sentry/release-parser';
 import styled from '@emotion/styled';
 
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
@@ -10,22 +9,42 @@ import {IconCopy} from 'app/icons';
 import Clipboard from 'app/components/clipboard';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {formatVersion} from 'app/utils/formatters';
 
 type Props = {
+  /**
+   * Raw version (canonical release identifier)
+   */
   version: string;
+  /**
+   * Should the version be a link to the release page
+   */
   anchor?: boolean;
+  /**
+   * Organization id needed for linking to release page
+   */
   orgId?: string;
   /**
    * Should link to Release preserve user's global selection values
    */
   preserveGlobalSelection?: boolean;
+  /**
+   * Should there be a tooltip with raw version on hover
+   */
   tooltipRawVersion?: boolean;
+  /**
+   * Should we also show package name
+   */
+  withPackage?: boolean;
   /**
    * Will add project project ID to the linked url
    */
   projectId?: string;
-  className?: string;
+  /**
+   * Ellipsis on overflow
+   */
   truncate?: boolean;
+  className?: string;
 };
 
 const Version = ({
@@ -34,33 +53,32 @@ const Version = ({
   anchor = true,
   preserveGlobalSelection,
   tooltipRawVersion,
+  withPackage,
   projectId,
   className,
   truncate,
 }: Props) => {
-  const parsedVersion = new Release(version);
   const LinkComponent = preserveGlobalSelection ? GlobalSelectionLink : Link;
+  const versionToDisplay = formatVersion(version, withPackage);
 
   const renderVersion = () => {
     if (anchor && orgId) {
       return (
         <LinkComponent
           to={{
-            pathname: `/organizations/${orgId}/releases/${encodeURIComponent(
-              parsedVersion.raw
-            )}/`,
+            pathname: `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
             query: {project: projectId},
           }}
           className={className}
         >
-          <VersionText truncate={truncate}>{parsedVersion.describe()}</VersionText>
+          <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
         </LinkComponent>
       );
     }
 
     return (
       <VersionText className={className} truncate={truncate}>
-        {parsedVersion.describe()}
+        {versionToDisplay}
       </VersionText>
     );
   };
@@ -72,9 +90,9 @@ const Version = ({
           e.stopPropagation();
         }}
       >
-        <TooltipVersionWrapper>{parsedVersion.raw}</TooltipVersionWrapper>
+        <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
 
-        <Clipboard value={parsedVersion.raw}>
+        <Clipboard value={version}>
           <TooltipClipboardIconWrapper>
             <IconCopy size="xs" color="white" />
           </TooltipClipboardIconWrapper>

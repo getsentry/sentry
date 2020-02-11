@@ -7,6 +7,7 @@ import Duration from 'app/components/duration';
 import YAxisSelector from 'app/views/events/yAxisSelector';
 import {getFormattedDate} from 'app/utils/dates';
 import space from 'app/styles/space';
+import Version from 'app/components/versionV2';
 
 import {decodeColumnOrder} from './utils';
 import {ChartControls, InlineContainer, SectionHeading} from './styles';
@@ -29,10 +30,18 @@ type Props = {
   hoverState: TooltipData;
 };
 
-function formatValue(val: string | number, columnName: string) {
+function formatValue(val: string | number, columnName: string, itemName: string) {
   // Extract metadata from the columnName so we can format the
   // value appropriately.
   const columnData = decodeColumnOrder([{field: columnName}])[0];
+
+  if (itemName === 'Release') {
+    return (
+      <Value>
+        <Version version={val as string} anchor={false} withPackage />
+      </Value>
+    );
+  }
 
   if (val === null || val === undefined) {
     return <Value>-</Value>;
@@ -70,7 +79,7 @@ export default function ChartFooter({
     );
     hoverState.values.forEach(item => {
       elements.push(<SectionHeading>{item.name}</SectionHeading>);
-      elements.push(formatValue(item.value, yAxisValue));
+      elements.push(formatValue(item.value, yAxisValue, item.name));
     });
   }
 
