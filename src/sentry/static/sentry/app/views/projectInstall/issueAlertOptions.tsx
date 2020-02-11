@@ -11,6 +11,8 @@ import * as Sentry from '@sentry/browser';
 import isEqual from 'lodash/isEqual';
 import space from 'app/styles/space';
 import PageHeading from 'app/components/pageHeading';
+import withOrganization from 'app/utils/withOrganization';
+import {Organization} from 'app/types';
 
 enum MetricValues {
   ERRORS,
@@ -35,6 +37,7 @@ const METRIC_CONDITION_MAP = {
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = AsyncComponent['props'] & {
+  organization: Organization;
   onChange: StateUpdater;
 };
 
@@ -214,7 +217,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): [string, string][] {
-    return [['conditions', '/projects/rule-conditions/']];
+    return [['conditions', `/projects/${this.props.organization.slug}/rule-conditions/`]];
   }
 
   onLoadAllEndpointsSuccess(): void {
@@ -265,7 +268,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
   }
 }
 
-export default IssueAlertOptions;
+export default withOrganization(IssueAlertOptions);
 
 const CustomizeAlertsGrid = styled('div')`
   display: grid;
