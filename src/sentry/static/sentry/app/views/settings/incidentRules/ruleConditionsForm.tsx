@@ -96,7 +96,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             placeholder={t('All environments')}
             choices={
               defined(this.state.environments)
-                ? this.state.environments.map((env: Environment) => [env.id, env.name])
+                ? this.state.environments.map((env: Environment) => [env.name, env.name])
                 : []
             }
             disabled={this.state.environments === null}
