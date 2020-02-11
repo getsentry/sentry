@@ -1,10 +1,7 @@
-import {withTheme} from 'emotion-theming';
 import React from 'react';
 import styled from '@emotion/styled';
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
-import CircleIndicator from 'app/components/circleIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 import {PluginWithProjectList, Organization} from 'app/types';

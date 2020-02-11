@@ -6,12 +6,10 @@ import styled from '@emotion/styled';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import CircleIndicator from 'app/components/circleIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
-import theme from 'app/utils/theme';
 
-import {INSTALLED, NOT_INSTALLED, PENDING} from './constants';
+import {NOT_INSTALLED} from './constants';
 
 import IntegrationStatus from './integrationStatus';
 
