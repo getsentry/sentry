@@ -41,10 +41,8 @@ class MiniGraph extends React.Component<Props> {
     const apiPayload = eventView.getEventsAPIPayload(location);
 
     const query = apiPayload.query;
-    const start = apiPayload.start
-      ? getUtcToLocalDateObject(apiPayload.start)
-      : undefined;
-    const end = apiPayload.end ? getUtcToLocalDateObject(apiPayload.end) : undefined;
+    const start = apiPayload.start ? getUtcToLocalDateObject(apiPayload.start) : null;
+    const end = apiPayload.end ? getUtcToLocalDateObject(apiPayload.end) : null;
     const period: string | undefined = apiPayload.statsPeriod as any;
 
     return {
