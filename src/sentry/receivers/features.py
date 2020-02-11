@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.cache import cache
 from django.db.models import F
 from django.db.models.signals import post_save
 
@@ -83,14 +82,6 @@ def record_first_event(project, **kwargs):
     )
 
 
-def record_has_sourcemaps(project):
-    cache_key = "has_sourcemaps:project:{}".format(project.id)
-    if cache.get(cache_key) is None:
-        if not project.flags.has_sourcemaps:
-            project.update(flags=F("flags").bitor(Project.flags.has_sourcemaps))
-        cache.set(cache_key, True, 3600)
-
-
 @event_processed.connect(weak=False)
 def record_event_processed(project, event, **kwargs):
     feature_slugs = []
@@ -126,7 +117,9 @@ def record_event_processed(project, event, **kwargs):
     # Sourcemaps
     if has_sourcemap(event):
         feature_slugs.append("source_maps")
-        record_has_sourcemaps(project)
+
+        if not project.flags.has_sourcemaps:
+            project.update(flags=F("flags").bitor(Project.flags.has_sourcemaps))
 
     # Breadcrumbs
     if event.data.get("breadcrumbs"):

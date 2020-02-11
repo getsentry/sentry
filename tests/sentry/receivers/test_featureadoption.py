@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.cache import cache
 from django.utils import timezone
 
 from sentry.models import FeatureAdoption, GroupAssignee, GroupTombstone, Rule
@@ -291,6 +290,8 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         assert custom_tags
 
     def test_source_maps(self):
+        assert not self.project.flags.has_sourcemaps
+
         event = self.store_event(
             data={
                 "platform": "javascript",
@@ -313,7 +314,6 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        assert not self.project.flags.has_sourcemaps
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         source_maps = FeatureAdoption.objects.get_by_slug(
@@ -322,8 +322,6 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         assert source_maps
 
         assert self.project.flags.has_sourcemaps
-        cache_key = "has_sourcemaps:project:{}".format(self.project.id)
-        assert cache.get(cache_key)
 
     def test_breadcrumbs(self):
         event = self.store_event(
