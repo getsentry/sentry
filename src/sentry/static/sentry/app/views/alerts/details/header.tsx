@@ -43,27 +43,24 @@ export default class DetailsHeader extends React.Component<Props> {
     const statusLabel = incident ? <Status isSmall incident={incident} /> : null;
 
     return (
-      <Access
-        access={['org:write']}
-        renderNoAccessMessage={() =>
-          incident ? <Status isSmall incident={incident} /> : null
+      <Access access={['org:write']}>
+        {({hasAccess}) =>
+          hasAccess && isIncidentOpen ? (
+            <DropdownControl
+              data-test-id="status-dropdown"
+              label={statusLabel}
+              menuWidth="180px"
+              alignRight
+              buttonProps={{size: 'small', disabled: !incident}}
+            >
+              <StyledMenuItem onSelect={onStatusChange}>
+                <ResolveIcon src="icon-circle-check" /> {t('Resolve this incident')}
+              </StyledMenuItem>
+            </DropdownControl>
+          ) : (
+            statusLabel
+          )
         }
-      >
-        {isIncidentOpen ? (
-          <DropdownControl
-            data-test-id="status-dropdown"
-            label={statusLabel}
-            menuWidth="180px"
-            alignRight
-            buttonProps={{size: 'small', disabled: !incident}}
-          >
-            <StyledMenuItem onSelect={onStatusChange}>
-              <ResolveIcon src="icon-circle-check" /> {t('Resolve this incident')}
-            </StyledMenuItem>
-          </DropdownControl>
-        ) : (
-          statusLabel
-        )}
       </Access>
     );
   }
