@@ -4,20 +4,12 @@ import CircleIndicator from 'app/components/circleIndicator';
 import theme from 'app/utils/theme';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {withTheme} from 'emotion-theming';
 
 import {colors} from './constants';
 
 type StatusProps = {
-  status: string;
+  status: 'Installed' | 'Not Installed' | 'Pending';
 };
-
-// const IntegrationStatus = (props: StatusProps) => {
-//   const {status} = props;
-//   // const color = status ? theme[colors[status]] : enabled ? theme.success : theme.gray2;
-//   // const value = status ? status : enabled ? 'Installed' : 'Not Installed';
-//   return <Status status={status} />;
-// };
 
 const StatusWrapper = styled('div')`
   display: flex;

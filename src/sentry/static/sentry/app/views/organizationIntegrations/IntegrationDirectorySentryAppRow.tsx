@@ -42,7 +42,7 @@ export default class IntegrationDirectorySentryAppRow extends React.PureComponen
 
   get installationStatus() {
     if (this.props.install) {
-      return capitalize(this.props.install.status);
+      return capitalize(this.props.install.status) as 'Installed' | 'Pending';
     }
 
     return NOT_INSTALLED;
