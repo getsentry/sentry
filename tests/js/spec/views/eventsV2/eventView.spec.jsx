@@ -1882,6 +1882,27 @@ describe('EventView.getGlobalSelection', function() {
   });
 });
 
+describe('EventView.generateBlankQueryStringObject', function() {
+  it('should return blank values', function() {
+    const eventView = new EventView({});
+
+    expect(eventView.generateBlankQueryStringObject()).toEqual({
+      id: undefined,
+      name: undefined,
+      fields: undefined,
+      sorts: undefined,
+      query: undefined,
+      project: undefined,
+      start: undefined,
+      end: undefined,
+      statsPeriod: undefined,
+      environment: undefined,
+      yAxis: undefined,
+      cursor: undefined,
+    });
+  });
+});
+
 describe('isAPIPayloadSimilar', function() {
   const state = {
     id: '1234',
@@ -2132,24 +2153,6 @@ describe('isAPIPayloadSimilar', function() {
     });
   });
 
-  describe('generateBlankQueryStringObject', function() {
-    it('should return blank values', function() {
-      const eventView = new EventView({});
-
-      expect(eventView.generateBlankQueryStringObject()).toEqual({
-        id: undefined,
-        name: undefined,
-        fields: undefined,
-        sorts: undefined,
-        query: undefined,
-        project: undefined,
-        start: undefined,
-        end: undefined,
-        statsPeriod: undefined,
-        environment: undefined,
-        yAxis: undefined,
-        cursor: undefined,
-      });
     });
   });
 });
