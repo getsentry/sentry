@@ -108,7 +108,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             ],
             "query": action.alert_rule_trigger.alert_rule.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
-            "status": handler.incident_status[incident.status],
+            "status": handler.incident_status[IncidentStatus(incident.status)],
         }
         assert expected == handler.generate_email_context(status)
 
