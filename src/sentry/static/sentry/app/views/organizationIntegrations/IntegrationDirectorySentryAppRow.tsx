@@ -11,9 +11,9 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
 import theme from 'app/utils/theme';
 
-const INSTALLED = 'Installed';
-const NOT_INSTALLED = 'Not Installed';
-const PENDING = 'Pending';
+export const INSTALLED = 'Installed';
+export const NOT_INSTALLED = 'Not Installed';
+export const PENDING = 'Pending';
 
 type Props = {
   app: SentryApp;
@@ -126,7 +126,7 @@ const color = {
 
 type StatusIndicatorProps = {status: string; theme?: any};
 
-const StatusIndicator = styled(({status, ...props}: StatusIndicatorProps) => {
+export const StatusIndicator = styled(({status, ...props}: StatusIndicatorProps) => {
   return (
     <FlexContainer>
       <CircleIndicator size={6} color={theme[color[status]]} />

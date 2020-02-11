@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import capitalize from 'lodash/capitalize';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Access from 'app/components/acl/access';
@@ -29,6 +30,10 @@ import withOrganization from 'app/utils/withOrganization';
 import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
 import {openModal} from 'app/actionCreators/modal';
+import {
+  NOT_INSTALLED,
+  StatusIndicator,
+} from 'app/views/organizationIntegrations/IntegrationDirectorySentryAppRow';
 import {UninstallButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
 
 type State = {
@@ -67,6 +72,11 @@ class SentryAppDetailedView extends AsyncComponent<
 
   get permissions() {
     return toPermissions(this.state.sentryApp.scopes);
+  }
+
+  get installationStatus() {
+    const install = this.isInstalled();
+    return (install && capitalize(install.status)) || NOT_INSTALLED;
   }
 
   isInstalled = () => {
@@ -194,7 +204,10 @@ class SentryAppDetailedView extends AsyncComponent<
           <Flex>
             <PluginIcon pluginId={sentryApp.slug} size={50} />
             <NameContainer>
-              <Name>{sentryApp.name}</Name>
+              <Flex>
+                <Name>{sentryApp.name}</Name>
+                <Status status={this.installationStatus} />
+              </Flex>
               <Flex>{features.length && this.featureTags(features)}</Flex>
             </NameContainer>
             <IntegrationFeatures {...featureProps}>
@@ -331,5 +344,17 @@ const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
   margin-top: 7px;
   color: ${p => p.theme.success};
 `;
+
+const StatusWrapper = styled('div')`
+  margin-bottom: ${space(1)};
+  padding-left: ${space(2)};
+  line-height: 1.5em;
+`;
+
+const Status = styled(p => (
+  <StatusWrapper>
+    <StatusIndicator {...p} />
+  </StatusWrapper>
+))``;
 
 export default withOrganization(SentryAppDetailedView);
