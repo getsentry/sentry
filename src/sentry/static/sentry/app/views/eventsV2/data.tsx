@@ -13,7 +13,13 @@ import ShortId from 'app/components/shortId';
 import floatFormat from 'app/utils/floatFormat';
 import Version from 'app/components/versionV2';
 
-import {Container, NumberContainer, OverflowLink, StyledDateTime} from './styles';
+import {
+  Container,
+  NumberContainer,
+  OverflowLink,
+  StyledDateTime,
+  VersionContainer,
+} from './styles';
 
 export const PIN_ICON = `image://${pinIcon}`;
 export const AGGREGATE_ALIASES = [
@@ -284,9 +290,9 @@ export const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       return (
         data.release && (
-          <Container>
-            <Version version={data.release} anchor={false} tooltipRawVersion />
-          </Container>
+          <VersionContainer>
+            <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+          </VersionContainer>
         )
       );
     },

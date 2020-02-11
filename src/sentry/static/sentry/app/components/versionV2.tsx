@@ -102,7 +102,12 @@ const Version = ({
   };
 
   return (
-    <Tooltip title={renderTooltipContent()} disabled={!tooltipRawVersion} isHoverable>
+    <Tooltip
+      title={renderTooltipContent()}
+      disabled={!tooltipRawVersion}
+      isHoverable
+      containerDisplayMode={truncate ? 'block' : 'inline-block'}
+    >
       {renderVersion()}
     </Tooltip>
   );

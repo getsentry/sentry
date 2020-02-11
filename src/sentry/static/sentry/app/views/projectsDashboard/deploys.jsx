@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -66,15 +65,16 @@ class Deploy extends React.Component {
         <Environment>{deploy.environment}</Environment>
 
         <StyledTextOverflow>
-          <StyledVersion
+          <Version
             version={deploy.version}
             orgId={organization.slug}
             projectId={project.id}
             tooltipRawVersion
+            truncate
           />
         </StyledTextOverflow>
 
-        <Flex width={90} justifyContent="flex-end">
+        <Flex width={90} justifyContent="flex-end" flexGrow={1} flexShrink={0}>
           <DeployTimeWrapper>
             {getDynamicText({
               value: moment(deploy.dateFinished).fromNow(),
@@ -102,16 +102,11 @@ const Environment = styled(TextOverflow)`
   background-color: ${p => p.theme.offWhite};
   text-align: center;
   border-radius: ${p => p.theme.borderRadius};
+  flex-shrink: 0;
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`
-  display: flex;
-  flex: 1;
   margin-right: 8px;
-`;
-
-const StyledVersion = styled(Version)`
-  ${overflowEllipsis}
 `;
 
 const DeployTimeWrapper = styled('div')`

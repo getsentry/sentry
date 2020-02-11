@@ -35,7 +35,7 @@ function formatValue(val: string | number, columnName: string, itemName: string)
   // value appropriately.
   const columnData = decodeColumnOrder([{field: columnName}])[0];
 
-  if (itemName === 'Release') {
+  if (itemName === t('Release')) {
     return (
       <Value>
         <Version version={val as string} anchor={false} withPackage />

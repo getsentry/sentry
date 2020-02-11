@@ -103,6 +103,7 @@ export default class TagDistributionMeter extends React.Component<Props> {
             anchor={false}
             tooltipRawVersion
             withPackage={showReleasePackage}
+            truncate
           />
         );
         break;
