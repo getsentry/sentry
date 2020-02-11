@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+from django.core.cache import cache
+from django.db.models import F
 from django.db.models.signals import post_save
 
 from sentry import analytics
 from sentry.adoption import manager
-from sentry.models import FeatureAdoption, GroupTombstone, Organization
+from sentry.models import FeatureAdoption, GroupTombstone, Organization, Project
 from sentry.plugins.bases import IssueTrackingPlugin
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -81,6 +83,14 @@ def record_first_event(project, **kwargs):
     )
 
 
+def record_has_sourcemaps(project):
+    cache_key = "has_sourcemaps:project:{}".format(project.id)
+    if cache.get(cache_key) is None:
+        if not project.flags.has_sourcemaps:
+            project.update(flags=F("flags").bitor(Project.flags.has_sourcemaps))
+        cache.set(cache_key, True, 3600)
+
+
 @event_processed.connect(weak=False)
 def record_event_processed(project, event, **kwargs):
     feature_slugs = []
@@ -116,6 +126,7 @@ def record_event_processed(project, event, **kwargs):
     # Sourcemaps
     if has_sourcemap(event):
         feature_slugs.append("source_maps")
+        record_has_sourcemaps(project)
 
     # Breadcrumbs
     if event.data.get("breadcrumbs"):
