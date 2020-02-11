@@ -39,6 +39,7 @@ env:
 
 before_install:
   - &pip_install pip install --no-cache-dir "pip>=20.0.2"
+  - '[ "$TRAVIS_BRANCH" != "master" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1'
 
 script:
   # certain commands require sentry init to be run, but this is only true for
