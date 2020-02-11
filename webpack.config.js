@@ -275,6 +275,7 @@ let appConfig = {
       /dist\/jquery\.js/,
       /jed\/jed\.js/,
       /marked\/lib\/marked\.js/,
+      /terser\/dist\/bundle\.min\.js/,
     ],
   },
   plugins: [
