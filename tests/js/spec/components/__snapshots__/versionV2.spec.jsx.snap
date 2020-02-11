@@ -55,7 +55,7 @@ exports[`Version renders 1`] = `
       >
         <VersionText>
           <span
-            className="css-16sjfe2-VersionText e8gt82y0"
+            className="css-16sjfe2-VersionText e19pxt500"
           >
             1.0.0 (20200101)
           </span>

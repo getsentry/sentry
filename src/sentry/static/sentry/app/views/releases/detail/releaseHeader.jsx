@@ -12,7 +12,7 @@ import PageHeading from 'app/components/pageHeading';
 import ReleaseStats from 'app/components/releaseStats';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 import ReleaseDetailsActions from './releaseDetailActions';

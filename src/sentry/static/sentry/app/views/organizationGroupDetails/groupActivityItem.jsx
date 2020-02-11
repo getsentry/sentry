@@ -7,7 +7,7 @@ import Duration from 'app/components/duration';
 import MemberListStore from 'app/stores/memberListStore';
 import PullRequestLink from 'app/components/pullRequestLink';
 import TeamStore from 'app/stores/teamStore';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 class GroupActivityItem extends React.Component {
   static propTypes = {

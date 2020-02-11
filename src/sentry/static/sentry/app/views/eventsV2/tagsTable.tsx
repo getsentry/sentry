@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Event, OrganizationSummary} from 'app/types';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 import EventView from './eventView';
 import {getExpandedResults} from './utils';

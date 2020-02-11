@@ -14,7 +14,7 @@ import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import InlineSvg from 'app/components/inlineSvg';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 type DefaultProps = {
   hideGuide: boolean;

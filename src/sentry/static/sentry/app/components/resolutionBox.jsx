@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import CommitLink from 'app/components/commitLink';
 import TimeSince from 'app/components/timeSince';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 

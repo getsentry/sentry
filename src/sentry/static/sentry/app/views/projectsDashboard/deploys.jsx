@@ -8,7 +8,7 @@ import Button from 'app/components/button';
 import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import getDynamicText from 'app/utils/getDynamicText';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 const DEPLOY_COUNT = 2;
 

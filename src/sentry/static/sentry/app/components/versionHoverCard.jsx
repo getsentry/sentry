@@ -15,7 +15,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy} from 'app/icons';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 class VersionHoverCard extends React.Component {
   static propTypes = {

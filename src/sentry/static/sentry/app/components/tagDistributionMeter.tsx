@@ -10,7 +10,7 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {percent} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 type DefaultProps = {
   isLoading: boolean;

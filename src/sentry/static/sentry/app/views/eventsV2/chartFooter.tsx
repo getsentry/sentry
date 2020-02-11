@@ -7,7 +7,7 @@ import Duration from 'app/components/duration';
 import YAxisSelector from 'app/views/events/yAxisSelector';
 import {getFormattedDate} from 'app/utils/dates';
 import space from 'app/styles/space';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 import {decodeColumnOrder} from './utils';
 import {ChartControls, InlineContainer, SectionHeading} from './styles';

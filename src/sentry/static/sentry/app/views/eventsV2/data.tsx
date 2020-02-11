@@ -11,7 +11,7 @@ import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
 import ShortId from 'app/components/shortId';
 import floatFormat from 'app/utils/floatFormat';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 import {
   Container,

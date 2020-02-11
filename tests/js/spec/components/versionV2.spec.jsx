@@ -1,6 +1,6 @@
 import React from 'react';
 import {mount} from 'sentry-test/enzyme';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 const VERSION = 'foo.bar.Baz@1.0.0+20200101';
 const ORG_ID = 'sentry';
