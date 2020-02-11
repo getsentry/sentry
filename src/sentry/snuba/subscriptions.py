@@ -15,7 +15,7 @@ query_aggregation_to_snuba = {
 
 
 def bulk_create_snuba_subscriptions(
-    projects, subscription_type, dataset, query, aggregation, time_window, resolution
+    projects, subscription_type, dataset, query, aggregation, time_window, resolution, environment
 ):
     """
     Creates a subscription to a snuba query for each project.
@@ -36,14 +36,21 @@ def bulk_create_snuba_subscriptions(
     for project in projects:
         subscriptions.append(
             create_snuba_subscription(
-                project, subscription_type, dataset, query, aggregation, time_window, resolution
+                project,
+                subscription_type,
+                dataset,
+                query,
+                aggregation,
+                time_window,
+                resolution,
+                environment,
             )
         )
     return subscriptions
 
 
 def create_snuba_subscription(
-    project, subscription_type, dataset, query, aggregation, time_window, resolution
+    project, subscription_type, dataset, query, aggregation, time_window, resolution, environment
 ):
     """
     Creates a subscription to a snuba query.
@@ -63,7 +70,7 @@ def create_snuba_subscription(
     # subscription in postgres and rollback as needed without having to create/delete
     # from Snuba
     subscription_id = _create_in_snuba(
-        project, dataset, query, aggregation, time_window, resolution
+        project, dataset, query, aggregation, time_window, resolution, environment
     )
 
     return QuerySubscription.objects.create(
@@ -78,7 +85,9 @@ def create_snuba_subscription(
     )
 
 
-def bulk_update_snuba_subscriptions(subscriptions, query, aggregation, time_window, resolution):
+def bulk_update_snuba_subscriptions(
+    subscriptions, query, aggregation, time_window, resolution, environment_names
+):
     """
     Updates a list of query subscriptions.
 
@@ -94,12 +103,16 @@ def bulk_update_snuba_subscriptions(subscriptions, query, aggregation, time_wind
     # TODO: Batch this up properly once we move to tasks.
     for subscription in subscriptions:
         updated_subscriptions.append(
-            update_snuba_subscription(subscription, query, aggregation, time_window, resolution)
+            update_snuba_subscription(
+                subscription, query, aggregation, time_window, resolution, environment_names
+            )
         )
     return subscriptions
 
 
-def update_snuba_subscription(subscription, query, aggregation, time_window, resolution):
+def update_snuba_subscription(
+    subscription, query, aggregation, time_window, resolution, environment_names
+):
     """
     Updates a subscription to a snuba query.
 
@@ -121,6 +134,7 @@ def update_snuba_subscription(subscription, query, aggregation, time_window, res
         aggregation,
         time_window,
         resolution,
+        environment_names,
     )
     subscription.update(
         subscription_id=subscription_id,
@@ -157,7 +171,12 @@ def delete_snuba_subscription(subscription):
         _delete_from_snuba(subscription)
 
 
-def _create_in_snuba(project, dataset, query, aggregation, time_window, resolution):
+def _create_in_snuba(
+    project, dataset, query, aggregation, time_window, resolution, environment_names
+):
+    conditions = get_filter(query).conditions
+    if environment_names:
+        conditions.append(["environment", "IN", environment_names])
     response = _snuba_pool.urlopen(
         "POST",
         "/%s/subscriptions" % (dataset.value,),
@@ -168,7 +187,7 @@ def _create_in_snuba(project, dataset, query, aggregation, time_window, resoluti
                 # We only care about conditions here. Filter keys only matter for
                 # filtering to project and groups. Projects are handled with an
                 # explicit param, and groups can't be queried here.
-                "conditions": get_filter(query).conditions,
+                "conditions": conditions,
                 "aggregations": [query_aggregation_to_snuba[aggregation]],
                 "time_window": int(time_window.total_seconds()),
                 "resolution": int(resolution.total_seconds()),

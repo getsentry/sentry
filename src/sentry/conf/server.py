@@ -1068,7 +1068,8 @@ SENTRY_TSDB_OPTIONS = {}
 SENTRY_NEWSLETTER = "sentry.newsletter.base.Newsletter"
 SENTRY_NEWSLETTER_OPTIONS = {}
 
-SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
+# SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
+SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
 SENTRY_EVENTSTREAM_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
