@@ -808,6 +808,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": False,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": False,
+    # Enable Performance view
+    "organizations:performance-view": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Turns on grouping info.
