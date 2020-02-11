@@ -485,7 +485,7 @@ def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
 
 
 def get_alert_rule_environment_names(alert_rule):
-    return [x.environment.name for x in AlertRuleEnvironment.objects.get(alert_rule=alert_rule)]
+    return [x.environment.name for x in AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)]
 
 
 def get_incident_aggregates(incident):
@@ -637,11 +637,11 @@ def create_alert_rule(
             for e in environment:
                 AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=e)
 
-        subscribe_projects_to_alert_rule(alert_rule, projects, environment)
-
         if triggers:
             for trigger_data in triggers:
                 create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+
+        subscribe_projects_to_alert_rule(alert_rule, projects)
 
     return alert_rule
 
@@ -771,20 +771,6 @@ def update_alert_rule(
             # values
             existing_subs = [sub for sub in existing_subs if sub.id]
 
-        if existing_subs and (
-            query is not None or aggregation is not None or time_window is not None
-        ):
-            # If updating any subscription details, update related Snuba subscriptions
-            # too
-            bulk_update_snuba_subscriptions(
-                existing_subs,
-                alert_rule.query,
-                QueryAggregations(alert_rule.aggregation),
-                timedelta(minutes=alert_rule.time_window),
-                timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
-                get_alert_rule_environment_names(alert_rule),
-            )
-
         if environment:
             # Delete rows we don't have present in the updated data.
             AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).exclude(
@@ -817,6 +803,20 @@ def update_alert_rule(
                         "This trigger label is already in use for this alert rule"
                     )
 
+        if existing_subs and (
+            query is not None or aggregation is not None or time_window is not None
+        ):
+            # If updating any subscription details, update related Snuba subscriptions
+            # too
+            bulk_update_snuba_subscriptions(
+                existing_subs,
+                alert_rule.query,
+                QueryAggregations(alert_rule.aggregation),
+                timedelta(minutes=alert_rule.time_window),
+                timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
+                get_alert_rule_environment_names(alert_rule),
+            )
+
     return alert_rule
 
 
@@ -832,6 +832,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
         alert_rule.query,
         QueryAggregations(alert_rule.aggregation),
         timedelta(minutes=alert_rule.time_window),
+        timedelta(minutes=alert_rule.resolution),
         get_alert_rule_environment_names(alert_rule),
     )
     subscription_links = [

@@ -16,7 +16,14 @@ query_aggregation_to_snuba = {
 
 
 def bulk_create_snuba_subscriptions(
-    projects, subscription_type, dataset, query, aggregation, time_window, resolution, environment
+    projects,
+    subscription_type,
+    dataset,
+    query,
+    aggregation,
+    time_window,
+    resolution,
+    environment_names,
 ):
     """
     Creates a subscription to a snuba query for each project.
@@ -30,6 +37,7 @@ def bulk_create_snuba_subscriptions(
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
+    :param environment_names: List of environment names to filter by
     :return: A list of QuerySubscriptions
     """
     subscriptions = []
@@ -44,14 +52,21 @@ def bulk_create_snuba_subscriptions(
                 aggregation,
                 time_window,
                 resolution,
-                environment,
+                environment_names,
             )
         )
     return subscriptions
 
 
 def create_snuba_subscription(
-    project, subscription_type, dataset, query, aggregation, time_window, resolution, environment
+    project,
+    subscription_type,
+    dataset,
+    query,
+    aggregation,
+    time_window,
+    resolution,
+    environment_names,
 ):
     """
     Creates a subscription to a snuba query.
@@ -65,13 +80,14 @@ def create_snuba_subscription(
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
+    :param environment_names: List of environment names to filter by
     :return: The QuerySubscription representing the subscription
     """
     # TODO: Move this call to snuba into a task. This lets us successfully create a
     # subscription in postgres and rollback as needed without having to create/delete
     # from Snuba
     subscription_id = _create_in_snuba(
-        project, dataset, query, aggregation, time_window, resolution, environment
+        project, dataset, query, aggregation, time_window, resolution, environment_names
     )
 
     return QuerySubscription.objects.create(
@@ -98,6 +114,7 @@ def bulk_update_snuba_subscriptions(
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
+    :param environment_names: List of environment names to filter by
     :return: A list of QuerySubscriptions
     """
     updated_subscriptions = []
@@ -122,6 +139,7 @@ def update_snuba_subscription(
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
+    :param environment_names: List of environment names to filter by
     :return: The QuerySubscription representing the subscription
     """
     # TODO: Move this call to snuba into a task. This lets us successfully update a

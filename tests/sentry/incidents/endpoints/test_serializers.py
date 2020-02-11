@@ -102,7 +102,7 @@ class TestAlertRuleSerializer(TestCase):
         env_1 = Environment.objects.create(organization_id=self.organization.id, name="test_env_1")
         env_2 = Environment.objects.create(organization_id=self.organization.id, name="test_env_2")
 
-        base_params.update({"environment": [env_1.id]})
+        base_params.update({"environment": [env_1.name]})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
         alert_rule = serializer.save()
@@ -114,7 +114,7 @@ class TestAlertRuleSerializer(TestCase):
         assert alert_rule_env
 
         base_params.update({"id": alert_rule.id})
-        base_params.update({"environment": [env_1.id, env_2.id]})
+        base_params.update({"environment": [env_1.name, env_2.name]})
         serializer = AlertRuleSerializer(
             context=self.context, instance=alert_rule, data=base_params
         )
@@ -123,7 +123,7 @@ class TestAlertRuleSerializer(TestCase):
 
         assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 2
 
-        base_params.update({"environment": [env_2.id]})
+        base_params.update({"environment": [env_2.name]})
         serializer = AlertRuleSerializer(
             context=self.context, instance=alert_rule, data=base_params
         )
