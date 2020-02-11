@@ -29,6 +29,7 @@ import marked, {singleLineRenderer} from 'app/utils/marked';
 import withOrganization from 'app/utils/withOrganization';
 import {growDown, highlight} from 'app/styles/animations';
 import {sortArray} from 'app/utils';
+import {Status as StatusComponent} from 'app/views/organizationIntegrations/integrationProviderRow.tsx';
 
 type State = {
   configurations: Integration[];
@@ -58,6 +59,10 @@ class IntegrationDetailedView extends AsyncComponent<
 
   getInformation() {
     return this.state.information.providers[0];
+  }
+
+  get isEnabled() {
+    return this.state.configurations.length > 0;
   }
 
   getEndpoints(): ([string, string, any] | [string, string])[] {
@@ -211,7 +216,10 @@ class IntegrationDetailedView extends AsyncComponent<
         <Flex>
           <PluginIcon size={60} pluginId={information.key} />
           <TitleContainer>
-            <Title>{information.name}</Title>
+            <Flex>
+              <Title>{information.name}</Title>
+              <Status enabled={this.isEnabled} />
+            </Flex>
             <Flex>
               {information.features.length && this.featureTags(information.features)}
             </Flex>
@@ -371,6 +379,18 @@ const StyledInstalledIntegration = styled(
   padding: ${space(2)};
   border: 1px solid ${p => p.theme.borderLight};
 `;
+
+const StatusWrapper = styled('div')`
+  margin-bottom: ${space(1)};
+  padding-left: ${space(2)};
+  line-height: 1.5em;
+`;
+
+const Status = styled(p => (
+  <StatusWrapper>
+    <StatusComponent {...p} />
+  </StatusWrapper>
+))``;
 
 const InformationCard = ({children, alerts, information}: InformationCardProps) => {
   const {metadata} = information;
