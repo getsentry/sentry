@@ -100,7 +100,7 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
             callbacks = []
 
         gtv_iter = tagstore.get_group_tag_value_iter(
-            group.project_id, group.id, environment_id, lookup_key, callbacks=callbacks
+            group.project_id, group.id, environment_id, lookup_key, callbacks=callbacks, offset=0
         )
 
         filename = u"{}-{}".format(group.qualified_short_id or group.id, key)
