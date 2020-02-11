@@ -805,6 +805,7 @@ class AuthHelper(object):
             "sso.error",
             tags={"provider": self.provider.key, "flow": self.state.flow},
             skip_internal=False,
+            sample_rate=1.0,
         )
 
         messages.add_message(

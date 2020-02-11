@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import isEqual from 'lodash/isEqual';
 
 import {Organization, GlobalSelection} from 'app/types';
-
+import {PageContent} from 'app/styles/organization';
 import {Client} from 'app/api';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
@@ -15,7 +15,6 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
-import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 
 import SearchBar from 'app/views/events/searchBar';
@@ -33,6 +32,7 @@ import ResultsHeader from './resultsHeader';
 import ResultsChart from './resultsChart';
 import EventView, {isAPIPayloadSimilar} from './eventView';
 import {generateTitle, fetchTotalCount} from './utils';
+import {ContentBox} from './styles';
 
 type Props = {
   api: Client;
@@ -211,42 +211,44 @@ class Results extends React.Component<Props, State> {
       <SentryDocumentTitle title={title} objSlug={organization.slug}>
         <React.Fragment>
           <GlobalSelectionHeader organization={organization} />
-          <NoProjectMessage organization={organization}>
-            <ResultsHeader
-              organization={organization}
-              location={location}
-              eventView={eventView}
-            />
-            <StyledPageContent>
-              <Top>
-                {this.renderError(error)}
-                <StyledSearchBar
-                  organization={organization}
-                  projectIds={eventView.project}
-                  query={query}
-                  onSearch={this.handleSearch}
-                />
-                <ResultsChart
-                  router={router}
-                  organization={organization}
-                  eventView={eventView}
-                  location={location}
-                  onAxisChange={this.handleYAxisChange}
-                  total={totalValues}
-                />
-              </Top>
-              <Main eventView={eventView}>
-                <Table
-                  organization={organization}
-                  eventView={eventView}
-                  location={location}
-                  title={title}
-                  setError={this.setError}
-                />
-              </Main>
-              <Side eventView={eventView}>{this.renderTagsTable()}</Side>
-            </StyledPageContent>
-          </NoProjectMessage>
+          <StyledPageContent>
+            <NoProjectMessage organization={organization}>
+              <ResultsHeader
+                organization={organization}
+                location={location}
+                eventView={eventView}
+              />
+              <ContentBox>
+                <Top>
+                  {this.renderError(error)}
+                  <StyledSearchBar
+                    organization={organization}
+                    projectIds={eventView.project}
+                    query={query}
+                    onSearch={this.handleSearch}
+                  />
+                  <ResultsChart
+                    router={router}
+                    organization={organization}
+                    eventView={eventView}
+                    location={location}
+                    onAxisChange={this.handleYAxisChange}
+                    total={totalValues}
+                  />
+                </Top>
+                <Main eventView={eventView}>
+                  <Table
+                    organization={organization}
+                    eventView={eventView}
+                    location={location}
+                    title={title}
+                    setError={this.setError}
+                  />
+                </Main>
+                <Side eventView={eventView}>{this.renderTagsTable()}</Side>
+              </ContentBox>
+            </NoProjectMessage>
+          </StyledPageContent>
         </React.Fragment>
       </SentryDocumentTitle>
     );
@@ -255,19 +257,9 @@ class Results extends React.Component<Props, State> {
 
 // These styled components are used in getsentry to create a paywall page.
 // Be careful changing their interfaces.
+
 export const StyledPageContent = styled(PageContent)`
-  margin: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: grid;
-    grid-template-columns: 66% auto;
-    align-content: start;
-    grid-gap: ${space(3)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 325px;
-  }
+  padding: 0;
 `;
 
 export const StyledSearchBar = styled(SearchBar)`

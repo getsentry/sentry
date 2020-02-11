@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+import six
 
 from sentry import http
 from sentry.rules.actions.base import EventAction
@@ -118,7 +119,15 @@ class SlackNotifyServiceAction(EventAction):
             resp.raise_for_status()
             resp = resp.json()
             if not resp.get("ok"):
-                self.logger.info("rule.fail.slack_post", extra={"error": resp.get("error")})
+                logging_data = {
+                    "error": resp.get("error"),
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                }
+                self.logger.info(
+                    "rule.fail.slack_post-pre-message: %s" % six.text_type(logging_data)
+                )
+                self.logger.info("rule.fail.slack_post", extra=logging_data)
 
         key = u"slack:{}:{}".format(integration_id, channel)
 
