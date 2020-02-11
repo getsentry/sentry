@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 from enum import Enum
-
+from datetime import timedelta
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -15,6 +15,9 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+
+# Arbitrary, subject to change
+DEFAULT_EXPIRATION = timedelta(weeks=4)
 
 
 class ExportStatus(six.binary_type, Enum):
@@ -48,6 +51,12 @@ class ExportedData(Model):
             return ExportStatus.Expired
         else:
             return ExportStatus.Valid
+
+    def complete_upload(self, file, expiration=DEFAULT_EXPIRATION):
+        current_time = timezone.now()
+        expire_time = current_time + DEFAULT_EXPIRATION
+        self.update(file=file, date_finished=current_time, date_expired=expire_time)
+        # TODO(Leander): Implement email notification
 
     class Meta:
         app_label = "sentry"
