@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import csv
 import tempfile
 
+from contextlib import contextmanager
 from django.db import transaction
 from django.core.files.storage import default_storage
 
@@ -94,24 +95,30 @@ def process_issue_by_tag(data_export, file):
     file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, file_details)
 
     # Iterate through all the GroupTagValues
+    with start_writer(file, fields) as writer:
+        iteration = 0
+        while True:
+            gtv_list = tagstore.get_group_tag_value_iter(
+                project_id=group.project_id,
+                group_id=group.id,
+                environment_id=None,
+                key=lookup_key,
+                callbacks=callbacks,
+                offset=SNUBA_MAX_RESULTS * iteration,
+            )
+            gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
+            if len(gtv_list_raw) == 0:
+                break
+            writer.writerows(gtv_list_raw)
+            iteration += 1
+    return file_name
+
+
+@contextmanager
+def start_writer(file, fields):
     writer = csv.DictWriter(file, fields)
     writer.writeheader()
-    iteration = 0
-    while True:
-        gtv_list = tagstore.get_group_tag_value_iter(
-            project_id=group.project_id,
-            group_id=group.id,
-            environment_id=None,
-            key=lookup_key,
-            callbacks=callbacks,
-            offset=SNUBA_MAX_RESULTS * iteration,
-        )
-        gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
-        if len(gtv_list_raw) == 0:
-            break
-        writer.writerows(gtv_list_raw)
-        iteration += 1
-    return file_name
+    yield writer
 
 
 def get_file_name(type, custom_string, extension="csv"):
