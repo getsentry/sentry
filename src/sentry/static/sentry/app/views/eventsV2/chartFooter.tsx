@@ -61,7 +61,11 @@ export default function ChartFooter({
   if (hoverState.values.length === 0) {
     elements.push(<SectionHeading>{t('Total')}</SectionHeading>);
     elements.push(
-      total === null ? <Value>-</Value> : <Value>{total.toLocaleString()}</Value>
+      total === null ? (
+        <Value data-test-id="loading-placeholder">-</Value>
+      ) : (
+        <Value>{total.toLocaleString()}</Value>
+      )
     );
   } else {
     elements.push(<SectionHeading>{t('Time')}</SectionHeading>);
