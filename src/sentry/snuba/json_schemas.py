@@ -32,6 +32,6 @@ SUBSCRIPTION_PAYLOAD_VERSIONS = {
             "timestamp": {"type": "string", "format": "date-time"},
         },
         "required": ["subscription_id", "values", "timestamp"],
-        "additionalProperties": False,
+        "additionalProperties": True,
     }
 }
