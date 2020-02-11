@@ -66,7 +66,6 @@ node-version-check:
 
 install-yarn-pkgs: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
-	@command -v $(YARN) 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development $(YARN) install --pure-lockfile
 	# A common problem is with node packages not existing in `node_modules` even though `yarn install`
