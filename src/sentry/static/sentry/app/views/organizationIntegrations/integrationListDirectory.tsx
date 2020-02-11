@@ -110,7 +110,7 @@ class OrganizationIntegrations extends AsyncComponent<
 
     const combined = ([] as AppOrProviderOrPlugin[])
       .concat(published)
-      .concat(orgOwned.filter(a => a.status === 'published'))
+      .concat(orgOwned)
       .concat(this.providers)
       .concat(plugins);
 
