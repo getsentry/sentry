@@ -110,7 +110,7 @@ fetch-release-registry:
 	@echo "--> Fetching release registry"
 	@echo "from sentry.utils.distutils import sync_registry; sync_registry()" | sentry exec
 
-test-cli:
+test-cli: ensure-venv
 	@echo "--> Testing CLI"
 	rm -rf test_cli
 	mkdir test_cli
@@ -129,12 +129,12 @@ test-js: node-version-check
 	@echo ""
 
 # builds and creates percy snapshots
-test-styleguide:
+test-styleguide: node-version-check
 	@echo "--> Building and snapshotting styleguide"
 	@$(YARN) run snapshot
 	@echo ""
 
-test-python:
+test-python: ensure-venv
 	sentry init
 	make build-platform-assets
 	@echo "--> Running Python tests"
@@ -145,17 +145,17 @@ else
 endif
 	@echo ""
 
-test-snuba:
+test-snuba: ensure-venv
 	@echo "--> Running snuba tests"
 	py.test tests/snuba tests/sentry/eventstream/kafka -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
-test-symbolicator:
+test-symbolicator: ensure-venv
 	@echo "--> Running symbolicator tests"
 	py.test tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=".artifacts/symbolicator.junit.xml"
 	@echo ""
 
-test-acceptance: node-version-check
+test-acceptance: node-version-check ensure-venv
 	sentry init
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
@@ -168,7 +168,7 @@ endif
 
 	@echo ""
 
-test-plugins:
+test-plugins: ensure-venv
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running plugin tests"
