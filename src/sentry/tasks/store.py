@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import copy
 import logging
 from datetime import datetime
 
@@ -9,6 +10,8 @@ from django.utils import timezone
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import features, reprocessing
+from sentry.relay.config import get_project_config
+from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
@@ -182,6 +185,8 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
         return
 
     data = CanonicalKeyDict(data)
+    data_bak = copy.deepcopy(data.data)
+
     project_id = data["project"]
 
     with configure_scope() as scope:
@@ -227,6 +232,39 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
             )
             return
 
+    assert data["project"] == project_id, "Project cannot be mutated by plugins"
+    project = Project.objects.get_from_cache(id=project_id)
+
+    # Second round of datascrubbing after stacktrace and language-specific
+    # processing. First round happened as part of ingest.
+    #
+    # We assume that all potential PII is produced as part of stacktrace
+    # processors and event enhancers.
+    #
+    # We assume that plugins for eg sessionstack (running via
+    # `plugin.get_event_preprocessors`) are not producing data that should be
+    # PII-stripped, ever.
+    #
+    # XXX(markus): Javascript event error translation is happening after this block
+    # because it uses `get_event_preprocessors` instead of
+    # `get_event_enhancers`, possibly move?
+    if has_changed and features.has(
+        "organizations:datascrubbers-v2", project.organization, actor=None
+    ):
+        with metrics.timer("tasks.store.datascrubbers"):
+            project_config = get_project_config(project)
+
+            new_data = safe_execute(
+                scrub_data,
+                project_config=project_config,
+                event=data.data,
+                in_processing=True,
+                old_event=data_bak,
+            )
+
+            if new_data is not None:
+                data.data = new_data
+
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
     for plugin in plugins.all(version=2):
@@ -239,8 +277,7 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
                 data = result
                 has_changed = True
 
-    assert data["project"] == project_id, "Project cannot be mutated by preprocessor"
-    project = Project.objects.get_from_cache(id=project_id)
+    assert data["project"] == project_id, "Project cannot be mutated by plugins"
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
