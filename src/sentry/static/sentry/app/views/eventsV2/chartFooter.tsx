@@ -59,22 +59,30 @@ export default function ChartFooter({
 }: Props) {
   const elements: React.ReactNode[] = [];
   if (hoverState.values.length === 0) {
-    elements.push(<SectionHeading>{t('Total')}</SectionHeading>);
+    elements.push(<SectionHeading key="total-label">{t('Total')}</SectionHeading>);
     elements.push(
       total === null ? (
-        <Value data-test-id="loading-placeholder">-</Value>
+        <Value data-test-id="loading-placeholder" key="total-value">-</Value>
       ) : (
-        <Value>{total.toLocaleString()}</Value>
+        <Value key="total-value">{total.toLocaleString()}</Value>
       )
     );
   } else {
-    elements.push(<SectionHeading>{t('Time')}</SectionHeading>);
+    elements.push(<SectionHeading key="time-label">{t('Time')}</SectionHeading>);
     elements.push(
-      <Value>{getFormattedDate(hoverState.timestamp, 'MMM D, LTS', {local: true})}</Value>
+      <Value key="time-value">
+        {getFormattedDate(hoverState.timestamp, 'MMM D, LTS', {local: true})}
+      </Value>
     );
     hoverState.values.forEach(item => {
-      elements.push(<SectionHeading>{item.name}</SectionHeading>);
-      elements.push(formatValue(item.value, yAxisValue));
+      elements.push(
+        <SectionHeading key={`${item.name}-label`}>{item.name}</SectionHeading>
+      );
+      elements.push(
+        <React.Fragment key={`${item.name}-value`}>
+          {formatValue(item.value, yAxisValue)}
+        </React.Fragment>
+      );
     });
   }
 
