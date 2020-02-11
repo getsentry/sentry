@@ -41,6 +41,9 @@ class ButtonWithIconElement(ButtonElement):
     def icon_href(self):
         return self.element.find_element_by_tag_name("use").get_attribute("href")
 
+    def new_icon(self, icon_name):
+        return self.element.find_element_by_tag_name("Icon{}".format(icon_name))
+
 
 class TextBoxElement(BaseElement):
     pass

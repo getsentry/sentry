@@ -47,7 +47,7 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
 
         # assert installation rather than upgrade button
         assert provider_element.install_button.label == "Install"
-        assert provider_element.install_button.icon_href == "#icon-circle-add"
+        assert self.browser.element_exists(provider_element.install_button.new_icon("Add"))
 
         provider_element.install_button.click()
 
@@ -92,4 +92,4 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
 
         # assert we see the install option now
         assert provider_element.install_button.label == "Install"
-        assert provider_element.install_button.icon_href == "#icon-circle-add"
+        assert self.browser.element_exists(provider_element.install_button.new_icon("Add"))
