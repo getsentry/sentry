@@ -111,20 +111,18 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               'You can apply standard Sentry filter syntax to filter by status, user, etc.'
             )}
           >
-            {({onChange, onBlur, onKeyDown, value}) => {
-              return (
-                <SearchBar
-                  query={value}
-                  disabled={disabled}
-                  useFormWrapper={false}
-                  organization={organization}
-                  onChange={onChange}
-                  onBlur={onBlur}
-                  onKeyDown={onKeyDown}
-                  onSearch={query => onChange(query, {})}
-                />
-              );
-            }}
+            {({onChange, onBlur, onKeyDown, value}) => (
+              <SearchBar
+                defaultQuery={value}
+                disabled={disabled}
+                useFormWrapper={false}
+                organization={organization}
+                onChange={onChange}
+                onBlur={onBlur}
+                onKeyDown={onKeyDown}
+                onSearch={query => onChange(query, {})}
+              />
+            )}
           </FormField>
           <SelectField
             name="timeWindow"
