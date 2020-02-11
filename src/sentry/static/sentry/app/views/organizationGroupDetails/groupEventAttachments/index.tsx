@@ -16,11 +16,12 @@ import {EventAttachment, Group} from 'app/types';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import AsyncView from 'app/views/asyncView';
 
 type Props = RouteComponentProps<{orgId: string; groupId: string}, {}> & {
   api: Client;
   group: Group;
-};
+} & AsyncView['props'];
 
 type State = {
   eventAttachmentsList: EventAttachment[];
@@ -28,25 +29,36 @@ type State = {
   loading: boolean;
   error: null | string;
   pageLinks: null | string;
-};
+} & AsyncView['state'];
 
-class GroupEventAttachments extends React.Component<Props, State> {
-  state = {
-    eventAttachmentsList: [],
-    deletedAttachments: [],
-    loading: true,
-    error: null,
-    pageLinks: null,
-  };
-
-  componentWillMount() {
-    this.fetchData();
+class GroupEventAttachments extends AsyncView<Props, State> {
+  getTitle() {
+    // return routeTitleGen(t('Releases v2'), this.props.organization.slug, false);
+    return 'jou';
   }
 
-  componentDidUpdate(prevProps: Props) {
-    if (this.props.location.search !== prevProps.location.search) {
-      this.fetchData();
-    }
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      deletedAttachments: [],
+    };
+  }
+
+  getEndpoints(): [string, string, {}][] {
+    const {params, location} = this.props;
+
+    return [
+      [
+        'eventAttachmentsList',
+        `/issues/${params.groupId}/attachments/`,
+        {
+          query: {
+            ...pick(location.query, ['cursor', 'environment', 'types']),
+            limit: 50,
+          },
+        },
+      ],
+    ];
   }
 
   handleDelete = (deletedAttachmentId: string) => {
@@ -54,37 +66,6 @@ class GroupEventAttachments extends React.Component<Props, State> {
       return {
         deletedAttachments: [...prevState.deletedAttachments, deletedAttachmentId],
       };
-    });
-  };
-
-  fetchData = () => {
-    this.setState({
-      loading: true,
-      error: null,
-    });
-
-    const query = {
-      ...pick(this.props.location.query, ['cursor', 'environment', 'types']),
-      limit: 50,
-    };
-
-    this.props.api.request(`/issues/${this.props.params.groupId}/attachments/`, {
-      query,
-      method: 'GET',
-      success: (data, _, jqXHR) => {
-        this.setState(prevState => ({
-          eventAttachmentsList: data,
-          error: null,
-          loading: false,
-          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
-        }));
-      },
-      error: err => {
-        this.setState({
-          error: parseApiError(err),
-          loading: false,
-        });
-      },
     });
   };
 
@@ -104,41 +85,39 @@ class GroupEventAttachments extends React.Component<Props, State> {
     );
   }
 
-  renderResults() {
-    const {group, params} = this.props;
-    const {eventAttachmentsList, deletedAttachments} = this.state;
+  renderLoading() {
+    return this.renderBody();
+  }
 
-    return (
-      <GroupEventAttachmentsTable
-        attachments={eventAttachmentsList}
-        orgId={params.orgId}
-        projectId={group.project.slug}
-        groupId={params.groupId}
-        onDelete={this.handleDelete}
-        deletedAttachments={deletedAttachments}
-      />
-    );
+  renderInnerBody() {
+    const {group, params, location} = this.props;
+    const {loading, eventAttachmentsList, deletedAttachments} = this.state;
+
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+
+    if (eventAttachmentsList.length > 0) {
+      return (
+        <GroupEventAttachmentsTable
+          attachments={eventAttachmentsList}
+          orgId={params.orgId}
+          projectId={group.project.slug}
+          groupId={params.groupId}
+          onDelete={this.handleDelete}
+          deletedAttachments={deletedAttachments}
+        />
+      );
+    }
+
+    if (location.query.types) {
+      return this.renderNoQueryResults();
+    }
+
+    return this.renderEmpty();
   }
 
   renderBody() {
-    let body;
-
-    if (this.state.loading) {
-      body = <LoadingIndicator />;
-    } else if (this.state.error) {
-      body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
-    } else if (this.state.eventAttachmentsList.length > 0) {
-      body = this.renderResults();
-    } else if (this.props.location.query.types) {
-      body = this.renderNoQueryResults();
-    } else {
-      body = this.renderEmpty();
-    }
-
-    return body;
-  }
-
-  render() {
     return (
       <Feature
         features={['event-attachments']}
@@ -146,7 +125,7 @@ class GroupEventAttachments extends React.Component<Props, State> {
       >
         <GroupEventAttachmentsFilter />
         <Panel className="event-list">
-          <PanelBody>{this.renderBody()}</PanelBody>
+          <PanelBody>{this.renderInnerBody()}</PanelBody>
         </Panel>
         <Pagination pageLinks={this.state.pageLinks} />
       </Feature>
