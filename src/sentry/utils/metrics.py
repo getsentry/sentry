@@ -169,12 +169,12 @@ def timer(key, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAM
     try:
         yield current_tags
     except Exception:
-        tags["result"] = "failure"
+        current_tags["result"] = "failure"
         raise
     else:
-        tags["result"] = "success"
+        current_tags["result"] = "success"
     finally:
-        timing(key, time() - start, instance, tags, sample_rate)
+        timing(key, time() - start, instance, current_tags, sample_rate)
 
 
 def wraps(key, instance=None, tags=None):
