@@ -171,6 +171,28 @@ class NotificationPlugin(Plugin):
         notification = Notification(event=event)
         return self.notify(notification, raise_exception=True)
 
+    def test_configuration_and_get_test_results(self, project):
+        try:
+            test_results = self.test_configuration(project)
+        except Exception as exc:
+            if isinstance(exc, HTTPError) and hasattr(exc.response, "text"):
+                test_results = "%s\n%s" % (exc, exc.response.text[:256])
+            elif hasattr(exc, "read") and callable(exc.read):
+                test_results = "%s\n%s" % (exc, exc.read()[:256])
+            else:
+                logging.exception(
+                    "Plugin(%s) raised an error during test, %s", self.slug, six.text_type(exc)
+                )
+                if six.text_type(exc).lower().startswith("error communicating with"):
+                    test_results = six.text_type(exc)[:256]
+                else:
+                    test_results = (
+                        "There was an internal error with the Plugin, %s" % six.text_type(exc)[:256]
+                    )
+        if not test_results:
+            test_results = "No errors returned"
+        return test_results
+
     def get_notification_doc_html(self, **kwargs):
         return ""
 
