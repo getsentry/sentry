@@ -143,5 +143,4 @@ export default withApi(withTags(Table));
 const Container = styled('div')`
   min-width: 0;
   overflow: hidden;
-  margin-top: ${space(1.5)};
 `;

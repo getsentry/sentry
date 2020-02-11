@@ -178,6 +178,10 @@ export const StyledHeading = styled(SectionHeading)`
 
 export const TagSection = styled('div')`
   margin: ${space(2)} 0;
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    margin: 0 0 ${space(2)} 0;
+  }
 `;
 
 const StyledError = styled('div')`
