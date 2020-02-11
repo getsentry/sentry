@@ -84,7 +84,7 @@ type StatusProps = {
   theme?: any; //TS complains if we don't make this optional
 };
 
-const Status = styled(
+export const Status = styled(
   withTheme((props: StatusProps) => {
     const {enabled, theme, ...p} = props;
     return (

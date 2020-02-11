@@ -23,6 +23,7 @@ import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
+import {Status as StatusComponent} from 'app/views/organizationIntegrations/integrationPluginRow.tsx';
 
 type Tab = 'information' | 'configurations';
 const tabs: Tab[] = ['information', 'configurations'];
@@ -57,6 +58,10 @@ class PluginDetailedView extends AsyncComponent<
   }
   get plugin() {
     return this.state.plugins[0];
+  }
+
+  get isEnabled() {
+    return this.state.plugins[0].projectList.length > 0;
   }
 
   handleResetConfiguration = (projectId: string) => {
@@ -163,7 +168,10 @@ class PluginDetailedView extends AsyncComponent<
         <Flex>
           <PluginIcon size={60} pluginId={plugin.slug} />
           <TitleContainer>
-            <Title>{plugin.name}</Title>
+            <Flex>
+              <Title>{plugin.name}</Title>
+              <Status enabled={this.isEnabled} />
+            </Flex>
             <Flex>{this.featureTags()}</Flex>
           </TitleContainer>
           <IntegrationFeatures {...featureProps}>
@@ -304,6 +312,18 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   color: ${p => p.theme.red};
   font-size: 0.9em;
 `;
+
+const StatusWrapper = styled('div')`
+  margin-bottom: ${space(1)};
+  padding-left: ${space(2)};
+  line-height: 1.5em;
+`;
+
+const Status = styled(p => (
+  <StatusWrapper>
+    <StatusComponent {...p} />
+  </StatusWrapper>
+))``;
 
 type InformationCardProps = {
   children: React.ReactNode;
