@@ -111,7 +111,7 @@ class ProjectInstallPlatform extends React.Component {
           )}
         </PanelAlert>
 
-        <PanelBodywithPadding>
+        <PanelBody withPadding>
           {this.state.loading ? (
             <LoadingIndicator />
           ) : this.state.error ? (
