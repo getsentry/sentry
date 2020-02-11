@@ -50,7 +50,7 @@ class OrganizationIncidentActivityIndexTest(APITestCase):
         activities = [
             create_incident_activity(
                 incident=incident,
-                activity_type=IncidentActivityType.CREATED,
+                activity_type=IncidentActivityType.DETECTED,
                 user=self.user,
                 comment="hello",
                 event_stats_snapshot=snapshot,

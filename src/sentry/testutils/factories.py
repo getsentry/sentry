@@ -29,10 +29,11 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
+    IncidentActivity,
     IncidentGroup,
     IncidentProject,
     IncidentSeen,
-    IncidentActivity,
+    IncidentType,
 )
 from sentry.mediators import (
     sentry_apps,
@@ -763,6 +764,7 @@ class Factories(object):
             date_started=date_started or timezone.now(),
             date_detected=date_detected or timezone.now(),
             date_closed=date_closed or timezone.now(),
+            type=IncidentType.ALERT_TRIGGERED.value,
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
