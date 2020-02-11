@@ -169,7 +169,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     def test_unmerge(self):
-        now = before_now(seconds=20).replace(microsecond=0, tzinfo=pytz.utc)
+        now = before_now(minutes=5).replace(microsecond=0, tzinfo=pytz.utc)
 
         def time_from_now(offset=0):
             return now + timedelta(seconds=offset)
