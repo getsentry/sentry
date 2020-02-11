@@ -9,8 +9,8 @@ import textStyles from 'app/styles/text';
 type FlexComponentProps = Omit<React.ComponentPropsWithoutRef<typeof Flex>, 'theme'>;
 
 type Props = FlexComponentProps & {
-  flexible?: string;
-  withPadding?: string;
+  flexible?: boolean;
+  withPadding?: boolean;
   flexDir?: FlexComponentProps['flexDirection'];
 };
 
@@ -22,15 +22,15 @@ const PanelBody: React.FunctionComponent<Props> = ({flexDir, ...props}: Props) =
 );
 
 PanelBody.propTypes = {
-  flexible: PropTypes.string,
+  flexible: PropTypes.bool,
   flexDir: PropTypes.any,
-  withPadding: PropTypes.string,
+  withPadding: PropTypes.bool,
 };
 
 PanelBody.defaultProps = {
-  flexible: undefined,
+  flexible: false,
   flexDir: 'column',
-  withPadding: 'withPadding',
+  withPadding: false,
 };
 
 const FlexBox = styled(Flex)<Props>`
