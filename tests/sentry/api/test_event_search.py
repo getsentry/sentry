@@ -1270,6 +1270,41 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, {})
         assert "Invalid column" in six.text_type(err)
 
+    def test_percentile_function(self):
+        fields = ["percentile(transaction.duration, 0.75)"]
+        result = resolve_field_list(fields, {})
+
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(0.75)"]
+            result = resolve_field_list(fields, {})
+        assert "percentile(0.75): expected 2 arguments" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(sanchez, 0.75)"]
+            result = resolve_field_list(fields, {})
+        assert "percentile(sanchez, 0.75): sanchez is not a valid column" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(id, 0.75)"]
+            result = resolve_field_list(fields, {})
+        assert "percentile(id, 0.75): id is not a numeric column" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(transaction.duration, 75)"]
+            result = resolve_field_list(fields, {})
+        assert (
+            "percentile(transaction.duration, 75): 75.0 argument invalid: not between 0 and 1"
+            in six.text_type(err)
+        )
+
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]
