@@ -62,7 +62,9 @@ export default function ChartFooter({
     elements.push(<SectionHeading key="total-label">{t('Total')}</SectionHeading>);
     elements.push(
       total === null ? (
-        <Value data-test-id="loading-placeholder" key="total-value">-</Value>
+        <Value data-test-id="loading-placeholder" key="total-value">
+          -
+        </Value>
       ) : (
         <Value key="total-value">{total.toLocaleString()}</Value>
       )
