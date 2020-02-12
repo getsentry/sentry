@@ -1,12 +1,11 @@
 import sortBy from 'lodash/sortBy';
 import property from 'lodash/property';
-import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
+import AsyncComponent from 'app/components/asyncComponent';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
@@ -14,106 +13,82 @@ import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import SentryTypes from 'app/sentryTypes';
 import TimeSince from 'app/components/timeSince';
-import withOrganization from 'app/utils/withOrganization';
+import {Group, AvatarUser} from 'app/types';
 
-class GroupTagValues extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    group: SentryTypes.Group.isRequired,
-    location: PropTypes.shape({
-      query: PropTypes.object,
-    }),
+type RouteParams = {
+  groupId: number;
+  orgId: string;
+  tagKey: string;
+};
+
+type TagValue = {
+  count: number;
+  name: string;
+  value: string;
+  lastSeen: string;
+  key: string;
+  firstSeen: string;
+  // User key specific properties
+  query?: string;
+  email?: string;
+  username?: string;
+  identifier?: string;
+  ipAddress?: string;
+} & AvatarUser;
+
+type Props = {
+  group: Group;
+  location: {
+    query: object;
   };
+} & RouteComponentProps<RouteParams, {}>;
 
-  state = {
-    tagKey: null,
-    tagValueList: null,
-    loading: true,
-    error: false,
-    pageLinks: '',
+type State = {
+  tagKey: {
+    key: string;
+    name: string;
+    totalValues: number;
   };
+  tagValueList: TagValue[];
+  tagValueListPageLinks: string;
+};
 
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentDidUpdate(prevProps) {
-    const queryHasChanged = !isEqual(prevProps.location.query, this.props.location.query);
-    if (queryHasChanged || prevProps.params.tagKey !== this.props.params.tagKey) {
-      this.fetchData();
-    }
-  }
-
-  fetchData = async () => {
-    const {
-      params,
-      location: {query},
-    } = this.props;
-    this.setState({
-      loading: true,
-      error: false,
-    });
-
-    const promises = [
-      this.props.api.requestPromise(`/issues/${params.groupId}/tags/${params.tagKey}/`, {
-        query,
-      }),
-      this.props.api.requestPromise(
-        `/issues/${params.groupId}/tags/${params.tagKey}/values/`,
-        {
-          query,
-          includeAllArgs: true,
-        }
-      ),
+class GroupTagValues extends AsyncComponent<
+  Props & AsyncComponent['props'],
+  State & AsyncComponent['state']
+> {
+  getEndpoints(): [string, string][] {
+    const {groupId, tagKey} = this.props.params;
+    return [
+      ['tagKey', `/issues/${groupId}/tags/${tagKey}/`],
+      ['tagValueList', `/issues/${groupId}/tags/${tagKey}/values/`],
     ];
+  }
 
-    try {
-      const [tagKey, tagValueResponse] = await Promise.all(promises);
-      const [tagValueList, , jqXHR] = tagValueResponse;
-
-      this.setState({
-        tagKey,
-        tagValueList,
-        loading: false,
-        pageLinks: jqXHR.getResponseHeader('Link'),
-      });
-    } catch (rejections) {
-      // eslint-disable-next-line no-console
-      console.error(rejections);
-      this.setState({
-        error: true,
-        loading: false,
-      });
-    }
-  };
-
-  getUserDisplayName(item) {
+  getUserDisplayName(item): string {
     return item.email || item.username || item.identifier || item.ipAddress || item.value;
   }
 
   render() {
-    if (this.state.loading) {
-      return <LoadingIndicator />;
-    } else if (this.state.error) {
-      return <LoadingError onRetry={this.fetchData} />;
-    }
-
     const {
       group,
       params: {orgId},
     } = this.props;
-    const tagKey = this.state.tagKey;
-
-    const sortedTagValueList = sortBy(
-      this.state.tagValueList,
+    const {tagKey, tagValueList, tagValueListPageLinks, loading, error} = this.state;
+    if (loading) {
+      return <LoadingIndicator />;
+    } else if (error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
+    const sortedTagValueList: TagValue[] = sortBy(
+      tagValueList,
       property('count')
     ).reverse();
 
     const issuesPath = `/organizations/${orgId}/issues/`;
 
-    const children = sortedTagValueList.map((tagValue, tagValueIdx) => {
+    const children = sortedTagValueList.map((tagValue: TagValue, tagValueIdx: number) => {
       const pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
       const query = tagValue.query || `${tagKey.key}:"${tagValue.value}"`;
       return (
@@ -180,7 +155,7 @@ class GroupTagValues extends React.Component {
           </thead>
           <tbody>{children}</tbody>
         </table>
-        <Pagination pageLinks={this.state.pageLinks} />
+        <Pagination pageLinks={tagValueListPageLinks} />
         <p>
           <small>
             {t('Note: Percentage of issue is based on events seen in the last 7 days.')}
@@ -192,4 +167,4 @@ class GroupTagValues extends React.Component {
 }
 
 export {GroupTagValues};
-export default withApi(withOrganization(GroupTagValues));
+export default GroupTagValues;
