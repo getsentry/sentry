@@ -76,6 +76,7 @@ const customPink = '#e7c0bc';
 
 const Section = styled('div')`
   border-top: 1px solid ${customPink};
+  border-bottom: 1px solid ${customPink};
   background: ${p => p.theme.redLightest};
   margin-top: -1px;
   padding: ${space(2)} ${space(4)} 1px 40px;
@@ -108,7 +109,6 @@ const Summary = styled('p')`
 
 const ErrorList = styled('ul')`
   border-top: 1px solid ${customPink};
-  border-bottom: 1px solid ${customPink};
   margin: ${space(1)} 0 0;
   padding: ${space(1)} 0 ${space(1)} ${space(3)};
 
