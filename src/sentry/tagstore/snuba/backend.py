@@ -759,7 +759,7 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_group_tag_value_iter(
-        self, project_id, group_id, environment_id, key, offset, callbacks=()
+        self, project_id, group_id, environment_id, key, callbacks=(), offset=0
     ):
         filters = {
             "project_id": get_project_list(project_id),
@@ -805,9 +805,7 @@ class SnubaTagStorage(TagStorage):
         else:
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        group_tag_values = self.get_group_tag_value_iter(
-            project_id, group_id, environment_id, key, offset=0
-        )
+        group_tag_values = self.get_group_tag_value_iter(project_id, group_id, environment_id, key)
 
         desc = order_by.startswith("-")
         score_field = order_by.lstrip("-")

@@ -532,7 +532,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
         assert list(
             self.ts.get_group_tag_value_iter(
-                self.proj1.id, self.proj1group1.id, self.proj1env1.id, "sentry:user", offset=0
+                self.proj1.id, self.proj1group1.id, self.proj1env1.id, "sentry:user"
             )
         ) == [
             GroupTagValue(

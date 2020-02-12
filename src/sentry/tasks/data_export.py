@@ -99,8 +99,8 @@ def process_issue_by_tag(data_export, file):
             group_id=group.id,
             environment_id=None,
             key=lookup_key,
-            offset=SNUBA_MAX_RESULTS * iteration,
             callbacks=callbacks,
+            offset=SNUBA_MAX_RESULTS * iteration,
         )
         gtv_list_raw = [serialize_issue_by_tag(key, item) for item in gtv_list]
         if len(gtv_list_raw) == 0:
