@@ -8,7 +8,7 @@ class TwilioApiClient(ApiClient):
     allow_redirects = False
     twilio_messages_endpoint = "https://api.twilio.com/2010-04-01/Accounts/{0}/Messages.json"
 
-    def __init__(self, account_sid=None, auth_token=None, sms_from=None, sms_to=None):
+    def __init__(self, account_sid, auth_token, sms_from, sms_to):
         self.account_sid = account_sid
         self.auth_token = auth_token
         self.sms_from = sms_from

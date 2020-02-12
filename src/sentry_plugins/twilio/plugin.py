@@ -158,8 +158,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
                 errors.append(e)
 
         if errors:
-            if len(errors) == 1:
-                self.raise_error(errors[0])
+            self.raise_error(errors[0])
 
             # TODO: multi-exception
             raise Exception(errors)
