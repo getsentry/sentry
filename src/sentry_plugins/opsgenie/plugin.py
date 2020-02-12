@@ -9,7 +9,6 @@ from django import forms
 from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.bases import notify
 from sentry.utils import json
-from sentry_plugins.base import CorePluginMixin
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import OpsGenieApiClient
