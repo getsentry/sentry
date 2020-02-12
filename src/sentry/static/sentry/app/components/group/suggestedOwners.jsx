@@ -15,7 +15,7 @@ import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercar
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import Hovercard from 'app/components/hovercard';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconInfo} from 'app/icons/iconInfo';
 
 class SuggestedOwners extends React.Component {
   static propTypes = {
@@ -160,11 +160,11 @@ class SuggestedOwners extends React.Component {
       <HelpfulBody>
         <p>
           {t(
-            'Ownership rules allow you to associate file paths and URLs to specific teams or users, so alerts can be routed to the right people.'
+            'Ownership rules allow you to associate file paths and URLs to specific teams or users, so issues can be assigned to the right people.'
           )}
         </p>
         <Button href="https://docs.sentry.io/workflow/issue-owners/" priority="primary">
-          Click to learn more
+          Learn more
         </Button>
       </HelpfulBody>
     );
@@ -210,7 +210,7 @@ class SuggestedOwners extends React.Component {
               <h6>
                 <span>{t('Ownership Rules')}</span>
                 <Hovercard body={this.getHovercardBody()}>
-                  <InlineSvg src="icon-circle-info" size="16px" />
+                  <IconInfo size="xs" />
                 </Hovercard>
               </h6>
             </GuideAnchor>
