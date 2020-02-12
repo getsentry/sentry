@@ -6,15 +6,14 @@ import phonenumbers
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import http
 from sentry.plugins.bases.notify import NotificationPlugin
+
+from .client import TwilioApiClient
 
 import sentry
 
 DEFAULT_REGION = "US"
 MAX_SMS_LENGTH = 160
-
-twilio_sms_endpoint = "https://api.twilio.com/2010-04-01/Accounts/{0}/SMS/Messages.json"
 
 
 def validate_phone(phone):
@@ -34,10 +33,6 @@ def clean_phone(phone):
     return phonenumbers.format_number(
         phonenumbers.parse(phone, DEFAULT_REGION), phonenumbers.PhoneNumberFormat.E164
     )
-
-
-def basic_auth(user, password):
-    return "Basic " + (user + ":" + password).encode("base64").replace("\n", "")
 
 
 # XXX: can likely remove the dedupe here after notify_users has test coverage;
@@ -136,31 +131,19 @@ class TwilioPlugin(NotificationPlugin):
         )
         body = body[:MAX_SMS_LENGTH]
 
-        account_sid = self.get_option("account_sid", project)
-        auth_token = self.get_option("auth_token", project)
-        sms_from = clean_phone(self.get_option("sms_from", project))
-        endpoint = twilio_sms_endpoint.format(account_sid)
+        client = self.get_client(group.project)
 
-        sms_to = self.get_option("sms_to", project)
-        if not sms_to:
-            return
-        sms_to = split_sms_to(sms_to)
-
-        headers = {"Authorization": basic_auth(account_sid, auth_token)}
+        payload = {"From": client.sms_from, "Body": body}
 
         errors = []
 
-        for phone in sms_to:
+        for phone in client.sms_to:
             if not phone:
                 continue
             try:
                 phone = clean_phone(phone)
-                http.safe_urlopen(
-                    endpoint,
-                    method="POST",
-                    headers=headers,
-                    data={"From": sms_from, "To": phone, "Body": body},
-                ).raise_for_status()
+                payload["To"] = phone
+                client.request(payload)
             except Exception as e:
                 errors.append(e)
 
@@ -170,3 +153,13 @@ class TwilioPlugin(NotificationPlugin):
 
             # TODO: multi-exception
             raise Exception(errors)
+
+    def get_client(self, project):
+        account_sid = self.get_option("account_sid", project)
+        auth_token = self.get_option("auth_token", project)
+        sms_from = clean_phone(self.get_option("sms_from", project))
+        sms_to = self.get_option("sms_to", project)
+        if not sms_to:
+            return
+        sms_to = split_sms_to(sms_to)
+        return TwilioApiClient(account_sid, auth_token, sms_from, sms_to)
