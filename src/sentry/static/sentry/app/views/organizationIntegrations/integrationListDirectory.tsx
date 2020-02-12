@@ -33,6 +33,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import IntegrationRow from './integrationRow';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
@@ -244,6 +245,13 @@ class OrganizationIntegrations extends AsyncComponent<
     return this.state.appInstalls.find(i => i.app.slug === app.slug);
   };
 
+  getInstalled = (app: SentryApp) => {
+    const install = this.getAppInstall(app);
+    if (install) {
+      return [install];
+    }
+    return [];
+  };
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
@@ -301,11 +309,13 @@ class OrganizationIntegrations extends AsyncComponent<
       i => i.provider.key === provider.key
     );
     return (
-      <ProviderRow
+      <IntegrationRow
         key={`row-${provider.key}`}
         data-test-id="integration-row"
-        provider={provider}
-        integrations={integrations}
+        integration={provider}
+        installed={integrations}
+        organization={this.props.organization}
+        type="provider"
       />
     );
   };
@@ -327,12 +337,14 @@ class OrganizationIntegrations extends AsyncComponent<
       return null;
     }
     return (
-      <PluginRow
+      <IntegrationRow
         key={`row-plugin-${plugin.id}`}
         data-test-id="integration-row"
-        plugin={plugin}
+        integration={plugin}
+        installed={plugin.projectList}
         isLegacy={isLegacy}
         organization={this.props.organization}
+        type="plugin"
       />
     );
   };
@@ -342,12 +354,13 @@ class OrganizationIntegrations extends AsyncComponent<
     const {organization} = this.props;
 
     return (
-      <IntegrationDirectorySentryAppRow
+      <IntegrationRow
         key={`sentry-app-row-${app.slug}`}
         data-test-id="integration-row"
         organization={organization}
-        install={this.getAppInstall(app)}
-        app={app}
+        integration={app}
+        installed={this.getInstalled(app)}
+        type="sentry-app"
       />
     );
   };
