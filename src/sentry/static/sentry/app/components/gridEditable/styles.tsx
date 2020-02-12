@@ -106,6 +106,8 @@ export const Grid = styled('table')`
 
   z-index: ${Z_INDEX_GRID};
   overflow-x: scroll;
+  /* This padding prevents vertical scrollbars from showing up. */
+  padding-bottom: 1px;
 `;
 
 export const GridRow = styled('tr')`
