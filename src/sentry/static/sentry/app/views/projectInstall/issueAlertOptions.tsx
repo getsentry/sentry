@@ -29,10 +29,9 @@ const UNIQUE_USER_FREQUENCY_CONDITION: string =
 const EVENT_FREQUENCY_CONDITION: string =
   'sentry.rules.conditions.event_frequency.EventFrequencyCondition';
 
-// Semantically a set, but object literals have a more readable syntax.
 const METRIC_CONDITION_MAP = {
-  UNIQUE_USER_FREQUENCY_CONDITION,
-  EVENT_FREQUENCY_CONDITION,
+  [MetricValues.ERRORS]: EVENT_FREQUENCY_CONDITION,
+  [MetricValues.USERS]: UNIQUE_USER_FREQUENCY_CONDITION,
 } as const;
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
@@ -45,17 +44,17 @@ type State = AsyncComponent['state'] & {
   conditions: any;
   intervalChoices: [string, string][] | undefined;
   placeholder: string | undefined;
-  threshold: number | undefined;
+  threshold: string | undefined;
   interval: string | undefined;
-  alertSetting: any;
-  metric: any;
+  alertSetting: string;
+  metric: MetricValues;
 };
 
 type RequestDataFragment = {
   default_rules: boolean;
   shouldCreateCustomRule: boolean;
   name: string;
-  conditions: {interval: string; id: string; value: number}[] | undefined;
+  conditions: {interval: string; id: string; value: string}[] | undefined;
   actions: {id: string}[];
   actionMatch: string;
   frequency: number;
@@ -64,8 +63,8 @@ type RequestDataFragment = {
 function getConditionFrom(
   interval: string,
   metricValue: MetricValues,
-  threshold: number
-): {interval: string; id: string; value: number} {
+  threshold: string
+): {interval: string; id: string; value: string} {
   let condition;
   switch (metricValue) {
     case MetricValues.ERRORS:
@@ -107,7 +106,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: Actions.CUSTOMIZED_ALERTS,
+      alertSetting: Actions.CUSTOMIZED_ALERTS.toString(),
       metric: MetricValues.ERRORS,
       interval: '',
       placeholder: '',
@@ -115,20 +114,33 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     };
   }
 
+  getAvailableMetricChoices() {
+    return [
+      [MetricValues.ERRORS, t('occurrences of')],
+      [MetricValues.USERS, t('users affected by')],
+    ].filter(valueDescriptionPair => {
+      const [value] = valueDescriptionPair;
+      return this.state.conditions?.some?.(
+        object => object?.id === METRIC_CONDITION_MAP[value]
+      );
+    });
+  }
+
   getIssueAlertsChoices(
     hasProperlyLoadedConditions: boolean
-  ): [Actions, string | ReactElement][] {
-    const options: [Actions, string | ReactElement][] = [
-      [Actions.ALERT_ON_EVERY_ISSUE, t('Alert me on every new issue')],
-      [Actions.CREATE_ALERT_LATER, t("I'll create my own alerts later")],
+  ): [string, string | ReactElement][] {
+    const options: [string, string | ReactElement][] = [
+      [Actions.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
+      [Actions.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
     ];
     if (hasProperlyLoadedConditions) {
       options.unshift([
-        Actions.CUSTOMIZED_ALERTS,
+        Actions.CUSTOMIZED_ALERTS.toString(),
         <CustomizeAlertsGrid key={Actions.CUSTOMIZED_ALERTS}>
           {t('When there are more than')}
           <InlineInput
             type="number"
+            min="0"
             name=""
             value={this.state.threshold}
             placeholder={this.state.placeholder}
@@ -136,22 +148,24 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
             onChange={threshold =>
               this.setStateAndUpdateParents({threshold: threshold.target.value})
             }
+            data-test-id="range-input"
           />
           <InlineSelectControl
+            openMenuOnFocus
             value={this.state.metric}
-            choices={[
-              [MetricValues.ERRORS, t('occurrences of')],
-              [MetricValues.USERS, t('users affected by')],
-            ]}
+            choices={this.getAvailableMetricChoices()}
             onChange={metric => this.setStateAndUpdateParents({metric: metric.value})}
+            data-test-id="metric-select-control"
           />
           {t('a unique error in')}
           <InlineSelectControl
             value={this.state.interval}
+            openMenuOnFocus
             choices={this.state.intervalChoices}
             onChange={interval =>
               this.setStateAndUpdateParents({interval: interval.value})
             }
+            data-test-id="interval-select-control"
           />
         </CustomizeAlertsGrid>,
       ]);
@@ -162,7 +176,8 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
   getUpdatedData(): RequestDataFragment {
     let default_rules: boolean;
     let shouldCreateCustomRule: boolean;
-    switch (this.state.alertSetting) {
+    const alertSetting: Actions = parseInt(this.state.alertSetting, 10);
+    switch (alertSetting) {
       case Actions.ALERT_ON_EVERY_ISSUE:
         default_rules = true;
         shouldCreateCustomRule = false;
@@ -184,7 +199,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       shouldCreateCustomRule,
       name: 'Send a notification for new issues',
       conditions:
-        this.state.metric && this.state.interval && this.state.threshold
+        this.state.interval && this.state.threshold
           ? [
               getConditionFrom(
                 this.state.interval,
@@ -221,11 +236,12 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
   }
 
   onLoadAllEndpointsSuccess(): void {
-    const conditions = this.state.conditions.filter(object =>
+    const conditions = this.state.conditions?.filter?.(object =>
       Object.values(METRIC_CONDITION_MAP).includes(object?.id)
     );
 
-    if (conditions.length === 0) {
+    if (!conditions || conditions.length === 0) {
+      this.setStateAndUpdateParents({conditions: undefined});
       return;
     }
 
@@ -238,6 +254,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           'Interval choices or value placeholder sent from API endpoint is inconsistent or empty'
         );
       });
+      this.setStateAndUpdateParents({conditions: undefined});
       return;
     }
 
@@ -250,14 +267,15 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
   }
 
   renderBody(): React.ReactElement {
-    const issueAlertOptionsChoices = this.getIssueAlertsChoices(!!this.state.conditions);
+    const issueAlertOptionsChoices = this.getIssueAlertsChoices(
+      this.state.conditions?.length > 0
+    );
     return (
       <React.Fragment>
         <PageHeadingWithTopMargins withMargins>
           {t('Create an alert')}
         </PageHeadingWithTopMargins>
         <RadioGroupWithPadding
-          //@ts-ignore
           choices={issueAlertOptionsChoices}
           label={t('Options for creating an alert')}
           onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
