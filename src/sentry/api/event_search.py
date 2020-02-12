@@ -166,7 +166,10 @@ SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
 no_conversion = set(["start", "end"])
 
-PROJECT_KEY = "project.name"
+PROJECT_NAME_ALIAS = "project.name"
+PROJECT_ALIAS = "project"
+ISSUE_ALIAS = "issue"
+ISSUE_ID_ALIAS = "issue.id"
 
 
 class InvalidSearchQuery(Exception):
@@ -783,9 +786,15 @@ def get_filter(query=None, params=None):
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
-            if name == PROJECT_KEY:
+            if name in (PROJECT_NAME_ALIAS, PROJECT_ALIAS):
                 if projects is None:
                     projects = get_projects(params)
+                project = projects.get(term.value.value)
+                if not project:
+                    raise InvalidSearchQuery(
+                        "Invalid query. Project %s must exist and be in global header"
+                        % term.value.value
+                    )
                 condition = ["project_id", "=", projects.get(term.value.value)]
                 kwargs["conditions"].append(condition)
             elif name == "issue.id" and term.value.value != "":
