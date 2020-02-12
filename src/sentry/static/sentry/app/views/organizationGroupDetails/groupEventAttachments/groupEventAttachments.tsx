@@ -39,7 +39,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
         {
           query: {
             ...pick(location.query, ['cursor', 'environment', 'types']),
-            limit: 5,
+            limit: 50,
           },
         },
       ],
