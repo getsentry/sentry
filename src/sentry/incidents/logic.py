@@ -48,10 +48,6 @@ from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, Snub
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
 
 
-class StatusAlreadyChangedError(Exception):
-    pass
-
-
 class AlreadyDeletedError(Exception):
     pass
 
@@ -240,7 +236,7 @@ def update_incident_status(incident, status, user=None, comment=None):
     """
     if incident.status == status.value:
         # If the status isn't actually changing just no-op.
-        raise StatusAlreadyChangedError()
+        return incident
     with transaction.atomic():
         create_incident_activity(
             incident,

@@ -48,7 +48,6 @@ from sentry.incidents.logic import (
     INCIDENT_START_ROLLUP,
     ProjectsNotAssociatedWithAlertRuleError,
     subscribe_to_incident,
-    StatusAlreadyChangedError,
     update_alert_rule,
     update_alert_rule_trigger_action,
     update_alert_rule_trigger,
@@ -157,8 +156,8 @@ class UpdateIncidentStatus(TestCase):
 
     def test_status_already_set(self):
         incident = self.create_incident(status=IncidentStatus.WARNING.value)
-        with self.assertRaises(StatusAlreadyChangedError):
-            update_incident_status(incident, IncidentStatus.WARNING)
+        update_incident_status(incident, IncidentStatus.WARNING)
+        assert incident.status == IncidentStatus.WARNING.value
 
     def run_test(self, incident, status, expected_date_closed, user=None, comment=None):
         prev_status = incident.status
