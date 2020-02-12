@@ -110,7 +110,7 @@ class OrganizationIntegrations extends AsyncComponent<
 
     const combined = ([] as AppOrProviderOrPlugin[])
       .concat(published)
-      .concat(orgOwned.filter(a => a.status === 'published'))
+      .concat(orgOwned)
       .concat(this.providers)
       .concat(plugins);
 
@@ -289,7 +289,9 @@ class OrganizationIntegrations extends AsyncComponent<
         return this.setState({displayedList: this.state.list});
       }
       const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
-      return this.setState({displayedList: result.map(i => i.item)});
+      return this.setState({
+        displayedList: this.sortIntegrations(result.map(i => i.item)),
+      });
     });
   };
   // Rendering

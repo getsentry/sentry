@@ -70,7 +70,7 @@ const StyledTable = styled('table')`
 
 const StyledTr = styled('tr')`
   &:nth-child(2n + 1) td {
-    background: #f4f2f7;
+    background-color: ${p => p.theme.offWhite};
   }
 `;
 
