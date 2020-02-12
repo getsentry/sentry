@@ -785,7 +785,7 @@ def get_filter(query=None, params=None):
                     )
                 except Exception:
                     raise InvalidSearchQuery(
-                        "Invalid query. Project %s must exist and be in global header"
+                        "Invalid query. Project %s does not exist or is not an actively selected project."
                         % term.value.value
                     )
 
@@ -794,10 +794,10 @@ def get_filter(query=None, params=None):
                 converted_filter = convert_search_filter_to_snuba_query(term)
                 if converted_filter:
                     kwargs["conditions"].append(converted_filter)
-            elif name == "issue.id" and term.value.value != "":
+            elif name == ISSUE_ID_ALIAS and term.value.value != "":
                 # A blank term value means that this is a has filter
                 kwargs["group_ids"].extend(to_list(term.value.value))
-            elif name == "issue" and term.value.value != "":
+            elif name == ISSUE_ALIAS and term.value.value != "":
                 if params and "organization_id" in params:
                     try:
                         group = Group.objects.by_qualified_short_id(
@@ -836,7 +836,7 @@ def get_filter(query=None, params=None):
         if "group_ids" in params:
             kwargs["group_ids"] = to_list(params["group_ids"])
         # Deprecated alias, use `group_ids` instead
-        if "issue.id" in params:
+        if ISSUE_ID_ALIAS in params:
             kwargs["group_ids"] = to_list(params["issue.id"])
 
     return eventstore.Filter(**kwargs)
