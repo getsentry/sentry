@@ -610,6 +610,7 @@ def get_facets(query, params, limit=10, referrer=None):
             limit=TOP_VALUES_DEFAULT_LIMIT,
             dataset=Dataset.Discover,
             referrer=referrer,
+            sample=sample_rate,
             # Ensures Snuba will not apply FINAL
             turbo=sample_rate is not None,
         )
