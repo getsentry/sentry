@@ -16,6 +16,7 @@ from sentry.api.event_search import get_filter
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleEnvironment,
     AlertRuleExcludedProjects,
     AlertRuleQuerySubscription,
     AlertRuleStatus,
@@ -46,10 +47,6 @@ from sentry.snuba.subscriptions import (
 from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
-
-
-class StatusAlreadyChangedError(Exception):
-    pass
 
 
 class AlreadyDeletedError(Exception):
@@ -240,7 +237,7 @@ def update_incident_status(incident, status, user=None, comment=None):
     """
     if incident.status == status.value:
         # If the status isn't actually changing just no-op.
-        raise StatusAlreadyChangedError()
+        return incident
     with transaction.atomic():
         create_incident_activity(
             incident,
@@ -483,6 +480,10 @@ def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
     ]
 
 
+def get_alert_rule_environment_names(alert_rule):
+    return [x.environment.name for x in AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)]
+
+
 def get_incident_aggregates(incident):
     """
     Calculates aggregate stats across the life of an incident.
@@ -572,6 +573,7 @@ def create_alert_rule(
     aggregation,
     time_window,
     threshold_period,
+    environment=None,
     include_all_projects=False,
     excluded_projects=None,
     triggers=None,
@@ -587,6 +589,7 @@ def create_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: A QueryAggregation to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes
+    :param environment: List of environments that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -614,6 +617,7 @@ def create_alert_rule(
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
         )
+
         if include_all_projects:
             excluded_projects = excluded_projects if excluded_projects else []
             projects = Project.objects.filter(organization=organization).exclude(
@@ -625,11 +629,15 @@ def create_alert_rule(
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
-        subscribe_projects_to_alert_rule(alert_rule, projects)
+        if environment:
+            for e in environment:
+                AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=e)
 
         if triggers:
             for trigger_data in triggers:
                 create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+
+        subscribe_projects_to_alert_rule(alert_rule, projects)
 
     return alert_rule
 
@@ -641,6 +649,7 @@ def update_alert_rule(
     query=None,
     aggregation=None,
     time_window=None,
+    environment=None,
     threshold_period=None,
     include_all_projects=None,
     excluded_projects=None,
@@ -657,6 +666,7 @@ def update_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: An AlertRuleAggregation that we want to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes.
+    :param environment: List of environments that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -757,18 +767,15 @@ def update_alert_rule(
             # values
             existing_subs = [sub for sub in existing_subs if sub.id]
 
-        if existing_subs and (
-            query is not None or aggregation is not None or time_window is not None
-        ):
-            # If updating any subscription details, update related Snuba subscriptions
-            # too
-            bulk_update_snuba_subscriptions(
-                existing_subs,
-                alert_rule.query,
-                QueryAggregations(alert_rule.aggregation),
-                timedelta(minutes=alert_rule.time_window),
-                timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
-            )
+        if environment:
+            # Delete rows we don't have present in the updated data.
+            AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).exclude(
+                environment__in=environment
+            ).delete()
+            for e in environment:
+                AlertRuleEnvironment.objects.get_or_create(alert_rule=alert_rule, environment=e)
+        else:
+            AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).delete()
 
         if triggers is not None:
             # Delete triggers we don't have present in the updated data.
@@ -792,6 +799,20 @@ def update_alert_rule(
                         "This trigger label is already in use for this alert rule"
                     )
 
+        if existing_subs and (
+            query is not None or aggregation is not None or time_window is not None
+        ):
+            # If updating any subscription details, update related Snuba subscriptions
+            # too
+            bulk_update_snuba_subscriptions(
+                existing_subs,
+                alert_rule.query,
+                QueryAggregations(alert_rule.aggregation),
+                timedelta(minutes=alert_rule.time_window),
+                timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
+                get_alert_rule_environment_names(alert_rule),
+            )
+
     return alert_rule
 
 
@@ -808,6 +829,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
         QueryAggregations(alert_rule.aggregation),
         timedelta(minutes=alert_rule.time_window),
         timedelta(minutes=alert_rule.resolution),
+        get_alert_rule_environment_names(alert_rule),
     )
     subscription_links = [
         AlertRuleQuerySubscription(query_subscription=subscription, alert_rule=alert_rule)

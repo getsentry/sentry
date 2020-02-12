@@ -2,7 +2,11 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
+import {
+  AlertRuleAggregations,
+  AlertRuleThresholdType,
+  Trigger,
+} from 'app/views/settings/incidentRules/types';
 import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {defined} from 'app/utils';
@@ -42,15 +46,18 @@ export default class DetailsBody extends React.Component<Props> {
     const discoverQuery: NewQuery = {
       id: undefined,
       name: (incident && incident.title) || '',
-      fields: ['title', 'user', 'last_seen'],
+      fields: ['issue', 'count(id)', 'count_unique(user.id)'],
       widths: ['400', '200', '-1'],
-      orderby: '-last_seen',
+      orderby:
+        incident.alertRule?.aggregation === AlertRuleAggregations.UNIQUE_USERS
+          ? '-count_unique_user_id'
+          : '-count_id',
       query: (incident && incident.query) || '',
       projects: projects
         .filter(({slug}) => incident.projects.includes(slug))
         .map(({id}) => Number(id)),
       version: 2 as const,
-      range: '24h',
+      range: `${incident.alertRule.timeWindow}m`,
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);

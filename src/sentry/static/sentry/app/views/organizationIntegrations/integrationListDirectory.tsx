@@ -25,8 +25,7 @@ import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarni
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/integrationProviderRow';
 import PluginRow from 'app/views/organizationIntegrations/integrationPluginRow';
-import IntegrationDirectoryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow/integrationDirectoryApplicationRow';
-import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
+import IntegrationDirectorySentryAppRow from 'app/views/organizationIntegrations/IntegrationDirectorySentryAppRow';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -111,7 +110,7 @@ class OrganizationIntegrations extends AsyncComponent<
 
     const combined = ([] as AppOrProviderOrPlugin[])
       .concat(published)
-      .concat(orgOwned.filter(a => a.status === 'published'))
+      .concat(orgOwned)
       .concat(this.providers)
       .concat(plugins);
 
@@ -290,7 +289,9 @@ class OrganizationIntegrations extends AsyncComponent<
         return this.setState({displayedList: this.state.list});
       }
       const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
-      return this.setState({displayedList: result.map(i => i.item)});
+      return this.setState({
+        displayedList: this.sortIntegrations(result.map(i => i.item)),
+      });
     });
   };
   // Rendering
@@ -339,32 +340,16 @@ class OrganizationIntegrations extends AsyncComponent<
   //render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
-    if (app.status === 'internal') {
-      return (
-        <SentryApplicationRow
-          key={`sentry-app-row-${app.slug}`}
-          data-test-id="internal-integration-row"
-          onRemoveApp={() => this.handleRemoveInternalSentryApp(app)}
-          organization={organization}
-          install={this.getAppInstall(app)}
-          app={app}
-          isOnIntegrationPage
-        />
-      );
-    }
-    if (app.status === 'published') {
-      return (
-        <IntegrationDirectoryApplicationRow
-          key={`sentry-app-row-${app.slug}`}
-          data-test-id="integration-row"
-          organization={organization}
-          install={this.getAppInstall(app)}
-          app={app}
-          isOnIntegrationPage
-        />
-      );
-    }
-    return null;
+
+    return (
+      <IntegrationDirectorySentryAppRow
+        key={`sentry-app-row-${app.slug}`}
+        data-test-id="integration-row"
+        organization={organization}
+        install={this.getAppInstall(app)}
+        app={app}
+      />
+    );
   };
 
   renderIntegration = (integration: AppOrProviderOrPlugin) => {

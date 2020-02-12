@@ -19,11 +19,13 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 # add sentry to path so we can import sentry.utils.distutils
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
+
 from sentry.utils.distutils import (
     BuildAssetsCommand,
     BuildIntegrationDocsCommand,
     BuildJsSdkRegistryCommand,
 )
+
 
 VERSION = "10.1.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
@@ -59,6 +61,10 @@ class SentrySDistCommand(SDistCommand):
 
 class SentryBuildCommand(BuildCommand):
     def run(self):
+        from distutils import log as distutils_log
+
+        distutils_log.set_threshold(distutils_log.WARN)
+
         if not IS_LIGHT_BUILD:
             self.run_command("build_integration_docs")
             self.run_command("build_assets")

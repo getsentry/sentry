@@ -4,7 +4,7 @@ YARN := ./bin/yarn
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
-develop: ensure-venv ensure-pinned-pip setup-git install-yarn-pkgs install-sentry-dev
+develop: ensure-pinned-pip setup-git install-yarn-pkgs install-sentry-dev
 
 clean:
 	@echo "--> Cleaning static cache"
@@ -17,10 +17,10 @@ clean:
 	rm -rf build/ dist/ src/sentry/assets.json
 	@echo ""
 
-init-config:
+init-config: ensure-venv
 	sentry init --dev
 
-run-dependent-services:
+run-dependent-services: ensure-venv
 	sentry devservices up
 
 DROPDB := $(shell command -v dropdb 2> /dev/null)
@@ -40,7 +40,7 @@ create-db:
 	@echo "--> Creating 'sentry' database"
 	$(CREATEDB) -h 127.0.0.1 -U postgres -E utf-8 sentry || true
 
-apply-migrations:
+apply-migrations: ensure-venv
 	@echo "--> Applying migrations"
 	sentry upgrade
 
@@ -49,10 +49,10 @@ reset-db: drop-db create-db apply-migrations
 ensure-venv:
 	@./scripts/ensure-venv.sh
 
-ensure-pinned-pip:
+ensure-pinned-pip: ensure-venv
 	$(PIP) install --no-cache-dir "pip>=20.0.2"
 
-setup-git:
+setup-git: ensure-venv
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
 	git config core.ignorecase false
@@ -66,7 +66,6 @@ node-version-check:
 
 install-yarn-pkgs: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
-	@command -v $(YARN) 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development $(YARN) install --pure-lockfile
 	# A common problem is with node packages not existing in `node_modules` even though `yarn install`
@@ -75,9 +74,12 @@ install-yarn-pkgs: node-version-check
 	# Add an additional check against `node_modules`
 	$(YARN) check --verify-tree || $(YARN) install --check-files
 
-install-sentry-dev:
+install-sentry-dev: ensure-venv
 	@echo "--> Installing Sentry (for development)"
-	$(PIP) install -e ".[dev]"
+	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
+	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
+	# and acceptance tests, which webpack automatically if run.
+	SENTRY_LIGHT_BUILD=1 $(PIP) install -e ".[dev]"
 
 build-js-po: node-version-check
 	mkdir -p build
@@ -198,9 +200,6 @@ lint-js:
 	bin/lint --js --parseable
 	@echo ""
 
-publish:
-	python setup.py sdist bdist_wheel upload
-
 
 .PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
 
@@ -216,7 +215,7 @@ travis-noop:
 .PHONY: travis-test-lint
 travis-test-lint: lint-python lint-js
 
-.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli travis-test-dist
+.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli
 travis-test-postgres: test-python
 travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
@@ -224,15 +223,8 @@ travis-test-symbolicator: test-symbolicator
 travis-test-js: test-js
 travis-test-cli: test-cli
 travis-test-plugins: test-plugins
-travis-test-dist:
-	# NOTE: We quiet down output here to workaround an issue in travis that
-	# causes the build to fail with a EAGAIN when writing a large amount of
-	# data to STDOUT.
-	# See: https://github.com/travis-ci/travis-ci/issues/4704
-	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py -q sdist bdist_wheel
-	@ls -lh dist/
 
-.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint
+.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-lint
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
 	$(PIP) install safety
@@ -245,6 +237,5 @@ travis-scan-snuba: travis-noop
 travis-scan-symbolicator: travis-noop
 travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
-travis-scan-dist: travis-noop
 travis-scan-lint: scan-python
 travis-scan-plugins: travis-noop
