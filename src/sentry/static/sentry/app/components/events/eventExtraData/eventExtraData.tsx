@@ -68,8 +68,8 @@ class EventExtraData extends React.Component<Props, State> {
           <ErrorBoundary mini>
             <KeyValueList
               data={this.getKeyValueListData()}
-              isContextData
               raw={this.state.raw}
+              isContextData
             />
           </ErrorBoundary>
         </EventDataSection>

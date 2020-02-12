@@ -239,13 +239,6 @@ class ContextData extends React.Component {
     return walk(value, 0);
   };
 
-  renderKeyPosValue = value => {
-    if (isString(value)) {
-      return <span className="val-string">{value}</span>;
-    }
-    return this.renderValue(value);
-  };
-
   render() {
     const {
       data,

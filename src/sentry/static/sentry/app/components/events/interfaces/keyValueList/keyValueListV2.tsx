@@ -3,6 +3,7 @@ import sortBy from 'lodash/sortBy';
 import styled from '@emotion/styled';
 
 import ContextData from 'app/components/contextData';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
 import theme from 'app/utils/theme';
 
 type Props = {
@@ -25,6 +26,7 @@ type Meta = {
   chunks: Array<Chunks>;
   len: number;
   rem: Array<Array<string | number>>;
+  err: Array<any>;
 };
 
 type Chunks = {
@@ -69,7 +71,14 @@ const KeyValueList = ({
                   withAnnotatedText
                 />
               ) : (
-                <pre className="val-string">{String(value)}</pre>
+                <pre className="val-string">
+                  <AnnotatedText
+                    value={value}
+                    chunks={meta.chunks}
+                    remarks={meta.rem}
+                    errors={meta.err}
+                  />
+                </pre>
               )}
             </td>
           </tr>
