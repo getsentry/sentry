@@ -132,12 +132,12 @@ class IncidentsListContainer extends React.Component<Props> {
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
    */
-  // componentWillMount() {
-  //   const {params, location, router} = this.props;
-  //   if (location.query.status === undefined) {
-  //     navigateTo(`/organizations/${params && params.orgId}/alerts/?status=open`, router);
-  //   }
-  // }
+  componentWillUpdate() {
+    const {params, location, router} = this.props;
+    if (router && location.query.status === undefined) {
+      navigateTo(`/organizations/${params && params.orgId}/alerts/?status=open`, router);
+    }
+  }
 
   handleNavigateToSettings = (e: React.MouseEvent) => {
     const {router, params} = this.props;
