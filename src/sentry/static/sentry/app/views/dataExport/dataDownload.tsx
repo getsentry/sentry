@@ -30,7 +30,6 @@ type Download = {
   dateCreated: string;
   dateFinished?: string;
   dateExpired?: string;
-  storageUrl?: string;
   query: {
     type: number;
     info: object;
@@ -55,7 +54,7 @@ class DataDownload extends AsyncView<Props, State> {
   }
 
   handleDownload(): void {
-    // TODO(Leander): Implement direct download from Google Cloud Storage
+    // TODO(Leander): Send request to download endpoint
   }
 
   renderExpired(): React.ReactNode {
