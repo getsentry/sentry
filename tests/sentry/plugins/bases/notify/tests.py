@@ -53,7 +53,6 @@ class NotifyPlugin(TestCase):
             notification = Notification(event)
 
             n.notify_users = hook
-            print ("dd", n.notify(notification))
             assert n.notify(notification) is False
 
     def test_test_configuration_and_get_test_results(self):
