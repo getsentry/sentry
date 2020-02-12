@@ -908,15 +908,18 @@ def validate_aggregate(field, match):
 
 FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
 
+NUMERIC_COLUMN = "numeric_column"
+NUMBER = "number"
+
 FUNCTIONS = {
     "percentile": {
         "name": "percentile",
         "args": [
-            {"name": "column", "type": "numeric_column"},
+            {"name": "column", "type": NUMERIC_COLUMN},
             {
                 "name": "percentile",
-                "type": "number",
-                "fn": lambda v: (v > 0 and v < 1, "not between 0 and 1"),
+                "type": NUMBER,
+                "validator": lambda v: (v > 0 and v < 1, "not between 0 and 1"),
             },
         ],
         "transform": "quantile(%(percentile).2f)(%(column)s)",
@@ -948,13 +951,13 @@ def resolve_function(field, match=None):
         raise InvalidSearchQuery("%s: expected %d arguments" % (field, len(function["args"])))
 
     arguments = {}
-    for column_value, validator in zip(columns, function["args"]):
-        if validator["type"] == "number":
+    for column_value, argument in zip(columns, function["args"]):
+        if argument["type"] == NUMBER:
             try:
                 column_value = float(column_value)
             except ValueError:
                 raise InvalidSearchQuery("%s: %s is not a number" % (field, column_value))
-        elif validator["type"] == "numeric_column":
+        elif argument["type"] == NUMERIC_COLUMN:
             # TODO evanh/wmak Do proper column validation here
             snuba_column = SEARCH_MAP.get(column_value)
             if not snuba_column:
@@ -963,14 +966,14 @@ def resolve_function(field, match=None):
                 raise InvalidSearchQuery("%s: %s is not a numeric column" % (field, column_value))
             column_value = snuba_column
 
-        if "fn" in validator:
-            valid, message = validator["fn"](column_value)
+        if "validator" in argument:
+            valid, message = argument["validator"](column_value)
             if not valid:
                 raise InvalidSearchQuery(
                     "%s: %s argument invalid: %s" % (field, column_value, message)
                 )
 
-        arguments[validator["name"]] = column_value
+        arguments[argument["name"]] = column_value
 
     snuba_string = function["transform"] % arguments
     return [], [[snuba_string, None, get_function_alias(function["name"], columns)]]
