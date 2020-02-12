@@ -38,7 +38,7 @@ function formatValue(val: string | number, columnName: string, itemName: string)
   if (itemName === t('Release')) {
     return (
       <Value>
-        <Version version={val as string} anchor={false} withPackage />
+        <Version version={String(val)} anchor={false} withPackage />
       </Value>
     );
   }

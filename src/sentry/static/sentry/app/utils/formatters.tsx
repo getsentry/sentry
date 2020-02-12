@@ -23,6 +23,6 @@ export const formatVersion = (rawVersion: string, withPackage: boolean | undefin
   const parsedVersion = new Release(rawVersion);
 
   return `${parsedVersion.describe()}${
-    withPackage && parsedVersion.package ? ', ' + parsedVersion.package : ''
+    withPackage && parsedVersion.package ? `, ${parsedVersion.package}` : ''
   }`;
 };

@@ -93,29 +93,30 @@ export default class TagDistributionMeter extends React.Component<Props> {
     const largestSegment = segments[0];
     const pct = percent(largestSegment.count, totalValues);
     const pctLabel = Math.floor(pct);
-
-    let label: React.ReactNode = null;
-    switch (title) {
-      case 'release':
-        label = (
-          <Version
-            version={largestSegment.name}
-            anchor={false}
-            tooltipRawVersion
-            withPackage={showReleasePackage}
-            truncate
-          />
-        );
-        break;
-      default:
-        label = largestSegment.name || t('n/a');
-    }
+    const renderLabel = () => {
+      switch (title) {
+        case 'release':
+          return (
+            <Label>
+              <Version
+                version={largestSegment.name}
+                anchor={false}
+                tooltipRawVersion
+                withPackage={showReleasePackage}
+                truncate
+              />
+            </Label>
+          );
+        default:
+          return <Label>{largestSegment.name || t('n/a')}</Label>;
+      }
+    };
 
     return (
       <Title>
         <TitleType>{title}</TitleType>
         <TitleDescription>
-          <Label>{label}</Label>
+          {renderLabel()}
           {isLoading || hasError ? null : <Percent>{pctLabel}%</Percent>}
         </TitleDescription>
       </Title>
@@ -153,24 +154,24 @@ export default class TagDistributionMeter extends React.Component<Props> {
         {segments.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
+          const renderTooltipValue = () => {
+            switch (title) {
+              case 'release':
+                return (
+                  <Version
+                    version={value.name}
+                    anchor={false}
+                    withPackage={showReleasePackage}
+                  />
+                );
+              default:
+                return value.name || t('n/a');
+            }
+          };
 
-          let tooltipValue: React.ReactNode = null;
-          switch (title) {
-            case 'release':
-              tooltipValue = (
-                <Version
-                  version={value.name}
-                  anchor={false}
-                  withPackage={showReleasePackage}
-                />
-              );
-              break;
-            default:
-              tooltipValue = value.name || t('n/a');
-          }
           const tooltipHtml = (
             <React.Fragment>
-              <div className="truncate">{tooltipValue}</div>
+              <div className="truncate">{renderTooltipValue()}</div>
               {pctLabel}%
             </React.Fragment>
           );

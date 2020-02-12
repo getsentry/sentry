@@ -28,8 +28,16 @@ const TagsTable = (props: Props) => {
       <StyledTable>
         <tbody>
           {tags.map(tag => {
-            let target, tagValue;
+            let target;
             const tagInQuery = eventView.query.includes(`${tag.key}:`);
+            const renderTagValue = () => {
+              switch (tag.key) {
+                case 'release':
+                  return <Version version={tag.value} anchor={false} withPackage />;
+                default:
+                  return tag.value;
+              }
+            };
             if (!tagInQuery) {
               const nextView = getExpandedResults(
                 eventView,
@@ -39,24 +47,16 @@ const TagsTable = (props: Props) => {
               target = nextView.getResultsViewUrlTarget(organization.slug);
             }
 
-            switch (tag.key) {
-              case 'release':
-                tagValue = <Version version={tag.value} anchor={false} withPackage />;
-                break;
-              default:
-                tagValue = tag.value;
-            }
-
             return (
               <StyledTr key={tag.key}>
                 <TagKey>{tag.key}</TagKey>
                 <TagValue>
                   {tagInQuery ? (
                     <Tooltip title={t('This tag is in the current filter conditions')}>
-                      <span>{tagValue}</span>
+                      <span>{renderTagValue()}</span>
                     </Tooltip>
                   ) : (
-                    <Link to={target}>{tagValue}</Link>
+                    <Link to={target}>{renderTagValue()}</Link>
                   )}
                 </TagValue>
               </StyledTr>
