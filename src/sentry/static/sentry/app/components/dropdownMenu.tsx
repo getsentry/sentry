@@ -10,12 +10,14 @@ type GetActorArgs = {
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
   onKeyDown?: (e: React.KeyboardEvent<Element>) => void;
   style?: React.CSSProperties;
+  className?: string;
 };
 
 type GetMenuArgs = {
   onClick?: (e: React.MouseEvent<Element>) => void;
   onMouseEnter?: (e: React.MouseEvent<Element>) => void;
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
+  className?: string;
 };
 
 // Props for the "actor" element of `<DropdownMenu>`
