@@ -362,6 +362,10 @@ const StyledEventEntries = styled(EventEntries)`
   & ${DataSection} {
     padding: ${space(3)} 0 0 0;
   }
+  & ${DataSection}:first-child {
+    padding-top: 0;
+    border-top: none;
+  }
 `;
 
 export default withApi(EventDetailsContent);
