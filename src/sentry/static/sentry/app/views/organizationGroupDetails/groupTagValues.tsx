@@ -14,28 +14,13 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
-import {Group, AvatarUser} from 'app/types';
+import {Group, Tag, TagValue} from 'app/types';
 
 type RouteParams = {
   groupId: number;
   orgId: string;
   tagKey: string;
 };
-
-type TagValue = {
-  count: number;
-  name: string;
-  value: string;
-  lastSeen: string;
-  key: string;
-  firstSeen: string;
-  // User key specific properties
-  query?: string;
-  email?: string;
-  username?: string;
-  identifier?: string;
-  ipAddress?: string;
-} & AvatarUser;
 
 type Props = {
   group: Group;
@@ -45,11 +30,7 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  tagKey: {
-    key: string;
-    name: string;
-    totalValues: number;
-  };
+  tagKey: Tag;
   tagValueList: TagValue[];
   tagValueListPageLinks: string;
 };
@@ -70,17 +51,12 @@ class GroupTagValues extends AsyncComponent<
     return item.email || item.username || item.identifier || item.ipAddress || item.value;
   }
 
-  render() {
+  renderBody() {
     const {
       group,
       params: {orgId},
     } = this.props;
-    const {tagKey, tagValueList, tagValueListPageLinks, loading, error} = this.state;
-    if (loading) {
-      return <LoadingIndicator />;
-    } else if (error) {
-      return <LoadingError onRetry={this.fetchData} />;
-    }
+    const {tagKey, tagValueList, tagValueListPageLinks} = this.state;
     const sortedTagValueList: TagValue[] = sortBy(
       tagValueList,
       property('count')
@@ -89,13 +65,14 @@ class GroupTagValues extends AsyncComponent<
     const issuesPath = `/organizations/${orgId}/issues/`;
 
     const children = sortedTagValueList.map((tagValue: TagValue, tagValueIdx: number) => {
-      const pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
+      const pct = tagKey.totalValues
+        ? `${percent(tagValue.count, tagKey.totalValues).toFixed(2)}%`
+        : '--';
       const query = tagValue.query || `${tagKey.key}:"${tagValue.value}"`;
       return (
         <tr key={tagValueIdx}>
           <td className="bar-cell">
-            <span className="bar" style={{width: pct + '%'}} />
-            <span className="label">{pct}%</span>
+            <span className="label">{pct}</span>
           </td>
           <td>
             <GlobalSelectionLink
