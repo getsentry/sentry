@@ -52,7 +52,7 @@ def process_issue_by_tag(data_export, file):
     """
     # Get the pertaining project
     payload = data_export.query_info
-    project = Project.objects.get(slug=payload["project_slug"])
+    project = Project.objects.get(id=payload["project_id"])
 
     # Get the pertaining issue
     group, _ = get_group_with_redirect(
@@ -87,7 +87,7 @@ def process_issue_by_tag(data_export, file):
         fields = ["value", "times_seen", "last_seen", "first_seen"]
 
     # Example file name: ISSUE_BY_TAG-project10-user__721.csv
-    file_details = u"{}-{}__{}".format(payload["project_slug"], key, data_export.id)
+    file_details = u"{}-{}__{}".format(project.slug, key, data_export.id)
     file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, file_details)
 
     # Iterate through all the GroupTagValues
@@ -116,8 +116,8 @@ def create_writer(file, fields):
     return writer
 
 
-def get_file_name(type, custom_string, extension="csv"):
-    file_name = u"{}-{}.{}".format(type, custom_string, extension)
+def get_file_name(export_type, custom_string, extension="csv"):
+    file_name = u"{}-{}.{}".format(export_type, custom_string, extension)
     return file_name
 
 

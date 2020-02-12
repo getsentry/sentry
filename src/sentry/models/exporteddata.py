@@ -62,4 +62,4 @@ class ExportedData(Model):
         app_label = "sentry"
         db_table = "sentry_exporteddata"
 
-    __repr__ = sane_repr("data_id")
+    __repr__ = sane_repr("query_type", "query_info")
