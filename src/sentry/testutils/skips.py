@@ -35,3 +35,20 @@ def xfail_if_not_postgres(reason):
         )
 
     return decorator
+
+
+def relay_is_available():
+    if "relay" in _service_status:
+        return _service_status["relay"]
+    try:
+        socket.create_connection(("127.0.0.1", settings.SENTRY_RELAY_PORT), 1.0)
+    except socket.error:
+        _service_status["relay"] = False
+    else:
+        _service_status["relay"] = True
+    return _service_status["relay"]
+
+
+requires_relay = pytest.mark.skipif(
+    not relay_is_available(), reason="requires relay server running"
+)

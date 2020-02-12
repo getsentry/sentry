@@ -6,11 +6,13 @@ import os
 import datetime
 import json
 import logging
-from sentry.utils.compat import mock
 import six
 from time import sleep
 import zlib
+import pytest
+import requests
 
+from sentry.utils.compat import mock
 from sentry import eventstore, tagstore
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -25,7 +27,13 @@ from six import StringIO
 from werkzeug.test import Client as WerkzeugClient
 
 from sentry.models import Group
-from sentry.testutils import SnubaTestCase, TestCase, TransactionTestCase
+from sentry.testutils import (
+    SnubaTestCase,
+    TestCase,
+    TransactionTestCase,
+    requires_relay,
+    requires_snuba,
+)
 from sentry.testutils.helpers import get_auth_header
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.settings import validate_settings, ConfigurationError, import_string
@@ -564,7 +572,6 @@ class DependencyTest(TestCase):
     def validate_dependency(
         self, key, package, dependency_type, dependency, setting_value, import_string
     ):
-
         import_string.side_effect = self.raise_import_error(package)
 
         with self.settings(**{key: setting_value}):
@@ -632,3 +639,47 @@ class CspReportTest(TestCase, SnubaTestCase):
 
     def test_firefox_missing_effective_uri(self):
         self.assertReportCreated(*get_fixtures("firefox_blocked_asset"))
+
+
+@requires_relay
+@requires_snuba
+@pytest.mark.django_db
+@override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
+class RelayIntegrationTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        self.user = self.create_user("coreapi@example.com")
+        self.project = self.create_project()
+        self.pk = self.project.key_set.get_or_create()[0]
+
+    @pytest.fixture(autouse=True)
+    def setup_servers(self, live_server, relay_server):
+        """
+            Used to inject the sentry server (live_server) and
+            the relay_server in the test class.
+            Called by pytest as an autofixture.
+        """
+        self.live_server = live_server
+        self.relay_server = relay_server
+        print ("RELAY- ", relay_server, " -END")
+
+    @override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
+    def test_simple(self):
+        auth = get_auth_header(
+            "TEST_USER_AGENT/0.0.0", self.projectkey.public_key, self.projectkey.secret_key, "7"
+        )
+
+        port = settings.SENTRY_REVERSE_PROXY_PORT
+
+        url = "http://127.0.0.1:{}{}".format(
+            port, reverse("sentry-api-store", args=[self.pk.project_id])
+        )
+
+        response = requests.post(
+            url,
+            headers={"x-sentry-auth": auth, "content-type": "application/json"},
+            data=b'{"message": "hello"}',
+        )
+
+        print (response.content)
+        # self.assertEqual(response.content, "")
+        # self.assertEqual(response.status_code, requests.codes.ok)

@@ -1,0 +1,22 @@
+---
+relay:
+  mode: managed
+  upstream: "http://host.docker.internal:${SENTRY_PORT}/"
+  host: 0.0.0.0
+  port: 3000
+  tls_port: ~
+  tls_identity_path: ~
+  tls_identity_password: ~
+logging:
+  level: TRACE
+  enable_backtraces: true
+processing:
+  enabled: true
+  kafka_config:
+    - {name: "bootstrap.servers", value: "sentry_kafka:9093"}
+  topics:
+    events: "ingest-events"
+    attachments: "ingest-attachments"
+    transactions: "ingest-transactions"
+    outcomes: "event-outcomes"
+  redis: redis://sentry_redis:6379
