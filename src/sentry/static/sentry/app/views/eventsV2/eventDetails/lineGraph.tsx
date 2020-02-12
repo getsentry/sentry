@@ -67,6 +67,17 @@ const getCurrentEventMarker = (currentEvent: Event) => {
   };
 };
 
+type ClickHandlerOptions = {
+  api: Client;
+  currentEvent: Event;
+  organization: Organization;
+  queryString: string;
+  field: string[];
+  interval: string;
+  selection: GlobalSelection;
+  eventView: EventView;
+};
+
 /**
  * Handle click events on line markers
  *
@@ -86,16 +97,7 @@ const handleClick = async function(
     interval,
     selection,
     eventView,
-  }: {
-    api: Client;
-    currentEvent: Event;
-    organization: Organization;
-    queryString: string;
-    field: string[];
-    interval: string;
-    selection: GlobalSelection;
-    eventView: EventView;
-  }
+  }: ClickHandlerOptions
 ) {
   // Get the timestamp that was clicked.
   const value = series.value[0];
@@ -109,17 +111,27 @@ const handleClick = async function(
     ? 'last_seen'
     : null;
 
+  const endValue = getUtcDateString(value + intervalToMilliseconds(interval));
+  const startValue = getUtcDateString(value);
+  const queryWithTime = `${queryString} timestamp:>${startValue} timestamp:<=${endValue}`;
+
   // Get events that match the clicked timestamp
   // taking into account the group and current environment & query
   const query: any = {
     environment: selection.environments,
-    start: getUtcDateString(value),
-    end: getUtcDateString(value + intervalToMilliseconds(interval)),
     limit: 1,
     referenceEvent: `${currentEvent.projectSlug}:${currentEvent.eventID}`,
-    query: queryString,
+    query: queryWithTime,
     field,
   };
+
+  // Perserve the current query window
+  if (selection.datetime.period) {
+    query.statsPeriod = selection.datetime.period;
+  } else {
+    query.start = selection.datetime.start;
+    query.end = selection.datetime.end;
+  }
   if (sortField !== null) {
     query.sort = sortField;
   }
