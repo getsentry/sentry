@@ -54,11 +54,14 @@ class EventErrors extends React.Component {
               numErrors
             )}
           </span>
-          <a data-test-id="toggle-event-errors" onClick={this.toggle}>
+          <a data-test-id="event-error-toggle" onClick={this.toggle}>
             {isOpen ? t('Hide') : t('Show')}
           </a>
         </Summary>
-        <ErrorList style={{display: isOpen ? 'block' : 'none'}}>
+        <ErrorList
+          data-test-id="event-error-details"
+          style={{display: isOpen ? 'block' : 'none'}}
+        >
           {errors.map((error, errorIdx) => {
             return <EventErrorItem key={errorIdx} error={error} />;
           })}
