@@ -845,6 +845,39 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["count_id"] == 3
         assert data[1]["count_id"] == 1
 
+    def test_empty_count_query(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=5)),
+                "fingerprint": ["1123581321"],
+                "user": {"email": "foo@example.com"},
+                "tags": {"language": "C++"},
+            },
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["count()"],
+                    "query": "issue.id:%d timestamp:>%s" % (event.group_id, self.min_ago),
+                    "statsPeriod": "14d",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["project.name"] == ""
+        assert data[0]["count"] == 0
+        assert data[0]["latest_event"] == ""
+
     def test_reference_event(self):
         self.login_as(user=self.user)
 
