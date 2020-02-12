@@ -12,7 +12,6 @@ import CircleIndicator from 'app/components/circleIndicator';
 import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
-import Field from 'app/views/settings/components/forms/field';
 
 import {Trigger} from '../types';
 
