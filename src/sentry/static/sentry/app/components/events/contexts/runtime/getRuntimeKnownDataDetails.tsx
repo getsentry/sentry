@@ -7,6 +7,7 @@ export enum RuntimeKnownDataDetailsType {
 
 export type RuntimeData = {
   name: string;
+  type: string;
   build: string;
   version?: string;
 };
