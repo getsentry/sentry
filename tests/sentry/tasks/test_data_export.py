@@ -6,7 +6,8 @@ from sentry.testutils import TestCase, SnubaTestCase
 
 
 class AssembleDownloadTest(TestCase, SnubaTestCase):
-    def setup(self):
+    def setUp(self):
+        super(AssembleDownloadTest, self).setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
         self.project = self.create_project()
@@ -30,7 +31,6 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert file_name == "TESTING-proj1_user1_test.csv"
 
     def test_assemble_download_issue_by_tag(self):
-        self.setup()
         de1 = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
