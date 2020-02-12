@@ -803,8 +803,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                                   "formatted": "Blocked script",
                                                 }
                                               }
-                                              prop="formatted"
-                                              required={false}
+                                              objectKey="formatted"
                                             >
                                               <MetaData
                                                 object={
