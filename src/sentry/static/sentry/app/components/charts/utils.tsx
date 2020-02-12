@@ -9,7 +9,13 @@ const DEFAULT_TRUNCATE_LENGTH = 80;
 const TWENTY_FOUR_HOURS = 1440;
 const THIRTY_MINUTES = 30;
 
-export function truncationFormatter(value, truncate) {
+type DateTimeObject = {
+  start: Date | null;
+  end: Date | null;
+  period?: string;
+};
+
+export function truncationFormatter(value: string, truncate: number): string {
   if (!truncate) {
     return value;
   }
@@ -23,13 +29,13 @@ export function truncationFormatter(value, truncate) {
 /**
  * Use a shorter interval if the time difference is <= 24 hours.
  */
-export function useShortInterval(datetimeObj) {
+export function useShortInterval(datetimeObj: DateTimeObject): boolean {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
 
-export function getInterval(datetimeObj, highFidelity = false) {
+export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
   if (diffInMinutes > TWENTY_FOUR_HOURS) {
@@ -56,7 +62,7 @@ export function getInterval(datetimeObj, highFidelity = false) {
   }
 }
 
-export function getDiffInMinutes(datetimeObj) {
+export function getDiffInMinutes(datetimeObj: DateTimeObject): number {
   const {period, start, end} = datetimeObj;
 
   if (start && end) {

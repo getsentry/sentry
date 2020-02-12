@@ -10,7 +10,7 @@ type Props = {
 };
 
 const EventSdk = ({event: {sdk: data}}: Props) => (
-  <EventDataSection type="sdk" title={t('SDK')} wrapTitle>
+  <EventDataSection type="sdk" title={t('SDK')}>
     <table className="table key-value">
       <tbody>
         <tr key="name">

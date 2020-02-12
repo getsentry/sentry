@@ -6,14 +6,12 @@ import styled from '@emotion/styled';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import CircleIndicator from 'app/components/circleIndicator';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
-import theme from 'app/utils/theme';
 
-const INSTALLED = 'Installed';
-const NOT_INSTALLED = 'Not Installed';
-const PENDING = 'Pending';
+import {NOT_INSTALLED} from './constants';
+
+import IntegrationStatus from './integrationStatus';
 
 type Props = {
   app: SentryApp;
@@ -34,10 +32,9 @@ export default class IntegrationDirectorySentryAppRow extends React.PureComponen
   renderStatus() {
     const {app} = this.props;
     const status = this.installationStatus;
-
     return (
       <React.Fragment>
-        <StatusIndicator status={status} />
+        <IntegrationStatus status={status} />
         {!this.isPublished && <PublishStatus status={app.status} />}
       </React.Fragment>
     );
@@ -45,7 +42,7 @@ export default class IntegrationDirectorySentryAppRow extends React.PureComponen
 
   get installationStatus() {
     if (this.props.install) {
-      return capitalize(this.props.install.status);
+      return capitalize(this.props.install.status) as 'Installed' | 'Pending';
     }
 
     return NOT_INSTALLED;
@@ -117,27 +114,6 @@ const SentryAppLink = styled(Link)`
 const FlexContainer = styled('div')`
   display: flex;
   align-items: center;
-`;
-const color = {
-  [INSTALLED]: 'success',
-  [NOT_INSTALLED]: 'gray2',
-  [PENDING]: 'yellowOrange',
-};
-
-type StatusIndicatorProps = {status: string; theme?: any};
-
-const StatusIndicator = styled(({status, ...props}: StatusIndicatorProps) => {
-  return (
-    <FlexContainer>
-      <CircleIndicator size={6} color={theme[color[status]]} />
-      <div {...props}>{t(`${status}`)}</div>
-    </FlexContainer>
-  );
-})`
-  color: ${(props: StatusIndicatorProps) => props.theme[color[props.status]]};
-  margin-left: ${space(0.5)};
-  font-weight: light;
-  margin-right: ${space(0.75)};
 `;
 
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};
