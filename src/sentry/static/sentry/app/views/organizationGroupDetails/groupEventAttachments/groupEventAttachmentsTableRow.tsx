@@ -27,14 +27,6 @@ const GroupEventAttachmentsTableRow = ({
   orgId,
   groupId,
 }: Props) => {
-  const getEventUrl = () => {
-    return `/organizations/${orgId}/issues/${groupId}/events/${attachment.event_id}/`;
-  };
-
-  const getAttachmentTypeDisplayName = (type: string) => {
-    return types[type] || t('Other');
-  };
-
   return (
     <TableRow isDeleted={isDeleted}>
       <td>
@@ -43,12 +35,16 @@ const GroupEventAttachmentsTableRow = ({
           <br />
           <small>
             <DateTime date={attachment.dateCreated} /> &middot;{' '}
-            <Link to={getEventUrl()}>{attachment.event_id}</Link>
+            <Link
+              to={`/organizations/${orgId}/issues/${groupId}/events/${attachment.event_id}/`}
+            >
+              {attachment.event_id}
+            </Link>
           </small>
         </h5>
       </td>
 
-      <td>{getAttachmentTypeDisplayName(attachment.type)}</td>
+      <td>{types[attachment.type] || t('Other')}</td>
 
       <td>
         <FileSize bytes={attachment.size} />
