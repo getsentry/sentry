@@ -94,9 +94,10 @@ def find_channel_id_for_rule(
 
     if item_id:
         for action in actions:
-            # need to make sure we are adding back the right prefix
+            # need to make sure we are adding back the right prefix and also the channel_id
             if action.get("channel") and strip_channel_name(action.get("channel")) == channel_name:
                 action["channel"] = prefix + channel_name
+                action["channel_id"] = item_id
                 break
 
         kwargs = {
