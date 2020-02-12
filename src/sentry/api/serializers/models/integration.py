@@ -85,6 +85,7 @@ class IntegrationProviderSerializer(Serializer):
 
         return {
             "key": obj.key,
+            "slug": obj.key,
             "name": obj.name,
             "metadata": metadata,
             "canAdd": obj.can_add,

@@ -493,13 +493,21 @@ export enum RepositoryStatus {
 
 export type IntegrationProvider = {
   key: string;
+  slug: string;
   name: string;
   canAdd: boolean;
   canDisable: boolean;
   features: string[];
   aspects: any; //TODO(ts)
   setupDialog: {url: string; width: number; height: number};
-  metadata: any; //TODO(ts)
+  metadata: {
+    description: string;
+    features: IntegrationFeature[];
+    author: string;
+    issue_url: string;
+    source_url: string;
+    aspects: any; //TODO(ts)
+  };
 };
 
 export type IntegrationFeature = {
