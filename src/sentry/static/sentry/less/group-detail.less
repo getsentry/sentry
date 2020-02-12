@@ -423,6 +423,7 @@
     // whatever it pleases (e.g. 4k pixels on my 1280 screen)
     max-width: ~'calc(100% - 365px)';
 
+    // Issue status block shown when an issue is not unresolved
     .issue-status {
       background: @white-dark;
 
@@ -988,12 +989,6 @@ div.traceback > ul {
 
     .box-clippable .clip-fade {
       bottom: 0;
-    }
-
-    &.frame-errors {
-    }
-
-    &.system-frame {
     }
 
     h3 {
@@ -1582,84 +1577,6 @@ div.commands {
     &:hover {
       color: rgba(0, 0, 0, 0.9);
     }
-  }
-}
-
-.box.errors {
-  border-top: 1px solid @alert-danger-border-color !important;
-  background: @alert-danger-bg-color;
-  margin-top: -1px !important;
-  padding-top: 15px !important;
-  font-size: 14px;
-  position: relative;
-  .clearfix;
-
-  &.hint {
-    border-top: 1px solid @purple-lightest !important;
-    background: lighten(@purple-lightest, 15%);
-    margin-top: -1px !important;
-    padding-top: 15px !important;
-    font-size: 14px;
-    position: relative;
-  }
-
-  .icon-alert {
-    position: absolute;
-    top: 17px;
-    font-size: 16px;
-    color: @red;
-  }
-
-  .icon-question.event {
-    position: absolute;
-    top: 17px;
-    font-size: 16px;
-    color: black;
-  }
-
-  .box-content {
-    padding: 10px 20px;
-
-    a {
-      font-weight: bold;
-      color: rgba(0, 0, 0, 0.7);
-
-      &:hover {
-        color: rgba(0, 0, 0, 0.9);
-      }
-    }
-
-    p {
-      margin: 0 0 13px;
-      line-height: 1.5;
-      padding-left: 26px;
-
-      .btn {
-        margin-left: 5px;
-      }
-    }
-
-    ul {
-      border-top: 1px solid lighten(@alert-danger-border-color, 4);
-      margin: 10px 0 0;
-      padding: 10px 0 10px 20px;
-
-      li {
-        margin-bottom: 5px;
-        word-break: break-word;
-      }
-    }
-
-    pre {
-      background: #f9eded;
-      color: #381618;
-      margin: 5px 0 0;
-    }
-  }
-
-  & + .box,
-  & + .context-summary {
-    border-top: 1px solid lighten(@alert-danger-border-color, 4);
   }
 }
 

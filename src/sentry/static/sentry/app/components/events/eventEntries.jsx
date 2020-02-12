@@ -169,9 +169,6 @@ class EventEntries extends React.Component {
 
     const features = organization ? new Set(organization.features) : new Set();
 
-    const hasContext =
-      event && (!objectIsEmpty(event.user) || !objectIsEmpty(event.contexts));
-
     if (!event) {
       return (
         <div style={{padding: '15px 30px'}}>
@@ -179,6 +176,8 @@ class EventEntries extends React.Component {
         </div>
       );
     }
+    const hasContext = !objectIsEmpty(event.user) || !objectIsEmpty(event.contexts);
+    const hasErrors = !objectIsEmpty(event.errors);
 
     return (
       <div className="entries">
@@ -194,6 +193,7 @@ class EventEntries extends React.Component {
             report={event.userReport}
             orgId={orgId}
             issueId={group.id}
+            includeBorder={!hasErrors}
           />
         )}
         {hasContext && <EventContextSummary event={event} />}
@@ -239,6 +239,6 @@ const StyledEventUserFeedback = styled(EventUserFeedback)`
   box-shadow: none;
   padding: 20px 30px 0 40px;
   border: 0;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.borderLight};` : '')}
   margin: 0;
 `;
