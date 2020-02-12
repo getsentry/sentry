@@ -10,6 +10,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
@@ -239,6 +240,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
      - `access`: An access object (from `request.access`)
     """
 
+    environment = serializers.ListField(child=EnvironmentField(), required=False)
     # TODO: These might be slow for many projects, since it will query for each
     # individually. If we find this to be a problem then we can look into batching.
     projects = serializers.ListField(child=ProjectField(), required=False)
@@ -251,6 +253,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "name",
             "query",
             "time_window",
+            "environment",
             "threshold_period",
             "aggregation",
             "projects",
@@ -375,9 +378,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     def _remove_unchanged_fields(self, instance, validated_data):
         for field_name, value in list(six.iteritems(validated_data)):
             # Remove any fields that haven't actually changed
-            if field_name == "triggers":
-                continue  # No removal for triggers
-
+            if field_name == "triggers" or field_name == "environment":
+                continue  # No removal for triggers or environment
             if field_name == "projects":
                 project_slugs = Project.objects.filter(
                     querysubscription__alert_rules=instance

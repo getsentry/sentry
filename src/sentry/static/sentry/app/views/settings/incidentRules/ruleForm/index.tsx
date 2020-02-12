@@ -403,6 +403,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               aggregation: rule.aggregation,
               query: rule.query || '',
               timeWindow: rule.timeWindow,
+              environment: rule.environment || [],
             }}
             saveOnBlur={false}
             onSubmit={this.handleSubmit}
