@@ -35,7 +35,7 @@ class AlertRuleSerializer(Serializer):
             alert_rule_environment = result[alert_rules[are.alert_rule.id]].setdefault(
                 "environment", []
             )
-            alert_rule_environment.append([are.environment.name])
+            alert_rule_environment.append(are.environment.name)
 
         return result
 
