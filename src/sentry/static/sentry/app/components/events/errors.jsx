@@ -54,7 +54,9 @@ class EventErrors extends React.Component {
               numErrors
             )}
           </span>
-          <a onClick={this.toggle}>{isOpen ? t('Hide') : t('Show')}</a>
+          <a data-test-id="toggle-event-errors" onClick={this.toggle}>
+            {isOpen ? t('Hide') : t('Show')}
+          </a>
         </Summary>
         <ErrorList style={{display: isOpen ? 'block' : 'none'}}>
           {errors.map((error, errorIdx) => {
@@ -66,7 +68,7 @@ class EventErrors extends React.Component {
   }
 }
 
-// TODO don't use a custom pink
+// TODO(theme) don't use a custom pink
 const customPink = '#e7c0bc';
 
 const Section = styled('div')`
@@ -103,6 +105,7 @@ const Summary = styled('p')`
 
 const ErrorList = styled('ul')`
   border-top: 1px solid ${customPink};
+  border-bottom: 1px solid ${customPink};
   margin: ${space(1)} 0 0;
   padding: ${space(1)} 0 ${space(1)} ${space(3)};
 
