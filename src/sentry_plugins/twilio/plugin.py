@@ -132,6 +132,8 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
         return None
 
     def notify_users(self, group, event, **kwargs):
+        if not self.is_configured(group.project):
+            return
         project = group.project
 
         body = "Sentry [{0}] {1}: {2}".format(
@@ -152,6 +154,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
                 continue
             try:
                 phone = clean_phone(phone)
+                payload = payload.copy()
                 payload["To"] = phone
                 client.request(payload)
             except Exception as e:
@@ -160,15 +163,10 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
         if errors:
             self.raise_error(errors[0])
 
-            # TODO: multi-exception
-            raise Exception(errors)
-
     def get_client(self, project):
         account_sid = self.get_option("account_sid", project)
         auth_token = self.get_option("auth_token", project)
         sms_from = clean_phone(self.get_option("sms_from", project))
         sms_to = self.get_option("sms_to", project)
-        if not sms_to:
-            return
         sms_to = split_sms_to(sms_to)
         return TwilioApiClient(account_sid, auth_token, sms_from, sms_to)

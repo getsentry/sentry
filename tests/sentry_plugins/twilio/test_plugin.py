@@ -67,8 +67,8 @@ class TwilioPluginTest(PluginTestCase):
         self.assertPluginInstalled("twilio", self.plugin)
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(self.project) is False
         for o in ("account_sid", "auth_token", "sms_from", "sms_to"):
+            assert self.plugin.is_configured(self.project) is False
             self.plugin.set_option(o, "foo", self.project)
         assert self.plugin.is_configured(self.project) is True
 
