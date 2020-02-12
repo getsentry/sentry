@@ -276,6 +276,37 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == "Invalid query. Project morty must exist and be in global header"
         )
 
+    def test_not_project_in_query(self):
+        self.login_as(user=self.user)
+        project1 = self.create_project()
+        project2 = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project1.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project2.id,
+        )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["project", "count()"],
+                    "query": '!project:"%s"' % project1.slug,
+                    "statsPeriod": "14d",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["project.name"] == project2.slug
+        assert "project.id" not in response.data["data"][0]
+
     def test_implicit_groupby(self):
         self.login_as(user=self.user)
         project = self.create_project()

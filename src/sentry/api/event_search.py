@@ -769,34 +769,31 @@ def get_filter(query=None, params=None):
         "group_ids": [],
     }
 
-    def get_projects(params):
-        return {
-            p["slug"]: p["id"]
-            for p in Project.objects.filter(id__in=params.get("project_id", [])).values(
-                "id", "slug"
-            )
-        }
-
     def to_list(value):
         if isinstance(value, list):
             return value
         return [value]
 
-    projects = None
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
-            if name in (PROJECT_NAME_ALIAS, PROJECT_ALIAS):
-                if projects is None:
-                    projects = get_projects(params)
-                project = projects.get(term.value.value)
-                if not project:
+            if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
+                project = None
+                try:
+                    project = Project.objects.get(
+                        id__in=params.get("project_id", []), slug=term.value.value
+                    )
+                except Exception:
                     raise InvalidSearchQuery(
                         "Invalid query. Project %s must exist and be in global header"
                         % term.value.value
                     )
-                condition = ["project_id", "=", projects.get(term.value.value)]
-                kwargs["conditions"].append(condition)
+
+                # Create a new search filter with the correct values
+                term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
+                converted_filter = convert_search_filter_to_snuba_query(term)
+                if converted_filter:
+                    kwargs["conditions"].append(converted_filter)
             elif name == "issue.id" and term.value.value != "":
                 # A blank term value means that this is a has filter
                 kwargs["group_ids"].extend(to_list(term.value.value))
@@ -811,7 +808,7 @@ def get_filter(query=None, params=None):
                         raise InvalidSearchQuery(
                             u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
                         )
-            elif name in FIELD_ALIASES:
+            elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
                     kwargs["having"].append(converted_filter)
