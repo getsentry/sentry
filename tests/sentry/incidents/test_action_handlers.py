@@ -135,7 +135,7 @@ class EmailActionHandlerFireTest(TestCase):
             handler.fire()
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject.startswith("Alert Rule Fired")
+        assert out.subject == u"[Open] {} - {}".format(incident.title, self.project.slug)
 
 
 @freeze_time()
@@ -150,7 +150,7 @@ class EmailActionHandlerResolveTest(TestCase):
             handler.resolve()
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject.startswith("Alert Rule Resolved")
+        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
 
 
 @freeze_time()
