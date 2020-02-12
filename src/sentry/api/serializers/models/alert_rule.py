@@ -28,7 +28,9 @@ class AlertRuleSerializer(Serializer):
             )
             alert_rule_triggers.append(serialized)
 
-        alert_rule_environments = AlertRuleEnvironment.objects.filter(alert_rule__in=item_list)
+        alert_rule_environments = AlertRuleEnvironment.objects.select_related("environment").filter(
+            alert_rule__in=item_list
+        )
         for are in alert_rule_environments:
             alert_rule_environment = result[alert_rules[are.alert_rule.id]].setdefault(
                 "environment", []

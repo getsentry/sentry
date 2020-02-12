@@ -593,7 +593,7 @@ def create_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: A QueryAggregation to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes
-    :param environment: List of environment IDs that this rule applies to
+    :param environment: List of environments that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -670,7 +670,7 @@ def update_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: An AlertRuleAggregation that we want to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes.
-    :param environment: List of environment IDs that this rule applies to
+    :param environment: List of environments that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
