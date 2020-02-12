@@ -36,6 +36,7 @@ from sentry.incidents.models import (
 )
 from sentry.snuba.discover import zerofill
 from sentry.models import Integration, Project
+from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -435,16 +436,16 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
         if project_ids:
             params["project_id"] = project_ids
 
-        filter = get_filter(incident.query, params)
-
-        query_args_list.append(
-            {
-                "start": filter.start,
-                "end": filter.end,
-                "conditions": filter.conditions,
-                "filter_keys": filter.filter_keys,
-            }
-        )
+        snuba_filter = get_filter(incident.query, params)
+        snuba_args = {
+            "start": snuba_filter.start,
+            "end": snuba_filter.end,
+            "conditions": snuba_filter.conditions,
+            "filter_keys": snuba_filter.filter_keys,
+            "having": [],
+        }
+        snuba_args["conditions"] = resolve_discover_aliases(snuba_args)[0]["conditions"]
+        query_args_list.append(snuba_args)
 
     return query_args_list
 
