@@ -6,7 +6,7 @@ from sentry_plugins.client import ApiClient
 class TwilioApiClient(ApiClient):
     plugin_name = "twilio"
     allow_redirects = False
-    twilio_sms_endpoint = "https://api.twilio.com/2010-04-01/Accounts/{0}/SMS/Messages.json"
+    twilio_messages_endpoint = "https://api.twilio.com/2010-04-01/Accounts/{0}/Messages.json"
 
     def __init__(self, account_sid=None, auth_token=None, sms_from=None, sms_to=None):
         self.account_sid = account_sid
@@ -19,6 +19,6 @@ class TwilioApiClient(ApiClient):
         return "Basic " + (user + ":" + password).encode("base64").replace("\n", "")
 
     def request(self, data):
-        endpoint = self.twilio_sms_endpoint.format(self.account_sid)
+        endpoint = self.twilio_messages_endpoint.format(self.account_sid)
         headers = {"Authorization": self.basic_auth(self.account_sid, self.auth_token)}
-        return self._request(path=endpoint, method="post", data=data, headers=headers)
+        return self._request(path=endpoint, method="post", data=data, headers=headers, json=False)

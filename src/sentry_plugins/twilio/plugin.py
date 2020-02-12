@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.plugins.bases.notify import NotificationPlugin
 
 from .client import TwilioApiClient
+from sentry_plugins.base import CorePluginMixin
 
 import sentry
 
@@ -87,7 +88,7 @@ class TwilioConfigurationForm(forms.Form):
         return self.cleaned_data
 
 
-class TwilioPlugin(NotificationPlugin):
+class TwilioPlugin(CorePluginMixin, NotificationPlugin):
     author = "Matt Robenolt"
     author_url = "https://github.com/mattrobenolt"
     version = sentry.VERSION
@@ -121,6 +122,15 @@ class TwilioPlugin(NotificationPlugin):
         # This doesn't depend on email permission... stuff.
         return True
 
+    def error_message_from_json(self, data):
+        code = data.get("code")
+        message = data.get("message")
+        more_info = data.get("more_info")
+        error_message = "%s - %s %s" % (code, message, more_info)
+        if message:
+            return error_message
+        return None
+
     def notify_users(self, group, event, **kwargs):
         project = group.project
 
@@ -149,7 +159,7 @@ class TwilioPlugin(NotificationPlugin):
 
         if errors:
             if len(errors) == 1:
-                raise errors[0]
+                self.raise_error(errors[0])
 
             # TODO: multi-exception
             raise Exception(errors)
