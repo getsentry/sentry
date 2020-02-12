@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+import space from 'app/styles/space';
 
 import {assignToUser, assignToActor} from 'app/actionCreators/group';
 import {openCreateOwnershipRule} from 'app/actionCreators/modal';
@@ -12,6 +14,8 @@ import SentryTypes from 'app/sentryTypes';
 import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import Hovercard from 'app/components/hovercard';
+import InlineSvg from 'app/components/inlineSvg';
 
 class SuggestedOwners extends React.Component {
   static propTypes = {
@@ -151,6 +155,20 @@ class SuggestedOwners extends React.Component {
     return owners;
   }
 
+  getHovercardBody() {
+    return (
+      <HelpfulBody>
+        <p>
+          Ownership rules allow you to associate file paths and URLs to specific teams or
+          users, so alerts can be routed to the right people.
+        </p>
+        <Button href="https://docs.sentry.io/workflow/issue-owners/" priority="primary">
+          Click to learn more
+        </Button>
+      </HelpfulBody>
+    );
+  }
+
   render() {
     const {group, organization, project} = this.props;
     const owners = this.getOwnerList();
@@ -190,6 +208,9 @@ class SuggestedOwners extends React.Component {
             <GuideAnchor target="owners">
               <h6>
                 <span>{t('Ownership Rules')}</span>
+                <Hovercard body={this.getHovercardBody()} containerClassName="pill-icon">
+                  <InlineSvg src="icon-circle-info" size="16px" />
+                </Hovercard>
               </h6>
             </GuideAnchor>
             <Button
@@ -230,3 +251,8 @@ function findMatchedRules(rules, owner) {
     .filter(([_, ruleActors]) => ruleActors.find(actorHasOwner))
     .map(([rule]) => rule);
 }
+
+const HelpfulBody = styled('div')`
+  padding: ${space(1)};
+  text-align: center;
+`;
