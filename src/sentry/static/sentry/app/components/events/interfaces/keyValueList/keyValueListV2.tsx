@@ -18,7 +18,7 @@ type Props = {
 export type KeyValueListData = {
   key: string;
   subject: React.ReactNode | string;
-  value: string | null;
+  value: string | null | React.ReactNode;
   meta: Meta;
 };
 
