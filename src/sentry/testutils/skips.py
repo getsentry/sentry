@@ -15,7 +15,7 @@ def snuba_is_available():
         return _service_status["snuba"]
     try:
         parsed = urlparse(settings.SENTRY_SNUBA)
-        socket.create_connection((parsed.host, parsed.port), 1.0)
+        socket.create_connection((parsed.hostname, parsed.port), 1.0)
     except socket.error:
         _service_status["snuba"] = False
     else:
@@ -23,7 +23,9 @@ def snuba_is_available():
     return _service_status["snuba"]
 
 
-requires_snuba = pytest.mark.skipif(not snuba_is_available, reason="requires snuba server running")
+requires_snuba = pytest.mark.skipif(
+    not snuba_is_available(), reason="requires snuba server running"
+)
 
 
 def xfail_if_not_postgres(reason):
