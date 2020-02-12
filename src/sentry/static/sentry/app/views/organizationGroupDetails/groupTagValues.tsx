@@ -10,8 +10,6 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import {Group, Tag, TagValue} from 'app/types';
