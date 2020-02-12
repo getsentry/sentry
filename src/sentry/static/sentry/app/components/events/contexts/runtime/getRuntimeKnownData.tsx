@@ -1,19 +1,19 @@
 import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/keyValueListV2';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 
-import getOperatingSystemKnownDataDetails, {
-  OperatingSystemData,
-  OperatingSystemKnownDataDetailsType,
-} from './getOperatingSystemKnownDataDetails';
+import getRuntimeKnownDataDetails, {
+  RuntimeData,
+  RuntimeKnownDataDetailsType,
+} from './getRuntimeKnownDataDetails';
 
-function getOperatingSystemKnownData(data: OperatingSystemData): Array<KeyValueListData> {
+function getRuntimeKnownData(data: RuntimeData): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
   const dataKeys = Object.keys(data);
   for (const key of dataKeys) {
-    const knownDataDetails = getOperatingSystemKnownDataDetails(
+    const knownDataDetails = getRuntimeKnownDataDetails(
       data,
-      key as OperatingSystemKnownDataDetailsType
+      key as RuntimeKnownDataDetailsType
     );
 
     if (key === null || !knownDataDetails) {
@@ -29,5 +29,5 @@ function getOperatingSystemKnownData(data: OperatingSystemData): Array<KeyValueL
   return knownData;
 }
 
-export {OperatingSystemData};
-export default getOperatingSystemKnownData;
+export {RuntimeData};
+export default getRuntimeKnownData;
