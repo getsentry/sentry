@@ -102,8 +102,11 @@ class TwilioPlugin(NotificationPlugin):
             "Documentation",
             "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/twilio/Twilio_Instructions.md",
         ),
-        ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
-        ("Source", "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins/twilio"),
+        ("Report Issue", "https://github.com/getsentry/sentry/issues"),
+        (
+            "View Source",
+            "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins/twilio",
+        ),
         ("Twilio", "https://www.twilio.com/"),
     )
 
