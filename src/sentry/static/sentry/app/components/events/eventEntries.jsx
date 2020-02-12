@@ -20,7 +20,7 @@ import EventErrors from 'app/components/events/errors';
 import EventExtraData from 'app/components/events/extraData';
 import EventGroupingInfo from 'app/components/events/groupingInfo';
 import EventPackageData from 'app/components/events/packageData';
-import EventSdk from 'app/components/events/sdk';
+import EventSdk from 'app/components/events/eventSdk';
 import EventSdkUpdates from 'app/components/events/sdkUpdates';
 import EventTags from 'app/components/events/eventTags';
 import EventUserFeedback from 'app/components/events/userFeedback';
