@@ -38,7 +38,7 @@ class MessageInterface extends React.Component {
     return (
       <EventDataSection event={event} type="message" title={t('Message')}>
         <pre className="plain">
-          <Annotated object={data} prop="formatted" />
+          <Annotated object={data} objectKey="formatted" />
         </pre>
         {this.renderParams()}
       </EventDataSection>

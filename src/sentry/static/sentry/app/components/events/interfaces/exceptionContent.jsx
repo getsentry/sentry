@@ -26,7 +26,7 @@ class ExceptionContent extends React.Component {
             <span>{exc.type}</span>
           </h5>
 
-          <Annotated object={exc} prop="value" required>
+          <Annotated object={exc} objectKey="value" required>
             {value => (
               <pre className="exc-message" style={{marginTop: 0}}>
                 {value}

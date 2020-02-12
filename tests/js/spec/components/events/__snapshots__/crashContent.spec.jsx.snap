@@ -91,7 +91,7 @@ exports[`CrashContent renders with meta data 1`] = `
                 "value": "python err A949AE01EBB07300D62AE0178F0944DD21F8C98C err",
               }
             }
-            prop="value"
+            objectKey="value"
             required={true}
           >
             <MetaData
