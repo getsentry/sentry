@@ -159,8 +159,9 @@ class SuggestedOwners extends React.Component {
     return (
       <HelpfulBody>
         <p>
-          Ownership rules allow you to associate file paths and URLs to specific teams or
-          users, so alerts can be routed to the right people.
+          {t(
+            'Ownership rules allow you to associate file paths and URLs to specific teams or users, so alerts can be routed to the right people.'
+          )}
         </p>
         <Button href="https://docs.sentry.io/workflow/issue-owners/" priority="primary">
           Click to learn more
@@ -208,7 +209,7 @@ class SuggestedOwners extends React.Component {
             <GuideAnchor target="owners">
               <h6>
                 <span>{t('Ownership Rules')}</span>
-                <Hovercard body={this.getHovercardBody()} containerClassName="pill-icon">
+                <Hovercard body={this.getHovercardBody()}>
                   <InlineSvg src="icon-circle-info" size="16px" />
                 </Hovercard>
               </h6>
