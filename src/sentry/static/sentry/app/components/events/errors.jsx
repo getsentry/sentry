@@ -7,7 +7,6 @@ import EventErrorItem from 'app/components/events/errorItem';
 import SentryTypes from 'app/sentryTypes';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
-import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 
 const MAX_ERRORS = 100;
@@ -47,7 +46,7 @@ class EventErrors extends React.Component {
       <Section>
         <Summary>
           <span>
-            <StyledIconWarning color={theme.red} />
+            <StyledIconWarning />
             {tn(
               'There was %s error encountered while processing this event',
               'There were %s errors encountered while processing this event',
@@ -89,10 +88,19 @@ const Section = styled('div')`
       color: ${p => p.theme.gray4};
     }
   }
+
+  /*
+  Remove border on adjacent context summary box.
+  Once that component uses emotion this will be harder.
+  */
+  & + .context-summary {
+    border-top: none;
+  }
 `;
 
 const StyledIconWarning = styled(IconWarning)`
   margin-right: ${space(1)};
+  color: ${p => p.theme.red};
 `;
 
 const Summary = styled('p')`
