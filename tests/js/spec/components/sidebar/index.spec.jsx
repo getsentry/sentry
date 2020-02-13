@@ -95,9 +95,9 @@ describe('Sidebar', function() {
       routerContext
     );
 
-    expect(wrapper.find('[data-test-id="onboarding-progress-bar"]')).toHaveLength(1);
+    expect(wrapper.find('OnboardingProgressBar')).toHaveLength(1);
 
-    wrapper.find('[data-test-id="onboarding-progress-bar"]').simulate('click');
+    wrapper.find('OnboardingProgressBar').simulate('click');
     wrapper.update();
 
     expect(wrapper.find('OnboardingStatus SidebarPanel')).toMatchSnapshot();
