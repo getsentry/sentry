@@ -90,7 +90,9 @@ class EmailActionHandler(ActionHandler):
     def build_message(self, context, status, user_id):
         display = self.status_display[status]
         return MessageBuilder(
-            subject=u"Alert Rule {} for Project {}".format(display, self.project.slug),
+            subject=u"[{}] {} - {}".format(
+                context["status"], context["incident_name"], self.project.slug
+            ),
             template=u"sentry/emails/incidents/trigger.txt",
             html_template=u"sentry/emails/incidents/trigger.html",
             type="incident.alert_rule_{}".format(display.lower()),
