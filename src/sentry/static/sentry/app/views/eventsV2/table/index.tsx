@@ -93,6 +93,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
           // invariant: a different request was initiated after this request
           return;
         }
+        setError('');
 
         this.setState(prevState => {
           return {
