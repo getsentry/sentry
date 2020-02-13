@@ -14,6 +14,7 @@ export const IconAdd: React.FC<IconProps> = ({
 
   return (
     <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props}>
+      <desc>IconAdd</desc>
       {providedCircle === true ? (
         <g>
           <path d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z" />
