@@ -1,5 +1,5 @@
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
+import * as ReactRouter from 'react-router';
+import {ModalBody, ModalHeader} from 'react-bootstrap';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -8,29 +8,25 @@ import Button from 'app/components/button';
 import Text from 'app/components/text';
 import recreateRoute from 'app/utils/recreateRoute';
 
-class RedirectToProjectModal extends React.Component {
-  static propTypes = {
-    /**
-     * New slug to redirect to
-     */
-    slug: PropTypes.string.isRequired,
+type Props = ReactRouter.WithRouterProps & {
+  slug: string;
+  Header: typeof ModalHeader;
+  Body: typeof ModalBody;
+};
 
-    Header: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
-    Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
+type State = {
+  timer: number;
+};
+
+class RedirectToProjectModal extends React.Component<Props, State> {
+  state = {
+    timer: 5,
   };
-
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      timer: 5,
-    };
-  }
 
   componentDidMount() {
     setInterval(() => {
       if (this.state.timer <= 1) {
-        window.location.assign(this.getNewPath());
+        window.location.assign(this.newPath);
         return;
       }
 
@@ -40,7 +36,7 @@ class RedirectToProjectModal extends React.Component {
     }, 1000);
   }
 
-  getNewPath() {
+  get newPath() {
     const {params, slug} = this.props;
 
     return recreateRoute('', {
@@ -73,7 +69,7 @@ class RedirectToProjectModal extends React.Component {
                 )}
               </p>
               <ButtonWrapper>
-                <Button priority="primary" href={this.getNewPath()}>
+                <Button priority="primary" href={this.newPath}>
                   {t('Continue to %s', slug)}
                 </Button>
               </ButtonWrapper>
@@ -85,7 +81,7 @@ class RedirectToProjectModal extends React.Component {
   }
 }
 
-export default withRouter(RedirectToProjectModal);
+export default ReactRouter.withRouter(RedirectToProjectModal);
 export {RedirectToProjectModal};
 
 const ButtonWrapper = styled('div')`
