@@ -22,7 +22,7 @@ class RouteError extends React.Component {
     project: PropTypes.object,
   };
 
-  componentWillMount() {
+  componentDidMount() {
     const {error} = this.props;
     const {disableLogSentry, disableReport, routes} = this.props;
     const {organization, project} = this.context;

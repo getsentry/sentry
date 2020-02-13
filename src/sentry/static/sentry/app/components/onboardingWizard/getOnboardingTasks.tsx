@@ -128,10 +128,10 @@ export default function getOnboardingTasks(organization: Organization): Onboardi
       title: t('Set up an alerts service'),
       description: t('Receive Sentry alerts in Slack, PagerDuty, and more.'),
       skippable: true,
-      prereq: [1, 2],
+      prereq: [1],
       featureLocation: 'project',
       location: 'settings/alerts/',
-      display: false,
+      display: true,
     },
   ];
 }

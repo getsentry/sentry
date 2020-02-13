@@ -34,7 +34,7 @@ const GroupGroupingView = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   },
 

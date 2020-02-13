@@ -17,7 +17,7 @@ class NarrowLayout extends React.Component<Props> {
     maxWidth: PropTypes.string,
   };
 
-  componentWillMount() {
+  componentDidMount() {
     document.body.classList.add('narrow');
   }
 

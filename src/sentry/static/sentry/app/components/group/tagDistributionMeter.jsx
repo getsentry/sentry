@@ -21,7 +21,7 @@ class GroupTagDistributionMeter extends React.Component {
     error: false,
   };
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   }
 

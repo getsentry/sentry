@@ -64,7 +64,7 @@ const GroupDetails = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   },
 

@@ -26,7 +26,7 @@ const ApiChart = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   },
 

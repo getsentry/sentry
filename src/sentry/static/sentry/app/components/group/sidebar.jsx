@@ -47,7 +47,7 @@ class GroupSidebar extends React.Component {
     };
   }
 
-  componentWillMount() {
+  componentDidMount() {
     const {group, api} = this.props;
     api.request(`/issues/${group.id}/participants/`, {
       success: data => {

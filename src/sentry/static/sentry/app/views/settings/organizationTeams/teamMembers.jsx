@@ -43,7 +43,7 @@ class TeamMembers extends React.Component {
     orgMemberList: null,
   };
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   }
 

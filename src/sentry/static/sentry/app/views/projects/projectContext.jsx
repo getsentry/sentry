@@ -73,7 +73,7 @@ const ProjectContext = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   },
 

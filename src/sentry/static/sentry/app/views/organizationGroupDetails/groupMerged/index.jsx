@@ -29,7 +29,7 @@ const GroupMergedView = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   },
 

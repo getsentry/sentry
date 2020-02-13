@@ -19,7 +19,7 @@ class TodoList extends React.Component {
     seeAll: false, // Show all tasks, included those completed
   };
 
-  componentWillMount() {
+  componentDidMount() {
     const {organization} = this.props;
     const tasks = getOnboardingTasks(organization);
 
@@ -34,6 +34,7 @@ class TodoList extends React.Component {
       return task;
     });
 
+    // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({tasks});
   }
 

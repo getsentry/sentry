@@ -48,7 +48,7 @@ const GroupList = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this._streamManager = new StreamManager(GroupStore);
 
     this.fetchData();

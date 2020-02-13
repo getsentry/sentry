@@ -34,7 +34,7 @@ class GroupEvents extends React.Component {
     };
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   }
 

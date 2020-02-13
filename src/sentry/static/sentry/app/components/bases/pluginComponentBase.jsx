@@ -46,7 +46,7 @@ class PluginComponentBase extends React.Component {
     };
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.api = new Client();
   }
 

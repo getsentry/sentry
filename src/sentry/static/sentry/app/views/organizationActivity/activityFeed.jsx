@@ -38,7 +38,7 @@ class ActivityFeed extends React.Component {
     };
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   }
 
