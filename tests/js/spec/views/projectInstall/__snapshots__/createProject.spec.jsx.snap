@@ -1230,7 +1230,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
     </PlatformPicker>
     <StickyWrapper>
       <div
-        className="css-byvn5x-StickyWrapper e19kiapg6"
+        className="css-1n1wv6u-StickyWrapper e19kiapg6"
       >
         <CreateProjectForm
           onSubmit={[Function]}
@@ -2254,7 +2254,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
     </PlatformPicker>
     <StickyWrapper>
       <div
-        className="css-byvn5x-StickyWrapper e19kiapg6"
+        className="css-1n1wv6u-StickyWrapper e19kiapg6"
       >
         <CreateProjectForm
           onSubmit={[Function]}
@@ -3978,7 +3978,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
     </PlatformPicker>
     <StickyWrapper>
       <div
-        className="css-byvn5x-StickyWrapper e19kiapg6"
+        className="css-1n1wv6u-StickyWrapper e19kiapg6"
       >
         <CreateProjectForm
           onSubmit={[Function]}
