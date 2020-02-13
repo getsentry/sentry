@@ -12,6 +12,7 @@ import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {escape} from 'app/utils';
 import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
@@ -98,11 +99,19 @@ class ReleaseSeries extends React.Component {
         },
         tooltip: tooltip || {
           formatter: ({data}) => {
-            return `<div>${moment
+            const time = moment
               .tz(data.value, utc ? 'UTC' : getUserTimezone())
-              .format('MMM D, YYYY LT')} <br />
-            Release: ${formatVersion(data.name, true)}<br />
-            </div>`;
+              .format('MMM D, YYYY LT');
+            const version = escape(formatVersion(data.name, true));
+            return [
+              '<div class="tooltip-series">',
+              `<div><span class="tooltip-label"><strong>Release</strong></span> ${version}</div>`,
+              '</div>',
+              '<div class="tooltip-date">',
+              time,
+              '</div>',
+              '</div>',
+            ].join('');
           },
         },
         label: {
