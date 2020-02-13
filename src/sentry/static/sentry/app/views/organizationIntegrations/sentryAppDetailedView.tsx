@@ -250,6 +250,7 @@ class SentryAppDetailedView extends AsyncComponent<
                           app={this.state.sentryApp}
                           onClickUninstall={this.handleUninstall}
                           onUninstallModalOpen={() => {}} //TODO: Implement tracking analytics
+                          disabled={!hasAccess}
                         />
                       );
                     }}
