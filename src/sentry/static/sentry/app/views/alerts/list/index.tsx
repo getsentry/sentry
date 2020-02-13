@@ -34,15 +34,21 @@ type State = {
   incidentList: Incident[];
 };
 
+function getQueryStatus(status: any) {
+  return status === undefined || status === '' ? DEFAULT_QUERY_STATUS : status;
+}
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): [string, string, any][] {
     const {params, location} = this.props;
+    const {query} = location;
+    const status = getQueryStatus(query.status);
+
     return [
       [
         'incidentList',
         `/organizations/${params && params.orgId}/incidents/`,
         {
-          query: location && location.query,
+          query: {...query, status},
         },
       ],
     ];
@@ -132,13 +138,6 @@ class IncidentsListContainer extends React.Component<Props> {
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
    */
-  componentWillUpdate() {
-    const {params, location, router} = this.props;
-    if (router && location.query.status === undefined) {
-      navigateTo(`/organizations/${params && params.orgId}/alerts/?status=open`, router);
-    }
-  }
-
   handleNavigateToSettings = (e: React.MouseEvent) => {
     const {router, params} = this.props;
     e.preventDefault();
@@ -155,8 +154,7 @@ class IncidentsListContainer extends React.Component<Props> {
     const closedIncidentsQuery = {...query, status: 'closed'};
     const allIncidentsQuery = {...query, status: 'all'};
 
-    const status = query.status === undefined ? DEFAULT_QUERY_STATUS : query.status;
-
+    const status = getQueryStatus(query.status);
     return (
       <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>
