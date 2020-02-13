@@ -3,6 +3,7 @@ import keyBy from 'lodash/keyBy';
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import capitalize from 'lodash/capitalize';
 
 import {
   Organization,
@@ -31,6 +32,7 @@ import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import IntegrationRow from './integrationRow';
+import {mapped} from './integrationUtil';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
@@ -242,13 +244,6 @@ class OrganizationIntegrations extends AsyncComponent<
     return this.state.appInstalls.find(i => i.app.slug === app.slug);
   };
 
-  getInstalled = (app: SentryApp) => {
-    const install = this.getAppInstall(app);
-    if (install) {
-      return [install];
-    }
-    return [];
-  };
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
@@ -301,23 +296,31 @@ class OrganizationIntegrations extends AsyncComponent<
   };
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
+    const {organization} = this.props;
     //find the integration installations for that provider
     const integrations = this.state.integrations.filter(
       i => i.provider.key === provider.key
     );
+
+    const map = mapped(provider)('provider');
     return (
       <IntegrationRow
         key={`row-${provider.key}`}
         data-test-id="integration-row"
-        integration={provider}
-        installed={integrations}
-        organization={this.props.organization}
+        organization={organization}
         type="provider"
+        slug={map('slug')}
+        displayName={map('name')}
+        status={integrations.length ? 'Installed' : 'Not Installed'}
+        publishStatus="published"
+        installations={integrations.length}
       />
     );
   };
 
   renderPlugin = (plugin: PluginWithProjectList) => {
+    const {organization} = this.props;
+
     const legacyIds = [
       'jira',
       'bitbucket',
@@ -329,6 +332,8 @@ class OrganizationIntegrations extends AsyncComponent<
       'vsts',
     ];
     const isLegacy = legacyIds.includes(plugin.id);
+    const map = mapped(plugin)('plugin');
+    const displayName = `${map('name')} ${!!isLegacy ? '(Legacy)' : ''}`;
     //hide legacy integrations if we don't have any projects with them
     if (isLegacy && !plugin.projectList.length) {
       return null;
@@ -337,11 +342,13 @@ class OrganizationIntegrations extends AsyncComponent<
       <IntegrationRow
         key={`row-plugin-${plugin.id}`}
         data-test-id="integration-row"
-        integration={plugin}
-        installed={plugin.projectList}
-        isLegacy={isLegacy}
-        organization={this.props.organization}
+        organization={organization}
         type="plugin"
+        slug={map('slug')}
+        displayName={displayName}
+        status={plugin.projectList.length ? 'Installed' : 'Not Installed'}
+        publishStatus="published"
+        installations={plugin.projectList.length}
       />
     );
   };
@@ -349,15 +356,24 @@ class OrganizationIntegrations extends AsyncComponent<
   //render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
+    const map = mapped(app)('sentry-app');
+
+    const install = this.getAppInstall(app);
+    const status: 'Installed' | 'Pending' | 'Not Installed' = install
+      ? (capitalize(install.status) as 'Installed' | 'Pending')
+      : 'Not Installed';
 
     return (
       <IntegrationRow
         key={`sentry-app-row-${app.slug}`}
         data-test-id="integration-row"
         organization={organization}
-        integration={app}
-        installed={this.getInstalled(app)}
         type="sentry-app"
+        slug={map('slug')}
+        displayName={map('name')}
+        status={status}
+        publishStatus={app.status}
+        installations={install ? 1 : 0}
       />
     );
   };

@@ -1,19 +1,25 @@
+import {SentryApp, IntegrationProvider, PluginWithProjectList} from 'app/types';
+
+type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
+
 const pluginMapping = {
-  id: 'id',
+  slug: 'id',
   name: 'name',
 };
 
 const providerMapping = {
-  id: 'key',
+  slug: 'key',
   name: 'name',
 };
 
 const sentryAppMapping = {
-  id: 'slug',
+  slug: 'slug',
   name: 'name',
 };
 
-const getMapping = type => {
+type integrationTypes = 'plugin' | 'sentry-app' | 'provider';
+
+const getMapping = (type: integrationTypes) => {
   switch (type) {
     case 'plugin':
       return pluginMapping;
@@ -26,12 +32,6 @@ const getMapping = type => {
   }
 };
 
-export const mapped = (integration, type) => {
-  const mapping = getMapping(type);
-  const result = {};
-
-  for (const [key, value] of Object.entries(mapping) as [string, string][]) {
-    result[key] = integration[value];
-  }
-  return result;
-};
+export const mapped = (integration: AppOrProviderOrPlugin) => (
+  type: integrationTypes
+) => (field: string): string => integration[getMapping(type)[field]];

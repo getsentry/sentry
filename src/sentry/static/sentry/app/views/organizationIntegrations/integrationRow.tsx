@@ -6,33 +6,22 @@ import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
-import {
-  IntegrationProvider,
-  Integration,
-  PluginWithProjectList,
-  Organization,
-  PluginProjectItem,
-  SentryApp,
-  SentryAppInstallation,
-} from 'app/types';
+import {Organization, SentryApp} from 'app/types';
 import {t} from 'app/locale';
 
 import IntegrationStatus from './integrationStatus';
-import {mapped} from './integrationUtil';
-
-type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
-
-type InstalledList = Integration[] | PluginProjectItem[] | SentryAppInstallation[];
 
 type Props = {
-  integration: AppOrProviderOrPlugin;
-  installed: InstalledList;
-  isLegacy?: boolean;
   organization: Organization;
   type: 'plugin' | 'provider' | 'sentry-app';
+  slug: string;
+  displayName: string;
+  status: 'Installed' | 'Not Installed' | 'Pending';
+  publishStatus: 'unpublished' | 'published' | 'internal';
+  installations: number;
 };
 
-const urltypes = {
+const urlMap = {
   plugin: 'plugins',
   provider: 'integrations',
   'sentry-app': 'sentry-apps',
@@ -40,73 +29,62 @@ const urltypes = {
 
 const IntegrationRow = (props: Props) => {
   const {
-    integration,
-    installed,
-    organization: {slug},
+    organization,
     type,
-    isLegacy,
+    slug,
+    displayName,
+    status,
+    publishStatus,
+    installations,
   } = props;
 
-  const map = mapped(integration, type);
-  const baseUrl = `/settings/${slug}/${urltypes[type]}/${map['id']}/`;
-
-  const getStatus = () => {
-    if (installed.length > 0) {
-      if (type === 'sentry-app') {
-        return capitalize((installed[0] as SentryAppInstallation).status) as
-          | 'Installed'
-          | 'Pending';
-      }
-      return 'Installed';
-    }
-    return 'Not Installed';
-  };
-
-  const isPublished = () => {
-    return (integration as SentryApp).status === 'published';
-  };
+  const baseUrl = `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
 
   const renderDetails = () => {
     if (type === 'sentry-app') {
-      return (
-        !isPublished() && <PublishStatus status={(integration as SentryApp).status} />
-      );
+      return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
     }
-    return installed.length > 0 ? (
-      <StyledLink to={`${baseUrl}?tab=configurations`}>{`${
-        installed.length
-      } Configuration${installed.length > 1 ? 's' : ''}`}</StyledLink>
+    return installations > 0 ? (
+      <StyledLink to={`${baseUrl}?tab=configurations`}>{`${installations} Configuration${
+        installations > 1 ? 's' : ''
+      }`}</StyledLink>
     ) : null;
   };
 
   return (
-    <PanelItem p={0} flexDirection="column" data-test-id={map['id']}>
-      <Flex style={{alignItems: 'center', padding: '16px'}}>
-        <PluginIcon size={36} pluginId={map['id']} />
-        <div style={{flex: '1', padding: '0 16px'}}>
-          <ProviderName to={baseUrl}>
-            {`${map['name']} ${!!isLegacy ? '(Legacy)' : ''}`}
-          </ProviderName>
-          <ProviderDetails>
-            <IntegrationStatus status={getStatus()} />
+    <PanelItem p={0} flexDirection="column" data-test-id={slug}>
+      <FlexContainer>
+        <PluginIcon size={36} pluginId={slug} />
+        <Container>
+          <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
+          <IntegrationDetails>
+            <IntegrationStatus status={status} />
             {renderDetails()}
-          </ProviderDetails>
-        </div>
-      </Flex>
+          </IntegrationDetails>
+        </Container>
+      </FlexContainer>
     </PanelItem>
   );
 };
 
-const Flex = styled('div')`
+const FlexContainer = styled('div')`
   display: flex;
+  align-items: center;
+  padding: ${space(2)};
 `;
 
-const ProviderName = styled(Link)`
+const Container = styled('div')`
+  flex: 1;
+  padding: 0 16px;
+`;
+
+const IntegrationName = styled(Link)`
   font-weight: bold;
   color: ${props => props.theme.textColor};
 `;
 
-const ProviderDetails = styled(Flex)`
+const IntegrationDetails = styled('div')`
+  display: flex;
   align-items: center;
   margin-top: 6px;
   font-size: 0.8em;
@@ -122,18 +100,10 @@ const StyledLink = styled(Link)`
   }
 `;
 
-const FlexContainer = styled(Flex)`
-  align-items: center;
-`;
-
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};
 
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => {
-  return (
-    <FlexContainer>
-      <div {...props}>{t(`${status}`)}</div>
-    </FlexContainer>
-  );
+  return <div {...props}>{t(`${status}`)}</div>;
 })`
   color: ${(props: PublishStatusProps) =>
     props.status === 'published' ? props.theme.success : props.theme.gray2};
