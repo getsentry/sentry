@@ -17,7 +17,7 @@ import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
 import EventErrors from 'app/components/events/errors';
-import EventExtraData from 'app/components/events/extraData';
+import EventExtraData from 'app/components/events/eventExtraData/eventExtraData';
 import EventGroupingInfo from 'app/components/events/groupingInfo';
 import EventPackageData from 'app/components/events/packageData';
 import EventSdk from 'app/components/events/eventSdk';
