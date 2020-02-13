@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import sortBy from 'lodash/sortBy';
+import styled from '@emotion/styled';
 
-import styled from 'app/emotion-styled';
 import ContextData from 'app/components/contextData';
 import theme from 'app/utils/theme';
 

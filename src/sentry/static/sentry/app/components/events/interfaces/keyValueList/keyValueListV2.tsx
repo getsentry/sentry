@@ -1,7 +1,7 @@
 import React from 'react';
 import sortBy from 'lodash/sortBy';
 
-import styled from 'app/emotion-styled';
+import styled from '@emotion/styled';
 import ContextData from 'app/components/contextData';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import theme from 'app/utils/theme';
