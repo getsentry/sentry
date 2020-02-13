@@ -1092,7 +1092,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
         with pytest.raises(InvalidSearchQuery) as err:
             params = {"project_id": []}
-            filter = get_filter("project.name:{}".format(p1.slug), params)
+            get_filter("project.name:{}".format(p1.slug), params)
         assert (
             "Invalid query. Project %s does not exist or is not an actively selected project"
             % p1.slug
