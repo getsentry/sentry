@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 import space from 'app/styles/space';
 
-const TagsContainer = styled('div')`
+export const TagsContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   padding-top: ${space(3)};
   padding-bottom: ${space(1)};
 `;
 
-const Tag = styled(
+export const Tag = styled(
   withTheme((props: {theme?: any}) => {
     return <span />;
   })
