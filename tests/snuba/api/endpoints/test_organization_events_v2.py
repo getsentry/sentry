@@ -248,7 +248,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "Invalid query. Project %s must exist and be in global header" % project.slug
+            == "Invalid query. Project %s does not exist or is not an actively selected project."
+            % project.slug
         )
 
     def test_project_in_query_does_not_exist(self):
@@ -273,7 +274,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "Invalid query. Project morty must exist and be in global header"
+            == "Invalid query. Project morty does not exist or is not an actively selected project."
         )
 
     def test_not_project_in_query(self):
