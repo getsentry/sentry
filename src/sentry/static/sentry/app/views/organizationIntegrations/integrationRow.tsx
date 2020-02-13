@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
