@@ -87,12 +87,19 @@ const defaultStyles = {
     ...provided,
     lineHeight: '1.5',
     fontSize: theme.fontSizeMedium,
-    color: state.isSelected ? theme.white : theme.textColor,
-    backgroundColor: state.isSelected
-      ? theme.purpleLightest
-      : state.isFocused
-      ? theme.offWhite
-      : 'none',
+    color: state.isFocused
+      ? theme.textColor
+      : state.isSelected
+      ? theme.white
+      : theme.textColor,
+    backgroundColor: state.isFocused
+      ? theme.offWhiteLight
+      : state.isSelected
+      ? theme.purple
+      : 'transparent',
+    '&:active': {
+      backgroundColor: theme.offWhiteLight,
+    },
   }),
   valueContainer: provided => ({
     ...provided,
