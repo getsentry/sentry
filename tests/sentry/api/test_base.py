@@ -22,7 +22,7 @@ class DummyPaginationEndpoint(Endpoint):
     permission_classes = ()
 
     def get(self, request):
-        values = [x for x in xrange(0, 100)]
+        values = [x for x in range(0, 100)]
 
         def data_fn(offset, limit):
             page_offset = offset * limit
