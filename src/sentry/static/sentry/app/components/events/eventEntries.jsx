@@ -185,7 +185,7 @@ class EventEntries extends React.Component {
     const hasErrors = !objectIsEmpty(event.errors);
 
     return (
-      <div className={className}>
+      <div className={className} data-test-id="event-entries">
         {!objectIsEmpty(event.errors) && <EventErrors event={event} />}{' '}
         {!isShare &&
           (showExampleCommit ? (

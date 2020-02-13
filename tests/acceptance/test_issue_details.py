@@ -62,7 +62,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.visit_issue(event.group.id)
 
         # Wait for tag bars to load
-        self.browser.wait_until('[data-test-id="loaded-device-name"]')
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details python")
 
     def test_python_rawbody_event(self):
@@ -145,7 +145,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.visit_issue(event.group.id)
 
         self.browser.click('[data-test-id="event-error-toggle"]')
-        self.browser.wait_until('[data-test-id="event-error-details"]')
+        self.browser.wait_until_test_id("event-error-details")
         self.browser.snapshot("issue details invalid interfaces")
 
     def test_activity_page(self):
@@ -159,7 +159,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
-        self.browser.wait_until(".entries")
+        self.browser.wait_until_test_id("event-entries")
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
         self.browser.wait_until_test_id("loaded-event-cause-empty")
