@@ -19,6 +19,7 @@ import MarkLine from 'app/components/charts/components/markLine';
 import {Panel} from 'app/components/panels';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 import {Event, Organization, GlobalSelection} from 'app/types';
 
@@ -113,7 +114,10 @@ const handleClick = async function(
 
   const endValue = getUtcDateString(value + intervalToMilliseconds(interval));
   const startValue = getUtcDateString(value);
-  const queryWithTime = `${queryString} timestamp:>${startValue} timestamp:<=${endValue}`;
+
+  // Remove and replace any timestamp conditions from the existing query.
+  const newQuery = tokenizeSearch(queryString);
+  newQuery.timestamp = [`>${startValue}`, `<=${endValue}`];
 
   // Get events that match the clicked timestamp
   // taking into account the group and current environment & query
@@ -121,7 +125,7 @@ const handleClick = async function(
     environment: selection.environments,
     limit: 1,
     referenceEvent: `${currentEvent.projectSlug}:${currentEvent.eventID}`,
-    query: queryWithTime,
+    query: stringifyQueryObject(newQuery),
     field,
   };
 
