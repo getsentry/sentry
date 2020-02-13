@@ -36,6 +36,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         asynchronous=True,
         headers=None,  # type: Optional[Mapping[str, str]]
     ):
+        if headers is None:
+            headers = {}
+
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
         # to be delivered) and the corresponding callback being fired is
@@ -57,6 +60,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 key=key.encode("utf-8"),
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
+                headers=[(k, v.encode('utf-8')) for k, v in headers.items()],
             )
         except Exception as error:
             logger.error("Could not publish message: %s", error, exc_info=True)

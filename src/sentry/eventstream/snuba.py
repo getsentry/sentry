@@ -245,7 +245,10 @@ class SnubaEventStream(SnubaProtocolEventStream):
         try:
             for dataset in datasets:
                 resp = snuba._snuba_pool.urlopen(
-                    "POST", "/tests/{}/eventstream".format(dataset), body=json.dumps(data)
+                    "POST",
+                    "/tests/{}/eventstream".format(dataset),
+                    body=json.dumps(data),
+                    headers={'X-Sentry-{}'.format(k): v, for k, v in headers.items()},
                 )
                 if resp.status != 200:
                     raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
