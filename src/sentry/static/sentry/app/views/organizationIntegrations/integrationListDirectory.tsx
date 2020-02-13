@@ -366,13 +366,6 @@ class OrganizationIntegrations extends AsyncComponent<
     const {reloading, displayedList} = this.state;
 
     const title = t('Integrations');
-    // const tags = [
-    //   'Source Control',
-    //   'Ticketing',
-    //   'Data Forwarding',
-    //   'Release Management',
-    //   'Notifications',
-    // ];
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
@@ -392,11 +385,6 @@ class OrganizationIntegrations extends AsyncComponent<
             width="100%"
           />
         </SearchContainer>
-        {/* <TagsContainer>
-          {tags.map(tag => (
-            <Tag key={tag}>{tag}</Tag>
-          ))}
-        </TagsContainer> */}
         <Panel>
           <PanelHeader disablePadding>
             <Heading>{t('Integrations')}</Heading>
@@ -427,35 +415,6 @@ const SearchContainer = styled('div')`
   width: 100%;
   margin-bottom: ${space(2)};
 `;
-
-// const TagsContainer = styled('div')`
-//   display: flex;
-//   flex-wrap: wrap;
-//   padding-top: ${space(3)};
-//   padding-bottom: ${space(1)};
-// `;
-
-// const Tag = styled('span')`
-//   transition: border-color 0.15s ease;
-//   font-size: 14px;
-//   line-height: 1;
-//   padding: ${space(1)};
-//   margin: 0 ${space(1)} ${space(1)} 0;
-//   border: 1px solid ${p => p.theme.borderDark};
-//   border-radius: 30px;
-//   height: 28px;
-//   box-shadow: inset ${p => p.theme.dropShadowLight};
-//   cursor: pointer;
-
-//   &:focus {
-//     outline: none;
-//     border: 1px solid ${p => p.theme.gray1};
-//   }
-
-//   &::placeholder {
-//     color: ${p => p.theme.gray2};
-//   }
-// `;
 
 export default withOrganization(OrganizationIntegrations);
 export {OrganizationIntegrations};
