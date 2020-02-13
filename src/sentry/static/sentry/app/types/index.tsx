@@ -491,13 +491,16 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
-export type IntegrationProvider = {
+type BaseIntegrationProvider = {
   key: string;
+  slug: string;
   name: string;
   canAdd: boolean;
   canDisable: boolean;
   features: string[];
-  aspects: any; //TODO(ts)
+};
+
+export type IntegrationProvider = BaseIntegrationProvider & {
   setupDialog: {url: string; width: number; height: number};
   metadata: {
     description: string;
@@ -576,7 +579,7 @@ export type Integration = {
   domainName: string;
   accountType: string;
   status: ObjectStatus;
-  provider: IntegrationProvider;
+  provider: BaseIntegrationProvider & {aspects: any};
   configOrganization: Field[];
   //TODO(ts): This includes the initial data that is passed into the integration's configuration form
   configData: object;
