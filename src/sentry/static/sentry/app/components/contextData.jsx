@@ -161,7 +161,6 @@ class ContextData extends React.Component {
           <span
             key="value"
             className={
-              (valueInfo.isString ? 'val-string' : '') +
               (valueInfo.isStripped ? ' val-stripped' : '') +
               (valueInfo.isMultiLine ? ' val-string-multiline' : '')
             }
@@ -245,12 +244,14 @@ class ContextData extends React.Component {
       preserveQuotes: _preserveQuotes,
       withAnnotatedText: _withAnnotatedText,
       meta: _meta,
+      children,
       ...other
     } = this.props;
 
     return (
       <pre className="val-string" {...other}>
         {this.renderValue(data)}
+        {children}
       </pre>
     );
   }

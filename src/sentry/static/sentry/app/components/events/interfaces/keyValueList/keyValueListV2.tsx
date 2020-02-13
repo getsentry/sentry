@@ -20,6 +20,8 @@ export type KeyValueListData = {
   subject: React.ReactNode | string;
   value: string | null | React.ReactNode;
   meta: Meta;
+  subjectDataTestId?: string;
+  subjectIcon?: React.ReactNode;
 };
 
 type Meta = {
@@ -58,18 +60,20 @@ const KeyValueList = ({
   return (
     <table className="table key-value" onClick={onClick}>
       <tbody>
-        {getData().map(({key, subject, value, meta}) => (
+        {getData().map(({key, subject, value, meta, subjectIcon, subjectDataTestId}) => (
           <tr key={key}>
             <TableData className="key" wide={longKeys}>
               {subject}
             </TableData>
-            <td className="val">
+            <td className="val" data-test-id={subjectDataTestId}>
               {isContextData ? (
                 <ContextData
                   data={!raw ? value : JSON.stringify(value)}
                   meta={meta}
                   withAnnotatedText
-                />
+                >
+                  {subjectIcon}
+                </ContextData>
               ) : (
                 <pre className="val-string">
                   <AnnotatedText
@@ -78,6 +82,7 @@ const KeyValueList = ({
                     remarks={meta.rem}
                     errors={meta.err}
                   />
+                  {subjectIcon}
                 </pre>
               )}
             </td>
