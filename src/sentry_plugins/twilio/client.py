@@ -21,4 +21,6 @@ class TwilioApiClient(ApiClient):
     def request(self, data):
         endpoint = self.twilio_messages_endpoint.format(self.account_sid)
         headers = {"Authorization": self.basic_auth(self.account_sid, self.auth_token)}
+        # Twilio doesn't accept the json headers, so set this to False
+        # https://www.twilio.com/docs/usage/your-request-to-twilio#post
         return self._request(path=endpoint, method="post", data=data, headers=headers, json=False)

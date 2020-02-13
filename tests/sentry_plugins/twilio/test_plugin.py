@@ -54,8 +54,6 @@ class TwilioConfigurationFormTest(TestCase):
 
 
 class TwilioPluginTest(PluginTestCase):
-    # TODO: actually test the plugin
-
     @fixture
     def plugin(self):
         return TwilioPlugin()
