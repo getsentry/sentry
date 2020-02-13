@@ -28,6 +28,7 @@ const UNIQUE_USER_FREQUENCY_CONDITION: string =
   'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition';
 const EVENT_FREQUENCY_CONDITION: string =
   'sentry.rules.conditions.event_frequency.EventFrequencyCondition';
+const NOTIFY_EVENT_ACTION: string = 'sentry.rules.actions.notify_event.NotifyEventAction';
 
 const METRIC_CONDITION_MAP = {
   [MetricValues.ERRORS]: EVENT_FREQUENCY_CONDITION,
@@ -51,7 +52,7 @@ type State = AsyncComponent['state'] & {
 };
 
 type RequestDataFragment = {
-  default_rules: boolean;
+  defaultRules: boolean;
   shouldCreateCustomRule: boolean;
   name: string;
   conditions: {interval: string; id: string; value: string}[] | undefined;
@@ -174,20 +175,20 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
   }
 
   getUpdatedData(): RequestDataFragment {
-    let default_rules: boolean;
+    let defaultRules: boolean;
     let shouldCreateCustomRule: boolean;
     const alertSetting: Actions = parseInt(this.state.alertSetting, 10);
     switch (alertSetting) {
       case Actions.ALERT_ON_EVERY_ISSUE:
-        default_rules = true;
+        defaultRules = true;
         shouldCreateCustomRule = false;
         break;
       case Actions.CREATE_ALERT_LATER:
-        default_rules = false;
+        defaultRules = false;
         shouldCreateCustomRule = false;
         break;
       case Actions.CUSTOMIZED_ALERTS:
-        default_rules = false;
+        defaultRules = false;
         shouldCreateCustomRule = true;
         break;
       default:
@@ -195,7 +196,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     }
 
     return {
-      default_rules,
+      defaultRules,
       shouldCreateCustomRule,
       name: 'Send a notification for new issues',
       conditions:
@@ -208,7 +209,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
               ),
             ]
           : undefined,
-      actions: [{id: 'sentry.rules.actions.notify_event.NotifyEventAction'}],
+      actions: [{id: NOTIFY_EVENT_ACTION}],
       actionMatch: 'all',
       frequency: 5,
     };
@@ -250,8 +251,10 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       Sentry.withScope(scope => {
         scope.setExtra('props', this.props);
         scope.setExtra('state', this.state);
-        Sentry.captureMessage(
-          'Interval choices or value placeholder sent from API endpoint is inconsistent or empty'
+        Sentry.captureException(
+          Error(
+            'Interval choices or value placeholder sent from API endpoint is inconsistent or empty'
+          )
         );
       });
       this.setStateAndUpdateParents({conditions: undefined});

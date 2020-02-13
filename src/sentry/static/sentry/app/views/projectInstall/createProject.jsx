@@ -63,7 +63,7 @@ class CreateProject extends React.Component {
     }
   }
 
-  getProjectForm = (
+  renderProjectForm = (
     projectName,
     team,
     teams,
@@ -170,7 +170,7 @@ class CreateProject extends React.Component {
       actions,
       actionMatch,
       frequency,
-      default_rules,
+      defaultRules,
     } = hasIssueAlertOptionsEnabled ? dataFragment : {};
 
     this.setState({inFlight: true});
@@ -183,7 +183,36 @@ class CreateProject extends React.Component {
       });
     }
 
-    const errorHandler = err => {
+    try {
+      const projectData = await api.requestPromise(`/teams/${slug}/${team}/projects/`, {
+        method: 'POST',
+        data: {
+          name: projectName,
+          platform,
+          default_rules: defaultRules ?? true,
+        },
+      });
+
+      if (shouldCreateCustomRule) {
+        await api.requestPromise(
+          `/projects/${organization.slug}/${projectData.slug}/rules/`,
+          {
+            method: 'POST',
+            data: {
+              name,
+              conditions,
+              actions,
+              actionMatch,
+              frequency,
+            },
+          }
+        );
+      }
+      ProjectActions.createSuccess(projectData);
+      const platformKey = platform || 'other';
+      const nextUrl = `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`;
+      browserHistory.push(nextUrl);
+    } catch (err) {
       this.setState({
         inFlight: false,
         error: err.responseJSON.detail,
@@ -200,44 +229,7 @@ class CreateProject extends React.Component {
           Sentry.captureMessage('Project creation failed');
         });
       }
-    };
-
-    const projectData = await api
-      .requestPromise(`/teams/${slug}/${team}/projects/`, {
-        method: 'POST',
-        data: {
-          name: projectName,
-          platform,
-          default_rules: default_rules ?? true,
-        },
-      })
-      .catch(errorHandler);
-
-    if (!projectData) {
-      return;
     }
-
-    if (shouldCreateCustomRule) {
-      const ruleCreationResult = await api
-        .requestPromise(`/projects/${organization.slug}/${projectData.slug}/rules/`, {
-          method: 'POST',
-          data: {
-            name,
-            conditions,
-            actions,
-            actionMatch,
-            frequency,
-          },
-        })
-        .catch(errorHandler);
-      if (!ruleCreationResult) {
-        return;
-      }
-    }
-    ProjectActions.createSuccess(projectData);
-    const platformKey = platform || 'other';
-    const nextUrl = `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`;
-    browserHistory.push(nextUrl);
   };
 
   setPlatform = platformId =>
@@ -284,7 +276,7 @@ class CreateProject extends React.Component {
               }}
             />
           )}
-          {this.getProjectForm(
+          {this.renderProjectForm(
             projectName,
             team,
             teams,
