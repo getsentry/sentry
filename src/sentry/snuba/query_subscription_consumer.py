@@ -173,7 +173,9 @@ class QuerySubscriptionConsumer(object):
                 return
 
             callback = subscriber_registry[subscription.type]
-            with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
+            with sentry_sdk.start_span(
+                op="process_message", transaction="query_subscription_consumer_process_message"
+            ) as span, metrics.timer(
                 "snuba_query_subscriber.callback.duration", instance=subscription.type
             ):
                 span.set_data("payload", contents)
