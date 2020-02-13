@@ -124,7 +124,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     );
   };
 
-  renderTopButton(disabled: boolean) {
+  renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     const {organization} = this.props;
     const provider = this.provider;
     const {metadata} = provider;
@@ -137,7 +137,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       size,
       priority,
       'data-test-id': 'add-button',
-      disabled,
+      disabled: disabledFromFeatures || !userHasAccess,
       organization,
     };
 
@@ -167,10 +167,9 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return <span />;
   }
 
-  renderBody() {
-    const {configurations, tab} = this.state;
-    const provider = this.provider;
+  renderInformationCard() {
     const {organization} = this.props;
+    const provider = this.provider;
 
     const {metadata} = provider;
     const alerts = metadata.aspects.alerts || [];
@@ -183,6 +182,8 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       });
     }
 
+    const {FeatureList} = getIntegrationFeatureGate();
+
     // Prepare the features list
     const features = metadata.features.map(f => ({
       featureGate: f.featureGate,
@@ -192,35 +193,34 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         />
       ),
     }));
-
-    const {FeatureList} = getIntegrationFeatureGate();
     const featureProps = {organization, features};
     return (
-      <React.Fragment>
-        {this.renderTopSection()}
-        {this.renderTabs()}
-        {tab === 'information' ? (
-          <InformationCard alerts={alerts} provider={provider}>
-            <FeatureList {...featureProps} provider={provider} />
-          </InformationCard>
-        ) : (
-          <div>
-            {configurations.map(integration => (
-              <InstallWrapper key={integration.id}>
-                <InstalledIntegration
-                  organization={organization}
-                  provider={provider}
-                  integration={integration}
-                  onRemove={this.onRemove}
-                  onDisable={this.onDisable}
-                  onReinstallIntegration={this.onInstall}
-                  data-test-id={integration.id}
-                />
-              </InstallWrapper>
-            ))}
-          </div>
-        )}
-      </React.Fragment>
+      <InformationCard alerts={alerts} provider={provider}>
+        <FeatureList {...featureProps} provider={provider} />
+      </InformationCard>
+    );
+  }
+
+  renderConfigurations() {
+    const {configurations} = this.state;
+    const {organization} = this.props;
+    const provider = this.provider;
+    return (
+      <div>
+        {configurations.map(integration => (
+          <InstallWrapper key={integration.id}>
+            <InstalledIntegration
+              organization={organization}
+              provider={provider}
+              integration={integration}
+              onRemove={this.onRemove}
+              onDisable={this.onDisable}
+              onReinstallIntegration={this.onInstall}
+              data-test-id={integration.id}
+            />
+          </InstallWrapper>
+        ))}
+      </div>
     );
   }
 }

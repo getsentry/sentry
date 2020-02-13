@@ -308,10 +308,7 @@ export type PluginNoProject = {
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
   features: string[];
-  featureDescriptions: Array<{
-    description: string;
-    featureGate: string;
-  }>;
+  featureDescriptions: IntegrationFeature[];
 };
 
 export type Plugin = PluginNoProject & {
@@ -514,7 +511,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
 };
 
 export type IntegrationFeature = {
-  description: React.ReactNode;
+  description: React.ReactNode | string;
   featureGate: string;
 };
 

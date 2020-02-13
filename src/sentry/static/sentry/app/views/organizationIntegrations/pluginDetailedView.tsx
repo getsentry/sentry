@@ -4,18 +4,13 @@ import styled from '@emotion/styled';
 import {PluginWithProjectList, PluginNoProject, PluginProjectItem} from 'app/types';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import Access from 'app/components/acl/access';
-import Tooltip from 'app/components/tooltip';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/links/externalLink';
 import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin';
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
-import IntegrationStatus from './integrationStatus';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {
@@ -34,16 +29,21 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
       ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${integrationSlug}`],
     ];
   }
+
   get plugin() {
     return this.state.plugins[0];
   }
 
-  get isEnabled() {
-    return this.state.plugins[0].projectList.length > 0;
+  get installationStatus() {
+    return this.plugin.projectList.length > 0 ? 'Installed' : 'Not Installed';
   }
 
-  get status() {
-    return this.isEnabled ? 'Installed' : 'Not Installed';
+  get integrationName() {
+    return this.plugin.name;
+  }
+
+  get featureData() {
+    return this.plugin.featureDescriptions;
   }
 
   handleResetConfiguration = (projectId: string) => {
@@ -121,9 +121,22 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     return tab;
   }
 
-  renderBody() {
+  renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
+    return (
+      <AddButton
+        data-test-id="add-button"
+        disabled={disabledFromFeatures || !userHasAccess}
+        onClick={this.handleAddToProject}
+        size="small"
+        priority="primary"
+      >
+        {t('Add to Project')}
+      </AddButton>
+    );
+  }
+
+  renderInformationCard() {
     const plugin = this.plugin;
-    const {tab} = this.state;
     const {organization} = this.props;
 
     // Prepare the features list
@@ -132,93 +145,37 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
       description: <FeatureListItem>{f.description}</FeatureListItem>,
     }));
 
-    const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
+    const {FeatureList} = getIntegrationFeatureGate();
     const featureProps = {organization, features};
-
     return (
-      <React.Fragment>
-        <Flex>
-          <PluginIcon size={60} pluginId={plugin.slug} />
-          <TitleContainer>
-            <Flex>
-              <Title>{plugin.name}</Title>
-              <Status status={this.status} />
-            </Flex>
-            <Flex>{this.featureTags(plugin.features)}</Flex>
-          </TitleContainer>
-          <IntegrationFeatures {...featureProps}>
-            {({disabled, disabledReason}) => (
-              <div
-                style={{
-                  marginLeft: 'auto',
-                  alignSelf: 'center',
-                }}
-              >
-                {disabled && <DisabledNotice reason={disabledReason} />}
-                <Access organization={organization} access={['org:integrations']}>
-                  {({hasAccess}) => (
-                    <Tooltip
-                      title={t(
-                        'You must be an organization owner, manager or admin to install this.'
-                      )}
-                      disabled={hasAccess}
-                    >
-                      <AddButton
-                        data-test-id="add-button"
-                        disabled={disabled || !hasAccess}
-                        onClick={this.handleAddToProject}
-                        size="small"
-                        priority="primary"
-                      >
-                        {t('Add to Project')}
-                      </AddButton>
-                    </Tooltip>
-                  )}
-                </Access>
-              </div>
-            )}
-          </IntegrationFeatures>
-        </Flex>
-        {this.renderTabs()}
-        {tab === 'information' ? (
-          <InformationCard plugin={plugin}>
-            <FeatureList {...featureProps} provider={this.mapPluginToProvider()} />
-          </InformationCard>
-        ) : (
-          <div>
-            {plugin.projectList.map((projectItem: PluginProjectItem) => (
-              <InstalledPlugin
-                key={projectItem.projectId}
-                organization={organization}
-                plugin={plugin}
-                projectItem={projectItem}
-                onResetConfiguration={this.handleResetConfiguration}
-                onEnablePlugin={this.handleEnablePlugin}
-              />
-            ))}
-          </div>
-        )}
-      </React.Fragment>
+      <InformationCard plugin={plugin}>
+        <FeatureList {...featureProps} provider={this.mapPluginToProvider()} />
+      </InformationCard>
+    );
+  }
+
+  renderConfigurations() {
+    const plugin = this.plugin;
+    const {organization} = this.props;
+    return (
+      <div>
+        {plugin.projectList.map((projectItem: PluginProjectItem) => (
+          <InstalledPlugin
+            key={projectItem.projectId}
+            organization={organization}
+            plugin={plugin}
+            projectItem={projectItem}
+            onResetConfiguration={this.handleResetConfiguration}
+            onEnablePlugin={this.handleEnablePlugin}
+          />
+        ))}
+      </div>
     );
   }
 }
 
 const Flex = styled('div')`
   display: flex;
-`;
-
-const Title = styled('div')`
-  font-weight: bold;
-  font-size: 1.4em;
-  margin-bottom: ${space(1)};
-`;
-
-const TitleContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  justify-content: center;
-  padding-left: ${space(2)};
 `;
 
 const Description = styled('div')`
@@ -252,34 +209,6 @@ const FeatureListItem = styled('span')`
 const AddButton = styled(Button)`
   margin-left: ${space(1)};
 `;
-
-const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
-  <div
-    style={{
-      flex: 1,
-      alignItems: 'center',
-    }}
-    {...p}
-  >
-    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
-    <div style={{marginLeft: `${space(1)}`}}>{reason}</div>
-  </div>
-))`
-  color: ${p => p.theme.red};
-  font-size: 0.9em;
-`;
-
-const StatusWrapper = styled('div')`
-  margin-bottom: ${space(1)};
-  padding-left: ${space(2)};
-  line-height: 1.5em;
-`;
-
-const Status = p => (
-  <StatusWrapper>
-    <IntegrationStatus {...p} />
-  </StatusWrapper>
-);
 
 type InformationCardProps = {
   children: React.ReactNode;

@@ -20,7 +20,7 @@ import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
 import {openModal} from 'app/actionCreators/modal';
 import {UninstallButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
-import {NOT_INSTALLED} from './constants';
+import {NOT_INSTALLED, InstallationStatus} from './constants';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {
@@ -66,9 +66,12 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     return toPermissions(this.state.sentryApp.scopes);
   }
 
+  //TODO: Move into util function
   get installationStatus() {
     const install = this.isInstalled();
-    return (install && capitalize(install.status)) || NOT_INSTALLED;
+    return (
+      (install && (capitalize(install.status) as InstallationStatus)) || NOT_INSTALLED
+    );
   }
 
   get integrationName() {
@@ -181,12 +184,12 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     );
   }
 
-  renderTopButton(disabled: boolean) {
+  renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     return !this.isInstalled() ? (
       <Button
         size="small"
         priority="primary"
-        disabled={disabled}
+        disabled={disabledFromFeatures || !userHasAccess}
         onClick={() => this.handleInstall()}
         style={{marginLeft: space(1)}}
         data-test-id="install"
@@ -199,11 +202,13 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
         app={this.state.sentryApp}
         onClickUninstall={this.handleUninstall}
         onUninstallModalOpen={() => {}} //TODO: Implement tracking analytics
+        //TODO: use disabled prop
+        // disabled={!userHasAccess}
       />
     );
   }
 
-  renderBody() {
+  renderInformationCard() {
     const {organization} = this.props;
     const {featureData, sentryApp} = this.state;
 
@@ -219,28 +224,24 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
     const overview = sentryApp.overview || '';
     const featureProps = {organization, features};
-
     return (
       <React.Fragment>
-        <Flex style={{flexDirection: 'column'}}>
-          {this.renderTopSection()}
-          {this.renderTabs()}
-          <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
-          <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
+        <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
+        <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
 
-          {this.renderPermissions()}
-          <Footer>
-            <Author>{t('Authored By %s', sentryApp.author)}</Author>
-          </Footer>
-        </Flex>
+        {this.renderPermissions()}
+        <Footer>
+          <Author>{t('Authored By %s', sentryApp.author)}</Author>
+        </Footer>
       </React.Fragment>
     );
   }
-}
 
-const Flex = styled('div')`
-  display: flex;
-`;
+  //no configuraitons for sentry apps
+  renderConfigurations() {
+    return null;
+  }
+}
 
 const Description = styled('div')`
   font-size: 1.5rem;

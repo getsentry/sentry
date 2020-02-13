@@ -5,10 +5,10 @@ import theme from 'app/utils/theme';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-import {colors} from './constants';
+import {colors, InstallationStatus} from './constants';
 
 type StatusProps = {
-  status: 'Installed' | 'Not Installed' | 'Pending';
+  status: InstallationStatus;
 };
 
 const StatusWrapper = styled('div')`

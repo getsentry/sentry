@@ -18,6 +18,7 @@ import {singleLineRenderer} from 'app/utils/marked';
 
 // import {growDown, highlight} from 'app/styles/animations';
 import IntegrationStatus from './integrationStatus';
+import {InstallationStatus} from './constants';
 
 type Tab = 'information' | 'configurations';
 
@@ -60,7 +61,7 @@ class AbstractIntegrationDetailedView<
     return tab;
   }
 
-  get installationStatus(): string {
+  get installationStatus(): InstallationStatus {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
@@ -75,7 +76,10 @@ class AbstractIntegrationDetailedView<
     throw new Error('Not implemented');
   }
 
-  renderTopButton(_disabled: boolean): React.ReactElement {
+  renderTopButton(
+    _disabledFromFeatures: boolean,
+    _userHasAccess: boolean
+  ): React.ReactElement {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
@@ -105,7 +109,7 @@ class AbstractIntegrationDetailedView<
             <Status status={this.installationStatus} />
           </Flex>
           <Flex>
-            {features.length && this.featureTags(features.map(f => f.featureGate))}
+            {!!features.length && this.featureTags(features.map(f => f.featureGate))}
           </Flex>
         </NameContainer>
         <IntegrationFeatures {...featureProps}>
@@ -126,7 +130,7 @@ class AbstractIntegrationDetailedView<
                     )}
                     disabled={hasAccess}
                   >
-                    {this.renderTopButton(!hasAccess || !!disabled)}
+                    {this.renderTopButton(disabled, hasAccess)}
                   </Tooltip>
                 )}
               </Access>
@@ -152,6 +156,29 @@ class AbstractIntegrationDetailedView<
           </li>
         ))}
       </ul>
+    );
+  }
+
+  renderInformationCard() {
+    // Allow children to implement this
+    throw new Error('Not implemented');
+  }
+
+  renderConfigurations() {
+    // Allow children to implement this
+    throw new Error('Not implemented');
+  }
+
+  renderBody() {
+    const {tab} = this.state;
+    return (
+      <React.Fragment>
+        {this.renderTopSection()}
+        {this.renderTabs()}
+        {tab === 'information'
+          ? this.renderInformationCard()
+          : this.renderConfigurations()}
+      </React.Fragment>
     );
   }
 }
