@@ -2,7 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {getDiscoverUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getDiscoverUrlPathFromDiscoverQuery';
+import {
+  getDiscoverUrlPathFromDiscoverQuery,
+  getDiscover2UrlPathFromDiscoverQuery,
+} from 'app/views/dashboards/utils/getDiscoverUrlPathFromDiscoverQuery';
 import {getEventsUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getEventsUrlPathFromDiscoverQuery';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -20,13 +23,11 @@ class ExploreWidget extends React.Component {
     selection: SentryTypes.GlobalSelection,
   };
 
-  getExportToDiscover = query => {
+  getExportToDiscover = (query, isDiscover2 = false) => {
     const {selection, organization} = this.props;
-    return getDiscoverUrlPathFromDiscoverQuery({
-      organization,
-      selection,
-      query,
-    });
+    return isDiscover2
+      ? getDiscover2UrlPathFromDiscoverQuery({organization, selection, query})
+      : getDiscoverUrlPathFromDiscoverQuery({organization, selection, query});
   };
 
   getExportToEvents = query => {
@@ -44,51 +45,63 @@ class ExploreWidget extends React.Component {
 
     return (
       <DropdownMenu>
-        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-          return (
-            <ExploreRoot {...getRootProps()} isOpen={isOpen}>
-              <div {...getActorProps()}>
-                <ExploreButton isOpen={isOpen}>
-                  {t('Explore Data')}
-                  <Chevron isOpen={isOpen} src="icon-chevron-right" />
-                </ExploreButton>
-              </div>
-              <ExploreMenu {...getMenuProps({isOpen})}>
-                {discoverQueries.map(query => (
-                  <ExploreRow key={query.name}>
-                    <QueryName>{query.name}</QueryName>
+        {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
+          <ExploreRoot {...getRootProps()} isOpen={isOpen}>
+            <div {...getActorProps()}>
+              <ExploreButton isOpen={isOpen}>
+                {t('Explore Data')}
+                <Chevron isOpen={isOpen} src="icon-chevron-right" />
+              </ExploreButton>
+            </div>
+            <ExploreMenu {...getMenuProps({isOpen})}>
+              {discoverQueries.map(query => (
+                <ExploreRow key={query.name}>
+                  <QueryName>{query.name}</QueryName>
 
-                    <Feature features={['discover']} organization={organization}>
-                      {({hasFeature}) => (
+                  <Feature features={['discover']} organization={organization}>
+                    {({hasFeature}) => (
+                      <ExploreAction
+                        to={this.getExportToDiscover(query)}
+                        disabled={!hasFeature}
+                        title={hasFeature ? '' : t('You do not have access to Discover')}
+                      >
+                        <InlineSvg src="icon-discover" />
+                      </ExploreAction>
+                    )}
+                  </Feature>
+
+                  <Feature features={['discover-basic']} organization={organization}>
+                    {({hasFeature}) =>
+                      !hasFeature ? null : (
                         <ExploreAction
-                          to={this.getExportToDiscover(query)}
+                          to={this.getExportToDiscover(query, true)}
                           disabled={!hasFeature}
                           title={
-                            hasFeature ? '' : t('You do not have access to Discover')
+                            hasFeature ? '' : t('You do not have access to Discover2')
                           }
                         >
-                          <InlineSvg src="icon-discover" />
+                          <InlineSvg src="icon-telescope" />
                         </ExploreAction>
-                      )}
-                    </Feature>
+                      )
+                    }
+                  </Feature>
 
-                    <Feature features={['events']} organization={organization}>
-                      {({hasFeature}) => (
-                        <ExploreAction
-                          to={this.getExportToEvents(query)}
-                          disabled={!hasFeature}
-                          title={hasFeature ? '' : t('You do not have access to Events')}
-                        >
-                          <InlineSvg src="icon-stack" />
-                        </ExploreAction>
-                      )}
-                    </Feature>
-                  </ExploreRow>
-                ))}
-              </ExploreMenu>
-            </ExploreRoot>
-          );
-        }}
+                  <Feature features={['events']} organization={organization}>
+                    {({hasFeature}) => (
+                      <ExploreAction
+                        to={this.getExportToEvents(query)}
+                        disabled={!hasFeature}
+                        title={hasFeature ? '' : t('You do not have access to Events')}
+                      >
+                        <InlineSvg src="icon-stack" />
+                      </ExploreAction>
+                    )}
+                  </Feature>
+                </ExploreRow>
+              ))}
+            </ExploreMenu>
+          </ExploreRoot>
+        )}
       </DropdownMenu>
     );
   }
@@ -118,7 +131,7 @@ const ExploreButton = styled(props => {
   }
 
   /* covers up borders to create a continous shape */
-  ${p => (p.isOpen ? '&, &:hover, &:active { box-shadow: 0 -1px 0 #fff; }' : '')};
+  ${p => (p.isOpen ? '&, &:hover, &:active { box-shadow: 0 -1px 0 #fff; }' : '')}
 `;
 
 const ExploreMenu = styled('div')`
