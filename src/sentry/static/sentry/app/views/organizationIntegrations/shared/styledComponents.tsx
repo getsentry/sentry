@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 import space from 'app/styles/space';
 
 export const TagsContainer = styled('div')`
@@ -10,11 +9,7 @@ export const TagsContainer = styled('div')`
   padding-bottom: ${space(1)};
 `;
 
-export const Tag = styled(
-  withTheme((props: {theme?: any}) => {
-    return <span />;
-  })
-)`
+export const Tag = styled(p => <span {...p} />)`
   transition: border-color 0.15s ease;
   font-size: 14px;
   line-height: 1;
