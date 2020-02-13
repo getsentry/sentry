@@ -12,15 +12,18 @@ import InlineSvg from 'app/components/inlineSvg';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
 import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
-// import Alert, {Props as AlertProps} from 'app/components/alert';
-// import ExternalLink from 'app/components/links/externalLink';
-import {singleLineRenderer} from 'app/utils/marked';
+import Alert, {Props as AlertProps} from 'app/components/alert';
+import ExternalLink from 'app/components/links/externalLink';
+import marked, {singleLineRenderer} from 'app/utils/marked';
 
-// import {growDown, highlight} from 'app/styles/animations';
 import IntegrationStatus from './integrationStatus';
 import {InstallationStatus} from './constants';
 
 type Tab = 'information' | 'configurations';
+
+type AlertType = AlertProps & {
+  text: string;
+};
 
 type State = {
   tab: Tab;
@@ -45,20 +48,33 @@ class AbstractIntegrationDetailedView<
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({tab: value});
   }
-
-  featureTags(features: string[]) {
-    return features.map(feature => {
-      feature = feature.replace(/integrations/g, '').replace(/-/g, ' ');
-      return <StyledTag key={feature}>{feature}</StyledTag>;
-    });
-  }
-
   onTabChange = (value: Tab) => {
     this.setState({tab: value});
   };
 
   getTabDiplay(tab: Tab): string {
+    //default is return the tab
     return tab;
+  }
+
+  get description(): string {
+    // Allow children to implement this
+    throw new Error('Not implemented');
+  }
+
+  get author(): string | undefined {
+    // Allow children to implement this
+    throw new Error('Not implemented');
+  }
+
+  get alerts(): AlertType[] {
+    //default is no alerts
+    return [];
+  }
+
+  get resourceLinks(): Array<{title: string; url: string}> {
+    // Allow children to implement this
+    throw new Error('Not implemented');
   }
 
   get installationStatus(): InstallationStatus {
@@ -76,6 +92,30 @@ class AbstractIntegrationDetailedView<
     throw new Error('Not implemented');
   }
 
+  get featureProps() {
+    const {organization} = this.props;
+    const featureData = this.featureData;
+
+    // Prepare the features list
+    const features = featureData.map(f => ({
+      featureGate: f.featureGate,
+      description: (
+        <FeatureListItem
+          dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}}
+        />
+      ),
+    }));
+
+    return {organization, features};
+  }
+
+  renderFeatureTags() {
+    return this.featureData.map(({featureGate}) => {
+      const feature = featureGate.replace(/integrations/g, '').replace(/-/g, ' ');
+      return <StyledTag key={feature}>{feature}</StyledTag>;
+    });
+  }
+
   renderTopButton(
     _disabledFromFeatures: boolean,
     _userHasAccess: boolean
@@ -87,39 +127,23 @@ class AbstractIntegrationDetailedView<
   renderTopSection() {
     const {integrationSlug} = this.props.params;
     const {organization} = this.props;
-    const featureData = this.featureData;
-
-    // Prepare the features list
-    const features = (featureData || []).map(f => ({
-      featureGate: f.featureGate,
-      description: (
-        <span dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}} />
-      ),
-    }));
 
     const {IntegrationFeatures} = getIntegrationFeatureGate();
-
-    const featureProps = {organization, features};
     return (
       <Flex>
         <PluginIcon pluginId={integrationSlug} size={50} />
         <NameContainer>
           <Flex>
             <Name>{this.integrationName}</Name>
-            <Status status={this.installationStatus} />
+            <StatusWrapper>
+              <IntegrationStatus status={this.installationStatus} />
+            </StatusWrapper>
           </Flex>
-          <Flex>
-            {!!features.length && this.featureTags(features.map(f => f.featureGate))}
-          </Flex>
+          <Flex>{this.renderFeatureTags()}</Flex>
         </NameContainer>
-        <IntegrationFeatures {...featureProps}>
+        <IntegrationFeatures {...this.featureProps}>
           {({disabled, disabledReason}) => (
-            <div
-              style={{
-                marginLeft: 'auto',
-                alignSelf: 'center',
-              }}
-            >
+            <DisableWrapper>
               {disabled && <DisabledNotice reason={disabledReason} />}
 
               <Access organization={organization} access={['org:integrations']}>
@@ -134,7 +158,7 @@ class AbstractIntegrationDetailedView<
                   </Tooltip>
                 )}
               </Access>
-            </div>
+            </DisableWrapper>
           )}
         </IntegrationFeatures>
       </Flex>
@@ -159,9 +183,40 @@ class AbstractIntegrationDetailedView<
     );
   }
 
+  renderPermissions(): React.ReactElement | null {
+    //default is don't render permissions
+    return null;
+  }
+
   renderInformationCard() {
-    // Allow children to implement this
-    throw new Error('Not implemented');
+    const {FeatureList} = getIntegrationFeatureGate();
+
+    return (
+      <React.Fragment>
+        <Description dangerouslySetInnerHTML={{__html: marked(this.description)}} />
+        <FeatureList
+          {...this.featureProps}
+          provider={{key: this.props.params.integrationSlug}}
+        />
+        {this.renderPermissions()}
+        <Metadata>
+          {!!this.author && <AuthorName>{t('By %s', this.author)}</AuthorName>}
+          <div>
+            {this.resourceLinks.map(({title, url}) => (
+              <ExternalLink key={url} href={url}>
+                {t(title)}
+              </ExternalLink>
+            ))}
+          </div>
+        </Metadata>
+
+        {this.alerts.map((alert, i) => (
+          <Alert key={i} type={alert.type} icon={alert.icon}>
+            <span dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}} />
+          </Alert>
+        ))}
+      </React.Fragment>
+    );
   }
 
   renderConfigurations() {
@@ -223,36 +278,33 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   font-size: 0.9em;
 `;
 
-// const Description = styled('div')`
-//   font-size: 1.5rem;
-//   line-height: 2.1rem;
-//   margin-bottom: ${space(2)};
+const FeatureListItem = styled('span')`
+  line-height: 24px;
+`;
 
-//   li {
-//     margin-bottom: 6px;
-//   }
-// `;
+const Description = styled('div')`
+  font-size: 1.5rem;
+  line-height: 2.1rem;
+  margin-bottom: ${space(2)};
 
-// const Metadata = styled(Flex)`
-//   font-size: 0.9em;
-//   margin-bottom: ${space(2)};
+  li {
+    margin-bottom: 6px;
+  }
+`;
 
-//   a {
-//     margin-left: ${space(1)};
-//   }
-// `;
+const Metadata = styled(Flex)`
+  font-size: 0.9em;
+  margin-bottom: ${space(2)};
 
-// const AuthorName = styled('div')`
-//   color: ${p => p.theme.gray2};
-//   flex: 1;
-// `;
+  a {
+    margin-left: ${space(1)};
+  }
+`;
 
-// const NewInstallation = styled('div')`
-//   overflow: hidden;
-//   transform-origin: 0 auto;
-//   animation: ${growDown('59px')} 160ms 500ms ease-in-out forwards,
-//     ${p => highlight(p.theme.yellowLightest)} 1000ms 500ms ease-in-out forwards;
-// `;
+const AuthorName = styled('div')`
+  color: ${p => p.theme.gray2};
+  flex: 1;
+`;
 
 const StatusWrapper = styled('div')`
   margin-bottom: ${space(1)};
@@ -260,45 +312,9 @@ const StatusWrapper = styled('div')`
   line-height: 1.5em;
 `;
 
-const Status = p => (
-  <StatusWrapper>
-    <IntegrationStatus {...p} />
-  </StatusWrapper>
-);
+const DisableWrapper = styled('div')`
+  margin-left: auto;
+  align-self: center;
+`;
 
-// const InformationCard = ({children, alerts, information}: InformationCardProps) => {
-//   const {metadata} = information;
-//   const description = marked(metadata.description);
-//   return (
-//     <React.Fragment>
-//       <Description dangerouslySetInnerHTML={{__html: description}} />
-//       {children}
-//       <Metadata>
-//         <AuthorName>{t('By %s', information.metadata.author)}</AuthorName>
-//         <div>
-//           <ExternalLink href={metadata.source_url}>{t('View Source')}</ExternalLink>
-//           <ExternalLink href={metadata.issue_url}>{t('Report Issue')}</ExternalLink>
-//         </div>
-//       </Metadata>
-
-//       {alerts.map((alert, i) => (
-//         <Alert key={i} type={alert.type} icon={alert.icon}>
-//           <span dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}} />
-//         </Alert>
-//       ))}
-//     </React.Fragment>
-//   );
-// };
-
-// type InformationCardProps = {
-//   children: React.ReactNode;
-//   alerts: any | AlertType[];
-//   information: IntegrationProvider;
-// };
-
-// type AlertType = AlertProps & {
-//   text: string;
-// };
-
-// export default withOrganization(AbstractIntegrationDetailedView);
 export default AbstractIntegrationDetailedView;

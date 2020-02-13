@@ -1,15 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {PluginWithProjectList, PluginNoProject, PluginProjectItem} from 'app/types';
+import {PluginWithProjectList, PluginProjectItem} from 'app/types';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
 import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin';
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
-import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
@@ -32,6 +30,18 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
 
   get plugin() {
     return this.state.plugins[0];
+  }
+
+  get description() {
+    return this.plugin.description || '';
+  }
+
+  get author() {
+    return this.plugin.author?.name;
+  }
+
+  get resourceLinks() {
+    return this.plugin.resourceLinks || [];
   }
 
   get installationStatus() {
@@ -106,13 +116,6 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     );
   };
 
-  mapPluginToProvider() {
-    const plugin = this.plugin;
-    return {
-      key: plugin.slug,
-    };
-  }
-
   getTabDiplay(tab: Tab) {
     //we want to show project configurations to make it more clear
     if (tab === 'configurations') {
@@ -132,25 +135,6 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
       >
         {t('Add to Project')}
       </AddButton>
-    );
-  }
-
-  renderInformationCard() {
-    const plugin = this.plugin;
-    const {organization} = this.props;
-
-    // Prepare the features list
-    const features = plugin.featureDescriptions.map(f => ({
-      featureGate: f.featureGate,
-      description: <FeatureListItem>{f.description}</FeatureListItem>,
-    }));
-
-    const {FeatureList} = getIntegrationFeatureGate();
-    const featureProps = {organization, features};
-    return (
-      <InformationCard plugin={plugin}>
-        <FeatureList {...featureProps} provider={this.mapPluginToProvider()} />
-      </InformationCard>
     );
   }
 
@@ -174,66 +158,8 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 }
 
-const Flex = styled('div')`
-  display: flex;
-`;
-
-const Description = styled('div')`
-  font-size: 1.5rem;
-  line-height: 2.1rem;
-  margin-bottom: ${space(2)};
-
-  li {
-    margin-bottom: 6px;
-  }
-`;
-
-const Metadata = styled(Flex)`
-  font-size: 0.9em;
-  margin-bottom: ${space(2)};
-
-  a {
-    margin-left: ${space(1)};
-  }
-`;
-
-const AuthorName = styled('div')`
-  color: ${p => p.theme.gray2};
-  flex: 1;
-`;
-
-const FeatureListItem = styled('span')`
-  line-height: 24px;
-`;
-
 const AddButton = styled(Button)`
   margin-left: ${space(1)};
 `;
-
-type InformationCardProps = {
-  children: React.ReactNode;
-  plugin: PluginNoProject;
-};
-
-const InformationCard = ({children, plugin}: InformationCardProps) => {
-  return (
-    <React.Fragment>
-      <Description>{plugin.description}</Description>
-      {children}
-      <Metadata>
-        {plugin.author && <AuthorName>{t('By %s', plugin.author.name)}</AuthorName>}
-        <div>
-          {/** TODO: May want to make resource links have same title as global integrations */}
-          {plugin.resourceLinks &&
-            plugin.resourceLinks.map(({title, url}) => (
-              <ExternalLink key={url} href={url}>
-                {title}
-              </ExternalLink>
-            ))}
-        </div>
-      </Metadata>
-    </React.Fragment>
-  );
-};
 
 export default withOrganization(PluginDetailedView);

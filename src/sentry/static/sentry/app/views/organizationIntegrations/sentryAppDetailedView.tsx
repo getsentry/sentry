@@ -11,12 +11,10 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
-import marked, {singleLineRenderer} from 'app/utils/marked';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
 import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
-import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
 import {openModal} from 'app/actionCreators/modal';
 import {UninstallButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
@@ -57,13 +55,30 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     } = this.props;
 
     return (
-      this.state.sentryApp.status === 'internal' &&
+      this.sentryApp.status === 'internal' &&
       router.push(`/settings/${organization.slug}/developer-settings/${integrationSlug}/`)
     );
   }
 
+  get sentryApp() {
+    return this.state.sentryApp;
+  }
+
+  get description() {
+    return this.state.sentryApp.overview || '';
+  }
+
+  get author() {
+    return this.sentryApp.author;
+  }
+
+  get resourceLinks() {
+    //sentry apps don't have resources (yet)
+    return [];
+  }
+
   get permissions() {
-    return toPermissions(this.state.sentryApp.scopes);
+    return toPermissions(this.sentryApp.scopes);
   }
 
   //TODO: Move into util function
@@ -75,7 +90,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get integrationName() {
-    return this.state.sentryApp.name;
+    return this.sentryApp.name;
   }
 
   get featureData() {
@@ -83,7 +98,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   isInstalled = () => {
-    return this.state.appInstalls.find(i => i.app.slug === this.state.sentryApp.slug);
+    return this.state.appInstalls.find(i => i.app.slug === this.sentryApp.slug);
   };
 
   redirectUser = (install: SentryAppInstallation) => {
@@ -129,11 +144,11 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     try {
       await uninstallSentryApp(this.api, install);
       const appInstalls = this.state.appInstalls.filter(
-        i => i.app.slug !== this.state.sentryApp.slug
+        i => i.app.slug !== this.sentryApp.slug
       );
       return this.setState({appInstalls});
     } catch (error) {
-      return addErrorMessage(t(`Unable to uninstall ${this.state.sentryApp.name}`));
+      return addErrorMessage(t(`Unable to uninstall ${this.sentryApp.name}`));
     }
   };
 
@@ -144,7 +159,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     }
 
     return (
-      <React.Fragment>
+      <PermissionWrapper>
         <Title>Permissions</Title>
         {permissions.read.length > 0 && (
           <Permission>
@@ -180,7 +195,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
             </Text>
           </Permission>
         )}
-      </React.Fragment>
+      </PermissionWrapper>
     );
   }
 
@@ -199,41 +214,12 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     ) : (
       <UninstallButton
         install={this.isInstalled()}
-        app={this.state.sentryApp}
+        app={this.sentryApp}
         onClickUninstall={this.handleUninstall}
         onUninstallModalOpen={() => {}} //TODO: Implement tracking analytics
         //TODO: use disabled prop
         // disabled={!userHasAccess}
       />
-    );
-  }
-
-  renderInformationCard() {
-    const {organization} = this.props;
-    const {featureData, sentryApp} = this.state;
-
-    // Prepare the features list
-    const features = (featureData || []).map(f => ({
-      featureGate: f.featureGate,
-      description: (
-        <span dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}} />
-      ),
-    }));
-
-    const {FeatureList} = getIntegrationFeatureGate();
-
-    const overview = sentryApp.overview || '';
-    const featureProps = {organization, features};
-    return (
-      <React.Fragment>
-        <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
-        <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
-
-        {this.renderPermissions()}
-        <Footer>
-          <Author>{t('Authored By %s', sentryApp.author)}</Author>
-        </Footer>
-      </React.Fragment>
     );
   }
 
@@ -243,20 +229,6 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 }
 
-const Description = styled('div')`
-  font-size: 1.5rem;
-  line-height: 2.1rem;
-  margin-bottom: ${space(2)};
-
-  li {
-    margin-bottom: 6px;
-  }
-`;
-
-const Author = styled('div')`
-  color: ${p => p.theme.gray2};
-`;
-
 const Text = styled('p')`
   margin: 0px 6px;
 `;
@@ -265,12 +237,8 @@ const Permission = styled('div')`
   display: flex;
 `;
 
-const Footer = styled('div')`
-  display: flex;
-  padding: 20px 30px;
-  border-top: 1px solid #e2dee6;
-  margin: 20px -30px -30px;
-  justify-content: space-between;
+const PermissionWrapper = styled('div')`
+  padding-bottom: ${space(2)};
 `;
 
 const Title = styled('p')`

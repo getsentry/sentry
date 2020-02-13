@@ -6,17 +6,11 @@ import {Integration, IntegrationProvider} from 'app/types';
 import {RequestOptions} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import {
-  trackIntegrationEvent,
-  getIntegrationFeatureGate,
-} from 'app/utils/integrationUtil';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import space from 'app/styles/space';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Button from 'app/components/button';
-import Alert, {Props as AlertProps} from 'app/components/alert';
-import ExternalLink from 'app/components/links/externalLink';
 import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
-import marked, {singleLineRenderer} from 'app/utils/marked';
 import withOrganization from 'app/utils/withOrganization';
 import {sortArray} from 'app/utils';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -50,6 +44,41 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return this.state.information.providers[0];
   }
 
+  get description() {
+    return this.metadata.description;
+  }
+
+  get author() {
+    return this.metadata.author;
+  }
+
+  get alerts() {
+    const provider = this.provider;
+    const metadata = this.metadata;
+    const alerts = metadata.aspects.alerts || [];
+
+    if (!provider.canAdd && metadata.aspects.externalInstall) {
+      alerts.push({
+        type: 'warning',
+        icon: 'icon-exit',
+        text: metadata.aspects.externalInstall.noticeText,
+      });
+    }
+    return alerts;
+  }
+
+  get resourceLinks() {
+    const metadata = this.metadata;
+    return [
+      {url: metadata.source_url, title: 'View Source'},
+      {url: metadata.issue_url, title: 'Report Issue'},
+    ];
+  }
+
+  get metadata() {
+    return this.provider.metadata;
+  }
+
   get isEnabled() {
     return this.state.configurations.length > 0;
   }
@@ -63,7 +92,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get featureData() {
-    return this.provider.metadata.features;
+    return this.metadata.features;
   }
 
   onInstall = (integration: Integration) => {
@@ -167,40 +196,6 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return <span />;
   }
 
-  renderInformationCard() {
-    const {organization} = this.props;
-    const provider = this.provider;
-
-    const {metadata} = provider;
-    const alerts = metadata.aspects.alerts || [];
-
-    if (!provider.canAdd && metadata.aspects.externalInstall) {
-      alerts.push({
-        type: 'warning',
-        icon: 'icon-exit',
-        text: metadata.aspects.externalInstall.noticeText,
-      });
-    }
-
-    const {FeatureList} = getIntegrationFeatureGate();
-
-    // Prepare the features list
-    const features = metadata.features.map(f => ({
-      featureGate: f.featureGate,
-      description: (
-        <FeatureListItem
-          dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}}
-        />
-      ),
-    }));
-    const featureProps = {organization, features};
-    return (
-      <InformationCard alerts={alerts} provider={provider}>
-        <FeatureList {...featureProps} provider={provider} />
-      </InformationCard>
-    );
-  }
-
   renderConfigurations() {
     const {configurations} = this.state;
     const {organization} = this.props;
@@ -225,75 +220,9 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 }
 
-const Flex = styled('div')`
-  display: flex;
-`;
-
-const Description = styled('div')`
-  font-size: 1.5rem;
-  line-height: 2.1rem;
-  margin-bottom: ${space(2)};
-
-  li {
-    margin-bottom: 6px;
-  }
-`;
-
-const Metadata = styled(Flex)`
-  font-size: 0.9em;
-  margin-bottom: ${space(2)};
-
-  a {
-    margin-left: ${space(1)};
-  }
-`;
-
-const AuthorName = styled('div')`
-  color: ${p => p.theme.gray2};
-  flex: 1;
-`;
-
-const FeatureListItem = styled('span')`
-  line-height: 24px;
-`;
-
 const InstallWrapper = styled('div')`
   padding: ${space(2)};
   border: 1px solid ${p => p.theme.borderLight};
 `;
-
-const InformationCard = ({children, alerts, provider}: InformationCardProps) => {
-  const {metadata} = provider;
-  const description = marked(metadata.description);
-  return (
-    <React.Fragment>
-      <Description dangerouslySetInnerHTML={{__html: description}} />
-      {children}
-      <Metadata>
-        <AuthorName>{t('By %s', provider.metadata.author)}</AuthorName>
-        <div>
-          <ExternalLink href={metadata.source_url}>{t('View Source')}</ExternalLink>
-          <ExternalLink href={metadata.issue_url}>{t('Report Issue')}</ExternalLink>
-        </div>
-      </Metadata>
-
-      {alerts.map((alert, i) => (
-        <Alert key={i} type={alert.type} icon={alert.icon}>
-          <span dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}} />
-        </Alert>
-      ))}
-    </React.Fragment>
-  );
-};
-
-type InformationCardProps = {
-  children: React.ReactNode;
-  alerts: any | AlertType[];
-  provider: IntegrationProvider;
-};
-
-type AlertType = AlertProps & {
-  text: string;
-};
 
 export default withOrganization(IntegrationDetailedView);
