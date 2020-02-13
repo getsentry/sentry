@@ -1,7 +1,7 @@
 import React from 'react';
 import sortBy from 'lodash/sortBy';
-import styled from '@emotion/styled';
 
+import styled from 'app/emotion-styled';
 import ContextData from 'app/components/contextData';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import theme from 'app/utils/theme';
@@ -50,7 +50,7 @@ const KeyValueList = ({
 
   const getData = () => {
     if (isSorted) {
-      return sortBy(data, [({subject}) => subject]);
+      return sortBy(data, [({key}) => key.toLowerCase()]);
     }
     return data;
   };
