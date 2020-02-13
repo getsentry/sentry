@@ -166,6 +166,7 @@ from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
+from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
@@ -1092,6 +1093,11 @@ urlpatterns = [
         r"^projects/",
         include(
             [
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/rule-conditions/$",
+                    ProjectAgnosticRuleConditionsEndpoint.as_view(),
+                    name="sentry-api-0-project-agnostic-rule-conditions",
+                ),
                 url(r"^$", ProjectIndexEndpoint.as_view(), name="sentry-api-0-projects"),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$",
