@@ -97,6 +97,7 @@ exports[`KeyValueList renders formatted 1`] = `
       >
         <ContextData
           data={0}
+          withAnnotatedText={false}
         />
       </td>
     </tr>
@@ -114,6 +115,7 @@ exports[`KeyValueList renders formatted 1`] = `
       >
         <ContextData
           data="here"
+          withAnnotatedText={false}
         />
       </td>
     </tr>
@@ -135,6 +137,7 @@ exports[`KeyValueList renders formatted 1`] = `
               "andsomeotherstuff": "here",
             }
           }
+          withAnnotatedText={false}
         />
       </td>
     </tr>
@@ -161,6 +164,7 @@ exports[`KeyValueList renders raw 1`] = `
       >
         <ContextData
           data="0"
+          withAnnotatedText={false}
         />
       </td>
     </tr>
@@ -178,6 +182,7 @@ exports[`KeyValueList renders raw 1`] = `
       >
         <ContextData
           data="\\"here\\""
+          withAnnotatedText={false}
         />
       </td>
     </tr>
@@ -195,6 +200,7 @@ exports[`KeyValueList renders raw 1`] = `
       >
         <ContextData
           data="{\\"andsomeotherstuff\\":\\"here\\"}"
+          withAnnotatedText={false}
         />
       </td>
     </tr>

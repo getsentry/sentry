@@ -16,6 +16,7 @@ import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import InlineSvg from 'app/components/inlineSvg';
+import Version from 'app/components/version';
 import space from 'app/styles/space';
 
 type DefaultProps = {
@@ -44,7 +45,11 @@ class EventTags extends React.Component<Props> {
             search: locationSearch,
           }}
         >
-          <DeviceName>{tag.value}</DeviceName>
+          {tag.key === 'release' ? (
+            <Version version={tag.value} anchor={false} tooltipRawVersion truncate />
+          ) : (
+            <DeviceName>{tag.value}</DeviceName>
+          )}
         </Link>
         {isUrl(tag.value) && (
           <a href={tag.value} className="external-icon">
