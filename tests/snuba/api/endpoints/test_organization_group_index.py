@@ -70,6 +70,32 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(group.id)
 
+    def test_trace_search(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "contexts": {
+                    "trace": {
+                        "parent_span_id": "8988cec7cc0779c1",
+                        "type": "trace",
+                        "op": "foobar",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                        "span_id": "babaae0d4b7512d9",
+                        "status": "ok",
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_valid_response(
+            sort_by="date", query="is:unresolved trace:a7d67cf796774551a95be6543cacd459"
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(event.group.id)
+
     def test_feature_gate(self):
         # ensure there are two or more projects
         self.create_project(organization=self.project.organization)
