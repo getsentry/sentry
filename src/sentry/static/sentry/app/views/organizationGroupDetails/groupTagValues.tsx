@@ -2,6 +2,7 @@ import sortBy from 'lodash/sortBy';
 import property from 'lodash/property';
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
 import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
@@ -12,6 +13,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
+import space from 'app/styles/space';
 import {Group, Tag, TagValue} from 'app/types';
 
 type RouteParams = {
@@ -28,7 +30,7 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  tagKey: Tag;
+  tag: Tag;
   tagValueList: TagValue[];
   tagValueListPageLinks: string;
 };
@@ -40,21 +42,21 @@ class GroupTagValues extends AsyncComponent<
   getEndpoints(): [string, string][] {
     const {groupId, tagKey} = this.props.params;
     return [
-      ['tagKey', `/issues/${groupId}/tags/${tagKey}/`],
+      ['tag', `/issues/${groupId}/tags/${tagKey}/`],
       ['tagValueList', `/issues/${groupId}/tags/${tagKey}/values/`],
     ];
   }
 
-  getUserDisplayName(item): string {
+  getUserDisplayName(item: TagValue): string {
     return item.email || item.username || item.identifier || item.ipAddress || item.value;
   }
 
   renderBody() {
     const {
       group,
-      params: {orgId},
+      params: {orgId, tagKey},
     } = this.props;
-    const {tagKey, tagValueList, tagValueListPageLinks} = this.state;
+    const {tag, tagValueList, tagValueListPageLinks} = this.state;
     const sortedTagValueList: TagValue[] = sortBy(
       tagValueList,
       property('count')
@@ -62,11 +64,11 @@ class GroupTagValues extends AsyncComponent<
 
     const issuesPath = `/organizations/${orgId}/issues/`;
 
-    const children = sortedTagValueList.map((tagValue: TagValue, tagValueIdx: number) => {
-      const pct = tagKey.totalValues
-        ? `${percent(tagValue.count, tagKey.totalValues).toFixed(2)}%`
+    const children = sortedTagValueList.map((tagValue, tagValueIdx) => {
+      const pct = tag.totalValues
+        ? `${percent(tagValue.count, tag.totalValues).toFixed(2)}%`
         : '--';
-      const query = tagValue.query || `${tagKey.key}:"${tagValue.value}"`;
+      const query = tagValue.query || `${tag.key}:"${tagValue.value}"`;
       return (
         <tr key={tagValueIdx}>
           <td className="bar-cell">
@@ -79,12 +81,10 @@ class GroupTagValues extends AsyncComponent<
                 query: {query},
               }}
             >
-              {tagKey.key === 'user' ? (
+              {tag.key === 'user' ? (
                 <React.Fragment>
                   <UserAvatar user={tagValue} size={20} className="avatar" />
-                  <span style={{marginLeft: 10}}>
-                    {this.getUserDisplayName(tagValue)}
-                  </span>
+                  <span className="m-left">{this.getUserDisplayName(tagValue)}</span>
                 </React.Fragment>
               ) : (
                 <DeviceName>{tagValue.name}</DeviceName>
@@ -109,13 +109,12 @@ class GroupTagValues extends AsyncComponent<
     });
 
     return (
-      <div>
+      <TableWrapper>
         <h3>
-          {tagKey.key === 'user' ? t('Affected Users') : tagKey.name}
+          {tag.key === 'user' ? t('Affected Users') : tag.name}
           <a
-            href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${this.props.params.tagKey}/export/`}
-            className="btn btn-default btn-sm"
-            style={{marginLeft: 10}}
+            href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
+            className="btn btn-default btn-sm m-left"
           >
             {t('Export to CSV')}
           </a>
@@ -123,9 +122,9 @@ class GroupTagValues extends AsyncComponent<
         <table className="table table-striped">
           <thead>
             <tr>
-              <th style={{width: 30}}>%</th>
+              <TableHeader width={20}>%</TableHeader>
               <th />
-              <th style={{width: 200}}>{t('Last Seen')}</th>
+              <TableHeader width={300}>{t('Last Seen')}</TableHeader>
             </tr>
           </thead>
           <tbody>{children}</tbody>
@@ -136,10 +135,20 @@ class GroupTagValues extends AsyncComponent<
             {t('Note: Percentage of issue is based on events seen in the last 7 days.')}
           </small>
         </p>
-      </div>
+      </TableWrapper>
     );
   }
 }
+
+const TableWrapper = styled('div')`
+  .m-left {
+    margin-left: ${space(1.5)};
+  }
+`;
+
+const TableHeader = styled('th')<{width: number}>`
+  width: ${p => p.width}px;
+`;
 
 export {GroupTagValues};
 export default GroupTagValues;
