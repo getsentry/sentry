@@ -83,6 +83,7 @@ class SnubaProtocolEventStream(EventStream):
         is_regression,
         is_new_group_environment,
         primary_hash,
+        received_timestamp,  # type: float
         skip_consume=False,
     ):
         project = event.project
@@ -249,6 +250,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         is_regression,
         is_new_group_environment,
         primary_hash,
+        received_timestamp,  # type: float
         skip_consume=False,
     ):
         super(SnubaEventStream, self).insert(
@@ -258,6 +260,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             is_regression,
             is_new_group_environment,
             primary_hash,
+            received_timestamp,
             skip_consume,
         )
         self._dispatch_post_process_group_task(
