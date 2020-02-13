@@ -211,7 +211,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
+    def get_group_tag_value_iter(
+        self, project_id, group_id, environment_id, key, callbacks=(), offset=0
+    ):
         """
         >>> get_group_tag_value_iter(1, 2, 3, 'environment')
         """

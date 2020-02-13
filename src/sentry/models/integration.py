@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     EncryptedJsonField,
     FlexibleForeignKey,
@@ -34,9 +35,11 @@ class PagerDutyService(Model):
 class PagerDutyServiceProject(Model):
     __core__ = False
 
-    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
-    pagerduty_service = FlexibleForeignKey("sentry.PagerDutyService")
-    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
+    project = BoundedBigIntegerField(db_column="project_id")
+    pagerduty_service = BoundedBigIntegerField(db_column="pagerduty_service_id", db_index=True)
+    organization_integration = BoundedBigIntegerField(
+        db_column="organization_integration_id", db_index=True, null=True
+    )
     integration_key = models.CharField(max_length=255, null=True)
     service_id = models.CharField(max_length=255, null=True)
     service_name = models.CharField(max_length=255, null=True)

@@ -16,7 +16,7 @@ import {ReleasesV2RowData} from 'app/views/releasesV2/list/types';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import HealthStatus from 'app/views/releasesV2/list/healthStatus';
 import LatestDeployOrReleaseTime from 'app/views/releases/list/latestDeployOrReleaseTime';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 type Props = ReleasesV2RowData & {
   organizationId: string;
