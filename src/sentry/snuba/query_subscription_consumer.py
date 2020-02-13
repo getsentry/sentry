@@ -126,8 +126,11 @@ class QuerySubscriptionConsumer(object):
         :param message:
         :return:
         """
+        print ("message:", message)
+        print ("message.value():", message.value())
         try:
             contents = self.parse_message_value(message.value())
+            print ("parsed contents:", contents)
         except InvalidMessageError:
             # If the message is in an invalid format, just log the error
             # and continue
@@ -170,6 +173,9 @@ class QuerySubscriptionConsumer(object):
             return
 
         callback = subscriber_registry[subscription.type]
+        print ("callback:", callback)
+        print ("contents:", contents)
+        print ("subscription:", subscription)
         with metrics.timer("snuba_query_subscriber.callback.duration", instance=subscription.type):
             callback(contents, subscription)
 
@@ -180,6 +186,7 @@ class QuerySubscriptionConsumer(object):
         :param value: A json formatted string
         :return: A dict with the parsed message
         """
+        print ("parse_message_value", value)
         wrapper = loads(value)
         try:
             jsonschema.validate(wrapper, SUBSCRIPTION_WRAPPER_SCHEMA)
@@ -208,6 +215,8 @@ class QuerySubscriptionConsumer(object):
                 detail = ex.message
             # raise exception.ValidationError(detail=detail)
             raise InvalidSchemaError(detail)
-
+        print ("payload['timestamp]:", payload["timestamp"])
         payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
+        print ("payload['timestamp]:", payload["timestamp"])
+
         return payload

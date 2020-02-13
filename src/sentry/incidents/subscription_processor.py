@@ -62,6 +62,8 @@ class SubscriptionProcessor(object):
         self.last_update, self.trigger_alert_counts, self.trigger_resolve_counts = get_alert_rule_stats(
             self.alert_rule, self.subscription, self.triggers
         )
+        print ("instantiated:", self.last_update)
+
         self.orig_trigger_alert_counts = deepcopy(self.trigger_alert_counts)
         self.orig_trigger_resolve_counts = deepcopy(self.trigger_resolve_counts)
 
@@ -124,11 +126,13 @@ class SubscriptionProcessor(object):
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
-
+        print ("process_update", subscription_update)
+        print ("process_update", subscription_update["timestamp"])
         self.last_update = subscription_update["timestamp"]
-
+        print ("self.last_update:", self.last_update)
         aggregation = QueryAggregations(self.alert_rule.aggregation)
         aggregation_name = query_aggregation_to_snuba[aggregation][2]
+        print ("----")
         if len(subscription_update["values"]["data"]) > 1:
             logger.warning(
                 "Subscription returned more than 1 row of data",
@@ -139,8 +143,9 @@ class SubscriptionProcessor(object):
                     "result": subscription_update,
                 },
             )
+        print ("!!!!")
         aggregation_value = subscription_update["values"]["data"][0][aggregation_name]
-
+        print ("444")
         for trigger in self.triggers:
             alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
                 AlertRuleThresholdType(trigger.threshold_type)
@@ -161,7 +166,7 @@ class SubscriptionProcessor(object):
             else:
                 self.trigger_alert_counts[trigger.id] = 0
                 self.trigger_resolve_counts[trigger.id] = 0
-
+        print ("555")
         # We update the rule stats here after we commit the transaction. This guarantees
         # that we'll never miss an update, since we'll never roll back if the process
         # is killed here. The trade-off is that we might process an update twice. Mostly
@@ -183,6 +188,7 @@ class SubscriptionProcessor(object):
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
                 detected_at = self.last_update
+                print ("trigger_alert_threshold detected_at:", detected_at)
                 self.active_incident = create_incident(
                     self.alert_rule.organization,
                     IncidentType.ALERT_TRIGGERED,
@@ -361,12 +367,14 @@ def get_alert_rule_stats(alert_rule, subscription, triggers):
        trigger id, and the value is an int representing how many consecutive times we
        have triggered the resolve threshold
     """
-
+    print ("getting alert rule stats:", alert_rule, subscription, triggers)
     alert_rule_keys = build_alert_rule_stat_keys(alert_rule, subscription)
     trigger_keys = build_trigger_stat_keys(alert_rule, subscription, triggers)
     results = get_redis_client().mget(alert_rule_keys + trigger_keys)
     results = tuple(0 if result is None else int(result) for result in results)
+    print ("results:", results)
     last_update = to_datetime(results[0])
+    print ("late update:", last_update)
     trigger_results = results[1:]
     trigger_alert_counts = {}
     trigger_resolve_counts = {}

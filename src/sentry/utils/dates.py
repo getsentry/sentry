@@ -46,6 +46,7 @@ def get_sql_date_trunc(col, db="default", grouper="hour"):
 
 
 def parse_date(datestr, timestr):
+    print ("parse_date:", datestr, timestr)
     # format is Y-m-d
     if not (datestr or timestr):
         return

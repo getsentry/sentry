@@ -516,6 +516,7 @@ def raw_query(
 
 
 def bulk_raw_query(snuba_param_list, referrer=None):
+    print ("running raw query:", snuba_param_list)
     headers = {}
     if referrer:
         headers["referer"] = referrer
