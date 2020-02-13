@@ -12,18 +12,18 @@ import IntegrationStatus from './integrationStatus';
 
 type Props = {
   organization: Organization;
-  type: 'plugin' | 'provider' | 'sentry-app';
+  type: 'plugin' | 'firstParty' | 'sentryApp';
   slug: string;
   displayName: string;
   status: 'Installed' | 'Not Installed' | 'Pending';
   publishStatus: 'unpublished' | 'published' | 'internal';
-  installations: number;
+  configurations: number;
 };
 
 const urlMap = {
   plugin: 'plugins',
-  provider: 'integrations',
-  'sentry-app': 'sentry-apps',
+  firstParty: 'integrations',
+  sentryApp: 'sentry-apps',
 };
 
 const IntegrationRow = (props: Props) => {
@@ -34,18 +34,18 @@ const IntegrationRow = (props: Props) => {
     displayName,
     status,
     publishStatus,
-    installations,
+    configurations,
   } = props;
 
   const baseUrl = `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
 
   const renderDetails = () => {
-    if (type === 'sentry-app') {
+    if (type === 'sentryApp') {
       return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
     }
-    return installations > 0 ? (
-      <StyledLink to={`${baseUrl}?tab=configurations`}>{`${installations} Configuration${
-        installations > 1 ? 's' : ''
+    return configurations > 0 ? (
+      <StyledLink to={`${baseUrl}?tab=configurations`}>{`${configurations} Configuration${
+        configurations > 1 ? 's' : ''
       }`}</StyledLink>
     ) : null;
   };

@@ -32,7 +32,6 @@ import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import IntegrationRow from './integrationRow';
-import {mapped} from './integrationUtil';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
@@ -244,6 +243,13 @@ class OrganizationIntegrations extends AsyncComponent<
     return this.state.appInstalls.find(i => i.app.slug === app.slug);
   };
 
+  getAppInstallStatus = (install: SentryAppInstallation | undefined) => {
+    if (install) {
+      return capitalize(install.status) as 'Installed' | 'Pending';
+    }
+    return 'Not Installed';
+  };
+
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
@@ -302,18 +308,17 @@ class OrganizationIntegrations extends AsyncComponent<
       i => i.provider.key === provider.key
     );
 
-    const map = mapped(provider)('provider');
     return (
       <IntegrationRow
         key={`row-${provider.key}`}
         data-test-id="integration-row"
         organization={organization}
-        type="provider"
-        slug={map('slug')}
-        displayName={map('name')}
+        type="firstParty"
+        slug={provider.slug}
+        displayName={provider.name}
         status={integrations.length ? 'Installed' : 'Not Installed'}
         publishStatus="published"
-        installations={integrations.length}
+        configurations={integrations.length}
       />
     );
   };
@@ -332,8 +337,7 @@ class OrganizationIntegrations extends AsyncComponent<
       'vsts',
     ];
     const isLegacy = legacyIds.includes(plugin.id);
-    const map = mapped(plugin)('plugin');
-    const displayName = `${map('name')} ${!!isLegacy ? '(Legacy)' : ''}`;
+    const displayName = `${plugin.name} ${!!isLegacy ? '(Legacy)' : ''}`;
     //hide legacy integrations if we don't have any projects with them
     if (isLegacy && !plugin.projectList.length) {
       return null;
@@ -344,11 +348,11 @@ class OrganizationIntegrations extends AsyncComponent<
         data-test-id="integration-row"
         organization={organization}
         type="plugin"
-        slug={map('slug')}
+        slug={plugin.slug}
         displayName={displayName}
         status={plugin.projectList.length ? 'Installed' : 'Not Installed'}
         publishStatus="published"
-        installations={plugin.projectList.length}
+        configurations={plugin.projectList.length}
       />
     );
   };
@@ -356,24 +360,19 @@ class OrganizationIntegrations extends AsyncComponent<
   //render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
-    const map = mapped(app)('sentry-app');
-
-    const install = this.getAppInstall(app);
-    const status: 'Installed' | 'Pending' | 'Not Installed' = install
-      ? (capitalize(install.status) as 'Installed' | 'Pending')
-      : 'Not Installed';
+    const status = this.getAppInstallStatus(this.getAppInstall(app));
 
     return (
       <IntegrationRow
         key={`sentry-app-row-${app.slug}`}
         data-test-id="integration-row"
         organization={organization}
-        type="sentry-app"
-        slug={map('slug')}
-        displayName={map('name')}
+        type="sentryApp"
+        slug={app.slug}
+        displayName={app.name}
         status={status}
         publishStatus={app.status}
-        installations={install ? 1 : 0}
+        configurations={0}
       />
     );
   };
