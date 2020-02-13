@@ -217,8 +217,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
         app={this.sentryApp}
         onClickUninstall={this.handleUninstall}
         onUninstallModalOpen={() => {}} //TODO: Implement tracking analytics
-        //TODO: use disabled prop
-        // disabled={!userHasAccess}
+        disabled={!userHasAccess}
       />
     );
   }
