@@ -1094,7 +1094,8 @@ class GetSnubaQueryArgsTest(TestCase):
             params = {"project_id": []}
             filter = get_filter("project.name:{}".format(p1.slug), params)
         assert (
-            "Invalid query. Project %s must exist and be in global header" % p1.slug
+            "Invalid query. Project %s does not exist or is not an actively selected project"
+            % p1.slug
             in six.text_type(err)
         )
 
