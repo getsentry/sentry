@@ -234,6 +234,9 @@ class SnubaEventStream(SnubaProtocolEventStream):
         asynchronous=True,
         headers=None,  # type: Optional[Mapping[str, str]]
     ):
+        if headers is None:
+            headers = {}
+
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 
         # TODO remove this once the unified dataset is available.
