@@ -75,7 +75,7 @@ describe('IncidentsList', function() {
 
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: {}})
+      expect.objectContaining({query: {status: 'open'}})
     );
 
     wrapper.setProps({location: {query: {status: 'all'}, search: '?status=all`'}});
