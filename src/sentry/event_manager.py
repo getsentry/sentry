@@ -831,8 +831,9 @@ class EventManager(object):
                 key = "bytes.stored.%s" % (attachment.type,)
                 event_metrics[key] = (event_metrics.get(key) or 0) + len(attachment.data)
 
-        # Write the event to Nodestore
-        event.data.save()
+        with metrics.timer("event_manager.nodestore.save"):
+            # Write the event to Nodestore
+            event.data.save()
 
         if event_user:
             counters = [

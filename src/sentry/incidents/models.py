@@ -266,6 +266,18 @@ class AlertRuleManager(BaseManager):
         return self.filter(query_subscriptions__project=project)
 
 
+class AlertRuleEnvironment(Model):
+    __core__ = True
+
+    environment = FlexibleForeignKey("sentry.Environment")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleenvironment"
+        unique_together = (("alert_rule", "environment"),)
+
+
 class AlertRuleQuerySubscription(Model):
     __core__ = True
 
@@ -307,6 +319,9 @@ class AlertRule(Model):
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     dataset = models.TextField()
     query = models.TextField()
+    environment = models.ManyToManyField(
+        "sentry.Environment", related_name="alert_rule_environment", through=AlertRuleEnvironment
+    )
     # Determines whether we include all current and future projects from this
     # organization in this rule.
     include_all_projects = models.BooleanField(default=False)

@@ -15,7 +15,7 @@ const EventExtraDataSubject = ({type}: Props) => {
     case EventExtraDataSubjectType.CRASHED_PROCESS:
       return <React.Fragment>{t('Crashed Process')}</React.Fragment>;
     default:
-      return null;
+      return <React.Fragment>{type}</React.Fragment>;
   }
 };
 
