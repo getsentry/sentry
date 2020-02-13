@@ -675,7 +675,9 @@ exports[`SharedGroupDetails renders 1`] = `
                             showExampleCommit={false}
                             showTagSummary={true}
                           >
-                            <div>
+                            <div
+                              data-test-id="event-entries"
+                            >
                                
                               <EventTags
                                 event={
