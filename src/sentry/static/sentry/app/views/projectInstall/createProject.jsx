@@ -340,7 +340,6 @@ const HelpText = styled('p')`
 
 const StickyWrapper = styled('div')`
   position: sticky;
-  padding: ${space(3)} 0;
   background: #fff;
   bottom: 0;
 `;
