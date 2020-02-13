@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # optionally opt out of virtualenv creation
+# WARNING: this will be removed (most likely renamed) soon!
 if [ "x$SENTRY_NO_VIRTUALENV_CREATION" == "x1" ]; then
     exit 0
 fi

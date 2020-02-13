@@ -50,19 +50,25 @@ ensure-venv:
 	@./scripts/ensure-venv.sh
 
 ensure-pinned-pip: ensure-venv
-	$(PIP) install --no-cache-dir "pip>=20.0.2"
+	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
 
 setup-git: ensure-venv
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
 	git config core.ignorecase false
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
-	$(PIP) install "pre-commit==1.18.2"
+	@# XXX(joshuarli): virtualenv >= 20 doesn't work with the version of six we have pinned for sentry.
+	@# Since pre-commit is installed in the venv, it will install virtualenv in the venv as well.
+	@# We need to tell pre-commit to install an older virtualenv,
+	@# And we need to tell virtualenv to install an older six, so that sentry installation
+	@# won't complain about a newer six being present.
+	@# So, this six pin here needs to be synced with requirements-base.txt.
+	$(PIP) install "pre-commit==1.18.2" "virtualenv>=16.7,<20" "six>=1.10.0,<1.11.0"
 	pre-commit install --install-hooks
 	@echo ""
 
 node-version-check:
-	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/creationix/nvm'; exit 1)
+	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/volta-cli/volta'; exit 1)
 
 install-yarn-pkgs: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
