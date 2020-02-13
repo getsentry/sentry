@@ -164,7 +164,7 @@ class SuggestedOwners extends React.Component {
           )}
         </p>
         <Button href="https://docs.sentry.io/workflow/issue-owners/" priority="primary">
-          Learn more
+          {t('Learn more')}
         </Button>
       </HelpfulBody>
     );
