@@ -7,6 +7,7 @@ import Duration from 'app/components/duration';
 import YAxisSelector from 'app/views/events/yAxisSelector';
 import {getFormattedDate} from 'app/utils/dates';
 import space from 'app/styles/space';
+import Version from 'app/components/version';
 
 import {decodeColumnOrder} from './utils';
 import {ChartControls, InlineContainer, SectionHeading} from './styles';
@@ -29,10 +30,18 @@ type Props = {
   hoverState: TooltipData;
 };
 
-function formatValue(val: string | number, columnName: string) {
+function formatValue(val: string | number, columnName: string, itemName: string) {
   // Extract metadata from the columnName so we can format the
   // value appropriately.
   const columnData = decodeColumnOrder([{field: columnName}])[0];
+
+  if (itemName === t('Release')) {
+    return (
+      <Value>
+        <Version version={String(val)} anchor={false} withPackage />
+      </Value>
+    );
+  }
 
   if (val === null || val === undefined) {
     return <Value>-</Value>;
@@ -82,7 +91,7 @@ export default function ChartFooter({
       );
       elements.push(
         <React.Fragment key={`${item.name}-value`}>
-          {formatValue(item.value, yAxisValue)}
+          {formatValue(item.value, yAxisValue, item.name)}
         </React.Fragment>
       );
     });

@@ -21,8 +21,8 @@ class CorePluginMixin(object):
     author_url = "https://github.com/getsentry/sentry"
     version = sentry_plugins.VERSION
     resource_links = [
-        ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
-        ("Source", "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins"),
+        ("Report Issue", "https://github.com/getsentry/sentry/issues"),
+        ("View Source", "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins"),
     ]
 
     # HACK(dcramer): work around MRO issue with plugin metaclass
