@@ -1,12 +1,7 @@
 import React from 'react';
 import sortBy from 'lodash/sortBy';
-<<<<<<< HEAD
-import styled from '@emotion/styled';
-
-=======
 
 import styled from '@emotion/styled';
->>>>>>> master
 import ContextData from 'app/components/contextData';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import theme from 'app/utils/theme';
@@ -22,11 +17,7 @@ type Props = {
 
 export type KeyValueListData = {
   key: string;
-<<<<<<< HEAD
   subject: React.ReactNode | string;
-=======
-  subject: React.ReactNode;
->>>>>>> master
   value: string | null;
   meta: Meta;
 };

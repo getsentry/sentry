@@ -2,10 +2,12 @@ import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlockV2';
 
-import getOperatingSystemKnownData, {Data} from './getOperatingSystemKnownData';
+import getOperatingSystemKnownData, {
+  OperatingSystemKnownData,
+} from './getOperatingSystemKnownData';
 
 type Props = {
-  data?: Data;
+  data?: OperatingSystemKnownData;
 };
 
 const OperatingSystem = ({data}: Props) => {

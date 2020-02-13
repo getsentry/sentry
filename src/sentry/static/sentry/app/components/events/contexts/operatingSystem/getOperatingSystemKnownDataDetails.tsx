@@ -8,7 +8,7 @@ export enum OperatingSystemKnownDataDetailsType {
   ROOTED = 'rooted',
 }
 
-type Data = {
+export type OperatingSystemKnownData = {
   name: string;
   type: string;
   build: string;
@@ -23,7 +23,7 @@ type Output = {
 };
 
 function getOperatingSystemKnownDataDetails(
-  data: Data,
+  data: OperatingSystemKnownData,
   type: OperatingSystemKnownDataDetailsType
 ): Output | undefined {
   switch (type) {
