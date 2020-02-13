@@ -160,7 +160,7 @@ class SuggestedOwners extends React.Component {
       <HelpfulBody>
         <p>
           {t(
-            'Ownership rules allow you to associate file paths and URLs to specific teams or users, so issues can be assigned to the right people.'
+            'Ownership rules allow you to associate file paths and URLs to specific teams or users, so alerts can be routed to the right people.'
           )}
         </p>
         <Button href="https://docs.sentry.io/workflow/issue-owners/" priority="primary">
