@@ -240,7 +240,7 @@ class Sidebar extends React.Component {
     };
 
     // Bail as we can't do any more checks.
-    if (!organization) {
+    if (!organization || !organization.features) {
       return sidebarState;
     }
     const optState = localStorage.getItem('discover:version');
