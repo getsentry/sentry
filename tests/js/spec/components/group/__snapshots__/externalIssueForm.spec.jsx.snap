@@ -760,18 +760,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         onCloseResetsInput={false}
                                         onKeyDown={[Function]}
                                         onSelectResetsInput={false}
-                                        options={
-                                          Array [
-                                            Object {
-                                              "label": "test",
-                                              "value": "scefali/test",
-                                            },
-                                            Object {
-                                              "label": "ZeldaBazaar",
-                                              "value": "scefali/ZeldaBazaar",
-                                            },
-                                          ]
-                                        }
                                         placeholder="--"
                                         small={false}
                                         stacked={true}
@@ -825,18 +813,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           onCloseResetsInput={false}
                                           onKeyDown={[Function]}
                                           onSelectResetsInput={false}
-                                          options={
-                                            Array [
-                                              Object {
-                                                "label": "test",
-                                                "value": "scefali/test",
-                                              },
-                                              Object {
-                                                "label": "ZeldaBazaar",
-                                                "value": "scefali/ZeldaBazaar",
-                                              },
-                                            ]
-                                          }
                                           placeholder="--"
                                           small={false}
                                           stacked={true}
@@ -889,18 +865,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             onCloseResetsInput={false}
                                             onKeyDown={[Function]}
                                             onSelectResetsInput={false}
-                                            options={
-                                              Array [
-                                                Object {
-                                                  "label": "test",
-                                                  "value": "scefali/test",
-                                                },
-                                                Object {
-                                                  "label": "ZeldaBazaar",
-                                                  "value": "scefali/ZeldaBazaar",
-                                                },
-                                              ]
-                                            }
                                             placeholder="--"
                                             small={false}
                                             stacked={true}
@@ -954,18 +918,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               onCloseResetsInput={false}
                                               onKeyDown={[Function]}
                                               onSelectResetsInput={false}
-                                              options={
-                                                Array [
-                                                  Object {
-                                                    "label": "test",
-                                                    "value": "scefali/test",
-                                                  },
-                                                  Object {
-                                                    "label": "ZeldaBazaar",
-                                                    "value": "scefali/ZeldaBazaar",
-                                                  },
-                                                ]
-                                              }
                                               placeholder="--"
                                               small={false}
                                               stacked={true}
@@ -1871,7 +1823,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         onCloseResetsInput={false}
                                         onKeyDown={[Function]}
                                         onSelectResetsInput={false}
-                                        options={Array []}
                                         placeholder="--"
                                         small={false}
                                         stacked={true}
@@ -1913,7 +1864,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           onCloseResetsInput={false}
                                           onKeyDown={[Function]}
                                           onSelectResetsInput={false}
-                                          options={Array []}
                                           placeholder="--"
                                           small={false}
                                           stacked={true}
@@ -1954,7 +1904,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             onCloseResetsInput={false}
                                             onKeyDown={[Function]}
                                             onSelectResetsInput={false}
-                                            options={Array []}
                                             placeholder="--"
                                             small={false}
                                             stacked={true}
@@ -1996,7 +1945,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               onCloseResetsInput={false}
                                               onKeyDown={[Function]}
                                               onSelectResetsInput={false}
-                                              options={Array []}
                                               placeholder="--"
                                               small={false}
                                               stacked={true}
