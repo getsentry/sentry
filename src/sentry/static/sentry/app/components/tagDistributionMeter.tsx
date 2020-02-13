@@ -10,9 +10,11 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {percent} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
+import Version from 'app/components/version';
 
 type DefaultProps = {
   isLoading: boolean;
+  showReleasePackage: boolean;
   hasError: boolean;
   renderLoading: () => React.ReactNode;
   renderEmpty: () => React.ReactNode;
@@ -25,6 +27,7 @@ export type TagSegment = {
   value: string;
   url: LocationDescriptor;
   isOther?: boolean;
+  key?: string;
 };
 
 type Props = DefaultProps & {
@@ -66,10 +69,18 @@ export default class TagDistributionMeter extends React.Component<Props> {
     renderLoading: () => null,
     renderEmpty: () => <p>{t('No recent data.')}</p>,
     renderError: () => null,
+    showReleasePackage: false,
   };
 
   renderTitle() {
-    const {segments, totalValues, title, isLoading, hasError} = this.props;
+    const {
+      segments,
+      totalValues,
+      title,
+      isLoading,
+      hasError,
+      showReleasePackage,
+    } = this.props;
 
     if (!Array.isArray(segments) || segments.length <= 0) {
       return (
@@ -82,12 +93,30 @@ export default class TagDistributionMeter extends React.Component<Props> {
     const largestSegment = segments[0];
     const pct = percent(largestSegment.count, totalValues);
     const pctLabel = Math.floor(pct);
+    const renderLabel = () => {
+      switch (title) {
+        case 'release':
+          return (
+            <Label>
+              <Version
+                version={largestSegment.name}
+                anchor={false}
+                tooltipRawVersion
+                withPackage={showReleasePackage}
+                truncate
+              />
+            </Label>
+          );
+        default:
+          return <Label>{largestSegment.name || t('n/a')}</Label>;
+      }
+    };
 
     return (
       <Title>
         <TitleType>{title}</TitleType>
         <TitleDescription>
-          <Label>{largestSegment.name || t('n/a')}</Label>
+          {renderLabel()}
           {isLoading || hasError ? null : <Percent>{pctLabel}%</Percent>}
         </TitleDescription>
       </Title>
@@ -105,6 +134,7 @@ export default class TagDistributionMeter extends React.Component<Props> {
       renderLoading,
       renderError,
       renderEmpty,
+      showReleasePackage,
     } = this.props;
 
     if (isLoading) {
@@ -124,10 +154,24 @@ export default class TagDistributionMeter extends React.Component<Props> {
         {segments.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
+          const renderTooltipValue = () => {
+            switch (title) {
+              case 'release':
+                return (
+                  <Version
+                    version={value.name}
+                    anchor={false}
+                    withPackage={showReleasePackage}
+                  />
+                );
+              default:
+                return value.name || t('n/a');
+            }
+          };
 
           const tooltipHtml = (
             <React.Fragment>
-              <div className="truncate">{value.name || t('n/a')}</div>
+              <div className="truncate">{renderTooltipValue()}</div>
               {pctLabel}%
             </React.Fragment>
           );

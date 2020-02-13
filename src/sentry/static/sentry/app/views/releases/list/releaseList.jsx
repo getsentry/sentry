@@ -45,6 +45,8 @@ const ReleaseList = props => {
                         orgId={orgId}
                         version={release.version}
                         preserveGlobalSelection
+                        tooltipRawVersion
+                        truncate
                       />
                     </VersionWrapper>
                     <LatestDeployOrReleaseTime orgId={orgId} release={release} />
@@ -96,4 +98,7 @@ const VersionWrapper = styled('div')`
   font-weight: bold;
   margin-bottom: ${space(0.25)};
   ${overflowEllipsis};
+  display: inline-block;
+  max-width: 100%;
+  width: auto;
 `;

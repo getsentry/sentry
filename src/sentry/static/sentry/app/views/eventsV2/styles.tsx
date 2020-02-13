@@ -17,6 +17,13 @@ export const Container = styled('div')`
   ${overflowEllipsis};
 `;
 
+export const VersionContainer = styled('div')`
+  ${overflowEllipsis};
+  max-width: 100%;
+  width: auto;
+  display: inline-block;
+`;
+
 export const NumberContainer = styled('div')`
   text-align: right;
   ${overflowEllipsis};

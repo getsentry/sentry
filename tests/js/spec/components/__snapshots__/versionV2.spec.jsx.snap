@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Version renders 1`] = `
-<VersionV2
+<Version
   orgId="sentry"
   version="foo.bar.Baz@1.0.0+20200101"
 >
@@ -10,19 +10,58 @@ exports[`Version renders 1`] = `
     disabled={true}
     isHoverable={true}
     position="top"
-    title="foo.bar.Baz@1.0.0+20200101"
+    title={
+      <ForwardRef(render)
+        onClick={[Function]}
+      >
+        <ForwardRef(render)>
+          foo.bar.Baz@1.0.0+20200101
+        </ForwardRef(render)>
+        <Clipboard
+          errorMessage="Error copying to clipboard"
+          hideMessages={false}
+          successMessage="Copied to clipboard"
+          value="foo.bar.Baz@1.0.0+20200101"
+        >
+          <ForwardRef(render)>
+            <IconCopy
+              color="white"
+              size="xs"
+            />
+          </ForwardRef(render)>
+        </Clipboard>
+      </ForwardRef(render)>
+    }
   >
     <Link
-      to="/organizations/sentry/releases-v2/foo.bar.Baz%401.0.0%2B20200101/"
+      to={
+        Object {
+          "pathname": "/organizations/sentry/releases/foo.bar.Baz%401.0.0%2B20200101/",
+          "query": Object {
+            "project": undefined,
+          },
+        }
+      }
     >
       <a
-        href="/organizations/sentry/releases-v2/foo.bar.Baz%401.0.0%2B20200101/"
+        href={
+          Object {
+            "pathname": "/organizations/sentry/releases/foo.bar.Baz%401.0.0%2B20200101/",
+            "query": Object {
+              "project": undefined,
+            },
+          }
+        }
       >
-        <span>
-          1.0.0 (20200101)
-        </span>
+        <VersionText>
+          <span
+            className="css-16sjfe2-VersionText e19pxt500"
+          >
+            1.0.0 (20200101)
+          </span>
+        </VersionText>
       </a>
     </Link>
   </Tooltip>
-</VersionV2>
+</Version>
 `;

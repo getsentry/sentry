@@ -124,6 +124,7 @@ class Tags extends React.Component<Props, State> {
         totalValues={Number(maxTotalValues)}
         renderLoading={() => <StyledPlaceholder height="16px" />}
         onTagClick={this.onTagClick}
+        showReleasePackage
       />
     );
   }
