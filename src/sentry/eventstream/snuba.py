@@ -213,12 +213,26 @@ class SnubaProtocolEventStream(EventStream):
         state["datetime"] = datetime.now(tz=pytz.utc)
         self._send(state["project_id"], "end_delete_tag", extra_data=(state,), asynchronous=False)
 
-    def _send(self, project_id, _type, extra_data=(), asynchronous=True):
+    def _send(
+        self,
+        project_id,
+        _type,
+        extra_data=(),
+        asynchronous=True,
+        headers=None,  # type: Optional[Mapping[str, str]]
+    ):
         raise NotImplementedError
 
 
 class SnubaEventStream(SnubaProtocolEventStream):
-    def _send(self, project_id, _type, extra_data=(), asynchronous=True):
+    def _send(
+        self,
+        project_id,
+        _type,
+        extra_data=(),
+        asynchronous=True,
+        headers=None,  # type: Optional[Mapping[str, str]]
+    ):
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 
         # TODO remove this once the unified dataset is available.

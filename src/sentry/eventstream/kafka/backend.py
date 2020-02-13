@@ -28,7 +28,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
         if error is not None:
             logger.warning("Could not publish message (error: %s): %r", error, message)
 
-    def _send(self, project_id, _type, extra_data=(), asynchronous=True):
+    def _send(
+        self,
+        project_id,
+        _type,
+        extra_data=(),
+        asynchronous=True,
+        headers=None,  # type: Optional[Mapping[str, str]]
+    ):
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
         # to be delivered) and the corresponding callback being fired is
