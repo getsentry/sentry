@@ -282,7 +282,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
 def build_incident_attachment(incident):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
 
-    aggregates = get_incident_aggregates(incident)
+    # aggregates = get_incident_aggregates(incident)
 
     if incident.status == IncidentStatus.CLOSED.value:
         status = "Resolved"
@@ -300,8 +300,8 @@ def build_incident_attachment(incident):
 
     fields = [
         {"title": "Status", "value": status, "short": True},
-        {"title": "Events", "value": aggregates["count"], "short": True},
-        {"title": "Users", "value": aggregates["unique_users"], "short": True},
+        # {"title": "Events", "value": aggregates["count"], "short": True},
+        # {"title": "Users", "value": aggregates["unique_users"], "short": True},
         {"title": "Query", "value": incident.query, "short": True},
     ]
 
@@ -411,10 +411,10 @@ def get_channel_id_with_timeout(integration, name, timeout):
 
 
 def send_incident_alert_notification(integration, incident, channel):
-    attachment = ""  # build_incident_attachment(incident)
+    attachment = build_incident_attachment(incident)
 
     payload = {
-        "token": "YhRsnqOJlsougOrwo1UawBfV",
+        "token": "xoxb-656045868439-660476064996-OdqgwpT7V4z7BoyJip4nVp3q",
         "channel": channel,
         "attachments": json.dumps([attachment]),
     }
@@ -423,5 +423,6 @@ def send_incident_alert_notification(integration, incident, channel):
     resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
     resp.raise_for_status()
     resp = resp.json()
+    print("resp:",resp)
     if not resp.get("ok"):
         logger.info("rule.fail.slack_post", extra={"error": resp.get("error")})
