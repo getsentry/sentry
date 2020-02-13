@@ -3,6 +3,7 @@ import keyBy from 'lodash/keyBy';
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import capitalize from 'lodash/capitalize';
 
 import {
   Organization,
@@ -23,9 +24,6 @@ import AsyncComponent from 'app/components/asyncComponent';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
-import ProviderRow from 'app/views/organizationIntegrations/integrationProviderRow';
-import PluginRow from 'app/views/organizationIntegrations/integrationPluginRow';
-import IntegrationDirectorySentryAppRow from 'app/views/organizationIntegrations/IntegrationDirectorySentryAppRow';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -33,6 +31,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import IntegrationRow from './integrationRow';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
@@ -244,6 +243,13 @@ class OrganizationIntegrations extends AsyncComponent<
     return this.state.appInstalls.find(i => i.app.slug === app.slug);
   };
 
+  getAppInstallStatus = (install: SentryAppInstallation | undefined) => {
+    if (install) {
+      return capitalize(install.status) as 'Installed' | 'Pending';
+    }
+    return 'Not Installed';
+  };
+
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
@@ -296,21 +302,30 @@ class OrganizationIntegrations extends AsyncComponent<
   };
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
+    const {organization} = this.props;
     //find the integration installations for that provider
     const integrations = this.state.integrations.filter(
       i => i.provider.key === provider.key
     );
+
     return (
-      <ProviderRow
+      <IntegrationRow
         key={`row-${provider.key}`}
         data-test-id="integration-row"
-        provider={provider}
-        integrations={integrations}
+        organization={organization}
+        type="firstParty"
+        slug={provider.slug}
+        displayName={provider.name}
+        status={integrations.length ? 'Installed' : 'Not Installed'}
+        publishStatus="published"
+        configurations={integrations.length}
       />
     );
   };
 
   renderPlugin = (plugin: PluginWithProjectList) => {
+    const {organization} = this.props;
+
     const legacyIds = [
       'jira',
       'bitbucket',
@@ -322,17 +337,22 @@ class OrganizationIntegrations extends AsyncComponent<
       'vsts',
     ];
     const isLegacy = legacyIds.includes(plugin.id);
+    const displayName = `${plugin.name} ${!!isLegacy ? '(Legacy)' : ''}`;
     //hide legacy integrations if we don't have any projects with them
     if (isLegacy && !plugin.projectList.length) {
       return null;
     }
     return (
-      <PluginRow
+      <IntegrationRow
         key={`row-plugin-${plugin.id}`}
         data-test-id="integration-row"
-        plugin={plugin}
-        isLegacy={isLegacy}
-        organization={this.props.organization}
+        organization={organization}
+        type="plugin"
+        slug={plugin.slug}
+        displayName={displayName}
+        status={plugin.projectList.length ? 'Installed' : 'Not Installed'}
+        publishStatus="published"
+        configurations={plugin.projectList.length}
       />
     );
   };
@@ -340,14 +360,19 @@ class OrganizationIntegrations extends AsyncComponent<
   //render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
+    const status = this.getAppInstallStatus(this.getAppInstall(app));
 
     return (
-      <IntegrationDirectorySentryAppRow
+      <IntegrationRow
         key={`sentry-app-row-${app.slug}`}
         data-test-id="integration-row"
         organization={organization}
-        install={this.getAppInstall(app)}
-        app={app}
+        type="sentryApp"
+        slug={app.slug}
+        displayName={app.name}
+        status={status}
+        publishStatus={app.status}
+        configurations={0}
       />
     );
   };
