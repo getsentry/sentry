@@ -35,7 +35,7 @@ type State = {
 };
 
 function getQueryStatus(status: any) {
-  return status === undefined || status === '' ? DEFAULT_QUERY_STATUS : status;
+  return ['open', 'closed', 'all'].includes(status) ? status : DEFAULT_QUERY_STATUS;
 }
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): [string, string, any][] {
