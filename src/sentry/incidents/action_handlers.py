@@ -109,7 +109,7 @@ class EmailActionHandler(ActionHandler):
         show_greater_than_string = is_active == is_threshold_type_above
         environments = list(alert_rule.environment.all())
         environment_string = (
-            ", ".join([env.name for env in environments]) if len(environments) else "All"
+            ", ".join(sorted([env.name for env in environments])) if len(environments) else "All"
         )
 
         return {
