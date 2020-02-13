@@ -166,8 +166,8 @@ from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
-from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
+from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
