@@ -44,9 +44,9 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   conditions: any;
   intervalChoices: [string, string][] | undefined;
-  placeholder: string | undefined;
-  threshold: string | undefined;
-  interval: string | undefined;
+  placeholder: string;
+  threshold: string;
+  interval: string;
   alertSetting: string;
   metric: MetricValues;
 };
@@ -111,7 +111,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       metric: MetricValues.ERRORS,
       interval: '',
       placeholder: '',
-      threshold: undefined,
+      threshold: '',
     };
   }
 
@@ -200,7 +200,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       shouldCreateCustomRule,
       name: 'Send a notification for new issues',
       conditions:
-        this.state.interval && this.state.threshold
+        this.state.interval.length > 0 && this.state.threshold.length > 0
           ? [
               getConditionFrom(
                 this.state.interval,
