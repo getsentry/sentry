@@ -52,7 +52,6 @@ ensure-venv:
 ensure-pinned-pip: ensure-venv
 	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
 
-# TODO(joshuarli): pre-commit should be moved to requirements-dev.txt and setup-git should come after install-sentry-dev.
 setup-git: ensure-venv
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
