@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {ClassNames} from '@emotion/core';
 import space from 'app/styles/space';
 
 import {assignToUser, assignToActor} from 'app/actionCreators/group';
@@ -155,7 +156,7 @@ class SuggestedOwners extends React.Component {
     return owners;
   }
 
-  getHovercardBody() {
+  getInfoHovercardBody() {
     return (
       <HelpfulBody>
         <p>
@@ -207,12 +208,22 @@ class SuggestedOwners extends React.Component {
         <Access access={['project:write']}>
           <div className="m-b-1">
             <GuideAnchor target="owners">
-              <h6>
+              <OwnerRuleHeading>
                 <span>{t('Ownership Rules')}</span>
-                <Hovercard body={this.getHovercardBody()}>
-                  <IconInfo size="xs" />
-                </Hovercard>
-              </h6>
+                <ClassNames>
+                  {({css}) => (
+                    <Hovercard
+                      containerClassName={css`
+                        display: inline-flex;
+                        padding: 0 !important;
+                      `}
+                      body={this.getInfoHovercardBody()}
+                    >
+                      <IconInfo size="xs" />
+                    </Hovercard>
+                  )}
+                </ClassNames>
+              </OwnerRuleHeading>
             </GuideAnchor>
             <Button
               onClick={() =>
@@ -256,4 +267,9 @@ function findMatchedRules(rules, owner) {
 const HelpfulBody = styled('div')`
   padding: ${space(1)};
   text-align: center;
+`;
+
+const OwnerRuleHeading = styled('h6')`
+  display: flex;
+  align-items: center;
 `;
