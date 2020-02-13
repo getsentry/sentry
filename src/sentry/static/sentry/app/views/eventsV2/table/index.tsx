@@ -79,6 +79,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
+    setError('');
 
     this.setState({isLoading: true, tableFetchID});
 
@@ -93,7 +94,6 @@ class Table extends React.PureComponent<TableProps, TableState> {
           // invariant: a different request was initiated after this request
           return;
         }
-        setError('');
 
         this.setState(prevState => {
           return {
