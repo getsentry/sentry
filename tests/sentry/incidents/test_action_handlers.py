@@ -129,13 +129,13 @@ class EmailActionHandlerFireTest(TestCase):
         action = self.create_alert_rule_trigger_action(
             target_identifier=six.text_type(self.user.id)
         )
-        incident = self.create_incident()
+        incident = self.create_incident(status=IncidentStatus.CRITICAL.value)
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
             handler.fire()
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == u"[Open] {} - {}".format(incident.title, self.project.slug)
+        assert out.subject == u"[Critical] {} - {}".format(incident.title, self.project.slug)
 
 
 @freeze_time()
@@ -147,6 +147,7 @@ class EmailActionHandlerResolveTest(TestCase):
         incident = self.create_incident()
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
+            incident.status = IncidentStatus.CLOSED.value
             handler.resolve()
         out = mail.outbox[0]
         assert out.to == [self.user.email]
