@@ -20,9 +20,13 @@ export function userDisplayName(user: User | CommitAuthor): string {
 }
 
 export const formatVersion = (rawVersion: string, withPackage: boolean | undefined) => {
-  const parsedVersion = new Release(rawVersion);
+  try {
+    const parsedVersion = new Release(rawVersion);
 
-  return `${parsedVersion.describe()}${
-    withPackage && parsedVersion.package ? `, ${parsedVersion.package}` : ''
-  }`;
+    return `${parsedVersion.describe()}${
+      withPackage && parsedVersion.package ? `, ${parsedVersion.package}` : ''
+    }`;
+  } catch (error) {
+    return rawVersion;
+  }
 };
