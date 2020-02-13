@@ -861,6 +861,40 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["issue.id"] == event.group_id
 
+    def test_percentile_function(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        data = load_data("transaction")
+        data["transaction"] = "/aggregates/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        event1 = self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction")
+        data["transaction"] = "/aggregates/2"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
+        event2 = self.store_event(data, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["transaction", "percentile(transaction.duration, 0.95)"],
+                    "query": "event.type:transaction",
+                    "orderby": ["transaction"],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert data[0]["transaction"] == event1.transaction
+        assert data[0]["percentile_transaction_duration_0_95"] == 5000
+        assert data[1]["transaction"] == event2.transaction
+        assert data[1]["percentile_transaction_duration_0_95"] == 3000
+
     def test_nonexistent_fields(self):
         self.login_as(user=self.user)
 
@@ -952,6 +986,39 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["count_id"] == 3
         assert data[1]["count_id"] == 1
+
+    def test_empty_count_query(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=5)),
+                "fingerprint": ["1123581321"],
+                "user": {"email": "foo@example.com"},
+                "tags": {"language": "C++"},
+            },
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["count()"],
+                    "query": "issue.id:%d timestamp:>%s" % (event.group_id, self.min_ago),
+                    "statsPeriod": "14d",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["project.name"] == ""
+        assert data[0]["count"] == 0
+        assert data[0]["latest_event"] == ""
 
     def test_reference_event(self):
         self.login_as(user=self.user)

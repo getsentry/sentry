@@ -99,7 +99,7 @@ export default class DetailsBody extends React.Component<Props> {
           {incident && getDisplayForAlertRuleAggregation(incident.alertRule?.aggregation)}
         </span>
 
-        <span>{t('Critical Threshold')}</span>
+        <span>{t('Critical Trigger')}</span>
         <span>{this.getThresholdText(criticalTrigger, 'alertThreshold')}</span>
 
         {defined(criticalTrigger?.resolveThreshold) && (
@@ -111,7 +111,7 @@ export default class DetailsBody extends React.Component<Props> {
 
         {defined(warningTrigger) && (
           <React.Fragment>
-            <span>{t('Warning Threshold')}</span>
+            <span>{t('Warning Trigger')}</span>
             <span>{this.getThresholdText(warningTrigger, 'alertThreshold')}</span>
 
             {defined(warningTrigger?.resolveThreshold) && (

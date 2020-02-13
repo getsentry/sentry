@@ -257,7 +257,11 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
         for result in results:
             for key in ("projectid", "project.id"):
                 if key in result:
-                    result["project.name"] = projects[result[key]]
+                    # Handle bizarre empty case
+                    if result[key] == 0:
+                        result["project.name"] = ""
+                    else:
+                        result["project.name"] = projects[result[key]]
                     if key not in fields:
                         del result[key]
 

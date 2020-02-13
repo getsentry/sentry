@@ -912,6 +912,79 @@ def validate_aggregate(field, match):
         )
 
 
+FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
+
+NUMERIC_COLUMN = "numeric_column"
+NUMBER = "number"
+
+FUNCTIONS = {
+    "percentile": {
+        "name": "percentile",
+        "args": [
+            {"name": "column", "type": NUMERIC_COLUMN},
+            {
+                "name": "percentile",
+                "type": NUMBER,
+                "validator": lambda v: (v > 0 and v < 1, "not between 0 and 1"),
+            },
+        ],
+        "transform": "quantile(%(percentile).2f)(%(column)s)",
+    }
+}
+
+
+def is_function(field):
+    function_match = FUNCTION_PATTERN.search(field)
+    if function_match and function_match.group("function") in FUNCTIONS:
+        return function_match
+
+
+def get_function_alias(function_name, columns):
+    columns = "_".join(columns).replace(".", "_")
+    return ("%s_%s" % (function_name, columns)).rstrip("_")
+
+
+def resolve_function(field, match=None):
+    if not match:
+        match = FUNCTION_PATTERN.search(field)
+        if not match or match.group("function") not in FUNCTIONS:
+            raise InvalidSearchQuery("%s is not a valid function" % field)
+
+    function = FUNCTIONS[match.group("function")]
+    columns = [c.strip() for c in match.group("columns").split(",")]
+
+    if len(columns) != len(function["args"]):
+        raise InvalidSearchQuery("%s: expected %d arguments" % (field, len(function["args"])))
+
+    arguments = {}
+    for column_value, argument in zip(columns, function["args"]):
+        if argument["type"] == NUMBER:
+            try:
+                column_value = float(column_value)
+            except ValueError:
+                raise InvalidSearchQuery("%s: %s is not a number" % (field, column_value))
+        elif argument["type"] == NUMERIC_COLUMN:
+            # TODO evanh/wmak Do proper column validation here
+            snuba_column = SEARCH_MAP.get(column_value)
+            if not snuba_column:
+                raise InvalidSearchQuery("%s: %s is not a valid column" % (field, column_value))
+            elif snuba_column != "duration":
+                raise InvalidSearchQuery("%s: %s is not a numeric column" % (field, column_value))
+            column_value = snuba_column
+
+        if "validator" in argument:
+            valid, message = argument["validator"](column_value)
+            if not valid:
+                raise InvalidSearchQuery(
+                    "%s: %s argument invalid: %s" % (field, column_value, message)
+                )
+
+        arguments[argument["name"]] = column_value
+
+    snuba_string = function["transform"] % arguments
+    return [], [[snuba_string, None, get_function_alias(function["name"], columns)]]
+
+
 def resolve_orderby(orderby, fields, aggregations):
     """
     We accept column names, aggregate functions, and aliases as order by
@@ -951,6 +1024,10 @@ def get_aggregate_alias(match):
 def resolve_field(field):
     if not isinstance(field, six.string_types):
         raise InvalidSearchQuery("Field names must be strings")
+
+    match = is_function(field)
+    if match:
+        return resolve_function(field, match)
 
     sans_parens = field.strip("()")
     if sans_parens in FIELD_ALIASES:

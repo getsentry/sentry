@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
-import logging
 import six
 
 from django import forms
 from django.core.urlresolvers import reverse
 from rest_framework import serializers
 from rest_framework.response import Response
-from requests.exceptions import HTTPError
 
 from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
 from sentry.plugins.base import plugins
@@ -54,18 +52,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         plugin = self._get_plugin(plugin_id)
 
         if request.data.get("test") and plugin.is_testable():
-            try:
-                test_results = plugin.test_configuration(project)
-            except Exception as exc:
-                if isinstance(exc, HTTPError):
-                    test_results = "%s\n%s" % (exc, exc.response.text[:256])
-                elif hasattr(exc, "read") and callable(exc.read):
-                    test_results = "%s\n%s" % (exc, exc.read()[:256])
-                else:
-                    logging.exception("Plugin(%s) raised an error during test", plugin_id)
-                    test_results = "There was an internal error with the Plugin"
-            if not test_results:
-                test_results = "No errors returned"
+            test_results = plugin.test_configuration_and_get_test_results(project)
             return Response({"detail": test_results}, status=200)
 
         if request.data.get("reset"):
