@@ -1,12 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {RouteComponentProps} from 'react-router/lib/Router';
 import capitalize from 'lodash/capitalize';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
-import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
@@ -14,47 +11,38 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'app/actionCreators/sentryAppInstallations';
-import AsyncComponent from 'app/components/asyncComponent';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-import InlineSvg from 'app/components/inlineSvg';
-import Tag from 'app/views/settings/components/tag';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
-import {
-  IntegrationFeature,
-  SentryApp,
-  Organization,
-  SentryAppInstallation,
-} from 'app/types';
+import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
 import {openModal} from 'app/actionCreators/modal';
 import {UninstallButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
-import IntegrationStatus from './integrationStatus';
 import {NOT_INSTALLED} from './constants';
+import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {
   sentryApp: SentryApp;
   featureData: IntegrationFeature[];
 };
 
-type Props = {
-  organization: Organization;
-} & RouteComponentProps<{appSlug: string}, {}>;
+type Tab = AbstractIntegrationDetailedView['state']['tab'];
 
-class SentryAppDetailedView extends AsyncComponent<
-  Props & AsyncComponent['props'],
-  State & AsyncComponent['state']
+class SentryAppDetailedView extends AbstractIntegrationDetailedView<
+  AbstractIntegrationDetailedView['props'],
+  State & AbstractIntegrationDetailedView['state']
 > {
+  tabs: Tab[] = ['information'];
   getEndpoints(): ([string, string, any] | [string, string])[] {
     const {
       organization,
-      params: {appSlug},
+      params: {integrationSlug},
     } = this.props;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
-      ['sentryApp', `/sentry-apps/${appSlug}/`],
-      ['featureData', `/sentry-apps/${appSlug}/features/`],
+      ['sentryApp', `/sentry-apps/${integrationSlug}/`],
+      ['featureData', `/sentry-apps/${integrationSlug}/features/`],
       ['appInstalls', `/organizations/${organization.slug}/sentry-app-installations/`],
     ];
 
@@ -64,21 +52,14 @@ class SentryAppDetailedView extends AsyncComponent<
   onLoadAllEndpointsSuccess() {
     const {
       organization,
-      params: {appSlug},
+      params: {integrationSlug},
       router,
     } = this.props;
 
     return (
       this.state.sentryApp.status === 'internal' &&
-      router.push(`/settings/${organization.slug}/developer-settings/${appSlug}/`)
+      router.push(`/settings/${organization.slug}/developer-settings/${integrationSlug}/`)
     );
-  }
-
-  featureTags(features: IntegrationFeature[]) {
-    return features.map(feature => {
-      const feat = feature.featureGate.replace(/integrations/g, '');
-      return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;
-    });
   }
 
   get permissions() {
@@ -88,6 +69,14 @@ class SentryAppDetailedView extends AsyncComponent<
   get installationStatus() {
     const install = this.isInstalled();
     return (install && capitalize(install.status)) || NOT_INSTALLED;
+  }
+
+  get integrationName() {
+    return this.state.sentryApp.name;
+  }
+
+  get featureData() {
+    return this.state.featureData;
   }
 
   isInstalled = () => {
@@ -192,6 +181,28 @@ class SentryAppDetailedView extends AsyncComponent<
     );
   }
 
+  renderTopButton(disabled: boolean) {
+    return !this.isInstalled() ? (
+      <Button
+        size="small"
+        priority="primary"
+        disabled={disabled}
+        onClick={() => this.handleInstall()}
+        style={{marginLeft: space(1)}}
+        data-test-id="install"
+      >
+        {t('Accept & Install')}
+      </Button>
+    ) : (
+      <UninstallButton
+        install={this.isInstalled()}
+        app={this.state.sentryApp}
+        onClickUninstall={this.handleUninstall}
+        onUninstallModalOpen={() => {}} //TODO: Implement tracking analytics
+      />
+    );
+  }
+
   renderBody() {
     const {organization} = this.props;
     const {featureData, sentryApp} = this.state;
@@ -204,7 +215,7 @@ class SentryAppDetailedView extends AsyncComponent<
       ),
     }));
 
-    const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
+    const {FeatureList} = getIntegrationFeatureGate();
 
     const overview = sentryApp.overview || '';
     const featureProps = {organization, features};
@@ -212,57 +223,8 @@ class SentryAppDetailedView extends AsyncComponent<
     return (
       <React.Fragment>
         <Flex style={{flexDirection: 'column'}}>
-          <Flex>
-            <PluginIcon pluginId={sentryApp.slug} size={50} />
-            <NameContainer>
-              <Flex>
-                <Name>{sentryApp.name}</Name>
-                <Status status={this.installationStatus} />
-              </Flex>
-              <Flex>{features.length && this.featureTags(features)}</Flex>
-            </NameContainer>
-            <IntegrationFeatures {...featureProps}>
-              {({disabled, disabledReason}) => (
-                <div
-                  style={{
-                    marginLeft: 'auto',
-                    alignSelf: 'center',
-                  }}
-                >
-                  {disabled && <DisabledNotice reason={disabledReason} />}
-
-                  <Access organization={organization} access={['org:integrations']}>
-                    {({hasAccess}) => {
-                      return !this.isInstalled() ? (
-                        <Button
-                          size="small"
-                          priority="primary"
-                          disabled={!hasAccess || disabled}
-                          onClick={() => this.handleInstall()}
-                          style={{marginLeft: space(1)}}
-                          data-test-id="install"
-                        >
-                          {t('Accept & Install')}
-                        </Button>
-                      ) : (
-                        <UninstallButton
-                          install={this.isInstalled()}
-                          app={this.state.sentryApp}
-                          onClickUninstall={this.handleUninstall}
-                          onUninstallModalOpen={() => {}} //TODO: Implement tracking analytics
-                        />
-                      );
-                    }}
-                  </Access>
-                </div>
-              )}
-            </IntegrationFeatures>
-          </Flex>
-          <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
-            <li className="active">
-              <a>Information</a>
-            </li>
-          </ul>
+          {this.renderTopSection()}
+          {this.renderTabs()}
           <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
           <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
 
@@ -280,20 +242,6 @@ const Flex = styled('div')`
   display: flex;
 `;
 
-const NameContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  justify-content: center;
-  padding-left: ${space(2)};
-`;
-
-const Name = styled('div')`
-  font-weight: bold;
-  font-size: 1.4em;
-  margin-bottom: ${space(1)};
-`;
-
 const Description = styled('div')`
   font-size: 1.5rem;
   line-height: 2.1rem;
@@ -306,28 +254,6 @@ const Description = styled('div')`
 
 const Author = styled('div')`
   color: ${p => p.theme.gray2};
-`;
-
-const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
-  <div
-    style={{
-      flex: 1,
-      alignItems: 'center',
-    }}
-    {...p}
-  >
-    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
-    <div style={{marginLeft: `${space(1)}`}}>{reason}</div>
-  </div>
-))`
-  color: ${p => p.theme.red};
-  font-size: 0.9em;
-`;
-
-const StyledTag = styled(Tag)`
-  &:not(:first-child) {
-    margin-left: ${space(0.5)};
-  }
 `;
 
 const Text = styled('p')`
@@ -355,17 +281,5 @@ const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
   margin-top: 7px;
   color: ${p => p.theme.success};
 `;
-
-const StatusWrapper = styled('div')`
-  margin-bottom: ${space(1)};
-  padding-left: ${space(2)};
-  line-height: 1.5em;
-`;
-
-const Status = p => (
-  <StatusWrapper>
-    <IntegrationStatus {...p} />
-  </StatusWrapper>
-);
 
 export default withOrganization(SentryAppDetailedView);

@@ -1,16 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {
-  Organization,
-  PluginWithProjectList,
-  PluginNoProject,
-  PluginProjectItem,
-} from 'app/types';
+import {PluginWithProjectList, PluginNoProject, PluginProjectItem} from 'app/types';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import AsyncComponent from 'app/components/asyncComponent';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import Tag from 'app/views/settings/components/tag';
 import Access from 'app/components/acl/access';
@@ -24,36 +17,22 @@ import ContextPickerModal from 'app/components/contextPickerModal';
 import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
 import IntegrationStatus from './integrationStatus';
-
-type Tab = 'information' | 'configurations';
-const tabs: Tab[] = ['information', 'configurations'];
+import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {
   plugins: PluginWithProjectList[];
-  tab: Tab;
 };
 
-type Props = {
-  organization: Organization;
-} & RouteComponentProps<{orgId: string; pluginSlug: string}, {}>;
+type Tab = AbstractIntegrationDetailedView['state']['tab'];
 
-class PluginDetailedView extends AsyncComponent<
-  Props & AsyncComponent['props'],
-  State & AsyncComponent['state']
+class PluginDetailedView extends AbstractIntegrationDetailedView<
+  AbstractIntegrationDetailedView['props'],
+  State & AbstractIntegrationDetailedView['state']
 > {
-  componentDidMount() {
-    const {location} = this.props;
-    const value =
-      location.query.tab === 'configurations' ? 'configurations' : 'information';
-
-    // eslint-disable-next-line react/no-did-mount-set-state
-    this.setState({tab: value});
-  }
-
   getEndpoints(): ([string, string, any] | [string, string])[] {
-    const {orgId, pluginSlug} = this.props.params;
+    const {orgId, integrationSlug} = this.props.params;
     return [
-      ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${pluginSlug}`],
+      ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${integrationSlug}`],
     ];
   }
   get plugin() {
@@ -128,16 +107,6 @@ class PluginDetailedView extends AsyncComponent<
     );
   };
 
-  onTabChange = (value: Tab) => {
-    this.setState({tab: value});
-  };
-
-  featureTags() {
-    return this.plugin.features.map(feature => (
-      <StyledTag key={feature}>{feature.replace(/-/g, ' ')}</StyledTag>
-    ));
-  }
-
   mapPluginToProvider() {
     const plugin = this.plugin;
     return {
@@ -176,7 +145,7 @@ class PluginDetailedView extends AsyncComponent<
               <Title>{plugin.name}</Title>
               <Status status={this.status} />
             </Flex>
-            <Flex>{this.featureTags()}</Flex>
+            <Flex>{this.featureTags(plugin.features)}</Flex>
           </TitleContainer>
           <IntegrationFeatures {...featureProps}>
             {({disabled, disabledReason}) => (
@@ -211,17 +180,7 @@ class PluginDetailedView extends AsyncComponent<
             )}
           </IntegrationFeatures>
         </Flex>
-        <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
-          {tabs.map(tabName => (
-            <li
-              key={tabName}
-              className={tab === tabName ? 'active' : ''}
-              onClick={() => this.onTabChange(tabName)}
-            >
-              <a style={{textTransform: 'capitalize'}}>{t(this.getTabDiplay(tabName))}</a>
-            </li>
-          ))}
-        </ul>
+        {this.renderTabs()}
         {tab === 'information' ? (
           <InformationCard plugin={plugin}>
             <FeatureList {...featureProps} provider={this.mapPluginToProvider()} />

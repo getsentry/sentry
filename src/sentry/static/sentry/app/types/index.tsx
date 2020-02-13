@@ -499,7 +499,15 @@ export type IntegrationProvider = {
   features: string[];
   aspects: any; //TODO(ts)
   setupDialog: {url: string; width: number; height: number};
-  metadata: any; //TODO(ts)
+  metadata: {
+    description: string;
+    features: IntegrationFeature[];
+    author: string;
+    noun: string;
+    issue_url: string;
+    source_url: string;
+    aspects: any; //TODO(ts)
+  };
 };
 
 export type IntegrationFeature = {
