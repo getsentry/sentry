@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 
 class CSPContent extends React.Component {
   static propTypes = {

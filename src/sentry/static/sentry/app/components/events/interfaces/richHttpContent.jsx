@@ -7,7 +7,7 @@ import {t} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';
 import ContextData from 'app/components/contextData';
 import ErrorBoundary from 'app/components/errorBoundary';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import MetaData from 'app/components/events/meta/metaData';
 
