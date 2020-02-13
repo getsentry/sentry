@@ -20,7 +20,7 @@ import simplejson
 
 from django.conf import settings
 from six.moves.urllib.error import HTTPError
-from six.moves.urllib.parse import urlencode
+from six.moves.urllib.request import Request
 from social_auth.utils import dsa_urlopen
 from social_auth.backends import BaseOAuth2, OAuthBackend
 from social_auth.exceptions import AuthFailed
@@ -46,10 +46,12 @@ class GithubBackend(OAuthBackend):
 
     def _fetch_emails(self, access_token):
         """Fetch private emails from Github account"""
-        url = GITHUB_USER_DATA_URL + "/emails?" + urlencode({"access_token": access_token})
+        req = Request(
+            GITHUB_USER_DATA_URL + "/emails", headers={"Authorization": "token %s" % access_token}
+        )
 
         try:
-            data = simplejson.load(dsa_urlopen(url))
+            data = simplejson.load(dsa_urlopen(req))
         except (ValueError, HTTPError):
             data = []
         return data
@@ -93,26 +95,25 @@ class GithubAuth(BaseOAuth2):
 
     def user_data(self, access_token, *args, **kwargs):
         """Loads user data from service"""
-        url = GITHUB_USER_DATA_URL + "?" + urlencode({"access_token": access_token})
+        req = Request(GITHUB_USER_DATA_URL, headers={"Authorization": "token %s" % access_token})
 
         try:
-            data = simplejson.load(dsa_urlopen(url))
+            data = simplejson.load(dsa_urlopen(req))
         except ValueError:
             data = None
 
         # if we have a github organization defined, test that the current users
         # is a member of that organization.
         if data and self.GITHUB_ORGANIZATION:
-            member_url = (
+            req = Request(
                 GITHUB_ORGANIZATION_MEMBER_OF_URL.format(
                     org=self.GITHUB_ORGANIZATION, username=data.get("login")
-                )
-                + "?"
-                + urlencode({"access_token": access_token})
+                ),
+                headers={"Authorization": "token %s" % access_token},
             )
 
             try:
-                response = dsa_urlopen(member_url)
+                response = dsa_urlopen(req)
             except HTTPError:
                 data = None
             else:

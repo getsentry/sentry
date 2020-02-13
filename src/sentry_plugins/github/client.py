@@ -79,11 +79,12 @@ class GitHubClient(GitHubClientMixin, AuthApiClient):
 
     def get_installations(self):
         # TODO(jess): remove this whenever it's out of preview
-        headers = {"Accept": "application/vnd.github.machine-man-preview+json"}
+        headers = {
+            "Accept": "application/vnd.github.machine-man-preview+json",
+            "Authorization": "token %s" % self.auth.tokens["access_token"],
+        }
 
-        params = {"access_token": self.auth.tokens["access_token"]}
-
-        return self._request("GET", "/user/installations", headers=headers, params=params)
+        return self._request("GET", "/user/installations", headers=headers)
 
 
 class GitHubAppsClient(GitHubClientMixin, ApiClient):
