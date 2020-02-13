@@ -157,6 +157,7 @@ class TwilioPlugin(NotificationPlugin):
             if not phone:
                 continue
             try:
+                # TODO: Use API client with raise_error
                 phone = clean_phone(phone)
                 http.safe_urlopen(
                     endpoint,
