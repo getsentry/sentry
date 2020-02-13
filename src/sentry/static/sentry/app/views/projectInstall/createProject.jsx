@@ -22,6 +22,8 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import withConfig from 'app/utils/withConfig';
 
 class CreateProject extends React.Component {
   static propTypes = {
@@ -29,6 +31,7 @@ class CreateProject extends React.Component {
     teams: PropTypes.arrayOf(SentryTypes.Team),
     organization: SentryTypes.Organization,
     hasIssueAlertOptionsEnabled: PropTypes.bool,
+    config: SentryTypes.Config,
   };
 
   static contextTypes = {
@@ -160,9 +163,10 @@ class CreateProject extends React.Component {
 
   createProject = async e => {
     e.preventDefault();
-    const {organization, api, hasIssueAlertOptionsEnabled} = this.props;
+    const {organization, api, hasIssueAlertOptionsEnabled, config} = this.props;
     const {projectName, platform, team, dataFragment} = this.state;
     const {slug} = organization;
+    const {id: userId} = config;
     const {
       shouldCreateCustomRule,
       name,
@@ -193,8 +197,9 @@ class CreateProject extends React.Component {
         },
       });
 
+      let ruleId;
       if (shouldCreateCustomRule) {
-        await api.requestPromise(
+        const ruleData = await api.requestPromise(
           `/projects/${organization.slug}/${projectData.slug}/rules/`,
           {
             method: 'POST',
@@ -207,7 +212,18 @@ class CreateProject extends React.Component {
             },
           }
         );
+        ruleId = ruleData.id;
       }
+      this.trackCreateEvent(
+        organization,
+        projectData,
+        defaultRules,
+        shouldCreateCustomRule,
+        platform,
+        userId,
+        ruleId
+      );
+
       ProjectActions.createSuccess(projectData);
       const platformKey = platform || 'other';
       const nextUrl = `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`;
@@ -231,6 +247,28 @@ class CreateProject extends React.Component {
       }
     }
   };
+
+  trackCreateEvent(
+    organization,
+    projectData,
+    defaultRules,
+    shouldCreateCustomRule,
+    userId,
+    ruleId
+  ) {
+    let data = {
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(projectData.id, 10),
+      rule_type: defaultRules ? 'Default' : shouldCreateCustomRule ? 'Custom' : 'No Rule',
+      user_id: userId,
+    };
+
+    if (ruleId !== undefined) {
+      data = {...data, custom_rule_id: ruleId};
+    }
+
+    trackAnalyticsEvent('new_project.alert_rule_selected', data);
+  }
 
   setPlatform = platformId =>
     this.setState(({projectName, platform}) => ({
@@ -291,7 +329,7 @@ class CreateProject extends React.Component {
   }
 }
 
-export default withApi(withTeams(withOrganization(CreateProject)));
+export default withConfig(withApi(withTeams(withOrganization(CreateProject))));
 export {CreateProject};
 
 const CreateProjectForm = styled('form')`
