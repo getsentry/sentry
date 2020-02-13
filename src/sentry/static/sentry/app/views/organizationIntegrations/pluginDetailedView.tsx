@@ -5,7 +5,6 @@ import {PluginWithProjectList, PluginNoProject, PluginProjectItem} from 'app/typ
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import Tag from 'app/views/settings/components/tag';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
 import Button from 'app/components/button';
@@ -220,12 +219,6 @@ const TitleContainer = styled('div')`
   flex-direction: column;
   justify-content: center;
   padding-left: ${space(2)};
-`;
-
-const StyledTag = styled(Tag)`
-  &:not(:first-child) {
-    margin-left: ${space(0.5)};
-  }
 `;
 
 const Description = styled('div')`
