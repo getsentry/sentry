@@ -56,7 +56,7 @@
     "clean-webpack-plugin": "^3.0.0",
     "clipboard": "^1.7.1",
     "color": "^3.1.0",
-    "compression-webpack-plugin": "^2.0.0",
+    "compression-webpack-plugin": "3.1.0",
     "copy-webpack-plugin": "^5.0.3",
     "core-js": "^3.2.1",
     "create-react-class": "^15.6.2",
