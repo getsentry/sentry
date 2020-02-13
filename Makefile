@@ -62,7 +62,7 @@ setup-git: ensure-venv
 	@echo ""
 
 node-version-check:
-	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/creationix/nvm'; exit 1)
+	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/volta-cli/volta'; exit 1)
 
 install-yarn-pkgs: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
