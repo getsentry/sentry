@@ -415,6 +415,40 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_percentile_function(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "percentile_transaction_duration_0_75"}],
+            "data": [
+                {"transaction": "api.do_things", "percentile_transaction_duration_0_75": 1123}
+            ],
+        }
+        discover.query(
+            selected_columns=["transaction", "percentile(transaction.duration, 0.75)"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
+                ["argMax", ["event_id", "timestamp"], "latest_event"],
+                ["argMax", ["project_id", "timestamp"], "projectid"],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_orderby_limit_offset(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "title"}, {"name": "project.id"}],

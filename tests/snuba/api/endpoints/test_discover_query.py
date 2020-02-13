@@ -414,9 +414,14 @@ class DiscoverQueryTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 6
-        assert (response.data["data"][0]["time"]) > response.data["data"][2]["time"]
-        assert (response.data["data"][0]["project.name"]) == "bar"
-        assert (response.data["data"][0]["count"]) == 1
+        event_record = response.data["data"][0]
+        # This test can span across an hour, where the start is in hour 1, end is in hour 2, and event is in hour 2.
+        # That pushes the result to the second row.
+        if "project.name" not in event_record:
+            event_record = response.data["data"][1]
+        assert (event_record["time"]) > response.data["data"][2]["time"]
+        assert (event_record["project.name"]) == "bar"
+        assert (event_record["count"]) == 1
 
     def test_uniq_project_name(self):
         with self.feature("organizations:discover"):
