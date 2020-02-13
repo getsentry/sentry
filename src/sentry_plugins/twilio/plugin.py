@@ -7,6 +7,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import TwilioApiClient
 from sentry_plugins.base import CorePluginMixin
@@ -15,6 +16,13 @@ import sentry
 
 DEFAULT_REGION = "US"
 MAX_SMS_LENGTH = 160
+
+DESCRIPTION = """
+Get notified of Sentry alerts via SMS.
+
+Twilio allows users to send and receive text messages globally with
+the API that over a million developers depend on.
+"""
 
 
 def validate_phone(phone):
@@ -92,7 +100,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
     author = "Matt Robenolt"
     author_url = "https://github.com/mattrobenolt"
     version = sentry.VERSION
-    description = "A plugin for Sentry which sends SMS notifications via Twilio"
+    description = DESCRIPTION
     resource_links = (
         (
             "Documentation",
@@ -112,6 +120,14 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
     conf_key = "twilio"
     required_field = "account_sid"
     project_conf_form = TwilioConfigurationForm
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Configure rule based SMS notifications to be sent via Twilio.
+            """,
+            IntegrationFeatures.ALERT_RULE,
+        )
+    ]
 
     def is_configured(self, project, **kwargs):
         return all(
