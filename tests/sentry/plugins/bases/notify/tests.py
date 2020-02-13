@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
+from sentry_plugins.base import CorePluginMixin
 from sentry.exceptions import PluginError
-from sentry.integrations.exceptions import ApiError
+from sentry_plugins.exceptions import ApiError, ApiHostError, ApiUnauthorized
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.plugins.base.structs import Notification
 from sentry.testutils import TestCase
@@ -9,14 +10,14 @@ from requests.exceptions import HTTPError, SSLError
 from sentry.models import GroupStatus
 
 
-class DummyNotificationPlugin(NotificationPlugin):
+class DummyNotificationPlugin(CorePluginMixin, NotificationPlugin):
     def is_configured(self, project):
         return True
 
 
 class NotifyPlugin(TestCase):
     def test_add_notification_referrer_param(self):
-        n = NotificationPlugin()
+        n = DummyNotificationPlugin()
         n.slug = "slack"
         url = "https://sentry.io/"
         assert n.add_notification_referrer_param(url) == url + "?referrer=" + n.slug
@@ -42,7 +43,7 @@ class NotifyPlugin(TestCase):
             PluginError("A plugin is sad"),
         )
         for err in errors:
-            n = NotificationPlugin()
+            n = DummyNotificationPlugin()
             n.slug = "slack"
 
             def hook(*a, **kw):
@@ -53,6 +54,27 @@ class NotifyPlugin(TestCase):
 
             n.notify_users = hook
             assert n.notify(notification) is False
+
+    def test_test_configuration_and_get_test_results(self):
+        errors = (
+            ApiError("The server is sad"),
+            ApiHostError("host error"),
+            ApiUnauthorized("not used"),
+        )
+        for err in errors:
+            n = DummyNotificationPlugin()
+            n.slug = "slack"
+
+            def hook(*a, **kw):
+                n.raise_error(err)
+
+            n.notify_users = hook
+            if isinstance(err, ApiUnauthorized):
+                message = "your access token was invalid"
+            else:
+                message = err.text
+            assert message
+            assert message in n.test_configuration_and_get_test_results(self.project)
 
 
 class DummyNotificationPluginTest(TestCase):
