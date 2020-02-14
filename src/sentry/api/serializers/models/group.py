@@ -354,7 +354,11 @@ class GroupSerializerBase(Serializer):
         # because the user isn't an org member. Instead we can use the auth token and the installation
         # it's associated with to find out what organization the token has access to.
         is_valid_sentryapp = False
-        if getattr(request.user, "is_sentry_app", False) and isinstance(request.auth, ApiToken):
+        if (
+            request
+            and getattr(request.user, "is_sentry_app", False)
+            and isinstance(request.auth, ApiToken)
+        ):
             is_valid_sentryapp = SentryAppInstallationToken.has_organization_access(
                 request.auth, obj.organization
             )
