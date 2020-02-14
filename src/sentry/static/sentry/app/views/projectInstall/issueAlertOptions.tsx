@@ -171,7 +171,10 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
         </CustomizeAlertsGrid>,
       ]);
     }
-    return options;
+    return options.map(([choiceValue, element]) => [
+      choiceValue,
+      <RadioItemWrapper key={choiceValue}>{element}</RadioItemWrapper>,
+    ]);
   }
 
   getUpdatedData(): RequestDataFragment {
@@ -297,11 +300,9 @@ const CustomizeAlertsGrid = styled('div')`
   grid-gap: 10px;
   align-items: center;
 `;
-
 const InlineInput = styled(Input)`
   width: 80px;
 `;
-
 const InlineSelectControl = styled(SelectControl)`
   width: 160px;
 `;
@@ -312,4 +313,10 @@ const RadioGroupWithPadding = styled(RadioGroup)`
 `;
 const PageHeadingWithTopMargins = styled(PageHeading)`
   margin-top: 65px !important;
+`;
+const RadioItemWrapper = styled('div')`
+  min-height: 35px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
