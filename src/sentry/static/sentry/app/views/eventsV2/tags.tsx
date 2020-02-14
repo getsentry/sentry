@@ -124,6 +124,7 @@ class Tags extends React.Component<Props, State> {
         totalValues={Number(maxTotalValues)}
         renderLoading={() => <StyledPlaceholder height="16px" />}
         onTagClick={this.onTagClick}
+        showReleasePackage
       />
     );
   }
@@ -177,7 +178,7 @@ export const StyledHeading = styled(SectionHeading)`
 `;
 
 export const TagSection = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${space(0.5)} 0;
 `;
 
 const StyledError = styled('div')`

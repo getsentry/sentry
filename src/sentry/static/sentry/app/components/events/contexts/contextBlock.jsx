@@ -4,7 +4,7 @@ import sortBy from 'lodash/sortBy';
 
 import {defined} from 'app/utils';
 import ErrorBoundary from 'app/components/errorBoundary';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 
 class ContextBlock extends React.Component {
   static propTypes = {

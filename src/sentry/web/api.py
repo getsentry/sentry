@@ -424,6 +424,8 @@ class APIView(BaseView):
             # implicitly fetched from database.
             project.organization = Organization.objects.get_from_cache(id=project.organization_id)
 
+            # XXX: This never returns a disabled project since visibility of the
+            # project is already verified in `_get_project_from_id`.
             project_config = get_project_config(project)
 
             helper.context.bind_project(project_config.project)

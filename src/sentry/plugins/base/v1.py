@@ -299,8 +299,8 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         >>> def get_resource_links(self):
         >>>     return [
         >>>         ('Documentation', 'https://docs.sentry.io'),
-        >>>         ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
-        >>>         ('Source', 'https://github.com/getsentry/sentry'),
+        >>>         ('Report Issue', 'https://github.com/getsentry/sentry/issues'),
+        >>>         ('View Source', 'https://github.com/getsentry/sentry'),
         >>>     ]
         """
         return self.resource_links
