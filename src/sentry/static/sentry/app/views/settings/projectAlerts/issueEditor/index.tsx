@@ -262,7 +262,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           initialData={{...rule, environment, actionMatch, frequency: `${frequency}`}}
           submitLabel={t('Save Rule')}
         >
-          {ruleId && this.state.loading && <SemiTransparentLoadingMask />}
+          {this.state.loading && <SemiTransparentLoadingMask />}
           <Panel>
             <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
             <PanelBody>
@@ -316,7 +316,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
               {this.hasError('conditions') && (
                 <PanelAlert type="error">
-                  {this.state.detailedError!.conditions[0]}
+                  {this.state.detailedError?.conditions[0]}
                 </PanelAlert>
               )}
 
@@ -335,7 +335,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
               {this.hasError('actions') && (
                 <PanelAlert type="error">
-                  {this.state.detailedError!.actions[0]}
+                  {this.state.detailedError?.actions[0]}
                 </PanelAlert>
               )}
 
