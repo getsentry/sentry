@@ -64,7 +64,7 @@ describe('IntegrationRow', function() {
     });
   });
   describe('First Party Integration', function() {
-    it('has been installed', async function() {
+    it('has been installed (1 configuration)', async function() {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -86,6 +86,30 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
       expect(wrapper.find('PublishStatus').exists()).toEqual(false);
       expect(wrapper.find('StyledLink').props().children).toEqual('1 Configuration');
+    });
+
+    it('has been installed (3 configurations)', async function() {
+      const wrapper = mountWithTheme(
+        <IntegrationRow
+          organization={org}
+          type="firstParty"
+          slug="bitbucket"
+          displayName="Bitbucket"
+          status="Installed"
+          publishStatus="published"
+          configurations={3}
+          data-test-id="integration-row"
+        />,
+        routerContext
+      );
+      expect(wrapper.find('PluginIcon').props().pluginId).toEqual('bitbucket');
+      expect(wrapper.find('IntegrationName').props().children).toEqual('Bitbucket');
+      expect(wrapper.find('IntegrationName').props().to).toEqual(
+        `/settings/${org.slug}/integrations/bitbucket/`
+      );
+      expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
+      expect(wrapper.find('PublishStatus').exists()).toEqual(false);
+      expect(wrapper.find('StyledLink').props().children).toEqual('3 Configurations');
     });
 
     it('has not been installed', async function() {
@@ -113,7 +137,7 @@ describe('IntegrationRow', function() {
     });
   });
   describe('Plugin', function() {
-    it('has been installed', async function() {
+    it('has been installed (1 project)', async function() {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -135,6 +159,30 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
       expect(wrapper.find('PublishStatus').exists()).toEqual(false);
       expect(wrapper.find('StyledLink').props().children).toEqual('1 Configuration');
+    });
+
+    it('has been installed (3 projects)', async function() {
+      const wrapper = mountWithTheme(
+        <IntegrationRow
+          organization={org}
+          type="plugin"
+          slug="twilio"
+          displayName="Twilio (SMS) "
+          status="Installed"
+          publishStatus="published"
+          configurations={3}
+          data-test-id="integration-row"
+        />,
+        routerContext
+      );
+      expect(wrapper.find('PluginIcon').props().pluginId).toEqual('twilio');
+      expect(wrapper.find('IntegrationName').props().children).toEqual('Twilio (SMS) ');
+      expect(wrapper.find('IntegrationName').props().to).toEqual(
+        `/settings/${org.slug}/plugins/twilio/`
+      );
+      expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
+      expect(wrapper.find('PublishStatus').exists()).toEqual(false);
+      expect(wrapper.find('StyledLink').props().children).toEqual('3 Configurations');
     });
 
     it('has not been installed', async function() {
