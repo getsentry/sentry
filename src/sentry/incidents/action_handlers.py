@@ -109,6 +109,10 @@ class EmailActionHandler(ActionHandler):
         # if resolve threshold and threshold type is *BELOW* then show '>'
         # we can simplify this to be the below statement
         show_greater_than_string = is_active == is_threshold_type_above
+        environments = list(alert_rule.environment.all())
+        environment_string = (
+            ", ".join(sorted([env.name for env in environments])) if len(environments) else "All"
+        )
 
         return {
             "link": absolute_uri(
@@ -131,8 +135,7 @@ class EmailActionHandler(ActionHandler):
                 )
             ),
             "incident_name": self.incident.title,
-            # TODO(alerts): Add environment
-            "environment": "All",
+            "environment": environment_string,
             "time_window": format_duration(alert_rule.time_window),
             "triggered_at": trigger.date_added,
             "aggregate": self.query_aggregations_display[QueryAggregations(alert_rule.aggregation)],
