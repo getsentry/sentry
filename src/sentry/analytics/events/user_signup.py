@@ -9,8 +9,8 @@ class UserSignUpEvent(analytics.Event):
     attributes = (
         analytics.Attribute("user_id"),
         analytics.Attribute("source"),
-        analytics.Attribute("provider"),
-        analytics.Attribute("referrer"),
+        analytics.Attribute("provider", required=False),
+        analytics.Attribute("referrer", required=False),
     )
 
 

@@ -17,7 +17,11 @@ def record_join_request_link_viewed(organization, **kwargs):
 
 
 @user_signup.connect(weak=False)
-def record_user_signup(user, source, provider=None, referrer=None, **kwargs):
+def record_user_signup(user, source, **kwargs):
     analytics.record(
-        "user.signup", user_id=user.id, source=source, provider=provider, referrer=referrer
+        "user.signup",
+        user_id=user.id,
+        source=source,
+        provider=kwargs.get("provider"),
+        referrer=kwargs.get("referrer"),
     )
