@@ -437,6 +437,20 @@ describe('getExpandedResults()', function() {
     expect(result.query).toEqual('event.type:error');
     expect(result.environment).toEqual(['staging', 'dev']);
   });
+
+  it('normalizes the timestamp field', () => {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'timestamp'}],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+    });
+    const event = {
+      type: 'error',
+      timestamp: '2020-02-13T17:05:46+00:00',
+    };
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('event.type:error timestamp:2020-02-13T17:05:46');
+  });
 });
 
 describe('getDiscoverLandingUrl', function() {
