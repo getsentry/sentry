@@ -14,7 +14,7 @@ import EventCause from 'app/components/events/eventCause';
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
 import EventContextSummary from 'app/components/events/contextSummary';
 import EventContexts from 'app/components/events/contexts';
-import EventDataSection from 'app/components/events/eventDataSection';
+import EventDataSection, {DataSection} from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
 import EventErrors from 'app/components/events/errors';
 import EventExtraData from 'app/components/events/eventExtraData/eventExtraData';
@@ -34,6 +34,7 @@ import SpansInterface from 'app/components/events/interfaces/spans';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
 import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -237,7 +238,15 @@ class EventEntries extends React.Component {
   }
 }
 
-export default withOrganization(withApi(EventEntries));
+const BorderlessEventEntries = styled(EventEntries)`
+  & ${DataSection} {
+    padding: ${space(3)} 0 0 0;
+  }
+  & ${DataSection}:first-child {
+    padding-top: 0;
+    border-top: none;
+  }
+`;
 
 const StyledEventUserFeedback = styled(EventUserFeedback)`
   border-radius: 0;
@@ -247,3 +256,6 @@ const StyledEventUserFeedback = styled(EventUserFeedback)`
   ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.borderLight};` : '')}
   margin: 0;
 `;
+
+export default withOrganization(withApi(EventEntries));
+export {BorderlessEventEntries};

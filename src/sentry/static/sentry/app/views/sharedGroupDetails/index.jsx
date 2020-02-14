@@ -2,16 +2,18 @@ import PropTypes from 'prop-types';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
-import EventEntries from 'app/components/events/eventEntries';
+import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import Footer from 'app/components/footer';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
 import SentryTypes from 'app/sentryTypes';
 import SharedGroupHeader from 'app/views/sharedGroupDetails/sharedGroupHeader';
+import space from 'app/styles/space';
 
 const SharedGroupDetails = createReactClass({
   displayName: 'SharedGroupDetails',
@@ -118,17 +120,15 @@ const SharedGroupDetails = createReactClass({
               <div className="box-content">
                 <div className="content">
                   <SharedGroupHeader group={group} />
-                  <div className="group-overview event-details-container">
-                    <div className="primary">
-                      <EventEntries
-                        group={group}
-                        event={evt}
-                        orgId={group.project.organization.slug}
-                        project={group.project}
-                        isShare
-                      />
-                    </div>
-                  </div>
+                  <Container className="group-overview event-details-container">
+                    <BorderlessEventEntries
+                      group={group}
+                      event={evt}
+                      orgId={group.project.organization.slug}
+                      project={group.project}
+                      isShare
+                    />
+                  </Container>
                   <Footer />
                 </div>
               </div>
@@ -139,6 +139,10 @@ const SharedGroupDetails = createReactClass({
     );
   },
 });
+
+const Container = styled('div')`
+  padding: 0 ${space(4)};
+`;
 
 export {SharedGroupDetails};
 
