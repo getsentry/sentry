@@ -161,9 +161,9 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
             )
         except discover.InvalidSearchQuery as error:
             raise ParseError(detail=six.text_type(error))
-        except snuba.QueryOutsideRetentionError as error:
+        except snuba.QueryOutsideRetentionError:
             raise ParseError(detail="Invalid date range. Please try a more recent date range.")
-        except snuba.QueryIllegalTypeOfArgument as error:
+        except snuba.QueryIllegalTypeOfArgument:
             raise ParseError(detail="Invalid query. Argument to function is wrong type.")
         except snuba.SnubaError as error:
             message = "Internal error. Please try again."
