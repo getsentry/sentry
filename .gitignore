@@ -1,4 +1,4 @@
-.envrc-overrides
+.env
 .cache/
 .coverage
 .storybook-out/
