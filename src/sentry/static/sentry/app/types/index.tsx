@@ -386,24 +386,14 @@ export type Config = {
   distPrefix: string;
 };
 
-type Metadata = {
-  value: string;
-  message: string;
-  directive: string;
-  type: string;
-  title: string;
-  uri: string;
-};
-
-type EventOrGroupType = [
-  'error',
-  'csp',
-  'hpkp',
-  'expectct',
-  'expectstaple',
-  'default',
-  'transaction'
-];
+export type EventOrGroupType =
+  | 'error'
+  | 'csp'
+  | 'hpkp'
+  | 'expectct'
+  | 'expectstaple'
+  | 'default'
+  | 'transaction';
 
 // TODO(ts): incomplete
 export type Group = {
@@ -424,7 +414,7 @@ export type Group = {
   lastSeen: string;
   level: string;
   logger: string;
-  metadata: Metadata;
+  metadata: EventMetadata;
   numComments: number;
   participants: any[]; // TODO(ts)
   permalink: string;
