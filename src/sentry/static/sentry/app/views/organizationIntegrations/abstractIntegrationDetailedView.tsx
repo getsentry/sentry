@@ -66,6 +66,7 @@ class AbstractIntegrationDetailedView<
     return [];
   }
 
+  //Returns a list of the resources displayed at the bottom of the information card
   get resourceLinks(): Array<{title: string; url: string}> {
     // Allow children to implement this
     throw new Error('Not implemented');
@@ -81,6 +82,7 @@ class AbstractIntegrationDetailedView<
     throw new Error('Not implemented');
   }
 
+  //Returns an array of IntegrationFeatures which is used in feature gating and displaying what the integraiton does
   get featureData(): IntegrationFeature[] {
     // Allow children to implement this
     throw new Error('Not implemented');
@@ -90,24 +92,28 @@ class AbstractIntegrationDetailedView<
     this.setState({tab: value});
   };
 
+  //Returns the string that is shown as the title of a tab
   getTabDiplay(tab: Tab): string {
     //default is return the tab
     return tab;
   }
 
+  //Render the button at the top which is usually just an installation button
   renderTopButton(
-    _disabledFromFeatures: boolean,
-    _userHasAccess: boolean
+    _disabledFromFeatures: boolean, //from the feature gate
+    _userHasAccess: boolean //from user permissions
   ): React.ReactElement {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
 
+  //Returns the permission descriptions, only use by Sentry Apps
   renderPermissions(): React.ReactElement | null {
     //default is don't render permissions
     return null;
   }
 
+  //Returns the list of configurations for the integration
   renderConfigurations() {
     // Allow children to implement this
     throw new Error('Not implemented');
@@ -117,6 +123,7 @@ class AbstractIntegrationDetailedView<
    * Actually implmeented methods below*
    */
 
+  //Returns the props as needed by the hooks integrations:feature-gates
   get featureProps() {
     const {organization} = this.props;
     const featureData = this.featureData;
@@ -134,13 +141,7 @@ class AbstractIntegrationDetailedView<
     return {organization, features};
   }
 
-  renderFeatureTags() {
-    return this.featureData.map(({featureGate}) => {
-      const feature = featureGate.replace(/integrations/g, '').replace(/-/g, ' ');
-      return <StyledTag key={feature}>{feature}</StyledTag>;
-    });
-  }
-
+  //Returns the content shown in the top section of the integration detail
   renderTopSection() {
     const {integrationSlug} = this.props.params;
     const {organization} = this.props;
@@ -156,7 +157,13 @@ class AbstractIntegrationDetailedView<
               <IntegrationStatus status={this.installationStatus} />
             </StatusWrapper>
           </Flex>
-          <Flex>{this.renderFeatureTags()}</Flex>
+          <Flex>
+            {this.featureData.map(({featureGate}) => {
+              //modify the strings so it looks better
+              const feature = featureGate.replace(/integrations/g, '').replace(/-/g, ' ');
+              return <StyledTag key={feature}>{feature}</StyledTag>;
+            })}
+          </Flex>
         </NameContainer>
         <IntegrationFeatures {...this.featureProps}>
           {({disabled, disabledReason}) => (
@@ -182,15 +189,15 @@ class AbstractIntegrationDetailedView<
     );
   }
 
+  //Returns the tabs divider with the clickable tabs
   renderTabs() {
-    const {tab} = this.state;
     //TODO: Convert to styled component
     return (
       <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
         {this.tabs.map(tabName => (
           <li
             key={tabName}
-            className={tab === tabName ? 'active' : ''}
+            className={this.state.tab === tabName ? 'active' : ''}
             onClick={() => this.onTabChange(tabName)}
           >
             <a style={{textTransform: 'capitalize'}}>{t(this.getTabDiplay(tabName))}</a>
@@ -199,6 +206,8 @@ class AbstractIntegrationDetailedView<
       </ul>
     );
   }
+
+  //Returns the information about the integration description and features
   renderInformationCard() {
     const {FeatureList} = getIntegrationFeatureGate();
 
@@ -231,12 +240,11 @@ class AbstractIntegrationDetailedView<
   }
 
   renderBody() {
-    const {tab} = this.state;
     return (
       <React.Fragment>
         {this.renderTopSection()}
         {this.renderTabs()}
-        {tab === 'information'
+        {this.state.tab === 'information'
           ? this.renderInformationCard()
           : this.renderConfigurations()}
       </React.Fragment>
