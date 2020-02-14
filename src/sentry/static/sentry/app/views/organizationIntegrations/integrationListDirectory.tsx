@@ -60,7 +60,7 @@ function isPlugin(
   return integration.hasOwnProperty('shortName');
 }
 
-class OrganizationIntegrations extends AsyncComponent<
+export class OrganizationIntegrations extends AsyncComponent<
   Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
@@ -364,4 +364,3 @@ const SearchContainer = styled('div')`
 `;
 
 export default withOrganization(OrganizationIntegrations);
-export {OrganizationIntegrations};
