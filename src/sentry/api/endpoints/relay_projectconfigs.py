@@ -12,7 +12,7 @@ from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
 from sentry.relay import config, projectconfig_cache
 from sentry.models import Project, ProjectKey, Organization, OrganizationOption
-from sentry.utils import metrics, json
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -53,11 +53,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
             org_ids = set(project.organization_id for project in six.itervalues(projects))
             if org_ids:
                 with metrics.timer("relay_project_configs.fetching_orgs.duration"):
-                    orgs = {
-                        o.id: o
-                        for o in Organization.objects.get_many_from_cache(org_ids)
-                        if request.relay.has_org_access(o)
-                    }
+                    orgs = Organization.objects.get_many_from_cache(org_ids)
+                    orgs = {o.id: o for o in orgs if request.relay.has_org_access(o)}
             else:
                 orgs = {}
             org_options = {
@@ -89,28 +86,16 @@ class RelayProjectConfigsEndpoint(Endpoint):
             project.organization = organization
             project._organization_cache = organization
 
-            org_opts = org_options.get(organization.id) or {}
-
             with Hub.current.start_span(op="get_config"):
                 with metrics.timer("relay_project_configs.get_config.duration"):
                     project_config = config.get_project_config(
                         project,
-                        org_options=org_opts,
+                        org_options=org_options.get(organization.id) or {},
                         full_config=full_config_requested,
-                        project_keys=project_keys.get(project.id, []),
+                        project_keys=project_keys.get(project.id) or [],
                     )
 
-            configs[six.text_type(project_id)] = serialized_config = project_config.to_dict()
-
-            config_size = len(json.dumps(serialized_config))
-            metrics.timing("relay_project_configs.config_size", config_size)
-
-            # Log if we see huge project configs
-            if config_size >= PROJECT_CONFIG_SIZE_THRESHOLD:
-                logger.info(
-                    "relay.project_config.huge_config",
-                    extra={"project_id": project_id, "size": config_size},
-                )
+            configs[six.text_type(project_id)] = project_config.to_dict()
 
         if full_config_requested:
             projectconfig_cache.set_many(configs)
