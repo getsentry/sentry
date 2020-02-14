@@ -45,7 +45,7 @@ class CorePluginMixin(object):
             if exc.json:
                 msg = self.error_message_from_json(exc.json) or "unknown error"
             else:
-                msg = "unknown error"
+                msg = getattr(exc, "text", "unknown error")
             return "Error Communicating with %s (HTTP %s): %s" % (self.title, exc.code, msg)
         else:
             return ERR_INTERNAL

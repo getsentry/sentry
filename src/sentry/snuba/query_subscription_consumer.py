@@ -178,6 +178,9 @@ class QuerySubscriptionConsumer(object):
                     "timestamp": contents["timestamp"],
                     "query_subscription_id": contents["subscription_id"],
                     "contents": contents,
+                    "offset": message.offset(),
+                    "partition": message.partition(),
+                    "value": message.value(),
                 },
             )
 
