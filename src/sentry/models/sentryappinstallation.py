@@ -28,11 +28,13 @@ class SentryAppInstallationToken(Model):
     @classmethod
     def has_organization_access(cls, token, organization):
         try:
-            install = cls.objects.get(api_token=token).sentry_app_installation
+            install_token = cls.objects.select_related("sentry_app_installation").get(
+                api_token=token
+            )
         except cls.DoesNotExist:
             return False
 
-        return install.organization == organization
+        return install_token.sentry_app_installation.organization_id == organization.id
 
 
 class SentryAppInstallation(ParanoidModel):
