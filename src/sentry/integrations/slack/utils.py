@@ -10,7 +10,8 @@ from sentry import http
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import IncidentStatus
+from sentry.incidents.models import IncidentStatus, TriggerStatus
+from sentry.snuba.models import query_aggregation_display, QueryAggregations
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -279,10 +280,10 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     }
 
 
-def build_incident_attachment(action, incident):
+def build_incident_attachment(incident, trigger=None):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
-    # aggregates = get_incident_aggregates(incident)
+    aggregates = get_incident_aggregates(incident)
 
     if incident.status == IncidentStatus.CLOSED.value:
         status = "Resolved"
@@ -298,15 +299,21 @@ def build_incident_attachment(action, incident):
         status = "Fired"
         color = LEVEL_TO_COLOR["error"]
 
-    # fields = [
-        # {"title": "Status", "value": status, "short": True},
-        # {"title": "Events", "value": aggregates["count"], "short": True},
-        # {"title": "Users", "value": aggregates["unique_users"], "short": True},
-        # {"title": "Query", "value": incident.query, "short": True},
-    # ]
+    if trigger is None:
+        # Some paths explicitly have a trigger reference, so we send it in with those. Some don't (unfurling), so we do this.
+        # Best guess, grab the most recently updated trigger. It's a pretty good guess with very low failure rate.
+        trigger = IncidentTrigger.objects.filter(
+            incident=incident
+        ).order_by("-date_modified").first().alert_rule_trigger
 
+    agg_text = query_aggregation_display[alert_rule.aggregation]
+    agg_value = alert_rule.aggregation == QueryAggregations.TOTAL.value ? aggregates["events"] : aggregates["unique_users"]
+    is_active = trigger.status == TriggerStatus.ACTIVE
+    is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE
+    gt_or_lt = is_active == is_threshold_type_above ? ">" : "<"
+    threshold_display = trigger.alert_threshold if is_active else trigger.resolve_threshold,
 
-    text = "10 {} affected in the last {} minutes".format(alert_rule.aggregation, alert_rule.time_window)
+    text = "{} {} in the last {} minutes {} {} ".format(agg_value, agg_text, alert_rule.time_window, gt_or_lt, threshold_display)
 
     ts = incident.date_started
 
@@ -324,8 +331,8 @@ def build_incident_attachment(action, incident):
                 },
             )
         ),
-        "text": " ",
-        "fields": fields,
+        "text": text,
+        "fields": [],
         "mrkdwn_in": ["text"],
         "footer_icon": logo_url,
         "footer": "Sentry Incident",
@@ -414,8 +421,9 @@ def get_channel_id_with_timeout(integration, name, timeout):
 
 
 def send_incident_alert_notification(action, incident):
-    channel = action.channel
-    attachment = build_incident_attachment(action, incident)
+    channel = action.target_identifier
+    trigger = action.alert_rule_trigger
+    attachment = build_incident_attachment(incident, trigger=trigger)
 
     payload = {
         "token": "xoxb-656045868439-660476064996-OdqgwpT7V4z7BoyJip4nVp3q",
