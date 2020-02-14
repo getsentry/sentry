@@ -1078,15 +1078,26 @@ class GetSnubaQueryArgsTest(TestCase):
 
         params = {"project_id": [p1.id, p2.id]}
         filter = get_filter("project.name:{}".format(p1.slug), params)
-        filter.conditions == [["project_id", "=", p1.id]]
-        filter.filter_keys == {"project_id": [p1.id, p2.id]}
-        filter.project_ids == [p1.id, p2.id]
+        assert filter.conditions == [["project_id", "=", p1.id]]
+        assert filter.filter_keys == {"project_id": [p1.id, p2.id]}
+        assert filter.project_ids == [p1.id, p2.id]
 
-        params = {"project_id": []}
+        params = {"project_id": [p1.id, p2.id]}
         filter = get_filter("!project.name:{}".format(p1.slug), params)
-        filter.conditions == [["project_id", "!=", p1.id]]
-        filter.filter_keys == {}
-        filter.project_ids == []
+        assert filter.conditions == [
+            [[["isNull", ["project_id"]], "=", 1], ["project_id", "!=", p1.id]]
+        ]
+        assert filter.filter_keys == {"project_id": [p1.id, p2.id]}
+        assert filter.project_ids == [p1.id, p2.id]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            params = {"project_id": []}
+            get_filter("project.name:{}".format(p1.slug), params)
+        assert (
+            "Invalid query. Project %s does not exist or is not an actively selected project"
+            % p1.slug
+            in six.text_type(err)
+        )
 
     def test_transaction_status(self):
         for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
