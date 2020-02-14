@@ -5,7 +5,6 @@ from json import loads
 import jsonschema
 import pytz
 import sentry_sdk
-from sentry_sdk import Hub
 from sentry_sdk.tracing import Span
 from confluent_kafka import Consumer, KafkaException, TopicPartition
 from dateutil.parser import parse as parse_date
@@ -187,7 +186,7 @@ class QuerySubscriptionConsumer(object):
             )
 
             callback = subscriber_registry[subscription.type]
-            with Hub.current.start_span(
+            with sentry_sdk.start_span(
                 Span(
                     op="process_message",
                     transaction="query_subscription_consumer_process_message",
