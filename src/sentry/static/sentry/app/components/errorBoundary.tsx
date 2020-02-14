@@ -8,8 +8,11 @@ import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import DetailedError from 'app/components/errors/detailedError';
 
-type Props = {
-  mini?: boolean;
+type DefaultProps = {
+  mini: boolean;
+};
+
+type Props = DefaultProps & {
   message?: React.ReactNode;
   customComponent?: React.ReactNode;
   className?: string;
@@ -32,16 +35,13 @@ class ErrorBoundary extends React.Component<Props, State> {
     customComponent: PropTypes.node,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     mini: false,
   };
 
   state: State = {
     error: null,
   };
-
-  // XXX: browserHistory.listen does not have a correct return type.
-  unlistenBrowserHistory: any;
 
   componentDidMount() {
     // Listen for route changes so we can clear error
@@ -63,6 +63,9 @@ class ErrorBoundary extends React.Component<Props, State> {
       this.unlistenBrowserHistory();
     }
   }
+
+  // XXX: browserHistory.listen does not have a correct return type.
+  unlistenBrowserHistory: any;
 
   render() {
     const {error} = this.state;

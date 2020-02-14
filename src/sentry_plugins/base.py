@@ -21,8 +21,8 @@ class CorePluginMixin(object):
     author_url = "https://github.com/getsentry/sentry"
     version = sentry_plugins.VERSION
     resource_links = [
-        ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
-        ("Source", "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins"),
+        ("Report Issue", "https://github.com/getsentry/sentry/issues"),
+        ("View Source", "https://github.com/getsentry/sentry/tree/master/src/sentry_plugins"),
     ]
 
     # HACK(dcramer): work around MRO issue with plugin metaclass
@@ -45,7 +45,7 @@ class CorePluginMixin(object):
             if exc.json:
                 msg = self.error_message_from_json(exc.json) or "unknown error"
             else:
-                msg = "unknown error"
+                msg = getattr(exc, "text", "unknown error")
             return "Error Communicating with %s (HTTP %s): %s" % (self.title, exc.code, msg)
         else:
             return ERR_INTERNAL

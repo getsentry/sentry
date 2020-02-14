@@ -14,16 +14,16 @@ type Props = {
   toggle: React.HTMLProps<HTMLButtonElement>['onClick'];
 };
 
-const Switch: React.FC<Props> = ({
+const Switch = ({
   forwardRef,
-  size,
+  size = 'sm',
   isActive,
   isLoading,
   isDisabled,
   toggle,
   id,
   className,
-}) => (
+}: Props) => (
   <SwitchButton
     ref={forwardRef}
     id={id}
@@ -50,10 +50,6 @@ Switch.propTypes = {
   isLoading: PropTypes.bool,
   isDisabled: PropTypes.bool,
   toggle: PropTypes.func.isRequired,
-};
-
-Switch.defaultProps = {
-  size: 'sm',
 };
 
 type StyleProps = Partial<Props>;

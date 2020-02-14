@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import styled from '@emotion/styled';
+import {t} from 'app/locale';
 import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
@@ -12,10 +13,10 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import {IconWarning} from 'app/icons';
+import theme from 'app/utils/theme';
 
 import EventsRequest from './utils/eventsRequest';
-import YAxisSelector from './yAxisSelector';
 
 class EventsAreaChart extends React.Component {
   static propTypes = {
@@ -60,12 +61,17 @@ class EventsAreaChart extends React.Component {
       right: 16,
       top: 16,
       selectedMode: false,
-      icon: 'line',
+      icon: 'circle',
+      itemHeight: 8,
+      itemWidth: 8,
+      itemGap: 12,
+      align: 'left',
       textStyle: {
-        fontSize: '11',
+        verticalAlign: 'top',
+        fontSize: 11,
         fontFamily: 'Rubik',
       },
-      data: ['Current Period', 'Previous Period'],
+      data: ['Current', 'Previous'],
     };
 
     return (
@@ -101,27 +107,9 @@ class EventsChart extends React.Component {
     utc: PropTypes.bool,
     router: PropTypes.object,
     showLegend: PropTypes.bool,
-    yAxisOptions: PropTypes.array,
-    yAxisValue: PropTypes.string,
-    onYAxisChange: PropTypes.func,
+    yAxis: PropTypes.string,
+    onTooltipUpdate: PropTypes.func,
   };
-
-  handleYAxisChange = value => {
-    const {onYAxisChange} = this.props;
-    callIfFunction(onYAxisChange, value);
-  };
-
-  getYAxisValue() {
-    const {yAxisValue, yAxisOptions} = this.props;
-    if (yAxisValue) {
-      return yAxisValue;
-    }
-    if (yAxisOptions && yAxisOptions.length) {
-      return yAxisOptions[0].value;
-    }
-
-    return undefined;
-  }
 
   render() {
     const {
@@ -135,12 +123,35 @@ class EventsChart extends React.Component {
       projects,
       environments,
       showLegend,
-      yAxisOptions,
+      yAxis,
+      onTooltipUpdate,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !start && !end;
-    const yAxis = this.getYAxisValue();
+
+    let tooltip = undefined;
+    if (onTooltipUpdate) {
+      tooltip = {
+        formatter(seriesData) {
+          // Releases are the only markline we use right now.
+          if (seriesData.componentType === 'markLine') {
+            onTooltipUpdate({
+              values: [{name: t('Release'), value: seriesData.data.name}],
+              timestamp: seriesData.data.coord[0],
+            });
+
+            return null;
+          }
+          const series = Array.isArray(seriesData) ? seriesData : [seriesData];
+          onTooltipUpdate({
+            values: series.map(item => ({name: item.seriesName, value: item.data[1]})),
+            timestamp: series[0].data[0],
+          });
+          return null;
+        },
+      };
+    }
 
     return (
       <ChartZoom
@@ -166,10 +177,17 @@ class EventsChart extends React.Component {
             includePrevious={includePrevious}
             yAxis={yAxis}
           >
-            {({loading, reloading, timeseriesData, previousTimeseriesData}) => {
+            {({loading, reloading, errored, timeseriesData, previousTimeseriesData}) => {
               return (
-                <ReleaseSeries utc={utc} api={api} projects={projects}>
+                <ReleaseSeries tooltip={tooltip} utc={utc} api={api} projects={projects}>
                   {({releaseSeries}) => {
+                    if (errored) {
+                      return (
+                        <ErrorPanel>
+                          <IconWarning color={theme.gray2} size="lg" />
+                        </ErrorPanel>
+                      );
+                    }
                     if (loading && !reloading) {
                       return <LoadingPanel data-test-id="events-request-loading" />;
                     }
@@ -186,14 +204,8 @@ class EventsChart extends React.Component {
                           releaseSeries={releaseSeries}
                           timeseriesData={timeseriesData}
                           previousTimeseriesData={previousTimeseriesData}
+                          tooltip={tooltip}
                         />
-                        {yAxisOptions && (
-                          <YAxisSelector
-                            selected={yAxis}
-                            options={yAxisOptions}
-                            onChange={this.handleYAxisChange}
-                          />
-                        )}
                       </React.Fragment>
                     );
                   }}
@@ -238,4 +250,18 @@ const TransparentLoadingMask = styled(LoadingMask)`
   ${p => !p.visible && 'display: none;'};
   opacity: 0.4;
   z-index: 1;
+`;
+
+const ErrorPanel = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  flex: 1;
+  flex-shrink: 0;
+  overflow: hidden;
+  height: 200px;
+  position: relative;
+  border-color: transparent;
+  margin-bottom: 0;
 `;

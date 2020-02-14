@@ -9,13 +9,16 @@ import {domId} from 'app/utils/domId';
 
 const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
 
-type Props = {
+type DefaultProps = {
+  position: PopperJS.Placement;
+  containerDisplayMode: React.CSSProperties['display'];
+};
+
+type Props = DefaultProps & {
   children: React.ReactElement;
   disabled?: boolean;
   title: React.ReactNode;
-  position: PopperJS.Placement;
   popperStyle?: React.CSSProperties;
-  containerDisplayMode?: React.CSSProperties['display'];
   delay?: number;
   isHoverable?: boolean;
 };
@@ -87,7 +90,7 @@ class Tooltip extends React.Component<Props, State> {
     isHoverable: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     position: 'top',
     containerDisplayMode: 'inline-block',
   };

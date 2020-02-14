@@ -421,113 +421,127 @@ def _do_save_event(
     """
     Saves an event to the database.
     """
+
     from sentry.event_manager import HashDiscarded, EventManager
     from sentry import quotas
     from sentry.models import ProjectKey
     from sentry.utils.outcomes import Outcome, track_outcome
     from sentry.ingest.outcomes_consumer import mark_signal_sent
 
+    event_type = "none"
+
     if cache_key and data is None:
-        data = default_cache.get(cache_key)
+        with metrics.timer("tasks.store.do_save_event.get_cache") as metric_tags:
+            data = default_cache.get(cache_key)
+            if data is not None:
+                metric_tags["event_type"] = event_type = data.get("type") or "none"
 
-    if data is not None:
-        data = CanonicalKeyDict(data)
+    with metrics.global_tags(event_type=event_type):
+        if data is not None:
+            data = CanonicalKeyDict(data)
 
-    if event_id is None and data is not None:
-        event_id = data["event_id"]
+        if event_id is None and data is not None:
+            event_id = data["event_id"]
 
-    # only when we come from reprocessing we get a project_id sent into
-    # the task.
-    if project_id is None:
-        project_id = data.pop("project")
+        # only when we come from reprocessing we get a project_id sent into
+        # the task.
+        if project_id is None:
+            project_id = data.pop("project")
 
-    key_id = None if data is None else data.get("key_id")
-    if key_id is not None:
-        key_id = int(key_id)
-    timestamp = to_datetime(start_time) if start_time is not None else None
+        key_id = None if data is None else data.get("key_id")
+        if key_id is not None:
+            key_id = int(key_id)
+        timestamp = to_datetime(start_time) if start_time is not None else None
 
-    # We only need to delete raw events for events that support
-    # reprocessing.  If the data cannot be found we want to assume
-    # that we need to delete the raw event.
-    if not data or reprocessing.event_supports_reprocessing(data):
-        delete_raw_event(project_id, event_id, allow_hint_clear=True)
+        # We only need to delete raw events for events that support
+        # reprocessing.  If the data cannot be found we want to assume
+        # that we need to delete the raw event.
+        if not data or reprocessing.event_supports_reprocessing(data):
+            with metrics.timer("tasks.store.do_save_event.delete_raw_event"):
+                delete_raw_event(project_id, event_id, allow_hint_clear=True)
 
-    # This covers two cases: where data is None because we did not manage
-    # to fetch it from the default cache or the empty dictionary was
-    # stored in the default cache.  The former happens if the event
-    # expired while being on the queue, the second happens on reprocessing
-    # if the raw event was deleted concurrently while we held on to
-    # it.  This causes the node store to delete the data and we end up
-    # fetching an empty dict.  We could in theory not invoke `save_event`
-    # in those cases but it's important that we always clean up the
-    # reprocessing reports correctly or they will screw up the UI.  So
-    # to future proof this correctly we just handle this case here.
-    if not data:
-        metrics.incr(
-            "events.failed", tags={"reason": "cache", "stage": "post"}, skip_internal=False
-        )
-        return
+        # This covers two cases: where data is None because we did not manage
+        # to fetch it from the default cache or the empty dictionary was
+        # stored in the default cache.  The former happens if the event
+        # expired while being on the queue, the second happens on reprocessing
+        # if the raw event was deleted concurrently while we held on to
+        # it.  This causes the node store to delete the data and we end up
+        # fetching an empty dict.  We could in theory not invoke `save_event`
+        # in those cases but it's important that we always clean up the
+        # reprocessing reports correctly or they will screw up the UI.  So
+        # to future proof this correctly we just handle this case here.
+        if not data:
+            metrics.incr(
+                "events.failed", tags={"reason": "cache", "stage": "post"}, skip_internal=False
+            )
+            return
 
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
+        with configure_scope() as scope:
+            scope.set_tag("project", project_id)
 
-    event = None
-    try:
-        manager = EventManager(data)
-        # event.project.organization is populated after this statement.
-        event = manager.save(project_id, assume_normalized=True, cache_key=cache_key)
-
-        # This is where we can finally say that we have accepted the event.
-        track_outcome(
-            event.project.organization_id,
-            event.project.id,
-            key_id,
-            Outcome.ACCEPTED,
-            None,
-            timestamp,
-            event_id,
-        )
-
-    except HashDiscarded:
-        project = Project.objects.get_from_cache(id=project_id)
-        reason = FilterStatKeys.DISCARDED_HASH
-        project_key = None
+        event = None
         try:
-            if key_id is not None:
-                project_key = ProjectKey.objects.get_from_cache(id=key_id)
-        except ProjectKey.DoesNotExist:
-            pass
+            with metrics.timer("tasks.store.do_save_event.event_manager.save"):
+                manager = EventManager(data)
+                # event.project.organization is populated after this statement.
+                event = manager.save(project_id, assume_normalized=True, cache_key=cache_key)
 
-        quotas.refund(project, key=project_key, timestamp=start_time)
-        # There is no signal supposed to be sent for this particular
-        # outcome-reason combination. Prevent the outcome consumer from
-        # emitting it for now.
-        #
-        # XXX(markus): Revisit decision about signals once outcomes consumer is stable.
-        mark_signal_sent(project_id, event_id)
-        track_outcome(
-            project.organization_id,
-            project_id,
-            key_id,
-            Outcome.FILTERED,
-            reason,
-            timestamp,
-            event_id,
-        )
+            with metrics.timer("tasks.store.do_save_event.track_outcome"):
+                # This is where we can finally say that we have accepted the event.
+                track_outcome(
+                    event.project.organization_id,
+                    event.project.id,
+                    key_id,
+                    Outcome.ACCEPTED,
+                    None,
+                    timestamp,
+                    event_id,
+                )
 
-    finally:
-        if cache_key:
-            default_cache.delete(cache_key)
+        except HashDiscarded:
+            project = Project.objects.get_from_cache(id=project_id)
+            reason = FilterStatKeys.DISCARDED_HASH
+            project_key = None
+            try:
+                if key_id is not None:
+                    project_key = ProjectKey.objects.get_from_cache(id=key_id)
+            except ProjectKey.DoesNotExist:
+                pass
 
-            # For the unlikely case that we did not manage to persist the
-            # event we also delete the key always.
-            if event is None or features.has(
-                "organizations:event-attachments", event.project.organization, actor=None
-            ):
-                attachment_cache.delete(cache_key)
+            quotas.refund(project, key=project_key, timestamp=start_time)
+            # There is no signal supposed to be sent for this particular
+            # outcome-reason combination. Prevent the outcome consumer from
+            # emitting it for now.
+            #
+            # XXX(markus): Revisit decision about signals once outcomes consumer is stable.
+            mark_signal_sent(project_id, event_id)
+            track_outcome(
+                project.organization_id,
+                project_id,
+                key_id,
+                Outcome.FILTERED,
+                reason,
+                timestamp,
+                event_id,
+            )
 
-        if start_time:
-            metrics.timing("events.time-to-process", time() - start_time, instance=data["platform"])
+        finally:
+            if cache_key:
+                with metrics.timer("tasks.store.do_save_event.delete_cache"):
+                    default_cache.delete(cache_key)
+
+                with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
+                    # For the unlikely case that we did not manage to persist the
+                    # event we also delete the key always.
+                    if event is None or features.has(
+                        "organizations:event-attachments", event.project.organization, actor=None
+                    ):
+                        attachment_cache.delete(cache_key)
+
+            if start_time:
+                metrics.timing(
+                    "events.time-to-process", time() - start_time, instance=data["platform"]
+                )
 
 
 @instrumented_task(

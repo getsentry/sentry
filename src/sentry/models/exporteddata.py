@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 from enum import Enum
-
+from datetime import timedelta
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -15,6 +15,9 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+
+# Arbitrary, subject to change
+DEFAULT_EXPIRATION = timedelta(weeks=4)
 
 
 class ExportStatus(six.binary_type, Enum):
@@ -33,12 +36,11 @@ class ExportedData(Model):
 
     organization = FlexibleForeignKey("sentry.Organization")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
+    file = FlexibleForeignKey("sentry.File", null=True, db_constraint=False)
     date_added = models.DateTimeField(default=timezone.now)
     date_finished = models.DateTimeField(null=True)
     date_expired = models.DateTimeField(null=True)
-    storage_url = models.URLField(null=True)
     query_type = BoundedPositiveIntegerField(choices=ExportQueryType.as_choices())
-    # TODO(Leander): Define a jsonschema to enforce query shape
     query_info = JSONField()
 
     @property
@@ -50,8 +52,14 @@ class ExportedData(Model):
         else:
             return ExportStatus.Valid
 
+    def complete_upload(self, file, expiration=DEFAULT_EXPIRATION):
+        current_time = timezone.now()
+        expire_time = current_time + DEFAULT_EXPIRATION
+        self.update(file=file, date_finished=current_time, date_expired=expire_time)
+        # TODO(Leander): Implement email notification
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_exporteddata"
 
-    __repr__ = sane_repr("data_id")
+    __repr__ = sane_repr("query_type", "query_info")

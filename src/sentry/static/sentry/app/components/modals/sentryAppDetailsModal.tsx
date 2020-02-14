@@ -10,40 +10,24 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import HookStore from 'app/stores/hookStore';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import InlineSvg from 'app/components/inlineSvg';
 import Tag from 'app/views/settings/components/tag';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
 import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
-import {Hooks} from 'app/types/hooks';
 import {IntegrationFeature} from 'app/types';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {
+  trackIntegrationEvent,
+  getIntegrationFeatureGate,
+} from 'app/utils/integrationUtil';
 
 type Props = {
   view?: 'integrations_page' | 'external_install';
   closeModal: () => void;
 } & SentryAppDetailsModalOptions &
   AsyncComponent['props'];
-
-const defaultFeatureGateComponents = {
-  IntegrationFeatures: p =>
-    p.children({
-      disabled: false,
-      disabledReason: null,
-      ungatedFeatures: p.features,
-      gatedFeatureGroups: [],
-    }),
-  FeatureList: p => (
-    <ul>
-      {p.features.map((f, i) => (
-        <li key={i}>{f.description}</li>
-      ))}
-    </ul>
-  ),
-} as ReturnType<Hooks['integrations:feature-gates']>;
 
 type State = {
   featureData: IntegrationFeature[];
@@ -187,9 +171,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
       ),
     }));
 
-    const defaultHook = () => defaultFeatureGateComponents;
-    const featureHook = HookStore.get('integrations:feature-gates')[0] || defaultHook;
-    const {FeatureList, IntegrationFeatures} = featureHook();
+    const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
 
     const overview = sentryApp.overview || '';
     const featureProps = {organization, features};

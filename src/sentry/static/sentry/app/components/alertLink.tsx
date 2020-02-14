@@ -13,15 +13,17 @@ type PropsWithHref = {href: string};
 type PropsWithTo = {to: LocationDescriptor};
 type OtherProps = {
   icon?: string;
-  size: Size;
-  priority: Priority;
   onClick?: (e: React.MouseEvent) => void;
 };
+type DefaultProps = {
+  size: Size;
+  priority: Priority;
+};
 
-type Props = (PropsWithHref | PropsWithTo) & OtherProps;
+type Props = (PropsWithHref | PropsWithTo) & OtherProps & DefaultProps;
 
 export default class AlertLink extends React.Component<Props> {
-  static defaultProps: Partial<Props> = {
+  static defaultProps: DefaultProps = {
     priority: 'warning',
     size: 'normal',
   };

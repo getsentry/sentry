@@ -11,16 +11,19 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import space from 'app/styles/space';
 
-type Props = {
+type DefaultProps = {
+  showProvider?: boolean;
+};
+
+type Props = DefaultProps & {
   repository: Repository;
   api: Client;
   orgId: string;
-  showProvider?: boolean;
   onRepositoryChange?: (data: {id: string; status: RepositoryStatus}) => void;
 };
 
 class RepositoryRow extends React.Component<Props> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     showProvider: false,
   };
 

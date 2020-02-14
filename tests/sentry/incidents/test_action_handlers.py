@@ -6,6 +6,7 @@ import responses
 import six
 from django.core import mail
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time
 from six.moves.urllib.parse import parse_qs
@@ -72,7 +73,9 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=six.text_type(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == set([(new_user.id, new_user.email)])
+        assert set(handler.get_targets()) == set(
+            [(self.user.id, self.user.email), (new_user.id, new_user.email)]
+        )
 
 
 @freeze_time()
@@ -85,7 +88,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         expected = {
             "link": absolute_uri(
                 reverse(
-                    "sentry-incident",
+                    "sentry-metric-alert",
                     kwargs={
                         "organization_slug": incident.organization.slug,
                         "incident_id": incident.identifier,
@@ -97,6 +100,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                     "sentry-alert-rule",
                     kwargs={
                         "organization_slug": incident.organization.slug,
+                        "project_slug": self.project.slug,
                         "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
                     },
                 )
@@ -107,7 +111,14 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             ],
             "query": action.alert_rule_trigger.alert_rule.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
-            "status": handler.status_display[status],
+            "status": handler.incident_status[IncidentStatus(incident.status)],
+            "environment": "All",
+            "is_critical": False,
+            "is_warning": False,
+            "threshold_direction_string": "<",
+            "time_window": "10 minutes",
+            "triggered_at": timezone.now(),
+            "unsubscribe_link": None,
         }
         assert expected == handler.generate_email_context(status)
 
@@ -118,13 +129,13 @@ class EmailActionHandlerFireTest(TestCase):
         action = self.create_alert_rule_trigger_action(
             target_identifier=six.text_type(self.user.id)
         )
-        incident = self.create_incident()
+        incident = self.create_incident(status=IncidentStatus.CRITICAL.value)
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
             handler.fire()
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject.startswith("Incident Alert Rule Fired")
+        assert out.subject == u"[Critical] {} - {}".format(incident.title, self.project.slug)
 
 
 @freeze_time()
@@ -136,10 +147,11 @@ class EmailActionHandlerResolveTest(TestCase):
         incident = self.create_incident()
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
+            incident.status = IncidentStatus.CLOSED.value
             handler.resolve()
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject.startswith("Incident Alert Rule Resolved")
+        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
 
 
 @freeze_time()

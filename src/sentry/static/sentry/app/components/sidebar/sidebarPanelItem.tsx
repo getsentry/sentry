@@ -15,14 +15,7 @@ type Props = {
   cta?: string;
 };
 
-const SidebarPanelItem: React.FC<Props> = ({
-  hasSeen,
-  title,
-  image,
-  message,
-  link,
-  cta,
-}) => (
+const SidebarPanelItem = ({hasSeen, title, image, message, link, cta}: Props) => (
   <SidebarPanelItemRoot>
     {title && <Title hasSeen={hasSeen}>{title}</Title>}
     {image && (

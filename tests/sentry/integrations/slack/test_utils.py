@@ -58,23 +58,23 @@ class GetChannelIdTest(TestCase):
             body=json.dumps({"ok": "true", result_name: channels}),
         )
 
-    def run_valid_test(self, channel, expected_prefix, expected_id):
-        assert (expected_prefix, expected_id) == get_channel_id(
+    def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
+        assert (expected_prefix, expected_id, timed_out) == get_channel_id(
             self.organization, self.integration.id, channel
         )
 
     def test_valid_channel_selected(self):
-        self.run_valid_test("#my-channel", CHANNEL_PREFIX, "m-c")
+        self.run_valid_test("#my-channel", CHANNEL_PREFIX, "m-c", False)
 
     def test_valid_private_channel_selected(self):
-        self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c")
+        self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
 
     def test_valid_member_selected(self):
-        self.run_valid_test("@morty", MEMBER_PREFIX, "m")
+        self.run_valid_test("@morty", MEMBER_PREFIX, "m", False)
 
     def test_invalid_channel_selected(self):
-        assert get_channel_id(self.organization, self.integration.id, "#fake-channel") is None
-        assert get_channel_id(self.organization, self.integration.id, "@fake-user") is None
+        assert get_channel_id(self.organization, self.integration.id, "#fake-channel")[1] is None
+        assert get_channel_id(self.organization, self.integration.id, "@fake-user")[1] is None
 
 
 class BuildIncidentAttachmentTest(TestCase):
@@ -88,7 +88,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "title": title,
             "title_link": absolute_uri(
                 reverse(
-                    "sentry-incident",
+                    "sentry-metric-alert",
                     kwargs={
                         "organization_slug": incident.organization.slug,
                         "incident_id": incident.identifier,

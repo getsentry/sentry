@@ -6,10 +6,9 @@ import SentryTypes from 'app/sentryTypes';
 import {openHelpSearchModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
-import InlineSvg from 'app/components/inlineSvg';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import Hook from 'app/components/hook';
-
+import {IconQuestion} from 'app/icons/iconQuestion';
 import SidebarMenuItem from './sidebarMenuItem';
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 
@@ -40,7 +39,7 @@ class SidebarHelp extends React.Component {
                   orientation={this.props.orientation}
                   collapsed={this.props.collapsed}
                   hasPanel={false}
-                  icon={<InlineSvg src="icon-circle-question" />}
+                  icon={<IconQuestion size="md" />}
                   label={t('Help')}
                   id="help"
                 />

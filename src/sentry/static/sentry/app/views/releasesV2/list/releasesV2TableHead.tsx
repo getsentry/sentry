@@ -11,7 +11,7 @@ import {
   ChartColumn,
 } from 'app/views/releasesV2/list/commonLayout';
 
-const ReleasesV2TableHead: React.FC = () => {
+const ReleasesV2TableHead = () => {
   return (
     <Layout>
       <Column />

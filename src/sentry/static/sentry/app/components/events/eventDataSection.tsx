@@ -18,7 +18,7 @@ type Props = {
   title: React.ReactText;
   type: string;
   toggleRaw?: (enable: boolean) => void;
-} & Partial<DefaultProps>;
+} & DefaultProps;
 
 class EventDataSection extends React.Component<Props> {
   static propTypes = {

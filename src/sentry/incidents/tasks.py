@@ -22,7 +22,6 @@ from sentry.snuba.query_subscription_consumer import register_subscriber
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
-from sentry.utils.linksign import generate_signed_link
 from sentry.utils import metrics
 
 INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
@@ -87,7 +86,7 @@ def build_activity_context(activity, user):
         "action": action,
         "link": absolute_uri(
             reverse(
-                "sentry-incident",
+                "sentry-metric-alert",
                 kwargs={
                     "organization_slug": incident.organization.slug,
                     "incident_id": incident.identifier,
@@ -97,9 +96,6 @@ def build_activity_context(activity, user):
         + "?"
         + urlencode({"referrer": "incident_activity_email"}),
         "comment": activity.comment,
-        "unsubscribe_link": generate_signed_link(
-            user, "sentry-account-email-unsubscribe-incident", kwargs={"incident_id": incident.id}
-        ),
     }
 
 

@@ -129,6 +129,11 @@ class Release(Model):
 
     @classmethod
     def get_or_create(cls, project, version, date_added=None):
+        with metrics.timer("models.release.get_or_create") as metric_tags:
+            return cls._get_or_create_impl(project, version, date_added, metric_tags)
+
+    @classmethod
+    def _get_or_create_impl(cls, project, version, date_added, metric_tags):
         from sentry.models import Project
 
         if date_added is None:
@@ -137,6 +142,7 @@ class Release(Model):
         cache_key = cls.get_cache_key(project.organization_id, version)
 
         release = cache.get(cache_key)
+
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
@@ -148,11 +154,13 @@ class Release(Model):
                     projects=project,
                 )
             )
+
             if releases:
                 try:
                     release = [r for r in releases if r.version == project_version][0]
                 except IndexError:
                     release = releases[0]
+                metric_tags["created"] = "false"
             else:
                 try:
                     with transaction.atomic():
@@ -162,10 +170,14 @@ class Release(Model):
                             date_added=date_added,
                             total_deploys=0,
                         )
+
+                    metric_tags["created"] = "true"
                 except IntegrityError:
+                    metric_tags["created"] = "false"
                     release = cls.objects.get(
                         organization_id=project.organization_id, version=version
                     )
+
                 release.add_project(project)
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
@@ -174,6 +186,9 @@ class Release(Model):
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
+            metric_tags["cache_hit"] = "false"
+        else:
+            metric_tags["cache_hit"] = "true"
 
         return release
 

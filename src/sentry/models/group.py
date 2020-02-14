@@ -218,7 +218,7 @@ class GroupManager(BaseManager):
             filter=eventstore.Filter(
                 event_ids=event_ids, project_ids=project_ids, conditions=conditions
             ),
-            limit=len(project_ids),
+            limit=max(len(project_ids), 100),
             referrer="Group.filter_by_event_id",
         )
 
@@ -336,6 +336,9 @@ class Group(Model):
 
     def is_ignored(self):
         return self.get_status() == GroupStatus.IGNORED
+
+    def is_unresolved(self):
+        return self.get_status() == GroupStatus.UNRESOLVED
 
     # TODO(dcramer): remove in 9.0 / after plugins no long ref
     is_muted = is_ignored

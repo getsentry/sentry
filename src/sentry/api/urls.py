@@ -166,6 +166,7 @@ from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
+from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
@@ -202,6 +203,7 @@ from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
+from .endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
 from .endpoints.project_search_details import ProjectSearchDetailsEndpoint
@@ -1091,6 +1093,11 @@ urlpatterns = [
         r"^projects/",
         include(
             [
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/rule-conditions/$",
+                    ProjectAgnosticRuleConditionsEndpoint.as_view(),
+                    name="sentry-api-0-project-agnostic-rule-conditions",
+                ),
                 url(r"^$", ProjectIndexEndpoint.as_view(), name="sentry-api-0-projects"),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$",
@@ -1312,6 +1319,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/$",
                     ProjectRuleDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-rule-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
+                    ProjectRuleTaskDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-task-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/$",

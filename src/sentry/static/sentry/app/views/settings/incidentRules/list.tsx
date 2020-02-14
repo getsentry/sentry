@@ -11,6 +11,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconEdit} from 'app/icons/iconEdit';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 
@@ -94,12 +95,9 @@ class IncidentRulesList extends AsyncView<Props, State> {
                     </Thresholds>
 
                     <Actions>
-                      <Button
-                        to={ruleLink}
-                        size="small"
-                        icon="icon-edit"
-                        aria-label={t('Edit Rule')}
-                      >
+                      <Button to={ruleLink} size="small" aria-label={t('Edit Rule')}>
+                        <IconEdit size="xs" />
+                        &nbsp;
                         {t('Edit')}
                       </Button>
 
@@ -122,7 +120,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
             })}
 
           {!isLoading && isEmpty && (
-            <EmptyMessage>{t('No Incident rules have been created yet.')}</EmptyMessage>
+            <EmptyMessage>{t('No Alert Rules have been created yet.')}</EmptyMessage>
           )}
         </PanelBody>
       </Panel>

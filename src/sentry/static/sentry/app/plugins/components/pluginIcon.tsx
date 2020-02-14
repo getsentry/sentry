@@ -80,7 +80,7 @@ export const ICON_PATHS = {
 
 type Props = {
   pluginId?: string;
-  size: number;
+  size?: number;
 };
 
 const PluginIcon = styled('div')<Props>`
@@ -106,7 +106,7 @@ PluginIcon.defaultProps = {
 
 PluginIcon.propTypes = {
   pluginId: PropTypes.string,
-  size: PropTypes.number.isRequired,
+  size: PropTypes.number,
 };
 
 export default PluginIcon;

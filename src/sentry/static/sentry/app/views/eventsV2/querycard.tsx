@@ -3,7 +3,8 @@ import {browserHistory} from 'react-router';
 
 import styled from '@emotion/styled';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import InlineSvg from 'app/components/inlineSvg';
+import theme from 'app/utils/theme';
+import {IconBookmark} from 'app/icons/iconBookmark';
 import Link from 'app/components/links/link';
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -45,11 +46,17 @@ class QueryCard extends React.PureComponent<Props> {
         to={this.props.to}
       >
         <QueryCardHeader>
-          <StyledTitle>{title}</StyledTitle>
+          <StyledTitle>
+            {title}
+            {starred && (
+              <StyledIconBookmark
+                color={theme.yellow}
+                data-test-id="is-saved-query"
+                solid
+              />
+            )}
+          </StyledTitle>
           <StyledQueryDetail>{queryDetail}</StyledQueryDetail>
-          {starred && (
-            <StyledInlineSvg data-test-id="is-saved-query" src="icon-star-small-filled" />
-          )}
         </QueryCardHeader>
         <QueryCardBody>{renderGraph()}</QueryCardBody>
         <QueryCardFooter>
@@ -96,14 +103,13 @@ const QueryCardHeader = styled('div')`
   position: relative;
   padding: ${space(1.5)} ${space(2)};
   overflow: hidden;
-  min-height: 62px;
   line-height: 1.4;
+  flex-grow: 1;
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
+const StyledIconBookmark = styled(IconBookmark)`
   position: absolute;
-  color: ${p => p.theme.yellow};
-  top: ${space(2)};
+  top: 14px;
   right: ${space(2)};
 `;
 
@@ -127,7 +133,7 @@ const StyledQueryDetail = styled('div')`
 `;
 
 const QueryCardBody = styled('div')`
-  background: ${p => p.theme.offWhiteLight};
+  background: ${p => p.theme.offWhite};
   max-height: 100px;
   height: 100%;
   overflow: hidden;
@@ -143,9 +149,9 @@ const QueryCardFooter = styled('div')`
 
 const StyledCreator = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  ${overflowEllipsis};
   display: flex;
   align-items: center;
+  ${overflowEllipsis};
 `;
 
 export default QueryCard;

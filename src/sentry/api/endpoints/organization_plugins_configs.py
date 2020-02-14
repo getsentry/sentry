@@ -105,8 +105,11 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
                         "projectName": project.name,  # TODO(steve): do we need?
                         "enabled": plugin_info["enabled"],
                         "configured": plugin_info["configured"],  # TODO(steve): do we need?
+                        "projectPlatform": project.platform,
                     }
                 )
+            # sort by the projectSlug
+            serialized_plugin["projectList"].sort(key=lambda x: x["projectSlug"])
             serialized_plugins.append(serialized_plugin)
 
         return Response(serialized_plugins)

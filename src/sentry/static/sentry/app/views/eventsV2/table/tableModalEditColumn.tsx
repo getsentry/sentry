@@ -6,7 +6,8 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import {DISCOVER2_DOCS_URL} from 'app/constants';
 import {Form, SelectField} from 'app/components/forms';
-import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/links/link';
+import {IconChevron, IconDocs} from 'app/icons';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
 
@@ -193,15 +194,10 @@ class TableModalEditColumnBodyForm extends React.Component<
   }
 }
 
-// TODO(leedongwei): Check with Mimi to get the link for DiscoverV2 docs
 const TableModalEditColumnFooter = () => (
   <FooterContent href={`${DISCOVER2_DOCS_URL}query-builder/`} target="_blank">
-    <div>
-      <InlineSvg src="icon-docs" /> {t('Read the docs')}
-    </div>
-    <div>
-      <InlineSvg src="icon-chevron-right" />
-    </div>
+    <StyledIconDocs /> {t('Read the docs')}
+    <StyledIconChevron direction="right" size="xs" />
   </FooterContent>
 );
 
@@ -293,30 +289,17 @@ const FormRow = styled('div')`
   grid-column-gap: ${space(2)};
 `;
 
-const FooterContent = styled('a')`
+const FooterContent = styled(Link)`
   display: flex;
+  align-items: center;
+  flex-grow: 1;
+  color: inherit;
+`;
 
-  /* HACK(leedongwei): Padding and margin values from "shared-components.less"
-  The .modal-footer class has a fairly big padding that makes it difficult
-  to click on the docs link. This hack expands the <a> element to fill up the
-  whitespace and makes for better UX */
-  width: calc(100% + 60px);
-  padding: 20px 30px;
-  margin: -20px -30px;
+const StyledIconDocs = styled(IconDocs)`
+  margin-right: ${space(1)};
+`;
 
-  > div {
-    display: flex;
-    align-items: center;
-  }
-
-  > div:first-child {
-    flex-grow: 1;
-
-    svg {
-      margin-right: 10px;
-    }
-  }
-  > div:last-child {
-    flex-grow: 0;
-  }
+const StyledIconChevron = styled(IconChevron)`
+  margin-left: auto;
 `;

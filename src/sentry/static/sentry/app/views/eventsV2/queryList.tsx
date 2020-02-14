@@ -10,10 +10,10 @@ import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
-import InlineSvg from 'app/components/inlineSvg';
 import DropdownMenu from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
+import {IconEllipsis} from 'app/icons/iconEllipsis';
 import withApi from 'app/utils/withApi';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 
@@ -260,29 +260,26 @@ class ContextMenu extends React.Component {
       <DropdownMenu>
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
           const topLevelCx = classNames('dropdown', {
-            'pull-right': true,
             'anchor-right': true,
             open: isOpen,
           });
 
           return (
-            <span
+            <MoreOptions
               {...getRootProps({
                 className: topLevelCx,
               })}
             >
-              <ContextMenuButton
+              <IconEllipsis
                 data-test-id="context-menu"
+                size="md"
                 {...(getActorProps({
                   onClick: (event: MouseEvent) => {
                     event.stopPropagation();
                     event.preventDefault();
                   },
                 }) as any)}
-              >
-                <InlineSvg src="icon-ellipsis-filled" />
-              </ContextMenuButton>
-
+              />
               {isOpen && (
                 <ul
                   {...(getMenuProps({}) as any)}
@@ -291,7 +288,7 @@ class ContextMenu extends React.Component {
                   {children}
                 </ul>
               )}
-            </span>
+            </MoreOptions>
           );
         }}
       </DropdownMenu>
@@ -299,15 +296,8 @@ class ContextMenu extends React.Component {
   }
 }
 
-const ContextMenuButton = styled('div')`
-  border-radius: 3px;
-  background-color: ${p => p.theme.offWhite};
-  padding-left: 8px;
-  padding-right: 8px;
-
-  &:hover {
-    background-color: ${p => p.theme.offWhite2};
-  }
+const MoreOptions = styled('span')`
+  display: flex;
 `;
 
 export default withApi(QueryList);

@@ -11,7 +11,7 @@ type Props = {
   onShowAllImages: () => void;
 };
 
-const ImageForBar: React.FC<Props> = ({frame, onShowAllImages}) => {
+const ImageForBar = ({frame, onShowAllImages}: Props) => {
   return (
     <Wrapper>
       <MatchedFunctionWrapper>

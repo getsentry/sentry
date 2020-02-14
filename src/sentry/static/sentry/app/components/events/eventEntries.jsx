@@ -17,10 +17,10 @@ import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
 import EventErrors from 'app/components/events/errors';
-import EventExtraData from 'app/components/events/extraData';
+import EventExtraData from 'app/components/events/eventExtraData/eventExtraData';
 import EventGroupingInfo from 'app/components/events/groupingInfo';
 import EventPackageData from 'app/components/events/packageData';
-import EventSdk from 'app/components/events/sdk';
+import EventSdk from 'app/components/events/eventSdk';
 import EventSdkUpdates from 'app/components/events/sdkUpdates';
 import EventTags from 'app/components/events/eventTags';
 import EventUserFeedback from 'app/components/events/userFeedback';
@@ -28,11 +28,12 @@ import ExceptionInterface from 'app/components/events/interfaces/exception';
 import GenericInterface from 'app/components/events/interfaces/generic';
 import MessageInterface from 'app/components/events/interfaces/message';
 import RequestInterface from 'app/components/events/interfaces/request';
+import RRWebIntegration from 'app/components/events/rrwebIntegration';
 import SentryTypes from 'app/sentryTypes';
 import SpansInterface from 'app/components/events/interfaces/spans';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
-import ThreadsInterface from 'app/components/events/interfaces/threads';
+import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -168,9 +169,6 @@ class EventEntries extends React.Component {
 
     const features = organization ? new Set(organization.features) : new Set();
 
-    const hasContext =
-      event && (!objectIsEmpty(event.user) || !objectIsEmpty(event.contexts));
-
     if (!event) {
       return (
         <div style={{padding: '15px 30px'}}>
@@ -178,6 +176,8 @@ class EventEntries extends React.Component {
         </div>
       );
     }
+    const hasContext = !objectIsEmpty(event.user) || !objectIsEmpty(event.contexts);
+    const hasErrors = !objectIsEmpty(event.errors);
 
     return (
       <div className="entries">
@@ -193,6 +193,7 @@ class EventEntries extends React.Component {
             report={event.userReport}
             orgId={orgId}
             issueId={group.id}
+            includeBorder={!hasErrors}
           />
         )}
         {hasContext && <EventContextSummary event={event} />}
@@ -204,6 +205,9 @@ class EventEntries extends React.Component {
           projectId={project.slug}
           location={location}
         />
+        {!isShare && features.has('event-attachments') && (
+          <RRWebIntegration event={event} orgId={orgId} projectId={project.slug} />
+        )}
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
         {!objectIsEmpty(event.context) && <EventExtraData event={event} />}
@@ -235,6 +239,6 @@ const StyledEventUserFeedback = styled(EventUserFeedback)`
   box-shadow: none;
   padding: 20px 30px 0 40px;
   border: 0;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.borderLight};` : '')}
   margin: 0;
 `;

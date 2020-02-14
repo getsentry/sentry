@@ -16,6 +16,7 @@ from sentry.api.event_search import get_filter
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleEnvironment,
     AlertRuleExcludedProjects,
     AlertRuleQuerySubscription,
     AlertRuleStatus,
@@ -36,6 +37,7 @@ from sentry.incidents.models import (
 )
 from sentry.snuba.discover import zerofill
 from sentry.models import Integration, Project
+from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -46,10 +48,6 @@ from sentry.snuba.subscriptions import (
 from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
-
-
-class StatusAlreadyChangedError(Exception):
-    pass
 
 
 class AlreadyDeletedError(Exception):
@@ -240,7 +238,7 @@ def update_incident_status(incident, status, user=None, comment=None):
     """
     if incident.status == status.value:
         # If the status isn't actually changing just no-op.
-        raise StatusAlreadyChangedError()
+        return incident
     with transaction.atomic():
         create_incident_activity(
             incident,
@@ -435,16 +433,16 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
         if project_ids:
             params["project_id"] = project_ids
 
-        filter = get_filter(incident.query, params)
-
-        query_args_list.append(
-            {
-                "start": filter.start,
-                "end": filter.end,
-                "conditions": filter.conditions,
-                "filter_keys": filter.filter_keys,
-            }
-        )
+        snuba_filter = get_filter(incident.query, params)
+        snuba_args = {
+            "start": snuba_filter.start,
+            "end": snuba_filter.end,
+            "conditions": snuba_filter.conditions,
+            "filter_keys": snuba_filter.filter_keys,
+            "having": [],
+        }
+        snuba_args["conditions"] = resolve_discover_aliases(snuba_args)[0]["conditions"]
+        query_args_list.append(snuba_args)
 
     return query_args_list
 
@@ -481,6 +479,10 @@ def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
         SnubaTSResult(result, snuba_params.start, snuba_params.end, snuba_params.rollup)
         for snuba_params, result in zip(snuba_params_list, results)
     ]
+
+
+def get_alert_rule_environment_names(alert_rule):
+    return [x.environment.name for x in AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)]
 
 
 def get_incident_aggregates(incident):
@@ -572,6 +574,7 @@ def create_alert_rule(
     aggregation,
     time_window,
     threshold_period,
+    environment=None,
     include_all_projects=False,
     excluded_projects=None,
     triggers=None,
@@ -587,6 +590,7 @@ def create_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: A QueryAggregation to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes
+    :param environment: List of environments that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -614,6 +618,7 @@ def create_alert_rule(
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
         )
+
         if include_all_projects:
             excluded_projects = excluded_projects if excluded_projects else []
             projects = Project.objects.filter(organization=organization).exclude(
@@ -625,11 +630,15 @@ def create_alert_rule(
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
-        subscribe_projects_to_alert_rule(alert_rule, projects)
+        if environment:
+            for e in environment:
+                AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=e)
 
         if triggers:
             for trigger_data in triggers:
                 create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+
+        subscribe_projects_to_alert_rule(alert_rule, projects)
 
     return alert_rule
 
@@ -641,6 +650,7 @@ def update_alert_rule(
     query=None,
     aggregation=None,
     time_window=None,
+    environment=None,
     threshold_period=None,
     include_all_projects=None,
     excluded_projects=None,
@@ -657,6 +667,7 @@ def update_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: An AlertRuleAggregation that we want to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes.
+    :param environment: List of environments that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -757,18 +768,15 @@ def update_alert_rule(
             # values
             existing_subs = [sub for sub in existing_subs if sub.id]
 
-        if existing_subs and (
-            query is not None or aggregation is not None or time_window is not None
-        ):
-            # If updating any subscription details, update related Snuba subscriptions
-            # too
-            bulk_update_snuba_subscriptions(
-                existing_subs,
-                alert_rule.query,
-                QueryAggregations(alert_rule.aggregation),
-                timedelta(minutes=alert_rule.time_window),
-                timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
-            )
+        if environment:
+            # Delete rows we don't have present in the updated data.
+            AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).exclude(
+                environment__in=environment
+            ).delete()
+            for e in environment:
+                AlertRuleEnvironment.objects.get_or_create(alert_rule=alert_rule, environment=e)
+        else:
+            AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).delete()
 
         if triggers is not None:
             # Delete triggers we don't have present in the updated data.
@@ -792,6 +800,20 @@ def update_alert_rule(
                         "This trigger label is already in use for this alert rule"
                     )
 
+        if existing_subs and (
+            query is not None or aggregation is not None or time_window is not None
+        ):
+            # If updating any subscription details, update related Snuba subscriptions
+            # too
+            bulk_update_snuba_subscriptions(
+                existing_subs,
+                alert_rule.query,
+                QueryAggregations(alert_rule.aggregation),
+                timedelta(minutes=alert_rule.time_window),
+                timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
+                get_alert_rule_environment_names(alert_rule),
+            )
+
     return alert_rule
 
 
@@ -808,6 +830,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
         QueryAggregations(alert_rule.aggregation),
         timedelta(minutes=alert_rule.time_window),
         timedelta(minutes=alert_rule.resolution),
+        get_alert_rule_environment_names(alert_rule),
     )
     subscription_links = [
         AlertRuleQuerySubscription(query_subscription=subscription, alert_rule=alert_rule)
@@ -1049,12 +1072,10 @@ def create_alert_rule_trigger_action(
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Slack action must specify channel")
 
-        channel_result = get_channel_id(
+        prefix, channel_id, _ = get_channel_id(
             trigger.alert_rule.organization, integration.id, target_identifier
         )
-        if channel_result is not None:
-            channel_id = channel_result[1]
-        else:
+        if channel_id is None:
             raise InvalidTriggerActionError(
                 "Could not find channel %s. Channel may not exist, or Sentry may not "
                 "have been granted permission to access it" % target_identifier
@@ -1101,11 +1122,11 @@ def update_alert_rule_trigger_action(
             from sentry.integrations.slack.utils import get_channel_id
 
             integration = updated_fields.get("integration", trigger_action.integration)
-            channel_id = get_channel_id(
+            prefix, channel_id, _ = get_channel_id(
                 trigger_action.alert_rule_trigger.alert_rule.organization,
                 integration.id,
                 target_identifier,
-            )[1]
+            )
             # Use the channel name for display
             updated_fields["target_display"] = target_identifier
             updated_fields["target_identifier"] = channel_id

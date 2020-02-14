@@ -22,14 +22,14 @@ type Props = {
   onToggle?: (isBookmarked: boolean) => void;
 };
 
-const BookmarkStar: React.FC<Props> = ({
+const BookmarkStar = ({
   api,
   isBookmarked: isBookmarkedProp,
   className,
   organization,
   project,
   onToggle,
-}) => {
+}: Props) => {
   const isBookmarked = defined(isBookmarkedProp)
     ? isBookmarkedProp
     : project.isBookmarked;

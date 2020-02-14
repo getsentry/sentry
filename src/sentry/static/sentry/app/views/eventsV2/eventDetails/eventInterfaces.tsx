@@ -8,7 +8,7 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
-import EventExtraData from 'app/components/events/extraData';
+import EventExtraData from 'app/components/events/eventExtraData/eventExtraData';
 import EventPackageData from 'app/components/events/packageData';
 import NavTabs from 'app/components/navTabs';
 import {objectIsEmpty, toTitleCase} from 'app/utils';

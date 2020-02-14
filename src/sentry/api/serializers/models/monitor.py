@@ -3,10 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Monitor, Project, ScheduleType
-
-
-SCHEDULE_TYPES = dict(ScheduleType.as_choices())
+from sentry.models import Monitor, Project
 
 
 @register(Monitor)
@@ -28,7 +25,7 @@ class MonitorSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         config = obj.config.copy()
         if "schedule_type" in config:
-            config["schedule_type"] = SCHEDULE_TYPES.get(config["schedule_type"], "unknown")
+            config["schedule_type"] = obj.get_schedule_type_display()
         return {
             "id": six.text_type(obj.guid),
             "status": obj.get_status_display(),

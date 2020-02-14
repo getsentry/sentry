@@ -2,7 +2,11 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
 import styled from '@emotion/styled';
-import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
+import {
+  AlertRuleAggregations,
+  AlertRuleThresholdType,
+  Trigger,
+} from 'app/views/settings/incidentRules/types';
 import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {defined} from 'app/utils';
@@ -15,8 +19,9 @@ import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
-import Projects from 'app/utils/projects';
 import SeenByList from 'app/components/seenByList';
+import {IconEdit} from 'app/icons/iconEdit';
+import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -42,15 +47,18 @@ export default class DetailsBody extends React.Component<Props> {
     const discoverQuery: NewQuery = {
       id: undefined,
       name: (incident && incident.title) || '',
-      fields: ['title', 'user', 'last_seen'],
+      fields: ['issue', 'count(id)', 'count_unique(user.id)'],
       widths: ['400', '200', '-1'],
-      orderby: '-last_seen',
+      orderby:
+        incident.alertRule?.aggregation === AlertRuleAggregations.UNIQUE_USERS
+          ? '-count_unique_user_id'
+          : '-count_id',
       query: (incident && incident.query) || '',
       projects: projects
         .filter(({slug}) => incident.projects.includes(slug))
         .map(({id}) => Number(id)),
       version: 2 as const,
-      range: '24h',
+      range: `${incident.alertRule.timeWindow}m`,
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
@@ -64,11 +72,13 @@ export default class DetailsBody extends React.Component<Props> {
     trigger: Trigger | undefined,
     key: 'alertThreshold' | 'resolveThreshold'
   ) {
-    if (!trigger || !trigger[key]) {
+    if (!trigger || typeof trigger[key] !== 'number') {
       return '';
     }
 
-    const direction = trigger.thresholdType === AlertRuleThresholdType.ABOVE ? '>' : '<';
+    const isAbove = trigger.thresholdType === AlertRuleThresholdType.ABOVE;
+    const isAlert = key === 'alertThreshold';
+    const direction = isAbove === isAlert ? '>' : '<';
 
     return `${direction} ${trigger[key]}`;
   }
@@ -90,7 +100,7 @@ export default class DetailsBody extends React.Component<Props> {
           {incident && getDisplayForAlertRuleAggregation(incident.alertRule?.aggregation)}
         </span>
 
-        <span>{t('Critical Threshold')}</span>
+        <span>{t('Critical Trigger')}</span>
         <span>{this.getThresholdText(criticalTrigger, 'alertThreshold')}</span>
 
         {defined(criticalTrigger?.resolveThreshold) && (
@@ -102,7 +112,7 @@ export default class DetailsBody extends React.Component<Props> {
 
         {defined(warningTrigger) && (
           <React.Fragment>
-            <span>{t('Warning Threshold')}</span>
+            <span>{t('Warning Trigger')}</span>
             <span>{this.getThresholdText(warningTrigger, 'alertThreshold')}</span>
 
             {defined(warningTrigger?.resolveThreshold) && (
@@ -172,8 +182,8 @@ export default class DetailsBody extends React.Component<Props> {
                         pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts-v2/metric-rules/${incident?.alertRule.id}/`,
                       }}
                     >
-                      <InlineSvg src="icon-edit" size="14px" />
-                      {t('Edit alert rule')}
+                      <IconEdit />
+                      {t('View Rule')}
                     </SideHeaderLink>
                   </SideHeader>
 

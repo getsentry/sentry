@@ -17,6 +17,7 @@ import LoadingPanel from '../loadingPanel';
 type RenderProps = {
   loading: boolean;
   reloading: boolean;
+  errored: boolean;
 
   // timeseries data
   timeseriesData?: Series[];
@@ -28,23 +29,24 @@ type RenderProps = {
   timeAggregatedData?: Series | {};
 };
 
+type DefaultProps = {
+  period: any;
+  start: any;
+  end: any;
+  interval: string;
+  limit: number;
+  query: string;
+  includePrevious: boolean;
+  includeTransformedData: boolean;
+};
+
 type EventsRequestPartialProps = {
   api: Client;
   organization: Organization;
-
   project?: number[];
   environment?: string[];
-  period?: string;
-  start?: any;
-  end?: any;
-  interval?: string;
   field?: string[];
   referenceEvent?: string;
-
-  limit?: number;
-  query?: string;
-  includePrevious?: boolean;
-  includeTransformedData?: boolean;
   loading?: boolean;
   showLoading?: boolean;
   yAxis?: string;
@@ -55,10 +57,11 @@ type TimeAggregationProps =
   | {includeTimeAggregation: true; timeAggregationSeriesName: string}
   | {includeTimeAggregation?: false; timeAggregationSeriesName?: undefined};
 
-type EventsRequestProps = TimeAggregationProps & EventsRequestPartialProps;
+type EventsRequestProps = DefaultProps & TimeAggregationProps & EventsRequestPartialProps;
 
 type EventsRequestState = {
   reloading: boolean;
+  errored: boolean;
   timeseriesData: null | EventsStats;
 };
 
@@ -148,6 +151,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     loading: PropTypes.bool,
 
     /**
+     * Whether there was an error retrieving data
+     */
+    errored: PropTypes.bool,
+
+    /**
      * Should loading be shown.
      */
     showLoading: PropTypes.bool,
@@ -161,7 +169,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     referenceEvent: PropTypes.string,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     period: null,
     start: null,
     end: null,
@@ -175,6 +183,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
   state = {
     reloading: !!this.props.loading,
+    errored: false,
     timeseriesData: null,
   };
 
@@ -211,6 +220,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       } else {
         addErrorMessage(t('Error loading chart data'));
       }
+      this.setState({
+        errored: true,
+      });
     }
 
     if (this.unmounting) {
@@ -274,7 +286,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     }
 
     return {
-      seriesName: 'Previous Period',
+      seriesName: 'Previous',
       data: this.calculateTotalsPerTimestamp(
         previous,
         (_timestamp, _countArray, i) => current[i][0] * 1000
@@ -298,7 +310,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   transformTimeseriesData(data: EventsStatsData): [Series] {
     return [
       {
-        seriesName: 'Current Period',
+        seriesName: 'Current',
         data: data.map(([timestamp, countsForTimestamp]) => ({
           name: timestamp * 1000,
           value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
@@ -341,7 +353,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
   render() {
     const {children, showLoading, ...props} = this.props;
-    const {timeseriesData, reloading} = this.state;
+    const {timeseriesData, reloading, errored} = this.state;
     // Is "loading" if data is null
     const loading = this.props.loading || timeseriesData === null;
 
@@ -362,6 +374,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     return children({
       loading,
       reloading,
+      errored,
       // timeseries data
       timeseriesData: transformedTimeseriesData,
       allTimeseriesData,

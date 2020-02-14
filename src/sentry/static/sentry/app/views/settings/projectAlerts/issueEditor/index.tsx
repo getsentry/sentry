@@ -285,6 +285,7 @@ class IssueRuleEditor extends React.Component<Props, State> {
                 value={environment}
                 choices={environmentChoices}
                 onChange={val => this.handleEnvironmentChange(val)}
+                multiple
               />
 
               <PanelSubHeader>

@@ -5,12 +5,15 @@ import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import Confirm from 'app/components/confirm';
 
-type ActionLinkProps = {
+type DefaultProps = {
+  disabled: boolean;
+  shouldConfirm: boolean;
+};
+
+type ActionLinkProps = DefaultProps & {
   title: string;
   message: React.ReactNode;
-  disabled?: boolean;
   onAction: () => void;
-  shouldConfirm?: boolean;
   confirmLabel?: string;
 } & React.HTMLAttributes<HTMLDivElement>;
 
@@ -25,7 +28,7 @@ export default class ActionLink extends React.Component<ActionLinkProps> {
     confirmLabel: PropTypes.string,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     shouldConfirm: false,
     disabled: false,
   };

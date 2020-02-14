@@ -52,7 +52,7 @@ class TriggersChart extends React.PureComponent<Props> {
         organization={organization}
         query={query}
         project={projects.map(({id}) => Number(id))}
-        interval={`${timeWindow}s`}
+        interval={`${timeWindow}m`}
         period={getPeriodForTimeWindow(timeWindow)}
         yAxis={aggregation === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'}
         includePrevious={false}
@@ -118,9 +118,9 @@ const TIME_WINDOW_TO_PERIOD: TimeWindowMapType = {
 };
 
 /**
- * Gets a reasonable period given a timewindow (in seconds)
+ * Gets a reasonable period given a time window (in minutes)
  *
- * @param timeWindow The time window in seconds
+ * @param timeWindow The time window in minutes
  * @return period The period string to use (e.g. 14d)
  */
 function getPeriodForTimeWindow(timeWindow: TimeWindow): string {

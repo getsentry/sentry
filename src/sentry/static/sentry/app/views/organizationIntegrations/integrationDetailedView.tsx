@@ -6,9 +6,11 @@ import styled from '@emotion/styled';
 import {Organization, Integration, IntegrationProvider} from 'app/types';
 import {RequestOptions} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {Hooks} from 'app/types/hooks';
 import {t} from 'app/locale';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {
+  trackIntegrationEvent,
+  getIntegrationFeatureGate,
+} from 'app/utils/integrationUtil';
 import AsyncComponent from 'app/components/asyncComponent';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
@@ -24,10 +26,10 @@ import InstalledIntegration, {
   Props as InstalledIntegrationProps,
 } from 'app/views/organizationIntegrations/installedIntegration';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-import HookStore from 'app/stores/hookStore';
 import withOrganization from 'app/utils/withOrganization';
 import {growDown, highlight} from 'app/styles/animations';
 import {sortArray} from 'app/utils';
+import IntegrationStatus from './integrationStatus';
 
 type State = {
   configurations: Integration[];
@@ -39,25 +41,6 @@ type State = {
 type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string; providerKey: string}, {}>;
-
-const defaultFeatureGateComponents = {
-  IntegrationFeatures: p =>
-    p.children({
-      disabled: false,
-      disabledReason: null,
-      ungatedFeatures: p.features,
-      gatedFeatureGroups: [],
-    }),
-  FeatureList: p => {
-    return (
-      <ul>
-        {p.features.map((f, i) => (
-          <li key={i}>{f.description}</li>
-        ))}
-      </ul>
-    );
-  },
-} as ReturnType<Hooks['integrations:feature-gates']>;
 
 const tabs = ['information', 'configurations'];
 
@@ -76,6 +59,14 @@ class IntegrationDetailedView extends AsyncComponent<
 
   getInformation() {
     return this.state.information.providers[0];
+  }
+
+  get isEnabled() {
+    return this.state.configurations.length > 0;
+  }
+
+  get status() {
+    return this.isEnabled ? 'Installed' : 'Not Installed';
   }
 
   getEndpoints(): ([string, string, any] | [string, string])[] {
@@ -124,7 +115,7 @@ class IntegrationDetailedView extends AsyncComponent<
     const origIntegrations = [...this.state.configurations];
 
     const integrations = this.state.configurations.filter(i => i.id !== integration.id);
-    this.setState({integrations});
+    this.setState({configurations: integrations});
 
     const options: RequestOptions = {
       method: 'DELETE',
@@ -222,17 +213,17 @@ class IntegrationDetailedView extends AsyncComponent<
       ),
     }));
 
-    const featureListHooks = HookStore.get('integrations:feature-gates');
-    featureListHooks.push(() => defaultFeatureGateComponents);
-
-    const {FeatureList, IntegrationFeatures} = featureListHooks[0]();
+    const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
     const featureProps = {organization, features};
     return (
       <React.Fragment>
         <Flex>
           <PluginIcon size={60} pluginId={information.key} />
           <TitleContainer>
-            <Title>{information.name}</Title>
+            <Flex>
+              <Title>{information.name}</Title>
+              <Status status={this.status} />
+            </Flex>
             <Flex>
               {information.features.length && this.featureTags(information.features)}
             </Flex>
@@ -392,6 +383,18 @@ const StyledInstalledIntegration = styled(
   padding: ${space(2)};
   border: 1px solid ${p => p.theme.borderLight};
 `;
+
+const StatusWrapper = styled('div')`
+  margin-bottom: ${space(1)};
+  padding-left: ${space(2)};
+  line-height: 1.5em;
+`;
+
+const Status = p => (
+  <StatusWrapper>
+    <IntegrationStatus {...p} />
+  </StatusWrapper>
+);
 
 const InformationCard = ({children, alerts, information}: InformationCardProps) => {
   const {metadata} = information;

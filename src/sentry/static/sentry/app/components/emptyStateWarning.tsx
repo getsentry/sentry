@@ -3,18 +3,21 @@ import React from 'react';
 
 import styled from '@emotion/styled';
 import HeroIcon from 'app/components/heroIcon';
-import InlineSvg from 'app/components/inlineSvg';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {IconWarning} from 'app/icons';
+import theme from 'app/utils/theme';
+import space from 'app/styles/space';
 
 type Props = {
   small?: boolean;
+  children?: React.ReactNode;
 };
 
-const EmptyStateWarning: React.FC<Props> = ({small, children}) =>
+const EmptyStateWarning = ({small = false, children}: Props) =>
   small ? (
     <EmptyMessage>
       <SmallMessage>
-        <InlineSvg src="icon-circle-exclamation" width="34px" />
+        <StyledIconWarning color={theme.gray2} size="lg" />
         {children}
       </SmallMessage>
     </EmptyMessage>
@@ -27,10 +30,6 @@ const EmptyStateWarning: React.FC<Props> = ({small, children}) =>
 
 EmptyStateWarning.propTypes = {
   small: PropTypes.bool,
-};
-
-EmptyStateWarning.defaultProps = {
-  small: false,
 };
 
 const EmptyStreamWrapper = styled('div')`
@@ -57,6 +56,10 @@ const SmallMessage = styled('div')`
   color: ${p => p.theme.gray2};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1em;
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  margin-right: ${space(1)};
 `;
 
 export default EmptyStateWarning;

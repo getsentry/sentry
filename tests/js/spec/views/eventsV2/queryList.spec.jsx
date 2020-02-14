@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import QueryList from 'app/views/eventsV2/queryList';
 
 function openContextMenu(card) {
-  card.find('DropdownMenu ContextMenuButton div').simulate('click');
+  card.find('DropdownMenu MoreOptions IconEllipsis').simulate('click');
 }
 
 function clickMenuItem(card, selector) {

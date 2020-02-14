@@ -28,7 +28,10 @@ export function getData(results, widget) {
 
   let series = results
     .map((result, i) =>
-      chartDataFunc(result.data, queries.discover[i], ...chartDataFuncArgs)
+      chartDataFunc(result.data, queries.discover[i], {
+        ...chartDataFuncArgs,
+        formatVersion: true,
+      })
     )
     .reduce((acc, s) => [...acc, ...s], []);
 

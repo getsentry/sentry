@@ -142,8 +142,10 @@ export type EventAttachment = {
   event_id: string;
 };
 
+export type EntryTypeData = {[key: string]: any | any[]};
+
 type EntryType = {
-  data: {[key: string]: any} | any[];
+  data: EntryTypeData;
   type: string;
 };
 
@@ -305,20 +307,28 @@ export type PluginNoProject = {
   isHidden: boolean;
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  features: string[];
+  featureDescriptions: Array<{
+    description: string;
+    featureGate: string;
+  }>;
 };
 
 export type Plugin = PluginNoProject & {
   enabled: boolean;
 };
 
+export type PluginProjectItem = {
+  projectId: string;
+  projectSlug: string;
+  projectName: string;
+  projectPlatform: string | null;
+  enabled: boolean;
+  configured: boolean;
+};
+
 export type PluginWithProjectList = PluginNoProject & {
-  projectList: Array<{
-    projectId: string;
-    projectSlug: string;
-    projectName: string;
-    enabled: boolean;
-    configured: boolean;
-  }>;
+  projectList: PluginProjectItem[];
 };
 
 export type GlobalSelection = {
@@ -358,7 +368,7 @@ export type Config = {
   gravatarBaseUrl: string;
   messages: string[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: number};
+  userIdentity: {ip_address: string; email: string; id: number; isStaff: boolean};
   termsUrl: string | null;
   isAuthenticated: boolean;
   version: {
@@ -481,15 +491,26 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
-export type IntegrationProvider = {
+type BaseIntegrationProvider = {
   key: string;
+  slug: string;
   name: string;
   canAdd: boolean;
   canDisable: boolean;
   features: string[];
-  aspects: any; //TODO(ts)
+};
+
+export type IntegrationProvider = BaseIntegrationProvider & {
   setupDialog: {url: string; width: number; height: number};
-  metadata: any; //TODO(ts)
+  metadata: {
+    description: string;
+    features: IntegrationFeature[];
+    author: string;
+    noun: string;
+    issue_url: string;
+    source_url: string;
+    aspects: any; //TODO(ts)
+  };
 };
 
 export type IntegrationFeature = {
@@ -558,7 +579,7 @@ export type Integration = {
   domainName: string;
   accountType: string;
   status: ObjectStatus;
-  provider: IntegrationProvider;
+  provider: BaseIntegrationProvider & {aspects: any};
   configOrganization: Field[];
   //TODO(ts): This includes the initial data that is passed into the integration's configuration form
   configData: object;

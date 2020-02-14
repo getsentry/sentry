@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {MetricAction} from 'app/types/alerts';
 import {Organization, Project} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {Trigger} from 'app/views/settings/incidentRules/types';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import {t} from 'app/locale';
@@ -13,6 +12,8 @@ import CircleIndicator from 'app/components/circleIndicator';
 import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
+
+import {Trigger} from '../types';
 
 type DeleteButtonProps = {
   triggerIndex: number;
@@ -23,11 +24,7 @@ type DeleteButtonProps = {
 /**
  * Button to delete a trigger
  */
-const DeleteButton: React.FC<DeleteButtonProps> = ({
-  triggerIndex,
-  onDelete,
-  disabled,
-}: DeleteButtonProps) => (
+const DeleteButton = ({triggerIndex, onDelete, disabled}: DeleteButtonProps) => (
   <Button
     type="button"
     icon="icon-trash"
@@ -52,7 +49,11 @@ type Props = {
   errors: Map<number, {[fieldName: string]: string}>;
 
   onAdd: () => void;
-  onChange: (triggers: Trigger[]) => void;
+  onChange: (
+    triggers: Trigger[],
+    triggerIndex?: number,
+    changeObj?: Partial<Trigger>
+  ) => void;
 };
 
 /**
@@ -66,11 +67,30 @@ class Triggers extends React.Component<Props> {
     onChange(updatedTriggers);
   };
 
-  handleChangeTrigger = (triggerIndex: number, trigger: Trigger) => {
+  handleChangeTrigger = (
+    triggerIndex: number,
+    trigger: Trigger,
+    changeObj: Partial<Trigger>
+  ) => {
     const {triggers, onChange} = this.props;
-    const updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, trigger);
+    let updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, trigger);
 
-    onChange(updatedTriggers);
+    // If we have multiple triggers (warning and critical), we need to make sure
+    // the triggers have the same threshold direction
+    if (triggers.length > 1) {
+      const otherIndex = triggerIndex ^ 1;
+      let otherTrigger = triggers[otherIndex];
+      if (trigger.thresholdType !== otherTrigger.thresholdType) {
+        otherTrigger = {
+          ...otherTrigger,
+          thresholdType: trigger.thresholdType,
+        };
+      }
+
+      updatedTriggers = replaceAtArrayIndex(updatedTriggers, otherIndex, otherTrigger);
+    }
+
+    onChange(updatedTriggers, triggerIndex, changeObj);
   };
 
   render() {

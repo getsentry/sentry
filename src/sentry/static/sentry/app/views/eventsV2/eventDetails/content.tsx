@@ -27,12 +27,11 @@ import EventView from '../eventView';
 import {hasAggregateField, EventQuery, generateTitle} from '../utils';
 import TagsTable from '../tagsTable';
 import DiscoverBreadcrumb from '../breadcrumb';
-import {SectionHeading} from '../styles';
-
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
 import EventInterfaces from './eventInterfaces';
 import LinkedIssue from './linkedIssue';
+import {SectionHeading, ContentBox, HeaderBox} from '../styles';
 import OpsBreakdown from './transaction/opsBreakdown';
 
 const slugValidator = function(
@@ -305,28 +304,6 @@ const EventMetadata = (props: {
     </MetaDataID>
   );
 };
-
-const ContentBox = styled('div')`
-  padding: ${space(2)} ${space(4)};
-  margin: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: grid;
-    grid-template-rows: 1fr 30px;
-    grid-template-columns: 65% auto;
-    grid-column-gap: ${space(3)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 325px;
-  }
-`;
-
-const HeaderBox = styled(ContentBox)`
-  background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(2)};
-`;
 
 const Controller = styled('div')`
   display: flex;
