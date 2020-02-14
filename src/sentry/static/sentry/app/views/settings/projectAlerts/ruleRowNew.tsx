@@ -42,7 +42,7 @@ class RuleRow extends React.Component<Props, State> {
 
   renderIssueRule(data: IssueAlertRule) {
     const {params, routes, location, canEdit} = this.props;
-    const editLink = recreateRoute(`issue-rules/${data.id}/`, {
+    const editLink = recreateRoute(`rules/${data.id}/`, {
       params,
       routes,
       location,
