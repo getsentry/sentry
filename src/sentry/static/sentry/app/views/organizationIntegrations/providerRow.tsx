@@ -125,12 +125,11 @@ export default class ProviderRow extends React.Component<Props> {
           </Box>
           <Box>
             <Button size="small" onClick={this.openModal}>
-              {this.isEnabled && this.isUpgradable ? (
-                <IconUpgrade size="xs" />
+              {upgradeable ? (
+                <StyledIconUpgrade size="xs" />
               ) : (
-                <IconAdd size="xs" circle />
+                <StyledIconAdd size="xs" circle />
               )}
-              &nbsp;
               {this.isEnabled
                 ? t('Add Another')
                 : upgradeable
@@ -216,4 +215,12 @@ const StyledInstalledIntegration = styled(
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.gray2};
+`;
+
+const StyledIconAdd = styled(IconAdd)`
+  margin-right: ${space(0.5)};
+`;
+
+const StyledIconUpgrade = styled(IconUpgrade)`
+  margin-right: ${space(0.5)};
 `;

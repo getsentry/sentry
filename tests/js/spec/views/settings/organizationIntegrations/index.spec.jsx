@@ -493,7 +493,7 @@ describe('OrganizationIntegrations', () => {
             .find('ProviderRow PanelItem[data-test-id="github"] Button')
             .first()
             .text()
-        ).toBe('Add Another');
+        ).toBe('IconAddAdd Another');
       });
 
       it('display an Install button when its not an upgradable Integration', () => {
@@ -502,7 +502,7 @@ describe('OrganizationIntegrations', () => {
             .find('ProviderRow PanelItem[data-test-id="jira"] Button')
             .first()
             .text()
-        ).toBe('Install');
+        ).toBe('IconAddInstall');
       });
     });
   });

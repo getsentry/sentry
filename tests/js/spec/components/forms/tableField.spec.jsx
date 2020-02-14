@@ -45,7 +45,7 @@ describe('TableField', function() {
     });
 
     it('renders button text', function() {
-      expect(wrapper.find('Button[size="xsmall"]').text()).toEqual('Add Thing');
+      expect(wrapper.find('Button[size="xsmall"]').text()).toEqual('IconAddAdd Thing');
     });
 
     it("doesn't render columns if there's no initalData", function() {
