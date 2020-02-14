@@ -5975,7 +5975,7 @@ eslint-config-prettier@6.3.0:
   dependencies:
     get-stdin "^6.0.0"
 
-eslint-config-sentry-app@^1.31.0:
+eslint-config-sentry-app@1.31.0:
   version "1.31.0"
   resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.31.0.tgz#87fd07c83d7a46888e0b3615ed09b1bcbd0ee6d8"
   integrity sha512-q7FYnZSI0JE5mw4wjdnBHfgD0va/NK1IDTl7jw9yl0iuYN9R0X1wRvSKISd2Pzdw6W+MFSfM4MTKUg+aj/F4TQ==
