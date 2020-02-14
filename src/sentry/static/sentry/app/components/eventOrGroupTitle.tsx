@@ -1,24 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {Event} from 'app/types';
+import {Event, Group} from 'app/types';
 import {Metadata} from 'app/sentryTypes';
 import {getTitle} from 'app/utils/events';
 
 type Props = {
-  data: {
-    type:
-      | 'error'
-      | 'csp'
-      | 'hpkp'
-      | 'expectct'
-      | 'expectstaple'
-      | 'default'
-      | 'transaction';
-    title: string;
-    metadata: Metadata;
-    culprit: string;
-  };
+  data: Event | Group;
   style: React.CSSProperties;
 };
 
@@ -48,7 +36,7 @@ class EventOrGroupTitle extends React.Component<Props> {
       <span style={this.props.style}>
         <span>{title}</span>
         <Spacer />
-        <em title={subtitle}>{'asdfasdfa/asdfasdf.asdfadsf' || subtitle}</em>
+        <em title={subtitle}>{subtitle}</em>
         <br />
       </span>
     ) : (
