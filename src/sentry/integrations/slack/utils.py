@@ -11,7 +11,7 @@ from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus
-from sentry.utils import json
+from sentry.utils import metrics, json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -43,6 +43,7 @@ MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
+SLACK_DATADOG_METRIC = "integrations.slack.http_request"
 
 
 def format_actor_option(actor):
@@ -413,7 +414,12 @@ def send_incident_alert_notification(integration, incident, channel):
 
     session = http.build_session()
     resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
+    status_code = resp.status_code
     resp.raise_for_status()
     resp = resp.json()
     if not resp.get("ok"):
         logger.info("rule.fail.slack_post", extra={"error": resp.get("error")})
+    metrics.incr(
+        SLACK_DATADOG_METRIC,
+        tags={"ok": False if resp.get("ok") is False else True, "status": status_code},
+    )

@@ -8,7 +8,7 @@ from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics, json
 from sentry.models import Integration
 
-from .utils import build_group_attachment, get_channel_id, strip_channel_name
+from .utils import build_group_attachment, get_channel_id, strip_channel_name, SLACK_DATADOG_METRIC
 
 
 class SlackNotifyServiceForm(forms.Form):
@@ -116,7 +116,13 @@ class SlackNotifyServiceAction(EventAction):
             session = http.build_session()
             resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
             resp.raise_for_status()
+            status_code = resp.status_code
             resp = resp.json()
+            metrics.incr(
+                SLACK_DATADOG_METRIC,
+                tags={"ok": False if resp.get("ok") is False else True, "status": status_code},
+            )
+
             if not resp.get("ok"):
                 self.logger.info(
                     "rule.fail.slack_post",

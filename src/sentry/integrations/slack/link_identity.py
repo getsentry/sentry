@@ -12,8 +12,9 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
+from sentry.utils import metrics
 
-from .utils import logger
+from .utils import logger, SLACK_DATADOG_METRIC
 
 
 def build_linking_url(integration, organization, slack_id, channel_id, response_url):
@@ -84,6 +85,7 @@ class SlackLinkIdentityView(BaseView):
 
         session = http.build_session()
         req = session.post(params["response_url"], json=payload)
+        status_code = req.status_code
         resp = req.json()
 
         # If the user took their time to link their slack account, we may no
@@ -94,6 +96,10 @@ class SlackLinkIdentityView(BaseView):
         if not resp.get("ok") and resp.get("error") != "Expired url":
             logger.error("slack.link-notify.response-error", extra={"response": resp})
 
+        metrics.incr(
+            SLACK_DATADOG_METRIC,
+            tags={"ok": False if resp.get("ok") is False else True, "status": status_code},
+        )
         return render_to_response(
             "sentry/slack-linked.html",
             request=request,
