@@ -1,15 +1,24 @@
 import React from 'react';
 import sortBy from 'lodash/sortBy';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import styled from '@emotion/styled';
 
 =======
+=======
+>>>>>>> refactor/datascrubbers-v2-added-tooltip-part-3
 
+import {defined} from 'app/utils';
 import styled from '@emotion/styled';
+<<<<<<< HEAD
 >>>>>>> master
+=======
+>>>>>>> refactor/datascrubbers-v2-added-tooltip-part-3
 import ContextData from 'app/components/contextData';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import theme from 'app/utils/theme';
+
+import {KeyValueListData} from './types';
 
 type Props = {
   data?: Array<KeyValueListData>;
@@ -20,6 +29,7 @@ type Props = {
   isSorted?: boolean;
 };
 
+<<<<<<< HEAD
 export type KeyValueListData = {
   key: string;
 <<<<<<< HEAD
@@ -45,6 +55,8 @@ type Chunks = {
   rule_id?: string;
 };
 
+=======
+>>>>>>> refactor/datascrubbers-v2-added-tooltip-part-3
 const KeyValueList = ({
   data,
   isContextData = false,
@@ -53,7 +65,7 @@ const KeyValueList = ({
   longKeys = false,
   onClick,
 }: Props) => {
-  if (data === undefined || data === null || data.length === 0) {
+  if (!defined(data) || data.length === 0) {
     return null;
   }
 

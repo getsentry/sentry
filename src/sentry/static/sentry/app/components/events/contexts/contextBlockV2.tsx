@@ -16,7 +16,7 @@ const ContextBlock = ({knownData}: Props) => {
 
   return (
     <ErrorBoundary mini>
-      <KeyValueList data={knownData} isSorted isContextData />
+      <KeyValueList data={knownData} isContextData />
     </ErrorBoundary>
   );
 };
