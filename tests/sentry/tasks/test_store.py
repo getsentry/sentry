@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import pytest
+
 from sentry.utils.compat import mock
 import uuid
 from time import time
@@ -8,7 +10,6 @@ from sentry import quotas, tsdb
 from sentry.event_manager import EventManager, HashDiscarded
 from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import preprocess_event, process_event, save_event
-from sentry.testutils import PluginTestCase
 from sentry.utils.dates import to_datetime
 
 
@@ -37,143 +38,186 @@ class BasicPreprocessorPlugin(Plugin2):
         return True
 
 
-class StoreTasksTest(PluginTestCase):
-    plugin = BasicPreprocessorPlugin
+@pytest.fixture
+def register_plugin(request):
+    def inner(cls):
+        from sentry.plugins.base import plugins
 
-    @mock.patch("sentry.tasks.store.save_event")
-    @mock.patch("sentry.tasks.store.process_event")
-    def test_move_to_process_event(self, mock_process_event, mock_save_event):
-        project = self.create_project()
+        plugins.register(cls)
+        request.addfinalizer(lambda: plugins.unregister(cls))
 
-        data = {
-            "project": project.id,
-            "platform": "mattlang",
-            "logentry": {"formatted": "test"},
-            "extra": {"foo": "bar"},
-        }
+    return inner
 
-        preprocess_event(data=data)
 
-        assert mock_process_event.delay.call_count == 1
-        assert mock_save_event.delay.call_count == 0
+@pytest.fixture
+def mock_save_event():
+    with mock.patch("sentry.tasks.store.save_event") as m:
+        yield m
 
-    @mock.patch("sentry.tasks.store.save_event")
-    @mock.patch("sentry.tasks.store.process_event")
-    def test_move_to_save_event(self, mock_process_event, mock_save_event):
-        project = self.create_project()
 
-        data = {
-            "project": project.id,
-            "platform": "NOTMATTLANG",
-            "logentry": {"formatted": "test"},
-            "extra": {"foo": "bar"},
-        }
+@pytest.fixture
+def mock_process_event():
+    with mock.patch("sentry.tasks.store.process_event") as m:
+        yield m
 
-        preprocess_event(data=data)
 
-        assert mock_process_event.delay.call_count == 0
-        assert mock_save_event.delay.call_count == 1
+@pytest.fixture
+def mock_default_cache():
+    with mock.patch("sentry.tasks.store.default_cache") as m:
+        yield m
 
-    @mock.patch("sentry.tasks.store.save_event")
-    @mock.patch("sentry.tasks.store.default_cache")
-    def test_process_event_mutate_and_save(self, mock_default_cache, mock_save_event):
-        project = self.create_project()
 
-        data = {
-            "project": project.id,
-            "platform": "mattlang",
-            "logentry": {"formatted": "test"},
-            "extra": {"foo": "bar"},
-        }
+@pytest.fixture
+def mock_incr():
+    with mock.patch.object(tsdb, "incr_multi") as m:
+        yield m
 
-        mock_default_cache.get.return_value = data
 
-        process_event(cache_key="e:1", start_time=1)
+@pytest.fixture
+def mock_refund():
+    with mock.patch.object(quotas, "refund") as m:
+        yield m
 
-        # The event mutated, so make sure we save it back
-        (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
 
-        assert key == "e:1"
-        assert "extra" not in event
-        assert duration == 3600
+@pytest.mark.django_db
+def test_move_to_process_event(
+    default_project, mock_process_event, mock_save_event, register_plugin
+):
+    register_plugin(BasicPreprocessorPlugin)
+    data = {
+        "project": default_project.id,
+        "platform": "mattlang",
+        "logentry": {"formatted": "test"},
+        "extra": {"foo": "bar"},
+    }
 
-        mock_save_event.delay.assert_called_once_with(
-            cache_key="e:1", data=None, start_time=1, event_id=None, project_id=project.id
+    preprocess_event(data=data)
+
+    assert mock_process_event.delay.call_count == 1
+    assert mock_save_event.delay.call_count == 0
+
+
+@pytest.mark.django_db
+def test_move_to_save_event(default_project, mock_process_event, mock_save_event, register_plugin):
+    register_plugin(BasicPreprocessorPlugin)
+    data = {
+        "project": default_project.id,
+        "platform": "NOTMATTLANG",
+        "logentry": {"formatted": "test"},
+        "extra": {"foo": "bar"},
+    }
+
+    preprocess_event(data=data)
+
+    assert mock_process_event.delay.call_count == 0
+    assert mock_save_event.delay.call_count == 1
+
+
+@pytest.mark.django_db
+def test_process_event_mutate_and_save(
+    default_project, mock_default_cache, mock_save_event, register_plugin
+):
+    register_plugin(BasicPreprocessorPlugin)
+
+    data = {
+        "project": default_project.id,
+        "platform": "mattlang",
+        "logentry": {"formatted": "test"},
+        "extra": {"foo": "bar"},
+    }
+
+    mock_default_cache.get.return_value = data
+
+    process_event(cache_key="e:1", start_time=1)
+
+    # The event mutated, so make sure we save it back
+    (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
+
+    assert key == "e:1"
+    assert "extra" not in event
+    assert duration == 3600
+
+    mock_save_event.delay.assert_called_once_with(
+        cache_key="e:1", data=None, start_time=1, event_id=None, project_id=default_project.id
+    )
+
+
+@pytest.mark.django_db
+def test_process_event_no_mutate_and_save(
+    default_project, mock_default_cache, mock_save_event, register_plugin
+):
+    register_plugin(BasicPreprocessorPlugin)
+
+    data = {
+        "project": default_project.id,
+        "platform": "noop",
+        "logentry": {"formatted": "test"},
+        "extra": {"foo": "bar"},
+    }
+
+    mock_default_cache.get.return_value = data
+
+    process_event(cache_key="e:1", start_time=1)
+
+    # The event did not mutate, so we shouldn't reset it in cache
+    assert mock_default_cache.set.call_count == 0
+
+    mock_save_event.delay.assert_called_once_with(
+        cache_key="e:1", data=None, start_time=1, event_id=None, project_id=default_project.id
+    )
+
+
+@pytest.mark.django_db
+def test_process_event_unprocessed(
+    default_project, mock_default_cache, mock_save_event, register_plugin
+):
+    register_plugin(BasicPreprocessorPlugin)
+
+    data = {
+        "project": default_project.id,
+        "platform": "holdmeclose",
+        "logentry": {"formatted": "test"},
+        "extra": {"foo": "bar"},
+    }
+
+    mock_default_cache.get.return_value = data
+
+    process_event(cache_key="e:1", start_time=1)
+
+    (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
+    assert key == "e:1"
+    assert event["unprocessed"] is True
+    assert duration == 3600
+
+    mock_save_event.delay.assert_called_once_with(
+        cache_key="e:1", data=None, start_time=1, event_id=None, project_id=default_project.id
+    )
+
+
+@pytest.mark.django_db
+def test_hash_discarded_raised(default_project, mock_refund, mock_incr, register_plugin):
+    register_plugin(BasicPreprocessorPlugin)
+
+    data = {
+        "project": default_project.id,
+        "platform": "NOTMATTLANG",
+        "logentry": {"formatted": "test"},
+        "event_id": uuid.uuid4().hex,
+        "extra": {"foo": "bar"},
+    }
+
+    now = time()
+    mock_save = mock.Mock()
+    mock_save.side_effect = HashDiscarded
+    with mock.patch.object(EventManager, "save", mock_save):
+        save_event(data=data, start_time=now)
+        mock_incr.assert_called_with(
+            [
+                (tsdb.models.project_total_received, default_project.id),
+                (tsdb.models.organization_total_received, default_project.organization.id),
+                (tsdb.models.project_total_blacklisted, default_project.id),
+                (tsdb.models.organization_total_blacklisted, default_project.organization_id),
+                (tsdb.models.project_total_received_discarded, default_project.id),
+            ],
+            timestamp=to_datetime(now),
         )
-
-    @mock.patch("sentry.tasks.store.save_event")
-    @mock.patch("sentry.tasks.store.default_cache")
-    def test_process_event_no_mutate_and_save(self, mock_default_cache, mock_save_event):
-        project = self.create_project()
-
-        data = {
-            "project": project.id,
-            "platform": "noop",
-            "logentry": {"formatted": "test"},
-            "extra": {"foo": "bar"},
-        }
-
-        mock_default_cache.get.return_value = data
-
-        process_event(cache_key="e:1", start_time=1)
-
-        # The event did not mutate, so we shouldn't reset it in cache
-        assert mock_default_cache.set.call_count == 0
-
-        mock_save_event.delay.assert_called_once_with(
-            cache_key="e:1", data=None, start_time=1, event_id=None, project_id=project.id
-        )
-
-    @mock.patch("sentry.tasks.store.save_event")
-    @mock.patch("sentry.tasks.store.default_cache")
-    def test_process_event_unprocessed(self, mock_default_cache, mock_save_event):
-        project = self.create_project()
-
-        data = {
-            "project": project.id,
-            "platform": "holdmeclose",
-            "logentry": {"formatted": "test"},
-            "extra": {"foo": "bar"},
-        }
-
-        mock_default_cache.get.return_value = data
-
-        process_event(cache_key="e:1", start_time=1)
-
-        (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
-        assert key == "e:1"
-        assert event["unprocessed"] is True
-        assert duration == 3600
-
-        mock_save_event.delay.assert_called_once_with(
-            cache_key="e:1", data=None, start_time=1, event_id=None, project_id=project.id
-        )
-
-    @mock.patch.object(tsdb, "incr_multi")
-    @mock.patch.object(quotas, "refund")
-    def test_hash_discarded_raised(self, mock_refund, mock_incr):
-        project = self.create_project()
-
-        data = {
-            "project": project.id,
-            "platform": "NOTMATTLANG",
-            "logentry": {"formatted": "test"},
-            "event_id": uuid.uuid4().hex,
-            "extra": {"foo": "bar"},
-        }
-
-        now = time()
-        mock_save = mock.Mock()
-        mock_save.side_effect = HashDiscarded
-        with mock.patch.object(EventManager, "save", mock_save):
-            save_event(data=data, start_time=now)
-            mock_incr.assert_called_with(
-                [
-                    (tsdb.models.project_total_received, project.id),
-                    (tsdb.models.organization_total_received, project.organization.id),
-                    (tsdb.models.project_total_blacklisted, project.id),
-                    (tsdb.models.organization_total_blacklisted, project.organization_id),
-                    (tsdb.models.project_total_received_discarded, project.id),
-                ],
-                timestamp=to_datetime(now),
-            )
