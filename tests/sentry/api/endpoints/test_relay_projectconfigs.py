@@ -10,6 +10,7 @@ from uuid import uuid4
 from django.core.urlresolvers import reverse
 
 from sentry import quotas
+from sentry.constants import ObjectStatus
 from sentry.utils import safe
 from sentry.models.relay import Relay
 from sentry.models import Project
@@ -302,6 +303,24 @@ def test_relay_projectconfig_cache_full_config(
 @pytest.mark.django_db
 def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_runner):
     wrong_id = max(p.id for p in Project.objects.all()) + 1
+
+    with task_runner():
+        result, status_code = call_endpoint(full_config=True, projects=[wrong_id])
+        assert status_code < 400
+
+    http_cfg, = six.itervalues(result["configs"])
+    assert http_cfg == {"disabled": True}
+
+    assert projectconfig_cache_set == [{six.text_type(wrong_id): http_cfg}]
+
+
+@pytest.mark.django_db
+def test_relay_disabled_project(
+    call_endpoint, default_project, projectconfig_cache_set, task_runner
+):
+    default_project.update(status=ObjectStatus.PENDING_DELETION)
+
+    wrong_id = default_project.id
 
     with task_runner():
         result, status_code = call_endpoint(full_config=True, projects=[wrong_id])

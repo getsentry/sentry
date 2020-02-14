@@ -93,7 +93,7 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
         scope.set_tag("project", project.id)
 
     if project.status != ObjectStatus.VISIBLE:
-        return {"disabled": True}
+        return ProjectConfig(project, disabled=True)
 
     public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)
 
