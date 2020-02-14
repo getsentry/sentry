@@ -31,7 +31,7 @@ class HandleNewUserTest(TestCase):
         signup_record = filter(lambda r: r[0][0] == "user.signup", mock_record.call_args_list)
         assert signup_record == [
             mock.call(
-                "user.signup", user_id=user.id, source="sso", provider=provider, referrer=None
+                "user.signup", user_id=user.id, source="sso", provider=provider, referrer="in-app"
             )
         ]
 

@@ -498,7 +498,9 @@ def handle_new_user(auth_provider, organization, request, identity):
 
     user.send_confirm_emails(is_new_user=True)
     provider = auth_provider.provider if auth_provider else None
-    user_signup.send_robust(sender=handle_new_user, user=user, source="sso", provider=provider)
+    user_signup.send_robust(
+        sender=handle_new_user, user=user, source="sso", provider=provider, referrer="in-app"
+    )
 
     handle_new_membership(auth_provider, organization, request, auth_identity)
 

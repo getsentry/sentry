@@ -93,9 +93,9 @@ class AuthLoginTest(TestCase):
             mock.call(
                 "user.signup",
                 user_id=user.id,
-                source="app-register-form",
+                source="register-form",
                 provider=None,
-                referrer=None,
+                referrer="in-app",
             )
         ]
 

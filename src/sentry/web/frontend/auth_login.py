@@ -123,7 +123,9 @@ class AuthLoginView(BaseView):
         if can_register and register_form.is_valid():
             user = register_form.save()
             user.send_confirm_emails(is_new_user=True)
-            user_signup.send_robust(sender=self, user=user, source="app-register-form")
+            user_signup.send_robust(
+                sender=self, user=user, source="register-form", referrer="in-app"
+            )
 
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
