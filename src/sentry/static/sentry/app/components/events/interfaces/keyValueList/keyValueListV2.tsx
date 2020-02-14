@@ -1,10 +1,13 @@
 import React from 'react';
 import sortBy from 'lodash/sortBy';
 
+import {defined} from 'app/utils';
 import styled from '@emotion/styled';
 import ContextData from 'app/components/contextData';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import theme from 'app/utils/theme';
+
+import {KeyValueListData} from './types';
 
 type Props = {
   data?: Array<KeyValueListData>;
@@ -15,27 +18,6 @@ type Props = {
   isSorted?: boolean;
 };
 
-export type KeyValueListData = {
-  key: string;
-  subject: React.ReactNode | string;
-  value: string | null;
-  meta: Meta;
-};
-
-type Meta = {
-  chunks: Array<Chunks>;
-  len: number;
-  rem: Array<Array<string | number>>;
-  err: Array<any>;
-};
-
-type Chunks = {
-  text: string;
-  type: string;
-  remark?: string;
-  rule_id?: string;
-};
-
 const KeyValueList = ({
   data,
   isContextData = false,
@@ -44,7 +26,7 @@ const KeyValueList = ({
   longKeys = false,
   onClick,
 }: Props) => {
-  if (data === undefined || data === null || data.length === 0) {
+  if (!defined(data) || data.length === 0) {
     return null;
   }
 

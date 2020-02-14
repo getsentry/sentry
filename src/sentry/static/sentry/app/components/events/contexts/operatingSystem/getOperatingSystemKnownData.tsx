@@ -1,10 +1,8 @@
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/keyValueListV2';
+import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 
-import getOperatingSystemKnownDataDetails, {
-  OperatingSystemKnownData,
-  OperatingSystemKnownDataDetailsType,
-} from './getOperatingSystemKnownDataDetails';
+import getOperatingSystemKnownDataDetails from './getOperatingSystemKnownDataDetails';
+import {OperatingSystemKnownData, OperatingSystemKnownDataType} from './types';
 
 function getOperatingSystemKnownData(
   data: OperatingSystemKnownData
@@ -15,7 +13,7 @@ function getOperatingSystemKnownData(
   for (const key of dataKeys) {
     const knownDataDetails = getOperatingSystemKnownDataDetails(
       data,
-      key as OperatingSystemKnownDataDetailsType
+      key as OperatingSystemKnownDataType
     );
 
     if (key === null || !knownDataDetails) {
@@ -31,5 +29,4 @@ function getOperatingSystemKnownData(
   return knownData;
 }
 
-export {OperatingSystemKnownData};
 export default getOperatingSystemKnownData;

@@ -1,21 +1,7 @@
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 
-export enum OperatingSystemKnownDataDetailsType {
-  NAME = 'name',
-  VERSION = 'version',
-  KERNEL_VERSION = 'kernel_version',
-  ROOTED = 'rooted',
-}
-
-export type OperatingSystemKnownData = {
-  name: string;
-  type: string;
-  build: string;
-  kernel_version: string;
-  version?: string;
-  rooted?: boolean;
-};
+import {OperatingSystemKnownData, OperatingSystemKnownDataType} from './types';
 
 type Output = {
   subject: string;
@@ -24,25 +10,25 @@ type Output = {
 
 function getOperatingSystemKnownDataDetails(
   data: OperatingSystemKnownData,
-  type: OperatingSystemKnownDataDetailsType
+  type: OperatingSystemKnownDataType
 ): Output | undefined {
   switch (type) {
-    case OperatingSystemKnownDataDetailsType.NAME:
+    case OperatingSystemKnownDataType.NAME:
       return {
         subject: t('Name'),
         value: data.name,
       };
-    case OperatingSystemKnownDataDetailsType.VERSION:
+    case OperatingSystemKnownDataType.VERSION:
       return {
         subject: t('Version'),
         value: `${data.version}${data.build ? `(${data.build})` : ''}`,
       };
-    case OperatingSystemKnownDataDetailsType.KERNEL_VERSION:
+    case OperatingSystemKnownDataType.KERNEL_VERSION:
       return {
         subject: t('Kernel Version'),
         value: data.kernel_version,
       };
-    case OperatingSystemKnownDataDetailsType.ROOTED:
+    case OperatingSystemKnownDataType.ROOTED:
       return {
         subject: t('Rooted'),
         value: defined(data.rooted) ? (data.rooted ? 'yes' : 'no') : null,
