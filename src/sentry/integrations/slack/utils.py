@@ -43,7 +43,15 @@ MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
-SLACK_DATADOG_METRIC = "integrations.slack.http_request"
+SLACK_DATADOG_METRIC = "integrations.slack.http_response"
+
+
+def track_response_code(status_code, is_ok):
+    metrics.incr(
+        SLACK_DATADOG_METRIC,
+        sample_rate=1.0,
+        tags={"ok": False if is_ok is False else True, "status": status_code},
+    )
 
 
 def format_actor_option(actor):
@@ -382,7 +390,10 @@ def get_channel_id_with_timeout(integration, name, timeout):
                 # Slack limits the response of `<list_type>.list` to 1000 channels
                 params=dict(payload, cursor=cursor, limit=1000),
             )
+            items.raise_for_status()
+            status_code = items.status_code
             items = items.json()
+            track_response_code(status_code, items.get("ok"))
             if not items.get("ok"):
                 logger.info(
                     "rule.slack.%s_list_failed" % list_type, extra={"error": items.get("error")}

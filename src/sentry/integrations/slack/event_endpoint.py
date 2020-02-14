@@ -12,10 +12,9 @@ from sentry import http
 from sentry.api.base import Endpoint
 from sentry.incidents.models import Incident
 from sentry.models import Group, Project
-from sentry.utils import metrics
 
 from .requests import SlackEventRequest, SlackRequestError
-from .utils import build_group_attachment, build_incident_attachment, logger, SLACK_DATADOG_METRIC
+from .utils import build_group_attachment, build_incident_attachment, logger, track_response_code
 
 # XXX(dcramer): this could be more tightly bound to our configured domain,
 # but slack limits what we can unfurl anyways so its probably safe
@@ -130,10 +129,7 @@ class SlackEventEndpoint(Endpoint):
         resp = req.json()
         if not resp.get("ok"):
             logger.error("slack.event.unfurl-error", extra={"response": resp})
-        metrics.incr(
-            SLACK_DATADOG_METRIC,
-            tags={"ok": False if resp.get("ok") is False else True, "status": status_code},
-        )
+        track_response_code(status_code, resp.get("ok"))
         return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked

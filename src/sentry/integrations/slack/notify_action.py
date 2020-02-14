@@ -8,7 +8,7 @@ from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics, json
 from sentry.models import Integration
 
-from .utils import build_group_attachment, get_channel_id, strip_channel_name, SLACK_DATADOG_METRIC
+from .utils import build_group_attachment, get_channel_id, strip_channel_name, track_response_code
 
 
 class SlackNotifyServiceForm(forms.Form):
@@ -118,10 +118,7 @@ class SlackNotifyServiceAction(EventAction):
             resp.raise_for_status()
             status_code = resp.status_code
             resp = resp.json()
-            metrics.incr(
-                SLACK_DATADOG_METRIC,
-                tags={"ok": False if resp.get("ok") is False else True, "status": status_code},
-            )
+            track_response_code(status_code, resp.get("ok"))
 
             if not resp.get("ok"):
                 self.logger.info(

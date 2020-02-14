@@ -7,11 +7,11 @@ from sentry import http
 from sentry.api import client
 from sentry.api.base import Endpoint
 from sentry.models import Group, Project, Identity, IdentityProvider, ApiKey
-from sentry.utils import metrics, json
+from sentry.utils import json
 
 from .link_identity import build_linking_url
 from .requests import SlackActionRequest, SlackRequestError
-from .utils import build_group_attachment, logger, SLACK_DATADOG_METRIC
+from .utils import build_group_attachment, logger, track_response_code
 
 LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
 
@@ -122,9 +122,11 @@ class SlackActionEndpoint(Endpoint):
 
         session = http.build_session()
         req = session.post("https://slack.com/api/dialog.open", data=payload)
+        status_code = req.status_code
         resp = req.json()
         if not resp.get("ok"):
             logger.error("slack.action.response-error", extra={"response": resp})
+        track_response_code(status_code, resp.get("ok"))
 
     def construct_reply(self, attachment, is_message=False):
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
@@ -233,10 +235,7 @@ class SlackActionEndpoint(Endpoint):
             resp = req.json()
             if not resp.get("ok"):
                 logger.error("slack.action.response-error", extra={"response": resp})
-            metrics.incr(
-                SLACK_DATADOG_METRIC,
-                tags={"ok": False if resp.get("ok") is False else True, "status": status_code},
-            )
+            track_response_code(status_code, resp.get("ok"))
             return self.respond()
 
         # Usually we'll want to respond with the updated attachment including

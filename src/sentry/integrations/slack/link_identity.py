@@ -12,9 +12,8 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
-from sentry.utils import metrics
 
-from .utils import logger, SLACK_DATADOG_METRIC
+from .utils import logger, track_response_code
 
 
 def build_linking_url(integration, organization, slack_id, channel_id, response_url):
@@ -95,11 +94,8 @@ class SlackLinkIdentityView(BaseView):
         # XXX(epurkhiser): Yes the error string has a space in it.
         if not resp.get("ok") and resp.get("error") != "Expired url":
             logger.error("slack.link-notify.response-error", extra={"response": resp})
+        track_response_code(status_code, resp.get("ok"))
 
-        metrics.incr(
-            SLACK_DATADOG_METRIC,
-            tags={"ok": False if resp.get("ok") is False else True, "status": status_code},
-        )
         return render_to_response(
             "sentry/slack-linked.html",
             request=request,
