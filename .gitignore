@@ -1,3 +1,4 @@
+.env
 .cache/
 .coverage
 .storybook-out/

@@ -9,6 +9,8 @@ brew 'pkgconfig'
 brew 'libxmlsec1'
 brew 'geoip'
 
+brew 'direnv'
+
 tap 'homebrew/cask'
 
 # required for acceptance testing
