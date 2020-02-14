@@ -2,11 +2,11 @@
 
 from __future__ import absolute_import
 import pytest
-from os import path, makedirs
-
+from os import path
+import six
 from six.moves.urllib.parse import urlparse
-import shutil
 import datetime
+import shutil
 
 from sentry.runner.commands.devservices import get_docker_client
 
@@ -25,17 +25,23 @@ def _remove_container_if_exists(docker_client, container_name):
     except Exception:
         pass  # container not found
     else:
-        container.stop()
-        container.remove()
+        try:
+            container.kill()
+        except Exception:
+            pass  # maybe the container is already stopped
+        try:
+            container.remove()
+        except Exception:
+            pass  # could not remove the container nothing to do about it
 
 
 @pytest.fixture(scope="session")
-def relay_server(live_server):
-    now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
-    config_path = path.expanduser("~/.tmp/test_relay_config/{}".format(now))
-
-    if not path.exists(config_path):
-        makedirs(config_path)
+def relay_server_setup(live_server, tmpdir_factory):
+    prefix = "test_relay_config_{}_".format(
+        datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
+    )
+    config_path = tmpdir_factory.mktemp(prefix)
+    config_path = six.text_type(config_path)
 
     template_path = _get_template_dir()
 
@@ -76,13 +82,31 @@ def relay_server(live_server):
         "volumes": {config_path: {"bind": "/etc/relay"}},
         "command": ["run", "--config", "/etc/relay"],
     }
-    docker_client.containers.run(**options)
 
     # Some structure similar to what the live_server fixture returns
-    server_info = {"url": "http://localhost:{}".format(_relay_port)}
+    server_info = {
+        "url": "http://localhost:{}".format(_relay_port),
+        "is_started": False,
+        "options": options,
+    }
 
     yield server_info
 
     # cleanup
-    shutil.rmtree(path.expanduser("~/.tmp/test_relay_config"))
+    shutil.rmtree(config_path)
     _remove_container_if_exists(docker_client, container_name)
+
+
+@pytest.fixture(scope="function")
+def relay_server(relay_server_setup):
+    options = relay_server_setup["options"]
+
+    if not relay_server_setup["is_started"]:
+        # first time we use it in a test, everything should be
+        # already setup, sentry should be running and configured,
+        # just run relay
+        docker_client = get_docker_client()
+        docker_client.containers.run(**options)
+        relay_server_setup["is_started"] = True
+
+    return {"url": relay_server_setup["url"]}
