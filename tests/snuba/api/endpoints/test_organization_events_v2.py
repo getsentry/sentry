@@ -112,7 +112,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 400, response.content
-        assert response.data["detail"] == "Invalid query."
+        assert response.data["detail"] == "Internal error. Your query failed to run."
 
         mock_query.side_effect = QueryIllegalTypeOfArgument("test")
         with self.feature("organizations:discover-basic"):
