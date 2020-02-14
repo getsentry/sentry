@@ -17,16 +17,13 @@ import space from 'app/styles/space';
 import {Group, Tag, TagValue} from 'app/types';
 
 type RouteParams = {
-  groupId: number;
+  groupId: string;
   orgId: string;
   tagKey: string;
 };
 
 type Props = {
   group: Group;
-  location: {
-    query: object;
-  };
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
