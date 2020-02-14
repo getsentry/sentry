@@ -18,7 +18,7 @@ type TableProps = {
   eventView: EventView;
   organization: Organization;
   tags: {[key: string]: Tag};
-  setError: (msg: string) => void;
+  setError: (msg: string | undefined) => void;
   title: string;
 };
 
@@ -79,7 +79,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
-    setError('');
+    setError(undefined);
 
     this.setState({isLoading: true, tableFetchID});
 
