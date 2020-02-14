@@ -24,10 +24,16 @@ class EventOrGroupTitle extends React.Component {
 
   render() {
     const {title, subtitle} = getTitle(this.props.data);
+
+    // &nbsp; is used instead of margin/padding to split title and subtitle
+    // into 2 separate text nodes on the HTML syntax tree. This allows the
+    // title to be highlighted without spilling over to the subtitle. The
+    // width of 2 spaces is 10px.
     if (subtitle) {
       return (
         <span style={this.props.style}>
-          <span style={{marginRight: 10}}>{title}</span>
+          <span>{title}</span>
+          &nbsp;&nbsp;
           <em title={subtitle}>{subtitle}</em>
           <br />
         </span>
