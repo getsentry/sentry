@@ -414,38 +414,20 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             )
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @sudo_required
-    def delete(self, request, organization):
+    def handle_delete(self, request, organization):
         """
-        Delete an Organization
-        ``````````````````````
-
-        Schedules an organization for deletion.  This API endpoint cannot
-        be invoked without a user context for security reasons.  This means
-        that at present an organization can only be deleted from the
-        Sentry UI.
-
-        Deletion happens asynchronously and therefor is not immediate.
-        However once deletion has begun the state of a project changes and
-        will be hidden from most public views.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          team should be created for.
-        :auth: required, user-context-needed
+        This method exists as a way for getsentry to override this endpoint with less duplication.
         """
         if not request.user.is_authenticated():
             return self.respond({"detail": ERR_NO_USER}, status=401)
-
         if organization.is_default:
             return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
-
         updated = Organization.objects.filter(
             id=organization.id, status=OrganizationStatus.VISIBLE
         ).update(status=OrganizationStatus.PENDING_DELETION)
         if updated:
             transaction_id = uuid4().hex
             countdown = 86400
-
             entry = self.create_audit_entry(
                 request=request,
                 organization=organization,
@@ -454,9 +436,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 data=organization.get_audit_log_data(),
                 transaction_id=transaction_id,
             )
-
             organization.send_delete_confirmation(entry, countdown)
-
             delete_organization.apply_async(
                 kwargs={
                     "object_id": organization.id,
@@ -465,7 +445,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 },
                 countdown=countdown,
             )
-
             delete_logger.info(
                 "object.delete.queued",
                 extra={
@@ -474,7 +453,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     "model": Organization.__name__,
                 },
             )
-
         context = serialize(
             organization,
             request.user,
@@ -482,3 +460,21 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             access=request.access,
         )
         return self.respond(context, status=202)
+
+    @sudo_required
+    def delete(self, request, organization):
+        """
+        Delete an Organization
+        ``````````````````````
+        Schedules an organization for deletion.  This API endpoint cannot
+        be invoked without a user context for security reasons.  This means
+        that at present an organization can only be deleted from the
+        Sentry UI.
+        Deletion happens asynchronously and therefore is not immediate.
+        However once deletion has begun the state of an organization changes and
+        will be hidden from most public views.
+        :pparam string organization_slug: the slug of the organization the
+                                          team should be created for.
+        :auth: required, user-context-needed
+        """
+        return self.handle_delete(request, organization)

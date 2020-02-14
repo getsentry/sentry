@@ -10,7 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEven
 from sentry.api.serializers import serialize
 from sentry.constants import ExportQueryType
 from sentry.models import ExportedData
-from sentry.tasks.data_export import compile_data
+from sentry.tasks.data_export import assemble_download
 
 
 class ExportedDataSerializer(serializers.Serializer):
@@ -53,5 +53,5 @@ class DataExportEndpoint(OrganizationEndpoint):
             # This will handle invalid JSON requests
             return Response({"detail": six.text_type(e)}, status=400)
 
-        compile_data.delay(data_export=data_export)
+        assemble_download.delay(data_export=data_export)
         return Response(serialize(data_export, request.user), status=201)

@@ -279,9 +279,9 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     }
 
 
-def build_incident_attachment(incident):
+def build_incident_attachment(action, incident):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-
+    alert_rule = incident.alert_rule
     # aggregates = get_incident_aggregates(incident)
 
     if incident.status == IncidentStatus.CLOSED.value:
@@ -298,16 +298,19 @@ def build_incident_attachment(incident):
         status = "Fired"
         color = LEVEL_TO_COLOR["error"]
 
-    fields = [
-        {"title": "Status", "value": status, "short": True},
+    # fields = [
+        # {"title": "Status", "value": status, "short": True},
         # {"title": "Events", "value": aggregates["count"], "short": True},
         # {"title": "Users", "value": aggregates["unique_users"], "short": True},
-        {"title": "Query", "value": incident.query, "short": True},
-    ]
+        # {"title": "Query", "value": incident.query, "short": True},
+    # ]
+
+
+    text = "10 {} affected in the last {} minutes".format(alert_rule.aggregation, alert_rule.time_window)
 
     ts = incident.date_started
 
-    title = u"{}: {} (#{})".format(status, incident.alert_rule.name)
+    title = u"{}: {}".format(status, incident.alert_rule.name)
 
     return {
         "fallback": title,
@@ -410,8 +413,9 @@ def get_channel_id_with_timeout(integration, name, timeout):
     return (prefix, None, False)
 
 
-def send_incident_alert_notification(integration, incident, channel):
-    attachment = build_incident_attachment(incident)
+def send_incident_alert_notification(action, incident):
+    channel = action.channel
+    attachment = build_incident_attachment(action, incident)
 
     payload = {
         "token": "xoxb-656045868439-660476064996-OdqgwpT7V4z7BoyJip4nVp3q",

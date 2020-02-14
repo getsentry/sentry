@@ -6,7 +6,7 @@ import each from 'lodash/each';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalLink from 'app/components/links/externalLink';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';
 
 const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
