@@ -17,7 +17,6 @@ from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
 from sentry.attachments import attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
-    LOG_LEVELS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     MAX_SECS_IN_FUTURE,
@@ -583,13 +582,6 @@ class EventManager(object):
         # Pull the toplevel data we're interested in
         level = data.get("level")
 
-        # TODO(mitsuhiko): this code path should be gone by July 2018.
-        # This is going to be fine because no code actually still depends
-        # on integers here.  When we need an integer it will be converted
-        # into one later.  Old workers used to send integers here.
-        if level is not None and isinstance(level, six.integer_types):
-            level = LOG_LEVELS[level]
-
         transaction_name = data.get("transaction")
         logger_name = data.get("logger")
         release = data.get("release")
@@ -831,8 +823,9 @@ class EventManager(object):
                 key = "bytes.stored.%s" % (attachment.type,)
                 event_metrics[key] = (event_metrics.get(key) or 0) + len(attachment.data)
 
-        # Write the event to Nodestore
-        event.data.save()
+        with metrics.timer("event_manager.nodestore.save"):
+            # Write the event to Nodestore
+            event.data.save()
 
         if event_user:
             counters = [

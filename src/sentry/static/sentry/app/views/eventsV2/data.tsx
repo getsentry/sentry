@@ -11,8 +11,15 @@ import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
 import ShortId from 'app/components/shortId';
 import floatFormat from 'app/utils/floatFormat';
+import Version from 'app/components/version';
 
-import {Container, NumberContainer, OverflowLink, StyledDateTime} from './styles';
+import {
+  Container,
+  NumberContainer,
+  OverflowLink,
+  StyledDateTime,
+  VersionContainer,
+} from './styles';
 
 export const PIN_ICON = `image://${pinIcon}`;
 export const AGGREGATE_ALIASES = [
@@ -203,6 +210,7 @@ type SpecialFields = {
   last_seen: SpecialField;
   'issue.id': SpecialField;
   issue: SpecialField;
+  release: SpecialField;
 };
 
 /**
@@ -280,6 +288,18 @@ export const SPECIAL_FIELDS: SpecialFields = {
               })
             : emptyValue}
         </Container>
+      );
+    },
+  },
+  release: {
+    sortField: 'release',
+    renderFunc: data => {
+      return (
+        data.release && (
+          <VersionContainer>
+            <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+          </VersionContainer>
+        )
       );
     },
   },

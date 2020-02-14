@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import logging
 import six
 
 from django.utils.translation import ugettext as _
@@ -9,7 +8,6 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.http import Http404
-from requests.exceptions import HTTPError
 
 from sentry import options
 from sentry.api import client
@@ -68,18 +66,7 @@ def default_plugin_config(plugin, project, request):
     )
     if form.is_valid():
         if "action_test" in request.POST and plugin.is_testable():
-            try:
-                test_results = plugin.test_configuration(project)
-            except Exception as exc:
-                if isinstance(exc, HTTPError):
-                    test_results = "%s\n%s" % (exc, exc.response.text[:256])
-                elif hasattr(exc, "read") and callable(exc.read):
-                    test_results = "%s\n%s" % (exc, exc.read()[:256])
-                else:
-                    logging.exception("Plugin(%s) raised an error during test", plugin_key)
-                    test_results = "There was an internal error with the Plugin"
-            if not test_results:
-                test_results = "No errors returned"
+            test_results = plugin.test_configuration_and_get_test_results(project)
         else:
             for field, value in six.iteritems(form.cleaned_data):
                 key = "%s:%s" % (plugin_key, field)
