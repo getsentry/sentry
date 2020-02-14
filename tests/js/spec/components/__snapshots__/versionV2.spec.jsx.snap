@@ -37,9 +37,7 @@ exports[`Version renders 1`] = `
       to={
         Object {
           "pathname": "/organizations/sentry/releases/foo.bar.Baz%401.0.0%2B20200101/",
-          "query": Object {
-            "project": undefined,
-          },
+          "query": undefined,
         }
       }
     >
@@ -47,9 +45,7 @@ exports[`Version renders 1`] = `
         href={
           Object {
             "pathname": "/organizations/sentry/releases/foo.bar.Baz%401.0.0%2B20200101/",
-            "query": Object {
-              "project": undefined,
-            },
+            "query": undefined,
           }
         }
       >
