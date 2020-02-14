@@ -65,6 +65,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         "url": "/github-integration-setup-uri/",
         "width": 100,
       },
+      "slug": "github",
     }
   }
 >
@@ -218,6 +219,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           "url": "/github-integration-setup-uri/",
           "width": 100,
         },
+        "slug": "github",
       }
     }
   >
@@ -650,6 +652,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                         "url": "/github-integration-setup-uri/",
                         "width": 100,
                       },
+                      "slug": "github",
                     }
                   }
                   size="small"
@@ -728,6 +731,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             "url": "/github-integration-setup-uri/",
                             "width": 100,
                           },
+                          "slug": "github",
                         }
                       }
                     >

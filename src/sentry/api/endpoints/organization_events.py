@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import logging
 import six
-import uuid
 from functools import partial
 from django.utils.http import urlquote
 from rest_framework.response import Response
@@ -218,18 +217,9 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
 
         # TODO(mark) move all of this result formatting into discover.query()
         # once those APIs are used across the application.
-        tests = {
-            "transaction.status": "transaction.status" in first_row,
-            "trace": "trace" in first_row,
-        }
-        if any(tests.values()):
+        if "transaction.status" in first_row:
             for row in results:
-                if tests["transaction.status"]:
-                    row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
-                        row["transaction.status"]
-                    )
-                if tests["trace"]:
-                    row["trace"] = uuid.UUID(row["trace"]).hex
+                row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
         fields = request.GET.getlist("field")
         issues = {}
@@ -257,7 +247,11 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
         for result in results:
             for key in ("projectid", "project.id"):
                 if key in result:
-                    result["project.name"] = projects[result[key]]
+                    # Handle bizarre empty case
+                    if result[key] == 0:
+                        result["project.name"] = ""
+                    else:
+                        result["project.name"] = projects[result[key]]
                     if key not in fields:
                         del result[key]
 

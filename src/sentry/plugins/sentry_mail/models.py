@@ -179,7 +179,7 @@ class MailPlugin(NotificationPlugin):
             kwargs={"project_id": project.id},
         )
 
-    def notify(self, notification):
+    def notify(self, notification, **kwargs):
         from sentry.models import Commit, Release
 
         event = notification.event
