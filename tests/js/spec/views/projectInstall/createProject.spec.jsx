@@ -3,6 +3,7 @@ import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {CreateProject} from 'app/views/projectInstall/createProject';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
+import {MOCK_RESP_VERBOSE} from 'sentry-test/fixtures/ruleConditions';
 
 jest.mock('app/actionCreators/modal');
 
@@ -145,5 +146,74 @@ describe('CreateProject', function() {
     expect(wrapper.find('ProjectNameInput input').props().value).toBe('');
 
     expect(wrapper).toMatchSnapshot();
+  });
+
+  describe('Issue Alerts Options', () => {
+    let props = {};
+    beforeEach(() => {
+      props = {
+        ...baseProps,
+        hasIssueAlertOptionsEnabled: true,
+      };
+      props.organization.teams = [{slug: 'test', id: '1', name: 'test', hasAccess: true}];
+      MockApiClient.addMockResponse({
+        url: `/projects/${props.organization.slug}/rule-conditions/`,
+        body: MOCK_RESP_VERBOSE,
+      });
+    });
+
+    afterEach(() => {
+      MockApiClient.clearMockResponses();
+    });
+
+    it('should enabled the submit button if and only if all the required information has been filled', () => {
+      const wrapper = mountWithTheme(
+        <CreateProject {...props} />,
+        TestStubs.routerContext([
+          {
+            location: {query: {}},
+          },
+        ])
+      );
+
+      const expectSubmitButtonToBeDisabled = isDisabled => {
+        expect(
+          wrapper.find('Button[data-test-id="create-project"]').props().disabled
+        ).toBe(isDisabled);
+      };
+
+      wrapper
+        .find('SelectControl[data-test-id="metric-select-control"]')
+        .closest('RadioLineItem')
+        .simulate('click');
+      expectSubmitButtonToBeDisabled(true);
+
+      wrapper.find('input[data-test-id="range-input"]');
+      expectSubmitButtonToBeDisabled(true);
+
+      wrapper
+        .find('PlatformCard')
+        .first()
+        .simulate('click');
+      expectSubmitButtonToBeDisabled(true);
+
+      wrapper
+        .find('input[data-test-id="range-input"]')
+        .first()
+        .simulate('change', {target: {value: '2712'}});
+      expectSubmitButtonToBeDisabled(false);
+
+      wrapper
+        .find('input[data-test-id="range-input"]')
+        .first()
+        .simulate('change', {target: {value: ''}});
+      expectSubmitButtonToBeDisabled(true);
+
+      wrapper
+        .find('RadioLineItem')
+        .last()
+        .simulate('click');
+      expectSubmitButtonToBeDisabled(false);
+    });
   });
 });

@@ -10,7 +10,7 @@ type Props = {
   value: string | number | null;
 
   // An array of [id, name, description]
-  choices: [string, string, string?][];
+  choices: [string, React.ReactNode, React.ReactNode?][];
   disabled?: boolean;
   label: string;
   onChange: (id: string, e: React.MouseEvent) => void;

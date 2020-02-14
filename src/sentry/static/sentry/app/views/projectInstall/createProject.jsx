@@ -21,12 +21,14 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
+import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
 
 class CreateProject extends React.Component {
   static propTypes = {
     api: PropTypes.object,
     teams: PropTypes.arrayOf(SentryTypes.Team),
     organization: SentryTypes.Organization,
+    hasIssueAlertOptionsEnabled: PropTypes.bool,
   };
 
   static contextTypes = {
@@ -50,13 +52,126 @@ class CreateProject extends React.Component {
       platform,
       inFlight: false,
     };
+
+    if (this.props.hasIssueAlertOptionsEnabled) {
+      this.state = {
+        ...this.state,
+        ...{
+          dataFragment: {},
+        },
+      };
+    }
   }
 
-  createProject = e => {
+  renderProjectForm = (
+    projectName,
+    team,
+    teams,
+    platform,
+    hasIssueAlertOptionsEnabled,
+    organization,
+    canSubmitForm
+  ) => {
+    const createProjectFormCaptured = (
+      <CreateProjectForm onSubmit={this.createProject}>
+        <div>
+          <FormLabel>
+            {hasIssueAlertOptionsEnabled
+              ? t('Project name')
+              : t('Give your project a name')}
+          </FormLabel>
+          <ProjectNameInput>
+            <ProjectPlatformIcon monoTone platform={platform} />
+            <input
+              type="text"
+              name="name"
+              label={t('Project Name')}
+              placeholder={t('Project name')}
+              autoComplete="off"
+              value={projectName}
+              onChange={e => this.setState({projectName: e.target.value})}
+            />
+          </ProjectNameInput>
+        </div>
+        <div>
+          <FormLabel>
+            {hasIssueAlertOptionsEnabled ? t('Name') : t('Assign a Team')}
+          </FormLabel>
+          <TeamSelectInput>
+            <SelectControl
+              deprecatedSelectControl
+              name="select-team"
+              clearable={false}
+              value={team}
+              placeholder={t('Select a Team')}
+              onChange={choice => this.setState({team: choice.value})}
+              options={teams.map(({slug}) => ({
+                label: `#${slug}`,
+                value: slug,
+              }))}
+            />
+            <Tooltip title={t('Create a team')}>
+              <Button
+                borderless
+                data-test-id="create-team"
+                type="button"
+                icon="icon-circle-add"
+                onClick={() =>
+                  openCreateTeamModal({
+                    organization,
+                    onClose: ({slug}) => this.setState({team: slug}),
+                  })
+                }
+              />
+            </Tooltip>
+          </TeamSelectInput>
+        </div>
+        <div>
+          <Button
+            data-test-id="create-project"
+            priority="primary"
+            disabled={!canSubmitForm}
+          >
+            {t('Create Project')}
+          </Button>
+        </div>
+      </CreateProjectForm>
+    );
+    return hasIssueAlertOptionsEnabled ? (
+      <React.Fragment>
+        <PageHeading withMargins>{t('Give your project a name')}</PageHeading>
+        {createProjectFormCaptured}
+      </React.Fragment>
+    ) : (
+      <StickyWrapper>{createProjectFormCaptured}</StickyWrapper>
+    );
+  };
+
+  canSubmitForm(inFlight, team, projectName, dataFragment, hasIssueAlertOptionsEnabled) {
+    return (
+      !inFlight &&
+      team &&
+      projectName !== '' &&
+      (!hasIssueAlertOptionsEnabled ||
+        !dataFragment?.shouldCreateCustomRule ||
+        dataFragment?.conditions?.every?.(condition => condition.value))
+    );
+  }
+
+  createProject = async e => {
     e.preventDefault();
-    const {organization, api} = this.props;
-    const {projectName, platform, team} = this.state;
+    const {organization, api, hasIssueAlertOptionsEnabled} = this.props;
+    const {projectName, platform, team, dataFragment} = this.state;
     const {slug} = organization;
+    const {
+      shouldCreateCustomRule,
+      name,
+      conditions,
+      actions,
+      actionMatch,
+      frequency,
+      defaultRules,
+    } = hasIssueAlertOptionsEnabled ? dataFragment : {};
 
     this.setState({inFlight: true});
 
@@ -68,39 +183,53 @@ class CreateProject extends React.Component {
       });
     }
 
-    api.request(`/teams/${slug}/${team}/projects/`, {
-      method: 'POST',
-      data: {
-        name: projectName,
-        platform,
-      },
-      success: data => {
-        ProjectActions.createSuccess(data);
+    try {
+      const projectData = await api.requestPromise(`/teams/${slug}/${team}/projects/`, {
+        method: 'POST',
+        data: {
+          name: projectName,
+          platform,
+          default_rules: defaultRules ?? true,
+        },
+      });
 
-        const platformKey = platform || 'other';
-        const nextUrl = `/${organization.slug}/${data.slug}/getting-started/${platformKey}/`;
+      if (shouldCreateCustomRule) {
+        await api.requestPromise(
+          `/projects/${organization.slug}/${projectData.slug}/rules/`,
+          {
+            method: 'POST',
+            data: {
+              name,
+              conditions,
+              actions,
+              actionMatch,
+              frequency,
+            },
+          }
+        );
+      }
+      ProjectActions.createSuccess(projectData);
+      const platformKey = platform || 'other';
+      const nextUrl = `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`;
+      browserHistory.push(nextUrl);
+    } catch (err) {
+      this.setState({
+        inFlight: false,
+        error: err.responseJSON.detail,
+      });
 
-        browserHistory.push(nextUrl);
-      },
-      error: err => {
-        this.setState({
-          inFlight: false,
-          error: err.responseJSON.detail,
+      // Only log this if the error is something other than:
+      // * The user not having access to create a project, or,
+      // * A project with that slug already exists
+      if (err.status !== 403 && err.status !== 409) {
+        Sentry.withScope(scope => {
+          scope.setExtra('err', err);
+          scope.setExtra('props', this.props);
+          scope.setExtra('state', this.state);
+          Sentry.captureMessage('Project creation failed');
         });
-
-        // Only log this if the error is something other than:
-        // * The user not having access to create a project, or,
-        // * A project with that slug already exists
-        if (err.status !== 403 && err.status !== 409) {
-          Sentry.withScope(scope => {
-            scope.setExtra('err', err);
-            scope.setExtra('props', this.props);
-            scope.setExtra('state', this.state);
-            Sentry.captureMessage('Project creation failed');
-          });
-        }
-      },
-    });
+      }
+    }
   };
 
   setPlatform = platformId =>
@@ -113,10 +242,16 @@ class CreateProject extends React.Component {
     }));
 
   render() {
-    const {organization} = this.props;
-    const {projectName, team, platform, error, inFlight} = this.state;
+    const {organization, hasIssueAlertOptionsEnabled} = this.props;
+    const {projectName, team, platform, error, inFlight, dataFragment} = this.state;
     const teams = this.props.teams.filter(filterTeam => filterTeam.hasAccess);
-
+    const canSubmitForm = this.canSubmitForm(
+      inFlight,
+      team,
+      projectName,
+      dataFragment,
+      hasIssueAlertOptionsEnabled
+    );
     return (
       <React.Fragment>
         {error && <Alert type="error">{error}</Alert>}
@@ -130,65 +265,26 @@ class CreateProject extends React.Component {
                for your API server and frontend client.`
             )}
           </HelpText>
-
+          {hasIssueAlertOptionsEnabled && (
+            <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
+          )}
           <PlatformPicker platform={platform} setPlatform={this.setPlatform} showOther />
-          <CreateProjectForm onSubmit={this.createProject}>
-            <div>
-              <FormLabel>{t('Give your project a name')}</FormLabel>
-              <ProjectNameInput>
-                <ProjectPlatformIcon monoTone platform={platform} />
-                <input
-                  type="text"
-                  name="name"
-                  label={t('Project Name')}
-                  placeholder={t('Project name')}
-                  autoComplete="off"
-                  value={projectName}
-                  onChange={e => this.setState({projectName: e.target.value})}
-                />
-              </ProjectNameInput>
-            </div>
-            <div>
-              <FormLabel>{t('Assign a Team')}</FormLabel>
-              <TeamSelectInput>
-                <SelectControl
-                  deprecatedSelectControl
-                  name="select-team"
-                  clearable={false}
-                  value={team}
-                  placeholder={t('Select a Team')}
-                  onChange={choice => this.setState({team: choice.value})}
-                  options={teams.map(({slug}) => ({
-                    label: `#${slug}`,
-                    value: slug,
-                  }))}
-                />
-                <Tooltip title={t('Create a team')}>
-                  <Button
-                    borderless
-                    data-test-id="create-team"
-                    type="button"
-                    icon="icon-circle-add"
-                    onClick={() =>
-                      openCreateTeamModal({
-                        organization,
-                        onClose: ({slug}) => this.setState({team: slug}),
-                      })
-                    }
-                  />
-                </Tooltip>
-              </TeamSelectInput>
-            </div>
-            <div>
-              <Button
-                data-test-id="create-project"
-                priority="primary"
-                disabled={inFlight || !team || projectName === ''}
-              >
-                {t('Create Project')}
-              </Button>
-            </div>
-          </CreateProjectForm>
+          {hasIssueAlertOptionsEnabled && (
+            <IssueAlertOptions
+              onChange={updatedData => {
+                this.setState({dataFragment: updatedData});
+              }}
+            />
+          )}
+          {this.renderProjectForm(
+            projectName,
+            team,
+            teams,
+            platform,
+            hasIssueAlertOptionsEnabled,
+            organization,
+            canSubmitForm
+          )}
         </div>
       </React.Fragment>
     );
@@ -206,8 +302,6 @@ const CreateProjectForm = styled('form')`
   padding: ${space(3)} 0;
   box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
   background: #fff;
-  position: sticky;
-  bottom: 0;
 `;
 
 const FormLabel = styled('div')`
@@ -242,4 +336,10 @@ const TeamSelectInput = styled('div')`
 const HelpText = styled('p')`
   color: ${p => p.theme.gray3};
   max-width: 700px;
+`;
+
+const StickyWrapper = styled('div')`
+  position: sticky;
+  background: #fff;
+  bottom: 0;
 `;
