@@ -985,13 +985,14 @@ exports[`ProjectCard renders 1`] = `
                               aria-disabled={false}
                               aria-label="Track deploys"
                               className="css-12ogwys-StyledButton edwq9my0"
+                              external={true}
                               forwardRef={null}
                               href="https://docs.sentry.io/learn/releases/"
                               onClick={[Function]}
                               role="button"
                               size="xsmall"
                             >
-                              <a
+                              <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Track deploys"
                                 className="css-12ogwys-StyledButton edwq9my0"
@@ -1000,23 +1001,35 @@ exports[`ProjectCard renders 1`] = `
                                 role="button"
                                 size="xsmall"
                               >
-                                <ButtonLabel
-                                  align="center"
+                                <a
+                                  aria-disabled={false}
+                                  aria-label="Track deploys"
+                                  className="css-12ogwys-StyledButton edwq9my0"
+                                  href="https://docs.sentry.io/learn/releases/"
+                                  onClick={[Function]}
+                                  rel="noreferrer noopener"
+                                  role="button"
                                   size="xsmall"
+                                  target="_blank"
                                 >
-                                  <Component
+                                  <ButtonLabel
                                     align="center"
-                                    className="css-cmi7y3-ButtonLabel edwq9my1"
                                     size="xsmall"
                                   >
-                                    <span
+                                    <Component
+                                      align="center"
                                       className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      size="xsmall"
                                     >
-                                      Track deploys
-                                    </span>
-                                  </Component>
-                                </ButtonLabel>
-                              </a>
+                                      <span
+                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      >
+                                        Track deploys
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </a>
+                              </ForwardRef>
                             </Component>
                           </StyledButton>
                         </Button>

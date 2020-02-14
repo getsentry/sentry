@@ -272,7 +272,7 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
 };
 
 const StyledButton = styled(
-  ({forwardRef, ...props}) => {
+  ({forwardRef, external, ...props}) => {
     // Get component to use based on existence of `to` or `href` properties
     // Can be react-router `Link`, `a`, or `button`
     if (props.to) {
@@ -283,7 +283,7 @@ const StyledButton = styled(
       return <button ref={forwardRef} {...props} />;
     }
 
-    if (props.external && props.href) {
+    if (external && props.href) {
       return <ExternalLink ref={forwardRef} {...props} />;
     }
 
@@ -291,7 +291,9 @@ const StyledButton = styled(
   },
   {
     shouldForwardProp: prop =>
-      prop === 'forwardRef' || (isPropValid(prop) && prop !== 'disabled'),
+      prop === 'forwardRef' ||
+      prop === 'external' ||
+      (isPropValid(prop) && prop !== 'disabled'),
   }
 )<Props>`
   display: inline-block;
