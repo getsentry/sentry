@@ -5,7 +5,6 @@ import classNames from 'classnames';
 import styled from '@emotion/styled';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
-import {Client} from 'app/api';
 import {Environment, Organization, Project} from 'app/types';
 import {
   IssueAlertRule,
@@ -21,6 +20,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {getDisplayName} from 'app/utils/environment';
 import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import LoadingMask from 'app/components/loadingMask';
 import PanelAlert from 'app/components/panels/panelAlert';
@@ -31,7 +31,8 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TextField from 'app/views/settings/components/forms/textField';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
 
 import RuleNodeList from './ruleNodeList';
 
@@ -66,20 +67,20 @@ const defaultRule: UnsavedIssueAlertRule = {
 type ConditionOrAction = string;
 
 type Props = {
-  api: Client;
-  actions: IssueAlertRuleActionTemplate[] | null;
-  conditions: IssueAlertRuleConditionTemplate[] | null;
   project: Project;
   organization: Organization;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId: string}, {}>;
 
-type State = {
+type State = AsyncView['state'] & {
   rule: UnsavedIssueAlertRule | IssueAlertRule;
-  loading: boolean;
-  error: null | {
+  detailedError: null | {
     [key: string]: string[];
   };
   environments: Environment[];
+  configs: {
+    actions: IssueAlertRuleActionTemplate[];
+    conditions: IssueAlertRuleConditionTemplate[];
+  } | null;
 };
 
 function isSavedAlertRule(
@@ -88,37 +89,32 @@ function isSavedAlertRule(
   return rule.hasOwnProperty('id');
 }
 
-class IssueRuleEditor extends React.Component<Props, State> {
-  state: State = {
-    rule: {...defaultRule},
-    loading: false,
-    error: null,
-    environments: [],
-  };
-
-  componentDidMount() {
-    this.fetchData();
+class IssueRuleEditor extends AsyncView<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      configs: null,
+      detailedError: null,
+      rule: {...defaultRule},
+      environments: [],
+    };
   }
 
-  async fetchData() {
+  getEndpoints() {
     const {
-      api,
       params: {ruleId, projectId, orgId},
     } = this.props;
 
-    const promises = [
-      api.requestPromise(`/projects/${orgId}/${projectId}/environments/`),
-      ruleId
-        ? api.requestPromise(`/projects/${orgId}/${projectId}/rules/${ruleId}/`)
-        : Promise.resolve(defaultRule),
+    const endpoints = [
+      ['environments', `/projects/${orgId}/${projectId}/environments/`],
+      ['configs', `/projects/${orgId}/${projectId}/rules/configuration/`],
     ];
 
-    try {
-      const [environments, rule] = await Promise.all(promises);
-      this.setState({environments, rule});
-    } catch (_err) {
-      addErrorMessage(t('Unable to fetch data'));
+    if (ruleId) {
+      endpoints.push(['rule', `/projects/${orgId}/${projectId}/rules/${ruleId}/`]);
     }
+
+    return endpoints as [string, string][];
   }
 
   handleSubmit = async () => {
@@ -136,18 +132,18 @@ class IssueRuleEditor extends React.Component<Props, State> {
     addLoadingMessage(t('Saving...'));
 
     try {
-      const resp = await this.props.api.requestPromise(endpoint, {
+      const resp = await this.api.requestPromise(endpoint, {
         method: isNew ? 'POST' : 'PUT',
         data: rule,
       });
 
-      this.setState({error: null, loading: false, rule: resp});
+      this.setState({detailedError: null, rule: resp});
 
       addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
       browserHistory.replace(recreateRoute('', {...this.props, stepBack: -1}));
     } catch (err) {
       this.setState({
-        error: err.responseJSON || {__all__: 'Unknown error'},
+        detailedError: err.responseJSON || {__all__: 'Unknown error'},
         loading: false,
       });
       addErrorMessage(t('An error occurred'));
@@ -161,13 +157,13 @@ class IssueRuleEditor extends React.Component<Props, State> {
   };
 
   hasError = (field: string) => {
-    const {error} = this.state;
+    const {detailedError} = this.state;
 
-    if (!error) {
+    if (!detailedError) {
       return false;
     }
 
-    return error.hasOwnProperty(field);
+    return detailedError.hasOwnProperty(field);
   };
 
   handleEnvironmentChange = (val: string) => {
@@ -233,7 +229,11 @@ class IssueRuleEditor extends React.Component<Props, State> {
     };
   };
 
-  render() {
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderBody() {
     const {projectId, ruleId} = this.props.params;
     const {environments} = this.state;
     const environmentChoices = [
@@ -241,7 +241,7 @@ class IssueRuleEditor extends React.Component<Props, State> {
       ...environments.map(env => [env.name, getDisplayName(env)]),
     ];
 
-    const {rule, error} = this.state;
+    const {rule, detailedError} = this.state;
     const {actionMatch, actions, conditions, frequency, name} = rule || {};
 
     const environment =
@@ -259,14 +259,14 @@ class IssueRuleEditor extends React.Component<Props, State> {
           key={isSavedAlertRule(rule) ? rule.id : undefined}
           onCancel={this.handleCancel}
           onSubmit={this.handleSubmit}
-          initialData={rule as object}
+          initialData={{...rule, environment, actionMatch, frequency: `${frequency}`}}
           submitLabel={t('Save Rule')}
         >
-          {ruleId && !this.state.rule && <SemiTransparentLoadingMask />}
+          {ruleId && this.state.loading && <SemiTransparentLoadingMask />}
           <Panel>
             <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
             <PanelBody>
-              {error && (
+              {detailedError && (
                 <PanelAlert type="error">
                   {t(
                     'There was an error saving your changes. Make sure all fields are valid and try again.'
@@ -282,10 +282,8 @@ class IssueRuleEditor extends React.Component<Props, State> {
                 placeholder={t('Select an Environment')}
                 clearable={false}
                 name="environment"
-                value={environment}
                 choices={environmentChoices}
                 onChange={val => this.handleEnvironmentChange(val)}
-                multiple
               />
 
               <PanelSubHeader>
@@ -297,11 +295,16 @@ class IssueRuleEditor extends React.Component<Props, State> {
                         error: this.hasError('actionMatch'),
                       })}
                       inline={false}
-                      height="20"
-                      clearable={false}
-                      search={false}
+                      styles={{
+                        control: provided => ({
+                          ...provided,
+                          minHeight: '20px',
+                          height: '20px',
+                        }),
+                      }}
+                      isSearchable={false}
+                      isClearable={false}
                       name="actionMatch"
-                      value={actionMatch}
                       required
                       flexibleControlStateSize
                       choices={ACTION_MATCH_CHOICES}
@@ -312,12 +315,14 @@ class IssueRuleEditor extends React.Component<Props, State> {
               </PanelSubHeader>
 
               {this.hasError('conditions') && (
-                <PanelAlert type="error">{this.state.error!.conditions[0]}</PanelAlert>
+                <PanelAlert type="error">
+                  {this.state.detailedError!.conditions[0]}
+                </PanelAlert>
               )}
 
               <PanelRuleItem>
                 <RuleNodeList
-                  nodes={this.props.conditions}
+                  nodes={this.state.configs?.conditions ?? null}
                   items={conditions || []}
                   placeholder={t('Add a condition...')}
                   onPropertyChange={this.handlePropertyChange('conditions')}
@@ -329,12 +334,14 @@ class IssueRuleEditor extends React.Component<Props, State> {
               <PanelSubHeader>{t('Perform these actions')}</PanelSubHeader>
 
               {this.hasError('actions') && (
-                <PanelAlert type="error">{this.state.error!.actions[0]}</PanelAlert>
+                <PanelAlert type="error">
+                  {this.state.detailedError!.actions[0]}
+                </PanelAlert>
               )}
 
               <PanelRuleItem>
                 <RuleNodeList
-                  nodes={this.props.actions}
+                  nodes={this.state.configs?.actions ?? null}
                   items={actions || []}
                   placeholder={t('Add an action...')}
                   onPropertyChange={this.handlePropertyChange('actions')}
@@ -382,7 +389,7 @@ class IssueRuleEditor extends React.Component<Props, State> {
   }
 }
 
-export default withApi(IssueRuleEditor);
+export default withProject(withOrganization(IssueRuleEditor));
 
 const StyledForm = styled(Form)`
   position: relative;
@@ -394,7 +401,7 @@ const PanelRuleItem = styled(PanelItem)`
 
 const EmbeddedWrapper = styled('div')`
   margin: 0 ${space(1)};
-  width: 72px;
+  width: 80px;
 `;
 
 const EmbeddedSelectField = styled(SelectField)`

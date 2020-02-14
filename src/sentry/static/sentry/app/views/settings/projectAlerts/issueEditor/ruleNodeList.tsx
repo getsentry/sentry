@@ -81,6 +81,7 @@ class RuleNodeList extends React.Component<Props> {
         <StyledSelectControl
           deprecatedSelectControl
           placeholder={placeholder}
+          value=""
           onChange={obj => onAddRow(obj ? obj.value : obj)}
           options={options}
         />

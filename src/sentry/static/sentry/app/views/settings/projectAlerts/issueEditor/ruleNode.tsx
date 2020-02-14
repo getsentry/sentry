@@ -49,16 +49,14 @@ class RuleNode extends React.Component<Props> {
 
     return (
       <SelectControl
-        deprecatedSelectControl
-        clearable={false}
+        isClearable={false}
         placeholder={t('Select integration')}
         noResultsText={t('No integrations available')}
-        height="35"
         name={name}
         value={initialVal}
         choices={fieldConfig.choices}
         key={name}
-        onChange={val => this.props.onPropertyChange(name, val)}
+        onChange={({value}) => this.props.onPropertyChange(name, value)}
       />
     );
   };
