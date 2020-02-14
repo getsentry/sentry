@@ -9,6 +9,8 @@ function getOperatingSystemKnownData(
 ): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
+  console.log('getOperatingSystemKnownData', data);
+
   const dataKeys = Object.keys(data);
   for (const key of dataKeys) {
     const knownDataDetails = getOperatingSystemKnownDataDetails(

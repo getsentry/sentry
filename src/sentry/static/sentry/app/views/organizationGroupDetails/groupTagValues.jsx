@@ -137,7 +137,7 @@ class GroupTagValues extends React.Component {
                   </span>
                 </React.Fragment>
               ) : (
-                <DeviceName>{tagValue.name}</DeviceName>
+                <DeviceName value={tagValue.name} />
               )}
             </GlobalSelectionLink>
             {tagValue.email && (

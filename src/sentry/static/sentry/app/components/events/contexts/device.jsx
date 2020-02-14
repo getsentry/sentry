@@ -106,7 +106,7 @@ class DeviceContextType extends React.Component {
     );
 
     const renderedModel = isString(model) ? (
-      <DeviceName>{model + (model_id ? ` (${model_id})` : '')}</DeviceName>
+      <DeviceName value={model + (model_id ? ` (${model_id})` : '')} />
     ) : null;
 
     return (

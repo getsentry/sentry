@@ -1,0 +1,88 @@
+import React from 'react';
+import {Link} from 'react-router';
+import queryString from 'query-string';
+
+import {EventTag, Meta} from 'app/types';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
+import DeviceName from 'app/components/deviceName';
+import {isUrl} from 'app/utils';
+import Pill from 'app/components/pill';
+import VersionHoverCard from 'app/components/versionHoverCard';
+import InlineSvg from 'app/components/inlineSvg';
+import Version from 'app/components/version';
+
+type Props = {
+  tag: EventTag;
+  streamPath: string;
+  releasesPath: string;
+  query: any;
+  orgId: string;
+  projectId: string;
+  meta: Meta;
+};
+
+const EventTagsPill = ({
+  tag,
+  query,
+  orgId,
+  projectId,
+  streamPath,
+  releasesPath,
+  meta,
+}: Props) => {
+  const locationSearch = `?${queryString.stringify(query)}`;
+  const isRelease = tag.key === 'release';
+  return (
+    <Pill key={tag.key} name={tag.key} value={tag.value}>
+      <Link
+        to={{
+          pathname: streamPath,
+          search: locationSearch,
+        }}
+      >
+        {isRelease ? (
+          <Version version={tag.value} anchor={false} tooltipRawVersion truncate />
+        ) : (
+          <DeviceName value={tag.value}>
+            {deviceName =>
+              meta ? (
+                <AnnotatedText
+                  value={deviceName}
+                  chunks={meta.chunks}
+                  remarks={meta.rem}
+                  errors={meta.err}
+                />
+              ) : (
+                deviceName
+              )
+            }
+          </DeviceName>
+        )}
+      </Link>
+      {isUrl(tag.value) && (
+        <a href={tag.value} className="external-icon">
+          <em className="icon-open" />
+        </a>
+      )}
+      {isRelease && (
+        <VersionHoverCard
+          containerClassName="pill-icon"
+          version={tag.value}
+          orgId={orgId}
+          projectId={projectId}
+        >
+          <Link
+            to={{
+              pathname: `${releasesPath}${tag.value}/`,
+              search: locationSearch,
+            }}
+          >
+            <InlineSvg src="icon-circle-info" size="14px" />
+          </Link>
+        </VersionHoverCard>
+      )}
+    </Pill>
+  );
+};
+
+export default EventTagsPill;
