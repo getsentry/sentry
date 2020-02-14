@@ -8,7 +8,7 @@ relay:
   tls_identity_path: ~
   tls_identity_password: ~
 logging:
-  level: TRACE
+  level: INFO
   enable_backtraces: true
 processing:
   enabled: true
