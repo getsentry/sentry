@@ -1,6 +1,11 @@
 import {uniqueId} from 'app/utils/guid';
+import capitalize from 'lodash/capitalize';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Organization} from 'app/types';
+import {
+  Organization,
+  SentryAppInstallation,
+  IntegrationInstallationStatus,
+} from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
 import React from 'react';
@@ -162,4 +167,11 @@ export const getIntegrationFeatureGate = () => {
   const defaultHook = () => defaultFeatureGateComponents;
   const featureHook = HookStore.get('integrations:feature-gates')[0] || defaultHook;
   return featureHook();
+};
+
+export const getSentryAppInstallStatus = (install: SentryAppInstallation | undefined) => {
+  if (install) {
+    return capitalize(install.status) as IntegrationInstallationStatus;
+  }
+  return 'Not Installed';
 };

@@ -3,7 +3,6 @@ import keyBy from 'lodash/keyBy';
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import capitalize from 'lodash/capitalize';
 
 import {
   Organization,
@@ -16,7 +15,10 @@ import {
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {RequestOptions} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {
+  trackIntegrationEvent,
+  getSentryAppInstallStatus,
+} from 'app/utils/integrationUtil';
 import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
@@ -243,13 +245,6 @@ class OrganizationIntegrations extends AsyncComponent<
     return this.state.appInstalls.find(i => i.app.slug === app.slug);
   };
 
-  getAppInstallStatus = (install: SentryAppInstallation | undefined) => {
-    if (install) {
-      return capitalize(install.status) as 'Installed' | 'Pending';
-    }
-    return 'Not Installed';
-  };
-
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
@@ -360,7 +355,7 @@ class OrganizationIntegrations extends AsyncComponent<
   //render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
-    const status = this.getAppInstallStatus(this.getAppInstall(app));
+    const status = getSentryAppInstallStatus(this.getAppInstall(app));
 
     return (
       <IntegrationRow
