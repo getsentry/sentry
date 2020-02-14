@@ -403,7 +403,7 @@ def __model_unpickle_compat(model_id, attrs=None, factory=None):
     from django import VERSION
 
     if attrs is not None or factory is not None:
-        metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat")
+        metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat", sample_rate=1)
 
     if VERSION[:2] in [(1, 10), (1, 11)]:
         return model_unpickle(model_id)
