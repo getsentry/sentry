@@ -186,9 +186,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   handlePropertyChange = (type: ConditionOrAction) => {
     return (idx: number) => {
       return (prop: string, val: string) => {
-        const rule = {...this.state.rule} as IssueAlertRule;
-        rule[type][idx][prop] = val;
-        this.setState({rule});
+        this.setState(state => {
+          const rule = {...state.rule} as IssueAlertRule;
+          rule[type][idx][prop] = val;
+          return {rule};
+        });
       };
     };
   };
