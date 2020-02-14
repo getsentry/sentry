@@ -85,6 +85,9 @@ RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
     && python setup.py bdist_wheel \
     && rm -r "$YARN_CACHE_FOLDER" \
     && mv /usr/src/sentry/dist /dist \
+    # Dump the dependencies of our wheel as a separate requirements.txt file
+    # so we can install them first, leveraging Docker's caching when they
+    # don't change across versions.
     && pkginfo -f requires_dist --single --sequence-delim=! /dist/*.whl | tr ! \\n > /dist/requirements.txt
 
 # This is the image to be run
@@ -116,6 +119,7 @@ ENV PIP_NO_CACHE_DIR=off \
     # UWSGI dogstatsd plugin
     UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd
 
+# Copy and install dependencies first to leverage Docker layer caching.
 COPY --from=sdist /dist/requirements.txt /tmp/dist/requirements.txt
 RUN set -x \
     && buildDeps="" \
