@@ -312,7 +312,7 @@ const RadioGroupWithPadding = styled(RadioGroup)`
   box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
 `;
 const PageHeadingWithTopMargins = styled(PageHeading)`
-  margin-top: 65px !important;
+  margin-top: 65px;
 `;
 const RadioItemWrapper = styled('div')`
   min-height: 35px;
