@@ -10,6 +10,11 @@ from sentry.db.models import FlexibleForeignKey, Model
 from sentry.db.models.manager import BaseManager
 
 
+QUERY_AGGREGATION_DISPLAY ={
+    "events",
+    "users affected"
+}
+
 class QueryAggregations(Enum):
     TOTAL = 0
     UNIQUE_USERS = 1

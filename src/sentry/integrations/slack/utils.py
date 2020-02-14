@@ -11,7 +11,7 @@ from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, TriggerStatus
-from sentry.snuba.models import query_aggregation_display, QueryAggregations
+from sentry.snuba.models import QUERY_AGGREGATION_DISPLAY, QueryAggregations
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -306,11 +306,11 @@ def build_incident_attachment(incident, trigger=None):
             incident=incident
         ).order_by("-date_modified").first().alert_rule_trigger
 
-    agg_text = query_aggregation_display[alert_rule.aggregation]
-    agg_value = alert_rule.aggregation == QueryAggregations.TOTAL.value ? aggregates["events"] : aggregates["unique_users"]
+    agg_text = QUERY_AGGREGATION_DISPLAY[alert_rule.aggregation]
+    agg_value = "123" # (alert_rule.aggregation == QueryAggregations.TOTAL.value) ? aggregates["events"] : aggregates["unique_users"]
     is_active = trigger.status == TriggerStatus.ACTIVE
-    is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE
-    gt_or_lt = is_active == is_threshold_type_above ? ">" : "<"
+    # is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE
+    gt_or_lt = "456" # is_active == is_threshold_type_above ? ">" : "<"
     threshold_display = trigger.alert_threshold if is_active else trigger.resolve_threshold,
 
     text = "{} {} in the last {} minutes {} {} ".format(agg_value, agg_text, alert_rule.time_window, gt_or_lt, threshold_display)
@@ -422,11 +422,11 @@ def get_channel_id_with_timeout(integration, name, timeout):
 
 def send_incident_alert_notification(action, incident):
     channel = action.target_identifier
+    integration = action.integration
     trigger = action.alert_rule_trigger
     attachment = build_incident_attachment(incident, trigger=trigger)
-
     payload = {
-        "token": "xoxb-656045868439-660476064996-OdqgwpT7V4z7BoyJip4nVp3q",
+        "token": integration.metadata["access_token"],
         "channel": channel,
         "attachments": json.dumps([attachment]),
     }
@@ -435,6 +435,5 @@ def send_incident_alert_notification(action, incident):
     resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
     resp.raise_for_status()
     resp = resp.json()
-    print("resp:",resp)
     if not resp.get("ok"):
         logger.info("rule.fail.slack_post", extra={"error": resp.get("error")})
