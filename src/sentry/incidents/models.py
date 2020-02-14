@@ -336,7 +336,7 @@ class IncidentTrigger(Model):
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
     status = models.SmallIntegerField()
-    date_modified = models.DateTimeField(default=timezone.now, null=True)
+    date_modified = models.DateTimeField(default=timezone.now, null=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
