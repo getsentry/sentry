@@ -5,6 +5,8 @@ from json import loads
 import jsonschema
 import pytz
 import sentry_sdk
+from sentry_sdk import Hub
+from sentry_sdk.tracing import Span
 from confluent_kafka import Consumer, KafkaException, TopicPartition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -185,8 +187,12 @@ class QuerySubscriptionConsumer(object):
             )
 
             callback = subscriber_registry[subscription.type]
-            with sentry_sdk.start_span(
-                op="process_message", transaction="query_subscription_consumer_process_message"
+            with Hub.current.start_span(
+                Span(
+                    op="process_message",
+                    transaction="query_subscription_consumer_process_message",
+                    sampled=True,
+                )
             ) as span, metrics.timer(
                 "snuba_query_subscriber.callback.duration", instance=subscription.type
             ):
