@@ -1,5 +1,4 @@
 import groupBy from 'lodash/groupBy';
-import keyBy from 'lodash/keyBy';
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
@@ -13,18 +12,13 @@ import {
   PluginWithProjectList,
 } from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {RequestOptions} from 'app/api';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
 } from 'app/utils/integrationUtil';
-import {removeSentryApp} from 'app/actionCreators/sentryApps';
-import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
@@ -179,68 +173,6 @@ class OrganizationIntegrations extends AsyncComponent<
     return this.state.config.providers;
   }
 
-  // Actions
-
-  onInstall = (integration: Integration) => {
-    // Merge the new integration into the list. If we're updating an
-    // integration overwrite the old integration.
-    const keyedItems = keyBy(this.state.integrations, i => i.id);
-
-    // Mark this integration as newlyAdded if it didn't already exist, allowing
-    // us to animate the element in.
-    if (!keyedItems.hasOwnProperty(integration.id)) {
-      this.setState({newlyInstalledIntegrationId: integration.id});
-    }
-
-    const integrations = sortArray(
-      Object.values({...keyedItems, [integration.id]: integration}),
-      i => i.name
-    );
-    this.setState({integrations});
-  };
-
-  onRemove = (integration: Integration) => {
-    const {orgId} = this.props.params;
-
-    const origIntegrations = [...this.state.integrations];
-
-    const integrations = this.state.integrations.filter(i => i.id !== integration.id);
-    this.setState({integrations});
-
-    const options: RequestOptions = {
-      method: 'DELETE',
-      error: () => {
-        this.setState({integrations: origIntegrations});
-        addErrorMessage(t('Failed to remove Integration'));
-      },
-    };
-
-    this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
-  };
-
-  onDisable = (integration: Integration) => {
-    let url: string;
-    const [domainName, orgName] = integration.domainName.split('/');
-
-    if (integration.accountType === 'User') {
-      url = `https://${domainName}/settings/installations/`;
-    } else {
-      url = `https://${domainName}/organizations/${orgName}/settings/installations/`;
-    }
-
-    window.open(url, '_blank');
-  };
-
-  handleRemoveInternalSentryApp = (app: SentryApp): void => {
-    const apps = this.state.orgOwnedApps.filter(a => a.slug !== app.slug);
-    removeSentryApp(this.api, app).then(
-      () => {
-        this.setState({orgOwnedApps: apps});
-      },
-      () => {}
-    );
-  };
-
   getAppInstall = (app: SentryApp) => {
     return this.state.appInstalls.find(i => i.app.slug === app.slug);
   };
@@ -295,6 +227,7 @@ class OrganizationIntegrations extends AsyncComponent<
       });
     });
   };
+
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     const {organization} = this.props;
@@ -391,12 +324,6 @@ class OrganizationIntegrations extends AsyncComponent<
         <SentryDocumentTitle title={title} objSlug={orgId} />
         {!this.props.hideHeader && <SettingsPageHeader title={title} />}
         <PermissionAlert access={['org:integrations']} />
-
-        <MigrationWarnings
-          orgId={this.props.params.orgId}
-          providers={this.providers}
-          onInstall={this.onInstall}
-        />
         <SearchContainer>
           <SearchInput
             value={this.state.searchInput || ''}
