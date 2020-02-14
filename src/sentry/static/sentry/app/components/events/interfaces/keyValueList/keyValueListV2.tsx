@@ -1,19 +1,8 @@
 import React from 'react';
 import sortBy from 'lodash/sortBy';
-<<<<<<< HEAD
-<<<<<<< HEAD
-import styled from '@emotion/styled';
-
-=======
-=======
->>>>>>> refactor/datascrubbers-v2-added-tooltip-part-3
 
 import {defined} from 'app/utils';
 import styled from '@emotion/styled';
-<<<<<<< HEAD
->>>>>>> master
-=======
->>>>>>> refactor/datascrubbers-v2-added-tooltip-part-3
 import ContextData from 'app/components/contextData';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import theme from 'app/utils/theme';
@@ -29,34 +18,6 @@ type Props = {
   isSorted?: boolean;
 };
 
-<<<<<<< HEAD
-export type KeyValueListData = {
-  key: string;
-<<<<<<< HEAD
-  subject: React.ReactNode | string;
-=======
-  subject: React.ReactNode;
->>>>>>> master
-  value: string | null;
-  meta: Meta;
-};
-
-type Meta = {
-  chunks: Array<Chunks>;
-  len: number;
-  rem: Array<Array<string | number>>;
-  err: Array<any>;
-};
-
-type Chunks = {
-  text: string;
-  type: string;
-  remark?: string;
-  rule_id?: string;
-};
-
-=======
->>>>>>> refactor/datascrubbers-v2-added-tooltip-part-3
 const KeyValueList = ({
   data,
   isContextData = false,
