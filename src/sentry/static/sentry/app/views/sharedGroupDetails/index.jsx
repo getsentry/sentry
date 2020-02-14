@@ -117,20 +117,18 @@ const SharedGroupDetails = createReactClass({
                   </a>
                 )}
               </div>
-              <div className="box-content">
-                <div className="content">
-                  <SharedGroupHeader group={group} />
-                  <Container className="group-overview event-details-container">
-                    <BorderlessEventEntries
-                      group={group}
-                      event={evt}
-                      orgId={group.project.organization.slug}
-                      project={group.project}
-                      isShare
-                    />
-                  </Container>
-                  <Footer />
-                </div>
+              <div className="content">
+                <SharedGroupHeader group={group} />
+                <Container className="group-overview event-details-container">
+                  <BorderlessEventEntries
+                    group={group}
+                    event={evt}
+                    orgId={group.project.organization.slug}
+                    project={group.project}
+                    isShare
+                  />
+                </Container>
+                <Footer />
               </div>
             </div>
           </div>
