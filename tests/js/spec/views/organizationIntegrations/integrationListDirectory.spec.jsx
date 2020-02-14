@@ -21,8 +21,8 @@ describe('IntegrationListDirectory', function() {
   const org = TestStubs.Organization();
   const routerContext = TestStubs.routerContext();
 
-  describe('Render view', function() {
-    it('handles broken integrations', async function() {
+  describe('Renders view', function() {
+    it('shows installed integrations at the top', async function() {
       mockResponse([
         [
           `/organizations/${org.slug}/config/integrations/`,
