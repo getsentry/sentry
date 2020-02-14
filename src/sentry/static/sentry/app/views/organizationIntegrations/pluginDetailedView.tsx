@@ -51,7 +51,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
 
   get integrationName() {
     const isLegacy = legacyIds.includes(this.plugin.id);
-    const displayName = `${this.plugin.name} ${!!isLegacy ? '(Legacy)' : ''}`;
+    const displayName = `${this.plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
     return displayName;
   }
 
