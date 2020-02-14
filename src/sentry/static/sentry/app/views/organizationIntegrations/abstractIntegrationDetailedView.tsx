@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {Organization, IntegrationFeature} from 'app/types';
+import {Organization, IntegrationFeature, IntegrationInstallationStatus} from 'app/types';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import space from 'app/styles/space';
@@ -15,9 +15,7 @@ import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import Alert, {Props as AlertProps} from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-
 import IntegrationStatus from './integrationStatus';
-import {InstallationStatus} from './constants';
 
 type Tab = 'information' | 'configurations';
 
@@ -48,14 +46,10 @@ class AbstractIntegrationDetailedView<
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({tab: value});
   }
-  onTabChange = (value: Tab) => {
-    this.setState({tab: value});
-  };
 
-  getTabDiplay(tab: Tab): string {
-    //default is return the tab
-    return tab;
-  }
+  /***
+   * Abstract methods defined below
+   */
 
   get description(): string {
     // Allow children to implement this
@@ -77,7 +71,7 @@ class AbstractIntegrationDetailedView<
     throw new Error('Not implemented');
   }
 
-  get installationStatus(): InstallationStatus {
+  get installationStatus(): IntegrationInstallationStatus {
     // Allow children to implement this
     throw new Error('Not implemented');
   }
@@ -91,6 +85,37 @@ class AbstractIntegrationDetailedView<
     // Allow children to implement this
     throw new Error('Not implemented');
   }
+
+  onTabChange = (value: Tab) => {
+    this.setState({tab: value});
+  };
+
+  getTabDiplay(tab: Tab): string {
+    //default is return the tab
+    return tab;
+  }
+
+  renderTopButton(
+    _disabledFromFeatures: boolean,
+    _userHasAccess: boolean
+  ): React.ReactElement {
+    // Allow children to implement this
+    throw new Error('Not implemented');
+  }
+
+  renderPermissions(): React.ReactElement | null {
+    //default is don't render permissions
+    return null;
+  }
+
+  renderConfigurations() {
+    // Allow children to implement this
+    throw new Error('Not implemented');
+  }
+
+  /***
+   * Actually implmeented methods below*
+   */
 
   get featureProps() {
     const {organization} = this.props;
@@ -114,14 +139,6 @@ class AbstractIntegrationDetailedView<
       const feature = featureGate.replace(/integrations/g, '').replace(/-/g, ' ');
       return <StyledTag key={feature}>{feature}</StyledTag>;
     });
-  }
-
-  renderTopButton(
-    _disabledFromFeatures: boolean,
-    _userHasAccess: boolean
-  ): React.ReactElement {
-    // Allow children to implement this
-    throw new Error('Not implemented');
   }
 
   renderTopSection() {
@@ -182,12 +199,6 @@ class AbstractIntegrationDetailedView<
       </ul>
     );
   }
-
-  renderPermissions(): React.ReactElement | null {
-    //default is don't render permissions
-    return null;
-  }
-
   renderInformationCard() {
     const {FeatureList} = getIntegrationFeatureGate();
 
@@ -217,11 +228,6 @@ class AbstractIntegrationDetailedView<
         ))}
       </React.Fragment>
     );
-  }
-
-  renderConfigurations() {
-    // Allow children to implement this
-    throw new Error('Not implemented');
   }
 
   renderBody() {

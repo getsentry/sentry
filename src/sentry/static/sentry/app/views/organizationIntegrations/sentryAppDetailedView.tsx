@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
@@ -17,13 +16,14 @@ import {IntegrationFeature, SentryApp, SentryAppInstallation} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
 import {openModal} from 'app/actionCreators/modal';
+import {getSentryAppInstallStatus} from 'app/utils/integrationUtil';
 import {UninstallButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
-import {NOT_INSTALLED, InstallationStatus} from './constants';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {
   sentryApp: SentryApp;
   featureData: IntegrationFeature[];
+  appInstalls: SentryAppInstallation[];
 };
 
 type Tab = AbstractIntegrationDetailedView['state']['tab'];
@@ -81,12 +81,8 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     return toPermissions(this.sentryApp.scopes);
   }
 
-  //TODO: Move into util function
   get installationStatus() {
-    const install = this.isInstalled();
-    return (
-      (install && (capitalize(install.status) as InstallationStatus)) || NOT_INSTALLED
-    );
+    return getSentryAppInstallStatus(this.install);
   }
 
   get integrationName() {
@@ -97,9 +93,9 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     return this.state.featureData;
   }
 
-  isInstalled = () => {
+  get install() {
     return this.state.appInstalls.find(i => i.app.slug === this.sentryApp.slug);
-  };
+  }
 
   redirectUser = (install: SentryAppInstallation) => {
     const {organization} = this.props;
@@ -200,8 +196,8 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
-    return !this.isInstalled() ? (
-      <Button
+    return !this.install ? (
+      <InstallButton
         size="small"
         priority="primary"
         disabled={disabledFromFeatures || !userHasAccess}
@@ -210,10 +206,10 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
         data-test-id="install"
       >
         {t('Accept & Install')}
-      </Button>
+      </InstallButton>
     ) : (
       <UninstallButton
-        install={this.isInstalled()}
+        install={this.install}
         app={this.sentryApp}
         onClickUninstall={this.handleUninstall}
         onUninstallModalOpen={() => {}} //TODO: Implement tracking analytics
@@ -248,6 +244,10 @@ const Title = styled('p')`
 const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
   margin-top: 7px;
   color: ${p => p.theme.success};
+`;
+
+const InstallButton = styled(Button)`
+  margin-left: ${space(1)};
 `;
 
 export default withOrganization(SentryAppDetailedView);

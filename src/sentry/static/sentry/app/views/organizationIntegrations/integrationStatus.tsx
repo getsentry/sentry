@@ -4,11 +4,12 @@ import CircleIndicator from 'app/components/circleIndicator';
 import theme from 'app/utils/theme';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {IntegrationInstallationStatus} from 'app/types';
 
-import {colors, InstallationStatus} from './constants';
+import {colors} from './constants';
 
 type StatusProps = {
-  status: InstallationStatus;
+  status: IntegrationInstallationStatus;
 };
 
 const StatusWrapper = styled('div')`
