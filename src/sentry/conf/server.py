@@ -1346,7 +1346,7 @@ SENTRY_DEVSERVICES = {
     "postgres": {
         "image": "postgres:9.6-alpine",
         "ports": {"5432/tcp": 5432},
-        "environment": {"POSTGRES_DB": "sentry"},
+        "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
     },
     "zookeeper": {
