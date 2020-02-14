@@ -1,18 +1,18 @@
 import React, {ReactElement} from 'react';
 
-import SelectControl from 'app/components/forms/selectControl';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-
-import styled from '@emotion/styled';
-import {t} from 'app/locale';
-import AsyncComponent from 'app/components/asyncComponent';
-import Input from 'app/views/settings/components/forms/controls/input';
 import * as Sentry from '@sentry/browser';
 import isEqual from 'lodash/isEqual';
-import space from 'app/styles/space';
-import PageHeading from 'app/components/pageHeading';
-import withOrganization from 'app/utils/withOrganization';
+import styled from '@emotion/styled';
+
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
+import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncComponent from 'app/components/asyncComponent';
+import Input from 'app/views/settings/components/forms/controls/input';
+import PageHeading from 'app/components/pageHeading';
+import SelectControl from 'app/components/forms/selectControl';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 
 enum MetricValues {
   ERRORS,
@@ -107,7 +107,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: Actions.CUSTOMIZED_ALERTS.toString(),
+      alertSetting: `${Actions.CUSTOMIZED_ALERTS}`,
       metric: MetricValues.ERRORS,
       interval: '',
       placeholder: '',
@@ -130,13 +130,13 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
   getIssueAlertsChoices(
     hasProperlyLoadedConditions: boolean
   ): [string, string | ReactElement][] {
-    const options: [string, string | ReactElement][] = [
-      [Actions.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
-      [Actions.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
+    const options: [string, React.ReactNode][] = [
+      [`${Actions.ALERT_ON_EVERY_ISSUE}`, t('Alert me on every new issue')],
+      [`${Actions.CREATE_ALERT_LATER}`, t("I'll create my own alerts later")],
     ];
     if (hasProperlyLoadedConditions) {
       options.unshift([
-        Actions.CUSTOMIZED_ALERTS.toString(),
+        `${Actions.CUSTOMIZED_ALERTS}`,
         <CustomizeAlertsGrid key={Actions.CUSTOMIZED_ALERTS}>
           {t('When there are more than')}
           <InlineInput
@@ -171,9 +171,9 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
         </CustomizeAlertsGrid>,
       ]);
     }
-    return options.map(([choiceValue, element]) => [
+    return options.map(([choiceValue, node]) => [
       choiceValue,
-      <RadioItemWrapper key={choiceValue}>{element}</RadioItemWrapper>,
+      <RadioItemWrapper key={choiceValue}>{node}</RadioItemWrapper>,
     ]);
   }
 
@@ -255,7 +255,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
         scope.setExtra('props', this.props);
         scope.setExtra('state', this.state);
         Sentry.captureException(
-          Error(
+          new Error(
             'Interval choices or value placeholder sent from API endpoint is inconsistent or empty'
           )
         );
@@ -297,7 +297,7 @@ export default withOrganization(IssueAlertOptions);
 const CustomizeAlertsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(5, max-content);
-  grid-gap: 10px;
+  grid-gap: ${space(1)};
   align-items: center;
 `;
 const InlineInput = styled(Input)`
