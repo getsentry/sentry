@@ -33,6 +33,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='incidenttrigger',
             name='date_modified',
-            field=models.DateTimeField(default=django.utils.timezone.now),
+            field=models.DateTimeField(default=django.utils.timezone.now, null=True),
         ),
     ]
