@@ -11,40 +11,24 @@ import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import HookStore from 'app/stores/hookStore';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import InlineSvg from 'app/components/inlineSvg';
 import Tag from 'app/views/settings/components/tag';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
 import {SentryAppDetailsModalOptions} from 'app/actionCreators/modal';
-import {Hooks} from 'app/types/hooks';
 import {IntegrationFeature} from 'app/types';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {
+  trackIntegrationEvent,
+  getIntegrationFeatureGate,
+} from 'app/utils/integrationUtil';
 
 type Props = {
   view?: 'integrations_page' | 'external_install';
   closeModal: () => void;
 } & SentryAppDetailsModalOptions &
   AsyncComponent['props'];
-
-const defaultFeatureGateComponents = {
-  IntegrationFeatures: p =>
-    p.children({
-      disabled: false,
-      disabledReason: null,
-      ungatedFeatures: p.features,
-      gatedFeatureGroups: [],
-    }),
-  FeatureList: p => (
-    <ul>
-      {p.features.map((f, i) => (
-        <li key={i}>{f.description}</li>
-      ))}
-    </ul>
-  ),
-} as ReturnType<Hooks['integrations:feature-gates']>;
 
 type State = {
   featureData: IntegrationFeature[];
@@ -57,6 +41,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     onInstall: PropTypes.func.isRequired,
     isInstalled: PropTypes.bool.isRequired,
     closeModal: PropTypes.func.isRequired,
+    onCloseModal: PropTypes.func,
     view: PropTypes.string.isRequired,
   };
 
@@ -75,6 +60,10 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     this.trackOpened();
   }
 
+  componentWillUnmount() {
+    this.props.onCloseModal?.();
+  }
+
   trackOpened() {
     const {sentryApp, organization, isInstalled, view} = this.props;
     recordInteraction(sentryApp.slug, 'sentry_app_viewed');
@@ -87,6 +76,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
         integration: sentryApp.slug,
         already_installed: isInstalled,
         view,
+        integration_status: sentryApp.status,
       },
       organization,
       {startSession: view === 'external_install'} //new session on external installs
@@ -109,9 +99,15 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     return toPermissions(this.props.sentryApp.scopes);
   }
 
-  onInstall() {
+  async onInstall() {
     const {onInstall, closeModal, view} = this.props;
-    onInstall();
+    //we want to make sure install finishes before we close the modal
+    //and we should close the modal if there is an error as well
+    try {
+      await onInstall();
+    } catch (_err) {
+      /* stylelint-disable-next-line no-empty-block */
+    }
     // let onInstall handle redirection post install on the external install flow
     view !== 'external_install' && closeModal();
   }
@@ -176,9 +172,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
       ),
     }));
 
-    const defaultHook = () => defaultFeatureGateComponents;
-    const featureHook = HookStore.get('integrations:feature-gates')[0] || defaultHook;
-    const {FeatureList, IntegrationFeatures} = featureHook();
+    const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
 
     const overview = sentryApp.overview || '';
     const featureProps = {organization, features};

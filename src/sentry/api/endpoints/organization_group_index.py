@@ -166,8 +166,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         try:
             start, end = get_date_range_from_params(request.GET)
-        except InvalidParams as exc:
-            return Response({"detail": exc.message}, status=400)
+        except InvalidParams as e:
+            return Response({"detail": six.text_type(e)}, status=400)
 
         try:
             cursor_result, query_kwargs = self._search(
@@ -249,9 +249,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
-        :param string assignedTo: the actor id (or username) of the user or team that should be
-                                  assigned to this issue. Bulk assigning issues
-                                  is limited to groups within a single project.
+        :param string assignedTo: the user or team that should be assigned to
+                                  these issues. Can be of the form ``"<user_id>"``,
+                                  ``"user:<user_id>"``, ``"<username>"``,
+                                  ``"<user_primary_email>"``, or ``"team:<team_id>"``.
+                                  Bulk assigning issues is limited to groups
+                                  within a single project.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the

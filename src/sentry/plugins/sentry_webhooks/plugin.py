@@ -43,9 +43,9 @@ class WebHooksPlugin(notify.NotificationPlugin):
     version = sentry.VERSION
     description = "Integrates web hooks."
     resource_links = [
-        ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
+        ("Report Issue", "https://github.com/getsentry/sentry/issues"),
         (
-            "Source",
+            "View Source",
             "https://github.com/getsentry/sentry/tree/master/src/sentry/plugins/sentry_webhooks",
         ),
     ]
@@ -59,6 +59,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
     timeout = getattr(settings, "SENTRY_WEBHOOK_TIMEOUT", 3)
     logger = logging.getLogger("sentry.plugins.webhooks")
     user_agent = "sentry-webhooks/%s" % version
+    required_field = "urls"
 
     def is_configured(self, project, **kwargs):
         return bool(self.get_option("urls", project))
@@ -85,7 +86,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             "logger": event.get_tag("logger"),
             "level": event.get_tag("level"),
             "culprit": group.culprit,
-            "message": event.real_message,
+            "message": event.message,
             "url": group.get_absolute_url(params={"referrer": "webhooks_plugin"}),
             "triggering_rules": triggering_rules,
         }
@@ -104,4 +105,5 @@ class WebHooksPlugin(notify.NotificationPlugin):
     def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
         payload = self.get_group_data(group, event, triggering_rules)
         for url in self.get_webhook_urls(group.project):
+            # TODO: Use API client with raise_error
             safe_execute(self.send_webhook, url, payload, _with_transaction=False)

@@ -14,13 +14,30 @@ import {load as loadIncidents} from 'app/actionCreators/serviceIncidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import HookStore from 'app/stores/hookStore';
-import InlineSvg from 'app/components/inlineSvg';
+import {
+  IconActivity,
+  IconChevron,
+  IconGraph,
+  IconIssues,
+  IconLab,
+  IconProject,
+  IconReleases,
+  IconSettings,
+  IconSiren,
+  IconStack,
+  IconStats,
+  IconSupport,
+  IconTelescope,
+} from 'app/icons';
 import PreferencesStore from 'app/stores/preferencesStore';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import localStorage from 'app/utils/localStorage';
 import withLatestContext from 'app/utils/withLatestContext';
+import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
 
 import Broadcasts from './broadcasts';
 import ServiceIncidents from './serviceIncidents';
@@ -163,8 +180,10 @@ class Sidebar extends React.Component {
       'events',
       'releases',
       'user-feedback',
-      'eventsv2',
-      'health',
+      'discover',
+      'discover/queries',
+      'discover/results',
+      'releasesv2',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
 
     // Only keep the querystring if the current route matches one of the above
@@ -208,6 +227,56 @@ class Sidebar extends React.Component {
     }
   };
 
+  /**
+   * Determine which mix of discovers and events tabs to show for an account.
+   */
+  discoverSidebarState() {
+    const {organization} = this.props;
+    // Default all things to off
+    const sidebarState = {
+      discover1: false,
+      discover2: false,
+      events: false,
+    };
+
+    // Bail as we can't do any more checks.
+    if (!organization || !organization.features) {
+      return sidebarState;
+    }
+    const optState = localStorage.getItem('discover:version');
+    const features = organization.features;
+
+    if (features.includes('discover-basic')) {
+      // If there is no opt-out state show discover2
+      if (!optState || optState === '2') {
+        sidebarState.discover2 = true;
+      }
+      // User wants discover1
+      if (optState === '1') {
+        sidebarState.discover1 = true;
+        sidebarState.events = true;
+      }
+      return sidebarState;
+    }
+
+    // If an account has the old features they continue to have
+    // access to them.
+    if (features.includes('discover')) {
+      sidebarState.discover1 = true;
+    }
+    if (features.includes('events')) {
+      sidebarState.events = true;
+    }
+
+    // If an organization doesn't have events, or discover-basic
+    // Enable the tab so we can show an upsell state in saas.
+    if (!sidebarState.events) {
+      sidebarState.discover2 = true;
+    }
+
+    return sidebarState;
+  }
+
   sidebarRef = React.createRef();
 
   render() {
@@ -223,6 +292,8 @@ class Sidebar extends React.Component {
       hasPanel,
     };
     const hasOrganization = !!organization;
+
+    const discoverState = this.discoverSidebarState();
 
     return (
       <StyledSidebar ref={this.sidebarRef} collapsed={collapsed}>
@@ -246,7 +317,7 @@ class Sidebar extends React.Component {
                     {...sidebarItemProps}
                     index
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-projects" />}
+                    icon={<IconProject size="md" />}
                     label={t('Projects')}
                     to={`/organizations/${organization.slug}/projects/`}
                   />
@@ -258,61 +329,72 @@ class Sidebar extends React.Component {
                         evt
                       )
                     }
-                    icon={<InlineSvg src="icon-issues" />}
+                    icon={<IconIssues size="md" />}
                     label={t('Issues')}
                     to={`/organizations/${organization.slug}/issues/`}
                     id="issues"
                   />
 
-                  <Feature
-                    features={['events']}
-                    hookName="feature-disabled:events-sidebar-item"
-                    organization={organization}
-                  >
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/events/`,
-                          evt
-                        )
-                      }
-                      icon={<InlineSvg src="icon-stack" />}
-                      label={t('Events')}
-                      to={`/organizations/${organization.slug}/events/`}
-                      id="events"
-                    />
-                  </Feature>
+                  {discoverState.events && (
+                    <Feature
+                      features={['events']}
+                      hookName="feature-disabled:events-sidebar-item"
+                      organization={organization}
+                    >
+                      <SidebarItem
+                        {...sidebarItemProps}
+                        onClick={(_id, evt) =>
+                          this.navigateWithGlobalSelection(
+                            `/organizations/${organization.slug}/events/`,
+                            evt
+                          )
+                        }
+                        icon={<IconStack size="md" />}
+                        label={t('Events')}
+                        to={`/organizations/${organization.slug}/events/`}
+                        id="events"
+                      />
+                    </Feature>
+                  )}
 
-                  <Feature features={['events-v2']} organization={organization}>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/eventsv2/`,
-                          evt
-                        )
-                      }
-                      icon={<InlineSvg src="icon-telescope" />}
-                      label={t('Discover v2')}
-                      to={`/organizations/${organization.slug}/eventsv2/`}
-                      id="discover-v2"
-                    />
-                  </Feature>
+                  {discoverState.discover2 && (
+                    <Feature
+                      hookName="feature-disabled:discover2-sidebar-item"
+                      features={['discover-basic']}
+                      organization={organization}
+                    >
+                      <GuideAnchor position="right" target="discover_sidebar">
+                        <SidebarItem
+                          {...sidebarItemProps}
+                          onClick={(_id, evt) =>
+                            this.navigateWithGlobalSelection(
+                              getDiscoverLandingUrl(organization),
+                              evt
+                            )
+                          }
+                          icon={<IconTelescope size="md" />}
+                          label={t('Discover')}
+                          to={getDiscoverLandingUrl(organization)}
+                          id="discover-v2"
+                          isNew
+                        />
+                      </GuideAnchor>
+                    </Feature>
+                  )}
 
                   <Feature features={['incidents']} organization={organization}>
                     <SidebarItem
                       {...sidebarItemProps}
                       onClick={(_id, evt) =>
                         this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/incidents/`,
+                          `/organizations/${organization.slug}/alerts/`,
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-siren" size="22" />}
-                      label={t('Incidents')}
-                      to={`/organizations/${organization.slug}/incidents/`}
-                      id="incidents"
+                      icon={<IconSiren size="md" />}
+                      label={t('Alerts')}
+                      to={`/organizations/${organization.slug}/alerts/`}
+                      id="alerts"
                     />
                   </Feature>
 
@@ -324,7 +406,7 @@ class Sidebar extends React.Component {
                         evt
                       )
                     }
-                    icon={<InlineSvg src="icon-releases" />}
+                    icon={<IconReleases size="md" />}
                     label={t('Releases')}
                     to={`/organizations/${organization.slug}/releases/`}
                     id="releases"
@@ -337,7 +419,7 @@ class Sidebar extends React.Component {
                         evt
                       )
                     }
-                    icon={<InlineSvg src="icon-support" size="22" />}
+                    icon={<IconSupport size="md" />}
                     label={t('User Feedback')}
                     to={`/organizations/${organization.slug}/user-feedback/`}
                     id="user-feedback"
@@ -350,26 +432,29 @@ class Sidebar extends React.Component {
                       {...sidebarItemProps}
                       index
                       onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-health" />}
+                      icon={<IconGraph size="md" />}
                       label={t('Dashboards')}
                       to={`/organizations/${organization.slug}/dashboards/`}
                       id="customizable-dashboards"
                     />
                   </Feature>
-                  <Feature
-                    features={['discover']}
-                    hookName="feature-disabled:discover-sidebar-item"
-                    organization={organization}
-                  >
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-discover" />}
-                      label={t('Discover')}
-                      to={`/organizations/${organization.slug}/discover/`}
-                      id="discover"
-                    />
-                  </Feature>
+
+                  {discoverState.discover1 && (
+                    <Feature
+                      features={['discover']}
+                      hookName="feature-disabled:discover-sidebar-item"
+                      organization={organization}
+                    >
+                      <SidebarItem
+                        {...sidebarItemProps}
+                        onClick={this.hidePanel}
+                        icon={<IconTelescope size="md" />}
+                        label={t('Discover')}
+                        to={`/organizations/${organization.slug}/discover/`}
+                        id="discover"
+                      />
+                    </Feature>
+                  )}
                   <Feature features={['monitors']} organization={organization}>
                     <SidebarItem
                       {...sidebarItemProps}
@@ -379,25 +464,25 @@ class Sidebar extends React.Component {
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-labs" />}
+                      icon={<IconLab size="md" />}
                       label={t('Monitors')}
                       to={`/organizations/${organization.slug}/monitors/`}
                       id="monitors"
                     />
                   </Feature>
-                  <Feature features={['health']} organization={organization}>
+                  <Feature features={['releases-v2']} organization={organization}>
                     <SidebarItem
                       {...sidebarItemProps}
                       onClick={(_id, evt) =>
                         this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/health/`,
+                          `/organizations/${organization.slug}/releases-v2/`,
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-health" />} // this needs to have different icon, because health is already taken (Dashboards)
-                      label={t('Health')}
-                      to={`/organizations/${organization.slug}/health/`}
-                      id="health"
+                      icon={<IconReleases size="md" />}
+                      label={t('Releases v2')}
+                      to={`/organizations/${organization.slug}/releases-v2/`}
+                      id="releasesv2"
                     />
                   </Feature>
                 </SidebarSection>
@@ -406,7 +491,7 @@ class Sidebar extends React.Component {
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-activity" size="22px" />}
+                    icon={<IconActivity size="md" />}
                     label={t('Activity')}
                     to={`/organizations/${organization.slug}/activity/`}
                     id="activity"
@@ -414,7 +499,7 @@ class Sidebar extends React.Component {
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-stats" />}
+                    icon={<IconStats size="md" />}
                     label={t('Stats')}
                     to={`/organizations/${organization.slug}/stats/`}
                     id="stats"
@@ -425,7 +510,7 @@ class Sidebar extends React.Component {
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-settings" />}
+                    icon={<IconSettings size="md" />}
                     label={t('Settings')}
                     to={`/settings/${organization.slug}/`}
                     id="settings"
@@ -487,7 +572,7 @@ class Sidebar extends React.Component {
                 <SidebarCollapseItem
                   data-test-id="sidebar-collapse"
                   {...sidebarItemProps}
-                  icon={<StyledInlineSvg src="icon-collapse" collapsed={collapsed} />}
+                  icon={<StyledIconChevron collapsed={collapsed} />}
                   label={collapsed ? t('Expand') : t('Collapse')}
                   onClick={this.toggleSidebar}
                 />
@@ -632,13 +717,19 @@ const SidebarSection = styled(SidebarSectionGroup)`
 
 const ExpandedIcon = css`
   transition: 0.3s transform ease;
-  transform: rotate(0deg);
+  transform: rotate(270deg);
 `;
 const CollapsedIcon = css`
-  transform: rotate(180deg);
+  transform: rotate(90deg);
 `;
-const StyledInlineSvg = styled(({collapsed, ...props}) => (
-  <InlineSvg css={[ExpandedIcon, collapsed && CollapsedIcon]} {...props} />
+const StyledIconChevron = styled(({collapsed, ...props}) => (
+  <IconChevron
+    direction="left"
+    size="md"
+    circle
+    css={[ExpandedIcon, collapsed && CollapsedIcon]}
+    {...props}
+  />
 ))``;
 
 const SidebarCollapseItem = styled(SidebarItem)`

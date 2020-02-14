@@ -7,17 +7,24 @@ export const fields = {
   subscribeByDefault: {
     name: 'subscribeByDefault',
     type: 'boolean',
-    label: t('Send Me Project Alerts'),
+    label: t('Send Me Alerts'),
     // TODO(billy): Make this a real link
-    help: tct('Alerts are defined in [locationPath]', {
-      locationPath: '[Project] » Project Settings » Alerts » Rules.',
-    }),
+    help: tct(
+      'Alerts are defined in [locationPath]. Enable this to receive alerts sent to your teams. You will always receive alerts configured to be sent directly to you.',
+      {
+        locationPath: '[Project] » Project Settings » Alerts',
+      }
+    ),
   },
   workflowNotifications: {
     name: 'workflowNotifications',
     type: 'radio',
     label: t('Send Me Workflow Notifications'),
-    choices: [[0, 'Always'], [1, 'Only On Issues I Subscribe To'], [2, 'Never']],
+    choices: [
+      [0, 'Always'],
+      [1, 'Only On Issues I Subscribe To'],
+      [2, 'Never'],
+    ],
     help: t('E.g. changes in issue assignment, resolution status, and comments.'),
   },
   weeklyReports: {
@@ -32,7 +39,11 @@ export const fields = {
     name: 'deployNotifications',
     type: 'radio',
     label: t('Send Me Deploy Notifications'),
-    choices: [[2, 'Always'], [3, 'Only On Deploys With My Commits'], [4, 'Never']],
+    choices: [
+      [2, 'Always'],
+      [3, 'Only On Deploys With My Commits'],
+      [4, 'Never'],
+    ],
     help: t('Deploy emails include release, environment and commit overviews.'),
   },
   personalActivityNotifications: {

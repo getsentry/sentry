@@ -1,8 +1,6 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
 
 export type ObjectStatus =
   | 'active'
@@ -90,9 +88,14 @@ export type Organization = LightWeightOrganization & {
   teams: Team[];
 };
 
+// Minimal project representation for use with avatars.
+export type AvatarProject = {
+  slug: string;
+  platform?: string;
+};
+
 export type Project = {
   id: string;
-  slug: string;
   isMember: boolean;
   teams: Team[];
   features: string[];
@@ -100,12 +103,11 @@ export type Project = {
   isBookmarked: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
-  platform: string;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
-};
+} & AvatarProject;
 
 export type Team = {
   id: string;
@@ -140,8 +142,10 @@ export type EventAttachment = {
   event_id: string;
 };
 
+export type EntryTypeData = {[key: string]: any | any[]};
+
 type EntryType = {
-  data: {[key: string]: any} | any[];
+  data: EntryTypeData;
   type: string;
 };
 
@@ -184,6 +188,8 @@ type SentryEventBase = {
   culprit: string;
   metadata: EventMetadata;
   contexts: EventContexts;
+  context?: {[key: string]: any};
+  packages?: {[key: string]: string};
   user: EventUser;
   message: string;
   platform?: string;
@@ -208,12 +214,12 @@ type SentryEventBase = {
 // This type is incomplete
 export type Event =
   | ({type: string} & SentryEventBase)
-  | {
+  | ({
       type: 'transaction';
       entries: SpanEntry[];
       startTimestamp: number;
       endTimestamp: number;
-    } & SentryEventBase;
+    } & SentryEventBase);
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -236,6 +242,7 @@ export type AvatarUser = {
   options?: {
     avatarType: string;
   };
+  lastSeen?: string;
 };
 
 export type User = AvatarUser & {
@@ -281,7 +288,7 @@ export type Environment = {
 // TODO(ts): This type is incomplete
 export type SavedSearch = {};
 
-export type Plugin = {
+export type PluginNoProject = {
   id: string;
   name: string;
   slug: string;
@@ -295,12 +302,33 @@ export type Plugin = {
   status: string;
   assets: any[]; // TODO(ts)
   doc: string;
-  enabled?: boolean;
   version?: string;
   author?: {name: string; url: string};
   isHidden: boolean;
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  features: string[];
+  featureDescriptions: Array<{
+    description: string;
+    featureGate: string;
+  }>;
+};
+
+export type Plugin = PluginNoProject & {
+  enabled: boolean;
+};
+
+export type PluginProjectItem = {
+  projectId: string;
+  projectSlug: string;
+  projectName: string;
+  projectPlatform: string | null;
+  enabled: boolean;
+  configured: boolean;
+};
+
+export type PluginWithProjectList = PluginNoProject & {
+  projectList: PluginProjectItem[];
 };
 
 export type GlobalSelection = {
@@ -340,7 +368,7 @@ export type Config = {
   gravatarBaseUrl: string;
   messages: string[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: number};
+  userIdentity: {ip_address: string; email: string; id: number; isStaff: boolean};
   termsUrl: string | null;
   isAuthenticated: boolean;
   version: {
@@ -452,19 +480,37 @@ export type Repository = {
   integrationId: string;
   name: string;
   provider: {id: string; name: string};
-  status: string;
+  status: RepositoryStatus;
   url: string;
 };
+export enum RepositoryStatus {
+  ACTIVE = 'active',
+  DISABLED = 'disabled',
+  HIDDEN = 'hidden',
+  PENDING_DELETION = 'pending_deletion',
+  DELETION_IN_PROGRESS = 'deletion_in_progress',
+}
 
-export type IntegrationProvider = {
+type BaseIntegrationProvider = {
   key: string;
+  slug: string;
   name: string;
   canAdd: boolean;
   canDisable: boolean;
   features: string[];
-  aspects: any; //TODO(ts)
+};
+
+export type IntegrationProvider = BaseIntegrationProvider & {
   setupDialog: {url: string; width: number; height: number};
-  metadata: any; //TODO(ts)
+  metadata: {
+    description: string;
+    features: IntegrationFeature[];
+    author: string;
+    noun: string;
+    issue_url: string;
+    source_url: string;
+    aspects: any; //TODO(ts)
+  };
 };
 
 export type IntegrationFeature = {
@@ -533,7 +579,7 @@ export type Integration = {
   domainName: string;
   accountType: string;
   status: ObjectStatus;
-  provider: IntegrationProvider;
+  provider: BaseIntegrationProvider & {aspects: any};
   configOrganization: Field[];
   //TODO(ts): This includes the initial data that is passed into the integration's configuration form
   configData: object;
@@ -637,6 +683,38 @@ export type UserReport = {
   email: string;
 };
 
+export type Release = {
+  commitCount: number;
+  data: {};
+  lastDeploy?: Deploy;
+  deployCount: number;
+  lastEvent: string;
+  firstEvent: string;
+  lastCommit?: Commit;
+  authors: User[];
+  owner?: any; // TODO(ts)
+  newGroups: number;
+  projects: {slug: string; name: string}[];
+} & BaseRelease;
+
+export type BaseRelease = {
+  dateReleased: string;
+  url: string;
+  dateCreated: string;
+  version: string;
+  shortVersion: string;
+  ref: string;
+};
+
+export type Deploy = {
+  id: string;
+  name: string;
+  url: string;
+  environment: string;
+  dateStarted: string;
+  dateFinished: string;
+};
+
 export type Commit = {
   id: string;
   key: string;
@@ -644,6 +722,7 @@ export type Commit = {
   dateCreated: string;
   repository?: Repository;
   author?: User;
+  releases: BaseRelease[];
 };
 
 export type MemberRole = {
@@ -662,11 +741,6 @@ export type SentryAppComponent = {
     slug: string;
     name: string;
   };
-};
-
-export type RouterProps = {
-  params: Params;
-  location: Location;
 };
 
 export type ActiveExperiments = {
@@ -744,3 +818,13 @@ export type OnboardingTask = {
   location: string | (() => void);
   display: boolean;
 };
+
+export type Tag = {
+  name: string;
+  key: string;
+  values?: string[];
+  totalValues?: number;
+  predefined?: boolean;
+};
+
+export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';

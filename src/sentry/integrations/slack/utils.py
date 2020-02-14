@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import time
 
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
@@ -41,6 +42,7 @@ LEVEL_TO_COLOR = {
 MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
+SLACK_DEFAULT_TIMEOUT = 10
 
 
 def format_actor_option(actor):
@@ -109,7 +111,7 @@ def build_attachment_text(group, event=None):
 
 
 def build_assigned_text(group, identity, assignee):
-    actor = Actor.from_actor_id(assignee)
+    actor = Actor.from_actor_identifier(assignee)
 
     try:
         assigned_actor = actor.resolve()
@@ -304,7 +306,7 @@ def build_incident_attachment(incident):
         "title": title,
         "title_link": absolute_uri(
             reverse(
-                "sentry-incident",
+                "sentry-metric-alert",
                 kwargs={
                     "organization_slug": incident.organization.slug,
                     "incident_id": incident.identifier,
@@ -336,13 +338,6 @@ def strip_channel_name(name):
 
 
 def get_channel_id(organization, integration_id, name):
-    """
-    Fetches the internal slack id of a channel.
-    :param organization: The organization that is using this integration
-    :param integration_id: The integration id of this slack integration
-    :param name: The name of the channel
-    :return:
-    """
     name = strip_channel_name(name)
     try:
         integration = Integration.objects.get(
@@ -351,32 +346,60 @@ def get_channel_id(organization, integration_id, name):
     except Integration.DoesNotExist:
         return None
 
+    # XXX(meredith): For large accounts that have many, many channels it's
+    # possible for us to timeout while attempting to paginate through to find the channel id
+    # This means some users are unable to create/update alert rules. To avoid this, we attempt
+    # to find the channel id asynchronously if it takes longer than a certain amount of time,
+    # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
+    return get_channel_id_with_timeout(integration, name, SLACK_DEFAULT_TIMEOUT)
+
+
+def get_channel_id_with_timeout(integration, name, timeout):
+    """
+    Fetches the internal slack id of a channel.
+    :param organization: The organization that is using this integration
+    :param integration_id: The integration id of this slack integration
+    :param name: The name of the channel
+    :return: a tuple of three values
+        1. prefix: string (`"#"` or `"@"`)
+        2. channel_id: string or `None`
+        3. timed_out: boolean (whether we hit our self-imposed time limit)
+    """
+
     token_payload = {"token": integration.metadata["access_token"]}
 
     # Look for channel ID
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
+    time_to_quit = time.time() + timeout
     session = http.build_session()
     for list_type, result_name, prefix in LIST_TYPES:
-        # Slack limits the response of `<list_type>.list` to 1000 channels, paginate if
-        # needed
         cursor = ""
-        while cursor is not None:
+        while True:
             items = session.get(
                 "https://slack.com/api/%s.list" % list_type,
-                params=dict(payload, **{"cursor": cursor}),
+                # Slack limits the response of `<list_type>.list` to 1000 channels
+                params=dict(payload, cursor=cursor, limit=1000),
             )
             items = items.json()
             if not items.get("ok"):
                 logger.info(
                     "rule.slack.%s_list_failed" % list_type, extra={"error": items.get("error")}
                 )
-                return None
+                return (prefix, None, False)
 
-            cursor = items.get("response_metadata", {}).get("next_cursor", None)
             item_id = {c["name"]: c["id"] for c in items[result_name]}.get(name)
             if item_id:
-                return prefix, item_id
+                return (prefix, item_id, False)
+
+            cursor = items.get("response_metadata", {}).get("next_cursor", None)
+            if time.time() > time_to_quit:
+                return (prefix, None, True)
+
+            if not cursor:
+                break
+
+    return (prefix, None, False)
 
 
 def send_incident_alert_notification(integration, incident, channel):

@@ -68,10 +68,7 @@ class EventInputName extends React.Component<Props> {
         const renamedEventView = eventView.clone();
         renamedEventView.name = nextQueryName;
 
-        browserHistory.push({
-          pathname: location.pathname,
-          query: renamedEventView.generateQueryStringObject(),
-        });
+        browserHistory.push(renamedEventView.getResultsViewUrlTarget(organization.slug));
       }
     );
   };
@@ -97,7 +94,7 @@ const StyledListHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.gray4};
   grid-column: 1/2;
-  align-self: center;
+  min-height: 30px;
   ${overflowEllipsis};
 `;
 

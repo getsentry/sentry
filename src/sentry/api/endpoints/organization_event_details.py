@@ -14,13 +14,13 @@ from sentry.api.serializers import serialize
 
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization, project_slug, event_id):
-        if not features.has("organizations:events-v2", organization, actor=request.user):
+        if not features.has("organizations:discover-basic", organization, actor=request.user):
             return Response(status=404)
 
         try:
             params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as exc:
-            return Response({"detail": exc.message}, status=400)
+        except OrganizationEventsError as e:
+            return Response({"detail": six.text_type(e)}, status=400)
         except NoProjects:
             return Response(status=404)
 
@@ -54,6 +54,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
                 event=event,
                 query=request.query_params.get("query"),
                 params=params,
+                organization=organization,
                 reference_event=reference,
                 referrer="api.organization-event-details",
             )

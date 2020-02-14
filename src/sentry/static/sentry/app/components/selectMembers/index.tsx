@@ -268,7 +268,10 @@ class SelectMembers extends React.Component<Props> {
       .requestPromise(`/organizations/${organization.slug}/members/`, {
         query: {query},
       })
-      .then((data: Member[]) => cb(null, data), err => cb(err));
+      .then(
+        (data: Member[]) => cb(null, data),
+        err => cb(err)
+      );
   }, 250);
 
   handleLoadOptions = (): Promise<{options: any[]}> => {
@@ -314,6 +317,7 @@ class SelectMembers extends React.Component<Props> {
 
     return (
       <StyledSelectControl
+        deprecatedSelectControl
         ref={this.selectRef}
         filterOptions={(options, filterText) =>
           options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1)

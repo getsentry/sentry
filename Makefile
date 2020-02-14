@@ -1,57 +1,10 @@
-STATIC_DIR = src/sentry/static/sentry
-
-ifneq "$(wildcard /usr/local/opt/libxmlsec1/lib)" ""
-	LDFLAGS += -L/usr/local/opt/libxmlsec1/lib
-endif
-ifneq "$(wildcard /usr/local/opt/openssl/lib)" ""
-	LDFLAGS += -L/usr/local/opt/openssl/lib
-endif
-
-PIP := LDFLAGS="$(LDFLAGS)" python -m pip
-# Note: this has to be synced with the pip version in .travis.yml.
-PIP_VERSION := 19.2.3
-PIP_OPTS := --disable-pip-version-check
+PIP := python -m pip --disable-pip-version-check
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
 YARN := ./bin/yarn
 
-DROPDB := $(shell command -v dropdb 2> /dev/null)
-ifndef DROPDB
-	DROPDB = docker exec sentry_postgres dropdb
-endif
-CREATEDB := $(shell command -v createdb 2> /dev/null)
-ifndef CREATEDB
-	CREATEDB = docker exec sentry_postgres createdb
-endif
-
 bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
-develop: ensure-venv setup-git develop-only
-
-develop-only: ensure-venv update-submodules install-yarn-pkgs install-sentry-dev
-
-init-config:
-	sentry init --dev
-
-run-dependent-services:
-	sentry devservices up
-
-test: develop lint test-js test-python test-cli
-
-build: locale
-
-drop-db:
-	@echo "--> Dropping existing 'sentry' database"
-	$(DROPDB) -h 127.0.0.1 -U postgres sentry || true
-
-create-db:
-	@echo "--> Creating 'sentry' database"
-	$(CREATEDB) -h 127.0.0.1 -U postgres -E utf-8 sentry || true
-
-apply-migrations:
-	@echo "--> Applying migrations"
-	sentry upgrade
-
-reset-db: drop-db create-db apply-migrations
+develop: ensure-pinned-pip setup-git install-yarn-pkgs install-sentry-dev
 
 clean:
 	@echo "--> Cleaning static cache"
@@ -64,33 +17,61 @@ clean:
 	rm -rf build/ dist/ src/sentry/assets.json
 	@echo ""
 
+init-config: ensure-venv
+	sentry init --dev
+
+run-dependent-services: ensure-venv
+	sentry devservices up
+
+DROPDB := $(shell command -v dropdb 2> /dev/null)
+ifndef DROPDB
+	DROPDB = docker exec sentry_postgres dropdb
+endif
+CREATEDB := $(shell command -v createdb 2> /dev/null)
+ifndef CREATEDB
+	CREATEDB = docker exec sentry_postgres createdb
+endif
+
+drop-db:
+	@echo "--> Dropping existing 'sentry' database"
+	$(DROPDB) -h 127.0.0.1 -U postgres sentry || true
+
+create-db:
+	@echo "--> Creating 'sentry' database"
+	$(CREATEDB) -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+
+apply-migrations: ensure-venv
+	@echo "--> Applying migrations"
+	sentry upgrade
+
+reset-db: drop-db create-db apply-migrations
+
 ensure-venv:
 	@./scripts/ensure-venv.sh
 
-ensure-latest-pip:
-	$(PIP) install "pip==$(PIP_VERSION)"
+ensure-pinned-pip: ensure-venv
+	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
 
-setup-git: ensure-latest-pip
+setup-git: ensure-venv
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
 	git config core.ignorecase false
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
-	$(PIP) install "pre-commit==1.18.2" $(PIP_OPTS)
+	@# XXX(joshuarli): virtualenv >= 20 doesn't work with the version of six we have pinned for sentry.
+	@# Since pre-commit is installed in the venv, it will install virtualenv in the venv as well.
+	@# We need to tell pre-commit to install an older virtualenv,
+	@# And we need to tell virtualenv to install an older six, so that sentry installation
+	@# won't complain about a newer six being present.
+	@# So, this six pin here needs to be synced with requirements-base.txt.
+	$(PIP) install "pre-commit==1.18.2" "virtualenv>=16.7,<20" "six>=1.10.0,<1.11.0"
 	pre-commit install --install-hooks
 	@echo ""
 
-update-submodules:
-	@echo "--> Updating git submodules"
-	git submodule init
-	git submodule update
-	@echo ""
-
 node-version-check:
-	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/creationix/nvm'; exit 1)
+	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/volta-cli/volta'; exit 1)
 
-install-yarn-pkgs:
+install-yarn-pkgs: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
-	@command -v $(YARN) 2>&1 > /dev/null || (echo 'yarn not found. Please install it before proceeding.'; exit 1)
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development $(YARN) install --pure-lockfile
 	# A common problem is with node packages not existing in `node_modules` even though `yarn install`
@@ -99,13 +80,18 @@ install-yarn-pkgs:
 	# Add an additional check against `node_modules`
 	$(YARN) check --verify-tree || $(YARN) install --check-files
 
-install-sentry-dev:
+install-sentry-dev: ensure-venv
 	@echo "--> Installing Sentry (for development)"
-	$(PIP) install -e ".[dev]" $(PIP_OPTS)
+	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
+	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
+	# and acceptance tests, which webpack automatically if run.
+	SENTRY_LIGHT_BUILD=1 $(PIP) install -e ".[dev]"
 
 build-js-po: node-version-check
 	mkdir -p build
 	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
+
+build: locale
 
 locale: build-js-po
 	cd src/sentry && sentry django makemessages -i static -l en
@@ -114,7 +100,7 @@ locale: build-js-po
 	cd src/sentry && sentry django compilemessages
 
 update-transifex: build-js-po
-	$(PIP) install transifex-client $(PIP_OPTS)
+	$(PIP) install transifex-client
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
 	tx push -s
@@ -134,9 +120,10 @@ test-cli:
 	@echo "--> Testing CLI"
 	rm -rf test_cli
 	mkdir test_cli
-	cd test_cli && sentry init test_conf > /dev/null
-	cd test_cli && sentry --config=test_conf upgrade --traceback --noinput > /dev/null
-	cd test_cli && sentry --config=test_conf help 2>&1 | grep start > /dev/null
+	cd test_cli && sentry init test_conf
+	cd test_cli && sentry --config=test_conf help
+	cd test_cli && sentry --config=test_conf upgrade --traceback --noinput
+	cd test_cli && sentry --config=test_conf export
 	rm -r test_cli
 	@echo ""
 
@@ -219,11 +206,8 @@ lint-js:
 	bin/lint --js --parseable
 	@echo ""
 
-publish:
-	python setup.py sdist bdist_wheel upload
 
-
-.PHONY: develop develop-only test build test reset-db clean setup-git update-submodules node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-symbolicator test-acceptance lint lint-python lint-js publish
 
 
 ############################
@@ -237,7 +221,7 @@ travis-noop:
 .PHONY: travis-test-lint
 travis-test-lint: lint-python lint-js
 
-.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli travis-test-dist
+.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-cli
 travis-test-postgres: test-python
 travis-test-acceptance: test-acceptance
 travis-test-snuba: test-snuba
@@ -245,18 +229,11 @@ travis-test-symbolicator: test-symbolicator
 travis-test-js: test-js
 travis-test-cli: test-cli
 travis-test-plugins: test-plugins
-travis-test-dist:
-	# NOTE: We quiet down output here to workaround an issue in travis that
-	# causes the build to fail with a EAGAIN when writing a large amount of
-	# data to STDOUT.
-	# See: https://github.com/travis-ci/travis-ci/issues/4704
-	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py -q sdist bdist_wheel
-	@ls -lh dist/
 
-.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-dist travis-scan-lint
+.PHONY: scan-python travis-scan-postgres travis-scan-acceptance travis-scan-snuba travis-scan-symbolicator travis-scan-js travis-scan-cli travis-scan-lint
 scan-python:
 	@echo "--> Running Python vulnerability scanner"
-	$(PIP) install safety $(PIP_OPTS)
+	$(PIP) install safety
 	bin/scan
 	@echo ""
 
@@ -266,6 +243,5 @@ travis-scan-snuba: travis-noop
 travis-scan-symbolicator: travis-noop
 travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
-travis-scan-dist: travis-noop
 travis-scan-lint: scan-python
 travis-scan-plugins: travis-noop

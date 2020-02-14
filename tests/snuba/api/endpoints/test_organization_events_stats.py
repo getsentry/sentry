@@ -134,7 +134,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_discover2_backwards_compatibility(self):
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 data={
@@ -148,7 +148,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             assert len(response.data["data"]) > 0
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 data={
@@ -182,7 +182,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_aggregate_function_count(self):
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -201,7 +201,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_invalid_aggregate(self):
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -215,7 +215,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_aggregate_function_user_count(self):
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -234,7 +234,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_aggregate_invalid(self):
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -248,7 +248,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_with_field_and_reference_event_invalid(self):
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -275,7 +275,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -307,7 +307,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -347,7 +347,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=1))
             self.store_event(data=data, project_id=self.project.id)
 
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -366,7 +366,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert len(items) >= 3
 
     def test_project_id_query_filter(self):
-        with self.feature("organizations:events-v2"):
+        with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
                 format="json",

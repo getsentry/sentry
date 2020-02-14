@@ -183,12 +183,13 @@ const GuideInputRow = styled('div')`
 
 const StyledTitle = styled('div')`
   font-weight: bold;
-  font-size: 1.3em;
+  font-size: ${p => p.theme.fontSizeLarge};
   flex-grow: 1;
 `;
 
 const StyledContent = styled('div')`
   margin-top: ${space(1)};
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1.5;
 
   a {

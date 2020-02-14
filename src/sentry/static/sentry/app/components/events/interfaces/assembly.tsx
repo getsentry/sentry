@@ -16,13 +16,7 @@ interface Props {
   filePath: string;
 }
 
-const Assembly: React.FC<Props> = ({
-  name,
-  version,
-  culture,
-  publicKeyToken,
-  filePath,
-}) => {
+const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => {
   return (
     <AssemblyWrapper>
       <Icon src="icon-return-key" />
@@ -98,6 +92,7 @@ const FilePathInfo = styled('div')`
     padding-top: 0;
     padding-bottom: 0;
     line-height: 1.5;
+    direction: rtl;
     @media (max-width: ${theme.breakpoints[1]}) {
       width: auto;
     }

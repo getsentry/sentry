@@ -13,10 +13,9 @@ from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
-from loremipsum import Generator
 from random import Random
 
-from sentry import eventstore, options
+from sentry import eventstore
 from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
@@ -37,6 +36,7 @@ from sentry.models import (
 )
 from sentry.event_manager import EventManager
 from sentry.plugins.sentry_mail.activity import emails
+from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
 from sentry.utils.http import absolute_uri
@@ -47,8 +47,6 @@ from sentry.web.helpers import render_to_response, render_to_string
 from six.moves import xrange
 
 logger = logging.getLogger(__name__)
-
-loremipsum = Generator()
 
 
 def get_random(request):
@@ -238,10 +236,7 @@ def alert(request):
     data = event_manager.get_data()
     event = event_manager.save(project.id)
     # Prevent Percy screenshot from constantly changing
-    if options.get("store.use-django-event"):
-        event.datetime = datetime(2017, 9, 6, 0, 0)
-    else:
-        event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
     event_type = event_manager.get_event_type()
 
     group.message = event.search_message

@@ -55,6 +55,15 @@ class ActionsPanel extends React.PureComponent<Props> {
     onChange(replaceAtArrayIndex(actions, index, newAction));
   }
 
+  getFullActionTitle({
+    type,
+    integrationName,
+  }: Pick<MetricAction, 'type'> & {
+    integrationName?: MetricAction['integrationName'] | null;
+  }) {
+    return `${ActionLabel[type]}${integrationName ? ` - ${integrationName}` : ''}`;
+  }
+
   handleAddAction = (value: {label: string; value: Action['type']}) => {
     this.props.onAdd(value.value);
   };
@@ -99,9 +108,9 @@ class ActionsPanel extends React.PureComponent<Props> {
 
     const items =
       availableActions &&
-      availableActions.map(({type: value}) => ({
+      availableActions.map(({type: value, integrationName}) => ({
         value,
-        label: ActionLabel[value],
+        label: this.getFullActionTitle({type: value, integrationName}),
       }));
 
     return (
@@ -119,10 +128,14 @@ class ActionsPanel extends React.PureComponent<Props> {
 
               return (
                 <PanelItemGrid key={i}>
-                  {ActionLabel[action.type]}
+                  {this.getFullActionTitle({
+                    type: action.type,
+                    integrationName: availableAction && availableAction.integrationName,
+                  })}
 
                   {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
                     <SelectControl
+                      deprecatedSelectControl
                       disabled={disabled || loading}
                       value={action.targetType}
                       options={
@@ -167,6 +180,7 @@ class ActionsPanel extends React.PureComponent<Props> {
             })}
           <PanelItem>
             <StyledSelectControl
+              deprecatedSelectControl
               name="add-action"
               aria-label={t('Add an Action')}
               disabled={disabled || loading}

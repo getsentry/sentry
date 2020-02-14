@@ -1,17 +1,13 @@
 import React from 'react';
 import {Location} from 'history';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {Organization, Tag} from 'app/types';
 import withApi from 'app/utils/withApi';
-
+import withTags from 'app/utils/withTags';
 import Pagination from 'app/components/pagination';
-import {fetchOrganizationTags} from 'app/actionCreators/tags';
 
-import {DEFAULT_EVENT_VIEW} from '../data';
 import EventView, {isAPIPayloadSimilar} from '../eventView';
 import TableView from './tableView';
 import {TableData} from './types';
@@ -21,18 +17,17 @@ type TableProps = {
   location: Location;
   eventView: EventView;
   organization: Organization;
+  tags: {[key: string]: Tag};
+  setError: (msg: string) => void;
   title: string;
 };
+
 type TableState = {
   isLoading: boolean;
   tableFetchID: symbol | undefined;
-  orgTagsFetchID: symbol | undefined;
   error: null | string;
-
   pageLinks: null | string;
-
   tableData: TableData | null | undefined;
-  tagKeys: null | string[];
 };
 
 /**
@@ -47,35 +42,23 @@ class Table extends React.PureComponent<TableProps, TableState> {
   state: TableState = {
     isLoading: true,
     tableFetchID: undefined,
-    orgTagsFetchID: undefined,
     error: null,
 
     pageLinks: null,
     tableData: null,
-    tagKeys: null,
   };
 
   componentDidMount() {
-    const {location, eventView} = this.props;
-
-    if (!eventView.isValid()) {
-      const nextEventView = EventView.fromNewQueryWithLocation(
-        DEFAULT_EVENT_VIEW,
-        location
-      );
-
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: nextEventView.generateQueryStringObject(),
-      });
-      return;
-    }
-
     this.fetchData();
   }
 
   componentDidUpdate(prevProps: TableProps) {
-    if (!this.state.isLoading && this.shouldRefetchData(prevProps)) {
+    // Reload data if we aren't already loading, or if we've moved
+    // from an invalid view state to a valid one.
+    if (
+      (!this.state.isLoading && this.shouldRefetchData(prevProps)) ||
+      (prevProps.eventView.isValid() === false && this.props.eventView.isValid())
+    ) {
       this.fetchData();
     }
   }
@@ -88,19 +71,22 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location} = this.props;
+    const {eventView, organization, location, setError} = this.props;
+
+    if (!eventView.isValid()) {
+      return;
+    }
     const url = `/organizations/${organization.slug}/eventsv2/`;
-
     const tableFetchID = Symbol('tableFetchID');
-    const orgTagsFetchID = Symbol('orgTagsFetchID');
+    const apiPayload = eventView.getEventsAPIPayload(location);
 
-    this.setState({isLoading: true, tableFetchID, orgTagsFetchID});
+    this.setState({isLoading: true, tableFetchID});
 
     this.props.api
       .requestPromise(url, {
         method: 'GET',
         includeAllArgs: true,
-        query: eventView.getEventsAPIPayload(location),
+        query: apiPayload,
       })
       .then(([data, _, jqXHR]) => {
         if (this.state.tableFetchID !== tableFetchID) {
@@ -126,26 +112,14 @@ class Table extends React.PureComponent<TableProps, TableState> {
           pageLinks: null,
           tableData: null,
         });
-      });
-
-    fetchOrganizationTags(this.props.api, organization.slug)
-      .then(tags => {
-        if (this.state.orgTagsFetchID !== orgTagsFetchID) {
-          // invariant: a different request was initiated after this request
-          return;
-        }
-
-        this.setState({tagKeys: tags.map(({key}) => key), orgTagsFetchID: undefined});
-      })
-      .catch(() => {
-        this.setState({orgTagsFetchID: undefined});
-        // Do nothing.
+        setError(err.responseJSON.detail);
       });
   };
 
   render() {
-    const {eventView} = this.props;
-    const {pageLinks, tableData, tagKeys, isLoading, error} = this.state;
+    const {eventView, tags} = this.props;
+    const {pageLinks, tableData, isLoading, error} = this.state;
+    const tagKeys = Object.values(tags).map(({key}) => key);
 
     return (
       <Container>
@@ -163,10 +137,9 @@ class Table extends React.PureComponent<TableProps, TableState> {
   }
 }
 
-export default withApi<TableProps>(Table);
+export default withApi(withTags(Table));
 
 const Container = styled('div')`
   min-width: 0;
   overflow: hidden;
-  margin-top: ${space(1.5)};
 `;

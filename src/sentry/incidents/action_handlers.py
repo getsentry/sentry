@@ -4,16 +4,28 @@ import abc
 
 import six
 from django.core.urlresolvers import reverse
+from django.template.defaultfilters import pluralize
 
-from sentry.incidents.models import AlertRuleTriggerAction, QueryAggregations, TriggerStatus
+from sentry.incidents.models import (
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+    QueryAggregations,
+    TriggerStatus,
+    IncidentStatus,
+)
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
-from sentry.utils.linksign import generate_signed_link
 
 
 @six.add_metaclass(abc.ABCMeta)
 class ActionHandler(object):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
+    incident_status = {
+        IncidentStatus.OPEN: "Open",
+        IncidentStatus.CLOSED: "Resolved",
+        IncidentStatus.CRITICAL: "Critical",
+        IncidentStatus.WARNING: "Warning",
+    }
 
     def __init__(self, action, incident, project):
         self.action = action
@@ -49,18 +61,15 @@ class EmailActionHandler(ActionHandler):
             AlertRuleTriggerAction.TargetType.USER.value,
             AlertRuleTriggerAction.TargetType.TEAM.value,
         ):
-            alert_settings = self.project.get_member_alert_settings("mail:alert")
-            disabled_users = set(
-                user_id for user_id, setting in alert_settings.items() if setting == 0
-            )
             if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
+                alert_settings = self.project.get_member_alert_settings("mail:alert")
+                disabled_users = set(
+                    user_id for user_id, setting in alert_settings.items() if setting == 0
+                )
                 if target.id not in disabled_users:
                     targets = [(target.id, target.email)]
             elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
                 targets = target.member_set.values_list("user_id", "user__email")
-                targets = [
-                    (user_id, email) for user_id, email in targets if user_id not in disabled_users
-                ]
         # TODO: We need some sort of verification system to make sure we're not being
         # used as an email relay.
         # elif self.action.target_type == AlertRuleTriggerAction.TargetType.SPECIFIC.value:
@@ -76,34 +85,35 @@ class EmailActionHandler(ActionHandler):
     def email_users(self, status):
         email_context = self.generate_email_context(status)
         for user_id, email in self.get_targets():
-            email_context["unsubscribe_link"] = self.generate_unsubscribe_link(user_id)
             self.build_message(email_context, status, user_id).send_async(to=[email])
 
     def build_message(self, context, status, user_id):
-        context["unsubscribe_link"] = self.generate_unsubscribe_link(user_id)
         display = self.status_display[status]
         return MessageBuilder(
-            subject=u"Incident Alert Rule {} for Project {}".format(display, self.project.slug),
+            subject=u"[{}] {} - {}".format(
+                context["status"], context["incident_name"], self.project.slug
+            ),
             template=u"sentry/emails/incidents/trigger.txt",
             html_template=u"sentry/emails/incidents/trigger.html",
             type="incident.alert_rule_{}".format(display.lower()),
             context=context,
         )
 
-    def generate_unsubscribe_link(self, user_id):
-        return generate_signed_link(
-            user_id,
-            "sentry-account-email-unsubscribe-project",
-            kwargs={"project_id": self.project.id},
-        )
-
     def generate_email_context(self, status):
         trigger = self.action.alert_rule_trigger
         alert_rule = trigger.alert_rule
+        is_active = status == TriggerStatus.ACTIVE
+        is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE
+
+        # if alert threshold and threshold type is above then show '>'
+        # if resolve threshold and threshold type is *BELOW* then show '>'
+        # we can simplify this to be the below statement
+        show_greater_than_string = is_active == is_threshold_type_above
+
         return {
             "link": absolute_uri(
                 reverse(
-                    "sentry-incident",
+                    "sentry-metric-alert",
                     kwargs={
                         "organization_slug": self.incident.organization.slug,
                         "incident_id": self.incident.identifier,
@@ -115,17 +125,26 @@ class EmailActionHandler(ActionHandler):
                     "sentry-alert-rule",
                     kwargs={
                         "organization_slug": self.incident.organization.slug,
+                        "project_slug": self.project.slug,
                         "alert_rule_id": self.action.alert_rule_trigger.alert_rule_id,
                     },
                 )
             ),
             "incident_name": self.incident.title,
+            # TODO(alerts): Add environment
+            "environment": "All",
+            "time_window": format_duration(alert_rule.time_window),
+            "triggered_at": trigger.date_added,
             "aggregate": self.query_aggregations_display[QueryAggregations(alert_rule.aggregation)],
             "query": alert_rule.query,
-            "threshold": trigger.alert_threshold
-            if status == TriggerStatus.ACTIVE
-            else trigger.resolve_threshold,
-            "status": self.status_display[status],
+            "threshold": trigger.alert_threshold if is_active else trigger.resolve_threshold,
+            # if alert threshold and threshold type is above then show '>'
+            # if resolve threshold and threshold type is *BELOW* then show '>'
+            "threshold_direction_string": ">" if show_greater_than_string else "<",
+            "status": self.incident_status[IncidentStatus(self.incident.status)],
+            "is_critical": self.incident.status == IncidentStatus.CRITICAL,
+            "is_warning": self.incident.status == IncidentStatus.WARNING,
+            "unsubscribe_link": None,
         }
 
 
@@ -149,3 +168,23 @@ class SlackActionHandler(ActionHandler):
         send_incident_alert_notification(
             self.action.integration, self.incident, self.action.target_identifier
         )
+
+
+def format_duration(minutes):
+    """
+    Format minutes into a duration string
+    """
+
+    if minutes >= 1440:
+        days = minutes / 1440
+        return "{} day{}".format(days, pluralize(days))
+
+    if minutes >= 60:
+        hours = minutes / 60
+        return "{} hour{}".format(hours, pluralize(hours))
+
+    if minutes >= 1:
+        return "{} minute{}".format(minutes, pluralize(minutes))
+
+    seconds = minutes / 60
+    return "{} second{}".format(seconds, pluralize(seconds))

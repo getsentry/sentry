@@ -5,7 +5,7 @@ import pytest
 import six
 import unittest
 from datetime import timedelta
-from semaphore.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -413,6 +413,10 @@ class ParseSearchQueryTest(unittest.TestCase):
                 key=SearchKey(name="device.family"), operator="=", value=SearchValue(raw_value="")
             )
         ]
+        with self.assertRaises(
+            InvalidSearchQuery, expected_regex="Invalid format for numeric search"
+        ):
+            parse_search_query("device.family:")
 
     def test_custom_tag(self):
         assert parse_search_query("fruit:apple release:1.2.1") == [
@@ -472,7 +476,9 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_is_query_unsupported(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with self.assertRaises(
+            InvalidSearchQuery, expected_regex="queries are only supported in issue search"
+        ):
             parse_search_query("is:unassigned")
 
     def test_key_remapping(self):
@@ -935,6 +941,10 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
         assert filter.filter_keys == {}
 
+    def test_wildcard_event_id(self):
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter("id:deadbeef*")
+
     def test_negated_wildcard(self):
         filter = get_filter("!release:3.1.* user.email:*@example.com")
         assert filter.conditions == [
@@ -975,6 +985,16 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_not_has(self):
         assert get_filter("!has:release").conditions == [[["isNull", ["release"]], "=", 1]]
 
+    def test_has_issue_id(self):
+        has_issue_filter = get_filter("has:issue.id")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "!=", 1]]
+
+    def test_not_has_issue_id(self):
+        has_issue_filter = get_filter("!has:issue.id")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "=", 1]]
+
     def test_message_negative(self):
         assert get_filter('!message:"post_process.process_error HTTPError 403"').conditions == [
             [
@@ -991,7 +1011,7 @@ class GetSnubaQueryArgsTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             get_filter("(user.email:foo@example.com OR user.email:bar@example.com")
 
-    def test_issue_filter(self):
+    def test_issue_id_filter(self):
         filter = get_filter("issue.id:1")
         assert not filter.conditions
         assert filter.filter_keys == {"group_id": [1]}
@@ -1006,6 +1026,12 @@ class GetSnubaQueryArgsTest(TestCase):
         assert filter.conditions == [["user.email", "=", "foo@example.com"]]
         assert filter.filter_keys == {"group_id": [1]}
         assert filter.group_ids == [1]
+
+    def test_issue_filter(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("issue:1", {"organization_id": 1})
+        assert "Invalid value '" in six.text_type(err)
+        assert "' for 'issue:' filter" in six.text_type(err)
 
     def test_environment_param(self):
         params = {"environment": ["", "prod"]}
@@ -1040,7 +1066,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert filter.filter_keys == {}
         assert filter.group_ids == []
 
-        filter = get_filter("environment: ")
+        filter = get_filter('environment:""')
         # The '' environment is Null in snuba
         assert filter.conditions == [[["environment", "IS NULL", None]]]
         assert filter.filter_keys == {}
@@ -1079,6 +1105,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
         result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
         assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
@@ -1118,7 +1145,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["avg", "transaction.duration", "avg_transaction_duration"],
             ["apdex(duration, 300)", None, "apdex"],
             [
-                "(1 - ((countIf(duration < 300) + (countIf((duration > 300) AND (duration < 1200)) / 2)) / count())) + ((1 - 1 / sqrt(uniq(user))) * 3)",
+                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
                 None,
                 "impact",
             ],
@@ -1130,12 +1157,44 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == []
 
+    def test_field_alias_duration_expansion_with_brackets(self):
+        fields = [
+            "avg(transaction.duration)",
+            "latest_event()",
+            "last_seen()",
+            "apdex()",
+            "impact()",
+            "p75()",
+            "p95()",
+            "p99()",
+        ]
+        result = resolve_field_list(fields, {})
+
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["avg", "transaction.duration", "avg_transaction_duration"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["max", "timestamp", "last_seen"],
+            ["apdex(duration, 300)", None, "apdex"],
+            [
+                "plus(minus(1, divide(plus(countIf(less(duration, 300)),divide(countIf(and(greater(duration, 300),less(duration, 1200))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+                None,
+                "impact",
+            ],
+            ["quantile(0.75)(duration)", None, "p75"],
+            ["quantile(0.95)(duration)", None, "p95"],
+            ["quantile(0.99)(duration)", None, "p99"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
     def test_field_alias_expansion(self):
-        fields = ["title", "last_seen", "latest_event", "project", "user", "message"]
+        fields = ["title", "last_seen", "latest_event", "project", "issue", "user", "message"]
         result = resolve_field_list(fields, {})
         assert result["selected_columns"] == [
             "title",
             "project.id",
+            "issue.id",
             "user.id",
             "user.username",
             "user.email",
@@ -1149,6 +1208,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "project.id",
+            "issue.id",
             "user.id",
             "user.username",
             "user.email",
@@ -1210,6 +1270,41 @@ class ResolveFieldListTest(unittest.TestCase):
             fields = ["min(message)"]
             resolve_field_list(fields, {})
         assert "Invalid column" in six.text_type(err)
+
+    def test_percentile_function(self):
+        fields = ["percentile(transaction.duration, 0.75)"]
+        result = resolve_field_list(fields, {})
+
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(0.75)"]
+            result = resolve_field_list(fields, {})
+        assert "percentile(0.75): expected 2 arguments" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(sanchez, 0.75)"]
+            result = resolve_field_list(fields, {})
+        assert "percentile(sanchez, 0.75): sanchez is not a valid column" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(id, 0.75)"]
+            result = resolve_field_list(fields, {})
+        assert "percentile(id, 0.75): id is not a numeric column" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(transaction.duration, 75)"]
+            result = resolve_field_list(fields, {})
+        assert (
+            "percentile(transaction.duration, 75): 75.0 argument invalid: not between 0 and 1"
+            in six.text_type(err)
+        )
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:

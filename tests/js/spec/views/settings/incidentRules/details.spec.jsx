@@ -17,6 +17,10 @@ describe('Incident Rules Details', function() {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/environments/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: null,
     });
@@ -34,10 +38,10 @@ describe('Incident Rules Details', function() {
   });
 
   it('renders and adds and edits trigger', async function() {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, project, routerContext} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     const req = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
       body: rule,
     });
 
@@ -47,7 +51,7 @@ describe('Incident Rules Details', function() {
     });
 
     const editRule = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
       method: 'PUT',
       body: rule,
     });
@@ -58,6 +62,7 @@ describe('Incident Rules Details', function() {
         <IncidentRulesDetails
           params={{
             orgId: organization.slug,
+            projectId: project.slug,
             incidentRuleId: rule.id,
           }}
           organization={organization}
@@ -72,13 +77,13 @@ describe('Incident Rules Details', function() {
     // has existing trigger
     expect(
       wrapper
-        .find('input[name="alertThresholdInput"]')
+        .find('input[name="alertThreshold"]')
         .first()
         .prop('value')
     ).toEqual(70);
     expect(
       wrapper
-        .find('input[name="resolutionThresholdInput"]')
+        .find('input[name="resolveThreshold"]')
         .first()
         .prop('value')
     ).toEqual(36);
@@ -89,11 +94,11 @@ describe('Incident Rules Details', function() {
     wrapper.find('button[aria-label="Add Warning Trigger"]').simulate('click');
 
     wrapper
-      .find('input[name="alertThresholdInput"]')
+      .find('input[name="alertThreshold"]')
       .at(1)
       .simulate('change', {target: {value: 13}});
     wrapper
-      .find('input[name="resolutionThresholdInput"]')
+      .find('input[name="resolveThreshold"]')
       .at(1)
       .simulate('change', {target: {value: 12}});
 
@@ -152,13 +157,13 @@ describe('Incident Rules Details', function() {
     // Has correct values
     expect(
       wrapper
-        .find('input[name="alertThresholdInput"]')
+        .find('input[name="alertThreshold"]')
         .at(1)
         .prop('value')
     ).toBe(13);
     expect(
       wrapper
-        .find('input[name="resolutionThresholdInput"]')
+        .find('input[name="resolveThreshold"]')
         .at(1)
         .prop('value')
     ).toBe(12);

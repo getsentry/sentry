@@ -77,7 +77,7 @@ class BaseBadge extends React.PureComponent {
             css={avatarClassName}
             size={avatarSize}
             hideName={hideName}
-            {...avatarProps || {}}
+            {...(avatarProps || {})}
             {...data}
           />
         )}

@@ -19,23 +19,23 @@ import space from 'app/styles/space';
 import {growDown, highlight} from 'app/styles/animations';
 import {IntegrationProvider, Integration} from 'app/types';
 
-type Props = {
+type DefaultProps = {
+  enabledPlugins: string[];
+};
+
+type Props = DefaultProps & {
   provider: IntegrationProvider;
   orgId: string;
   onInstall: (integration: Integration) => void;
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
   onReinstall: (integration: Integration) => void;
-  enabledPlugins: string[];
+  onCloseModal?: () => void;
   newlyInstalledIntegrationId: string;
   integrations: Integration[];
 };
 
 export default class ProviderRow extends React.Component<Props> {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   static propTypes = {
     provider: PropTypes.object.isRequired,
     integrations: PropTypes.array.isRequired,
@@ -46,9 +46,14 @@ export default class ProviderRow extends React.Component<Props> {
     onReinstall: PropTypes.func.isRequired,
     enabledPlugins: PropTypes.array,
     newlyInstalledIntegrationId: PropTypes.string,
+    onCloseModal: PropTypes.func,
   };
 
-  static defaultProps = {
+  static contextTypes = {
+    organization: SentryTypes.Organization,
+  };
+
+  static defaultProps: DefaultProps = {
     enabledPlugins: [],
   };
 
@@ -81,6 +86,7 @@ export default class ProviderRow extends React.Component<Props> {
       organization,
       onAddIntegration,
       isInstalled: this.isEnabled,
+      onCloseModal: this.props.onCloseModal,
     });
   };
 
@@ -103,7 +109,7 @@ export default class ProviderRow extends React.Component<Props> {
     return this.integrations.map(integration => (
       <StyledInstalledIntegration
         key={integration.id}
-        orgId={this.props.orgId}
+        organization={this.context.organization}
         provider={this.props.provider}
         integration={integration}
         onRemove={this.props.onRemove}

@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'app/components/alert';
 import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
@@ -23,10 +22,8 @@ const Z_INDEX_GRID = 5;
 const Z_INDEX_GRID_RESIZER = 1;
 
 type GridEditableProps = {
-  numColumn?: number;
   isEditable?: boolean;
   isEditing?: boolean;
-  isPrimary?: boolean;
   isDragging?: boolean;
 };
 
@@ -43,12 +40,24 @@ export const HeaderTitle = styled('h4')`
   color: ${p => p.theme.gray3};
 `;
 
-export const HeaderButton = styled('div')`
+export const HeaderButtonContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+
+  /* Hovercard anchor element when features are disabled. */
+  & > span {
+    display: flex;
+    flex-direction: row;
+  }
+`;
+
+export const HeaderButton = styled('div')<{disabled?: boolean}>`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray3};
-  cursor: pointer;
+  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
+  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   font-size: ${p => p.theme.fontSizeSmall};
+  margin-left: ${space(2)};
 
   > svg {
     margin-right: ${space(0.5)};
@@ -56,19 +65,15 @@ export const HeaderButton = styled('div')`
 
   &:hover,
   &:active {
-    color: ${p => p.theme.gray4};
+    color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray4)};
   }
-`;
-
-export const HeaderButtonContainer = styled('div')`
-  margin-left: ${space(2)};
 `;
 
 const PanelWithProtectedBorder = styled(Panel)`
   overflow: hidden;
   z-index: ${Z_INDEX_PANEL};
 `;
-export const Body: React.FC = props => (
+export const Body = props => (
   <PanelWithProtectedBorder>
     <PanelBody>{props.children}</PanelBody>
   </PanelWithProtectedBorder>
@@ -92,15 +97,16 @@ export const Grid = styled('table')`
   display: grid;
 
   /* Overwritten by GridEditable.setGridTemplateColumns */
-  grid-template-columns: repeat(auto-fill, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(50px, auto));
 
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
 
-  overflow-x: scroll;
   z-index: ${Z_INDEX_GRID};
+  overflow-x: scroll;
 `;
+
 export const GridRow = styled('tr')`
   display: contents;
 
@@ -120,13 +126,15 @@ export const GridRow = styled('tr')`
 export const GridHead = styled('thead')`
   display: contents;
 `;
-export const GridHeadCell = styled('th')`
+
+export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   position: relative; /* Used by GridResizer */
   min-width: 0;
   height: ${GRID_HEAD_ROW_HEIGHT}px;
-
+  border-right: 1px solid transparent;
+  border-left: 1px solid transparent;
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
 
@@ -138,32 +146,28 @@ export const GridHeadCell = styled('th')`
     border-top-right-radius: ${p => p.theme.borderRadius};
     border-right: none;
   }
+
+  &:hover {
+    border-left-color: ${p => (p.isFirst ? 'transparent' : p.theme.borderDark)};
+    border-right-color: ${p => p.theme.borderDark};
+  }
 `;
+
 export const GridHeadCellButton = styled('div')<GridEditableProps>`
-  min-width: 24px; /* Ensure that edit/remove buttons are never hidden */
   display: block;
+  min-width: 24px;
   margin: ${space(0.5)};
   padding: ${space(1.5)};
   border-radius: 2px;
-
-  color: ${p => {
-    if (p.isDragging) {
-      return p.theme.offWhite2;
-    }
-
-    return p.theme.gray2;
-  }};
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1;
   text-transform: uppercase;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
+  user-select: none;
 
-  background: ${p => {
+  background-color: ${p => {
     if (p.isDragging) {
-      return p.theme.gray2;
+      return p.theme.purple;
     }
 
     if (p.isEditing) {
@@ -173,38 +177,49 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
     return 'none';
   }};
 
-  a {
-    color: ${p => {
-      if (p.isDragging) {
-        return p.theme.offWhite2;
-      }
-
-      return p.theme.gray2;
-    }};
-  }
-
-  &:hover,
-  &:active {
-    color: ${p => {
-      if (p.isDragging) {
-        return p.theme.offWhite2;
-      }
-
-      return p.theme.gray2;
-    }};
-
-    a {
-      color: ${p => {
-        if (p.isDragging) {
-          return p.theme.offWhite2;
-        }
-
-        return p.theme.gray2;
-      }};
+  color: ${p => {
+    if (p.isDragging) {
+      return p.theme.offWhite2;
     }
-  }
 
-  user-select: none;
+    if (p.isEditing) {
+      return p.theme.gray2;
+    }
+
+    return p.theme.gray3;
+  }};
+
+  a {
+    color: inherit;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+`;
+
+/**
+ * Create spacing/padding similar to GridHeadCellWrapper but
+ * without interactive aspects.
+ */
+export const GridHeadCellStatic = styled('th')`
+  height: ${GRID_HEAD_ROW_HEIGHT}px;
+  display: flex;
+  align-items: center;
+  padding: ${space(2)};
+  background-color: ${p => p.theme.offWhite};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+
+  &:first-child {
+    border-top-left-radius: ${p => p.theme.borderRadius};
+    padding: ${space(1)} 0 ${space(1)} ${space(3)};
+  }
 `;
 
 /**
@@ -212,65 +227,30 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
  * move the columns. They are expected to be draggable.
  */
 export const GridHeadCellButtonHover = styled('div')<GridEditableProps>`
-  position: absolute;
-  top: 0;
-  left: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  height: 100%;
-
-  color: ${p => p.theme.gray3};
-
-  &:hover {
-    color: ${p => p.theme.gray4};
-  }
-  &:active {
-    color: ${p => p.theme.gray5};
-  }
-`;
-export const GridHeadCellButtonHoverBackground = styled(GridHeadCellButton)`
   position: absolute;
-  top: 0;
-  left: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-
-  background-color: ${p => p.theme.offWhite2};
-  margin: 0;
-
-  a,
-  &:hover a,
-  &:active a {
-    color: ${p => p.theme.gray1} !important;
-  }
+  left: ${space(0.5)};
+  right: ${space(0.5)};
+  top: ${space(0.5)};
+  bottom: ${space(0.5)};
 `;
 
 export const GridHeadCellButtonHoverButton = styled('div')`
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  width: 20px;
-  height: 20px;
-
-  margin: ${space(0.25)};
-  border: 2px solid ${p => p.theme.gray3};
-  border-radius: ${p => p.theme.borderRadius};
+  width: 24px;
+  height: 24px;
+  margin: 0 ${space(0.25)};
+  color: ${p => p.theme.gray4};
+  border: 2px solid ${p => p.theme.gray4};
   background-color: ${p => p.theme.offWhite2};
-  opacity: 1;
-
-  font-size: 14px;
+  border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
-
-  &:hover {
-    border: 2px solid ${p => p.theme.gray4};
-  }
-  &:active {
-    border: 2px solid ${p => p.theme.gray5};
-  }
 `;
+
 export const GridHeadCellButtonHoverDraggable = styled(InlineSvg)`
   cursor: grab;
   user-select: none;
@@ -302,6 +282,10 @@ export const GridBodyCell = styled('td')`
 
   font-size: ${p => p.theme.fontSizeMedium};
 
+  &:first-child {
+    padding: ${space(1)} 0 ${space(1)} ${space(3)};
+  }
+
   &:last-child {
     border-right: none;
   }
@@ -326,15 +310,11 @@ const GridStatusFloat = styled('div')`
   z-index: ${Z_INDEX_GRID_STATUS};
   background: ${p => p.theme.white};
 `;
-export const GridBodyCellStatus: React.FC = props => (
+export const GridBodyCellStatus = props => (
   <GridStatusWrapper>
     <GridStatusFloat>{props.children}</GridStatusFloat>
   </GridStatusWrapper>
 );
-export const GridStatusErrorAlert = styled(Alert)`
-  width: 100%;
-  margin: ${space(2)};
-`;
 
 /**
  * We have a fat GridResizer and we use the ::after pseudo-element to draw
@@ -346,10 +326,20 @@ export const GridStatusErrorAlert = styled(Alert)`
 export const GridResizer = styled('div')<{dataRows: number; isLast?: boolean}>`
   position: absolute;
   top: 0px;
-  right: ${p => (p.isLast ? '0px' : '-4px')};
+  right: ${p => (p.isLast ? '0px' : '-5px')};
   width: ${p => (p.isLast ? '6px' : '9px')};
 
-  height: ${p => GRID_HEAD_ROW_HEIGHT + p.dataRows * GRID_BODY_ROW_HEIGHT}px;
+  height: ${p => {
+    const numOfRows = p.dataRows;
+    let height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
+
+    if (numOfRows >= 2) {
+      // account for border-bottom height
+      height += numOfRows - 1;
+    }
+
+    return height;
+  }}px;
 
   padding-left: 4px;
   padding-right: ${p => (p.isLast ? '0px' : '4px')};

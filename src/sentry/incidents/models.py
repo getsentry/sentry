@@ -89,6 +89,8 @@ class IncidentType(Enum):
 class IncidentStatus(Enum):
     OPEN = 1
     CLOSED = 2
+    WARNING = 10
+    CRITICAL = 20
 
 
 class Incident(Model):
@@ -214,19 +216,6 @@ class IncidentSubscription(Model):
     __repr__ = sane_repr("incident_id", "user_id")
 
 
-class IncidentSuspectCommit(Model):
-    __core__ = True
-
-    incident = FlexibleForeignKey("sentry.Incident", db_index=False)
-    commit = FlexibleForeignKey("sentry.Commit", db_constraint=False)
-    order = models.SmallIntegerField()
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidentsuspectcommit"
-        unique_together = (("incident", "commit"),)
-
-
 class AlertRuleStatus(Enum):
     PENDING = 0
     TRIGGERED = 1
@@ -261,6 +250,18 @@ class AlertRuleManager(BaseManager):
 
     def fetch_for_project(self, project):
         return self.filter(query_subscriptions__project=project)
+
+
+class AlertRuleEnvironment(Model):
+    __core__ = True
+
+    environment = FlexibleForeignKey("sentry.Environment")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleenvironment"
+        unique_together = (("alert_rule", "environment"),)
 
 
 class AlertRuleQuerySubscription(Model):
@@ -304,6 +305,9 @@ class AlertRule(Model):
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     dataset = models.TextField()
     query = models.TextField()
+    environment = models.ManyToManyField(
+        "sentry.Environment", related_name="alert_rule_environment", through=AlertRuleEnvironment
+    )
     # Determines whether we include all current and future projects from this
     # organization in this rule.
     include_all_projects = models.BooleanField(default=False)
@@ -332,6 +336,7 @@ class IncidentTrigger(Model):
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
     status = models.SmallIntegerField()
+    date_modified = models.DateTimeField(default=timezone.now, null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

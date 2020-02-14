@@ -65,6 +65,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         "url": "/github-integration-setup-uri/",
         "width": 100,
       },
+      "slug": "github",
     }
   }
 >
@@ -218,6 +219,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
           "url": "/github-integration-setup-uri/",
           "width": 100,
         },
+        "slug": "github",
       }
     }
   >
@@ -354,61 +356,69 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     <div
       className="modal-footer"
     >
-      <Button
-        align="center"
+      <forwardRef<Button>
         data-test-id="cancel-button"
-        disabled={false}
         onClick={[MockFunction]}
         size="small"
       >
-        <StyledButton
-          aria-disabled={false}
-          aria-label="Cancel"
+        <Button
+          align="center"
           data-test-id="cancel-button"
           disabled={false}
-          onClick={[Function]}
-          role="button"
+          forwardRef={null}
+          onClick={[MockFunction]}
           size="small"
         >
-          <ForwardRef
+          <StyledButton
             aria-disabled={false}
             aria-label="Cancel"
-            className="css-12ogwys-StyledButton edwq9my0"
             data-test-id="cancel-button"
             disabled={false}
+            forwardRef={null}
             onClick={[Function]}
             role="button"
             size="small"
           >
-            <button
+            <Component
               aria-disabled={false}
               aria-label="Cancel"
               className="css-12ogwys-StyledButton edwq9my0"
               data-test-id="cancel-button"
+              forwardRef={null}
               onClick={[Function]}
               role="button"
               size="small"
             >
-              <ButtonLabel
-                align="center"
+              <button
+                aria-disabled={false}
+                aria-label="Cancel"
+                className="css-12ogwys-StyledButton edwq9my0"
+                data-test-id="cancel-button"
+                onClick={[Function]}
+                role="button"
                 size="small"
               >
-                <Component
+                <ButtonLabel
                   align="center"
-                  className="css-19gcr2f-ButtonLabel edwq9my1"
                   size="small"
                 >
-                  <span
+                  <Component
+                    align="center"
                     className="css-19gcr2f-ButtonLabel edwq9my1"
+                    size="small"
                   >
-                    Cancel
-                  </span>
-                </Component>
-              </ButtonLabel>
-            </button>
-          </ForwardRef>
-        </StyledButton>
-      </Button>
+                    <span
+                      className="css-19gcr2f-ButtonLabel edwq9my1"
+                    >
+                      Cancel
+                    </span>
+                  </Component>
+                </ButtonLabel>
+              </button>
+            </Component>
+          </StyledButton>
+        </Button>
+      </forwardRef<Button>>
       <WithOrganizationMockWrapper
         access={
           Array [
@@ -547,11 +557,67 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
               <AddButton
                 data-test-id="add-button"
                 disabled={false}
+                organization={
+                  Object {
+                    "access": Array [
+                      "org:read",
+                      "org:write",
+                      "org:admin",
+                      "org:integrations",
+                      "project:read",
+                      "project:write",
+                      "project:admin",
+                      "team:read",
+                      "team:write",
+                      "team:admin",
+                    ],
+                    "features": Array [],
+                    "id": "3",
+                    "name": "Organization Name",
+                    "onboardingTasks": Array [],
+                    "projects": Array [],
+                    "scrapeJavaScript": true,
+                    "slug": "org-slug",
+                    "status": Object {
+                      "id": "active",
+                      "name": "active",
+                    },
+                    "teams": Array [],
+                  }
+                }
               >
                 <AddIntegrationButton
                   data-test-id="add-button"
                   disabled={false}
                   onAddIntegration={[Function]}
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
                   priority="primary"
                   provider={
                     Object {
@@ -586,6 +652,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                         "url": "/github-integration-setup-uri/",
                         "width": 100,
                       },
+                      "slug": "github",
                     }
                   }
                   size="small"
@@ -603,6 +670,34 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                   >
                     <AddIntegration
                       onInstall={[Function]}
+                      organization={
+                        Object {
+                          "access": Array [
+                            "org:read",
+                            "org:write",
+                            "org:admin",
+                            "org:integrations",
+                            "project:read",
+                            "project:write",
+                            "project:admin",
+                            "team:read",
+                            "team:write",
+                            "team:admin",
+                          ],
+                          "features": Array [],
+                          "id": "3",
+                          "name": "Organization Name",
+                          "onboardingTasks": Array [],
+                          "projects": Array [],
+                          "scrapeJavaScript": true,
+                          "slug": "org-slug",
+                          "status": Object {
+                            "id": "active",
+                            "name": "active",
+                          },
+                          "teams": Array [],
+                        }
+                      }
                       provider={
                         Object {
                           "canAdd": true,
@@ -636,11 +731,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             "url": "/github-integration-setup-uri/",
                             "width": 100,
                           },
+                          "slug": "github",
                         }
                       }
                     >
-                      <Button
-                        align="center"
+                      <forwardRef<Button>
                         data-test-id="add-button"
                         disabled={false}
                         onClick={[Function]}
@@ -652,14 +747,13 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           }
                         }
                       >
-                        <StyledButton
-                          aria-disabled={false}
-                          aria-label="Add Installation"
+                        <Button
+                          align="center"
                           data-test-id="add-button"
                           disabled={false}
+                          forwardRef={null}
                           onClick={[Function]}
                           priority="primary"
-                          role="button"
                           size="small"
                           style={
                             Object {
@@ -667,12 +761,12 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             }
                           }
                         >
-                          <ForwardRef
+                          <StyledButton
                             aria-disabled={false}
                             aria-label="Add Installation"
-                            className="css-z8at1v-StyledButton edwq9my0"
                             data-test-id="add-button"
                             disabled={false}
+                            forwardRef={null}
                             onClick={[Function]}
                             priority="primary"
                             role="button"
@@ -683,11 +777,12 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                               }
                             }
                           >
-                            <button
+                            <Component
                               aria-disabled={false}
                               aria-label="Add Installation"
                               className="css-z8at1v-StyledButton edwq9my0"
                               data-test-id="add-button"
+                              forwardRef={null}
                               onClick={[Function]}
                               role="button"
                               size="small"
@@ -697,28 +792,43 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                                 }
                               }
                             >
-                              <ButtonLabel
-                                align="center"
-                                priority="primary"
+                              <button
+                                aria-disabled={false}
+                                aria-label="Add Installation"
+                                className="css-z8at1v-StyledButton edwq9my0"
+                                data-test-id="add-button"
+                                onClick={[Function]}
+                                role="button"
                                 size="small"
+                                style={
+                                  Object {
+                                    "marginLeft": "8px",
+                                  }
+                                }
                               >
-                                <Component
+                                <ButtonLabel
                                   align="center"
-                                  className="css-19gcr2f-ButtonLabel edwq9my1"
                                   priority="primary"
                                   size="small"
                                 >
-                                  <span
+                                  <Component
+                                    align="center"
                                     className="css-19gcr2f-ButtonLabel edwq9my1"
+                                    priority="primary"
+                                    size="small"
                                   >
-                                    Add Installation
-                                  </span>
-                                </Component>
-                              </ButtonLabel>
-                            </button>
-                          </ForwardRef>
-                        </StyledButton>
-                      </Button>
+                                    <span
+                                      className="css-19gcr2f-ButtonLabel edwq9my1"
+                                    >
+                                      Add Installation
+                                    </span>
+                                  </Component>
+                                </ButtonLabel>
+                              </button>
+                            </Component>
+                          </StyledButton>
+                        </Button>
+                      </forwardRef<Button>>
                     </AddIntegration>
                   </Tooltip>
                 </AddIntegrationButton>

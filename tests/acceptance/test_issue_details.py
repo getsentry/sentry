@@ -76,6 +76,11 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.visit_issue(event.group.id)
         self.browser.snapshot("issue details python formdata")
 
+    def test_pii_tooltips(self):
+        event = self.create_sample_event(platform="pii-tooltips")
+        self.visit_issue(event.group.id)
+        self.browser.snapshot("issue details pii tooltips")
+
     def test_cocoa_event(self):
         event = self.create_sample_event(platform="cocoa")
         self.visit_issue(event.group.id)
@@ -139,8 +144,8 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         event = self.create_sample_event(platform="invalid-interfaces")
         self.visit_issue(event.group.id)
 
-        self.browser.click(".errors-toggle")
-        self.browser.wait_until(".entries > .errors ul")
+        self.browser.click('[data-test-id="event-error-toggle"]')
+        self.browser.wait_until('[data-test-id="event-error-details"]')
         self.browser.snapshot("issue details invalid interfaces")
 
     def test_activity_page(self):

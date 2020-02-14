@@ -70,6 +70,32 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(group.id)
 
+    def test_trace_search(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "contexts": {
+                    "trace": {
+                        "parent_span_id": "8988cec7cc0779c1",
+                        "type": "trace",
+                        "op": "foobar",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                        "span_id": "babaae0d4b7512d9",
+                        "status": "ok",
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_valid_response(
+            sort_by="date", query="is:unresolved trace:a7d67cf796774551a95be6543cacd459"
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(event.group.id)
+
     def test_feature_gate(self):
         # ensure there are two or more projects
         self.create_project(organization=self.project.organization)
@@ -116,18 +142,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(sort_by="date", query="timesSeen:>1k")
         assert response.status_code == 400
         assert "Invalid format for numeric search" in response.data["detail"]
-
-    def test_invalid_search_query(self):
-        now = timezone.now()
-        self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
-        self.login_as(user=self.user)
-
-        response = self.get_response(sort_by="date", query="trace:123")
-        assert response.status_code == 400
-        assert (
-            "Invalid value for the trace condition. Value must be a hexadecimal UUID string."
-            in response.data["detail"]
-        )
 
     def test_simple_pagination(self):
         event1 = self.store_event(
@@ -1091,7 +1105,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 data={
                     "fingerprint": ["put-me-in-group-1"],
                     "user": {"id": six.binary_type(i)},
-                    "timestamp": iso_format(self.min_ago - timedelta(seconds=i)),
+                    "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
             )

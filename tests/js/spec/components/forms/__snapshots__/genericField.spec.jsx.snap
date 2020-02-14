@@ -18,6 +18,7 @@ exports[`GenericField renders text with choices as SelectCreatableField 1`] = `
 <SelectCreatableField
   choices={Array []}
   clearable={true}
+  deprecatedSelectControl={true}
   disabled={false}
   formState="Ready"
   help={null}

@@ -1,5 +1,6 @@
-import Modal from 'react-bootstrap/lib/Modal';
+import {ClassNames} from '@emotion/core';
 import {browserHistory} from 'react-router';
+import Modal from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -9,10 +10,13 @@ import {closeModal, ModalRenderProps, ModalOptions} from 'app/actionCreators/mod
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
 
-type Props = {
-  children?: (renderProps: ModalRenderProps) => React.ReactNode;
+type DefaultProps = {
   options: ModalOptions;
   visible: boolean;
+};
+
+type Props = DefaultProps & {
+  children?: (renderProps: ModalRenderProps) => React.ReactNode;
   onClose?: () => void;
 };
 
@@ -42,7 +46,7 @@ class GlobalModal extends React.Component<Props> {
     onClose: PropTypes.func,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     visible: false,
     options: {},
   };
@@ -81,16 +85,22 @@ class GlobalModal extends React.Component<Props> {
     }
 
     return (
-      <Modal
-        className={options && options.modalClassName}
-        css={options && options.modalCss}
-        dialogClassName={options && options.dialogClassName}
-        show={visible}
-        animation={false}
-        onHide={this.handleCloseModal}
-      >
-        {renderedChild}
-      </Modal>
+      <ClassNames>
+        {({css, cx}) => (
+          <Modal
+            className={cx(
+              options && options.modalClassName,
+              options && options.modalCss && css(options.modalCss)
+            )}
+            dialogClassName={options && options.dialogClassName}
+            show={visible}
+            animation={false}
+            onHide={this.handleCloseModal}
+          >
+            {renderedChild}
+          </Modal>
+        )}
+      </ClassNames>
     );
   }
 }

@@ -2,19 +2,22 @@ from __future__ import absolute_import
 
 import logging
 
+import six
 import boto3
 from botocore.client import ClientError
+
 from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry_plugins.utils import get_secret_field_config
 from sentry.utils import json, metrics
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 logger = logging.getLogger(__name__)
 
 
 def get_regions():
     public_region_list = boto3.session.Session().get_available_regions("sqs")
-    cn_region_list = boto3.session.Session().get_available_regions("sqs", partition_name='aws-cn')
+    cn_region_list = boto3.session.Session().get_available_regions("sqs", partition_name="aws-cn")
     return public_region_list + cn_region_list
 
 
@@ -23,6 +26,16 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
     slug = "amazon-sqs"
     description = "Forward Sentry events to Amazon SQS."
     conf_key = "amazon-sqs"
+    required_field = "queue_url"
+    # TODO(phillip): Probably need a better feature description
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Forward Sentry errors and events to Amazon SQS.
+            """,
+            IntegrationFeatures.DATA_FORWARDING,
+        )
+    ]
 
     def get_config(self, project, **kwargs):
         return [
@@ -92,7 +105,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
 
             client.send_message(**message)
         except ClientError as e:
-            if e.message.startswith("An error occurred (AccessDenied)"):
+            if six.text_type(e).startswith("An error occurred (AccessDenied)"):
                 # If there's an issue with the user's token then we can't do
                 # anything to recover. Just log and continue.
                 metrics_name = "sentry_plugins.amazon_sqs.access_token_invalid"
@@ -114,7 +127,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                     },
                 )
                 return False
-            elif e.message.endswith("must contain the parameter MessageGroupId."):
+            elif six.text_type(e).endswith("must contain the parameter MessageGroupId."):
                 metrics_name = "sentry_plugins.amazon_sqs.missing_message_group_id"
                 logger.info(
                     metrics_name,

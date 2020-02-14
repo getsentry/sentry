@@ -18,11 +18,8 @@ def pytest_configure(config):
     # being used
     warnings.filterwarnings("error", "", Warning, r"^(?!(|kombu|raven|sentry))")
 
-    # if we are running any tests for plugins, we need to make sure we install them first
-    # (for `py.test --version` or `py.test --help`, there are no files to test)
-    test_targets = config.getoption("file_or_dir")
-    if test_targets and any("tests/sentry_plugins" in s for s in test_targets):
-        install_sentry_plugins()
+    # always install plugins for the tests
+    install_sentry_plugins()
 
 
 def install_sentry_plugins():
@@ -46,8 +43,6 @@ def install_sentry_plugins():
     settings.BITBUCKET_CONSUMER_SECRET = "123"
     settings.GITHUB_APP_ID = "abc"
     settings.GITHUB_API_SECRET = "123"
-    settings.GITHUB_APPS_APP_ID = "abc"
-    settings.GITHUB_APPS_API_SECRET = "123"
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 

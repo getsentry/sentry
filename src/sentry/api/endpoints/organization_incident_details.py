@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
-from sentry.incidents.logic import StatusAlreadyChangedError, update_incident_status
+from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import IncidentStatus
 
 
@@ -43,18 +43,16 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         serializer = IncidentSerializer(data=request.data)
         if serializer.is_valid():
             result = serializer.validated_data
-
-            try:
+            if result["status"] == IncidentStatus.CLOSED:
                 incident = update_incident_status(
                     incident=incident,
                     status=result["status"],
                     user=request.user,
                     comment=result.get("comment"),
                 )
-            except StatusAlreadyChangedError:
-                return Response("Status is already set to {}".format(result["status"]), status=400)
-
-            return Response(
-                serialize(incident, request.user, DetailedIncidentSerializer()), status=200
-            )
+                return Response(
+                    serialize(incident, request.user, DetailedIncidentSerializer()), status=200
+                )
+            else:
+                return Response("Status cannot be changed.", status=400)
         return Response(serializer.errors, status=400)

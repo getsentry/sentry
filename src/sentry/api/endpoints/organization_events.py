@@ -2,12 +2,13 @@ from __future__ import absolute_import
 
 import logging
 import six
-import uuid
 from functools import partial
+from django.utils.http import urlquote
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from semaphore.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry.api.base import LINK_HEADER
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.event_search import get_json_meta_type
 from sentry.api.helpers.events import get_direct_hit_response
@@ -16,7 +17,9 @@ from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerial
 from sentry import eventstore, features
 from sentry.snuba import discover
 from sentry.utils import snuba
+from sentry.utils.http import absolute_uri
 from sentry.models.project import Project
+from sentry.models.group import Group
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +45,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         full = request.GET.get("full", False)
         try:
             snuba_args = self.get_snuba_query_args_legacy(request, organization)
-        except OrganizationEventsError as exc:
-            return Response({"detail": exc.message}, status=400)
+        except OrganizationEventsError as e:
+            return Response({"detail": six.text_type(e)}, status=400)
         except NoProjects:
             # return empty result if org doesn't have projects
             # or user doesn't have access to projects in org
@@ -88,8 +91,31 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
+    def build_cursor_link(self, request, name, cursor):
+        # The base API function only uses the last query parameter, but this endpoint
+        # needs all the parameters, particularly for the "field" query param.
+        querystring = u"&".join(
+            u"{0}={1}".format(urlquote(query[0]), urlquote(value))
+            for query in request.GET.lists()
+            if query[0] != "cursor"
+            for value in query[1]
+        )
+
+        base_url = absolute_uri(urlquote(request.path))
+        if querystring:
+            base_url = u"{0}?{1}".format(base_url, querystring)
+        else:
+            base_url = base_url + "?"
+
+        return LINK_HEADER.format(
+            uri=base_url,
+            cursor=six.text_type(cursor),
+            name=name,
+            has_results="true" if bool(cursor) else "false",
+        )
+
     def get(self, request, organization):
-        if not features.has("organizations:events-v2", organization, actor=request.user):
+        if not features.has("organizations:discover-basic", organization, actor=request.user):
             return Response(status=404)
 
         try:
@@ -98,6 +124,8 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
             raise ParseError(detail=six.text_type(exc))
         except NoProjects:
             return Response([])
+
+        params["organization_id"] = organization.id
 
         has_global_views = features.has(
             "organizations:global-views", organization, actor=request.user
@@ -118,6 +146,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                 limit=limit,
                 referrer="api.organization-events-v2",
                 auto_fields=True,
+                use_aggregate_conditions=True,
             )
 
         try:
@@ -130,7 +159,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
             )
         except discover.InvalidSearchQuery as error:
             raise ParseError(detail=six.text_type(error))
-        except snuba.SnubaError as error:
+        except (snuba.SnubaError, snuba.QueryOutsideRetentionError) as error:
             logger.info(
                 "organization.events.snuba-error",
                 extra={
@@ -139,7 +168,31 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                     "error": six.text_type(error),
                 },
             )
-            raise ParseError(detail="Invalid query.")
+            message = "Internal error. Please try again."
+            if isinstance(error, snuba.QueryIllegalTypeOfArgument):
+                message = "Invalid query. Argument to function is wrong type."
+            elif isinstance(error, snuba.QueryOutsideRetentionError):
+                message = "Invalid date range. Please try a more recent date range."
+            elif isinstance(
+                error,
+                (
+                    snuba.RateLimitExceeded,
+                    snuba.QueryMemoryLimitExceeded,
+                    snuba.QueryTooManySimultaneous,
+                ),
+            ):
+                message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+            elif isinstance(
+                error,
+                (
+                    snuba.UnqualifiedQueryError,
+                    snuba.QueryExecutionError,
+                    snuba.SchemaValidationError,
+                ),
+            ):
+                message = "Invalid query."
+
+            raise ParseError(detail=message)
 
     def handle_results_with_meta(self, request, organization, project_ids, results):
         data = self.handle_data(request, organization, project_ids, results.get("data"))
@@ -164,22 +217,27 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
 
         # TODO(mark) move all of this result formatting into discover.query()
         # once those APIs are used across the application.
-        tests = {
-            "transaction.status": "transaction.status" in first_row,
-            "trace": "trace" in first_row,
-        }
-        if any(tests.values()):
+        if "transaction.status" in first_row:
             for row in results:
-                if tests["transaction.status"]:
-                    row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
-                        row["transaction.status"]
-                    )
-                if tests["trace"]:
-                    row["trace"] = uuid.UUID(row["trace"]).hex
+                row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
+
+        fields = request.GET.getlist("field")
+        issues = {}
+        if "issue" in fields:  # Look up the short ID and return that in the results
+            issue_ids = set(row["issue.id"] for row in results)
+            issues = {
+                i.id: i.qualified_short_id
+                for i in Group.objects.filter(
+                    id__in=issue_ids, project_id__in=project_ids, project__organization=organization
+                )
+            }
+            for result in results:
+                if "issue.id" in result:
+                    result["issue"] = issues[result["issue.id"]]
 
         if not ("project.id" in first_row or "projectid" in first_row):
             return results
-        fields = request.GET.getlist("field")
+
         projects = {
             p["id"]: p["slug"]
             for p in Project.objects.filter(organization=organization, id__in=project_ids).values(
@@ -189,7 +247,11 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
         for result in results:
             for key in ("projectid", "project.id"):
                 if key in result:
-                    result["project.name"] = projects[result[key]]
+                    # Handle bizarre empty case
+                    if result[key] == 0:
+                        result["project.name"] = ""
+                    else:
+                        result["project.name"] = projects[result[key]]
                     if key not in fields:
                         del result[key]
 

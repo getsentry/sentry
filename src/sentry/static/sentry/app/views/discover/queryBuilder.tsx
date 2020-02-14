@@ -21,7 +21,7 @@ const API_LIMIT = 10000;
 
 const DEFAULTS = {
   projects: [],
-  fields: ['id', 'issue.id', 'project.name', 'platform', 'timestamp'],
+  fields: ['id', 'issue', 'project.name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
   orderby: '-timestamp',
@@ -228,9 +228,7 @@ export default function createQueryBuilder(
    */
   function fetch(data = getExternal(), cursor = '0:0:1') {
     const limit = data.limit || 1000;
-    const endpoint = `/organizations/${
-      organization.slug
-    }/discover/query/?per_page=${limit}&cursor=${cursor}`;
+    const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
 
     // Reject immediately if no projects are available
     if (!data.projects.length) {

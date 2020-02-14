@@ -22,11 +22,12 @@ from sentry.db.models import (
 
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.models import CommitFileChange
-from sentry.signals import issue_resolved, release_commits_updated
+from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +129,11 @@ class Release(Model):
 
     @classmethod
     def get_or_create(cls, project, version, date_added=None):
+        with metrics.timer("models.release.get_or_create") as metric_tags:
+            return cls._get_or_create_impl(project, version, date_added, metric_tags)
+
+    @classmethod
+    def _get_or_create_impl(cls, project, version, date_added, metric_tags):
         from sentry.models import Project
 
         if date_added is None:
@@ -136,6 +142,7 @@ class Release(Model):
         cache_key = cls.get_cache_key(project.organization_id, version)
 
         release = cache.get(cache_key)
+
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
@@ -147,11 +154,13 @@ class Release(Model):
                     projects=project,
                 )
             )
+
             if releases:
                 try:
                     release = [r for r in releases if r.version == project_version][0]
                 except IndexError:
                     release = releases[0]
+                metric_tags["created"] = "false"
             else:
                 try:
                     with transaction.atomic():
@@ -161,10 +170,14 @@ class Release(Model):
                             date_added=date_added,
                             total_deploys=0,
                         )
+
+                    metric_tags["created"] = "true"
                 except IntegrityError:
+                    metric_tags["created"] = "false"
                     release = cls.objects.get(
                         organization_id=project.organization_id, version=version
                     )
+
                 release.add_project(project)
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
@@ -173,6 +186,9 @@ class Release(Model):
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
+            metric_tags["cache_hit"] = "false"
+        else:
+            metric_tags["cache_hit"] = "true"
 
         return release
 
@@ -371,9 +387,6 @@ class Release(Model):
             with transaction.atomic():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
-                initial_commit_ids = set(
-                    ReleaseCommit.objects.filter(release=self).values_list("commit_id", flat=True)
-                )
                 ReleaseCommit.objects.filter(release=self).delete()
 
                 authors = {}
@@ -399,6 +412,8 @@ class Release(Model):
                             + "@localhost"
                         )
 
+                    author_email = truncatechars(author_email, 75)
+
                     if not author_email:
                         author = None
                     elif author_email not in authors:
@@ -415,7 +430,6 @@ class Release(Model):
                         author = authors[author_email]
 
                     commit_data = {}
-                    defaults = {}
 
                     # Update/set message and author if they are provided.
                     if author is not None:
@@ -424,22 +438,21 @@ class Release(Model):
                         commit_data["message"] = data["message"]
                     if "timestamp" in data:
                         commit_data["date_added"] = data["timestamp"]
-                    else:
-                        defaults["date_added"] = timezone.now()
 
-                    commit, created = Commit.objects.create_or_update(
+                    commit, created = Commit.objects.get_or_create(
                         organization_id=self.organization_id,
                         repository_id=repo.id,
                         key=data["id"],
-                        defaults=defaults,
-                        values=commit_data,
+                        defaults=commit_data,
                     )
                     if not created:
-                        commit = Commit.objects.get(
-                            organization_id=self.organization_id,
-                            repository_id=repo.id,
-                            key=data["id"],
-                        )
+                        commit_data = {
+                            key: value
+                            for key, value in six.iteritems(commit_data)
+                            if getattr(commit, key) != value
+                        }
+                        if commit_data:
+                            commit.update(**commit_data)
 
                     if author is None:
                         author = commit.author
@@ -507,16 +520,6 @@ class Release(Model):
             .select_related("commit")
             .values("commit_id", "commit__key")
         )
-        final_commit_ids = set(rc["commit_id"] for rc in release_commits)
-        removed_commit_ids = initial_commit_ids - final_commit_ids
-        added_commit_ids = final_commit_ids - initial_commit_ids
-        if removed_commit_ids or added_commit_ids:
-            release_commits_updated.send_robust(
-                release=self,
-                removed_commit_ids=removed_commit_ids,
-                added_commit_ids=added_commit_ids,
-                sender=self.__class__,
-            )
 
         commit_resolutions = list(
             GroupLink.objects.filter(

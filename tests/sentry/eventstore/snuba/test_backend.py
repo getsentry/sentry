@@ -74,22 +74,33 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         )
         assert len(events) == 5
         # Default sort is timestamp desc, event_id desc
-        assert events[0].id == "e" * 32
-        assert events[1].id == "d" * 32
-        assert events[2].id == "c" * 32
-        assert events[3].id == "b" * 32
-        assert events[4].id == "a" * 32
+        assert events[0].event_id == "e" * 32
+        assert events[1].event_id == "d" * 32
+        assert events[2].event_id == "c" * 32
+        assert events[3].event_id == "b" * 32
+        assert events[4].event_id == "a" * 32
 
         # No events found
         project = self.create_project()
         events = self.eventstore.get_events(filter=Filter(project_ids=[project.id]))
         assert events == []
 
+        # Test with a list of event IDs and project ID filters
+        events = self.eventstore.get_events(
+            filter=Filter(
+                project_ids=[self.project1.id, self.project2.id],
+                event_ids=["a" * 32, "b" * 32, "c" * 32, "x" * 32, "y" * 32, "z" * 32],
+            )
+        )
+        assert len(events) == 3
+        assert events[0].event_id == "c" * 32
+        assert events[1].event_id == "b" * 32
+        assert events[2].event_id == "a" * 32
+
     def test_get_event_by_id(self):
         # Get valid event
         event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
 
-        assert event.id == "a" * 32
         assert event.event_id == "a" * 32
         assert event.project_id == self.project1.id
 
@@ -100,7 +111,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         # Get transaction
         event = self.eventstore.get_event_by_id(self.project2.id, self.transaction_event.event_id)
 
-        assert event.id == "d" * 32
+        assert event.event_id == "d" * 32
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
 

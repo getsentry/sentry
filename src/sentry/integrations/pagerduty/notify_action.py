@@ -3,10 +3,11 @@ Used for notifying a *specific* plugin
 """
 from __future__ import absolute_import
 
+import six
 from django import forms
 from django.utils.translation import ugettext_lazy as _
-from sentry.constants import ObjectStatus
 
+from sentry.constants import ObjectStatus
 from sentry.rules.actions.base import EventAction
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.integrations.exceptions import ApiError
@@ -79,7 +80,7 @@ class PagerDutyNotifyServiceAction(EventAction):
         return self.get_integrations().exists()
 
     def after(self, event, state):
-        if event.group.is_ignored():
+        if not event.group.is_unresolved():
             return
 
         integration_id = self.get_option("account")
@@ -104,12 +105,28 @@ class PagerDutyNotifyServiceAction(EventAction):
         def send_notification(event, futures):
             client = PagerDutyClient(integration_key=service.integration_key)
             try:
-                client.send_trigger(event)
+                resp = client.send_trigger(event)
             except ApiError as e:
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
-                    extra={"error": e.message, "service": service.service_name},
+                    extra={
+                        "error": six.text_type(e),
+                        "service_name": service.service_name,
+                        "service_id": service.id,
+                    },
                 )
+
+            # TODO(meredith): Maybe have a generic success log statements for
+            # first-party integrations similar to plugin `notification.dispatched`
+            self.logger.info(
+                "rule.success.pagerduty_trigger",
+                extra={
+                    "status_code": resp.status_code,
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                    "service_id": service.id,
+                },
+            )
 
         key = u"pagerduty:{}".format(integration.id)
         yield self.future(send_notification, key=key)

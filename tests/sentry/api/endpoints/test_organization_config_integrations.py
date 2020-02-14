@@ -21,3 +21,15 @@ class OrganizationConfigIntegrationsTest(APITestCase):
         provider = provider[0]
         assert provider["name"] == "Example"
         assert provider["setupDialog"]["url"]
+
+    def test_provider_key(self):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        path = u"/api/0/organizations/{}/config/integrations/?provider_key=example_server".format(
+            org.slug
+        )
+        response = self.client.get(path, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["providers"]) == 1
+        assert response.data["providers"][0]["name"] == "Example Server"

@@ -27,7 +27,7 @@ from django.views.generic.base import View as BaseView
 from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError, Unreal4Crash, Unreal4Error
-import semaphore
+from sentry_relay import ProcessingActionInvalidTransaction, scrub_event
 
 from sentry import features, options, quotas
 from sentry.attachments import CachedAttachment
@@ -285,7 +285,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         raise APIForbidden("An event with the same ID already exists (%s)" % (event_id,))
 
     datascrubbing_settings = project_config.config.get("datascrubbingSettings") or {}
-    data = semaphore.scrub_event(datascrubbing_settings, dict(data))
+    data = scrub_event(datascrubbing_settings, dict(data))
 
     # mutates data (strips a lot of context if not queued)
     helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
@@ -397,7 +397,7 @@ class APIView(BaseView):
                 value=json.dumps([meta, base64.b64encode(data), project_config.to_dict()]),
             )
         except Exception as e:
-            logger.debug("Cannot publish event to Kafka: {}".format(e.message))
+            logger.debug("Cannot publish event to Kafka: {}".format(six.text_type(e)))
 
     @csrf_exempt
     @never_cache
@@ -424,6 +424,8 @@ class APIView(BaseView):
             # implicitly fetched from database.
             project.organization = Organization.objects.get_from_cache(id=project.organization_id)
 
+            # XXX: This never returns a disabled project since visibility of the
+            # project is already verified in `_get_project_from_id`.
             project_config = get_project_config(project)
 
             helper.context.bind_project(project_config.project)
@@ -635,11 +637,11 @@ class StoreView(APIView):
 
         try:
             event_manager.normalize()
-        except semaphore.ProcessingActionInvalidTransaction as e:
+        except ProcessingActionInvalidTransaction as e:
             track_outcome(
                 organization_id, project_id, key.id, Outcome.INVALID, "invalid_transaction"
             )
-            raise APIError(e.message.split("\n", 1)[0])
+            raise APIError(six.text_type(e).split("\n", 1)[0])
 
         data = event_manager.get_data()
         dict_data = dict(data)
@@ -998,7 +1000,7 @@ class UnrealView(StoreView):
                 Outcome.INVALID,
                 "process_unreal",
             )
-            raise APIError(e.message.split("\n", 1)[0])
+            raise APIError(six.text_type(e).split("\n", 1)[0])
 
         try:
             unreal_context = unreal.get_context()

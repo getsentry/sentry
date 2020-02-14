@@ -11,12 +11,12 @@ type Props = {
   organization: Organization;
 };
 
-const SidebarOrgSummary: React.FC<Props> = ({organization}) => {
+const SidebarOrgSummary = ({organization}: Props) => {
   const projects = organization.projects && organization.projects.length;
   const extra: string[] = [];
 
   if (projects) {
-    extra.push(tn('%d project', '%d projects', projects));
+    extra.push(tn('%s project', '%s projects', projects));
   }
 
   return (

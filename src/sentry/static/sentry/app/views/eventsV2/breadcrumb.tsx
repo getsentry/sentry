@@ -4,23 +4,25 @@ import {Location} from 'history';
 
 import {t} from 'app/locale';
 import {Event, Organization} from 'app/types';
-import BetaTag from 'app/components/betaTag';
 import Link from 'app/components/links/link';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 import EventView from './eventView';
-import {generateDiscoverResultsRoute} from './results';
+import {getDiscoverLandingUrl} from './utils';
 
-type Props = {
-  eventView: EventView;
+type DefaultProps = {
   event: Event | undefined;
+};
+
+type Props = DefaultProps & {
+  eventView: EventView;
   organization: Organization;
   location: Location;
 };
 
 class DiscoverBreadcrumb extends React.Component<Props> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     event: undefined,
   };
 
@@ -28,14 +30,16 @@ class DiscoverBreadcrumb extends React.Component<Props> {
     const {eventView, event, organization, location} = this.props;
     const crumbs: React.ReactNode[] = [];
 
-    const discoverTarget = {
-      pathname: `/organizations/${organization.slug}/eventsv2/`,
-      query: {
-        ...location.query,
-        ...eventView.generateBlankQueryStringObject(),
-        ...eventView.getGlobalSelection(),
-      },
-    };
+    const discoverTarget = organization.features.includes('discover-query')
+      ? {
+          pathname: getDiscoverLandingUrl(organization),
+          query: {
+            ...location.query,
+            ...eventView.generateBlankQueryStringObject(),
+            ...eventView.getGlobalSelection(),
+          },
+        }
+      : null;
 
     crumbs.push(
       <BreadcrumbItem to={discoverTarget} key="eventview-home">
@@ -44,11 +48,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
     );
 
     if (eventView && eventView.isValid()) {
-      const eventTarget = {
-        pathname: generateDiscoverResultsRoute(organization.slug),
-        query: eventView.generateQueryStringObject(),
-      };
-
+      const eventTarget = eventView.getResultsViewUrlTarget(organization.slug);
       crumbs.push(
         <span key="eventview-sep">
           <StyledIcon src="icon-chevron-right" />
@@ -76,12 +76,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
   }
 
   render() {
-    return (
-      <BreadcrumbList>
-        {this.getCrumbs()}
-        <BetaTag />
-      </BreadcrumbList>
-    );
+    return <BreadcrumbList>{this.getCrumbs()}</BreadcrumbList>;
   }
 }
 

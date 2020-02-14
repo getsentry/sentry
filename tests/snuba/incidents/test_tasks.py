@@ -118,11 +118,8 @@ class HandleSnubaQueryUpdateTest(TestCase):
             "version": 1,
             "payload": {
                 "subscription_id": self.subscription.subscription_id,
-                "values": {value_name: self.trigger.alert_threshold + 1},
-                "timestamp": 1235,
-                "interval": 5,
-                "partition": 50,
-                "offset": 10,
+                "values": {"data": [{value_name: self.trigger.alert_threshold + 1}]},
+                "timestamp": "2020-01-01T01:23:45.1234",
             },
         }
         self.producer.produce(self.topic, json.dumps(message))
@@ -130,10 +127,8 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         def active_incident():
             return Incident.objects.filter(
-                type=IncidentType.ALERT_TRIGGERED.value,
-                status=IncidentStatus.OPEN.value,
-                alert_rule=self.rule,
-            )
+                type=IncidentType.ALERT_TRIGGERED.value, alert_rule=self.rule
+            ).exclude(status=IncidentStatus.CLOSED.value)
 
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
         with self.assertChanges(

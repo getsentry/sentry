@@ -82,6 +82,7 @@ export const Config = PropTypes.shape({
     ip_address: PropTypes.string,
     email: PropTypes.string,
     id: PropTypes.number,
+    isStaff: PropTypes.bool,
   }),
   sentryConfig: PropTypes.shape({
     dsn: PropTypes.string,
@@ -261,9 +262,8 @@ export const EventError = PropTypes.shape({
 });
 
 export const Tag = PropTypes.shape({
-  id: PropTypes.string.isRequired,
   key: PropTypes.string.isRequired,
-  name: PropTypes.string.isRequired,
+  name: PropTypes.string,
   uniqueValues: PropTypes.number,
 });
 

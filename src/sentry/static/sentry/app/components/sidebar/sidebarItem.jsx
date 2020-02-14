@@ -4,8 +4,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
+import Tag from 'app/views/settings/components/tag';
 import HookOrDefault from 'app/components/hookOrDefault';
 import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 import Link from '../links/link';
 import TextOverflow from '../textOverflow';
@@ -44,6 +47,9 @@ class SidebarItem extends React.Component {
     // Additional badge to display after label
     badge: PropTypes.number,
 
+    // Additional badge letting users know a tab is new.
+    isNew: PropTypes.bool,
+
     // Sidebar is at "top" or "left" of screen
     orientation: PropTypes.oneOf(['top', 'left']),
   };
@@ -68,6 +74,7 @@ class SidebarItem extends React.Component {
       badge,
       active,
       hasPanel,
+      isNew,
       collapsed,
       className,
       orientation,
@@ -76,6 +83,7 @@ class SidebarItem extends React.Component {
     // If there is no active panel open and if path is active according to react-router
     const isActiveRouter =
       (!hasPanel && router && to && location.pathname.startsWith(to)) ||
+      (label === 'Discover' && location.pathname.includes('/discover/')) ||
       // TODO: this won't be necessary once we remove settingsHome
       (label === 'Settings' && location.pathname.startsWith('/settings/'));
 
@@ -99,6 +107,11 @@ class SidebarItem extends React.Component {
               <SidebarItemLabel>
                 <LabelHook id={this.props.id}>
                   <TextOverflow>{label}</TextOverflow>
+                  {isNew && (
+                    <StyledTag priority="beta" size="small">
+                      {t('New')}
+                    </StyledTag>
+                  )}
                 </LabelHook>
               </SidebarItemLabel>
             )}
@@ -252,4 +265,11 @@ const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} /
   line-height: ${p => p.theme.sidebar.badgeSize};
 
   ${getCollapsedBadgeStyle};
+`;
+
+const StyledTag = styled(Tag)`
+  font-weight: normal;
+  padding: 3px ${space(0.75)};
+  margin-left: ${space(0.5)};
+  border-radius: 20px;
 `;

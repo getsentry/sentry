@@ -10,7 +10,7 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.auth.access import OrganizationGlobalAccess
-from sentry.incidents.endpoints.serializers import UnifiedAlertRuleSerializer
+from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.testutils import APITestCase
 
@@ -66,7 +66,7 @@ class AlertRuleDetailsBase(object):
         if data is None:
             data = deepcopy(self.alert_rule_dict)
 
-        serializer = UnifiedAlertRuleSerializer(
+        serializer = AlertRuleSerializer(
             context={
                 "organization": self.organization,
                 "access": OrganizationGlobalAccess(self.organization),
@@ -221,6 +221,60 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         assert resp.data["name"] == "AUniqueName"
         assert resp.data["triggers"][1]["alertThreshold"] == 125
+
+    def test_delete_resolve_alert_threshold(self):
+        # This is a test to make sure we can remove a resolveThreshold after it has been set.
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        serialized_alert_rule["triggers"][1]["resolveThreshold"] = None
+        serialized_alert_rule["name"] = "AUniqueName"
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert resp.data["name"] == "AUniqueName"
+        assert resp.data["triggers"][1]["resolveThreshold"] is None
+
+    def test_update_resolve_alert_threshold(self):
+        # This is a test to make sure we can remove a resolveThreshold after it has been set.
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+
+        serialized_alert_rule["triggers"][1]["resolveThreshold"] = 75
+        serialized_alert_rule["name"] = "AUniqueName"
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        assert resp.data["name"] == "AUniqueName"
+        assert resp.data["triggers"][1]["resolveThreshold"] == 75
+
+        # We had/have logic to remove unchanged fields from the serializer before passing them to update
+        # It is possible with an error here that sending an update without changing the field
+        # could nullify it. So we make sure it's not getting nullified here.
+        # we can an update with all the same fields, and it comes back as 125 instead of None.
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+        assert resp.data["name"] == "AUniqueName"
+        assert resp.data["triggers"][1]["resolveThreshold"] == 75
 
     def test_delete_trigger(self):
         self.create_member(

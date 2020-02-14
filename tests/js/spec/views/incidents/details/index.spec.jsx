@@ -2,11 +2,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import IncidentDetails from 'app/views/incidents/details';
+import IncidentDetails from 'app/views/alerts/details';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentDetails', function() {
-  const params = {orgId: 'org-slug', incidentId: '123'};
+  const params = {orgId: 'org-slug', alertId: '123'};
   const {organization, project, routerContext} = initializeOrg({
     router: {
       params,
@@ -45,9 +45,7 @@ describe('IncidentDetails', function() {
       statusCode: 404,
     });
     activitiesList = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/incidents/${
-        mockIncident.identifier
-      }/activity/`,
+      url: `/organizations/${organization.slug}/incidents/${mockIncident.identifier}/activity/`,
       body: [TestStubs.IncidentActivity()],
     });
   });
@@ -72,19 +70,25 @@ describe('IncidentDetails', function() {
     expect(
       wrapper
         .find('ItemValue')
-        .at(4)
+        .at(2)
         .text()
-    ).toBe('100');
+    ).toBe('20');
     expect(
       wrapper
         .find('ItemValue')
         .at(3)
         .text()
-    ).toBe('20');
+    ).toBe('100');
+    expect(
+      wrapper
+        .find('ItemValue')
+        .at(4)
+        .text()
+    ).toBe('2 weeks');
   });
 
   it('handles invalid incident', async function() {
-    const wrapper = createWrapper({params: {orgId: 'org-slug', incidentId: '456'}});
+    const wrapper = createWrapper({params: {orgId: 'org-slug', alertId: '456'}});
     await tick();
     wrapper.update();
 

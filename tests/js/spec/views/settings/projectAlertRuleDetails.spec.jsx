@@ -41,7 +41,10 @@ describe('ProjectAlertRuleDetails', function() {
       name: 'Rules',
       component: null,
       indexRoute: {},
-      childRoutes: [{path: 'new/', name: 'New'}, {path: ':ruleId/', name: 'Edit'}],
+      childRoutes: [
+        {path: 'new/', name: 'New'},
+        {path: ':ruleId/', name: 'Edit'},
+      ],
     },
     {path: ':ruleId/', name: 'Edit'},
   ];

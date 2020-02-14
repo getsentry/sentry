@@ -122,7 +122,13 @@ describe('EventsRequest', function() {
       doEventsRequest.mockImplementation(() =>
         Promise.resolve({
           data: [
-            [new Date(), [{...COUNT_OBJ, count: 321}, {...COUNT_OBJ, count: 79}]],
+            [
+              new Date(),
+              [
+                {...COUNT_OBJ, count: 321},
+                {...COUNT_OBJ, count: 79},
+              ],
+            ],
             [new Date(), [COUNT_OBJ]],
           ],
         })
@@ -169,7 +175,7 @@ describe('EventsRequest', function() {
             },
           ],
           previousTimeseriesData: {
-            seriesName: 'Previous Period',
+            seriesName: 'Previous',
             data: [
               expect.objectContaining({
                 name: expect.anything(),

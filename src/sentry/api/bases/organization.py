@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
+import six
 from rest_framework.exceptions import PermissionDenied, ParseError
-
 from django.core.cache import cache
 
 from sentry.api.base import Endpoint
@@ -244,8 +244,8 @@ class OrganizationEndpoint(Endpoint):
         # from the request
         try:
             start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
-        except InvalidParams as exc:
-            raise OrganizationEventsError(exc.message)
+        except InvalidParams as e:
+            raise OrganizationEventsError(six.text_type(e))
 
         try:
             projects = self.get_projects(request, organization)
@@ -255,7 +255,7 @@ class OrganizationEndpoint(Endpoint):
         if not projects:
             raise NoProjects
 
-        environments = [e.name for e in self.get_environments(request, organization)]
+        environments = [env.name for env in self.get_environments(request, organization)]
         params = {"start": start, "end": end, "project_id": [p.id for p in projects]}
         if environments:
             params["environment"] = environments
@@ -317,7 +317,8 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         on the projects to which the release is attached?
 
         If the given request has an actor (user or ApiKey), cache the results
-        for a minute on the unique combination of actor,org,release.
+        for a minute on the unique combination of actor,org,release, and project
+        ids.
         """
         actor_id = None
         has_perms = None
@@ -326,7 +327,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if getattr(request, "auth", None) and request.auth.id:
             actor_id = "apikey:%s" % request.auth.id
         if actor_id is not None:
-            key = "release_perms:1:%s" % hash_values([actor_id, organization.id, release.id])
+            project_ids = sorted(set(map(int, request.GET.getlist("project"))))
+            key = "release_perms:1:%s" % hash_values(
+                [actor_id, organization.id, release.id] + project_ids
+            )
             has_perms = cache.get(key)
         if has_perms is None:
             has_perms = ReleaseProject.objects.filter(

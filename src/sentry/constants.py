@@ -16,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.utils.integrationdocs import load_doc
 from sentry.utils.geo import rust_geoip
 
-import semaphore
+import sentry_relay
 
 
 def get_all_languages():
@@ -226,8 +226,8 @@ SENTRY_RULES = (
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ("GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH")
 
-# See https://github.com/getsentry/semaphore/blob/master/general/src/protocol/constants.rs
-VALID_PLATFORMS = semaphore.VALID_PLATFORMS
+# See https://github.com/getsentry/relay/blob/master/relay-general/src/protocol/constants.rs
+VALID_PLATFORMS = sentry_relay.VALID_PLATFORMS
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 
@@ -435,6 +435,34 @@ class SentryAppInstallationStatus(object):
             return cls.INSTALLED_STR
 
 
+class ExportQueryType(object):
+    DISCOVER_V2 = 0
+    BILLING_REPORT = 1
+    ISSUE_BY_TAG = 2
+    # Add additional query types here...
+    DISCOVER_V2_STR = "DISCOVER_V2"
+    BILLING_REPORT_STR = "BILLING_REPORT"
+    ISSUE_BY_TAG_STR = "ISSUE_BY_TAG"
+    # Add their corresponding strings (sent from browser) here...
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (cls.DISCOVER_V2, cls.DISCOVER_V2_STR),
+            (cls.BILLING_REPORT, cls.BILLING_REPORT_STR),
+            (cls.ISSUE_BY_TAG, cls.ISSUE_BY_TAG_STR),
+        )
+
+    @classmethod
+    def as_str(cls, status):
+        if status == cls.DISCOVER_V2:
+            return cls.DISCOVER_V2_STR
+        elif status == cls.BILLING_REPORT:
+            return cls.BILLING_REPORT_STR
+        elif status == cls.ISSUE_BY_TAG:
+            return cls.ISSUE_BY_TAG_STR
+
+
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(("sentry:project-rate-limit", "sentry:account-rate-limit"))
@@ -448,8 +476,6 @@ ALLOWED_FUTURE_DELTA = timedelta(seconds=MAX_SECS_IN_FUTURE)
 
 DEFAULT_STORE_NORMALIZER_ARGS = dict(
     geoip_lookup=rust_geoip,
-    stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
-    max_stacktrace_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES,
     max_secs_in_future=MAX_SECS_IN_FUTURE,
     max_secs_in_past=MAX_SECS_IN_PAST,
     enable_trimming=True,

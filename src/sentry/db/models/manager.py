@@ -330,6 +330,15 @@ class BaseManager(Manager):
         Wrapper around `QuerySet.filter(pk__in=values)` which supports caching of
         the intermediate value.  Callee is responsible for making sure the
         cache key is cleared on save.
+
+        NOTE: We can only query by primary key or some other unique identifier.
+        It is not possible to e.g. run `Project.objects.get_many_from_cache([1,
+        2, 3], key="organization_id")` and get back all projects belonging to
+        those orgs. The length of the return value is bounded by the length of
+        `values`.
+
+        For most models, if one attempts to use a non-PK value this will just
+        degrade to a DB query, like with `get_from_cache`.
         """
 
         pk_name = self.model._meta.pk.name

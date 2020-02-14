@@ -4,8 +4,10 @@ import uniq from 'lodash/uniq';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {t} from 'app/locale';
+import {DISCOVER2_DOCS_URL} from 'app/constants';
 import {Form, SelectField} from 'app/components/forms';
-import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/links/link';
+import {IconChevron, IconDocs} from 'app/icons';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
 
@@ -168,6 +170,7 @@ class TableModalEditColumnBodyForm extends React.Component<
         >
           <FormRow>
             <SelectField
+              deprecatedSelectControl
               name="aggregation"
               label={t('Aggregate')}
               placeholder="Select Aggregate"
@@ -175,6 +178,7 @@ class TableModalEditColumnBodyForm extends React.Component<
               onChange={this.onChangeAggregation}
             />
             <SelectField
+              deprecatedSelectControl
               required
               name="field"
               label={t('Column Type')}
@@ -189,16 +193,10 @@ class TableModalEditColumnBodyForm extends React.Component<
   }
 }
 
-// TODO(leedongwei): Check with Mimi to get the link for DiscoverV2 docs
 const TableModalEditColumnFooter = () => (
-  <FooterContent>
-    {/* Attach href to documentation on FooterContent */}
-    <div>
-      <InlineSvg src="icon-docs" /> Documentation (Coming soon!)
-    </div>
-    <div>
-      <InlineSvg src="icon-chevron-right" />
-    </div>
+  <FooterContent href={`${DISCOVER2_DOCS_URL}query-builder/`} target="_blank">
+    <StyledIconDocs /> {t('Read the docs')}
+    <StyledIconChevron direction="right" size="xs" />
   </FooterContent>
 );
 
@@ -221,20 +219,17 @@ function filterAggregationByField(organization: Organization, f?: Field): Aggreg
     return [];
   }
 
-  functionList = functionList.reduce(
-    (accumulator, a) => {
-      if (
-        AGGREGATIONS[a].type.includes(fieldType) ||
-        AGGREGATIONS[a].type === '*' ||
-        fieldType === '*'
-      ) {
-        accumulator.push(a as Aggregation);
-      }
+  functionList = functionList.reduce((accumulator, a) => {
+    if (
+      AGGREGATIONS[a].type.includes(fieldType) ||
+      AGGREGATIONS[a].type === '*' ||
+      fieldType === '*'
+    ) {
+      accumulator.push(a as Aggregation);
+    }
 
-      return accumulator;
-    },
-    [] as Aggregation[]
-  );
+    return accumulator;
+  }, [] as Aggregation[]);
 
   // sort list in ascending order
   functionList.sort();
@@ -262,26 +257,23 @@ function filterFieldByAggregation(
     return fieldList as Field[];
   }
 
-  fieldList = fieldList.reduce(
-    (accumulator, f) => {
-      // tag keys are all strings, and values not in FIELDS is a tag.
-      const fieldType = FIELDS[f] || 'string';
-      if (fieldType === 'never') {
-        return accumulator;
-      }
-
-      if (
-        AGGREGATIONS[a].type.includes(fieldType) ||
-        AGGREGATIONS[a].type === '*' ||
-        fieldType === '*'
-      ) {
-        accumulator.push(f as Field);
-      }
-
+  fieldList = fieldList.reduce((accumulator, f) => {
+    // tag keys are all strings, and values not in FIELDS is a tag.
+    const fieldType = FIELDS[f] || 'string';
+    if (fieldType === 'never') {
       return accumulator;
-    },
-    [] as Field[]
-  );
+    }
+
+    if (
+      AGGREGATIONS[a].type.includes(fieldType) ||
+      AGGREGATIONS[a].type === '*' ||
+      fieldType === '*'
+    ) {
+      accumulator.push(f as Field);
+    }
+
+    return accumulator;
+  }, [] as Field[]);
 
   // sort list in ascending order
   fieldList.sort();
@@ -296,26 +288,17 @@ const FormRow = styled('div')`
   grid-column-gap: ${space(2)};
 `;
 
-const FooterContent = styled('div')`
+const FooterContent = styled(Link)`
   display: flex;
-  width: 100%;
+  align-items: center;
+  flex-grow: 1;
+  color: inherit;
+`;
 
-  /* pointer-events: none; */
-  cursor: not-allowed;
+const StyledIconDocs = styled(IconDocs)`
+  margin-right: ${space(1)};
+`;
 
-  > div {
-    display: flex;
-    align-items: center;
-  }
-
-  > div:first-child {
-    flex-grow: 1;
-
-    svg {
-      margin-right: 10px;
-    }
-  }
-  > div:last-child {
-    flex-grow: 0;
-  }
+const StyledIconChevron = styled(IconChevron)`
+  margin-left: auto;
 `;

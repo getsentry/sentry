@@ -1,26 +1,26 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import {
-  tokenizeSearch,
-  stringifyQueryObject,
-  QueryResults,
-} from 'app/utils/tokenizeSearch';
+import {t} from 'app/locale';
 import {assert} from 'app/types/utils';
+import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
+import Tooltip from 'app/components/tooltip';
 
 import {
   downloadAsCsv,
   getAggregateAlias,
   getFieldRenderer,
+  getExpandedResults,
   pushEventViewToLocation,
   explodeField,
   MetaType,
 } from '../utils';
-import EventView, {pickRelevantLocationQueryStrings, Field} from '../eventView';
+import EventView, {pickRelevantLocationQueryStrings} from '../eventView';
 import SortLink, {Alignments} from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
@@ -28,7 +28,7 @@ import {ColumnValueType} from '../eventQueryParams';
 import DraggableColumns, {
   DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER,
 } from './draggableColumns';
-import {AGGREGATE_ALIASES} from '../data';
+import {generateEventDetailsRoute, generateEventSlug} from '../eventDetails/utils';
 
 export type TableViewProps = {
   location: Location;
@@ -215,6 +215,34 @@ class TableView extends React.Component<TableViewProps> {
     });
   };
 
+  _renderPrependColumns = (
+    isHeader: boolean,
+    dataRow?: any,
+    rowIndex?: number
+  ): React.ReactNode[] => {
+    if (isHeader) {
+      return [<StyledIconStack key="header-icon" src="icon-stack" size="14px" />];
+    }
+    const {organization, location} = this.props;
+    const eventSlug = generateEventSlug(dataRow);
+    const pathname = generateEventDetailsRoute({
+      orgSlug: organization.slug,
+      eventSlug,
+    });
+    const target = {
+      pathname,
+      query: {...location.query},
+    };
+
+    return [
+      <Tooltip key={`eventlink${rowIndex}`} title={t('View Details')}>
+        <Link to={target} data-test-id="view-events">
+          <InlineSvg src="icon-stack" size="14px" />
+        </Link>
+      </Tooltip>,
+    ];
+  };
+
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
     const field = column.eventViewField;
@@ -273,23 +301,11 @@ class TableView extends React.Component<TableViewProps> {
           assert(tableData.meta);
 
           if (!willExpand) {
-            const hasLinkField = eventView.hasAutolinkField();
-            const forceLink =
-              !hasLinkField && eventView.getFields().indexOf(String(column.field)) === 0;
-
-            const fieldRenderer = getFieldRenderer(
-              String(column.key),
-              tableData.meta,
-              forceLink
-            );
+            const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
             return fieldRenderer(dataRow, {organization, location});
           }
 
-          const fieldRenderer = getFieldRenderer(
-            String(column.key),
-            tableData.meta,
-            false
-          );
+          const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
           return fieldRenderer(dataRow, {organization, location});
         }}
       </ExpandAggregateRow>
@@ -404,14 +420,14 @@ class TableView extends React.Component<TableViewProps> {
         }) => {
           return (
             <GridEditable
-              isEditable
+              editFeatures={['organizations:discover-query']}
+              noEditMessage={t('Requires discover query feature.')}
               onToggleEdit={this.onToggleEdit}
               isColumnDragging={isColumnDragging}
               gridHeadCellButtonProps={{className: DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER}}
               isLoading={isLoading}
               error={error}
               data={tableData ? tableData.data : []}
-              downloadAsCsv={() => downloadAsCsv(tableData, columnOrder, title)}
               columnOrder={this.generateColumnOrder({
                 initialColumnIndex: draggingColumnIndex,
                 destinationColumnIndex,
@@ -421,6 +437,8 @@ class TableView extends React.Component<TableViewProps> {
                 renderHeadCell: this._renderGridHeaderCell as any,
                 renderBodyCell: this._renderGridBodyCell as any,
                 onResizeColumn: this._updateColumn as any,
+                renderPrependColumns: this._renderPrependColumns as any,
+                prependColumnWidths: ['40px'],
               }}
               modalEditColumn={{
                 renderBodyWithForm: renderModalBodyWithForm as any,
@@ -430,6 +448,7 @@ class TableView extends React.Component<TableViewProps> {
                 deleteColumn: this._deleteColumn,
                 moveColumnCommit: this._moveColumnCommit,
                 onDragStart: startColumnDrag,
+                downloadAsCsv: () => downloadAsCsv(tableData, columnOrder, title),
               }}
             />
           );
@@ -439,8 +458,6 @@ class TableView extends React.Component<TableViewProps> {
   }
 }
 
-const UNSEARCHABLE_FIELDS: string[] = [...AGGREGATE_ALIASES];
-
 const ExpandAggregateRow = (props: {
   children: ({willExpand: boolean}) => React.ReactNode;
   eventView: EventView;
@@ -449,81 +466,18 @@ const ExpandAggregateRow = (props: {
   location: Location;
   tableMeta: MetaType;
 }) => {
-  const {children, column, dataRow, eventView, location, tableMeta} = props;
+  const {children, column, dataRow, eventView, location} = props;
   const {eventViewField} = column;
 
   const exploded = explodeField(eventViewField);
   const {aggregation} = exploded;
 
   if (aggregation === 'count') {
-    let nextEventView = eventView.clone();
-
-    const additionalSearchConditions: {[key: string]: string[]} = {};
-
-    const indicesToUpdate: number[] = [];
-    nextEventView.fields.forEach((field: Field, index: number) => {
-      if (eventViewField.field === field.field) {
-        // invariant: this is count(exploded.field)
-        // convert all instances of count(exploded.field) to exploded.field
-        indicesToUpdate.push(index);
-        return;
-      }
-
-      const currentExplodedField = explodeField(field);
-      if (currentExplodedField.aggregation) {
-        // this is a column with an aggregation; we skip this
-        return;
-      }
-
-      if (UNSEARCHABLE_FIELDS.includes(currentExplodedField.field)) {
-        return;
-      }
-
-      // add this field to the search conditions
-      const dataKey = getAggregateAlias(field.field);
-      const value = dataRow[dataKey];
-
-      if (value) {
-        additionalSearchConditions[currentExplodedField.field] = [String(value).trim()];
-      }
-    });
-
-    nextEventView = indicesToUpdate.reduce(
-      (currentEventView: EventView, indexToUpdate: number) => {
-        const updatedColumn = {
-          aggregation: '',
-          field: exploded.field,
-          width: exploded.width,
-        };
-
-        return currentEventView.withUpdatedColumn(
-          indexToUpdate,
-          updatedColumn,
-          tableMeta
-        );
-      },
-      nextEventView
-    );
-
-    const tokenized: QueryResults = tokenizeSearch(nextEventView.query);
-
-    // merge tokenized and additionalSearchConditions together
-    Object.keys(additionalSearchConditions).forEach(key => {
-      const hasCommonKey =
-        Array.isArray(tokenized[key]) && Array.isArray(additionalSearchConditions[key]);
-      if (hasCommonKey) {
-        tokenized[key] = [...tokenized[key], ...additionalSearchConditions[key]];
-        return;
-      }
-
-      tokenized[key] = additionalSearchConditions[key];
-    });
-
-    nextEventView.query = stringifyQueryObject(tokenized);
+    const nextView = getExpandedResults(eventView, {}, dataRow);
 
     const target = {
       pathname: location.pathname,
-      query: nextEventView.generateQueryStringObject(),
+      query: nextView.generateQueryStringObject(),
     };
 
     return <Link to={target}>{children({willExpand: true})}</Link>;
@@ -531,5 +485,10 @@ const ExpandAggregateRow = (props: {
 
   return <React.Fragment>{children({willExpand: false})}</React.Fragment>;
 };
+
+const StyledIconStack = styled(InlineSvg)`
+  vertical-align: top;
+  color: ${p => p.theme.gray3};
+`;
 
 export default TableView;

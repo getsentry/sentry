@@ -21,6 +21,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
     slug = "slack"
     description = "Post notifications to a Slack channel."
     conf_key = "slack"
+    required_field = "webhook"
 
     def is_configured(self, project):
         return bool(self.get_option("webhook", project))
@@ -137,7 +138,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
             return None
         return set(tag.strip().lower() for tag in option.split(","))
 
-    def notify(self, notification):
+    def notify(self, notification, raise_exception=False):
         event = notification.event
         group = event.group
         project = group.project

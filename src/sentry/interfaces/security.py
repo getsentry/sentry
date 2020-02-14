@@ -93,7 +93,7 @@ class SecurityReport(Interface):
 
     @classmethod
     def to_python(cls, data):
-        # TODO(markus): semaphore does not validate security interfaces yet
+        # TODO(markus): Relay does not validate security interfaces yet
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid interface data")

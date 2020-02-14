@@ -4,9 +4,12 @@ import json
 import unittest
 from copy import deepcopy
 
+import six
+import pytz
+from dateutil.parser import parse as parse_date
 from exam import fixture, patcher
-from sentry.utils.compat.mock import Mock
 
+from sentry.utils.compat.mock import Mock
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
@@ -31,11 +34,8 @@ class BaseQuerySubscriptionTest(object):
     def valid_payload(self):
         return {
             "subscription_id": "1234",
-            "values": {"hello": 50},
-            "timestamp": 1235,
-            "interval": 5,
-            "partition": 50,
-            "offset": 10,
+            "values": {"data": [{"hello": 50}]},
+            "timestamp": "2020-01-01T01:23:45.1234",
         }
 
     def build_mock_message(self, data):
@@ -88,6 +88,9 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         data = self.valid_wrapper
         data["payload"]["subscription_id"] = sub.subscription_id
         self.consumer.handle_message(self.build_mock_message(data))
+        data["payload"]["timestamp"] = parse_date(data["payload"]["timestamp"]).replace(
+            tzinfo=pytz.utc
+        )
         mock_callback.assert_called_once_with(data["payload"], sub)
 
 
@@ -112,23 +115,15 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
         self.run_invalid_payload_test(remove_fields=["subscription_id"])
         self.run_invalid_payload_test(remove_fields=["values"])
         self.run_invalid_payload_test(remove_fields=["timestamp"])
-        self.run_invalid_payload_test(remove_fields=["interval"])
-        self.run_invalid_payload_test(remove_fields=["partition"])
-        self.run_invalid_payload_test(remove_fields=["offset"])
         self.run_invalid_payload_test(update_fields={"subscription_id": ""})
         self.run_invalid_payload_test(update_fields={"values": {}})
         self.run_invalid_payload_test(update_fields={"values": {"hello": "hi"}})
         self.run_invalid_payload_test(update_fields={"timestamp": -1})
-        self.run_invalid_payload_test(update_fields={"timestamp": "1"})
-        self.run_invalid_payload_test(update_fields={"interval": -1})
-        self.run_invalid_payload_test(update_fields={"interval": "1"})
-        self.run_invalid_payload_test(update_fields={"partition": "1"})
-        self.run_invalid_payload_test(update_fields={"offset": "1"})
 
     def test_invalid_version(self):
         with self.assertRaises(InvalidMessageError) as cm:
             self.run_test({"version": 50, "payload": {}})
-        assert cm.exception.message == "Version specified in wrapper has no schema"
+        assert six.text_type(cm.exception) == "Version specified in wrapper has no schema"
 
     def test_valid(self):
         self.run_test({"version": 1, "payload": self.valid_payload})
@@ -162,4 +157,4 @@ class RegisterSubscriberTest(unittest.TestCase):
         assert subscriber_registry["hello"] == callback
         with self.assertRaises(Exception) as cm:
             register_subscriber("hello")(other_callback)
-        assert cm.exception.message == "Handler already registered for hello"
+        assert six.text_type(cm.exception) == "Handler already registered for hello"

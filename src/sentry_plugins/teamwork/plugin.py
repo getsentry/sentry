@@ -8,6 +8,7 @@ from requests.exceptions import RequestException
 
 
 import sentry
+from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.base import JSONResponse
 from sentry.plugins.bases.issue import IssuePlugin, NewIssueForm
 from sentry.utils.http import absolute_uri
@@ -56,12 +57,13 @@ class TeamworkTaskForm(NewIssueForm):
             self.fields["tasklist"].widget.choices = self.fields["tasklist"].choices
 
 
-class TeamworkPlugin(IssuePlugin):
+class TeamworkPlugin(CorePluginMixin, IssuePlugin):
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
     title = _("Teamwork")
     description = _("Create Teamwork Tasks.")
     slug = "teamwork"
+    required_field = "url"
 
     conf_title = title
     conf_key = slug

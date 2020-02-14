@@ -260,7 +260,10 @@ export default class SelectOwners extends React.Component {
       .requestPromise(`/organizations/${organization.slug}/members/`, {
         query: {query},
       })
-      .then(data => cb(null, data), err => cb(err));
+      .then(
+        data => cb(null, data),
+        err => cb(err)
+      );
   }, 250);
 
   handleLoadOptions = () => {
@@ -303,6 +306,7 @@ export default class SelectOwners extends React.Component {
   render() {
     return (
       <MultiSelectControl
+        deprecatedSelectControl
         filterOptions={(options, filterText) => {
           return options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1);
         }}

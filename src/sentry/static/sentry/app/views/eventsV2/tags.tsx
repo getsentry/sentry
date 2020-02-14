@@ -9,20 +9,17 @@ import space from 'app/styles/space';
 import {Client} from 'app/api';
 import SentryTypes from 'app/sentryTypes';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {IconWarning} from 'app/icons';
+import theme from 'app/utils/theme';
 import Placeholder from 'app/components/placeholder';
-import TagDistributionMeter from 'app/components/tagDistributionMeter';
+import TagDistributionMeter, {TagSegment} from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
+import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {SectionHeading} from './styles';
 
-import {
-  fetchTagFacets,
-  fetchTotalCount,
-  getEventTagSearchUrl,
-  Tag,
-  TagTopValue,
-} from './utils';
+import {fetchTagFacets, Tag} from './utils';
 import EventView, {isAPIPayloadSimilar} from './eventView';
 
 type Props = {
@@ -30,12 +27,14 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   location: Location;
+  totalValues: null | number;
 };
 
 type State = {
   loading: boolean;
   tags: Tag[];
   totalValues: null | number;
+  error: string;
 };
 
 class Tags extends React.Component<Props, State> {
@@ -50,6 +49,7 @@ class Tags extends React.Component<Props, State> {
     loading: true,
     tags: [],
     totalValues: null,
+    error: '',
   };
 
   componentDidMount() {
@@ -71,26 +71,19 @@ class Tags extends React.Component<Props, State> {
 
   fetchData = async () => {
     const {api, organization, eventView, location} = this.props;
+    this.setState({loading: true, error: '', tags: []});
 
-    this.setState({loading: true, tags: [], totalValues: null});
-
-    const facetPromise = fetchTagFacets(
-      api,
-      organization.slug,
-      eventView.getFacetsAPIPayload(location)
-    );
-    const totalValuePromise = fetchTotalCount(
-      api,
-      organization.slug,
-      eventView.getEventsAPIPayload(location)
-    );
-    Promise.all([facetPromise, totalValuePromise])
-      .then(values => {
-        this.setState({loading: false, tags: values[0], totalValues: values[1]});
-      })
-      .catch(err => {
-        Sentry.captureException(err);
-      });
+    try {
+      const tags = await fetchTagFacets(
+        api,
+        organization.slug,
+        eventView.getFacetsAPIPayload(location)
+      );
+      this.setState({loading: false, tags});
+    } catch (err) {
+      Sentry.captureException(err);
+      this.setState({loading: false, error: err});
+    }
   };
 
   onTagClick = (tag: string) => {
@@ -105,23 +98,33 @@ class Tags extends React.Component<Props, State> {
   };
 
   renderTag(tag: Tag) {
-    const {location} = this.props;
-    const {totalValues} = this.state;
+    const {organization, eventView, totalValues} = this.props;
 
-    const segments: TagTopValue[] = tag.topValues.map(segment => {
-      segment.url = getEventTagSearchUrl(tag.key, segment.value, location);
+    const segments: TagSegment[] = tag.topValues.map(segment => {
+      const url = eventView.getResultsViewUrlTarget(organization.slug);
+      url.query = generateQueryWithTag(url.query, {
+        key: tag.key,
+        value: segment.value,
+      });
+      segment.url = url;
 
       return segment;
     });
-
+    // Ensure we don't show >100% if there's a slight mismatch between the facets
+    // endpoint and the totals endpoint
+    const maxTotalValues =
+      segments.length > 0
+        ? Math.max(Number(totalValues), segments[0].count)
+        : totalValues;
     return (
       <TagDistributionMeter
         key={tag.key}
         title={tag.key}
         segments={segments}
-        totalValues={totalValues}
+        totalValues={Number(maxTotalValues)}
         renderLoading={() => <StyledPlaceholder height="16px" />}
         onTagClick={this.onTagClick}
+        showReleasePackage
       />
     );
   }
@@ -139,26 +142,53 @@ class Tags extends React.Component<Props, State> {
     );
   }
 
+  renderBody = () => {
+    const {loading, error, tags} = this.state;
+    if (loading) {
+      return this.renderPlaceholders();
+    }
+    if (error) {
+      return <EmptyStateWarning small />;
+    }
+    if (tags.length > 0) {
+      return tags.map(tag => this.renderTag(tag));
+    } else {
+      return (
+        <StyledError>
+          <StyledIconWarning color={theme.gray2} size="lg" />
+          {t('No tags found')}
+        </StyledError>
+      );
+    }
+  };
+
   render() {
     return (
       <TagSection>
         <StyledHeading>{t('Event Tag Summary')}</StyledHeading>
-        {this.state.loading && this.renderPlaceholders()}
-        {this.state.tags.length > 0 && this.state.tags.map(tag => this.renderTag(tag))}
-        {!this.state.loading && !this.state.tags.length && (
-          <EmptyStateWarning small>{t('No tags')}</EmptyStateWarning>
-        )}
+        {this.renderBody()}
       </TagSection>
     );
   }
 }
 
-const StyledHeading = styled(SectionHeading)`
+// These styled components are used in getsentry for a paywall.
+export const StyledHeading = styled(SectionHeading)`
   margin: 0 0 ${space(1.5)} 0;
 `;
 
-const TagSection = styled('div')`
-  margin: ${space(2)} 0;
+export const TagSection = styled('div')`
+  margin: ${space(0.5)} 0;
+`;
+
+const StyledError = styled('div')`
+  color: ${p => p.theme.gray2};
+  display: flex;
+  align-items: center;
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  margin-right: ${space(1)};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`

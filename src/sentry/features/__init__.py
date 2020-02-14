@@ -56,15 +56,19 @@ default_manager.add("organizations:create")
 default_manager.add("organizations:advanced-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
+default_manager.add("organizations:data-export", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:transaction-events", OrganizationFeature)  # NOQA
+default_manager.add("organizations:performance-view", OrganizationFeature)  # NOQA
+default_manager.add("organizations:discover-basic", OrganizationFeature)  # NOQA
+default_manager.add("organizations:discover-query", OrganizationFeature)  # NOQA
 default_manager.add("organizations:event-attachments", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
-default_manager.add("organizations:health", OrganizationFeature)  # NOQA
+default_manager.add("organizations:releases-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-issue-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)  # NOQA
@@ -74,6 +78,7 @@ default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
 default_manager.add("organizations:large-debug-files", OrganizationFeature)  # NOQA
 default_manager.add("organizations:monitors", OrganizationFeature)  # NOQA
+default_manager.add("organizations:new-project-issue-alert-options", OrganizationFeature)  # NOQA
 default_manager.add("organizations:onboarding", OrganizationFeature)  # NOQA
 default_manager.add("organizations:org-saved-searches", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
@@ -107,6 +112,7 @@ requires_snuba = (
     "organizations:events",
     "organizations:events-v2",
     "organizations:transaction-events",
+    "organizations:performance-view",
     "organizations:global-views",
     "organizations:incidents",
 )

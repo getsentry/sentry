@@ -3,12 +3,12 @@ import React from 'react';
 import Access from 'app/components/acl/access';
 
 import {t} from 'app/locale';
-import {LightWeightOrganization, SentryApp, SentryAppInstallation} from 'app/types';
+import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
 import ActionButtons from './actionButtons';
 import {InstallButton, UninstallButton} from './installButtons';
 
 type Props = {
-  organization: LightWeightOrganization;
+  organization: Organization;
   app: SentryApp;
   install?: SentryAppInstallation;
 
@@ -19,6 +19,8 @@ type Props = {
 
   onClickRemove?: (app: SentryApp) => void;
   onClickPublish?: () => void;
+
+  onUninstallModalOpen?: () => void;
 };
 
 const SentryApplicationRowButtons = ({
@@ -28,9 +30,9 @@ const SentryApplicationRowButtons = ({
   isOnIntegrationPage,
   onClickInstall,
   onClickUninstall,
-
   onClickRemove,
   onClickPublish,
+  onUninstallModalOpen,
 }: Props) => {
   const isInternal = app.status === 'internal';
 
@@ -42,7 +44,18 @@ const SentryApplicationRowButtons = ({
     }
     //if installed, render the uninstall button and if installed, render install button
     return !!install ? (
-      <UninstallButton install={install} app={app} onClickUninstall={onClickUninstall} />
+      //only restrict uninstall for sentry apps by role since install popup will
+      <Access organization={organization} access={['org:integrations']}>
+        {({hasAccess}) => (
+          <UninstallButton
+            install={install}
+            app={app}
+            onClickUninstall={onClickUninstall}
+            onUninstallModalOpen={onUninstallModalOpen}
+            disabled={!hasAccess}
+          />
+        )}
+      </Access>
     ) : (
       <InstallButton onClickInstall={onClickInstall} />
     );

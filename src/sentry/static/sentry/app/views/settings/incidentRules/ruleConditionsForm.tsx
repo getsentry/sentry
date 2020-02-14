@@ -1,7 +1,11 @@
 import React from 'react';
 
-import {Organization} from 'app/types';
+import {Client} from 'app/api';
+import {Environment, Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {defined} from 'app/utils';
+import {getDisplayName} from 'app/utils/environment';
 import {t} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
@@ -9,11 +13,6 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 
 import {AlertRuleAggregations, TimeWindow} from './types';
 import getMetricDisplayName from './utils/getMetricDisplayName';
-
-type Props = {
-  organization: Organization;
-  disabled: boolean;
-};
 
 type TimeWindowMapType = {[key in TimeWindow]: string};
 
@@ -29,7 +28,44 @@ const TIME_WINDOW_MAP: TimeWindowMapType = {
   [TimeWindow.ONE_DAY]: t('24 hours'),
 };
 
-class RuleConditionsForm extends React.PureComponent<Props> {
+type Props = {
+  api: Client;
+  organization: Organization;
+  projectSlug: string;
+  disabled: boolean;
+};
+
+type State = {
+  environments: Environment[] | null;
+};
+
+class RuleConditionsForm extends React.PureComponent<Props, State> {
+  state: State = {
+    environments: null,
+  };
+
+  componentDidMount() {
+    this.fetchData();
+  }
+
+  async fetchData() {
+    const {api, organization, projectSlug} = this.props;
+
+    try {
+      const environments = await api.requestPromise(
+        `/projects/${organization.slug}/${projectSlug}/environments/`,
+        {
+          query: {
+            visibility: 'visible',
+          },
+        }
+      );
+      this.setState({environments});
+    } catch (_err) {
+      addErrorMessage(t('Unable to fetch environments'));
+    }
+  }
+
   render() {
     const {organization, disabled} = this.props;
 
@@ -54,6 +90,23 @@ class RuleConditionsForm extends React.PureComponent<Props> {
             required
             disabled={disabled}
           />
+          <SelectField
+            name="environment"
+            label={t('Environment')}
+            help={t('Select an environment')}
+            placeholder={t('All environments')}
+            choices={
+              defined(this.state.environments)
+                ? this.state.environments.map((env: Environment) => [
+                    env.name,
+                    getDisplayName(env),
+                  ])
+                : []
+            }
+            disabled={this.state.environments === null}
+            multiple
+            isClearable
+          />
           <FormField
             name="query"
             label={t('Filter')}
@@ -63,19 +116,18 @@ class RuleConditionsForm extends React.PureComponent<Props> {
               'You can apply standard Sentry filter syntax to filter by status, user, etc.'
             )}
           >
-            {({onChange, onBlur, onKeyDown}) => {
-              return (
-                <SearchBar
-                  disabled={disabled}
-                  useFormWrapper={false}
-                  organization={organization}
-                  onChange={onChange}
-                  onBlur={onBlur}
-                  onKeyDown={onKeyDown}
-                  onSearch={query => onChange(query, {})}
-                />
-              );
-            }}
+            {({onChange, onBlur, onKeyDown, value}) => (
+              <SearchBar
+                defaultQuery={value}
+                disabled={disabled}
+                useFormWrapper={false}
+                organization={organization}
+                onChange={onChange}
+                onBlur={onBlur}
+                onKeyDown={onKeyDown}
+                onSearch={query => onChange(query, {})}
+              />
+            )}
           </FormField>
           <SelectField
             name="timeWindow"
@@ -84,6 +136,8 @@ class RuleConditionsForm extends React.PureComponent<Props> {
             choices={Object.entries(TIME_WINDOW_MAP)}
             required
             disabled={disabled}
+            getValue={value => Number(value)}
+            setValue={value => `${value}`}
           />
         </PanelBody>
       </Panel>

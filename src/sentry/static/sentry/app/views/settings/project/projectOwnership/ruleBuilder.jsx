@@ -117,11 +117,15 @@ class RuleBuilder extends React.Component {
         )}
         <BuilderBar>
           <BuilderSelect
+            deprecatedSelectControl
             name="select-type"
             value={type}
             showSearch={false}
             onChange={this.handleTypeChange}
-            options={[{value: 'path', label: t('Path')}, {value: 'url', label: t('URL')}]}
+            options={[
+              {value: 'path', label: t('Path')},
+              {value: 'url', label: t('URL')},
+            ]}
             style={{width: 140}}
             clearable={false}
             disabled={disabled}

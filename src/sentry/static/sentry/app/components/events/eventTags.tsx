@@ -14,18 +14,21 @@ import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import InlineSvg from 'app/components/inlineSvg';
+import Version from 'app/components/version';
 
-type EventTagsProps = {
+type DefaultProps = {
+  hideGuide: boolean;
+};
+
+type Props = DefaultProps & {
   event: Event;
   orgId: string;
   projectId: string;
-  hideGuide: boolean;
-
   location: Location;
 };
 
-class EventTags extends React.Component<EventTagsProps> {
-  static defaultProps = {
+class EventTags extends React.Component<Props> {
+  static defaultProps: DefaultProps = {
     hideGuide: false,
   };
 
@@ -43,7 +46,11 @@ class EventTags extends React.Component<EventTagsProps> {
             search: locationSearch,
           }}
         >
-          <DeviceName>{tag.value}</DeviceName>
+          {tag.key === 'release' ? (
+            <Version version={tag.value} anchor={false} tooltipRawVersion truncate />
+          ) : (
+            <DeviceName>{tag.value}</DeviceName>
+          )}
         </Link>
         {isUrl(tag.value) && (
           <a href={tag.value} className="external-icon">

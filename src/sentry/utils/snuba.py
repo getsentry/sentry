@@ -5,6 +5,7 @@ from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
+import functools
 import os
 import pytz
 import re
@@ -55,12 +56,6 @@ SENTRY_SNUBA_MAP = {
 }
 
 
-TRANSACTIONS_SENTRY_SNUBA_MAP = {
-    col.value.alias: col.value.transaction_name
-    for col in Columns
-    if col.value.transaction_name is not None
-}
-
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
 # to end users and instead have all ad-hoc queries go through the discover
@@ -72,18 +67,13 @@ DISCOVER_COLUMN_MAP = {
 }
 
 
-DATASETS = {
-    Dataset.Events: SENTRY_SNUBA_MAP,
-    Dataset.Transactions: TRANSACTIONS_SENTRY_SNUBA_MAP,
-    Dataset.Discover: DISCOVER_COLUMN_MAP,
-}
+DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Discover: DISCOVER_COLUMN_MAP}
 
 # Store the internal field names to save work later on.
 # Add `group_id` to the events dataset list as we don't want to publically
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
-    Dataset.Transactions: list(TRANSACTIONS_SENTRY_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
 }
 
@@ -379,7 +369,7 @@ def _prepare_query_params(query_params):
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if query_params.dataset in [Dataset.Events, Dataset.Transactions, Dataset.Discover]:
+    if query_params.dataset in [Dataset.Events, Dataset.Discover]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(query_params)
     elif query_params.dataset in [Dataset.Outcomes, Dataset.OutcomesRaw]:
         (organization_id, params_to_update) = get_query_params_to_update_for_organizations(
@@ -665,22 +655,10 @@ def nest_groups(data, groups, aggregate_cols):
         )
 
 
-def constrain_column_to_dataset(col, dataset, value=None):
-    """
-    Ensure conditions only reference valid columns on the provided
-    dataset. Return none for conditions to be removed, and convert
-    unknown columns into tags expressions.
-
-    :deprecated: This method and the automatic dataset resolution is deprecated.
-    You should use sentry.snuba.discover instead.
-    """
+def resolve_column(col, dataset):
     if col.startswith("tags["):
         return col
 
-    # Special case for the type condition as we only want
-    # to drop it when we are querying transactions.
-    if dataset == Dataset.Transactions and col == "event.type" and value == "transaction":
-        return None
     if not col or QUOTED_LITERAL_RE.match(col):
         return col
     if col in DATASETS[dataset]:
@@ -691,7 +669,7 @@ def constrain_column_to_dataset(col, dataset, value=None):
     return u"tags[{}]".format(col)
 
 
-def constrain_condition_to_dataset(cond, dataset):
+def resolve_condition(cond, column_resolver):
     """
     When conditions have been parsed by the api.event_search module
     we can end up with conditions that are not valid on the current dataset
@@ -701,23 +679,24 @@ def constrain_condition_to_dataset(cond, dataset):
     We have the dataset context here, so we need to re-scope conditions to the
     current dataset.
 
-    :deprecated: This method and the automatic dataset resolution is deprecated.
-    You should use sentry.snuba.discover instead.
+    cond (tuple) Condition to resolve aliases in.
+    column_resolver (Function[string]) Function to resolve column names for the
+                                       current dataset.
     """
     index = get_function_index(cond)
     if index is not None:
         # IN conditions are detected as a function but aren't really.
         if cond[index] == "IN":
-            cond[0] = constrain_column_to_dataset(cond[0], dataset)
+            cond[0] = column_resolver(cond[0])
             return cond
 
         func_args = cond[index + 1]
         for (i, arg) in enumerate(func_args):
             # Nested function
             if isinstance(arg, (list, tuple)):
-                func_args[i] = constrain_condition_to_dataset(arg, dataset)
+                func_args[i] = resolve_condition(arg, column_resolver)
             else:
-                func_args[i] = constrain_column_to_dataset(arg, dataset)
+                func_args[i] = column_resolver(arg)
         cond[index + 1] = func_args
         return cond
 
@@ -725,24 +704,19 @@ def constrain_condition_to_dataset(cond, dataset):
     if isinstance(cond, (list, tuple)) and len(cond):
         # Condition is [col, operator, value]
         if isinstance(cond[0], six.string_types) and len(cond) == 3:
-            # Map column name to current dataset removing
-            # invalid conditions based on the dataset.
-            name = constrain_column_to_dataset(cond[0], dataset, cond[2])
-            if name is None:
-                return None
-            cond[0] = name
+            cond[0] = column_resolver(cond[0])
             return cond
         if isinstance(cond[0], (list, tuple)):
             if get_function_index(cond[0]) is not None:
-                cond[0] = constrain_condition_to_dataset(cond[0], dataset)
+                cond[0] = resolve_condition(cond[0], column_resolver)
                 return cond
             else:
                 # Nested conditions
-                return [constrain_condition_to_dataset(item, dataset) for item in cond]
+                return [resolve_condition(item, column_resolver) for item in cond]
     raise ValueError("Unexpected condition format %s" % cond)
 
 
-def dataset_query(
+def aliased_query(
     start=None,
     end=None,
     groupby=None,
@@ -776,7 +750,7 @@ def dataset_query(
             if isinstance(col, (list, tuple)):
                 derived_columns.append(col[2])
             else:
-                selected_columns[i] = constrain_column_to_dataset(col, dataset)
+                selected_columns[i] = resolve_column(col, dataset)
         selected_columns = list(filter(None, selected_columns))
 
     if aggregations:
@@ -784,8 +758,9 @@ def dataset_query(
             derived_columns.append(aggregation[2])
 
     if conditions:
+        column_resolver = functools.partial(resolve_column, dataset=dataset)
         for (i, condition) in enumerate(conditions):
-            replacement = constrain_condition_to_dataset(condition, dataset)
+            replacement = resolve_condition(condition, column_resolver)
             conditions[i] = replacement
         conditions = list(filter(None, conditions))
 
@@ -795,7 +770,7 @@ def dataset_query(
         for (i, order) in enumerate(orderby):
             order_field = order.lstrip("-")
             if order_field not in derived_columns:
-                order_field = constrain_column_to_dataset(order_field, dataset)
+                order_field = resolve_column(order_field, dataset)
             updated_order.append(u"{}{}".format("-" if order.startswith("-") else "", order_field))
         orderby = updated_order
 

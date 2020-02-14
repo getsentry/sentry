@@ -17,7 +17,6 @@ import {
   generateEventDetailsRoute,
 } from 'app/views/eventsV2/eventDetails/utils';
 import EventView from 'app/views/eventsV2/eventView';
-import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
 import {assert} from 'app/types/utils';
 
 import {ProcessedSpanType, RawSpanType, ParsedTraceType} from './types';
@@ -144,9 +143,7 @@ class SpanDetail extends React.Component<Props, State> {
         'timestamp',
       ],
       orderby: '-timestamp',
-      query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${
-        span.span_id
-      }`,
+      query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${span.span_id}`,
       tags: ['release', 'project.name', 'user.email', 'user.ip', 'environment'],
       projects: [],
       version: 2,
@@ -154,13 +151,8 @@ class SpanDetail extends React.Component<Props, State> {
       end,
     });
 
-    const to = {
-      pathname: generateDiscoverResultsRoute(orgId),
-      query: eventView.generateQueryStringObject(),
-    };
-
     return (
-      <StyledButton size="xsmall" to={to}>
+      <StyledButton size="xsmall" to={eventView.getResultsViewUrlTarget(orgId)}>
         {t('View Children')}
       </StyledButton>
     );
@@ -197,13 +189,8 @@ class SpanDetail extends React.Component<Props, State> {
       end,
     });
 
-    const to = {
-      pathname: generateDiscoverResultsRoute(orgId),
-      query: eventView.generateQueryStringObject(),
-    };
-
     return (
-      <StyledButton size="xsmall" to={to}>
+      <StyledButton size="xsmall" to={eventView.getResultsViewUrlTarget(orgId)}>
         {t('Search by Trace')}
       </StyledButton>
     );

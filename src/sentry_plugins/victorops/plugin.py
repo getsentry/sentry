@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.exceptions import PluginError
 from sentry.plugins.bases.notify import NotifyPlugin
 
 from sentry_plugins.base import CorePluginMixin
@@ -24,6 +23,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
     title = "VictorOps"
     conf_key = slug
     conf_title = title
+    required_field = "api_key"
 
     def is_configured(self, project, **kwargs):
         return bool(self.get_option("api_key", project))
@@ -91,7 +91,6 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
                 project_id=group.project.id,
             )
         except ApiError as e:
-            message = "Could not communicate with victorops. Got %s" % e
-            raise PluginError(message)
+            self.raise_error(e)
 
         assert response["result"] == "success"

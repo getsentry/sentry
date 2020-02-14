@@ -7,17 +7,16 @@ import ipaddress
 import jsonschema
 import six
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
-from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry import buffer, eventstore, eventtypes, eventstream, options, tsdb
+from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
+from sentry.attachments import attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
-    LOG_LEVELS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     MAX_SECS_IN_FUTURE,
@@ -42,13 +41,15 @@ from sentry.coreapi import (
     safely_load_json_string,
 )
 from sentry.interfaces.base import get_interface
+from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models import (
     Activity,
     Environment,
-    Event,
+    EventAttachment,
     EventDict,
     EventError,
     EventUser,
+    File,
     Group,
     GroupEnvironment,
     GroupHash,
@@ -63,11 +64,13 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     UserReport,
     Organization,
+    CRASH_REPORT_TYPES,
+    get_crashreport_key,
 )
 from sentry.plugins.base import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.data_filters import (
     is_valid_ip,
@@ -83,6 +86,9 @@ from sentry.culprit import generate_culprit
 logger = logging.getLogger("sentry.events")
 
 SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
+
+# Timeout for cached group crash report counts
+CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 
 def pop_tag(data, key):
@@ -163,6 +169,34 @@ def has_pending_commit_resolution(group):
         )
         .exists()
     )
+
+
+def get_max_crashreports(model):
+    value = model.get_option("sentry:store_crash_reports")
+    return convert_crashreport_count(value)
+
+
+def crashreports_exceeded(current_count, max_count):
+    if max_count == STORE_CRASH_REPORTS_ALL:
+        return False
+    return current_count >= max_count
+
+
+def get_stored_crashreports(cache_key, event, max_crashreports):
+    # There are two common cases: Storing crash reports is disabled, or is
+    # unbounded. In both cases, there is no need in caching values or querying
+    # the database.
+    if max_crashreports in (0, STORE_CRASH_REPORTS_ALL):
+        return max_crashreports
+
+    cached_reports = cache.get(cache_key, None)
+    if cached_reports >= max_crashreports:
+        return cached_reports
+
+    # Fall-through if max_crashreports was bumped to get a more accurate number.
+    return EventAttachment.objects.filter(
+        group_id=event.group_id, file__type__in=CRASH_REPORT_TYPES
+    ).count()
 
 
 class HashDiscarded(Exception):
@@ -247,6 +281,7 @@ class EventManager(object):
         is_renormalize=False,
         remove_other=None,
         project_config=None,
+        sent_at=None,
     ):
         self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
@@ -267,6 +302,7 @@ class EventManager(object):
         self._remove_other = remove_other
         self._normalized = False
         self.project_config = project_config
+        self.sent_at = sent_at
 
     def process_csp_report(self):
         """Only called from the CSP report endpoint."""
@@ -322,7 +358,7 @@ class EventManager(object):
             raise RuntimeError("Already normalized")
         self._normalized = True
 
-        from semaphore.processing import StoreNormalizer
+        from sentry_relay.processing import StoreNormalizer
 
         rust_normalizer = StoreNormalizer(
             project_id=self._project.id if self._project else None,
@@ -334,6 +370,7 @@ class EventManager(object):
             is_renormalize=self._is_renormalize,
             remove_other=self._remove_other,
             normalize_user_agent=True,
+            sent_at=self.sent_at.isoformat() if self.sent_at is not None else None,
             **DEFAULT_STORE_NORMALIZER_ARGS
         )
 
@@ -377,37 +414,17 @@ class EventManager(object):
     def get_data(self):
         return self._data
 
+    @metrics.wraps("event_manager.get_event_instance")
     def _get_event_instance(self, project_id=None):
-        if options.get("store.use-django-event"):
-            data = self._data
-            event_id = data.get("event_id")
-            platform = data.get("platform")
+        data = self._data
+        event_id = data.get("event_id")
 
-            recorded_timestamp = data.get("timestamp")
-            date = datetime.fromtimestamp(recorded_timestamp)
-            date = date.replace(tzinfo=timezone.utc)
-            time_spent = data.get("time_spent")
-
-            data["node_id"] = Event.generate_node_id(project_id, event_id)
-
-            return Event(
-                project_id=project_id or self._project.id,
-                event_id=event_id,
-                data=EventDict(data, skip_renormalization=True),
-                time_spent=time_spent,
-                datetime=date,
-                platform=platform,
-            )
-        else:
-            data = self._data
-            event_id = data.get("event_id")
-
-            return eventstore.create_event(
-                project_id=project_id or self._project.id,
-                event_id=event_id,
-                group_id=None,
-                data=EventDict(data, skip_renormalization=True),
-            )
+        return eventstore.create_event(
+            project_id=project_id or self._project.id,
+            event_id=event_id,
+            group_id=None,
+            data=EventDict(data, skip_renormalization=True),
+        )
 
     def get_culprit(self):
         """Helper to calculate the default culprit"""
@@ -437,7 +454,99 @@ class EventManager(object):
             "location": event_type.get_location(event_metadata),
         }
 
-    def save(self, project_id, raw=False, assume_normalized=False):
+    def get_attachments(self, cache_key, event):
+        """
+        Computes a list of attachments that should be stored.
+
+        This method checks whether event attachments are available and sends them to
+        the blob store. There is special handling for crash reports which may
+        contain unstripped PII. If the project or organization is configured to
+        limit the amount of crash reports per group, the number of stored crashes is
+        limited.
+
+        :param cache_key: The cache key at which the event payload is stored in the
+                        cache. This is used to retrieve attachments.
+        :param event:     The event model instance.
+        """
+        filtered = []
+
+        if cache_key is None:
+            return filtered
+
+        project = event.project
+        if not features.has("organizations:event-attachments", project.organization, actor=None):
+            return filtered
+
+        attachments = list(attachment_cache.get(cache_key))
+        if not attachments:
+            return filtered
+
+        # The setting is both an organization and project setting. The project
+        # setting strictly overrides the organization setting, unless set to the
+        # default.
+        max_crashreports = get_max_crashreports(project)
+        if not max_crashreports:
+            max_crashreports = get_max_crashreports(project.organization)
+
+        # The number of crash reports is cached per group
+        crashreports_key = get_crashreport_key(event.group_id)
+
+        # Only fetch the number of stored crash reports if there is a crash report
+        # in the list of attachments. Otherwise, we won't require this number.
+        if any(attachment.type in CRASH_REPORT_TYPES for attachment in attachments):
+            cached_reports = get_stored_crashreports(crashreports_key, event, max_crashreports)
+        else:
+            cached_reports = 0
+        stored_reports = cached_reports
+
+        for attachment in attachments:
+            # If the attachment is a crash report (e.g. minidump), we need to honor
+            # the store_crash_reports setting. Otherwise, we assume that the client
+            # has already verified PII and just store the attachment.
+            if attachment.type in CRASH_REPORT_TYPES:
+                if crashreports_exceeded(stored_reports, max_crashreports):
+                    continue
+                stored_reports += 1
+
+            filtered.append(attachment)
+
+        # Check if we have exceeded the stored crash reports count. If so, we
+        # persist the current maximum (not the actual number!) into the cache. Next
+        # time when loading from the cache, we will validate that this number has
+        # not changed, or otherwise re-fetch from the database.
+        if (
+            crashreports_exceeded(stored_reports, max_crashreports)
+            and stored_reports > cached_reports
+        ):
+            cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
+
+        return filtered
+
+    def save_attachments(self, attachments, event):
+        """
+        Persists cached event attachments into the file store.
+
+        :param attachments: A filtered list of attachments to save.
+        :param event:       The event model instance.
+        """
+        for attachment in attachments:
+            file = File.objects.create(
+                name=attachment.name,
+                type=attachment.type,
+                headers={"Content-Type": attachment.content_type},
+            )
+            file.putfile(six.BytesIO(attachment.data))
+
+            EventAttachment.objects.create(
+                event_id=event.event_id,
+                project_id=event.project_id,
+                group_id=event.group_id,
+                name=attachment.name,
+                file=file,
+            )
+
+    @metrics.wraps("event_manager.save")
+    def save(self, project_id, raw=False, assume_normalized=False, cache_key=None):
         """
         We re-insert events with duplicate IDs into Snuba, which is responsible
         for deduplicating events. Since deduplication in Snuba is on the primary
@@ -459,23 +568,19 @@ class EventManager(object):
 
         data = self._data
 
-        project = Project.objects.get_from_cache(id=project_id)
-        project._organization_cache = Organization.objects.get_from_cache(
-            id=project.organization_id
-        )
+        with metrics.timer("event_manager.save.project.get_from_cache"):
+            project = Project.objects.get_from_cache(id=project_id)
+
+        with metrics.timer("event_manager.save.organization.get_from_cache"):
+            project._organization_cache = Organization.objects.get_from_cache(
+                id=project.organization_id
+            )
 
         # Pull out the culprit
         culprit = self.get_culprit()
 
         # Pull the toplevel data we're interested in
         level = data.get("level")
-
-        # TODO(mitsuhiko): this code path should be gone by July 2018.
-        # This is going to be fine because no code actually still depends
-        # on integers here.  When we need an integer it will be converted
-        # into one later.  Old workers used to send integers here.
-        if level is not None and isinstance(level, six.integer_types):
-            level = LOG_LEVELS[level]
 
         transaction_name = data.get("transaction")
         logger_name = data.get("logger")
@@ -538,64 +643,64 @@ class EventManager(object):
             pop_tag(data, "user")
             set_tag(data, "sentry:user", event_user.tag_value)
 
-        # At this point we want to normalize the in_app values in case the
-        # clients did not set this appropriately so far.
-        grouping_config = load_grouping_config(
-            get_grouping_config_dict_for_event_data(data, project)
-        )
-        normalize_stacktraces_for_grouping(data, grouping_config)
+        with metrics.timer("event_manager.load_grouping_config"):
+            # At this point we want to normalize the in_app values in case the
+            # clients did not set this appropriately so far.
+            grouping_config = load_grouping_config(
+                get_grouping_config_dict_for_event_data(data, project)
+            )
 
-        for plugin in plugins.for_project(project, version=None):
-            added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
-            if added_tags:
-                # plugins should not override user provided tags
-                for key, value in added_tags:
-                    if get_tag(data, key) is None:
-                        set_tag(data, key, value)
+        with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
+            normalize_stacktraces_for_grouping(data, grouping_config)
 
-        for path, iface in six.iteritems(event.interfaces):
-            for k, v in iface.iter_tags():
-                set_tag(data, k, v)
-            # Get rid of ephemeral interface data
-            if iface.ephemeral:
-                data.pop(iface.path, None)
+        with metrics.timer("event_manager.plugins"):
+            for plugin in plugins.for_project(project, version=None):
+                added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
+                if added_tags:
+                    # plugins should not override user provided tags
+                    for key, value in added_tags:
+                        if get_tag(data, key) is None:
+                            set_tag(data, key, value)
 
-        # The active grouping config was put into the event in the
-        # normalize step before.  We now also make sure that the
-        # fingerprint was set to `'{{ default }}' just in case someone
-        # removed it from the payload.  The call to get_hashes will then
-        # look at `grouping_config` to pick the right parameters.
-        data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
-        apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
+        with metrics.timer("event_manager.set_tags"):
+            for path, iface in six.iteritems(event.interfaces):
+                for k, v in iface.iter_tags():
+                    set_tag(data, k, v)
+                # Get rid of ephemeral interface data
+                if iface.ephemeral:
+                    data.pop(iface.path, None)
 
-        # Here we try to use the grouping config that was requested in the
-        # event.  If that config has since been deleted (because it was an
-        # experimental grouping config) we fall back to the default.
-        try:
-            hashes = event.get_hashes()
-        except GroupingConfigNotFound:
-            data["grouping_config"] = get_grouping_config_dict_for_project(project)
-            hashes = event.get_hashes()
+        with metrics.timer("event_manager.apply_server_fingerprinting"):
+            # The active grouping config was put into the event in the
+            # normalize step before.  We now also make sure that the
+            # fingerprint was set to `'{{ default }}' just in case someone
+            # removed it from the payload.  The call to get_hashes will then
+            # look at `grouping_config` to pick the right parameters.
+            data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
+            apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
+
+        with metrics.timer("event_manager.event.get_hashes"):
+            # Here we try to use the grouping config that was requested in the
+            # event.  If that config has since been deleted (because it was an
+            # experimental grouping config) we fall back to the default.
+            try:
+                hashes = event.get_hashes()
+            except GroupingConfigNotFound:
+                data["grouping_config"] = get_grouping_config_dict_for_project(project)
+                hashes = event.get_hashes()
 
         data["hashes"] = hashes
 
-        # we want to freeze not just the metadata and type in but also the
-        # derived attributes.  The reason for this is that we push this
-        # data into kafka for snuba processing and our postprocessing
-        # picks up the data right from the snuba topic.  For most usage
-        # however the data is dynamically overridden by Event.title and
-        # Event.location (See Event.as_dict)
-        materialized_metadata = self.materialize_metadata()
-        data.update(materialized_metadata)
-        data["culprit"] = culprit
-
-        # index components into ``Event.message``
-        # See GH-3248
-        # TODO: We temporarily save the search message into the message field to
-        # maintain backward compatibility with the Django event model. Once
-        # "store.use-django-event" is turned off for good, we can just reference
-        # event.search_message everywhere.
-        event.message = event.search_message
+        with metrics.timer("event_manager.materialize_metadata"):
+            # we want to freeze not just the metadata and type in but also the
+            # derived attributes.  The reason for this is that we push this
+            # data into kafka for snuba processing and our postprocessing
+            # picks up the data right from the snuba topic.  For most usage
+            # however the data is dynamically overridden by Event.title and
+            # Event.location (See Event.as_dict)
+            materialized_metadata = self.materialize_metadata()
+            data.update(materialized_metadata)
+            data["culprit"] = culprit
 
         received_timestamp = event.data.get("received") or float(event.datetime.strftime("%s"))
 
@@ -607,7 +712,7 @@ class EventManager(object):
             group_metadata["last_received"] = received_timestamp
             kwargs = {
                 "platform": platform,
-                "message": event.message,
+                "message": event.search_message,
                 "culprit": culprit,
                 "logger": logger_name,
                 "level": LOG_LEVELS_MAP.get(level),
@@ -633,13 +738,13 @@ class EventManager(object):
                     tags={"organization_id": project.organization_id, "platform": platform},
                 )
                 raise
-            else:
-                event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
             event.group = group
         else:
             group = None
             is_new = False
             is_regression = False
+
+        with metrics.timer("event_manager.event_saved_signal"):
             event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
 
         # store a reference to the group id to guarantee validation of isolation
@@ -678,7 +783,9 @@ class EventManager(object):
         if release:
             counters.append((tsdb.models.release, release.id))
 
-        tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
+        with metrics.timer("event_manager.tsdb_incr_group_and_release_counters") as metrics_tags:
+            metrics_tags["has_group"] = "true" if group else "false"
+            tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
         frequencies = []
 
@@ -699,8 +806,26 @@ class EventManager(object):
                 group=group, environment=environment
             )
 
-        # Write the event to Nodestore
-        event.data.save()
+        # Enusre the _metrics key exists. This is usually created during
+        # and prefilled with ingestion sizes.
+        event_metrics = event.data.get("_metrics") or {}
+        event.data["_metrics"] = event_metrics
+
+        # Capture the actual size that goes into node store.
+        event_metrics["bytes.stored.event"] = len(json.dumps(dict(event.data.items())))
+
+        if not issueless_event:
+            # Load attachments first, but persist them at the very last after
+            # posting to eventstream to make sure all counters and eventstream are
+            # incremented for sure.
+            attachments = self.get_attachments(cache_key, event)
+            for attachment in attachments:
+                key = "bytes.stored.%s" % (attachment.type,)
+                event_metrics[key] = (event_metrics.get(key) or 0) + len(attachment.data)
+
+        with metrics.timer("event_manager.nodestore.save"):
+            # Write the event to Nodestore
+            event.data.save()
 
         if event_user:
             counters = [
@@ -712,7 +837,9 @@ class EventManager(object):
                     (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value,))
                 )
 
-            tsdb.record_multi(counters, timestamp=event.datetime, environment_id=environment.id)
+            with metrics.timer("event_manager.tsdb_record_users_affected") as metrics_tags:
+                metrics_tags["has_group"] = "true" if group else "false"
+                tsdb.record_multi(counters, timestamp=event.datetime, environment_id=environment.id)
 
         if release:
             if is_new:
@@ -737,20 +864,26 @@ class EventManager(object):
                 project.update(first_event=date)
                 first_event_received.send_robust(project=project, event=event, sender=Project)
 
-        eventstream.insert(
-            group=group,
-            event=event,
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            primary_hash=hashes[0],
-            # We are choosing to skip consuming the event back
-            # in the eventstream if it's flagged as raw.
-            # This means that we want to publish the event
-            # through the event stream, but we don't care
-            # about post processing and handling the commit.
-            skip_consume=raw,
-        )
+        with metrics.timer("event_manager.eventstream.insert"):
+            eventstream.insert(
+                group=group,
+                event=event,
+                is_new=is_new,
+                is_regression=is_regression,
+                is_new_group_environment=is_new_group_environment,
+                primary_hash=hashes[0],
+                # We are choosing to skip consuming the event back
+                # in the eventstream if it's flagged as raw.
+                # This means that we want to publish the event
+                # through the event stream, but we don't care
+                # about post processing and handling the commit.
+                skip_consume=raw,
+            )
+
+        if not issueless_event:
+            # Do this last to ensure signals get emitted even if connection to the
+            # file store breaks temporarily.
+            self.save_attachments(attachments, event)
 
         metric_tags = {"from_relay": "_relay_processed" in self._data}
 
@@ -765,9 +898,16 @@ class EventManager(object):
         return event
 
     def _get_event_user(self, project, data):
+        with metrics.timer("event_manager.get_event_user") as metrics_tags:
+            return self._get_event_user_impl(project, data, metrics_tags)
+
+    def _get_event_user_impl(self, project, data, metrics_tags):
         user_data = data.get("user")
         if not user_data:
+            metrics_tags["event_has_user"] = "false"
             return
+
+        metrics_tags["event_has_user"] = "true"
 
         ip_address = user_data.get("ip_address")
 
@@ -792,13 +932,17 @@ class EventManager(object):
         cache_key = u"euserid:1:{}:{}".format(project.id, euser.hash)
         euser_id = cache.get(cache_key)
         if euser_id is None:
+            metrics_tags["cache_hit"] = "false"
             try:
                 with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
+                metrics_tags["created"] = "true"
             except IntegrityError:
+                metrics_tags["created"] = "false"
                 try:
                     euser = EventUser.objects.get(project_id=project.id, hash=euser.hash)
                 except EventUser.DoesNotExist:
+                    metrics_tags["created"] = "lol"
                     # why???
                     e_userid = -1
                 else:
@@ -806,6 +950,9 @@ class EventManager(object):
                         euser.update(name=user_data["name"])
                     e_userid = euser.id
                 cache.set(cache_key, e_userid, 3600)
+        else:
+            metrics_tags["cache_hit"] = "true"
+
         return euser
 
     def _find_hashes(self, project, hash_list):
@@ -979,12 +1126,14 @@ class EventManager(object):
     def _process_existing_aggregate(self, group, event, data, release):
         date = max(event.datetime, group.last_seen)
         extra = {"last_seen": date, "score": ScoreClause(group), "data": data["data"]}
-        if event.message and event.message != group.message:
-            extra["message"] = event.message
+        if event.search_message and event.search_message != group.message:
+            extra["message"] = event.search_message
         if group.level != data["level"]:
             extra["level"] = data["level"]
         if group.culprit != data["culprit"]:
             extra["culprit"] = data["culprit"]
+        if group.first_seen > event.datetime:
+            extra["first_seen"] = event.datetime
 
         is_regression = self._handle_regression(group, event, release)
 

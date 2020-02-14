@@ -1,44 +1,62 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
-import * as ReactRouter from 'react-router';
 
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {EventTag} from 'app/types';
+import {Event, OrganizationSummary} from 'app/types';
+import Version from 'app/components/version';
 
-import {getEventTagSearchUrl} from './utils';
+import EventView from './eventView';
+import {getExpandedResults} from './utils';
 import {SectionHeading} from './styles';
 
 type Props = {
-  tags: Array<EventTag>;
-} & ReactRouter.WithRouterProps;
+  organization: OrganizationSummary;
+  event: Event;
+  eventView: EventView;
+};
 
 const TagsTable = (props: Props) => {
-  const {location, tags} = props;
+  const {organization, event, eventView} = props;
+  const tags = event.tags;
   return (
     <StyledTagsTable>
       <SectionHeading>{t('Event Tag Details')}</SectionHeading>
       <StyledTable>
         <tbody>
           {tags.map(tag => {
-            const tagInQuery =
-              location.query.query && location.query.query.indexOf(`${tag.key}:`) !== -1;
+            let target;
+            const tagInQuery = eventView.query.includes(`${tag.key}:`);
+            const renderTagValue = () => {
+              switch (tag.key) {
+                case 'release':
+                  return <Version version={tag.value} anchor={false} withPackage />;
+                default:
+                  return tag.value;
+              }
+            };
+            if (!tagInQuery) {
+              const nextView = getExpandedResults(
+                eventView,
+                {[tag.key]: tag.value},
+                event
+              );
+              target = nextView.getResultsViewUrlTarget(organization.slug);
+            }
+
             return (
               <StyledTr key={tag.key}>
                 <TagKey>{tag.key}</TagKey>
                 <TagValue>
                   {tagInQuery ? (
                     <Tooltip title={t('This tag is in the current filter conditions')}>
-                      <span>{tag.value}</span>
+                      <span>{renderTagValue()}</span>
                     </Tooltip>
                   ) : (
-                    <Link to={getEventTagSearchUrl(tag.key, tag.value, location)}>
-                      {tag.value}
-                    </Link>
+                    <Link to={target}>{renderTagValue()}</Link>
                   )}
                 </TagValue>
               </StyledTr>
@@ -49,11 +67,6 @@ const TagsTable = (props: Props) => {
     </StyledTagsTable>
   );
 };
-
-TagsTable.propTypes = {
-  tags: PropTypes.array.isRequired,
-  location: PropTypes.object,
-} as any;
 
 const StyledTagsTable = styled('div')`
   margin-bottom: ${space(3)};
@@ -67,7 +80,7 @@ const StyledTable = styled('table')`
 
 const StyledTr = styled('tr')`
   &:nth-child(2n + 1) td {
-    background: #f4f2f7;
+    background-color: ${p => p.theme.offWhite};
   }
 `;
 
@@ -85,4 +98,4 @@ const TagValue = styled(TagKey)`
   ${overflowEllipsis};
 `;
 
-export default ReactRouter.withRouter(TagsTable);
+export default TagsTable;

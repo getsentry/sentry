@@ -17,6 +17,7 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
     title = "Pushover"
     conf_title = "Pushover"
     conf_key = "pushover"
+    required_field = "apikey"
 
     def is_configured(self, project):
         return all(self.get_option(key, project) for key in ("userkey", "apikey"))
@@ -83,7 +84,13 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
             apikey=self.get_option("apikey", project), userkey=self.get_option("userkey", project)
         )
 
-    def notify(self, notification):
+    def error_message_from_json(self, data):
+        errors = data.get("errors")
+        if errors:
+            return " ".join(errors)
+        return "unknown error"
+
+    def notify(self, notification, **kwargs):
         event = notification.event
         group = event.group
         project = group.project
@@ -101,15 +108,18 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
             message += "\n\nTags: %s" % (", ".join("%s=%s" % (k, v) for (k, v) in tags))
 
         client = self.get_client(project)
-        response = client.send_message(
-            {
-                "message": message[:1024],
-                "title": title[:250],
-                "url": link,
-                "url_title": "Issue Details",
-                "priority": priority,
-                "retry": retry,
-                "expire": expire,
-            }
-        )
+        try:
+            response = client.send_message(
+                {
+                    "message": message[:1024],
+                    "title": title[:250],
+                    "url": link,
+                    "url_title": "Issue Details",
+                    "priority": priority,
+                    "retry": retry,
+                    "expire": expire,
+                }
+            )
+        except Exception as e:
+            self.raise_error(e)
         assert response["status"]

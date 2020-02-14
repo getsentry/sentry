@@ -16,14 +16,17 @@ from sentry.utils.samples import load_data
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-FEATURE_NAMES = ["organizations:events-v2", "organizations:transaction-events"]
+FEATURE_NAMES = [
+    "organizations:discover-basic",
+    "organizations:discover-query",
+    "organizations:transaction-events",
+]
 
 
 def all_events_query(**kwargs):
     options = {
         "sort": ["-timestamp"],
         "field": ["title", "event.type", "project", "user", "timestamp"],
-        "tag": ["event.type", "release", "project.name", "user.email", "user.ip", "environment"],
         "name": ["All Events"],
     }
     options.update(kwargs)
@@ -33,10 +36,9 @@ def all_events_query(**kwargs):
 
 def errors_query(**kwargs):
     options = {
-        "sort": ["-last_seen", "-title"],
+        "sort": ["-title"],
         "name": ["Errors"],
-        "field": ["title", "count(id)", "count_unique(user)", "project", "last_seen"],
-        "tag": ["error.type", "project.name"],
+        "field": ["title", "count(id)", "count_unique(user)", "project"],
         "query": ["event.type:error"],
     }
     options.update(kwargs)
@@ -49,7 +51,6 @@ def transactions_query(**kwargs):
         "sort": ["-count"],
         "name": ["Transactions"],
         "field": ["transaction", "project", "count()"],
-        "tag": ["release", "project.name", "user.email", "user.ip", "environment"],
         "statsPeriod": ["14d"],
         "query": ["event.type:transaction"],
     }
@@ -150,8 +151,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.landing_path = u"/organizations/{}/eventsv2/".format(self.org.slug)
-        self.result_path = u"/organizations/{}/eventsv2/results/".format(self.org.slug)
+        self.landing_path = u"/organizations/{}/discover/queries/".format(self.org.slug)
+        self.result_path = u"/organizations/{}/discover/results/".format(self.org.slug)
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
@@ -299,9 +300,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             }
         )
-        event = self.store_event(
-            data=event_data, project_id=self.project.id, assert_no_errors=False
-        )
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=False)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page.
@@ -309,7 +308,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Click the event link to open the events detail view
-            self.browser.element('[aria-label="{}"]'.format(event.title)).click()
+            self.browser.element('[data-test-id="view-events"]').click()
             self.wait_until_loaded()
 
             header = self.browser.element('[data-test-id="event-header"] span')
@@ -343,7 +342,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Click the event link to open the event detail view
-            self.browser.element('[aria-label="{}"]'.format(event.title)).click()
+            self.browser.element('[data-test-id="view-events"]').click()
             self.wait_until_loaded()
 
             self.browser.snapshot("events-v2 - grouped error event detail view")
@@ -362,7 +361,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
         event_data = generate_transaction()
 
-        event = self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
+        self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
@@ -370,7 +369,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Click the event link to open the event detail view
-            self.browser.element('[aria-label="{}"]'.format(event.title)).click()
+            self.browser.element('[data-test-id="view-events"]').click()
             self.wait_until_loaded()
 
             self.browser.snapshot("events-v2 - transactions event detail view")
@@ -413,6 +412,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # View the query list
             self.browser.get(self.landing_path)
             self.wait_until_loaded()
+
+            # Dismiss assistant as it is in the way.
+            self.browser.element('[aria-label="Got It"]').click()
 
             # Look at the results for our query.
             self.browser.element('[data-test-id="card-{}"]'.format(query.name)).click()

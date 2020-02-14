@@ -11,14 +11,20 @@ import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
-import InlineSvg from 'app/components/inlineSvg';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
+import {IconBookmark, IconDelete} from 'app/icons';
 
 import EventView from '../eventView';
+import {getDiscoverLandingUrl} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
-type Props = {
+type DefaultProps = {
+  disabled: boolean;
+};
+
+type Props = DefaultProps & {
   api: Client;
 
   /**
@@ -98,6 +104,10 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     }
   };
 
+  static defaultProps: DefaultProps = {
+    disabled: false,
+  };
+
   state = {
     isNewQuery: true,
     isEditingQuery: false,
@@ -124,7 +134,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization, eventView} = this.props;
+    const {api, organization, eventView} = this.props;
 
     if (!this.state.queryName) {
       return;
@@ -142,10 +152,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         const view = EventView.fromSavedQuery(savedQuery);
 
         this.setState({queryName: ''});
-        browserHistory.push({
-          pathname: location.pathname,
-          query: view.generateQueryStringObject(),
-        });
+        browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
       }
     );
   };
@@ -159,10 +166,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     handleUpdateQuery(api, organization, eventView).then((savedQuery: SavedQuery) => {
       const view = EventView.fromSavedQuery(savedQuery);
       this.setState({queryName: ''});
-      browserHistory.push({
-        pathname: location.pathname,
-        query: view.generateQueryStringObject(),
-      });
+      browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
     });
   };
 
@@ -170,17 +174,18 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization, eventView} = this.props;
+    const {api, organization, eventView} = this.props;
 
     handleDeleteQuery(api, organization, eventView).then(() => {
       browserHistory.push({
-        pathname: location.pathname,
+        pathname: getDiscoverLandingUrl(organization),
         query: {},
       });
     });
   };
 
   renderButtonSaveAs() {
+    const {disabled} = this.props;
     const {isNewQuery, isEditingQuery, queryName} = this.state;
 
     if (!isNewQuery && !isEditingQuery) {
@@ -202,12 +207,9 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             {...getActorProps()}
             isOpen={isOpen}
             showChevron={false}
+            disabled={disabled}
           >
-            <ButtonSaveIcon
-              isNewQuery={isNewQuery}
-              src="icon-star-small-filled"
-              size="14"
-            />
+            <StyledIconBookmark size="xs" color={theme.gray2} />
             {t('Save as...')}
           </ButtonSaveAs>
         )}
@@ -220,12 +222,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             value={queryName || ''}
             onBlur={this.onBlurInput}
             onChange={this.onChangeInput}
+            disabled={disabled}
           />
           <Button
             data-test-id="button-save-query"
             onClick={this.handleCreateQuery}
             priority="primary"
-            disabled={!this.state.queryName}
+            disabled={disabled || !this.state.queryName}
             style={{width: '100%'}}
           >
             {t('Save')}
@@ -243,8 +246,8 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     }
 
     return (
-      <ButtonSaved>
-        <ButtonSaveIcon isNewQuery={isNewQuery} src="icon-star-small-filled" size="14" />
+      <ButtonSaved disabled={this.props.disabled}>
+        <StyledIconBookmark solid size="xs" color={theme.yellow} />
         {t('Saved query')}
       </ButtonSaved>
     );
@@ -261,8 +264,9 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       <Button
         onClick={this.handleUpdateQuery}
         data-test-id="discover2-savedquery-button-update"
+        disabled={this.props.disabled}
       >
-        <ButtonUpdateIcon />
+        <IconUpdate />
         {t('Update query')}
       </Button>
     );
@@ -278,9 +282,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     return (
       <Button
         data-test-id="discover2-savedquery-button-delete"
-        icon="icon-trash"
         onClick={this.handleDeleteQuery}
-      />
+        disabled={this.props.disabled}
+      >
+        <IconDelete size="xs" color={theme.gray4} />
+      </Button>
     );
   }
 
@@ -317,12 +323,6 @@ const ButtonSaveAs = styled(DropdownButton)`
 const ButtonSaved = styled(Button)`
   cursor: not-allowed;
 `;
-const ButtonSaveIcon = styled(InlineSvg)<{isNewQuery?: boolean}>`
-  margin-top: -3px; /* Align SVG vertically to text */
-  margin-right: ${space(0.75)};
-
-  color: ${p => (p.isNewQuery ? p.theme.gray1 : p.theme.yellow)};
-`;
 const ButtonSaveDropDown = styled('li')`
   padding: ${space(1)};
 `;
@@ -331,7 +331,11 @@ const ButtonSaveInput = styled(Input)`
   margin-bottom: ${space(1)};
 `;
 
-const ButtonUpdateIcon = styled('div')`
+const StyledIconBookmark = styled(IconBookmark)`
+  margin-right: ${space(1)};
+`;
+
+const IconUpdate = styled('div')`
   display: inline-block;
   width: 10px;
   height: 10px;

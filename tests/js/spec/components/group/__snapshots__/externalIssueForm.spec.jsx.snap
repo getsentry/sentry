@@ -125,63 +125,71 @@ exports[`ExternalIssueForm create renders 1`] = `
               className="css-1utgghf-DefaultButtons e1r1zmbj1"
             >
               <Observer>
-                <Button
-                  align="center"
+                <forwardRef<Button>
                   data-test-id="form-submit"
                   disabled={false}
                   priority="primary"
                   type="submit"
                 >
-                  <StyledButton
-                    aria-disabled={false}
-                    aria-label="Create Issue"
+                  <Button
+                    align="center"
                     data-test-id="form-submit"
                     disabled={false}
-                    onClick={[Function]}
+                    forwardRef={null}
                     priority="primary"
-                    role="button"
                     type="submit"
                   >
-                    <ForwardRef
+                    <StyledButton
                       aria-disabled={false}
                       aria-label="Create Issue"
-                      className="css-1e05jtd-StyledButton edwq9my0"
                       data-test-id="form-submit"
                       disabled={false}
+                      forwardRef={null}
                       onClick={[Function]}
                       priority="primary"
                       role="button"
                       type="submit"
                     >
-                      <button
+                      <Component
                         aria-disabled={false}
                         aria-label="Create Issue"
                         className="css-1e05jtd-StyledButton edwq9my0"
                         data-test-id="form-submit"
+                        forwardRef={null}
                         onClick={[Function]}
                         role="button"
                         type="submit"
                       >
-                        <ButtonLabel
-                          align="center"
-                          priority="primary"
+                        <button
+                          aria-disabled={false}
+                          aria-label="Create Issue"
+                          className="css-1e05jtd-StyledButton edwq9my0"
+                          data-test-id="form-submit"
+                          onClick={[Function]}
+                          role="button"
+                          type="submit"
                         >
-                          <Component
+                          <ButtonLabel
                             align="center"
-                            className="css-zmpclt-ButtonLabel edwq9my1"
                             priority="primary"
                           >
-                            <span
+                            <Component
+                              align="center"
                               className="css-zmpclt-ButtonLabel edwq9my1"
+                              priority="primary"
                             >
-                              Create Issue
-                            </span>
-                          </Component>
-                        </ButtonLabel>
-                      </button>
-                    </ForwardRef>
-                  </StyledButton>
-                </Button>
+                              <span
+                                className="css-zmpclt-ButtonLabel edwq9my1"
+                              >
+                                Create Issue
+                              </span>
+                            </Component>
+                          </ButtonLabel>
+                        </button>
+                      </Component>
+                    </StyledButton>
+                  </Button>
+                </forwardRef<Button>>
               </Observer>
             </div>
           </DefaultButtons>
@@ -365,6 +373,7 @@ exports[`ExternalIssueForm link renders 1`] = `
               ]
             }
             default="scefali/test"
+            deprecatedSelectControl={true}
             disabled={false}
             escapeMarkup={true}
             field={[Function]}
@@ -405,6 +414,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                 ]
               }
               default="scefali/test"
+              deprecatedSelectControl={true}
               disabled={false}
               escapeMarkup={true}
               field={[Function]}
@@ -444,6 +454,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                   ]
                 }
                 default="scefali/test"
+                deprecatedSelectControl={true}
                 disabled={false}
                 escapeMarkup={true}
                 field={[Function]}
@@ -484,6 +495,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                     ]
                   }
                   default="scefali/test"
+                  deprecatedSelectControl={true}
                   disabled={false}
                   escapeMarkup={true}
                   field={[Function]}
@@ -573,6 +585,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                     ],
                                     "className": undefined,
                                     "default": "scefali/test",
+                                    "deprecatedSelectControl": true,
                                     "disabled": false,
                                     "escapeMarkup": true,
                                     "field": [Function],
@@ -604,6 +617,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                     "choices": Array [],
                                     "className": undefined,
                                     "default": "",
+                                    "deprecatedSelectControl": true,
                                     "disabled": false,
                                     "escapeMarkup": true,
                                     "field": [Function],
@@ -722,6 +736,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         }
                                         clearable={false}
                                         default="scefali/test"
+                                        deprecatedSelectControl={true}
                                         disabled={false}
                                         error={false}
                                         escapeMarkup={true}
@@ -745,18 +760,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         onCloseResetsInput={false}
                                         onKeyDown={[Function]}
                                         onSelectResetsInput={false}
-                                        options={
-                                          Array [
-                                            Object {
-                                              "label": "test",
-                                              "value": "scefali/test",
-                                            },
-                                            Object {
-                                              "label": "ZeldaBazaar",
-                                              "value": "scefali/ZeldaBazaar",
-                                            },
-                                          ]
-                                        }
                                         placeholder="--"
                                         small={false}
                                         stacked={true}
@@ -785,13 +788,13 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           }
                                           clearable={false}
                                           default="scefali/test"
+                                          deprecatedSelectControl={true}
                                           disabled={false}
                                           error={false}
                                           escapeMarkup={true}
                                           field={[Function]}
                                           formatMessageValue={[Function]}
                                           forwardedRef={[Function]}
-                                          height={36}
                                           id="repo"
                                           initialData={
                                             Object {
@@ -810,18 +813,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           onCloseResetsInput={false}
                                           onKeyDown={[Function]}
                                           onSelectResetsInput={false}
-                                          options={
-                                            Array [
-                                              Object {
-                                                "label": "test",
-                                                "value": "scefali/test",
-                                              },
-                                              Object {
-                                                "label": "ZeldaBazaar",
-                                                "value": "scefali/ZeldaBazaar",
-                                              },
-                                            ]
-                                          }
                                           placeholder="--"
                                           small={false}
                                           stacked={true}
@@ -830,24 +821,32 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           url="/search"
                                           value="scefali/test"
                                         >
-                                          <StyledSelect
+                                          <ForwardRef(RefForwardedSelectControl)
                                             alignRight={false}
                                             allowEmpty={false}
-                                            arrowRenderer={[Function]}
                                             async={true}
                                             autoload={true}
-                                            backspaceRemoves={false}
                                             cache={false}
+                                            choices={
+                                              Array [
+                                                Array [
+                                                  "scefali/test",
+                                                  "test",
+                                                ],
+                                                Array [
+                                                  "scefali/ZeldaBazaar",
+                                                  "ZeldaBazaar",
+                                                ],
+                                              ]
+                                            }
                                             clearable={false}
                                             default="scefali/test"
-                                            deleteRemoves={false}
                                             disabled={false}
                                             error={false}
                                             escapeMarkup={true}
                                             field={[Function]}
                                             formatMessageValue={[Function]}
                                             forwardedRef={[Function]}
-                                            height={36}
                                             id="repo"
                                             initialData={
                                               Object {
@@ -866,18 +865,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             onCloseResetsInput={false}
                                             onKeyDown={[Function]}
                                             onSelectResetsInput={false}
-                                            options={
-                                              Array [
-                                                Object {
-                                                  "label": "test",
-                                                  "value": "scefali/test",
-                                                },
-                                                Object {
-                                                  "label": "ZeldaBazaar",
-                                                  "value": "scefali/ZeldaBazaar",
-                                                },
-                                              ]
-                                            }
                                             placeholder="--"
                                             small={false}
                                             stacked={true}
@@ -886,18 +873,26 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             url="/search"
                                             value="scefali/test"
                                           >
-                                            <SelectPicker
+                                            <SelectControlLegacy
                                               alignRight={false}
                                               allowEmpty={false}
-                                              arrowRenderer={[Function]}
                                               async={true}
                                               autoload={true}
-                                              backspaceRemoves={false}
                                               cache={false}
-                                              className="css-140v9or-StyledSelect eho28m20"
+                                              choices={
+                                                Array [
+                                                  Array [
+                                                    "scefali/test",
+                                                    "test",
+                                                  ],
+                                                  Array [
+                                                    "scefali/ZeldaBazaar",
+                                                    "ZeldaBazaar",
+                                                  ],
+                                                ]
+                                              }
                                               clearable={false}
                                               default="scefali/test"
-                                              deleteRemoves={false}
                                               disabled={false}
                                               error={false}
                                               escapeMarkup={true}
@@ -923,18 +918,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               onCloseResetsInput={false}
                                               onKeyDown={[Function]}
                                               onSelectResetsInput={false}
-                                              options={
-                                                Array [
-                                                  Object {
-                                                    "label": "test",
-                                                    "value": "scefali/test",
-                                                  },
-                                                  Object {
-                                                    "label": "ZeldaBazaar",
-                                                    "value": "scefali/ZeldaBazaar",
-                                                  },
-                                                ]
-                                              }
                                               placeholder="--"
                                               small={false}
                                               stacked={true}
@@ -943,14 +926,14 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               url="/search"
                                               value="scefali/test"
                                             >
-                                              <Async
+                                              <StyledSelect
                                                 alignRight={false}
                                                 allowEmpty={false}
                                                 arrowRenderer={[Function]}
+                                                async={true}
                                                 autoload={true}
                                                 backspaceRemoves={false}
                                                 cache={false}
-                                                className="css-140v9or-StyledSelect eho28m20"
                                                 clearable={false}
                                                 default="scefali/test"
                                                 deleteRemoves={false}
@@ -959,10 +942,9 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 escapeMarkup={true}
                                                 field={[Function]}
                                                 formatMessageValue={[Function]}
+                                                forwardedRef={[Function]}
                                                 height={36}
                                                 id="repo"
-                                                ignoreAccents={true}
-                                                ignoreCase={true}
                                                 initialData={
                                                   Object {
                                                     "comment": "Default Value",
@@ -973,7 +955,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 inline={false}
                                                 label="GitHub Repository"
                                                 loadOptions={[Function]}
-                                                loadingPlaceholder="Loading..."
                                                 multiple={false}
                                                 name="repo"
                                                 onBlurResetsInput={false}
@@ -994,7 +975,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   ]
                                                 }
                                                 placeholder="--"
-                                                searchPromptText="Type to search"
                                                 small={false}
                                                 stacked={true}
                                                 type="select"
@@ -1002,35 +982,26 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 url="/search"
                                                 value="scefali/test"
                                               >
-                                                <Select
+                                                <SelectPicker
                                                   alignRight={false}
                                                   allowEmpty={false}
                                                   arrowRenderer={[Function]}
+                                                  async={true}
                                                   autoload={true}
-                                                  autosize={true}
                                                   backspaceRemoves={false}
-                                                  backspaceToRemoveMessage="Press backspace to remove {label}"
                                                   cache={false}
-                                                  className="css-140v9or-StyledSelect eho28m20"
-                                                  clearAllText="Clear all"
-                                                  clearRenderer={[Function]}
-                                                  clearValueText="Clear value"
+                                                  className="css-140v9or-StyledSelect e1ynsgsr0"
                                                   clearable={false}
-                                                  closeOnSelect={true}
                                                   default="scefali/test"
                                                   deleteRemoves={false}
-                                                  delimiter=","
                                                   disabled={false}
                                                   error={false}
-                                                  escapeClearsValue={true}
                                                   escapeMarkup={true}
                                                   field={[Function]}
-                                                  filterOptions={[Function]}
                                                   formatMessageValue={[Function]}
+                                                  forwardedRef={[Function]}
                                                   height={36}
                                                   id="repo"
-                                                  ignoreAccents={true}
-                                                  ignoreCase={true}
                                                   initialData={
                                                     Object {
                                                       "comment": "Default Value",
@@ -1039,151 +1010,278 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                     }
                                                   }
                                                   inline={false}
-                                                  inputProps={Object {}}
-                                                  isLoading={true}
-                                                  joinValues={false}
                                                   label="GitHub Repository"
-                                                  labelKey="label"
                                                   loadOptions={[Function]}
-                                                  loadingPlaceholder="Loading..."
-                                                  matchPos="any"
-                                                  matchProp="any"
-                                                  menuBuffer={0}
-                                                  menuRenderer={[Function]}
-                                                  multi={false}
                                                   multiple={false}
                                                   name="repo"
-                                                  noResultsText="Loading..."
                                                   onBlurResetsInput={false}
                                                   onChange={[Function]}
                                                   onCloseResetsInput={false}
-                                                  onInputChange={[Function]}
                                                   onKeyDown={[Function]}
                                                   onSelectResetsInput={false}
-                                                  openOnClick={true}
-                                                  optionComponent={[Function]}
-                                                  options={Array []}
-                                                  pageSize={5}
-                                                  placeholder="Loading..."
-                                                  removeSelected={true}
-                                                  required={false}
-                                                  rtl={false}
-                                                  scrollMenuIntoView={true}
-                                                  searchPromptText="Type to search"
-                                                  searchable={true}
-                                                  simpleValue={false}
+                                                  options={
+                                                    Array [
+                                                      Object {
+                                                        "label": "test",
+                                                        "value": "scefali/test",
+                                                      },
+                                                      Object {
+                                                        "label": "ZeldaBazaar",
+                                                        "value": "scefali/ZeldaBazaar",
+                                                      },
+                                                    ]
+                                                  }
+                                                  placeholder="--"
                                                   small={false}
                                                   stacked={true}
-                                                  tabSelectsValue={true}
-                                                  trimFilter={true}
                                                   type="select"
                                                   updatesForm={true}
                                                   url="/search"
                                                   value="scefali/test"
-                                                  valueComponent={[Function]}
-                                                  valueKey="value"
                                                 >
-                                                  <div
-                                                    className="Select css-140v9or-StyledSelect eho28m20 is-loading is-searchable Select--single"
+                                                  <Async
+                                                    alignRight={false}
+                                                    allowEmpty={false}
+                                                    arrowRenderer={[Function]}
+                                                    autoload={true}
+                                                    backspaceRemoves={false}
+                                                    cache={false}
+                                                    className="css-140v9or-StyledSelect e1ynsgsr0"
+                                                    clearable={false}
+                                                    default="scefali/test"
+                                                    deleteRemoves={false}
+                                                    disabled={false}
+                                                    error={false}
+                                                    escapeMarkup={true}
+                                                    field={[Function]}
+                                                    formatMessageValue={[Function]}
+                                                    height={36}
+                                                    id="repo"
+                                                    ignoreAccents={true}
+                                                    ignoreCase={true}
+                                                    initialData={
+                                                      Object {
+                                                        "comment": "Default Value",
+                                                        "externalIssue": "",
+                                                        "repo": "scefali/test",
+                                                      }
+                                                    }
+                                                    inline={false}
+                                                    label="GitHub Repository"
+                                                    loadOptions={[Function]}
+                                                    loadingPlaceholder="Loading..."
+                                                    multiple={false}
+                                                    name="repo"
+                                                    onBlurResetsInput={false}
+                                                    onChange={[Function]}
+                                                    onCloseResetsInput={false}
+                                                    onKeyDown={[Function]}
+                                                    onSelectResetsInput={false}
+                                                    options={
+                                                      Array [
+                                                        Object {
+                                                          "label": "test",
+                                                          "value": "scefali/test",
+                                                        },
+                                                        Object {
+                                                          "label": "ZeldaBazaar",
+                                                          "value": "scefali/ZeldaBazaar",
+                                                        },
+                                                      ]
+                                                    }
+                                                    placeholder="--"
+                                                    searchPromptText="Type to search"
+                                                    small={false}
+                                                    stacked={true}
+                                                    type="select"
+                                                    updatesForm={true}
+                                                    url="/search"
+                                                    value="scefali/test"
                                                   >
-                                                    <div
-                                                      className="Select-control"
+                                                    <Select
+                                                      alignRight={false}
+                                                      allowEmpty={false}
+                                                      arrowRenderer={[Function]}
+                                                      autoload={true}
+                                                      autosize={true}
+                                                      backspaceRemoves={false}
+                                                      backspaceToRemoveMessage="Press backspace to remove {label}"
+                                                      cache={false}
+                                                      className="css-140v9or-StyledSelect e1ynsgsr0"
+                                                      clearAllText="Clear all"
+                                                      clearRenderer={[Function]}
+                                                      clearValueText="Clear value"
+                                                      clearable={false}
+                                                      closeOnSelect={true}
+                                                      default="scefali/test"
+                                                      deleteRemoves={false}
+                                                      delimiter=","
+                                                      disabled={false}
+                                                      error={false}
+                                                      escapeClearsValue={true}
+                                                      escapeMarkup={true}
+                                                      field={[Function]}
+                                                      filterOptions={[Function]}
+                                                      formatMessageValue={[Function]}
+                                                      height={36}
+                                                      id="repo"
+                                                      ignoreAccents={true}
+                                                      ignoreCase={true}
+                                                      initialData={
+                                                        Object {
+                                                          "comment": "Default Value",
+                                                          "externalIssue": "",
+                                                          "repo": "scefali/test",
+                                                        }
+                                                      }
+                                                      inline={false}
+                                                      inputProps={Object {}}
+                                                      isLoading={true}
+                                                      joinValues={false}
+                                                      label="GitHub Repository"
+                                                      labelKey="label"
+                                                      loadOptions={[Function]}
+                                                      loadingPlaceholder="Loading..."
+                                                      matchPos="any"
+                                                      matchProp="any"
+                                                      menuBuffer={0}
+                                                      menuRenderer={[Function]}
+                                                      multi={false}
+                                                      multiple={false}
+                                                      name="repo"
+                                                      noResultsText="Loading..."
+                                                      onBlurResetsInput={false}
+                                                      onChange={[Function]}
+                                                      onCloseResetsInput={false}
+                                                      onInputChange={[Function]}
                                                       onKeyDown={[Function]}
-                                                      onMouseDown={[Function]}
-                                                      onTouchEnd={[Function]}
-                                                      onTouchMove={[Function]}
-                                                      onTouchStart={[Function]}
+                                                      onSelectResetsInput={false}
+                                                      openOnClick={true}
+                                                      optionComponent={[Function]}
+                                                      options={Array []}
+                                                      pageSize={5}
+                                                      placeholder="Loading..."
+                                                      removeSelected={true}
+                                                      required={false}
+                                                      rtl={false}
+                                                      scrollMenuIntoView={true}
+                                                      searchPromptText="Type to search"
+                                                      searchable={true}
+                                                      simpleValue={false}
+                                                      small={false}
+                                                      stacked={true}
+                                                      tabSelectsValue={true}
+                                                      trimFilter={true}
+                                                      type="select"
+                                                      updatesForm={true}
+                                                      url="/search"
+                                                      value="scefali/test"
+                                                      valueComponent={[Function]}
+                                                      valueKey="value"
                                                     >
                                                       <div
-                                                        className="Select-multi-value-wrapper"
-                                                        id="react-select-2--value"
+                                                        className="Select css-140v9or-StyledSelect e1ynsgsr0 is-loading is-searchable Select--single"
                                                       >
                                                         <div
-                                                          className="Select-placeholder"
-                                                        >
-                                                          Loading...
-                                                        </div>
-                                                        <AutosizeInput
-                                                          aria-activedescendant="react-select-2--value"
-                                                          aria-expanded="false"
-                                                          aria-haspopup="false"
-                                                          aria-owns=""
-                                                          className="Select-input"
-                                                          id="repo"
-                                                          injectStyles={true}
-                                                          minWidth="5"
-                                                          onBlur={[Function]}
-                                                          onChange={[Function]}
-                                                          onFocus={[Function]}
-                                                          required={false}
-                                                          role="combobox"
-                                                          value=""
+                                                          className="Select-control"
+                                                          onKeyDown={[Function]}
+                                                          onMouseDown={[Function]}
+                                                          onTouchEnd={[Function]}
+                                                          onTouchMove={[Function]}
+                                                          onTouchStart={[Function]}
                                                         >
                                                           <div
-                                                            className="Select-input"
-                                                            style={
-                                                              Object {
-                                                                "display": "inline-block",
-                                                              }
-                                                            }
+                                                            className="Select-multi-value-wrapper"
+                                                            id="react-select-2--value"
                                                           >
-                                                            <input
+                                                            <div
+                                                              className="Select-placeholder"
+                                                            >
+                                                              Loading...
+                                                            </div>
+                                                            <AutosizeInput
                                                               aria-activedescendant="react-select-2--value"
                                                               aria-expanded="false"
                                                               aria-haspopup="false"
                                                               aria-owns=""
+                                                              className="Select-input"
                                                               id="repo"
+                                                              injectStyles={true}
+                                                              minWidth="5"
                                                               onBlur={[Function]}
                                                               onChange={[Function]}
                                                               onFocus={[Function]}
                                                               required={false}
                                                               role="combobox"
-                                                              style={
-                                                                Object {
-                                                                  "boxSizing": "content-box",
-                                                                  "width": "5px",
-                                                                }
-                                                              }
                                                               value=""
-                                                            />
-                                                            <div
-                                                              style={
-                                                                Object {
-                                                                  "height": 0,
-                                                                  "left": 0,
-                                                                  "overflow": "scroll",
-                                                                  "position": "absolute",
-                                                                  "top": 0,
-                                                                  "visibility": "hidden",
-                                                                  "whiteSpace": "pre",
+                                                            >
+                                                              <div
+                                                                className="Select-input"
+                                                                style={
+                                                                  Object {
+                                                                    "display": "inline-block",
+                                                                  }
                                                                 }
-                                                              }
-                                                            />
+                                                              >
+                                                                <input
+                                                                  aria-activedescendant="react-select-2--value"
+                                                                  aria-expanded="false"
+                                                                  aria-haspopup="false"
+                                                                  aria-owns=""
+                                                                  id="repo"
+                                                                  onBlur={[Function]}
+                                                                  onChange={[Function]}
+                                                                  onFocus={[Function]}
+                                                                  required={false}
+                                                                  role="combobox"
+                                                                  style={
+                                                                    Object {
+                                                                      "boxSizing": "content-box",
+                                                                      "width": "5px",
+                                                                    }
+                                                                  }
+                                                                  value=""
+                                                                />
+                                                                <div
+                                                                  style={
+                                                                    Object {
+                                                                      "height": 0,
+                                                                      "left": 0,
+                                                                      "overflow": "scroll",
+                                                                      "position": "absolute",
+                                                                      "top": 0,
+                                                                      "visibility": "hidden",
+                                                                      "whiteSpace": "pre",
+                                                                    }
+                                                                  }
+                                                                />
+                                                              </div>
+                                                            </AutosizeInput>
                                                           </div>
-                                                        </AutosizeInput>
+                                                          <span
+                                                            aria-hidden="true"
+                                                            className="Select-loading-zone"
+                                                          >
+                                                            <span
+                                                              className="Select-loading"
+                                                            />
+                                                          </span>
+                                                          <span
+                                                            className="Select-arrow-zone"
+                                                            onMouseDown={[Function]}
+                                                          >
+                                                            <span
+                                                              className="icon-arrow-down"
+                                                            />
+                                                          </span>
+                                                        </div>
                                                       </div>
-                                                      <span
-                                                        aria-hidden="true"
-                                                        className="Select-loading-zone"
-                                                      >
-                                                        <span
-                                                          className="Select-loading"
-                                                        />
-                                                      </span>
-                                                      <span
-                                                        className="Select-arrow-zone"
-                                                        onMouseDown={[Function]}
-                                                      >
-                                                        <span
-                                                          className="icon-arrow-down"
-                                                        />
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                </Select>
-                                              </Async>
-                                            </SelectPicker>
-                                          </StyledSelect>
+                                                    </Select>
+                                                  </Async>
+                                                </SelectPicker>
+                                              </StyledSelect>
+                                            </SelectControlLegacy>
+                                          </ForwardRef(RefForwardedSelectControl)>
                                         </SelectControl>
                                       </ForwardRef(RefForwardedSelectControl)>
                                     </Observer>
@@ -1226,6 +1324,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               ],
                                               "className": undefined,
                                               "default": "scefali/test",
+                                              "deprecatedSelectControl": true,
                                               "disabled": false,
                                               "escapeMarkup": true,
                                               "field": [Function],
@@ -1257,6 +1356,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               "choices": Array [],
                                               "className": undefined,
                                               "default": "",
+                                              "deprecatedSelectControl": true,
                                               "disabled": false,
                                               "escapeMarkup": true,
                                               "field": [Function],
@@ -1384,6 +1484,7 @@ exports[`ExternalIssueForm link renders 1`] = `
             cache={false}
             choices={Array []}
             default=""
+            deprecatedSelectControl={true}
             disabled={false}
             escapeMarkup={true}
             field={[Function]}
@@ -1412,6 +1513,7 @@ exports[`ExternalIssueForm link renders 1`] = `
               cache={false}
               choices={Array []}
               default=""
+              deprecatedSelectControl={true}
               disabled={false}
               escapeMarkup={true}
               field={[Function]}
@@ -1439,6 +1541,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                 cache={false}
                 choices={Array []}
                 default=""
+                deprecatedSelectControl={true}
                 disabled={false}
                 escapeMarkup={true}
                 field={[Function]}
@@ -1467,6 +1570,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                   cache={false}
                   choices={Array []}
                   default=""
+                  deprecatedSelectControl={true}
                   disabled={false}
                   escapeMarkup={true}
                   field={[Function]}
@@ -1555,6 +1659,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                     ],
                                     "className": undefined,
                                     "default": "scefali/test",
+                                    "deprecatedSelectControl": true,
                                     "disabled": false,
                                     "escapeMarkup": true,
                                     "field": [Function],
@@ -1586,6 +1691,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                     "choices": Array [],
                                     "className": undefined,
                                     "default": "",
+                                    "deprecatedSelectControl": true,
                                     "disabled": false,
                                     "escapeMarkup": true,
                                     "field": [Function],
@@ -1693,6 +1799,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         choices={Array []}
                                         clearable={false}
                                         default=""
+                                        deprecatedSelectControl={true}
                                         disabled={false}
                                         error={false}
                                         escapeMarkup={true}
@@ -1716,7 +1823,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         onCloseResetsInput={false}
                                         onKeyDown={[Function]}
                                         onSelectResetsInput={false}
-                                        options={Array []}
                                         placeholder="--"
                                         small={false}
                                         stacked={true}
@@ -1733,13 +1839,13 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           choices={Array []}
                                           clearable={false}
                                           default=""
+                                          deprecatedSelectControl={true}
                                           disabled={false}
                                           error={false}
                                           escapeMarkup={true}
                                           field={[Function]}
                                           formatMessageValue={[Function]}
                                           forwardedRef={[Function]}
-                                          height={36}
                                           id="externalIssue"
                                           initialData={
                                             Object {
@@ -1758,7 +1864,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           onCloseResetsInput={false}
                                           onKeyDown={[Function]}
                                           onSelectResetsInput={false}
-                                          options={Array []}
                                           placeholder="--"
                                           small={false}
                                           stacked={true}
@@ -1766,24 +1871,21 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           url="/search"
                                           value=""
                                         >
-                                          <StyledSelect
+                                          <ForwardRef(RefForwardedSelectControl)
                                             alignRight={false}
                                             allowEmpty={false}
-                                            arrowRenderer={[Function]}
                                             async={true}
                                             autoload={true}
-                                            backspaceRemoves={false}
                                             cache={false}
+                                            choices={Array []}
                                             clearable={false}
                                             default=""
-                                            deleteRemoves={false}
                                             disabled={false}
                                             error={false}
                                             escapeMarkup={true}
                                             field={[Function]}
                                             formatMessageValue={[Function]}
                                             forwardedRef={[Function]}
-                                            height={36}
                                             id="externalIssue"
                                             initialData={
                                               Object {
@@ -1802,7 +1904,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             onCloseResetsInput={false}
                                             onKeyDown={[Function]}
                                             onSelectResetsInput={false}
-                                            options={Array []}
                                             placeholder="--"
                                             small={false}
                                             stacked={true}
@@ -1810,18 +1911,15 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             url="/search"
                                             value=""
                                           >
-                                            <SelectPicker
+                                            <SelectControlLegacy
                                               alignRight={false}
                                               allowEmpty={false}
-                                              arrowRenderer={[Function]}
                                               async={true}
                                               autoload={true}
-                                              backspaceRemoves={false}
                                               cache={false}
-                                              className="css-140v9or-StyledSelect eho28m20"
+                                              choices={Array []}
                                               clearable={false}
                                               default=""
-                                              deleteRemoves={false}
                                               disabled={false}
                                               error={false}
                                               escapeMarkup={true}
@@ -1847,7 +1945,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               onCloseResetsInput={false}
                                               onKeyDown={[Function]}
                                               onSelectResetsInput={false}
-                                              options={Array []}
                                               placeholder="--"
                                               small={false}
                                               stacked={true}
@@ -1855,14 +1952,14 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               url="/search"
                                               value=""
                                             >
-                                              <Async
+                                              <StyledSelect
                                                 alignRight={false}
                                                 allowEmpty={false}
                                                 arrowRenderer={[Function]}
+                                                async={true}
                                                 autoload={true}
                                                 backspaceRemoves={false}
                                                 cache={false}
-                                                className="css-140v9or-StyledSelect eho28m20"
                                                 clearable={false}
                                                 default=""
                                                 deleteRemoves={false}
@@ -1871,10 +1968,9 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 escapeMarkup={true}
                                                 field={[Function]}
                                                 formatMessageValue={[Function]}
+                                                forwardedRef={[Function]}
                                                 height={36}
                                                 id="externalIssue"
-                                                ignoreAccents={true}
-                                                ignoreCase={true}
                                                 initialData={
                                                   Object {
                                                     "comment": "Default Value",
@@ -1885,7 +1981,6 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 inline={false}
                                                 label="Issue"
                                                 loadOptions={[Function]}
-                                                loadingPlaceholder="Loading..."
                                                 multiple={false}
                                                 name="externalIssue"
                                                 onBlurResetsInput={false}
@@ -1895,42 +1990,32 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 onSelectResetsInput={false}
                                                 options={Array []}
                                                 placeholder="--"
-                                                searchPromptText="Type to search"
                                                 small={false}
                                                 stacked={true}
                                                 type="select"
                                                 url="/search"
                                                 value=""
                                               >
-                                                <Select
+                                                <SelectPicker
                                                   alignRight={false}
                                                   allowEmpty={false}
                                                   arrowRenderer={[Function]}
+                                                  async={true}
                                                   autoload={true}
-                                                  autosize={true}
                                                   backspaceRemoves={false}
-                                                  backspaceToRemoveMessage="Press backspace to remove {label}"
                                                   cache={false}
-                                                  className="css-140v9or-StyledSelect eho28m20"
-                                                  clearAllText="Clear all"
-                                                  clearRenderer={[Function]}
-                                                  clearValueText="Clear value"
+                                                  className="css-140v9or-StyledSelect e1ynsgsr0"
                                                   clearable={false}
-                                                  closeOnSelect={true}
                                                   default=""
                                                   deleteRemoves={false}
-                                                  delimiter=","
                                                   disabled={false}
                                                   error={false}
-                                                  escapeClearsValue={true}
                                                   escapeMarkup={true}
                                                   field={[Function]}
-                                                  filterOptions={[Function]}
                                                   formatMessageValue={[Function]}
+                                                  forwardedRef={[Function]}
                                                   height={36}
                                                   id="externalIssue"
-                                                  ignoreAccents={true}
-                                                  ignoreCase={true}
                                                   initialData={
                                                     Object {
                                                       "comment": "Default Value",
@@ -1939,150 +2024,253 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                     }
                                                   }
                                                   inline={false}
-                                                  inputProps={Object {}}
-                                                  isLoading={true}
-                                                  joinValues={false}
                                                   label="Issue"
-                                                  labelKey="label"
                                                   loadOptions={[Function]}
-                                                  loadingPlaceholder="Loading..."
-                                                  matchPos="any"
-                                                  matchProp="any"
-                                                  menuBuffer={0}
-                                                  menuRenderer={[Function]}
-                                                  multi={false}
                                                   multiple={false}
                                                   name="externalIssue"
-                                                  noResultsText="Loading..."
                                                   onBlurResetsInput={false}
                                                   onChange={[Function]}
                                                   onCloseResetsInput={false}
-                                                  onInputChange={[Function]}
                                                   onKeyDown={[Function]}
                                                   onSelectResetsInput={false}
-                                                  openOnClick={true}
-                                                  optionComponent={[Function]}
                                                   options={Array []}
-                                                  pageSize={5}
-                                                  placeholder="Loading..."
-                                                  removeSelected={true}
-                                                  required={false}
-                                                  rtl={false}
-                                                  scrollMenuIntoView={true}
-                                                  searchPromptText="Type to search"
-                                                  searchable={true}
-                                                  simpleValue={false}
+                                                  placeholder="--"
                                                   small={false}
                                                   stacked={true}
-                                                  tabSelectsValue={true}
-                                                  trimFilter={true}
                                                   type="select"
                                                   url="/search"
                                                   value=""
-                                                  valueComponent={[Function]}
-                                                  valueKey="value"
                                                 >
-                                                  <div
-                                                    className="Select css-140v9or-StyledSelect eho28m20 is-loading is-searchable Select--single"
+                                                  <Async
+                                                    alignRight={false}
+                                                    allowEmpty={false}
+                                                    arrowRenderer={[Function]}
+                                                    autoload={true}
+                                                    backspaceRemoves={false}
+                                                    cache={false}
+                                                    className="css-140v9or-StyledSelect e1ynsgsr0"
+                                                    clearable={false}
+                                                    default=""
+                                                    deleteRemoves={false}
+                                                    disabled={false}
+                                                    error={false}
+                                                    escapeMarkup={true}
+                                                    field={[Function]}
+                                                    formatMessageValue={[Function]}
+                                                    height={36}
+                                                    id="externalIssue"
+                                                    ignoreAccents={true}
+                                                    ignoreCase={true}
+                                                    initialData={
+                                                      Object {
+                                                        "comment": "Default Value",
+                                                        "externalIssue": "",
+                                                        "repo": "scefali/test",
+                                                      }
+                                                    }
+                                                    inline={false}
+                                                    label="Issue"
+                                                    loadOptions={[Function]}
+                                                    loadingPlaceholder="Loading..."
+                                                    multiple={false}
+                                                    name="externalIssue"
+                                                    onBlurResetsInput={false}
+                                                    onChange={[Function]}
+                                                    onCloseResetsInput={false}
+                                                    onKeyDown={[Function]}
+                                                    onSelectResetsInput={false}
+                                                    options={Array []}
+                                                    placeholder="--"
+                                                    searchPromptText="Type to search"
+                                                    small={false}
+                                                    stacked={true}
+                                                    type="select"
+                                                    url="/search"
+                                                    value=""
                                                   >
-                                                    <div
-                                                      className="Select-control"
+                                                    <Select
+                                                      alignRight={false}
+                                                      allowEmpty={false}
+                                                      arrowRenderer={[Function]}
+                                                      autoload={true}
+                                                      autosize={true}
+                                                      backspaceRemoves={false}
+                                                      backspaceToRemoveMessage="Press backspace to remove {label}"
+                                                      cache={false}
+                                                      className="css-140v9or-StyledSelect e1ynsgsr0"
+                                                      clearAllText="Clear all"
+                                                      clearRenderer={[Function]}
+                                                      clearValueText="Clear value"
+                                                      clearable={false}
+                                                      closeOnSelect={true}
+                                                      default=""
+                                                      deleteRemoves={false}
+                                                      delimiter=","
+                                                      disabled={false}
+                                                      error={false}
+                                                      escapeClearsValue={true}
+                                                      escapeMarkup={true}
+                                                      field={[Function]}
+                                                      filterOptions={[Function]}
+                                                      formatMessageValue={[Function]}
+                                                      height={36}
+                                                      id="externalIssue"
+                                                      ignoreAccents={true}
+                                                      ignoreCase={true}
+                                                      initialData={
+                                                        Object {
+                                                          "comment": "Default Value",
+                                                          "externalIssue": "",
+                                                          "repo": "scefali/test",
+                                                        }
+                                                      }
+                                                      inline={false}
+                                                      inputProps={Object {}}
+                                                      isLoading={true}
+                                                      joinValues={false}
+                                                      label="Issue"
+                                                      labelKey="label"
+                                                      loadOptions={[Function]}
+                                                      loadingPlaceholder="Loading..."
+                                                      matchPos="any"
+                                                      matchProp="any"
+                                                      menuBuffer={0}
+                                                      menuRenderer={[Function]}
+                                                      multi={false}
+                                                      multiple={false}
+                                                      name="externalIssue"
+                                                      noResultsText="Loading..."
+                                                      onBlurResetsInput={false}
+                                                      onChange={[Function]}
+                                                      onCloseResetsInput={false}
+                                                      onInputChange={[Function]}
                                                       onKeyDown={[Function]}
-                                                      onMouseDown={[Function]}
-                                                      onTouchEnd={[Function]}
-                                                      onTouchMove={[Function]}
-                                                      onTouchStart={[Function]}
+                                                      onSelectResetsInput={false}
+                                                      openOnClick={true}
+                                                      optionComponent={[Function]}
+                                                      options={Array []}
+                                                      pageSize={5}
+                                                      placeholder="Loading..."
+                                                      removeSelected={true}
+                                                      required={false}
+                                                      rtl={false}
+                                                      scrollMenuIntoView={true}
+                                                      searchPromptText="Type to search"
+                                                      searchable={true}
+                                                      simpleValue={false}
+                                                      small={false}
+                                                      stacked={true}
+                                                      tabSelectsValue={true}
+                                                      trimFilter={true}
+                                                      type="select"
+                                                      url="/search"
+                                                      value=""
+                                                      valueComponent={[Function]}
+                                                      valueKey="value"
                                                     >
                                                       <div
-                                                        className="Select-multi-value-wrapper"
-                                                        id="react-select-3--value"
+                                                        className="Select css-140v9or-StyledSelect e1ynsgsr0 is-loading is-searchable Select--single"
                                                       >
                                                         <div
-                                                          className="Select-placeholder"
-                                                        >
-                                                          Loading...
-                                                        </div>
-                                                        <AutosizeInput
-                                                          aria-activedescendant="react-select-3--value"
-                                                          aria-expanded="false"
-                                                          aria-haspopup="false"
-                                                          aria-owns=""
-                                                          className="Select-input"
-                                                          id="externalIssue"
-                                                          injectStyles={true}
-                                                          minWidth="5"
-                                                          onBlur={[Function]}
-                                                          onChange={[Function]}
-                                                          onFocus={[Function]}
-                                                          required={false}
-                                                          role="combobox"
-                                                          value=""
+                                                          className="Select-control"
+                                                          onKeyDown={[Function]}
+                                                          onMouseDown={[Function]}
+                                                          onTouchEnd={[Function]}
+                                                          onTouchMove={[Function]}
+                                                          onTouchStart={[Function]}
                                                         >
                                                           <div
-                                                            className="Select-input"
-                                                            style={
-                                                              Object {
-                                                                "display": "inline-block",
-                                                              }
-                                                            }
+                                                            className="Select-multi-value-wrapper"
+                                                            id="react-select-3--value"
                                                           >
-                                                            <input
+                                                            <div
+                                                              className="Select-placeholder"
+                                                            >
+                                                              Loading...
+                                                            </div>
+                                                            <AutosizeInput
                                                               aria-activedescendant="react-select-3--value"
                                                               aria-expanded="false"
                                                               aria-haspopup="false"
                                                               aria-owns=""
+                                                              className="Select-input"
                                                               id="externalIssue"
+                                                              injectStyles={true}
+                                                              minWidth="5"
                                                               onBlur={[Function]}
                                                               onChange={[Function]}
                                                               onFocus={[Function]}
                                                               required={false}
                                                               role="combobox"
-                                                              style={
-                                                                Object {
-                                                                  "boxSizing": "content-box",
-                                                                  "width": "5px",
-                                                                }
-                                                              }
                                                               value=""
-                                                            />
-                                                            <div
-                                                              style={
-                                                                Object {
-                                                                  "height": 0,
-                                                                  "left": 0,
-                                                                  "overflow": "scroll",
-                                                                  "position": "absolute",
-                                                                  "top": 0,
-                                                                  "visibility": "hidden",
-                                                                  "whiteSpace": "pre",
+                                                            >
+                                                              <div
+                                                                className="Select-input"
+                                                                style={
+                                                                  Object {
+                                                                    "display": "inline-block",
+                                                                  }
                                                                 }
-                                                              }
-                                                            />
+                                                              >
+                                                                <input
+                                                                  aria-activedescendant="react-select-3--value"
+                                                                  aria-expanded="false"
+                                                                  aria-haspopup="false"
+                                                                  aria-owns=""
+                                                                  id="externalIssue"
+                                                                  onBlur={[Function]}
+                                                                  onChange={[Function]}
+                                                                  onFocus={[Function]}
+                                                                  required={false}
+                                                                  role="combobox"
+                                                                  style={
+                                                                    Object {
+                                                                      "boxSizing": "content-box",
+                                                                      "width": "5px",
+                                                                    }
+                                                                  }
+                                                                  value=""
+                                                                />
+                                                                <div
+                                                                  style={
+                                                                    Object {
+                                                                      "height": 0,
+                                                                      "left": 0,
+                                                                      "overflow": "scroll",
+                                                                      "position": "absolute",
+                                                                      "top": 0,
+                                                                      "visibility": "hidden",
+                                                                      "whiteSpace": "pre",
+                                                                    }
+                                                                  }
+                                                                />
+                                                              </div>
+                                                            </AutosizeInput>
                                                           </div>
-                                                        </AutosizeInput>
+                                                          <span
+                                                            aria-hidden="true"
+                                                            className="Select-loading-zone"
+                                                          >
+                                                            <span
+                                                              className="Select-loading"
+                                                            />
+                                                          </span>
+                                                          <span
+                                                            className="Select-arrow-zone"
+                                                            onMouseDown={[Function]}
+                                                          >
+                                                            <span
+                                                              className="icon-arrow-down"
+                                                            />
+                                                          </span>
+                                                        </div>
                                                       </div>
-                                                      <span
-                                                        aria-hidden="true"
-                                                        className="Select-loading-zone"
-                                                      >
-                                                        <span
-                                                          className="Select-loading"
-                                                        />
-                                                      </span>
-                                                      <span
-                                                        className="Select-arrow-zone"
-                                                        onMouseDown={[Function]}
-                                                      >
-                                                        <span
-                                                          className="icon-arrow-down"
-                                                        />
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                </Select>
-                                              </Async>
-                                            </SelectPicker>
-                                          </StyledSelect>
+                                                    </Select>
+                                                  </Async>
+                                                </SelectPicker>
+                                              </StyledSelect>
+                                            </SelectControlLegacy>
+                                          </ForwardRef(RefForwardedSelectControl)>
                                         </SelectControl>
                                       </ForwardRef(RefForwardedSelectControl)>
                                     </Observer>
@@ -2125,6 +2313,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               ],
                                               "className": undefined,
                                               "default": "scefali/test",
+                                              "deprecatedSelectControl": true,
                                               "disabled": false,
                                               "escapeMarkup": true,
                                               "field": [Function],
@@ -2156,6 +2345,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               "choices": Array [],
                                               "className": undefined,
                                               "default": "",
+                                              "deprecatedSelectControl": true,
                                               "disabled": false,
                                               "escapeMarkup": true,
                                               "field": [Function],
@@ -2394,6 +2584,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                     ],
                                     "className": undefined,
                                     "default": "scefali/test",
+                                    "deprecatedSelectControl": true,
                                     "disabled": false,
                                     "escapeMarkup": true,
                                     "field": [Function],
@@ -2425,6 +2616,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                     "choices": Array [],
                                     "className": undefined,
                                     "default": "",
+                                    "deprecatedSelectControl": true,
                                     "disabled": false,
                                     "escapeMarkup": true,
                                     "field": [Function],
@@ -2615,6 +2807,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               ],
                                               "className": undefined,
                                               "default": "scefali/test",
+                                              "deprecatedSelectControl": true,
                                               "disabled": false,
                                               "escapeMarkup": true,
                                               "field": [Function],
@@ -2646,6 +2839,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                               "choices": Array [],
                                               "className": undefined,
                                               "default": "",
+                                              "deprecatedSelectControl": true,
                                               "disabled": false,
                                               "escapeMarkup": true,
                                               "field": [Function],
@@ -2753,63 +2947,71 @@ exports[`ExternalIssueForm link renders 1`] = `
               className="css-1utgghf-DefaultButtons e1r1zmbj1"
             >
               <Observer>
-                <Button
-                  align="center"
+                <forwardRef<Button>
                   data-test-id="form-submit"
                   disabled={false}
                   priority="primary"
                   type="submit"
                 >
-                  <StyledButton
-                    aria-disabled={false}
-                    aria-label="Link Issue"
+                  <Button
+                    align="center"
                     data-test-id="form-submit"
                     disabled={false}
-                    onClick={[Function]}
+                    forwardRef={null}
                     priority="primary"
-                    role="button"
                     type="submit"
                   >
-                    <ForwardRef
+                    <StyledButton
                       aria-disabled={false}
                       aria-label="Link Issue"
-                      className="css-1e05jtd-StyledButton edwq9my0"
                       data-test-id="form-submit"
                       disabled={false}
+                      forwardRef={null}
                       onClick={[Function]}
                       priority="primary"
                       role="button"
                       type="submit"
                     >
-                      <button
+                      <Component
                         aria-disabled={false}
                         aria-label="Link Issue"
                         className="css-1e05jtd-StyledButton edwq9my0"
                         data-test-id="form-submit"
+                        forwardRef={null}
                         onClick={[Function]}
                         role="button"
                         type="submit"
                       >
-                        <ButtonLabel
-                          align="center"
-                          priority="primary"
+                        <button
+                          aria-disabled={false}
+                          aria-label="Link Issue"
+                          className="css-1e05jtd-StyledButton edwq9my0"
+                          data-test-id="form-submit"
+                          onClick={[Function]}
+                          role="button"
+                          type="submit"
                         >
-                          <Component
+                          <ButtonLabel
                             align="center"
-                            className="css-zmpclt-ButtonLabel edwq9my1"
                             priority="primary"
                           >
-                            <span
+                            <Component
+                              align="center"
                               className="css-zmpclt-ButtonLabel edwq9my1"
+                              priority="primary"
                             >
-                              Link Issue
-                            </span>
-                          </Component>
-                        </ButtonLabel>
-                      </button>
-                    </ForwardRef>
-                  </StyledButton>
-                </Button>
+                              <span
+                                className="css-zmpclt-ButtonLabel edwq9my1"
+                              >
+                                Link Issue
+                              </span>
+                            </Component>
+                          </ButtonLabel>
+                        </button>
+                      </Component>
+                    </StyledButton>
+                  </Button>
+                </forwardRef<Button>>
               </Observer>
             </div>
           </DefaultButtons>

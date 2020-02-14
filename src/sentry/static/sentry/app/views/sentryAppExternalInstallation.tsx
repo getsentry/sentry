@@ -20,6 +20,7 @@ import NarrowLayout from 'app/components/narrowLayout';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import SelectControl from 'app/components/forms/selectControl';
 import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
@@ -96,7 +97,34 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     if (!organization || !sentryApp) {
       return undefined;
     }
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.installation_start',
+        eventName: 'Integrations: Installation Start',
+        integration_type: 'sentry_app',
+        integration: sentryApp.slug,
+        view: 'external_install',
+        integration_status: sentryApp.status,
+      },
+      organization
+    );
+
     const install = await installSentryApp(this.api, organization.slug, sentryApp);
+    //installation is complete if the status is installed
+    if (install.status === 'installed') {
+      trackIntegrationEvent(
+        {
+          eventKey: 'integrations.installation_complete',
+          eventName: 'Integrations: Installation Complete',
+          integration_type: 'sentry_app',
+          integration: sentryApp.slug,
+          view: 'external_install',
+          integration_status: sentryApp.status,
+        },
+        organization
+      );
+    }
+
     if (sentryApp.redirectUrl) {
       const queryParams = {
         installationId: install.uuid,
@@ -225,6 +253,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
         <Field label={t('Organization')} inline={false} stacked required>
           {() => (
             <SelectControl
+              deprecatedSelectControl
               onChange={({value}) => this.onSelectOrg(value)}
               value={selectedOrgSlug}
               placeholder={t('Select an organization')}

@@ -6,11 +6,14 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
-const BetaTag: React.FC = () => (
-  <Tooltip
-    title={t('This feature is in beta and may change in the future.')}
-    position="right"
-  >
+type Props = {
+  title?: string;
+};
+
+const BetaTag = ({
+  title = t('This feature is in beta and may change in the future.'),
+}: Props) => (
+  <Tooltip title={title} position="right">
     <StyledTag priority="beta" size="small">
       {t('beta')}
     </StyledTag>

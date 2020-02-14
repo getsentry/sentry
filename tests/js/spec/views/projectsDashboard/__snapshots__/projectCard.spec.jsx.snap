@@ -948,47 +948,44 @@ exports[`ProjectCard renders 1`] = `
                 p={2}
               >
                 <div
-                  className="css-d9a0z6-DeployBox elff1ar5"
+                  className="css-d9a0z6-DeployBox elff1ar4"
                 >
                   <Background
                     alignItems="center"
                     justifyContent="center"
                   >
                     <div
-                      className="css-4zyp61-Background elff1ar6"
+                      className="css-4zyp61-Background elff1ar5"
                     >
-                      <Button
-                        align="center"
-                        disabled={false}
+                      <forwardRef<Button>
                         external={true}
                         href="https://docs.sentry.io/learn/releases/"
                         size="xsmall"
                       >
-                        <StyledButton
-                          aria-disabled={false}
-                          aria-label="Track deploys"
+                        <Button
+                          align="center"
                           disabled={false}
                           external={true}
+                          forwardRef={null}
                           href="https://docs.sentry.io/learn/releases/"
-                          onClick={[Function]}
-                          role="button"
                           size="xsmall"
                         >
-                          <ForwardRef
+                          <StyledButton
                             aria-disabled={false}
                             aria-label="Track deploys"
-                            className="css-12ogwys-StyledButton edwq9my0"
                             disabled={false}
                             external={true}
+                            forwardRef={null}
                             href="https://docs.sentry.io/learn/releases/"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
                           >
-                            <ForwardRef
+                            <Component
                               aria-disabled={false}
                               aria-label="Track deploys"
                               className="css-12ogwys-StyledButton edwq9my0"
+                              forwardRef={null}
                               href="https://docs.sentry.io/learn/releases/"
                               onClick={[Function]}
                               role="button"
@@ -1000,10 +997,8 @@ exports[`ProjectCard renders 1`] = `
                                 className="css-12ogwys-StyledButton edwq9my0"
                                 href="https://docs.sentry.io/learn/releases/"
                                 onClick={[Function]}
-                                rel="noreferrer noopener"
                                 role="button"
                                 size="xsmall"
-                                target="_blank"
                               >
                                 <ButtonLabel
                                   align="center"
@@ -1022,10 +1017,10 @@ exports[`ProjectCard renders 1`] = `
                                   </Component>
                                 </ButtonLabel>
                               </a>
-                            </ForwardRef>
-                          </ForwardRef>
-                        </StyledButton>
-                      </Button>
+                            </Component>
+                          </StyledButton>
+                        </Button>
+                      </forwardRef<Button>>
                     </div>
                   </Background>
                 </div>

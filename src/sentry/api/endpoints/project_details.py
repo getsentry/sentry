@@ -10,6 +10,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from sentry_relay import validate_pii_config
 
 from sentry import features
 from sentry.utils.data_filters import FilterTypes
@@ -175,8 +176,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         if not value:
             return value
 
-        from sentry import features
-
         organization = self.context["project"].organization
         request = self.context["request"]
         has_datascrubbers_v2 = features.has(
@@ -186,6 +185,12 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 "Organization does not have the datascrubbers-v2 feature enabled"
             )
+
+        try:
+            validate_pii_config(value)
+        except ValueError as e:
+            raise serializers.ValidationError(e)
+
         return value
 
     def validate_builtinSymbolSources(self, value):
@@ -224,7 +229,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             sources = parse_sources(sources_json.strip())
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
-            raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError(six.text_type(e))
 
         return sources_json
 
@@ -235,7 +240,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
-            raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError(six.text_type(e))
 
         return value
 
@@ -246,7 +251,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             FingerprintingRules.from_config_string(value)
         except InvalidFingerprintingConfig as e:
-            raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError(six.text_type(e))
 
         return value
 

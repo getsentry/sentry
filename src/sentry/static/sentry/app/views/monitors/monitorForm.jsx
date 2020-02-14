@@ -17,7 +17,10 @@ import withOrganization from 'app/utils/withOrganization';
 
 import MonitorModel from './monitorModel';
 
-const SCHEDULE_TYPES = [['crontab', 'Crontab'], ['interval', 'Interval']];
+const SCHEDULE_TYPES = [
+  ['crontab', 'Crontab'],
+  ['interval', 'Interval'],
+];
 
 const MONITOR_TYPES = [['cron_job', 'Cron Job']];
 
@@ -209,6 +212,7 @@ class MonitorForm extends Component {
                               required
                             />
                             <SelectField
+                              deprecatedSelectControl
                               name="config.schedule.interval"
                               label={t('Interval')}
                               disabled={!hasAccess}

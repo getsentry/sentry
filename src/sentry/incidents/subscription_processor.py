@@ -10,6 +10,7 @@ from django.conf import settings
 from django.db import transaction
 
 from sentry.incidents.logic import create_incident, update_incident_status
+from sentry.incidents.endpoints.serializers import WARNING_TRIGGER_LABEL, CRITICAL_TRIGGER_LABEL
 from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
     AlertRule,
@@ -23,7 +24,7 @@ from sentry.incidents.models import (
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import metrics, redis
-from sentry.utils.dates import to_datetime
+from sentry.utils.dates import to_datetime, to_timestamp
 
 
 logger = logging.getLogger(__name__)
@@ -69,12 +70,15 @@ class SubscriptionProcessor(object):
         if not hasattr(self, "_active_incident"):
             try:
                 # Fetch the active incident if one exists for this alert rule.
-                self._active_incident = Incident.objects.filter(
-                    type=IncidentType.ALERT_TRIGGERED.value,
-                    status=IncidentStatus.OPEN.value,
-                    alert_rule=self.alert_rule,
-                    projects=self.subscription.project,
-                ).order_by("-date_added")[0]
+                self._active_incident = (
+                    Incident.objects.filter(
+                        type=IncidentType.ALERT_TRIGGERED.value,
+                        alert_rule=self.alert_rule,
+                        projects=self.subscription.project,
+                    )
+                    .exclude(status=IncidentStatus.CLOSED.value)
+                    .order_by("-date_added")[0]
+                )
             except IndexError:
                 self._active_incident = None
         return self._active_incident
@@ -125,7 +129,17 @@ class SubscriptionProcessor(object):
 
         aggregation = QueryAggregations(self.alert_rule.aggregation)
         aggregation_name = query_aggregation_to_snuba[aggregation][2]
-        aggregation_value = subscription_update["values"][aggregation_name]
+        if len(subscription_update["values"]["data"]) > 1:
+            logger.warning(
+                "Subscription returned more than 1 row of data",
+                extra={
+                    "subscription_id": self.subscription.id,
+                    "dataset": self.subscription.dataset,
+                    "snuba_subscription_id": self.subscription.subscription_id,
+                    "result": subscription_update,
+                },
+            )
+        aggregation_value = subscription_update["values"]["data"][0][aggregation_name]
 
         for trigger in self.triggers:
             alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
@@ -168,7 +182,7 @@ class SubscriptionProcessor(object):
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
-                detected_at = to_datetime(self.last_update)
+                detected_at = self.last_update
                 self.active_incident = create_incident(
                     self.alert_rule.organization,
                     IncidentType.ALERT_TRIGGERED,
@@ -193,6 +207,7 @@ class SubscriptionProcessor(object):
                     alert_rule_trigger=trigger,
                     status=TriggerStatus.ACTIVE.value,
                 )
+            self.handle_incident_severity_update()
             self.handle_trigger_actions(incident_trigger)
             self.incident_triggers[trigger.id] = incident_trigger
 
@@ -231,6 +246,7 @@ class SubscriptionProcessor(object):
             incident_trigger.status = TriggerStatus.RESOLVED.value
             incident_trigger.save()
             self.handle_trigger_actions(incident_trigger)
+            self.handle_incident_severity_update()
 
             if self.check_triggers_resolved():
                 update_incident_status(self.active_incident, IncidentStatus.CLOSED)
@@ -251,6 +267,23 @@ class SubscriptionProcessor(object):
                 },
                 countdown=5,
             )
+
+    def handle_incident_severity_update(self):
+        if self.active_incident:
+            active_incident_triggers = IncidentTrigger.objects.filter(
+                incident=self.active_incident, status=TriggerStatus.ACTIVE.value
+            )
+            severity = None
+            for active_incident_trigger in active_incident_triggers:
+                trigger = active_incident_trigger.alert_rule_trigger
+                if trigger.label == CRITICAL_TRIGGER_LABEL:
+                    severity = IncidentStatus.CRITICAL
+                    break
+                elif trigger.label == WARNING_TRIGGER_LABEL:
+                    severity = IncidentStatus.WARNING
+
+            if severity:
+                update_incident_status(self.active_incident, severity)
 
     def update_alert_rule_stats(self):
         """
@@ -333,7 +366,7 @@ def get_alert_rule_stats(alert_rule, subscription, triggers):
     trigger_keys = build_trigger_stat_keys(alert_rule, subscription, triggers)
     results = get_redis_client().mget(alert_rule_keys + trigger_keys)
     results = tuple(0 if result is None else int(result) for result in results)
-    last_update = results[0]
+    last_update = to_datetime(results[0])
     trigger_results = results[1:]
     trigger_alert_counts = {}
     trigger_resolve_counts = {}
@@ -364,14 +397,10 @@ def update_alert_rule_stats(alert_rule, subscription, last_update, alert_counts,
             )
 
     last_update_key = build_alert_rule_stat_keys(alert_rule, subscription)[0]
-    pipeline.set(last_update_key, last_update, ex=REDIS_TTL)
+    pipeline.set(last_update_key, int(to_timestamp(last_update)), ex=REDIS_TTL)
     pipeline.execute()
 
 
 def get_redis_client():
-    cluster_key = getattr(settings, "SENTRY_INCIDENT_RULES_REDIS_CLUSTER", None)
-    if cluster_key is None:
-        client = redis.clusters.get("default").get_local_client(0)
-    else:
-        client = redis.redis_clusters.get(cluster_key)
-    return client
+    cluster_key = getattr(settings, "SENTRY_INCIDENT_RULES_REDIS_CLUSTER", "default")
+    return redis.redis_clusters.get(cluster_key)

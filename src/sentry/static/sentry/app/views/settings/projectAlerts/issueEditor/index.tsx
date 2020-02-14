@@ -47,7 +47,11 @@ const FREQUENCY_CHOICES = [
   ['43200', t('30 days')],
 ];
 
-const ACTION_MATCH_CHOICES = [['all', t('all')], ['any', t('any')], ['none', t('none')]];
+const ACTION_MATCH_CHOICES = [
+  ['all', t('all')],
+  ['any', t('any')],
+  ['none', t('none')],
+];
 
 const defaultRule: UnsavedIssueAlertRule = {
   actionMatch: 'all',
@@ -281,6 +285,7 @@ class IssueRuleEditor extends React.Component<Props, State> {
                 value={environment}
                 choices={environmentChoices}
                 onChange={val => this.handleEnvironmentChange(val)}
+                multiple
               />
 
               <PanelSubHeader>

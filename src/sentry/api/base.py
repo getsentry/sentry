@@ -236,7 +236,10 @@ class Endpoint(APIView):
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
 
-        per_page = int(request.GET.get("per_page", default_per_page))
+        try:
+            per_page = int(request.GET.get("per_page", default_per_page))
+        except ValueError:
+            raise ParseError(detail="Invalid per_page parameter.")
 
         input_cursor = None
         if request.GET.get("cursor"):
@@ -253,7 +256,7 @@ class Endpoint(APIView):
         try:
             cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
         except BadPaginationError as e:
-            return Response({"detail": e.message}, status=400)
+            return ParseError(detail=six.text_type(e))
 
         # map results based on callback
         if on_results:

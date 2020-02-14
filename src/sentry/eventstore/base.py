@@ -173,9 +173,7 @@ class EventStorage(Service):
         """
         Returns an Event from processed data
         """
-        return Event(
-            project_id=project_id, event_id=event_id, group_id=group_id, data=data
-        )
+        return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
 
     def bind_nodes(self, object_list, node_name="data"):
         """
@@ -187,12 +185,8 @@ class EventStorage(Service):
         It's not necessary to bind a single Event object since data will be lazily
         fetched on any attempt to access a property.
         """
-        # Temporarily make bind_nodes noop to prevent unnecessary additional calls
-        # to nodestore by the event serializer.
-        unfetched_object_list = [i for i in object_list if not getattr(i, node_name)._node_data]
-
         object_node_list = [
-            (i, getattr(i, node_name)) for i in unfetched_object_list if getattr(i, node_name).id
+            (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
         ]
 
         node_ids = [n.id for _, n in object_node_list]

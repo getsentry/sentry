@@ -40,6 +40,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
     conf_title = BitbucketMixin.title
     conf_key = "bitbucket"
     auth_provider = "bitbucket"
+    required_field = "repo"
 
     def get_group_urls(self):
         return super(BitbucketPlugin, self).get_group_urls() + [

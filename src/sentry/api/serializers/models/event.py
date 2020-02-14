@@ -4,7 +4,7 @@ import six
 
 from datetime import datetime
 from django.utils import timezone
-from semaphore import meta_with_chunks
+from sentry_relay import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import EventAttachment, EventError, Release, UserReport
@@ -356,7 +356,7 @@ class SimpleEventSerializer(EventSerializer):
         user = obj.get_minimal_user()
 
         return {
-            "id": six.text_type(obj.id),
+            "id": six.text_type(obj.event_id),
             "event.type": six.text_type(obj.get_event_type()),
             "groupID": six.text_type(obj.group_id) if obj.group_id else None,
             "eventID": six.text_type(obj.event_id),

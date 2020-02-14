@@ -11,7 +11,7 @@ import BetaTag from 'app/components/betaTag';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 
 import withOrganization from 'app/utils/withOrganization';
 
@@ -270,9 +270,7 @@ class EventGroupingInfo extends AsyncComponent {
   getEndpoints() {
     const {organization, event, projectId} = this.props;
 
-    let path = `/projects/${organization.slug}/${projectId}/events/${
-      event.id
-    }/grouping-info/`;
+    let path = `/projects/${organization.slug}/${projectId}/events/${event.id}/grouping-info/`;
     if (this.state && this.state.configOverride) {
       path = `${path}?config=${this.state.configOverride}`;
     }

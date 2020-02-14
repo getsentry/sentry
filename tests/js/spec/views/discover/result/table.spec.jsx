@@ -14,7 +14,10 @@ describe('ResultTable', function() {
         query={{aggregations: [], fields: ['id', 'project.id']}}
         data={{
           data: [{id: '111', 'project.id': 1}],
-          meta: [{name: 'id', type: 'string'}, {name: 'project.id', type: 'number'}],
+          meta: [
+            {name: 'id', type: 'string'},
+            {name: 'project.id', type: 'number'},
+          ],
         }}
       />
     );
