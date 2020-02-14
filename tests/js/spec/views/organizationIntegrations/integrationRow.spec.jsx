@@ -86,6 +86,7 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
       expect(wrapper.find('PublishStatus').exists()).toEqual(false);
       expect(wrapper.find('StyledLink').props().children).toEqual('1 Configuration');
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('has been installed (3 configurations)', async function() {
@@ -110,6 +111,7 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
       expect(wrapper.find('PublishStatus').exists()).toEqual(false);
       expect(wrapper.find('StyledLink').props().children).toEqual('3 Configurations');
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('has not been installed', async function() {
@@ -134,6 +136,7 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
       expect(wrapper.find('PublishStatus').exists()).toEqual(false);
       expect(wrapper.find('StyledLink').exists()).toEqual(false);
+      expect(wrapper).toMatchSnapshot();
     });
   });
   describe('Plugin', function() {
@@ -159,6 +162,7 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
       expect(wrapper.find('PublishStatus').exists()).toEqual(false);
       expect(wrapper.find('StyledLink').props().children).toEqual('1 Configuration');
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('has been installed (3 projects)', async function() {
@@ -183,6 +187,7 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
       expect(wrapper.find('PublishStatus').exists()).toEqual(false);
       expect(wrapper.find('StyledLink').props().children).toEqual('3 Configurations');
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('has not been installed', async function() {
@@ -207,6 +212,7 @@ describe('IntegrationRow', function() {
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
       expect(wrapper.find('PublishStatus').exists()).toEqual(false);
       expect(wrapper.find('StyledLink').exists()).toEqual(false);
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

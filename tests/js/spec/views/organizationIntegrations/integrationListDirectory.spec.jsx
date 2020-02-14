@@ -20,9 +20,10 @@ describe('IntegrationListDirectory', function() {
 
   const org = TestStubs.Organization();
   const routerContext = TestStubs.routerContext();
+  let wrapper;
 
   describe('Renders view', function() {
-    beforeEach(() =>
+    beforeEach(() => {
       mockResponse([
         [
           `/organizations/${org.slug}/config/integrations/`,
@@ -281,14 +282,18 @@ describe('IntegrationListDirectory', function() {
           ],
         ],
         [`/organizations/${org.slug}/repos/?status=unmigratable`, []],
-      ])
-    );
-    it('shows installed integrations at the top', async function() {
-      const wrapper = mountWithTheme(
+      ]);
+
+      wrapper = mountWithTheme(
         <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
         routerContext
       );
+    });
+    it('match previous snapshot', async function() {
+      expect(wrapper).toMatchSnapshot();
+    });
 
+    it('shows installed integrations at the top', async function() {
       expect(wrapper.find('SearchInput').exists()).toBeTruthy();
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
       expect(wrapper.find('IntegrationRow')).toHaveLength(6);
@@ -331,22 +336,12 @@ describe('IntegrationListDirectory', function() {
     });
 
     it('does not show legacy plugin that has a First Party Integration if not installed', async function() {
-      const wrapper = mountWithTheme(
-        <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
-        routerContext
-      );
-
       wrapper.find('IntegrationRow').forEach(node => {
         expect(node.props().displayName).not.toEqual('Github (Legacy)');
       });
     });
 
     it('shows legacy plugin that has a First Party Integration if installed', async function() {
-      const wrapper = mountWithTheme(
-        <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
-        routerContext
-      );
-
       const legacyPluginRow = wrapper.find('IntegrationRow').filterWhere(node => {
         return node.props().displayName === 'PagerDuty (Legacy)';
       });

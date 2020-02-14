@@ -1,0 +1,1264 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
+<WithOrganizationMockWrapper
+  location={
+    Object {
+      "search": "",
+    }
+  }
+  params={
+    Object {
+      "orgId": "org-slug",
+    }
+  }
+>
+  <OrganizationIntegrations
+    location={
+      Object {
+        "search": "",
+      }
+    }
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "org:integrations",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+  >
+    <SentryDocumentTitle
+      objSlug="org-slug"
+      title="Integrations"
+    >
+      <SideEffect(DocumentTitle)
+        title="Integrations - org-slug - Sentry"
+      >
+        <DocumentTitle
+          title="Integrations - org-slug - Sentry"
+        />
+      </SideEffect(DocumentTitle)>
+    </SentryDocumentTitle>
+    <StyledSettingsPageHeading
+      noTitleStyles={false}
+      title="Integrations"
+    >
+      <SettingsPageHeading
+        className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+        noTitleStyles={false}
+        title="Integrations"
+      >
+        <div
+          className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+        >
+          <TitleAndActions>
+            <div
+              className="css-ifzfc5-TitleAndActions e1uay4fd0"
+            >
+              <Title
+                styled={false}
+              >
+                <div
+                  className="css-120v9s3-Title e1uay4fd1"
+                >
+                  <HeaderTitle>
+                    <h4
+                      className="css-1bosio6-HeaderTitle eqkydle2"
+                    >
+                      Integrations
+                    </h4>
+                  </HeaderTitle>
+                </div>
+              </Title>
+            </div>
+          </TitleAndActions>
+        </div>
+      </SettingsPageHeading>
+    </StyledSettingsPageHeading>
+    <PermissionAlert
+      access={
+        Array [
+          "org:integrations",
+        ]
+      }
+    >
+      <WithOrganizationMockWrapper
+        access={
+          Array [
+            "org:integrations",
+          ]
+        }
+      >
+        <withConfig(Access)
+          access={
+            Array [
+              "org:integrations",
+            ]
+          }
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+        >
+          <Access
+            access={
+              Array [
+                "org:integrations",
+              ]
+            }
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            isSuperuser={false}
+            organization={
+              Object {
+                "access": Array [
+                  "org:read",
+                  "org:write",
+                  "org:admin",
+                  "org:integrations",
+                  "project:read",
+                  "project:write",
+                  "project:admin",
+                  "team:read",
+                  "team:write",
+                  "team:admin",
+                ],
+                "features": Array [],
+                "id": "3",
+                "name": "Organization Name",
+                "onboardingTasks": Array [],
+                "projects": Array [],
+                "scrapeJavaScript": true,
+                "slug": "org-slug",
+                "status": Object {
+                  "id": "active",
+                  "name": "active",
+                },
+                "teams": Array [],
+              }
+            }
+            renderNoAccessMessage={false}
+            requireAll={true}
+          />
+        </withConfig(Access)>
+      </WithOrganizationMockWrapper>
+    </PermissionAlert>
+    <MigrationWarnings
+      onInstall={[Function]}
+      orgId="org-slug"
+      providers={
+        Array [
+          Object {
+            "canAdd": true,
+            "canDisable": false,
+            "features": Array [
+              "commits",
+              "issue-basic",
+            ],
+            "key": "bitbucket",
+            "metadata": Object {
+              "aspects": Object {},
+              "author": "The Sentry Team",
+              "description": "Connect your Sentry organization to Bitbucket, enabling the following features:",
+              "features": Array [],
+              "issue_url": "https://github.com/getsentry/sentry/issues/new?title=Bitbucket%20Integration:%20&labels=Component%3A%20Integrations",
+              "noun": "Installation",
+              "source_url": "https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket",
+            },
+            "name": "Bitbucket",
+            "setupDialog": Object {
+              "height": 600,
+              "url": "/organizations/sentry/integrations/bitbucket/setup/",
+              "width": 600,
+            },
+            "slug": "bitbucket",
+          },
+        ]
+      }
+    />
+    <SearchInput
+      onChange={[Function]}
+      placeholder="Find a new integration, or one you already use."
+      value=""
+      width="100%"
+    >
+      <SearchWrapper
+        smaller={false}
+        width="100%"
+      >
+        <div
+          className="css-18cclrs-SearchWrapper e1mrdgrx3"
+          width="100%"
+        >
+          <SearchIcon>
+            <Component
+              className="css-1ecmh4k-SearchIcon e1mrdgrx0"
+            >
+              <InlineSvg
+                className="css-1ecmh4k-SearchIcon e1mrdgrx0"
+                src="icon-search"
+              >
+                <ForwardRef
+                  className="e1mrdgrx0 css-1aheu2a-InlineSvg-SearchIcon enyz4ql0"
+                  src="icon-search"
+                >
+                  <svg
+                    className="e1mrdgrx0 css-1aheu2a-InlineSvg-SearchIcon enyz4ql0"
+                    height="1em"
+                    viewBox={Object {}}
+                    width="1em"
+                  >
+                    <use
+                      href="#test"
+                      xlinkHref="#test"
+                    />
+                  </svg>
+                </ForwardRef>
+              </InlineSvg>
+            </Component>
+          </SearchIcon>
+          <SearchField
+            onChange={[Function]}
+            placeholder="Find a new integration, or one you already use."
+            value=""
+          >
+            <Input
+              className="css-1pf8c1a-SearchField e1mrdgrx1"
+              onChange={[Function]}
+              placeholder="Find a new integration, or one you already use."
+              value=""
+            >
+              <input
+                className="form-control css-1pf8c1a-SearchField e1mrdgrx1"
+                onChange={[Function]}
+                placeholder="Find a new integration, or one you already use."
+                value=""
+              />
+            </Input>
+          </SearchField>
+        </div>
+      </SearchWrapper>
+    </SearchInput>
+    <TagsContainer>
+      <div
+        className="css-1sxkgig-TagsContainer ezentgk2"
+      >
+        <Tag
+          key="Source Control"
+        >
+          <span
+            className="css-9xs7c4-Tag ezentgk3"
+          >
+            Source Control
+          </span>
+        </Tag>
+        <Tag
+          key="Ticketing"
+        >
+          <span
+            className="css-9xs7c4-Tag ezentgk3"
+          >
+            Ticketing
+          </span>
+        </Tag>
+        <Tag
+          key="Data Forwarding"
+        >
+          <span
+            className="css-9xs7c4-Tag ezentgk3"
+          >
+            Data Forwarding
+          </span>
+        </Tag>
+        <Tag
+          key="Release Management"
+        >
+          <span
+            className="css-9xs7c4-Tag ezentgk3"
+          >
+            Release Management
+          </span>
+        </Tag>
+        <Tag
+          key="Notifications"
+        >
+          <span
+            className="css-9xs7c4-Tag ezentgk3"
+          >
+            Notifications
+          </span>
+        </Tag>
+      </div>
+    </TagsContainer>
+    <Panel>
+      <Component
+        className="css-15hwgrz-Panel e119nu470"
+      >
+        <div
+          className="css-15hwgrz-Panel e119nu470"
+        >
+          <PanelHeader
+            disablePadding={true}
+          >
+            <div
+              className="css-1swm9xr-PanelHeader en8g1d30"
+            >
+              <Heading>
+                <div
+                  className="css-w4ryog-Heading ezentgk1"
+                >
+                  Integrations
+                </div>
+              </Heading>
+            </div>
+          </PanelHeader>
+          <PanelBody
+            direction="column"
+            disablePadding={true}
+            flex={false}
+          >
+            <FlexBox
+              disablePadding={true}
+              flex={false}
+            >
+              <div
+                className="css-1ehogmz-FlexBox e1vnwt6f0"
+              >
+                <IntegrationRow
+                  configurations={1}
+                  data-test-id="integration-row"
+                  displayName="Bitbucket"
+                  key="row-bitbucket"
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
+                  publishStatus="published"
+                  slug="bitbucket"
+                  status="Installed"
+                  type="firstParty"
+                >
+                  <PanelItem
+                    data-test-id="bitbucket"
+                    flexDirection="column"
+                    p={0}
+                  >
+                    <div
+                      className="css-v767y6-PanelItem ej5ox20"
+                      data-test-id="bitbucket"
+                    >
+                      <FlexContainer>
+                        <div
+                          className="css-o4gyye-FlexContainer e12p8vfu0"
+                        >
+                          <PluginIcon
+                            pluginId="bitbucket"
+                            size={36}
+                          >
+                            <div
+                              className="css-10qz5vf-PluginIcon e7e65lm0"
+                              size={36}
+                            />
+                          </PluginIcon>
+                          <Container>
+                            <div
+                              className="css-1n3wm29-Container e12p8vfu1"
+                            >
+                              <IntegrationName
+                                to="/settings/org-slug/integrations/bitbucket/"
+                              >
+                                <Link
+                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  to="/settings/org-slug/integrations/bitbucket/"
+                                >
+                                  <Link
+                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    onlyActiveOnIndex={false}
+                                    style={Object {}}
+                                    to="/settings/org-slug/integrations/bitbucket/"
+                                  >
+                                    <a
+                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      onClick={[Function]}
+                                      style={Object {}}
+                                    >
+                                      Bitbucket
+                                    </a>
+                                  </Link>
+                                </Link>
+                              </IntegrationName>
+                              <IntegrationDetails>
+                                <div
+                                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                                >
+                                  <IntegrationStatus
+                                    status="Installed"
+                                  >
+                                    <Component
+                                      className="css-t8gms5-IntegrationStatus euvdmu91"
+                                      status="Installed"
+                                    >
+                                      <StatusWrapper>
+                                        <div
+                                          className="css-efkdqp-StatusWrapper euvdmu90"
+                                        >
+                                          <CircleIndicator
+                                            color="#57be8c"
+                                            enabled={true}
+                                            size={6}
+                                          >
+                                            <div
+                                              className="css-s0amrh-CircleIndicator exfjg1y0"
+                                              color="#57be8c"
+                                              size={6}
+                                            />
+                                          </CircleIndicator>
+                                          <div
+                                            className="css-t8gms5-IntegrationStatus euvdmu91"
+                                          >
+                                            Installed
+                                          </div>
+                                        </div>
+                                      </StatusWrapper>
+                                    </Component>
+                                  </IntegrationStatus>
+                                  <StyledLink
+                                    to="/settings/org-slug/integrations/bitbucket/?tab=configurations"
+                                  >
+                                    <Link
+                                      className="css-1b2m980-StyledLink e12p8vfu4"
+                                      to="/settings/org-slug/integrations/bitbucket/?tab=configurations"
+                                    >
+                                      <Link
+                                        className="css-1b2m980-StyledLink e12p8vfu4"
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to="/settings/org-slug/integrations/bitbucket/?tab=configurations"
+                                      >
+                                        <a
+                                          className="css-1b2m980-StyledLink e12p8vfu4"
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          1 Configuration
+                                        </a>
+                                      </Link>
+                                    </Link>
+                                  </StyledLink>
+                                </div>
+                              </IntegrationDetails>
+                            </div>
+                          </Container>
+                        </div>
+                      </FlexContainer>
+                    </div>
+                  </PanelItem>
+                </IntegrationRow>
+                <IntegrationRow
+                  configurations={0}
+                  data-test-id="integration-row"
+                  displayName="My Headband Washer"
+                  key="sentry-app-row-my-headband-washer-289499"
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
+                  publishStatus="internal"
+                  slug="my-headband-washer-289499"
+                  status="Installed"
+                  type="sentryApp"
+                >
+                  <PanelItem
+                    data-test-id="my-headband-washer-289499"
+                    flexDirection="column"
+                    p={0}
+                  >
+                    <div
+                      className="css-v767y6-PanelItem ej5ox20"
+                      data-test-id="my-headband-washer-289499"
+                    >
+                      <FlexContainer>
+                        <div
+                          className="css-o4gyye-FlexContainer e12p8vfu0"
+                        >
+                          <PluginIcon
+                            pluginId="my-headband-washer-289499"
+                            size={36}
+                          >
+                            <div
+                              className="css-10qz5vf-PluginIcon e7e65lm0"
+                              size={36}
+                            />
+                          </PluginIcon>
+                          <Container>
+                            <div
+                              className="css-1n3wm29-Container e12p8vfu1"
+                            >
+                              <IntegrationName
+                                to="/settings/org-slug/sentry-apps/my-headband-washer-289499/"
+                              >
+                                <Link
+                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  to="/settings/org-slug/sentry-apps/my-headband-washer-289499/"
+                                >
+                                  <Link
+                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    onlyActiveOnIndex={false}
+                                    style={Object {}}
+                                    to="/settings/org-slug/sentry-apps/my-headband-washer-289499/"
+                                  >
+                                    <a
+                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      onClick={[Function]}
+                                      style={Object {}}
+                                    >
+                                      My Headband Washer
+                                    </a>
+                                  </Link>
+                                </Link>
+                              </IntegrationName>
+                              <IntegrationDetails>
+                                <div
+                                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                                >
+                                  <IntegrationStatus
+                                    status="Installed"
+                                  >
+                                    <Component
+                                      className="css-t8gms5-IntegrationStatus euvdmu91"
+                                      status="Installed"
+                                    >
+                                      <StatusWrapper>
+                                        <div
+                                          className="css-efkdqp-StatusWrapper euvdmu90"
+                                        >
+                                          <CircleIndicator
+                                            color="#57be8c"
+                                            enabled={true}
+                                            size={6}
+                                          >
+                                            <div
+                                              className="css-s0amrh-CircleIndicator exfjg1y0"
+                                              color="#57be8c"
+                                              size={6}
+                                            />
+                                          </CircleIndicator>
+                                          <div
+                                            className="css-t8gms5-IntegrationStatus euvdmu91"
+                                          >
+                                            Installed
+                                          </div>
+                                        </div>
+                                      </StatusWrapper>
+                                    </Component>
+                                  </IntegrationStatus>
+                                  <PublishStatus
+                                    status="internal"
+                                  >
+                                    <Component
+                                      className="css-1m9vm8x-PublishStatus e12p8vfu5"
+                                      status="internal"
+                                    >
+                                      <div
+                                        className="css-1m9vm8x-PublishStatus e12p8vfu5"
+                                      >
+                                        internal
+                                      </div>
+                                    </Component>
+                                  </PublishStatus>
+                                </div>
+                              </IntegrationDetails>
+                            </div>
+                          </Container>
+                        </div>
+                      </FlexContainer>
+                    </div>
+                  </PanelItem>
+                </IntegrationRow>
+                <IntegrationRow
+                  configurations={1}
+                  data-test-id="integration-row"
+                  displayName="PagerDuty (Legacy)"
+                  key="row-plugin-pagerduty"
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
+                  publishStatus="published"
+                  slug="pagerduty"
+                  status="Installed"
+                  type="plugin"
+                >
+                  <PanelItem
+                    data-test-id="pagerduty"
+                    flexDirection="column"
+                    p={0}
+                  >
+                    <div
+                      className="css-v767y6-PanelItem ej5ox20"
+                      data-test-id="pagerduty"
+                    >
+                      <FlexContainer>
+                        <div
+                          className="css-o4gyye-FlexContainer e12p8vfu0"
+                        >
+                          <PluginIcon
+                            pluginId="pagerduty"
+                            size={36}
+                          >
+                            <div
+                              className="css-10qz5vf-PluginIcon e7e65lm0"
+                              size={36}
+                            />
+                          </PluginIcon>
+                          <Container>
+                            <div
+                              className="css-1n3wm29-Container e12p8vfu1"
+                            >
+                              <IntegrationName
+                                to="/settings/org-slug/plugins/pagerduty/"
+                              >
+                                <Link
+                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  to="/settings/org-slug/plugins/pagerduty/"
+                                >
+                                  <Link
+                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    onlyActiveOnIndex={false}
+                                    style={Object {}}
+                                    to="/settings/org-slug/plugins/pagerduty/"
+                                  >
+                                    <a
+                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      onClick={[Function]}
+                                      style={Object {}}
+                                    >
+                                      PagerDuty (Legacy)
+                                    </a>
+                                  </Link>
+                                </Link>
+                              </IntegrationName>
+                              <IntegrationDetails>
+                                <div
+                                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                                >
+                                  <IntegrationStatus
+                                    status="Installed"
+                                  >
+                                    <Component
+                                      className="css-t8gms5-IntegrationStatus euvdmu91"
+                                      status="Installed"
+                                    >
+                                      <StatusWrapper>
+                                        <div
+                                          className="css-efkdqp-StatusWrapper euvdmu90"
+                                        >
+                                          <CircleIndicator
+                                            color="#57be8c"
+                                            enabled={true}
+                                            size={6}
+                                          >
+                                            <div
+                                              className="css-s0amrh-CircleIndicator exfjg1y0"
+                                              color="#57be8c"
+                                              size={6}
+                                            />
+                                          </CircleIndicator>
+                                          <div
+                                            className="css-t8gms5-IntegrationStatus euvdmu91"
+                                          >
+                                            Installed
+                                          </div>
+                                        </div>
+                                      </StatusWrapper>
+                                    </Component>
+                                  </IntegrationStatus>
+                                  <StyledLink
+                                    to="/settings/org-slug/plugins/pagerduty/?tab=configurations"
+                                  >
+                                    <Link
+                                      className="css-1b2m980-StyledLink e12p8vfu4"
+                                      to="/settings/org-slug/plugins/pagerduty/?tab=configurations"
+                                    >
+                                      <Link
+                                        className="css-1b2m980-StyledLink e12p8vfu4"
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to="/settings/org-slug/plugins/pagerduty/?tab=configurations"
+                                      >
+                                        <a
+                                          className="css-1b2m980-StyledLink e12p8vfu4"
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          1 Configuration
+                                        </a>
+                                      </Link>
+                                    </Link>
+                                  </StyledLink>
+                                </div>
+                              </IntegrationDetails>
+                            </div>
+                          </Container>
+                        </div>
+                      </FlexContainer>
+                    </div>
+                  </PanelItem>
+                </IntegrationRow>
+                <IntegrationRow
+                  configurations={0}
+                  data-test-id="integration-row"
+                  displayName="Amazon SQS "
+                  key="row-plugin-amazon-sqs"
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
+                  publishStatus="published"
+                  slug="amazon-sqs"
+                  status="Not Installed"
+                  type="plugin"
+                >
+                  <PanelItem
+                    data-test-id="amazon-sqs"
+                    flexDirection="column"
+                    p={0}
+                  >
+                    <div
+                      className="css-v767y6-PanelItem ej5ox20"
+                      data-test-id="amazon-sqs"
+                    >
+                      <FlexContainer>
+                        <div
+                          className="css-o4gyye-FlexContainer e12p8vfu0"
+                        >
+                          <PluginIcon
+                            pluginId="amazon-sqs"
+                            size={36}
+                          >
+                            <div
+                              className="css-10qz5vf-PluginIcon e7e65lm0"
+                              size={36}
+                            />
+                          </PluginIcon>
+                          <Container>
+                            <div
+                              className="css-1n3wm29-Container e12p8vfu1"
+                            >
+                              <IntegrationName
+                                to="/settings/org-slug/plugins/amazon-sqs/"
+                              >
+                                <Link
+                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  to="/settings/org-slug/plugins/amazon-sqs/"
+                                >
+                                  <Link
+                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    onlyActiveOnIndex={false}
+                                    style={Object {}}
+                                    to="/settings/org-slug/plugins/amazon-sqs/"
+                                  >
+                                    <a
+                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      onClick={[Function]}
+                                      style={Object {}}
+                                    >
+                                      Amazon SQS 
+                                    </a>
+                                  </Link>
+                                </Link>
+                              </IntegrationName>
+                              <IntegrationDetails>
+                                <div
+                                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                                >
+                                  <IntegrationStatus
+                                    status="Not Installed"
+                                  >
+                                    <Component
+                                      className="css-13e7ceq-IntegrationStatus euvdmu91"
+                                      status="Not Installed"
+                                    >
+                                      <StatusWrapper>
+                                        <div
+                                          className="css-efkdqp-StatusWrapper euvdmu90"
+                                        >
+                                          <CircleIndicator
+                                            color="#9585A3"
+                                            enabled={true}
+                                            size={6}
+                                          >
+                                            <div
+                                              className="css-8o8wlf-CircleIndicator exfjg1y0"
+                                              color="#9585A3"
+                                              size={6}
+                                            />
+                                          </CircleIndicator>
+                                          <div
+                                            className="css-13e7ceq-IntegrationStatus euvdmu91"
+                                          >
+                                            Not Installed
+                                          </div>
+                                        </div>
+                                      </StatusWrapper>
+                                    </Component>
+                                  </IntegrationStatus>
+                                </div>
+                              </IntegrationDetails>
+                            </div>
+                          </Container>
+                        </div>
+                      </FlexContainer>
+                    </div>
+                  </PanelItem>
+                </IntegrationRow>
+                <IntegrationRow
+                  configurations={0}
+                  data-test-id="integration-row"
+                  displayName="ClickUp"
+                  key="sentry-app-row-clickup"
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
+                  publishStatus="published"
+                  slug="clickup"
+                  status="Not Installed"
+                  type="sentryApp"
+                >
+                  <PanelItem
+                    data-test-id="clickup"
+                    flexDirection="column"
+                    p={0}
+                  >
+                    <div
+                      className="css-v767y6-PanelItem ej5ox20"
+                      data-test-id="clickup"
+                    >
+                      <FlexContainer>
+                        <div
+                          className="css-o4gyye-FlexContainer e12p8vfu0"
+                        >
+                          <PluginIcon
+                            pluginId="clickup"
+                            size={36}
+                          >
+                            <div
+                              className="css-10qz5vf-PluginIcon e7e65lm0"
+                              size={36}
+                            />
+                          </PluginIcon>
+                          <Container>
+                            <div
+                              className="css-1n3wm29-Container e12p8vfu1"
+                            >
+                              <IntegrationName
+                                to="/settings/org-slug/sentry-apps/clickup/"
+                              >
+                                <Link
+                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  to="/settings/org-slug/sentry-apps/clickup/"
+                                >
+                                  <Link
+                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    onlyActiveOnIndex={false}
+                                    style={Object {}}
+                                    to="/settings/org-slug/sentry-apps/clickup/"
+                                  >
+                                    <a
+                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      onClick={[Function]}
+                                      style={Object {}}
+                                    >
+                                      ClickUp
+                                    </a>
+                                  </Link>
+                                </Link>
+                              </IntegrationName>
+                              <IntegrationDetails>
+                                <div
+                                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                                >
+                                  <IntegrationStatus
+                                    status="Not Installed"
+                                  >
+                                    <Component
+                                      className="css-13e7ceq-IntegrationStatus euvdmu91"
+                                      status="Not Installed"
+                                    >
+                                      <StatusWrapper>
+                                        <div
+                                          className="css-efkdqp-StatusWrapper euvdmu90"
+                                        >
+                                          <CircleIndicator
+                                            color="#9585A3"
+                                            enabled={true}
+                                            size={6}
+                                          >
+                                            <div
+                                              className="css-8o8wlf-CircleIndicator exfjg1y0"
+                                              color="#9585A3"
+                                              size={6}
+                                            />
+                                          </CircleIndicator>
+                                          <div
+                                            className="css-13e7ceq-IntegrationStatus euvdmu91"
+                                          >
+                                            Not Installed
+                                          </div>
+                                        </div>
+                                      </StatusWrapper>
+                                    </Component>
+                                  </IntegrationStatus>
+                                </div>
+                              </IntegrationDetails>
+                            </div>
+                          </Container>
+                        </div>
+                      </FlexContainer>
+                    </div>
+                  </PanelItem>
+                </IntegrationRow>
+                <IntegrationRow
+                  configurations={0}
+                  data-test-id="integration-row"
+                  displayName="La Croix Monitor"
+                  key="sentry-app-row-la-croix-monitor"
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
+                  publishStatus="unpublished"
+                  slug="la-croix-monitor"
+                  status="Not Installed"
+                  type="sentryApp"
+                >
+                  <PanelItem
+                    data-test-id="la-croix-monitor"
+                    flexDirection="column"
+                    p={0}
+                  >
+                    <div
+                      className="css-v767y6-PanelItem ej5ox20"
+                      data-test-id="la-croix-monitor"
+                    >
+                      <FlexContainer>
+                        <div
+                          className="css-o4gyye-FlexContainer e12p8vfu0"
+                        >
+                          <PluginIcon
+                            pluginId="la-croix-monitor"
+                            size={36}
+                          >
+                            <div
+                              className="css-10qz5vf-PluginIcon e7e65lm0"
+                              size={36}
+                            />
+                          </PluginIcon>
+                          <Container>
+                            <div
+                              className="css-1n3wm29-Container e12p8vfu1"
+                            >
+                              <IntegrationName
+                                to="/settings/org-slug/sentry-apps/la-croix-monitor/"
+                              >
+                                <Link
+                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  to="/settings/org-slug/sentry-apps/la-croix-monitor/"
+                                >
+                                  <Link
+                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    onlyActiveOnIndex={false}
+                                    style={Object {}}
+                                    to="/settings/org-slug/sentry-apps/la-croix-monitor/"
+                                  >
+                                    <a
+                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      onClick={[Function]}
+                                      style={Object {}}
+                                    >
+                                      La Croix Monitor
+                                    </a>
+                                  </Link>
+                                </Link>
+                              </IntegrationName>
+                              <IntegrationDetails>
+                                <div
+                                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                                >
+                                  <IntegrationStatus
+                                    status="Not Installed"
+                                  >
+                                    <Component
+                                      className="css-13e7ceq-IntegrationStatus euvdmu91"
+                                      status="Not Installed"
+                                    >
+                                      <StatusWrapper>
+                                        <div
+                                          className="css-efkdqp-StatusWrapper euvdmu90"
+                                        >
+                                          <CircleIndicator
+                                            color="#9585A3"
+                                            enabled={true}
+                                            size={6}
+                                          >
+                                            <div
+                                              className="css-8o8wlf-CircleIndicator exfjg1y0"
+                                              color="#9585A3"
+                                              size={6}
+                                            />
+                                          </CircleIndicator>
+                                          <div
+                                            className="css-13e7ceq-IntegrationStatus euvdmu91"
+                                          >
+                                            Not Installed
+                                          </div>
+                                        </div>
+                                      </StatusWrapper>
+                                    </Component>
+                                  </IntegrationStatus>
+                                  <PublishStatus
+                                    status="unpublished"
+                                  >
+                                    <Component
+                                      className="css-1m9vm8x-PublishStatus e12p8vfu5"
+                                      status="unpublished"
+                                    >
+                                      <div
+                                        className="css-1m9vm8x-PublishStatus e12p8vfu5"
+                                      >
+                                        unpublished
+                                      </div>
+                                    </Component>
+                                  </PublishStatus>
+                                </div>
+                              </IntegrationDetails>
+                            </div>
+                          </Container>
+                        </div>
+                      </FlexContainer>
+                    </div>
+                  </PanelItem>
+                </IntegrationRow>
+              </div>
+            </FlexBox>
+          </PanelBody>
+        </div>
+      </Component>
+    </Panel>
+  </OrganizationIntegrations>
+</WithOrganizationMockWrapper>
+`;
