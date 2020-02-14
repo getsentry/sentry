@@ -260,10 +260,6 @@ const TransparentLoadingMask = styled(LoadingMask)`
 // Contains styling for chart elements as we can't easily style those
 // elements directly
 const ChartContainer = styled('div')`
-  .echarts-for-react div:first-child {
-    width: 100% !important;
-  }
-
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-date {
@@ -304,6 +300,10 @@ const ChartContainer = styled('div')`
     border-top-color: ${p => p.theme.gray5};
     border-width: 8px;
     margin-left: -8px;
+  }
+
+  .echarts-for-react div:first-child {
+    width: 100% !important;
   }
 `;
 
