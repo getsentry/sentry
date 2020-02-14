@@ -10,6 +10,7 @@ from sentry_sdk.tracing import Span
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
+from sentry.constants import ObjectStatus
 from sentry.relay import config, projectconfig_cache
 from sentry.models import Project, ProjectKey, Organization, OrganizationOption
 from sentry.utils import metrics, json
@@ -79,6 +80,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
             project = projects.get(int(project_id))
             if project is None:
+                continue
+
+            if project.status != ObjectStatus.VISIBLE:
                 continue
 
             organization = orgs.get(project.organization_id)
