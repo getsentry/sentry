@@ -56,7 +56,7 @@
     "clean-webpack-plugin": "^3.0.0",
     "clipboard": "^1.7.1",
     "color": "^3.1.0",
-    "compression-webpack-plugin": "^2.0.0",
+    "compression-webpack-plugin": "3.1.0",
     "copy-webpack-plugin": "^5.0.3",
     "core-js": "^3.2.1",
     "create-react-class": "^15.6.2",
@@ -125,8 +125,8 @@
     "ts-loader": "^6.2.1",
     "typescript": "3.7",
     "u2f-api": "1.0.10",
-    "webpack": "^4.28.1",
-    "webpack-cli": "^3.1.2",
+    "webpack": "4.41.6",
+    "webpack-cli": "3.3.11",
     "webpack-fix-style-only-entries": "^0.2.0",
     "zxcvbn": "^4.4.2"
   },
@@ -170,7 +170,7 @@
     "stylelint-config-styled-components": "^0.1.1",
     "tsconfig-paths-webpack-plugin": "^3.2.0",
     "typescript-styled-plugin": "^0.14.0",
-    "webpack-dev-server": "^3.1.11"
+    "webpack-dev-server": "3.10.3"
   },
   "optionalDependencies": {
     "fsevents": "^2.1.2"
