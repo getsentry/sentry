@@ -36,7 +36,14 @@ class GroupActivityItem extends React.Component {
         return data.version
           ? t('%(author)s marked this issue as resolved in %(version)s', {
               author,
-              version: <Version version={data.version} orgId={orgId} tooltipRawVersion />,
+              version: (
+                <Version
+                  version={data.version}
+                  orgId={orgId}
+                  tooltipRawVersion
+                  preserveGlobalSelection
+                />
+              ),
             })
           : t('%s marked this issue as resolved in the upcoming release', author);
       case 'set_resolved_in_commit':

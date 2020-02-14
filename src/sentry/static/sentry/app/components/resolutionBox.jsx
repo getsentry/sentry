@@ -40,13 +40,23 @@ export default class ResolutionBox extends React.Component {
       return tct('[actor] marked this issue as resolved in version [version].', {
         actor,
         version: (
-          <Version version={statusDetails.inRelease} orgId={orgId} tooltipRawVersion />
+          <Version
+            version={statusDetails.inRelease}
+            orgId={orgId}
+            tooltipRawVersion
+            preserveGlobalSelection
+          />
         ),
       });
     } else if (statusDetails.inRelease) {
       return tct('This issue has been marked as resolved in version [version].', {
         version: (
-          <Version version={statusDetails.inRelease} orgId={orgId} tooltipRawVersion />
+          <Version
+            version={statusDetails.inRelease}
+            orgId={orgId}
+            tooltipRawVersion
+            preserveGlobalSelection
+          />
         ),
       });
     } else if (!!statusDetails.inCommit) {

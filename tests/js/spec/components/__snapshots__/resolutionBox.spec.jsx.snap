@@ -239,6 +239,7 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
       <Version
         key="1"
         orgId="org"
+        preserveGlobalSelection={true}
         tooltipRawVersion={true}
         version="1.0"
       />
@@ -318,6 +319,7 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
       <Version
         key="2"
         orgId="org"
+        preserveGlobalSelection={true}
         tooltipRawVersion={true}
         version="1.0"
       />
