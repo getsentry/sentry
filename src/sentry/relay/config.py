@@ -124,6 +124,9 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
     with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
         project_cfg["groupingConfig"] = get_grouping_config_dict_for_project(project)
 
+    with Hub.current.start_span(op="get_event_retention"):
+        project_cfg["eventRetention"] = quotas.get_event_retention(project.organization)
+
     return ProjectConfig(project, **cfg)
 
 

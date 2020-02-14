@@ -10,8 +10,7 @@ from sentry_sdk.tracing import Span
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
-from sentry.relay import config
-from sentry.relay import projectconfig_cache
+from sentry.relay import config, projectconfig_cache
 from sentry.models import Project, ProjectKey, Organization, OrganizationOption
 from sentry.utils import metrics, json
 

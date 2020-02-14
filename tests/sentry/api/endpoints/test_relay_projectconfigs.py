@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 
+from sentry import quotas
 from sentry.utils import safe
 from sentry.models.relay import Relay
 from sentry.models import Project
@@ -149,6 +150,12 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubDefaults") is True
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is True
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
+
+    # Event retention depends on settings, so assert the actual value. Likely
+    # `None` in dev, but must not be missing.
+    assert cfg["config"]["eventRetention"] == quotas.get_event_retention(
+        default_project.organization
+    )
 
 
 @pytest.mark.django_db
