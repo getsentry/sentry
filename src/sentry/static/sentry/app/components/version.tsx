@@ -67,7 +67,7 @@ const Version = ({
         <LinkComponent
           to={{
             pathname: `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
-            query: {project: projectId},
+            query: projectId ? {project: projectId} : undefined,
           }}
           className={className}
         >
