@@ -1579,6 +1579,9 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                                   viewBox="0 0 16 16"
                                                   width="16px"
                                                 >
+                                                  <desc>
+                                                    IconAdd
+                                                  </desc>
                                                   <g>
                                                     <path
                                                       d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
@@ -2578,6 +2581,9 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                                   viewBox="0 0 16 16"
                                                   width="16px"
                                                 >
+                                                  <desc>
+                                                    IconAdd
+                                                  </desc>
                                                   <g>
                                                     <path
                                                       d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
@@ -4277,6 +4283,9 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                                   viewBox="0 0 16 16"
                                                   width="16px"
                                                 >
+                                                  <desc>
+                                                    IconAdd
+                                                  </desc>
                                                   <g>
                                                     <path
                                                       d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"

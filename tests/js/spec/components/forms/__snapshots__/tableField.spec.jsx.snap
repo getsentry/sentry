@@ -312,6 +312,9 @@ exports[`TableField renders renders with form context 1`] = `
                                                             viewBox="0 0 16 16"
                                                             width="12px"
                                                           >
+                                                            <desc>
+                                                              IconAdd
+                                                            </desc>
                                                             <g>
                                                               <path
                                                                 d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
@@ -728,6 +731,9 @@ exports[`TableField renders renders without form context 1`] = `
                                                       viewBox="0 0 16 16"
                                                       width="12px"
                                                     >
+                                                      <desc>
+                                                        IconAdd
+                                                      </desc>
                                                       <g>
                                                         <path
                                                           d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
