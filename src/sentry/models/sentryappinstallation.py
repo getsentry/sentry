@@ -25,6 +25,15 @@ class SentryAppInstallationToken(Model):
         db_table = "sentry_sentryappinstallationtoken"
         unique_together = (("sentry_app_installation", "api_token"),)
 
+    @classmethod
+    def has_organization_access(cls, token, organization):
+        try:
+            install = cls.objects.get(api_token=token).sentry_app_installation
+        except cls.DoesNotExist:
+            return False
+
+        return install.organization == organization
+
 
 class SentryAppInstallation(ParanoidModel):
     __core__ = True
