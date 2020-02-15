@@ -90,7 +90,7 @@ class ContextPickerModal extends React.Component<Props> {
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     // Component may be mounted before projects is fetched, check if we can finish when
     // component is updated with projects
     if (prevProps.projects !== this.props.projects) {
@@ -296,7 +296,7 @@ const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerSt
     };
   },
 
-  handleSelectOrganization(organizationSlug) {
+  handleSelectOrganization(organizationSlug: string) {
     this.setState({selectedOrganization: organizationSlug});
   },
 
