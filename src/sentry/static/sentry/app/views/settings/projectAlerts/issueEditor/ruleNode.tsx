@@ -68,7 +68,7 @@ class RuleNode extends React.Component<Props> {
       <InlineInput
         type="text"
         name={name}
-        value={data && data[name]}
+        value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
         key={name}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -85,7 +85,7 @@ class RuleNode extends React.Component<Props> {
       <InlineInput
         type="number"
         name={name}
-        value={data && data[name]}
+        value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
         key={name}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
