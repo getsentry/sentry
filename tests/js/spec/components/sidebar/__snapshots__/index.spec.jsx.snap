@@ -1220,20 +1220,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
     >
       <SidebarPanelHeader>
         <div
-          className="css-svlib3-SidebarPanelHeader e1aybls61"
+          className="css-fgk6wt-SidebarPanelHeader e1aybls61"
         >
-          <PanelClose
-            onClick={[Function]}
-          >
-            <a
-              className="css-f8nv6a-PanelClose e1aybls63"
-              onClick={[Function]}
-            >
-              <span
-                className="icon-close"
-              />
-            </a>
-          </PanelClose>
           <Title>
             <div
               className="css-16z7jx4-Title e1aybls64"
@@ -1241,6 +1229,34 @@ exports[`Sidebar can have onboarding feature 1`] = `
               Getting Started with Sentry
             </div>
           </Title>
+          <PanelClose
+            onClick={[Function]}
+            size="lg"
+          >
+            <IconClose
+              className="css-7jb8pb-PanelClose e1aybls63"
+              onClick={[Function]}
+              size="lg"
+            >
+              <svg
+                className="css-7jb8pb-PanelClose e1aybls63"
+                fill="currentColor"
+                height="24px"
+                onClick={[Function]}
+                viewBox="0 0 16 16"
+                width="24px"
+              >
+                <g>
+                  <path
+                    d="M15.13,15.88a.77.77,0,0,1-.53-.22L.34,1.4A.75.75,0,0,1,1.4.34L15.66,14.6a.75.75,0,0,1,0,1.06A.79.79,0,0,1,15.13,15.88Z"
+                  />
+                  <path
+                    d="M.87,15.88a.79.79,0,0,1-.53-.22.75.75,0,0,1,0-1.06L14.6.34A.75.75,0,0,1,15.66,1.4L1.4,15.66A.77.77,0,0,1,.87,15.88Z"
+                  />
+                </g>
+              </svg>
+            </IconClose>
+          </PanelClose>
         </div>
       </SidebarPanelHeader>
       <SidebarPanelBody>
