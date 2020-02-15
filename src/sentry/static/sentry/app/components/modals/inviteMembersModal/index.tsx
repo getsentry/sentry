@@ -370,7 +370,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
         ))}
 
         <AddButton disabled={disableInputs} priority="link" onClick={this.addInviteRow}>
-          <IconAdd size="xs" circle style={{marginRight: 8}} />
+          <StyledIconAdd size="xs" circle />
           {t('Add another')}
         </AddButton>
 
@@ -507,6 +507,10 @@ const modalCss = css`
     max-width: 800px;
     margin: 50px auto;
   }
+`;
+
+const StyledIconAdd = styled(IconAdd)`
+  margin-right: ${space(1)};
 `;
 
 export {modalCss};
