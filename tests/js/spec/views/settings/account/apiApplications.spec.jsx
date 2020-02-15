@@ -58,7 +58,7 @@ describe('ApiApplications', function() {
     });
     createWrapper();
 
-    wrapper.find('button[aria-label="Create New Application"]').simulate('click');
+    wrapper.find('Button[priority="primary"] IconAdd').simulate('click');
 
     await tick();
 

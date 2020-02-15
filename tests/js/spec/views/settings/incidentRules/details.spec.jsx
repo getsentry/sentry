@@ -91,7 +91,7 @@ describe('Incident Rules Details', function() {
     expect(req).toHaveBeenCalled();
 
     // Create a new Trigger
-    wrapper.find('button[aria-label="Add Warning Trigger"]').simulate('click');
+    wrapper.find('FullWidthButton').simulate('click');
 
     wrapper
       .find('input[name="alertThreshold"]')

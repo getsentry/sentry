@@ -149,7 +149,7 @@ class Triggers extends React.Component<Props> {
           <BorderlessPanel>
             <FullWidthButton type="button" size="small" onClick={onAdd}>
               <IconAdd size="xs" circle />
-              &nbsp;{t('Add Warning Trigger')}
+              {t('Add Warning Trigger')}
             </FullWidthButton>
           </BorderlessPanel>
         )}
