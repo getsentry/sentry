@@ -21,7 +21,7 @@ from sentry.db.models import (
     sane_repr,
 )
 
-from sentry_relay import parse_release
+from sentry_relay import parse_release, RelayError
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.models import CommitFileChange
 from sentry.signals import issue_resolved
@@ -196,7 +196,11 @@ class Release(Model):
 
     @cached_property
     def version_info(self):
-        return parse_release(self.version)
+        try:
+            return parse_release(self.version)
+        except RelayError:
+            # This can happen on invalid legacy releases
+            return None
 
     @classmethod
     def merge(cls, to_release, from_releases):
