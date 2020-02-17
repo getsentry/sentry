@@ -3,18 +3,28 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import CreateProject from 'app/views/projectInstall/createProject';
+import withOrganization from 'app/utils/withOrganization';
 import space from 'app/styles/space';
+import SentryTypes from 'app/sentryTypes';
 
-const NewProject = () => (
+const NewProject = ({organization}) => (
   <Container>
     <div className="container">
       <Content>
         <DocumentTitle title="Sentry" />
-        <CreateProject />
+        <CreateProject
+          hasIssueAlertOptionsEnabled={organization.features.includes(
+            'new-project-issue-alert-options'
+          )}
+        />
       </Content>
     </div>
   </Container>
 );
+
+NewProject.propTypes = {
+  organization: SentryTypes.Organization,
+};
 
 const Container = styled('div')`
   flex: 1;
@@ -26,4 +36,4 @@ const Content = styled('div')`
   margin-top: ${space(3)};
 `;
 
-export default NewProject;
+export default withOrganization(NewProject);

@@ -7,16 +7,16 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "@babel/core": "~7.8.3",
-    "@babel/plugin-proposal-class-properties": "~7.7.0",
-    "@babel/plugin-proposal-decorators": "~7.7.0",
-    "@babel/plugin-proposal-object-rest-spread": "~7.6.2",
+    "@babel/core": "~7.8.4",
+    "@babel/plugin-proposal-class-properties": "~7.8.3",
+    "@babel/plugin-proposal-decorators": "~7.8.3",
+    "@babel/plugin-proposal-object-rest-spread": "~7.8.3",
     "@babel/plugin-syntax-dynamic-import": "^7.2.0",
-    "@babel/plugin-transform-runtime": "~7.6.2",
-    "@babel/preset-env": "~7.8.3",
+    "@babel/plugin-transform-runtime": "~7.8.3",
+    "@babel/preset-env": "~7.8.4",
     "@babel/preset-react": "^7.7.0",
     "@babel/preset-typescript": "^7.7.2",
-    "@babel/runtime": "~7.7.2",
+    "@babel/runtime": "~7.8.4",
     "@emotion/babel-preset-css-prop": "^10.0.27",
     "@emotion/core": "^10.0.27",
     "@emotion/styled": "^10.0.27",
@@ -47,7 +47,6 @@
     "@types/reflexbox": "^4.0.0",
     "@types/reflux": "0.4.1",
     "algoliasearch": "^3.32.0",
-    "babel-core": "^7.0.0-bridge.0",
     "babel-loader": "^8.0.0",
     "babel-plugin-add-react-displayname": "^0.0.5",
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
@@ -56,7 +55,7 @@
     "clean-webpack-plugin": "^3.0.0",
     "clipboard": "^1.7.1",
     "color": "^3.1.0",
-    "compression-webpack-plugin": "^2.0.0",
+    "compression-webpack-plugin": "3.1.0",
     "copy-webpack-plugin": "^5.0.3",
     "core-js": "^3.2.1",
     "create-react-class": "^15.6.2",
@@ -125,8 +124,8 @@
     "ts-loader": "^6.2.1",
     "typescript": "3.7",
     "u2f-api": "1.0.10",
-    "webpack": "^4.28.1",
-    "webpack-cli": "^3.1.2",
+    "webpack": "4.41.6",
+    "webpack-cli": "3.3.11",
     "webpack-fix-style-only-entries": "^0.2.0",
     "zxcvbn": "^4.4.2"
   },
@@ -170,7 +169,7 @@
     "stylelint-config-styled-components": "^0.1.1",
     "tsconfig-paths-webpack-plugin": "^3.2.0",
     "typescript-styled-plugin": "^0.14.0",
-    "webpack-dev-server": "^3.1.11"
+    "webpack-dev-server": "3.10.3"
   },
   "optionalDependencies": {
     "fsevents": "^2.1.2"
