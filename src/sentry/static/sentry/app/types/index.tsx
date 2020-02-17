@@ -1,6 +1,16 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
+import {
+  INSTALLED,
+  NOT_INSTALLED,
+  PENDING,
+} from 'app/views/organizationIntegrations/constants';
+
+export type IntegrationInstallationStatus =
+  | typeof INSTALLED
+  | typeof NOT_INSTALLED
+  | typeof PENDING;
 
 export type ObjectStatus =
   | 'active'
@@ -308,10 +318,7 @@ export type PluginNoProject = {
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
   features: string[];
-  featureDescriptions: Array<{
-    description: string;
-    featureGate: string;
-  }>;
+  featureDescriptions: IntegrationFeature[];
 };
 
 export type Plugin = PluginNoProject & {
@@ -514,7 +521,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
 };
 
 export type IntegrationFeature = {
-  description: React.ReactNode;
+  description: React.ReactNode | string;
   featureGate: string;
 };
 
@@ -828,3 +835,17 @@ export type Tag = {
 };
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
+
+export type Meta = {
+  chunks: Array<Chunks>;
+  len: number;
+  rem: Array<Array<string | number>>;
+  err: Array<any>;
+};
+
+export type Chunks = {
+  text: string;
+  type: string;
+  remark?: string;
+  rule_id?: string;
+};
