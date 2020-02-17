@@ -153,7 +153,7 @@ describe('ProjectAlertsCreate', function() {
         expect(wrapper.find('SelectControl[name="frequency"]').prop('value')).toBe('30');
       });
 
-      it.only('updates values and saves', async function() {
+      it('updates values and saves', async function() {
         const {wrapper} = createWrapper();
         const mock = MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/rules/',
@@ -256,55 +256,6 @@ describe('ProjectAlertsCreate', function() {
           '/settings/org-slug/projects/project-slug/alerts/'
         );
       });
-    });
-  });
-
-  describe.skip('Edit alert rule', function() {
-    let wrapper, mock;
-    const endpoint = '/projects/org-slug/project-slug/rules/1/';
-    beforeEach(async function() {
-      mock = MockApiClient.addMockResponse({
-        url: endpoint,
-        method: 'PUT',
-        body: TestStubs.ProjectAlertRule(),
-      });
-
-      wrapper = mountWithTheme(
-        <ProjectAlertRuleDetails
-          routes={projectAlertRuleDetailsRoutes}
-          params={{orgId: 'org-slug', projectId: 'project-slug', ruleId: '1'}}
-        />,
-        TestStubs.routerContext()
-      );
-      await tick();
-      wrapper.update();
-    });
-
-    it('sends correct environment value', function() {
-      selectByValue(wrapper, 'production', {name: 'environment'});
-      expect(
-        wrapper.find('SelectField[name="environment"] Select').prop('value')
-      ).toEqual(expect.objectContaining({value: 'production'}));
-      wrapper.find('form').simulate('submit');
-
-      expect(mock).toHaveBeenCalledWith(
-        endpoint,
-        expect.objectContaining({
-          data: expect.objectContaining({environment: 'production'}),
-        })
-      );
-    });
-
-    it('strips environment value if "All environments" is selected', async function() {
-      selectByValue(wrapper, '__all_environments__', {name: 'environment'});
-      wrapper.find('form').simulate('submit');
-
-      expect(mock).not.toHaveBeenCalledWith(
-        endpoint,
-        expect.objectContaining({
-          data: expect.objectContaining({environment: '__all_environments__'}),
-        })
-      );
     });
   });
 });

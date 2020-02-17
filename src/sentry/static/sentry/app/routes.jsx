@@ -250,7 +250,7 @@ function routes() {
       />
 
       <Route
-        name="Alert Rules"
+        name="Alerts"
         path="alerts/"
         component={errorHandler(LazyLoad)}
         componentPromise={() =>
