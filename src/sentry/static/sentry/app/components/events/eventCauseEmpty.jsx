@@ -1,8 +1,8 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import Button from 'app/components/button';
 import codesworth from 'app/../images/spot/codesworth.png';
 import CommitRow from 'app/components/commitRow';

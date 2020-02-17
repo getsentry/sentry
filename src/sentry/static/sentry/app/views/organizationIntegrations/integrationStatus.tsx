@@ -1,5 +1,4 @@
 import React from 'react';
-
 import styled from '@emotion/styled';
 import CircleIndicator from 'app/components/circleIndicator';
 import theme from 'app/utils/theme';

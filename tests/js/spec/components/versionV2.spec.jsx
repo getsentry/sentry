@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {mount} from 'sentry-test/enzyme';
 import Version from 'app/components/version';
 

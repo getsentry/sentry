@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 const RepoLabel = styled('span')`

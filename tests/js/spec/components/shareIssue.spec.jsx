@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {shallow} from 'sentry-test/enzyme';
 import ShareIssue from 'app/components/shareIssue';
 

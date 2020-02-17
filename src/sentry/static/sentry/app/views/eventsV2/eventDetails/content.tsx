@@ -1,9 +1,9 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t} from 'app/locale';
@@ -25,12 +25,12 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
 import EventView from '../eventView';
 import {hasAggregateField, EventQuery, generateTitle} from '../utils';
-import TagsTable from '../tagsTable';
-import DiscoverBreadcrumb from '../breadcrumb';
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
+import TagsTable from '../tagsTable';
 import EventInterfaces from './eventInterfaces';
 import LinkedIssue from './linkedIssue';
+import DiscoverBreadcrumb from '../breadcrumb';
 import {SectionHeading, ContentBox, HeaderBox} from '../styles';
 import OpsBreakdown from './transaction/opsBreakdown';
 

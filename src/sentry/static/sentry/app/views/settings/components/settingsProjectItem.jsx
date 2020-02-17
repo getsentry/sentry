@@ -1,6 +1,6 @@
+import styled from '@emotion/styled';
 import React from 'react';
 
-import styled from '@emotion/styled';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import Link from 'app/components/links/link';
 import ProjectLabel from 'app/components/projectLabel';

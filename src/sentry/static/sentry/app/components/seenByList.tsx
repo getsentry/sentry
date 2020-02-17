@@ -1,8 +1,8 @@
 import React from 'react';
 import classNames from 'classnames';
 import moment from 'moment';
-
 import styled from '@emotion/styled';
+
 import {t} from 'app/locale';
 import {User} from 'app/types';
 import {userDisplayName} from 'app/utils/formatters';

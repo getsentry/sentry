@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {Client} from 'app/api';
 import {Event, EventAttachment} from 'app/types';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';

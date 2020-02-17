@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import styled from '@emotion/styled';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';

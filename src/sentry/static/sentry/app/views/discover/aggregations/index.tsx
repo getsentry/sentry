@@ -1,12 +1,13 @@
 import React from 'react';
 
 import {t} from 'app/locale';
+
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 
+import AggregationRow from './aggregation';
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 import {Aggregation, DiscoverBaseProps} from '../types';
-import AggregationRow from './aggregation';
 
 type AggregationsProps = DiscoverBaseProps & {
   value: Aggregation[];

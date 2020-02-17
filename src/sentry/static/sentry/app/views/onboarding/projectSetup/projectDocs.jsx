@@ -1,9 +1,9 @@
+import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
 
-import styled from '@emotion/styled';
 import {analytics} from 'app/utils/analytics';
 import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';

@@ -2,7 +2,6 @@ import isString from 'lodash/isString';
 import moment from 'moment';
 
 import CHART_PALETTE from 'app/constants/chartPalette';
-
 import {ParsedTraceType, ProcessedSpanType, GapSpanType, RawSpanType} from './types';
 
 type Rect = {

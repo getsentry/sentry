@@ -1,8 +1,8 @@
 import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';

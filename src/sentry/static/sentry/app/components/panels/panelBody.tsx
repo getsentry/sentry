@@ -1,8 +1,8 @@
 import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 

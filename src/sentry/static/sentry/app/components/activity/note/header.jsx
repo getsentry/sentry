@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {t} from 'app/locale';
 import ActivityAuthor from 'app/components/activity/author';
 import ConfigStore from 'app/stores/configStore';

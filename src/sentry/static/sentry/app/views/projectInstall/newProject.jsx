@@ -1,7 +1,7 @@
 import DocumentTitle from 'react-document-title';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import CreateProject from 'app/views/projectInstall/createProject';
 import withOrganization from 'app/utils/withOrganization';
 import space from 'app/styles/space';

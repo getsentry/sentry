@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {shallow, mount} from 'sentry-test/enzyme';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import MemberListStore from 'app/stores/memberListStore';

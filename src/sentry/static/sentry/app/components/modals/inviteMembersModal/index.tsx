@@ -1,7 +1,7 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import styled from '@emotion/styled';
 import {t, tn, tct} from 'app/locale';
 import {MEMBER_ROLES} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';

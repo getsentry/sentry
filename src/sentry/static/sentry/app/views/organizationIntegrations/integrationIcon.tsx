@@ -1,7 +1,7 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import styled from '@emotion/styled';
 import PluginIcon, {ICON_PATHS, DEFAULT_ICON} from 'app/plugins/components/pluginIcon';
 import {Integration} from 'app/types';
 

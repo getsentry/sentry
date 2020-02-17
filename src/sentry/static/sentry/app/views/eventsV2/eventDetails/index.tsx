@@ -1,9 +1,9 @@
 import {Params} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Location} from 'history';
-
 import styled from '@emotion/styled';
+
+import {Location} from 'history';
 import {Organization} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
@@ -13,8 +13,8 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
 
-import EventView from '../eventView';
 import EventDetailsContent from './content';
+import EventView from '../eventView';
 
 type Props = {
   organization: Organization;

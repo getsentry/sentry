@@ -2,8 +2,8 @@ import {ClassNames} from '@emotion/core';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {formFooterClass} from 'app/views/auth/login';
 import {t} from 'app/locale';
 import Button from 'app/components/button';

@@ -1,8 +1,8 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
-import rrwebPlayer from 'rrweb-player';
-
 import styled from '@emotion/styled';
+
+import rrwebPlayer from 'rrweb-player';
 
 class RRWebReplayer extends Component {
   static propTypes = {

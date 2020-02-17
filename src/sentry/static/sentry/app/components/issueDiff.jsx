@@ -2,8 +2,8 @@ import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-
 import styled from '@emotion/styled';
+
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';

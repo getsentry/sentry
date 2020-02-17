@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {UserReport} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import {nl2br, escape} from 'app/utils';

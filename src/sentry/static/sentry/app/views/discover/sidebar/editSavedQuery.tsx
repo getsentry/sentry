@@ -5,6 +5,7 @@ import Button from 'app/components/button';
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 
+import QueryFields from './queryFields';
 import {parseSavedQuery} from '../utils';
 import {
   ButtonSpinner,
@@ -14,7 +15,6 @@ import {
 } from '../styles';
 import {QueryBuilder} from '../queryBuilder';
 import {SavedQuery} from '../types';
-import QueryFields from './queryFields';
 
 type EditSavedQueryProps = {
   queryBuilder: QueryBuilder;

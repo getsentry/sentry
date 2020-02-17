@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {INTERFACES} from 'app/components/events/eventEntries';
+
 import ErrorBoundary from 'app/components/errorBoundary';
 import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';

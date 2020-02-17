@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import styled from '@emotion/styled';
+
 import {t} from 'app/locale';
 import {MemberRole} from 'app/types';
 import space from 'app/styles/space';

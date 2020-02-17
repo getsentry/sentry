@@ -1,7 +1,6 @@
-import moment from 'moment';
-
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {defined} from 'app/utils';
+import moment from 'moment';
 
 const STATS_PERIOD_PATTERN = '^\\d+[hdmsw]?$';
 

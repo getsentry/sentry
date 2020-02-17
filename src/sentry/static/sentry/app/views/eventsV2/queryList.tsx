@@ -1,10 +1,10 @@
 import React, {MouseEvent} from 'react';
 import {Location, Query} from 'history';
+import styled from '@emotion/styled';
 import classNames from 'classnames';
 import moment from 'moment';
 import {browserHistory} from 'react-router';
 
-import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';

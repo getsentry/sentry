@@ -13,12 +13,14 @@ import {GlobalSelection, Organization} from 'app/types';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
+
 import {
   getQueryFromQueryString,
   fetchSavedQuery,
   parseSavedQuery,
   getView,
 } from './utils';
+
 import {DiscoverWrapper} from './styles';
 import {SavedQuery} from './types';
 

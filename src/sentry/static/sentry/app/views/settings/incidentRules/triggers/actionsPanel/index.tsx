@@ -1,6 +1,6 @@
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {Action, ActionType, TargetType} from 'app/views/settings/incidentRules/types';
 import {MetricAction} from 'app/types/alerts';
 import {Organization, Project, SelectValue} from 'app/types';

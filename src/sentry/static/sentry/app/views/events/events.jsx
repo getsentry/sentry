@@ -3,8 +3,8 @@ import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/browser';
-
 import styled from '@emotion/styled';
+
 import {Panel} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -15,8 +15,8 @@ import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withOrganization from 'app/utils/withOrganization';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import EventsChart from './eventsChart';
 import EventsTable from './eventsTable';
 

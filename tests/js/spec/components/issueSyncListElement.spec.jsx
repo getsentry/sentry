@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {shallow, mount} from 'sentry-test/enzyme';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 

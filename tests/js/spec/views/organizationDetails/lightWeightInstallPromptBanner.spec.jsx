@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import LightWeightInstallPromptBanner from 'app/views/organizationDetails/lightWeightInstallPromptBanner';
 import ProjectsStore from 'app/stores/projectsStore';

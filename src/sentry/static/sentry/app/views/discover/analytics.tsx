@@ -1,6 +1,5 @@
 import {Organization} from 'app/types';
 import {analytics} from 'app/utils/analytics';
-
 import {Query} from './types';
 
 /**

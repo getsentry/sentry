@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import {GroupMergedView} from 'app/views/organizationGroupDetails/groupMerged';
 import {Client} from 'app/api';
 
