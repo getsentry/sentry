@@ -197,7 +197,7 @@ class Release(Model):
     @cached_property
     def version_info(self):
         try:
-            parse_release(self.version)
+            return parse_release(self.version)
         except RelayError:
             # This can happen on invalid legacy releases
             return None
