@@ -8,11 +8,11 @@ from sentry_sdk import Hub
 from datetime import datetime
 from pytz import utc
 
+from sentry import quotas, utils
+from sentry.constants import ObjectStatus
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.message_filters import get_all_filters
-from sentry import quotas, utils
-
 from sentry.models.organizationoption import OrganizationOption
 from sentry.utils.data_filters import FilterTypes, FilterStatKeys, get_filter_key
 from sentry.utils.http import get_origins
@@ -23,6 +23,51 @@ from sentry.relay.utils import to_camel_case_name
 def get_project_key_config(project_key):
     """Returns a dict containing the information for a specific project key"""
     return {"dsn": project_key.dsn_public}
+
+
+def get_public_key_configs(project, full_config, project_keys=None):
+    public_keys = []
+
+    for project_key in project_keys or ():
+        key = {"publicKey": project_key.public_key, "isEnabled": project_key.status == 0}
+
+        if full_config:
+            key["quotas"] = [q.to_json() for q in quotas.get_quotas(project, key=project_key)]
+            key["numericId"] = project_key.id
+
+        public_keys.append(key)
+
+    return public_keys
+
+
+def get_filter_settings(project):
+    filter_settings = {}
+
+    for flt in get_all_filters():
+        filter_id = get_filter_key(flt)
+        settings = _load_filter_settings(flt, project)
+        filter_settings[filter_id] = settings
+
+    invalid_releases = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
+    if invalid_releases:
+        filter_settings["releases"] = {"releases": invalid_releases}
+
+    blacklisted_ips = project.get_option("sentry:blacklisted_ips")
+    if blacklisted_ips:
+        filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
+
+    error_messages = project.get_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES))
+    if error_messages:
+        filter_settings["errorMessages"] = {"patterns": error_messages}
+
+    csp_disallowed_sources = []
+    if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
+        csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
+    csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
+    if csp_disallowed_sources:
+        filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
+
+    return filter_settings
 
 
 def get_project_config(project, org_options=None, full_config=True, project_keys=None):
@@ -47,27 +92,18 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
     with configure_scope() as scope:
         scope.set_tag("project", project.id)
 
-    public_keys = []
+    if project.status != ObjectStatus.VISIBLE:
+        return ProjectConfig(project, disabled=True)
 
-    for project_key in project_keys or ():
-        key = {"publicKey": project_key.public_key, "isEnabled": project_key.status == 0}
-        if full_config:
-            key["numericId"] = project_key.id
-
-            key["quotas"] = [
-                quota.to_json() for quota in quotas.get_quotas(project, key=project_key)
-            ]
-        public_keys.append(key)
-
-    now = datetime.utcnow().replace(tzinfo=utc)
+    public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)
 
     if org_options is None:
         org_options = OrganizationOption.objects.get_all_values(project.organization_id)
 
     with Hub.current.start_span(op="get_public_config"):
-
+        now = datetime.utcnow().replace(tzinfo=utc)
         cfg = {
-            "disabled": project.status > 0,
+            "disabled": False,
             "slug": project.slug,
             "lastFetch": now,
             "lastChange": project.get_option("sentry:relay-rev-lastchange", now),
@@ -90,42 +126,12 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
     # internally. Do not expose it to external Relays.
     cfg["organizationId"] = project.organization_id
 
-    project_cfg = cfg["config"]
-
     with Hub.current.start_span(op="get_filter_settings"):
-        # get the filter settings for this project
-        filter_settings = {}
-        project_cfg["filterSettings"] = filter_settings
-
-        for flt in get_all_filters():
-            filter_id = get_filter_key(flt)
-            settings = _load_filter_settings(flt, project)
-            filter_settings[filter_id] = settings
-
-        invalid_releases = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
-        if invalid_releases:
-            filter_settings["releases"] = {"releases": invalid_releases}
-
-        blacklisted_ips = project.get_option("sentry:blacklisted_ips")
-        if blacklisted_ips:
-            filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
-
-        error_messages = project.get_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES))
-        if error_messages:
-            filter_settings["errorMessages"] = {"patterns": error_messages}
-
-        csp_disallowed_sources = []
-        if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
-            csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
-        csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
-        if csp_disallowed_sources:
-            filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
-
+        cfg["config"]["filterSettings"] = get_filter_settings(project)
     with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
-        project_cfg["groupingConfig"] = get_grouping_config_dict_for_project(project)
-
+        cfg["config"]["groupingConfig"] = get_grouping_config_dict_for_project(project)
     with Hub.current.start_span(op="get_event_retention"):
-        project_cfg["eventRetention"] = quotas.get_event_retention(project.organization)
+        cfg["config"]["eventRetention"] = quotas.get_event_retention(project.organization)
 
     return ProjectConfig(project, **cfg)
 

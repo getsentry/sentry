@@ -748,6 +748,7 @@ class Factories(object):
         date_closed=None,
         groups=None,
         seen_by=None,
+        alert_rule=None,
     ):
         if not title:
             title = petname.Generate(2, " ", letters=10).title()
@@ -758,6 +759,7 @@ class Factories(object):
             status=status,
             title=title,
             query=query,
+            alert_rule=alert_rule,
             date_started=date_started or timezone.now(),
             date_detected=date_detected or timezone.now(),
             date_closed=date_closed or timezone.now(),
@@ -788,6 +790,7 @@ class Factories(object):
         time_window=10,
         threshold_period=1,
         include_all_projects=False,
+        environment=None,
         excluded_projects=None,
         date_added=None,
     ):
@@ -802,6 +805,7 @@ class Factories(object):
             aggregation,
             time_window,
             threshold_period,
+            environment=environment,
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
         )

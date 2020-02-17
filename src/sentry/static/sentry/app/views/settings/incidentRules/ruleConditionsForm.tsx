@@ -88,7 +88,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               ],
             ]}
             required
-            disabled={disabled}
+            isDisabled={disabled}
           />
           <SelectField
             name="environment"
@@ -103,7 +103,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                   ])
                 : []
             }
-            disabled={this.state.environments === null}
+            isDisabled={this.state.environments === null}
             multiple
             isClearable
           />
@@ -135,7 +135,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             help={t('The time window to use when evaluating the Metric')}
             choices={Object.entries(TIME_WINDOW_MAP)}
             required
-            disabled={disabled}
+            isDisabled={disabled}
             getValue={value => Number(value)}
             setValue={value => `${value}`}
           />

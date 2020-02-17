@@ -8,13 +8,19 @@ LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry"
 LABEL org.opencontainers.image.vendor="Functional Software, Inc."
 LABEL org.opencontainers.image.authors="oss@sentry.io"
 
+# Sane defaults for pip
+ENV PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Needed for GPG
     dirmngr \
     gnupg \
     # Needed for fetching stuff
     wget \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # Needed to extract final dependencies from the whl
+    && pip install pkginfo==1.5.0.1
 
 # Fetch trusted keys
 RUN for key in \
@@ -78,7 +84,11 @@ RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
     && cd /usr/src/sentry \
     && python setup.py bdist_wheel \
     && rm -r "$YARN_CACHE_FOLDER" \
-    && mv /usr/src/sentry/dist /dist
+    && mv /usr/src/sentry/dist /dist \
+    # Dump the dependencies of our wheel as a separate requirements.txt file
+    # so we can install them first, leveraging Docker's caching when they
+    # don't change across versions.
+    && pkginfo -f requires_dist --single --sequence-delim=! /dist/*.whl | tr ! \\n > /dist/requirements.txt
 
 # This is the image to be run
 FROM python:2.7.16-slim-buster
@@ -109,7 +119,8 @@ ENV PIP_NO_CACHE_DIR=off \
     # UWSGI dogstatsd plugin
     UWSGI_NEED_PLUGIN=/var/lib/uwsgi/dogstatsd
 
-COPY --from=sdist /dist/*.whl /tmp/dist/
+# Copy and install dependencies first to leverage Docker layer caching.
+COPY --from=sdist /dist/requirements.txt /tmp/dist/requirements.txt
 RUN set -x \
     && buildDeps="" \
     # uwsgi
@@ -133,7 +144,7 @@ RUN set -x \
     " \
     && apt-get update \
     && apt-get install -y --no-install-recommends $buildDeps \
-    && pip install /tmp/dist/*.whl \
+    && pip install -r /tmp/dist/requirements.txt \
     # Separate these due to https://git.io/fjyz6
     # Otherwise librabbitmq will install the latest amqp version,
     # violating kombu's amqp<2.0 constraint.
@@ -173,6 +184,9 @@ RUN set -x \
     # requires a full check into maxminddb.extension.Reader
     && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
     && mkdir -p $SENTRY_CONF
+
+COPY --from=sdist /dist/*.whl /tmp/dist/
+RUN pip install /tmp/dist/*.whl
 
 COPY ./docker/docker-entrypoint.sh ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
 
