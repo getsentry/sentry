@@ -60,7 +60,10 @@ const DetailsWrapper = styled('div')`
   overflow: hidden;
   display: grid;
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 50px 1fr;
+  }
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    grid-template-columns: 100px 1fr;
   }
 `;
 
