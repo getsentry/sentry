@@ -493,7 +493,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             frames.extend(
                 [
                     f
-                    for f in info.stacktrace["frames"]
+                    for f in info.stacktrace["frames"] or ()
                     if f is not None and f.get("lineno") is not None
                 ]
             )
