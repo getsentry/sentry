@@ -4,9 +4,8 @@ import {Event} from 'app/types';
 import {t} from 'app/locale';
 import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList, {
-  KeyValueListData,
-} from 'app/components/events/interfaces/keyValueList/keyValueListV2';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
+import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import SentryTypes from 'app/sentryTypes';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 
