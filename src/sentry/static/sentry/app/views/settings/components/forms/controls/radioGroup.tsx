@@ -31,7 +31,7 @@ const RadioGroup = ({value, disabled, choices, label, onChange, ...props}: Props
             aria-checked={isSelected}
             disabled={disabled}
           >
-            <RadioLineButton type="button" disabled={disabled}>
+            <RadioLineButton aria-label={name} type="button" disabled={disabled}>
               {isSelected && (
                 <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
               )}
