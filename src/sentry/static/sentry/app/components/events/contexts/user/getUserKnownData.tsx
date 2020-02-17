@@ -1,20 +1,16 @@
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/keyValueListV2';
+import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import {AvatarUser as UserType} from 'app/types';
 
-import getUserKnownDataDetails, {
-  UserKnownDataDetailsType,
-} from './getUserKnownDataDetails';
+import getUserKnownDataDetails from './getUserKnownDataDetails';
+import {UserKnownDataType} from './types';
 
 function getUserKnownData(data: UserType): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
   const dataKeys = Object.keys(data);
   for (const key of dataKeys) {
-    const knownDataDetails = getUserKnownDataDetails(
-      data,
-      key as UserKnownDataDetailsType
-    );
+    const knownDataDetails = getUserKnownDataDetails(data, key as UserKnownDataType);
 
     if (key === null || !knownDataDetails) {
       continue;

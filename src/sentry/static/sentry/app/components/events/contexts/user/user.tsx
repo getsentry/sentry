@@ -6,6 +6,7 @@ import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils'
 import ContextBlock from 'app/components/events/contexts/contextBlockV2';
 import ErrorBoundary from 'app/components/errorBoundary';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import {defined} from 'app/utils';
 
 import getUserKnownData from './getUserKnownData';
 
@@ -14,7 +15,7 @@ type Props = {
 };
 
 const User = ({data}: Props) => {
-  if (data === undefined || data === null) {
+  if (!defined(data)) {
     return null;
   }
 

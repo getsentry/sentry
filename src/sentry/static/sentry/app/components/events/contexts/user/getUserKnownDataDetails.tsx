@@ -4,43 +4,37 @@ import {t} from 'app/locale';
 import {AvatarUser as UserType} from 'app/types';
 import ExternalLink from 'app/components/links/externalLink';
 
-export enum UserKnownDataDetailsType {
-  ID = 'id',
-  EMAIL = 'email',
-  USERNAME = 'username',
-  IP_ADDRESS = 'ip_address',
-  NAME = 'name',
-}
+import {UserKnownDataType} from './types';
 
 const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
 
 type Output = {
   subject: string;
-  value: string | null | React.ReactNode;
+  value: string | null;
   subjectIcon?: React.ReactNode;
 };
 
 function getUserKnownDataDetails(
   data: UserType,
-  type: UserKnownDataDetailsType
+  type: UserKnownDataType
 ): Output | undefined {
   switch (type) {
-    case UserKnownDataDetailsType.NAME:
+    case UserKnownDataType.NAME:
       return {
         subject: t('Name'),
         value: data.name,
       };
-    case UserKnownDataDetailsType.USERNAME:
+    case UserKnownDataType.USERNAME:
       return {
         subject: t('Username'),
         value: data.username,
       };
-    case UserKnownDataDetailsType.ID:
+    case UserKnownDataType.ID:
       return {
         subject: t('ID'),
         value: data.id,
       };
-    case UserKnownDataDetailsType.EMAIL:
+    case UserKnownDataType.EMAIL:
       return {
         subject: t('Email'),
         value: data.email,
