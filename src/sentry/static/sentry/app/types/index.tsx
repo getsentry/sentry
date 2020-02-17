@@ -835,3 +835,17 @@ export type Tag = {
 };
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
+
+export type Meta = {
+  chunks: Array<Chunks>;
+  len: number;
+  rem: Array<Array<string | number>>;
+  err: Array<any>;
+};
+
+export type Chunks = {
+  text: string;
+  type: string;
+  remark?: string;
+  rule_id?: string;
+};

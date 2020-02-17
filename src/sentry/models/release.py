@@ -8,6 +8,7 @@ import itertools
 from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
+from django.utils.functional import cached_property
 from time import time
 
 from sentry.app import locks
@@ -20,6 +21,7 @@ from sentry.db.models import (
     sane_repr,
 )
 
+from sentry_relay import parse_release
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.models import CommitFileChange
 from sentry.signals import issue_resolved
@@ -191,6 +193,10 @@ class Release(Model):
             metric_tags["cache_hit"] = "true"
 
         return release
+
+    @cached_property
+    def version_info(self):
+        return parse_release(self.version)
 
     @classmethod
     def merge(cls, to_release, from_releases):
