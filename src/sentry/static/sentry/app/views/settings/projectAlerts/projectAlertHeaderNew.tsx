@@ -20,7 +20,7 @@ class ProjectAlertHeader extends React.Component<Props> {
     const {canEditRule, params, organization} = this.props;
     const {projectId} = params;
 
-    const basePath = `/settings/${organization.slug}/projects/${projectId}/alerts-v2/`;
+    const basePath = `/settings/${organization.slug}/projects/${projectId}/alerts/`;
 
     return (
       <SettingsPageHeader

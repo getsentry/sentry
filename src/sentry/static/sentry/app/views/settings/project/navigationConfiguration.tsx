@@ -29,13 +29,7 @@ export default function getConfiguration({project}: ConfigParams): NavigationSec
         {
           path: `${pathPrefix}/alerts/`,
           title: t('Alerts'),
-          description: t('Manage alerts and alert rules for a project'),
-        },
-        {
-          path: `${pathPrefix}/alerts-v2/`,
-          title: t('Alerts (New)'),
-          description: t('Manage alerts and alert rules for a project'),
-          show: ({features}) => features!.has('incidents'),
+          description: t('Manage alert rules for a project'),
         },
         {
           path: `${pathPrefix}/tags/`,

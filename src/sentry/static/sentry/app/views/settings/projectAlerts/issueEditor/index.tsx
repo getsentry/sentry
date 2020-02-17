@@ -138,11 +138,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         method: isNew ? 'POST' : 'PUT',
         data: rule,
       });
-
       this.setState({detailedError: null, rule: resp});
 
       addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
-      browserHistory.replace(recreateRoute('', {...this.props, stepBack: -1}));
+      browserHistory.replace(recreateRoute('', {...this.props, stepBack: -2}));
     } catch (err) {
       this.setState({
         detailedError: err.responseJSON || {__all__: 'Unknown error'},
@@ -280,7 +279,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
-    const title = ruleId ? t('Edit Alert Rule') : t('New Alert Rule');
+    const title = ruleId ? t('Edit Alert') : t('New Alert');
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using

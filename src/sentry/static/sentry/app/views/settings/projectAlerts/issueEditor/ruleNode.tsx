@@ -156,7 +156,11 @@ class RuleNode extends React.Component<Props> {
         {data && <input type="hidden" name="id" value={data.id} />}
         {this.renderRow()}
         <DeleteButton
+<<<<<<< HEAD
           label={t('Delete Node')}
+=======
+          label={t('Delete Rule')}
+>>>>>>> replace alertsv2
           onClick={onDelete}
           type="button"
           size="small"

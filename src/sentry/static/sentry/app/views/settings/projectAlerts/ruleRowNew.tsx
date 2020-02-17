@@ -78,11 +78,11 @@ class RuleRow extends React.Component<Props, State> {
             )}
           </div>
 
-          <div>
+          <Actions>
             {data.actions.map((action, i) => {
               return <div key={i}>{action.name}</div>;
             })}
-          </div>
+          </Actions>
         </TriggerAndActions>
       </RuleItem>
     );
@@ -117,12 +117,12 @@ class RuleRow extends React.Component<Props, State> {
                       {trigger.alertThreshold}/{data.timeWindow}min
                     </div>
                   </Trigger>
-                  <div>
+                  <Actions>
                     {trigger.actions &&
                       trigger.actions.map((action, j) => (
                         <div key={j}>{action.desc}</div>
                       ))}
-                  </div>
+                  </Actions>
                 </TriggerAndActions>
               );
             })}
@@ -164,6 +164,9 @@ const Conditions = styled('div')`
   justify-content: space-between;
   height: 100%;
 `;
+
+// For tests
+const Actions = styled('div')``;
 
 const TriggerAndActions = styled('div')`
   display: grid;
