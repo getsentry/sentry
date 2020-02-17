@@ -112,7 +112,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 400, response.content
-        assert response.data["detail"] == "Invalid query."
+        assert response.data["detail"] == "Internal error. Your query failed to run."
 
         mock_query.side_effect = QueryIllegalTypeOfArgument("test")
         with self.feature("organizations:discover-basic"):
@@ -199,6 +199,114 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"][0]["project.name"] == project.slug
         assert "project.id" not in response.data["data"][0]
         assert response.data["data"][0]["environment"] == "staging"
+
+    def test_project_in_query(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["project", "count()"],
+                    "query": 'project:"%s"' % project.slug,
+                    "statsPeriod": "14d",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["project.name"] == project.slug
+        assert "project.id" not in response.data["data"][0]
+
+    def test_project_in_query_not_in_header(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        other_project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["project", "count()"],
+                    "query": 'project:"%s"' % project.slug,
+                    "statsPeriod": "14d",
+                    "project": other_project.id,
+                },
+            )
+
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "Invalid query. Project %s does not exist or is not an actively selected project."
+            % project.slug
+        )
+
+    def test_project_in_query_does_not_exist(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["project", "count()"],
+                    "query": "project:morty",
+                    "statsPeriod": "14d",
+                },
+            )
+
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "Invalid query. Project morty does not exist or is not an actively selected project."
+        )
+
+    def test_not_project_in_query(self):
+        self.login_as(user=self.user)
+        project1 = self.create_project()
+        project2 = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project1.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project2.id,
+        )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["project", "count()"],
+                    "query": '!project:"%s"' % project1.slug,
+                    "statsPeriod": "14d",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["project.name"] == project2.slug
+        assert "project.id" not in response.data["data"][0]
 
     def test_implicit_groupby(self):
         self.login_as(user=self.user)
