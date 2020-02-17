@@ -6,6 +6,7 @@ import jwt
 import time
 
 from django.conf import settings
+from requests.auth import HTTPBasicAuth
 from sentry import options
 
 from sentry_plugins.client import ApiClient, AuthApiClient
@@ -44,11 +45,11 @@ class GitHubClient(GitHubClientMixin, AuthApiClient):
         if params is None:
             params = {}
 
-        params.update(
-            {"client_id": settings.GITHUB_APP_ID, "client_secret": settings.GITHUB_API_SECRET}
+        auth = HTTPBasicAuth(
+            settings.GITHUB_APP_ID,
+            settings.GITHUB_API_SECRET,
         )
-
-        return self._request(method, path, auth=None, data=data, params=params)
+        return self._request(method, path, auth=auth, data=data, params=params)
 
     def get_repo(self, repo):
         return self.get("/repos/{}".format(repo))
