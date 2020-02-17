@@ -14,11 +14,10 @@ class GroupActivityItem extends React.Component {
     author: PropTypes.node,
     item: PropTypes.object,
     orgId: PropTypes.string,
-    projectId: PropTypes.string,
   };
 
   render() {
-    const {author, item, orgId, projectId} = this.props;
+    const {author, item, orgId} = this.props;
     const {data} = item;
 
     const issuesLink = `/organizations/${orgId}/issues/`;
@@ -36,14 +35,7 @@ class GroupActivityItem extends React.Component {
         return data.version
           ? t('%(author)s marked this issue as resolved in %(version)s', {
               author,
-              version: (
-                <Version
-                  version={data.version}
-                  orgId={orgId}
-                  tooltipRawVersion
-                  preserveGlobalSelection
-                />
-              ),
+              version: <Version version={data.version} tooltipRawVersion />,
             })
           : t('%s marked this issue as resolved in the upcoming release', author);
       case 'set_resolved_in_commit':
@@ -114,14 +106,7 @@ class GroupActivityItem extends React.Component {
         return data.version
           ? t('%(author)s marked this issue as a regression in %(version)s', {
               author,
-              version: (
-                <Version
-                  version={data.version}
-                  orgId={orgId}
-                  projectId={projectId}
-                  tooltipRawVersion
-                />
-              ),
+              version: <Version version={data.version} tooltipRawVersion />,
             })
           : t('%s marked this issue as a regression', author);
       case 'create_issue':

@@ -18,11 +18,10 @@ const StyledTimeSince = styled(TimeSince)`
 export default class ResolutionBox extends React.Component {
   static propTypes = {
     statusDetails: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
   };
 
   renderReason = () => {
-    const {orgId, statusDetails} = this.props;
+    const {statusDetails} = this.props;
     const actor = statusDetails.actor ? (
       <strong>
         <UserAvatar user={statusDetails.actor} size={20} className="avatar" />
@@ -39,25 +38,11 @@ export default class ResolutionBox extends React.Component {
     } else if (statusDetails.inRelease && statusDetails.actor) {
       return tct('[actor] marked this issue as resolved in version [version].', {
         actor,
-        version: (
-          <Version
-            version={statusDetails.inRelease}
-            orgId={orgId}
-            tooltipRawVersion
-            preserveGlobalSelection
-          />
-        ),
+        version: <Version version={statusDetails.inRelease} tooltipRawVersion />,
       });
     } else if (statusDetails.inRelease) {
       return tct('This issue has been marked as resolved in version [version].', {
-        version: (
-          <Version
-            version={statusDetails.inRelease}
-            orgId={orgId}
-            tooltipRawVersion
-            preserveGlobalSelection
-          />
-        ),
+        version: <Version version={statusDetails.inRelease} tooltipRawVersion />,
       });
     } else if (!!statusDetails.inCommit) {
       return tct('This issue has been marked as resolved by [commit]', {
