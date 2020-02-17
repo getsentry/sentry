@@ -2,7 +2,6 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
-
 import GroupSimilar from 'app/views/organizationGroupDetails/groupSimilar';
 
 describe('Issues Similar View', function() {

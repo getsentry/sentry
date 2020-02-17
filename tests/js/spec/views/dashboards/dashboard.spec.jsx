@@ -1,9 +1,8 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
-
 import Dashboard from 'app/views/dashboards/dashboard';
 import OrganizationDashboardContainer from 'app/views/dashboards';
 

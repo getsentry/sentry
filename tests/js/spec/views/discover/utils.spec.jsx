@@ -6,7 +6,6 @@ import {
   parseSavedQuery,
   generateQueryName,
 } from 'app/views/discover/utils';
-
 import createQueryBuilder from 'app/views/discover/queryBuilder';
 import {COLUMNS} from 'app/views/discover/data';
 

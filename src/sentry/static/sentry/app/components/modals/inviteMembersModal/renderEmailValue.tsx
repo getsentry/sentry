@@ -1,8 +1,8 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import {Value} from 'react-select-legacy';
 
+import styled from '@emotion/styled';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';

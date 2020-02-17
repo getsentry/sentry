@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {SelectField, NumberField, TextField} from 'app/components/forms';

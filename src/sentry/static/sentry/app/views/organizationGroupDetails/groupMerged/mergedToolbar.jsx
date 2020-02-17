@@ -3,8 +3,8 @@ import React from 'react';
 import Reflux from 'reflux';
 import pick from 'lodash/pick';
 import createReactClass from 'create-react-class';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {openDiffModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Button from 'app/components/button';

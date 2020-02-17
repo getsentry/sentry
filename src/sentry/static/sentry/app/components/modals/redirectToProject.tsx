@@ -1,8 +1,8 @@
 import * as ReactRouter from 'react-router';
 import {ModalBody, ModalHeader} from 'react-bootstrap';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import Text from 'app/components/text';

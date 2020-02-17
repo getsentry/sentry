@@ -1,12 +1,11 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-
 import SentryTypes from 'app/sentryTypes';
 
 const Body = styled('div')`

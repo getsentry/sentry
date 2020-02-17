@@ -1,9 +1,8 @@
 import React, {ReactElement} from 'react';
-
 import * as Sentry from '@sentry/browser';
 import isEqual from 'lodash/isEqual';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';

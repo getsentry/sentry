@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import LoadingMask from 'app/components/loadingMask';
 
 const LoadingPanel = styled(props => (

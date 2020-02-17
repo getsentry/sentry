@@ -4,7 +4,6 @@ import classNames from 'classnames';
 
 import FormField from 'app/components/forms/formField';
 import Tooltip from 'app/components/tooltip';
-
 import {defined} from 'app/utils';
 
 export default class MultipleCheckboxField extends FormField {

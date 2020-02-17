@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Panel, PanelHeader, PanelItem} from 'app/components/panels';
 
 export const TableChart = styled(

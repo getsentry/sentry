@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 

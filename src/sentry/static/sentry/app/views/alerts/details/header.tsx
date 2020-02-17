@@ -2,8 +2,9 @@ import {Link} from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import React from 'react';
 import moment from 'moment';
-import styled from '@emotion/styled';
+import isPropValid from '@emotion/is-prop-valid';
 
+import styled from '@emotion/styled';
 import {PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -18,7 +19,6 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Projects from 'app/utils/projects';
 import SubscribeButton from 'app/components/subscribeButton';
 import getDynamicText from 'app/utils/getDynamicText';
-import isPropValid from '@emotion/is-prop-valid';
 import space from 'app/styles/space';
 
 import {Incident} from '../types';

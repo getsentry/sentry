@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GuideActions from 'app/actions/guideActions';

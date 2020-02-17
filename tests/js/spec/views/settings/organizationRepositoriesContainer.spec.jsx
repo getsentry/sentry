@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {shallow} from 'sentry-test/enzyme';
 
+import {shallow} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import OrganizationRepositoriesContainer from 'app/views/settings/organizationRepositories';
 

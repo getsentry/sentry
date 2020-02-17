@@ -23,11 +23,9 @@ import {
 } from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
 import routeTitleGen from 'app/utils/routeTitle';
-
 import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-
 import styled from '@emotion/styled';
 import {
   addSentryAppToken,

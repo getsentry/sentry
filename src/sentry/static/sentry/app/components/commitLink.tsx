@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Repository} from 'app/types';
 import {t} from 'app/locale';
 import {getShortCommitHash} from 'app/utils';

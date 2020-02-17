@@ -4,8 +4,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';

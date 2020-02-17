@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import DropdownBubble from 'app/components/dropdownBubble';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownMenu from 'app/components/dropdownMenu';

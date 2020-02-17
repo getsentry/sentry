@@ -1,8 +1,8 @@
 import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {
   trackIntegrationEvent,
   getIntegrationFeatureGate,

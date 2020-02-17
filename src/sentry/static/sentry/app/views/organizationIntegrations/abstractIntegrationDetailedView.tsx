@@ -1,7 +1,7 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
+import styled from '@emotion/styled';
 import {Organization, IntegrationFeature, IntegrationInstallationStatus} from 'app/types';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -15,6 +15,7 @@ import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import Alert, {Props as AlertProps} from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import marked, {singleLineRenderer} from 'app/utils/marked';
+
 import IntegrationStatus from './integrationStatus';
 
 type Tab = 'information' | 'configurations';

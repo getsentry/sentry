@@ -1,10 +1,10 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import isPropValid from '@emotion/is-prop-valid';
 
+import styled from '@emotion/styled';
 import ExternalLink from 'app/components/links/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';

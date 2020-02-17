@@ -3,7 +3,6 @@ import {Location} from 'history';
 
 import {Organization, SavedQuery} from 'app/types';
 import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
-
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';

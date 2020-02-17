@@ -1,7 +1,7 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
+import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import GroupChart from 'app/components/stream/groupChart';
@@ -13,6 +13,7 @@ import ShortId from 'app/components/shortId';
 import Times from 'app/components/group/times';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
+
 import {SectionHeading} from '../styles';
 
 type Props = {

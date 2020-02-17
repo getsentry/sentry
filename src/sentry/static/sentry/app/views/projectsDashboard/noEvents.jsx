@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {t} from 'app/locale';
 
 export default class NoEvents extends React.Component {

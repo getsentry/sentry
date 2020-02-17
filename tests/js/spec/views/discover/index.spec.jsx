@@ -1,7 +1,7 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import DiscoverContainerWithStore, {DiscoverContainer} from 'app/views/discover';
 import ProjectsStore from 'app/stores/projectsStore';

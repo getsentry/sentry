@@ -4,10 +4,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import queryString from 'query-string';
 
+import styled from '@emotion/styled';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import {load as loadIncidents} from 'app/actionCreators/serviceIncidents';

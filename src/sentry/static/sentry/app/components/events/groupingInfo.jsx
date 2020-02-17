@@ -1,18 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
 import isObject from 'lodash/isObject';
+
+import styled from '@emotion/styled';
 import AsyncComponent from 'app/components/asyncComponent';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import Tooltip from 'app/components/tooltip';
 import BetaTag from 'app/components/betaTag';
-
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
-
 import withOrganization from 'app/utils/withOrganization';
 
 export const GroupingConfigItem = styled(

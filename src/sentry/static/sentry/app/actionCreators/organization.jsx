@@ -1,5 +1,4 @@
 import {setActiveOrganization} from 'app/actionCreators/organizations';
-
 import {Client} from 'app/api';
 import OrganizationActions from 'app/actions/organizationActions';
 import ProjectActions from 'app/actions/projectActions';

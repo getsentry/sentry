@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 import {Link} from 'react-router';
 import flatten from 'lodash/flatten';
 
+import styled from '@emotion/styled';
 import {analytics} from 'app/utils/analytics';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';

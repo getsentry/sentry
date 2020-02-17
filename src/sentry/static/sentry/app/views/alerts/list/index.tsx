@@ -2,8 +2,8 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import moment from 'moment';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {navigateTo} from 'app/actionCreators/navigation';
@@ -23,8 +23,8 @@ import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
 import {Incident} from '../types';
-import SparkLine from './sparkLine';
 import Status from '../status';
+import SparkLine from './sparkLine';
 
 const DEFAULT_QUERY_STATUS = 'open';
 

@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {analytics} from 'app/utils/analytics';
 import PageHeading from 'app/components/pageHeading';
 import ResourceCard from 'app/components/resourceCard';

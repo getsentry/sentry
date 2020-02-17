@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import video from 'app/../images/spot/congrats-robots.mp4';

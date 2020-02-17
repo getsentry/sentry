@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';

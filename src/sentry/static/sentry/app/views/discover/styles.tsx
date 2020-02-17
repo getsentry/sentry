@@ -1,7 +1,7 @@
 import {keyframes} from '@emotion/core';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Panel, PanelItem} from 'app/components/panels';
 import {slideInLeft} from 'app/styles/animations';
 import Button from 'app/components/button';

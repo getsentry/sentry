@@ -1,10 +1,10 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 import {css, keyframes} from '@emotion/core';
 import * as Sentry from '@sentry/browser';
 
+import styled from '@emotion/styled';
 import {t, tct} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';

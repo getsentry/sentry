@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-
 import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';

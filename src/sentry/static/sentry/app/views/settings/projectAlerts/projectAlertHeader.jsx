@@ -6,11 +6,8 @@ import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-
 import Tooltip from 'app/components/tooltip';
-
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-
 import withOrganization from 'app/utils/withOrganization';
 
 export default withOrganization(

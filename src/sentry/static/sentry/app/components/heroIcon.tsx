@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-
 import InlineSvg from 'app/components/inlineSvg';
 
 const HeroIcon = styled(InlineSvg)`

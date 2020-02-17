@@ -1,9 +1,9 @@
 import $ from 'jquery';
+import * as Sentry from '@sentry/browser';
 
 import {Client, Request, paramsToQueryArgs} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
 import {PROJECT_MOVED} from 'app/constants/apiErrorCodes';
-import * as Sentry from '@sentry/browser';
 
 jest.unmock('app/api');
 

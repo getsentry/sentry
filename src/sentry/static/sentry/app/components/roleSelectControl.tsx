@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
 import {MemberRole} from 'app/types';

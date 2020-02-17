@@ -1,7 +1,7 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {
   AlertRuleAggregations,
   AlertRuleThresholdType,

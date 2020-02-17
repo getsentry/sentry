@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
 import InlineSvg from 'app/components/inlineSvg';

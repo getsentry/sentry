@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {shallow} from 'sentry-test/enzyme';
 import ReturnButton from 'app/views/settings/components/forms/returnButton';
 

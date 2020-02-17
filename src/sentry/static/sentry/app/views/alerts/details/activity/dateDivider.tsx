@@ -4,8 +4,8 @@
  * fetch and render existing activity items.
  */
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import space from 'app/styles/space';
 
 const DateDivider = styled(function DateDivider({children, ...props}) {

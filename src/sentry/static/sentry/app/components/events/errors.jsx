@@ -1,8 +1,8 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import uniqWith from 'lodash/uniqWith';
 import isEqual from 'lodash/isEqual';
 
+import styled from '@emotion/styled';
 import EventErrorItem from 'app/components/events/errorItem';
 import SentryTypes from 'app/sentryTypes';
 import {IconWarning} from 'app/icons';

@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import qs from 'query-string';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import LetterAvatar from 'app/components/letterAvatar';
 import Tooltip from 'app/components/tooltip';
 

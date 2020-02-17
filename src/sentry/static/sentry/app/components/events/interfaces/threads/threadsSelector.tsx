@@ -1,7 +1,7 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {ClassNames} from '@emotion/core';
 
+import styled from '@emotion/styled';
 import {Thread} from 'app/types/events';
 import {Event, EntryTypeData} from 'app/types';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';

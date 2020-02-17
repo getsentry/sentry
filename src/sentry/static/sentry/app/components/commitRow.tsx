@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Commit} from 'app/types';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {PanelItem} from 'app/components/panels';

@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import Placeholder from 'app/components/placeholder';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';

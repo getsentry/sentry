@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import CheckboxFancy from 'app/components/checkboxFancy';
 import space from 'app/styles/space';
 

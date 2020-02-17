@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
 import MemberListStore from 'app/stores/memberListStore';

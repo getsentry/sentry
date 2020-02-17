@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import TagStore from 'app/stores/tagStore';
 import withTags from 'app/utils/withTags';
 

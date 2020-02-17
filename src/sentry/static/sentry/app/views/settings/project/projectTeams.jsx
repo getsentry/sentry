@@ -1,7 +1,7 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
+import styled from '@emotion/styled';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {addTeamToProject, removeTeamFromProject} from 'app/actionCreators/projects';
 import {openCreateTeamModal} from 'app/actionCreators/modal';

@@ -1,8 +1,8 @@
 import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';

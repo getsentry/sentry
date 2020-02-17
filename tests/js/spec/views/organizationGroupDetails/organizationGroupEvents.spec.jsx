@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {mount, shallow} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
+import {mount, shallow} from 'sentry-test/enzyme';
 import {GroupEvents} from 'app/views/organizationGroupDetails/groupEvents';
 
 const OrgnanizationGroupEvents = GroupEvents;

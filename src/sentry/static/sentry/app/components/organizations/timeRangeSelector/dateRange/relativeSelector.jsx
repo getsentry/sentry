@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
+
 import SelectorItem from './selectorItem';
 
 const RelativeSelector = ({onClick, selected, relativePeriods}) => {

@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
 import PluginIcon from 'app/plugins/components/pluginIcon';

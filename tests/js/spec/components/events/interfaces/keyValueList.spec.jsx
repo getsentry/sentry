@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 
 describe('KeyValueList', function() {

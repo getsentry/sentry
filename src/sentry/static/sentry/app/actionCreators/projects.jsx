@@ -1,5 +1,4 @@
 import chunk from 'lodash/chunk';
-
 import debounce from 'lodash/debounce';
 
 import {

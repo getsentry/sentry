@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {Form, SelectCreatableField} from 'app/components/forms';
 
 describe('SelectCreatableField', function() {

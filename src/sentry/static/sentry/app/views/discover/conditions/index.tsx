@@ -4,9 +4,9 @@ import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 
-import ConditionRow from './condition';
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 import {Condition, DiscoverBaseProps} from '../types';
+import ConditionRow from './condition';
 
 type ConditionsProps = DiscoverBaseProps & {
   value: Condition[];
