@@ -31,23 +31,6 @@ class PagerDutyService(Model):
         db_table = "sentry_pagerdutyservice"
 
 
-class PagerDutyServiceProject(Model):
-    __core__ = False
-
-    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
-    pagerduty_service = FlexibleForeignKey("sentry.PagerDutyService")
-    organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration", null=True)
-    integration_key = models.CharField(max_length=255, null=True)
-    service_id = models.CharField(max_length=255, null=True)
-    service_name = models.CharField(max_length=255, null=True)
-    date_added = models.DateTimeField(default=timezone.now, null=True)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_pagerdutyserviceproject"
-        unique_together = (("project", "pagerduty_service"),)
-
-
 class IntegrationExternalProject(Model):
     __core__ = False
 

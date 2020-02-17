@@ -13,7 +13,7 @@ storiesOf('Style|Icons', module).add(
         <ColorSwatches>
           <Header>Color Prop</Header>
           <Swatch>
-            <IconBookmark solid />
+            <IconBookmark />
             <LabelWrapper>IconBookmark</LabelWrapper>
           </Swatch>
           <Swatch>

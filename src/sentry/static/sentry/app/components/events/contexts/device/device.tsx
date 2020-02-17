@@ -1,15 +1,17 @@
 import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlockV2';
+import {defined} from 'app/utils';
 
-import getDeviceKnownData, {DeviceData} from './getDeviceKnownData';
+import {DeviceData} from './types';
+import getDeviceKnownData from './getDeviceKnownData';
 
 type Props = {
   data?: DeviceData;
 };
 
 const Device = ({data}: Props) => {
-  if (data === undefined || data === null) {
+  if (!defined(data)) {
     return null;
   }
 

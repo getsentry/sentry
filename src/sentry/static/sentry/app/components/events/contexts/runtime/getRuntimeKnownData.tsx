@@ -1,10 +1,8 @@
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/keyValueListV2';
+import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 
-import getRuntimeKnownDataDetails, {
-  RuntimeData,
-  RuntimeKnownDataDetailsType,
-} from './getRuntimeKnownDataDetails';
+import getRuntimeKnownDataDetails from './getRuntimeKnownDataDetails';
+import {RuntimeData, RuntimeKnownDataType} from './types';
 
 function getRuntimeKnownData(data: RuntimeData): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
@@ -13,10 +11,10 @@ function getRuntimeKnownData(data: RuntimeData): Array<KeyValueListData> {
   for (const key of dataKeys) {
     const knownDataDetails = getRuntimeKnownDataDetails(
       data,
-      key as RuntimeKnownDataDetailsType
+      key as RuntimeKnownDataType
     );
 
-    if (key === null || !knownDataDetails) {
+    if (!knownDataDetails) {
       continue;
     }
 
@@ -29,5 +27,4 @@ function getRuntimeKnownData(data: RuntimeData): Array<KeyValueListData> {
   return knownData;
 }
 
-export {RuntimeData};
 export default getRuntimeKnownData;

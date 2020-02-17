@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import re
-import uuid
 from collections import namedtuple
 from copy import deepcopy
 from datetime import datetime
@@ -166,7 +165,10 @@ SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
 no_conversion = set(["start", "end"])
 
-PROJECT_KEY = "project.name"
+PROJECT_NAME_ALIAS = "project.name"
+PROJECT_ALIAS = "project"
+ISSUE_ALIAS = "issue"
+ISSUE_ID_ALIAS = "issue.id"
 
 
 class InvalidSearchQuery(Exception):
@@ -684,21 +686,6 @@ def convert_search_filter_to_snuba_query(search_filter):
                 )
             )
         return [name, search_filter.operator, internal_value]
-    elif name == "trace":
-        if not search_filter.value.raw_value:
-            operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
-            return [name, operator, None]
-
-        try:
-            return [
-                name,
-                search_filter.operator,
-                six.text_type(uuid.UUID(search_filter.value.raw_value)),
-            ]
-        except Exception:
-            raise InvalidSearchQuery(
-                "Invalid value for the trace condition. Value must be a hexadecimal UUID string."
-            )
     else:
         value = (
             int(to_timestamp(value)) * 1000
@@ -766,32 +753,35 @@ def get_filter(query=None, params=None):
         "group_ids": [],
     }
 
-    def get_projects(params):
-        return {
-            p["slug"]: p["id"]
-            for p in Project.objects.filter(id__in=params.get("project_id", [])).values(
-                "id", "slug"
-            )
-        }
-
     def to_list(value):
         if isinstance(value, list):
             return value
         return [value]
 
-    projects = None
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
-            if name == PROJECT_KEY:
-                if projects is None:
-                    projects = get_projects(params)
-                condition = ["project_id", "=", projects.get(term.value.value)]
-                kwargs["conditions"].append(condition)
-            elif name == "issue.id" and term.value.value != "":
+            if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
+                project = None
+                try:
+                    project = Project.objects.get(
+                        id__in=params.get("project_id", []), slug=term.value.value
+                    )
+                except Exception:
+                    raise InvalidSearchQuery(
+                        "Invalid query. Project %s does not exist or is not an actively selected project."
+                        % term.value.value
+                    )
+
+                # Create a new search filter with the correct values
+                term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
+                converted_filter = convert_search_filter_to_snuba_query(term)
+                if converted_filter:
+                    kwargs["conditions"].append(converted_filter)
+            elif name == ISSUE_ID_ALIAS and term.value.value != "":
                 # A blank term value means that this is a has filter
                 kwargs["group_ids"].extend(to_list(term.value.value))
-            elif name == "issue" and term.value.value != "":
+            elif name == ISSUE_ALIAS and term.value.value != "":
                 if params and "organization_id" in params:
                     try:
                         group = Group.objects.by_qualified_short_id(
@@ -802,7 +792,7 @@ def get_filter(query=None, params=None):
                         raise InvalidSearchQuery(
                             u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
                         )
-            elif name in FIELD_ALIASES:
+            elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
                     kwargs["having"].append(converted_filter)
@@ -830,7 +820,7 @@ def get_filter(query=None, params=None):
         if "group_ids" in params:
             kwargs["group_ids"] = to_list(params["group_ids"])
         # Deprecated alias, use `group_ids` instead
-        if "issue.id" in params:
+        if ISSUE_ID_ALIAS in params:
             kwargs["group_ids"] = to_list(params["issue.id"])
 
     return eventstore.Filter(**kwargs)
@@ -906,6 +896,79 @@ def validate_aggregate(field, match):
         )
 
 
+FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
+
+NUMERIC_COLUMN = "numeric_column"
+NUMBER = "number"
+
+FUNCTIONS = {
+    "percentile": {
+        "name": "percentile",
+        "args": [
+            {"name": "column", "type": NUMERIC_COLUMN},
+            {
+                "name": "percentile",
+                "type": NUMBER,
+                "validator": lambda v: (v > 0 and v < 1, "not between 0 and 1"),
+            },
+        ],
+        "transform": "quantile(%(percentile).2f)(%(column)s)",
+    }
+}
+
+
+def is_function(field):
+    function_match = FUNCTION_PATTERN.search(field)
+    if function_match and function_match.group("function") in FUNCTIONS:
+        return function_match
+
+
+def get_function_alias(function_name, columns):
+    columns = "_".join(columns).replace(".", "_")
+    return ("%s_%s" % (function_name, columns)).rstrip("_")
+
+
+def resolve_function(field, match=None):
+    if not match:
+        match = FUNCTION_PATTERN.search(field)
+        if not match or match.group("function") not in FUNCTIONS:
+            raise InvalidSearchQuery("%s is not a valid function" % field)
+
+    function = FUNCTIONS[match.group("function")]
+    columns = [c.strip() for c in match.group("columns").split(",")]
+
+    if len(columns) != len(function["args"]):
+        raise InvalidSearchQuery("%s: expected %d arguments" % (field, len(function["args"])))
+
+    arguments = {}
+    for column_value, argument in zip(columns, function["args"]):
+        if argument["type"] == NUMBER:
+            try:
+                column_value = float(column_value)
+            except ValueError:
+                raise InvalidSearchQuery("%s: %s is not a number" % (field, column_value))
+        elif argument["type"] == NUMERIC_COLUMN:
+            # TODO evanh/wmak Do proper column validation here
+            snuba_column = SEARCH_MAP.get(column_value)
+            if not snuba_column:
+                raise InvalidSearchQuery("%s: %s is not a valid column" % (field, column_value))
+            elif snuba_column != "duration":
+                raise InvalidSearchQuery("%s: %s is not a numeric column" % (field, column_value))
+            column_value = snuba_column
+
+        if "validator" in argument:
+            valid, message = argument["validator"](column_value)
+            if not valid:
+                raise InvalidSearchQuery(
+                    "%s: %s argument invalid: %s" % (field, column_value, message)
+                )
+
+        arguments[argument["name"]] = column_value
+
+    snuba_string = function["transform"] % arguments
+    return [], [[snuba_string, None, get_function_alias(function["name"], columns)]]
+
+
 def resolve_orderby(orderby, fields, aggregations):
     """
     We accept column names, aggregate functions, and aliases as order by
@@ -945,6 +1008,10 @@ def get_aggregate_alias(match):
 def resolve_field(field):
     if not isinstance(field, six.string_types):
         raise InvalidSearchQuery("Field names must be strings")
+
+    match = is_function(field)
+    if match:
+        return resolve_function(field, match)
 
     sans_parens = field.strip("()")
     if sans_parens in FIELD_ALIASES:

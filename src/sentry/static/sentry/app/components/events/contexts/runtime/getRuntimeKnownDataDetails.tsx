@@ -1,16 +1,6 @@
 import {t} from 'app/locale';
 
-export enum RuntimeKnownDataDetailsType {
-  NAME = 'name',
-  VERSION = 'version',
-}
-
-export type RuntimeData = {
-  name: string;
-  type: string;
-  build: string;
-  version?: string;
-};
+import {RuntimeData, RuntimeKnownDataType} from './types';
 
 type Output = {
   subject: string;
@@ -19,15 +9,15 @@ type Output = {
 
 function getRuntimeKnownDataDetails(
   data: RuntimeData,
-  type: RuntimeKnownDataDetailsType
+  type: RuntimeKnownDataType
 ): Output | undefined {
   switch (type) {
-    case RuntimeKnownDataDetailsType.NAME:
+    case RuntimeKnownDataType.NAME:
       return {
         subject: t('Name'),
         value: data.name,
       };
-    case RuntimeKnownDataDetailsType.VERSION:
+    case RuntimeKnownDataType.VERSION:
       return {
         subject: t('Version'),
         value: `${data.version}${data.build ? `(${data.build})` : ''}`,

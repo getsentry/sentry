@@ -1,17 +1,17 @@
 import React from 'react';
 
+import {defined} from 'app/utils';
 import ContextBlock from 'app/components/events/contexts/contextBlockV2';
 
-import getOperatingSystemKnownData, {
-  OperatingSystemData,
-} from './getOperatingSystemKnownData';
+import getOperatingSystemKnownData from './getOperatingSystemKnownData';
+import {OperatingSystemKnownData} from './types';
 
 type Props = {
-  data?: OperatingSystemData;
+  data?: OperatingSystemKnownData;
 };
 
 const OperatingSystem = ({data}: Props) => {
-  if (data === undefined || data === null) {
+  if (!defined(data)) {
     return null;
   }
 
