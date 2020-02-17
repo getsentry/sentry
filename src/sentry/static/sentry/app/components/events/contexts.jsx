@@ -11,7 +11,7 @@ const CONTEXT_TYPES = {
   app: require('app/components/events/contexts/app').default,
   device: require('app/components/events/contexts/device').default,
   os: require('app/components/events/contexts/operatingSystem/operatingSystem').default,
-  runtime: require('app/components/events/contexts/runtime').default,
+  runtime: require('app/components/events/contexts/runtime/runtime').default,
   user: require('app/components/events/contexts/user').default,
   gpu: require('app/components/events/contexts/gpu').default,
 };
