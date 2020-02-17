@@ -1,15 +1,8 @@
 const mock = () => ({
   crashFreeUsersPercent: Math.floor(Math.random() * 100),
-  activeUsers: Math.floor(Math.random() * 10000),
+  crashFreeUsersSessionsPercent: Math.floor(Math.random() * 100),
   crashes: Math.floor(Math.random() * 10000),
   errors: Math.floor(Math.random() * 10000),
-  releaseAdoptionPercent: Math.floor(Math.random() * 100),
-  release: {
-    name: Math.random()
-      .toString(10)
-      .substring(2),
-    dateCreated: new Date(),
-  },
   graphData: {
     '24h': [
       [1578996000, 2718],
