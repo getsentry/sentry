@@ -17,7 +17,7 @@ function getGPUKnownData(
   for (const key of filteredDataKeys) {
     const knownDataDetails = getGpuKnownDataDetails(data, key as GPUKnownDataType);
 
-    if (key === null || !knownDataDetails) {
+    if (!knownDataDetails) {
       continue;
     }
 
