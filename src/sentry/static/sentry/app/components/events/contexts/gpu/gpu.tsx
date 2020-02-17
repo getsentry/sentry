@@ -2,23 +2,21 @@ import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlockV2';
 
-import getOperatingSystemKnownData, {
-  GPUData,
-  GPUKnownDataDetailsType,
-} from './getGPUKnownData';
+import getOperatingSystemKnownData from './getGPUKnownData';
+import {GPUData, GPUKnownDataType} from './types';
 
 type Props = {
   data?: GPUData;
 };
 
 const KNOWN_DATA = [
-  GPUKnownDataDetailsType.NAME,
-  GPUKnownDataDetailsType.VERSION,
-  GPUKnownDataDetailsType.VENDOR_NAME,
-  GPUKnownDataDetailsType.MEMORY,
-  GPUKnownDataDetailsType.NPOT_SUPPORT,
-  GPUKnownDataDetailsType.MULTI_THREAD_RENDERING,
-  GPUKnownDataDetailsType.API_TYPE,
+  GPUKnownDataType.NAME,
+  GPUKnownDataType.VERSION,
+  GPUKnownDataType.VENDOR_NAME,
+  GPUKnownDataType.MEMORY,
+  GPUKnownDataType.NPOT_SUPPORT,
+  GPUKnownDataType.MULTI_THREAD_RENDERING,
+  GPUKnownDataType.API_TYPE,
 ];
 
 const GPU = ({data}: Props) => {
@@ -27,10 +25,10 @@ const GPU = ({data}: Props) => {
   }
 
   if (data.vendor_id > 0) {
-    KNOWN_DATA.unshift[GPUKnownDataDetailsType.VENDOR_ID];
+    KNOWN_DATA.unshift[GPUKnownDataType.VENDOR_ID];
   }
   if (data.id > 0) {
-    KNOWN_DATA.unshift[GPUKnownDataDetailsType.ID];
+    KNOWN_DATA.unshift[GPUKnownDataType.ID];
   }
 
   return <ContextBlock knownData={getOperatingSystemKnownData(data, KNOWN_DATA)} />;

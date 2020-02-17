@@ -122,6 +122,19 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         }
         assert expected == handler.generate_email_context(status)
 
+    def test_environment(self):
+        status = TriggerStatus.ACTIVE
+        environments = [
+            self.create_environment(project=self.project, name="prod"),
+            self.create_environment(project=self.project, name="dev"),
+        ]
+        alert_rule = self.create_alert_rule(environment=environments)
+        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        action = self.create_alert_rule_trigger_action(alert_rule_trigger=alert_rule_trigger)
+        incident = self.create_incident()
+        handler = EmailActionHandler(action, incident, self.project)
+        assert "dev, prod" == handler.generate_email_context(status).get("environment")
+
 
 @freeze_time()
 class EmailActionHandlerFireTest(TestCase):
@@ -129,13 +142,13 @@ class EmailActionHandlerFireTest(TestCase):
         action = self.create_alert_rule_trigger_action(
             target_identifier=six.text_type(self.user.id)
         )
-        incident = self.create_incident()
+        incident = self.create_incident(status=IncidentStatus.CRITICAL.value)
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
             handler.fire()
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject.startswith("Alert Rule Fired")
+        assert out.subject == u"[Critical] {} - {}".format(incident.title, self.project.slug)
 
 
 @freeze_time()
@@ -147,10 +160,11 @@ class EmailActionHandlerResolveTest(TestCase):
         incident = self.create_incident()
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
+            incident.status = IncidentStatus.CLOSED.value
             handler.resolve()
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject.startswith("Alert Rule Resolved")
+        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
 
 
 @freeze_time()

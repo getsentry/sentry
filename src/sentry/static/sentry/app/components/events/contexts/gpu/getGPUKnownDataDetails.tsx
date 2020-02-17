@@ -1,31 +1,7 @@
 import {t} from 'app/locale';
 
 import formatMemory from './formatMemory';
-
-export enum GPUKnownDataDetailsType {
-  ID = 'id',
-  NAME = 'name',
-  VERSION = 'version',
-  VENDOR_NAME = 'vendor_name',
-  VENDOR_ID = 'vendor_id',
-  MEMORY = 'memory',
-  NPOT_SUPPORT = 'npot_support',
-  MULTI_THREAD_RENDERING = 'multi_threaded_rendering',
-  API_TYPE = 'api_type',
-}
-
-export type GPUData = {
-  id: number;
-  vendor_id: number;
-  name?: string;
-  version?: string;
-  vendor_name?: string;
-  memory?: number;
-  memory_size?: number;
-  npot_support?: string;
-  multi_threaded_rendering?: boolean;
-  api_type?: string;
-};
+import {GPUData, GPUKnownDataType} from './types';
 
 type Output = {
   subject: string;
@@ -34,45 +10,45 @@ type Output = {
 
 function getGPUKnownDataDetails(
   data: GPUData,
-  type: GPUKnownDataDetailsType
+  type: GPUKnownDataType
 ): Output | undefined {
   switch (type) {
-    case GPUKnownDataDetailsType.NAME:
+    case GPUKnownDataType.NAME:
       return {
         subject: t('Name'),
         value: data.name || null,
       };
-    case GPUKnownDataDetailsType.VERSION:
+    case GPUKnownDataType.VERSION:
       return {
         subject: t('Version'),
         value: data.version || null,
       };
-    case GPUKnownDataDetailsType.MEMORY:
+    case GPUKnownDataType.MEMORY:
       return {
         subject: t('Memory'),
         value: data.memory_size ? formatMemory(data.memory_size) : null,
       };
-    case GPUKnownDataDetailsType.NPOT_SUPPORT:
+    case GPUKnownDataType.NPOT_SUPPORT:
       return {
         subject: t('NPOT Support'),
         value: data.npot_support || null,
       };
-    case GPUKnownDataDetailsType.MULTI_THREAD_RENDERING:
+    case GPUKnownDataType.MULTI_THREAD_RENDERING:
       return {
         subject: t('Multi-Thread rendering'),
         value: data.multi_threaded_rendering || null,
       };
-    case GPUKnownDataDetailsType.API_TYPE:
+    case GPUKnownDataType.API_TYPE:
       return {
         subject: t('API Type'),
         value: data.api_type || null,
       };
-    case GPUKnownDataDetailsType.VENDOR_ID:
+    case GPUKnownDataType.VENDOR_ID:
       return {
         subject: t('Vendor ID'),
         value: data.vendor_id,
       };
-    case GPUKnownDataDetailsType.ID:
+    case GPUKnownDataType.ID:
       return {
         subject: t('GPU ID'),
         value: data.id,

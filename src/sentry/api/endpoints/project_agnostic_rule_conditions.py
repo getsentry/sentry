@@ -20,7 +20,9 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
                 context["formFields"] = rule_cls.form_fields
             return context
 
-        if not features.has("organizations:new-project-issue-alert-options", organization):
+        if not features.has(
+            "organizations:new-project-issue-alert-options", organization, actor=request.user
+        ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         return Response(
