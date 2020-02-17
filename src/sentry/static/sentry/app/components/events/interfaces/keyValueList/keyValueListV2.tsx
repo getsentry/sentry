@@ -43,7 +43,7 @@ const KeyValueList = ({
         {getData().map(({key, subject, value, meta}) => (
           <tr key={key}>
             <TableData className="key" wide={longKeys}>
-              {subject}
+              {subject || key}
             </TableData>
             <td className="val">
               {isContextData ? (
@@ -54,12 +54,16 @@ const KeyValueList = ({
                 />
               ) : (
                 <pre className="val-string">
-                  <AnnotatedText
-                    value={value}
-                    chunks={meta.chunks}
-                    remarks={meta.rem}
-                    errors={meta.err}
-                  />
+                  {meta ? (
+                    <AnnotatedText
+                      value={value}
+                      chunks={meta.chunks}
+                      remarks={meta.rem}
+                      errors={meta.err}
+                    />
+                  ) : (
+                    value
+                  )}
                 </pre>
               )}
             </td>
