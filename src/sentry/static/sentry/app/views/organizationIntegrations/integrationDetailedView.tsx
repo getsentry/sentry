@@ -13,6 +13,7 @@ import Button from 'app/components/button';
 import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
 import withOrganization from 'app/utils/withOrganization';
 import {sortArray} from 'app/utils';
+
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {

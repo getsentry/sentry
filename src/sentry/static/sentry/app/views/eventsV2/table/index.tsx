@@ -9,7 +9,6 @@ import withTags from 'app/utils/withTags';
 import Pagination from 'app/components/pagination';
 
 import EventView, {isAPIPayloadSimilar} from '../eventView';
-
 import TableView from './tableView';
 import {TableData} from './types';
 

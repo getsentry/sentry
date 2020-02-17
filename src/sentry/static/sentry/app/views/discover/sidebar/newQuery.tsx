@@ -15,7 +15,6 @@ import {
 } from '../styles';
 import {SavedQuery} from '../types';
 import {QueryBuilder} from '../queryBuilder';
-
 import QueryFields from './queryFields';
 
 type NewQueryProps = {

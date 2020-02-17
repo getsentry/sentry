@@ -10,7 +10,6 @@ import withApi from 'app/utils/withApi';
 
 import {fetchIncident, updateSubscription, updateStatus, isOpen} from '../utils';
 import {IncidentStatus, Incident} from '../types';
-
 import DetailsBody from './body';
 import DetailsHeader from './header';
 

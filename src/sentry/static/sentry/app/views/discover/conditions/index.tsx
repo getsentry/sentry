@@ -6,7 +6,6 @@ import Link from 'app/components/links/link';
 
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 import {Condition, DiscoverBaseProps} from '../types';
-
 import ConditionRow from './condition';
 
 type ConditionsProps = DiscoverBaseProps & {

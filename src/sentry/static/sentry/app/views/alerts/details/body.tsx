@@ -26,7 +26,6 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 import {Incident} from '../types';
-
 import Activity from './activity';
 import Chart from './chart';
 import SideHeader from './sideHeader';

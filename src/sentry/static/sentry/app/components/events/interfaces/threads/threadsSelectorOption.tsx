@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';

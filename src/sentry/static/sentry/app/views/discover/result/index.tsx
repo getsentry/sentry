@@ -26,7 +26,6 @@ import {
   getQueryStringFromQuery,
 } from '../utils';
 import {SavedQuery} from '../types';
-
 import {
   getChartData,
   getChartDataByDay,

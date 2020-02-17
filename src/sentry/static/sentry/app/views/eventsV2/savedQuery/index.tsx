@@ -17,7 +17,6 @@ import {IconBookmark, IconDelete} from 'app/icons';
 
 import EventView from '../eventView';
 import {getDiscoverLandingUrl} from '../utils';
-
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
 type DefaultProps = {

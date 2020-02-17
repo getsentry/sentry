@@ -14,7 +14,6 @@ import Placeholder from 'app/components/placeholder';
 import space from 'app/styles/space';
 
 import {AlertRuleAggregations, IncidentRule, TimeWindow, Trigger} from '../../types';
-
 import ThresholdsChart from './thresholdsChart';
 
 type Props = {

@@ -24,7 +24,6 @@ import EventView, {pickRelevantLocationQueryStrings} from '../eventView';
 import SortLink, {Alignments} from '../sortLink';
 import {ColumnValueType} from '../eventQueryParams';
 import {generateEventDetailsRoute, generateEventSlug} from '../eventDetails/utils';
-
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
 import DraggableColumns, {

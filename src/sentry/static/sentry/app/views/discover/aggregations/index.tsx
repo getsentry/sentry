@@ -6,7 +6,6 @@ import Link from 'app/components/links/link';
 
 import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 import {Aggregation, DiscoverBaseProps} from '../types';
-
 import AggregationRow from './aggregation';
 
 type AggregationsProps = DiscoverBaseProps & {

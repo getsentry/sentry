@@ -9,7 +9,6 @@ import SelectControl from 'app/components/forms/selectControl';
 import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
 import {PlaceholderText} from '../styles';
 import {DiscoverBaseProps, Condition, ReactSelectOption} from '../types';
-
 import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
 
 type ConditionProps = DiscoverBaseProps & {

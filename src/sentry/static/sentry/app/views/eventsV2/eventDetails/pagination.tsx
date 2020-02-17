@@ -9,7 +9,6 @@ import space from 'app/styles/space';
 import {Event, Organization} from 'app/types';
 
 import EventView from '../eventView';
-
 import {generateEventDetailsRoute} from './utils';
 
 type LinksType = {

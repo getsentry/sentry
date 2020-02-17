@@ -14,7 +14,6 @@ import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
 
 import EventView from '../eventView';
-
 import EventDetailsContent from './content';
 
 type Props = {

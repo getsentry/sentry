@@ -15,7 +15,6 @@ import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 
 import {Incident, IncidentActivityType, ActivityType, NoteType} from '../../types';
-
 import ActivityPlaceholder from './activityPlaceholder';
 import DateDivider from './dateDivider';
 import StatusItem from './statusItem';

@@ -11,7 +11,6 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import withOrganization from 'app/utils/withOrganization';
 
 import {Query, SnubaResult} from '../types';
-
 import {getDisplayValue, getDisplayText} from './utils';
 
 const TABLE_ROW_HEIGHT = 30;

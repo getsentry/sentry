@@ -1,7 +1,6 @@
 import {t} from 'app/locale';
 
 import {WIDGET_DISPLAY} from '../constants';
-
 import {getChartDataFunc} from './getChartDataFunc';
 import {isTimeSeries} from './isTimeSeries';
 

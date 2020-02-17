@@ -25,7 +25,6 @@ import {NON_CONDITIONS_FIELDS} from '../data';
 import {getOrderbyFields} from '../utils';
 import {SavedQuery, ReactSelectOption} from '../types';
 import {QueryBuilder} from '../queryBuilder';
-
 import Orderby from './orderby';
 
 type QueryFieldsProps = {

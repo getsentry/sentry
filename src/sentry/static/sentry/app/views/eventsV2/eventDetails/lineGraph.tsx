@@ -25,7 +25,6 @@ import {Event, Organization, GlobalSelection} from 'app/types';
 
 import {PIN_ICON} from '../data';
 import EventView from '../eventView';
-
 import {generateEventDetailsRoute, generateEventSlug} from './utils';
 
 /**
