@@ -1,15 +1,17 @@
 import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlockV2';
+import {defined} from 'app/utils';
 
-import getAppKnownData, {AppData} from './getAppKnownData';
+import getAppKnownData from './getAppKnownData';
+import {AppData} from './types';
 
 type Props = {
   data?: AppData;
 };
 
 const App = ({data}: Props) => {
-  if (data === undefined || data === null) {
+  if (!defined(data)) {
     return null;
   }
 

@@ -1,19 +1,17 @@
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/keyValueListV2';
+import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 
-import getAppKnownDataDetails, {
-  AppData,
-  AppKnownDataDetailsType,
-} from './getAppKnownDataDetails';
+import getAppKnownDataDetails from './getAppKnownDataDetails';
+import {AppData, AppKnownDataType} from './types';
 
 function getAppKnownData(data: AppData): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
   const dataKeys = Object.keys(data);
   for (const key of dataKeys) {
-    const knownDataDetails = getAppKnownDataDetails(data, key as AppKnownDataDetailsType);
+    const knownDataDetails = getAppKnownDataDetails(data, key as AppKnownDataType);
 
-    if (key === null || !knownDataDetails) {
+    if (!knownDataDetails) {
       continue;
     }
 
@@ -26,5 +24,4 @@ function getAppKnownData(data: AppData): Array<KeyValueListData> {
   return knownData;
 }
 
-export {AppData};
 export default getAppKnownData;
