@@ -41,6 +41,7 @@ class RetrySymbolication(Exception):
         self.retry_after = retry_after
 
 
+@metrics.wraps("should_process")
 def should_process(data):
     """Quick check if processing is needed at all."""
     from sentry.plugins.base import plugins
@@ -185,9 +186,17 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
         return
 
     data = CanonicalKeyDict(data)
-    data_bak = copy.deepcopy(data.data)
 
     project_id = data["project"]
+    project = Project.objects.get_from_cache(id=project_id)
+
+    with_datascrubbing = features.has(
+        "organizations:datascrubbers-v2", project.organization, actor=None
+    )
+
+    if with_datascrubbing:
+        with metrics.timer("tasks.store.datascrubbers.data_bak"):
+            data_bak = copy.deepcopy(data.data)
 
     with configure_scope() as scope:
         scope.set_tag("project", project_id)
@@ -232,9 +241,6 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
             )
             return
 
-    assert data["project"] == project_id, "Project cannot be mutated by plugins"
-    project = Project.objects.get_from_cache(id=project_id)
-
     # Second round of datascrubbing after stacktrace and language-specific
     # processing. First round happened as part of ingest.
     #
@@ -248,10 +254,8 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     # XXX(markus): Javascript event error translation is happening after this block
     # because it uses `get_event_preprocessors` instead of
     # `get_event_enhancers`, possibly move?
-    if has_changed and features.has(
-        "organizations:datascrubbers-v2", project.organization, actor=None
-    ):
-        with metrics.timer("tasks.store.datascrubbers"):
+    if has_changed and with_datascrubbing:
+        with metrics.timer("tasks.store.datascrubbers.scrub"):
             project_config = get_project_config(project)
 
             new_data = safe_execute(
