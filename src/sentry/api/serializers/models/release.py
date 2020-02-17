@@ -251,9 +251,29 @@ class ReleaseSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        def expose_version_info(info):
+            version = {"raw": info["version_raw"]}
+            if info["version_parsed"]:
+                version.update(
+                    {
+                        "major": info["version_parsed"]["major"],
+                        "minor": info["version_parsed"]["minor"],
+                        "patch": info["version_parsed"]["patch"],
+                        "pre": info["version_parsed"]["pre"],
+                        "buildCode": info["version_parsed"]["build_code"],
+                    }
+                )
+            return {
+                "package": info["package"],
+                "version": version,
+                "description": info["description"],
+                "buildHash": info["build_hash"],
+            }
+
         d = {
             "version": obj.version,
             "shortVersion": obj.version,
+            "versionInfo": expose_version_info(obj.version_info),
             "ref": obj.ref,
             "url": obj.url,
             "dateReleased": obj.date_released,
