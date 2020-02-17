@@ -12,7 +12,7 @@ function getUserKnownData(data: UserType): Array<KeyValueListData> {
   for (const key of dataKeys) {
     const knownDataDetails = getUserKnownDataDetails(data, key as UserKnownDataType);
 
-    if (key === null || !knownDataDetails) {
+    if (!knownDataDetails) {
       continue;
     }
 
