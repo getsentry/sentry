@@ -16,7 +16,7 @@ function getOperatingSystemKnownData(
       key as OperatingSystemKnownDataType
     );
 
-    if (key === null || !knownDataDetails) {
+    if (!knownDataDetails) {
       continue;
     }
 

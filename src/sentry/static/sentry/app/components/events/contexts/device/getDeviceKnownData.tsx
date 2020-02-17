@@ -11,7 +11,7 @@ function getOperatingSystemKnownData(data: DeviceData): Array<KeyValueListData> 
   for (const key of dataKeys) {
     const knownDataDetails = getDeviceKnownDataDetails(data, key as DeviceKnownDataType);
 
-    if (key === null || !knownDataDetails) {
+    if (!knownDataDetails) {
       continue;
     }
 

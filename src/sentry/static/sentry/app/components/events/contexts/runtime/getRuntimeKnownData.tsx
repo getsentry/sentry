@@ -14,7 +14,7 @@ function getRuntimeKnownData(data: RuntimeData): Array<KeyValueListData> {
       key as RuntimeKnownDataType
     );
 
-    if (key === null || !knownDataDetails) {
+    if (!knownDataDetails) {
       continue;
     }
 
