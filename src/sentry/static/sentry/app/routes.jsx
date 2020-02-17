@@ -833,7 +833,7 @@ function routes() {
       <Route name="Integrations" path="plugins/">
         <Route
           name="Integration Details"
-          path=":pluginSlug/"
+          path=":integrationSlug/"
           componentPromise={() =>
             import(
               /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/pluginDetailedView'
@@ -847,7 +847,7 @@ function routes() {
       <Route name="Integrations" path="sentry-apps/">
         <Route
           name="Details"
-          path=":appSlug"
+          path=":integrationSlug"
           componentPromise={() =>
             import(
               /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/sentryAppDetailedView'
@@ -868,7 +868,7 @@ function routes() {
         />
         <Route
           name="Integration Details"
-          path=":providerKey"
+          path=":integrationSlug"
           componentPromise={() =>
             import(
               /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/integrationDetailedView'

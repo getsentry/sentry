@@ -52,8 +52,7 @@ function ThresholdControl({
   return (
     <div {...props}>
       <SelectControl
-        deprecatedSelectControl
-        disabled={disabled}
+        isDisabled={disabled}
         name={`${thresholdName}ThresholdType`}
         value={getThresholdTypeForThreshold(type, thresholdType)}
         options={[

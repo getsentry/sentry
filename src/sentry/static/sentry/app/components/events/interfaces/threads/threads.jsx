@@ -10,6 +10,7 @@ import CrashHeader from 'app/components/events/interfaces/crashHeader';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
+import {defined} from 'app/utils';
 
 import ThreadsSelector from './threadsSelector';
 import getThreadStacktrace from './getThreadStacktrace';
@@ -123,11 +124,13 @@ class ThreadsInterface extends React.Component {
 
   constructor(props) {
     super(props);
-    const thread = findBestThread(props.data.values);
+    const thread = defined(props.data.values)
+      ? findBestThread(props.data.values)
+      : undefined;
 
     this.state = {
       activeThread: thread,
-      stackView: getIntendedStackView(thread, props.event),
+      stackView: thread ? getIntendedStackView(thread, props.event) : undefined,
       stackType: 'original',
       newestFirst: isStacktraceNewestFirst(),
     };
@@ -164,13 +167,17 @@ class ThreadsInterface extends React.Component {
   };
 
   render() {
+    const threads = this.props.data.values || [];
+
+    if (threads.length === 0) {
+      return null;
+    }
+
     const evt = this.props.event;
     const {projectId, hideGuide} = this.props;
     const {stackView, stackType, newestFirst, activeThread} = this.state;
     const exception = this.getException();
     const stacktrace = this.getStacktrace();
-
-    const threads = this.props.data.values || [];
 
     const titleProps = {
       platform: evt.platform,
