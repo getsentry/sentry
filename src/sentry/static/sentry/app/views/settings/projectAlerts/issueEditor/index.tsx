@@ -2,8 +2,8 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import React from 'react';
 import classNames from 'classnames';
-
 import styled from '@emotion/styled';
+
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {Client} from 'app/api';
 import {Environment, Organization, Project} from 'app/types';

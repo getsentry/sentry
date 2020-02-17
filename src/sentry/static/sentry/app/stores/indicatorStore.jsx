@@ -1,5 +1,4 @@
 import Reflux from 'reflux';
-
 import {t} from 'app/locale';
 import IndicatorActions from 'app/actions/indicatorActions';
 

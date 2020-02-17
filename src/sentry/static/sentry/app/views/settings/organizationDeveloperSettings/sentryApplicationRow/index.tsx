@@ -3,9 +3,9 @@ import {Box, Flex} from 'reflexbox';
 import {Link} from 'react-router';
 import capitalize from 'lodash/capitalize';
 import omit from 'lodash/omit';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import styled from '@emotion/styled';
 import SentryTypes from 'app/sentryTypes';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -16,7 +16,6 @@ import {openSentryAppDetailsModal, openModal} from 'app/actionCreators/modal';
 import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
 import theme from 'app/utils/theme';
-
 import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 
 const INSTALLED = 'Installed';

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import styled from '@emotion/styled';
+
 import IssueList from 'app/components/issueList';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import space from 'app/styles/space';

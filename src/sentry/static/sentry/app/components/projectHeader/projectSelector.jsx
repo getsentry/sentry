@@ -1,8 +1,8 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {t} from 'app/locale';
 import IdBadge from 'app/components/idBadge';
 import InlineSvg from 'app/components/inlineSvg';

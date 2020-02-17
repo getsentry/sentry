@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import styled from '@emotion/styled';
+
 import BarChart from 'app/components/barChart';
 
 export default class Chart extends React.Component {

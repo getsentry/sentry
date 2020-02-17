@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-
 import SpreadLayout from 'app/components/spreadLayout';
 
 // Flexbox, use when you want your children to be equal sizes

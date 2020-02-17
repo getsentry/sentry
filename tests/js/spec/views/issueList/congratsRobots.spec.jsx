@@ -1,6 +1,6 @@
 import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import CongratsRobots from 'app/views/issueList/congratsRobots';
 
 describe('CongratsRobots', function() {

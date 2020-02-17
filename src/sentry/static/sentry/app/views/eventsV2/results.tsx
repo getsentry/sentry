@@ -1,11 +1,11 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/browser';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 import isEqual from 'lodash/isEqual';
 
-import styled from '@emotion/styled';
 import {Organization, GlobalSelection} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {Client} from 'app/api';
@@ -14,8 +14,11 @@ import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+
 import space from 'app/styles/space';
+
 import SearchBar from 'app/views/events/searchBar';
+
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';

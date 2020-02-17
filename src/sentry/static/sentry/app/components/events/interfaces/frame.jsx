@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
+import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import scrollToElement from 'scroll-to-element';
 
-import styled from '@emotion/styled';
 import {defined, objectIsEmpty, isUrl} from 'app/utils';
 import {t} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';

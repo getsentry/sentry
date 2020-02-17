@@ -1,13 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import {t} from 'app/locale';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import withApi from 'app/utils/withApi';
 import Well from 'app/components/well';
-
 import {Panel, PanelBody, PanelHeader} from './panels';
 import Avatar from './avatar';
 import AvatarCropper from './avatarCropper';

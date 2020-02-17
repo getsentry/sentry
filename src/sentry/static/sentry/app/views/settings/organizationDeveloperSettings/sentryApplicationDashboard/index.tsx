@@ -1,14 +1,16 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import styled from '@emotion/styled';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import LineChart from 'app/components/charts/lineChart';
+
 import {Panel, PanelBody, PanelHeader, PanelFooter} from 'app/components/panels';
 import BarChart from 'app/components/charts/barChart';
 import Link from 'app/components/links/link';
 import DateTime from 'app/components/dateTime';
+
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {SentryApp} from 'app/types';

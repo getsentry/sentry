@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';

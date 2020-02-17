@@ -1,6 +1,6 @@
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';

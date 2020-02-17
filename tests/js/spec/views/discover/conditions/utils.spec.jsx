@@ -4,6 +4,7 @@ import {
   isValidCondition,
   ignoreCase,
 } from 'app/views/discover/conditions/utils';
+
 import {COLUMNS} from 'app/views/discover/data';
 
 const conditionList = [

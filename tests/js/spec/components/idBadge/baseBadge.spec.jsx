@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {shallow} from 'sentry-test/enzyme';
 import BaseBadge from 'app/components/idBadge/baseBadge';
 

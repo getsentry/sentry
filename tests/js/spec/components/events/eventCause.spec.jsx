@@ -1,6 +1,6 @@
 import React from 'react';
-
 import {mount} from 'sentry-test/enzyme';
+
 import {Client} from 'app/api';
 import EventCause from 'app/components/events/eventCause';
 

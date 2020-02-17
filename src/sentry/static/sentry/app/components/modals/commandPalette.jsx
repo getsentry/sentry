@@ -1,8 +1,8 @@
 import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import Search from 'app/components/search';

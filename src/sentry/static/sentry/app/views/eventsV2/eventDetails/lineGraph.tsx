@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -23,9 +23,9 @@ import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 import {Event, Organization, GlobalSelection} from 'app/types';
 
+import {generateEventDetailsRoute, generateEventSlug} from './utils';
 import {PIN_ICON} from '../data';
 import EventView from '../eventView';
-import {generateEventDetailsRoute, generateEventSlug} from './utils';
 
 /**
  * Generate the data to display a vertical line for the current

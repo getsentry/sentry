@@ -1,7 +1,6 @@
 import React from 'react';
-import toJson from 'enzyme-to-json';
-
 import {shallow} from 'sentry-test/enzyme';
+import toJson from 'enzyme-to-json';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 
 const data = {

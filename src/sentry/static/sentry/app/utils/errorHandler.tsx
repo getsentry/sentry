@@ -1,5 +1,4 @@
 import React from 'react';
-
 import RouteError from 'app/views/routeError';
 
 type State = {

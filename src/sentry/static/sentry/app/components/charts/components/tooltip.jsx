@@ -1,9 +1,7 @@
 import 'echarts/lib/component/tooltip';
 
 import get from 'lodash/get';
-
 import {getFormattedDate} from 'app/utils/dates';
-
 import {truncationFormatter} from '../utils';
 
 function defaultFormatAxisLabel(value, isTimestamp, utc, showTimeInTooltip) {
