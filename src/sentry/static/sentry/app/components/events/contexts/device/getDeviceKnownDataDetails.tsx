@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 import DeviceName from 'app/components/deviceName';
