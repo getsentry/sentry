@@ -252,6 +252,8 @@ class ReleaseSerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs):
         def expose_version_info(info):
+            if info is None:
+                return None
             version = {"raw": info["version_raw"]}
             if info["version_parsed"]:
                 version.update(
