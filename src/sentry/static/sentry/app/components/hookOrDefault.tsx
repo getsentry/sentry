@@ -3,6 +3,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
 import HookStore from 'app/stores/hookStore';
+
 import {Hooks, HookName} from 'app/types/hooks';
 
 type Params<H extends HookName> = {

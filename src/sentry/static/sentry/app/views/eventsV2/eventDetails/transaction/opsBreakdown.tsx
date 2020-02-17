@@ -1,8 +1,8 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import get from 'lodash/get';
 import isFinite from 'lodash/isFinite';
 
-import styled from '@emotion/styled';
 import {Event} from 'app/types';
 import {
   SentryTransactionEvent,
@@ -13,7 +13,6 @@ import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import {TraceContextType} from 'app/components/events/interfaces/spans/traceView';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-
 import {SectionHeading} from '../../styles';
 
 type OpStats = {percentage: number; totalDuration: number};

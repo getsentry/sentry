@@ -1,6 +1,6 @@
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
@@ -17,7 +17,6 @@ import withOrganization from 'app/utils/withOrganization';
 import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
 import {openModal} from 'app/actionCreators/modal';
 import {getSentryAppInstallStatus} from 'app/utils/integrationUtil';
-
 import {UninstallButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 

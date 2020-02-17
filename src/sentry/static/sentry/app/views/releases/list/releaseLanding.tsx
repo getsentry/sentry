@@ -1,13 +1,14 @@
 import React from 'react';
+import {t} from 'app/locale';
+import styled from '@emotion/styled';
+
 import minified from 'sentry-dreamy-components/dist/minified.svg';
 import emails from 'sentry-dreamy-components/dist/emails.svg';
 import issues from 'sentry-dreamy-components/dist/issues.svg';
 import suggestedAssignees from 'sentry-dreamy-components/dist/suggested-assignees.svg';
 import contributors from 'sentry-dreamy-components/dist/contributors.svg';
-
-import styled from '@emotion/styled';
-import {t} from 'app/locale';
 import {Project, Organization} from 'app/types';
+
 import {analytics} from 'app/utils/analytics';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';

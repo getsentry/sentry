@@ -1,8 +1,8 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';

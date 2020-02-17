@@ -1,7 +1,7 @@
 import {withRouter} from 'react-router';
 import React from 'react';
-
 import AsyncComponent from 'app/components/asyncComponent';
+
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 

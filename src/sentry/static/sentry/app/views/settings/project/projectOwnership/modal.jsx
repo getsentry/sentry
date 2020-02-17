@@ -5,6 +5,7 @@ import uniq from 'lodash/uniq';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
+
 import SentryTypes from 'app/sentryTypes';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 

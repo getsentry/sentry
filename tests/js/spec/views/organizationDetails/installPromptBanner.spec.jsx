@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {shallow} from 'sentry-test/enzyme';
 import {InstallPromptBanner} from 'app/views/organizationDetails/installPromptBanner';
 

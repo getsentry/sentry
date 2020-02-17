@@ -1,6 +1,5 @@
 import React from 'react';
 import keyBy from 'lodash/keyBy';
-
 import ConfigStore from 'app/stores/configStore';
 import {t, tct} from 'app/locale';
 import {

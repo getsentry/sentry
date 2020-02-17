@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {defined, objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';

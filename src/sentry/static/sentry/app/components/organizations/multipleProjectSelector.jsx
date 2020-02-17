@@ -1,9 +1,9 @@
 import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 import {Link} from 'react-router';
 
-import styled from '@emotion/styled';
 import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
@@ -13,6 +13,7 @@ import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectSelector';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
+
 import HeaderItem from 'app/components/organizations/headerItem';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';

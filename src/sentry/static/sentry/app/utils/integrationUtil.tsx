@@ -1,7 +1,5 @@
-import capitalize from 'lodash/capitalize';
-import React from 'react';
-
 import {uniqueId} from 'app/utils/guid';
+import capitalize from 'lodash/capitalize';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {
   Organization,
@@ -10,6 +8,7 @@ import {
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
+import React from 'react';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION';
 const USE_INTEGRATION_DIRECTORY = 'USE_INTEGRATION_DIRECTORY';

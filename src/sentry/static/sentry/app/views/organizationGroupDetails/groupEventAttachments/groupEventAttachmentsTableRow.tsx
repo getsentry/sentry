@@ -1,6 +1,6 @@
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import DateTime from 'app/components/dateTime';

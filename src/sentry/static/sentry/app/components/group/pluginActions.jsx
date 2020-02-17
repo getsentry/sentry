@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
-
 import withApi from 'app/utils/withApi';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import NavTabs from 'app/components/navTabs';

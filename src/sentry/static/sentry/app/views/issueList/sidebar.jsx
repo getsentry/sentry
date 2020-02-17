@@ -4,11 +4,9 @@ import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
 import debounce from 'lodash/debounce';
 import map from 'lodash/map';
-
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {queryToObj, objToQuery} from 'app/utils/stream';
 import {t} from 'app/locale';
-
 import IssueListTagFilter from './tagFilter';
 
 const TEXT_FILTER_DEBOUNCE_IN_MS = 300;

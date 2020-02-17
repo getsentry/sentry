@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 import {ClassNames} from '@emotion/core';
 
-import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import Search from 'app/components/search';
 import HelpSource from 'app/components/search/sources/helpSource';

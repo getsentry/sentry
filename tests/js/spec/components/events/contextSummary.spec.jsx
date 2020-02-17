@@ -1,6 +1,6 @@
 import React from 'react';
-
 import {shallow, mount} from 'sentry-test/enzyme';
+
 import ContextSummary, {
   OsSummary,
   GpuSummary,

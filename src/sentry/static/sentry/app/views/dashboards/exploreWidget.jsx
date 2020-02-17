@@ -1,7 +1,7 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import styled from '@emotion/styled';
 import {getDiscoverUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getDiscoverUrlPathFromDiscoverQuery';
 import {getEventsUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getEventsUrlPathFromDiscoverQuery';
 import {t} from 'app/locale';

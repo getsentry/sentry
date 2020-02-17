@@ -1,6 +1,6 @@
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {PluginWithProjectList, PluginProjectItem} from 'app/types';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
@@ -9,7 +9,6 @@ import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin'
 import {openModal} from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
-
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {

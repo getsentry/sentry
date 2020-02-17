@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
 import {getCurrentMember} from 'app/actionCreators/members';

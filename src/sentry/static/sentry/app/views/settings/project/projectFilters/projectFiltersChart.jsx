@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import SentryTypes from 'app/sentryTypes';
 import moment from 'moment';
 
-import SentryTypes from 'app/sentryTypes';
 import {intcomma} from 'app/utils';
 import {t, tn} from 'app/locale';
 import withApi from 'app/utils/withApi';

@@ -1,6 +1,6 @@
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {analytics} from 'app/utils/analytics';
 import {stepPropTypes} from 'app/views/onboarding/onboarding';
 import {t, tct} from 'app/locale';

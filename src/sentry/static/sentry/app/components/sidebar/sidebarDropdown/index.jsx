@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {logout} from 'app/actionCreators/account';
 import {t} from 'app/locale';
 import Avatar from 'app/components/avatar';

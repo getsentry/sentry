@@ -1,5 +1,4 @@
 import Reflux from 'reflux';
-
 import {toTitleCase} from 'app/utils';
 import EnvironmentActions from 'app/actions/environmentActions';
 

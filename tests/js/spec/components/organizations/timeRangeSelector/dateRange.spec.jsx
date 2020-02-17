@@ -1,7 +1,7 @@
 import React from 'react';
+import {mount} from 'sentry-test/enzyme';
 import MockDate from 'mockdate';
 
-import {mount} from 'sentry-test/enzyme';
 import ConfigStore from 'app/stores/configStore';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 

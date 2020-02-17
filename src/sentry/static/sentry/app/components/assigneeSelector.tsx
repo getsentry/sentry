@@ -2,10 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-
 import styled from '@emotion/styled';
+
 import SentryTypes from 'app/sentryTypes';
 import {User} from 'app/types';
+
 import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';

@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 
 import SentryTypes from 'app/sentryTypes';
 import LastCommit from 'app/components/lastCommit';
+
 import RepositoryFileSummary from 'app/components/repositoryFileSummary';
 import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';

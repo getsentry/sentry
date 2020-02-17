@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {mount, shallow} from 'sentry-test/enzyme';
 import InactivePlugins from 'app/components/inactivePlugins';
 

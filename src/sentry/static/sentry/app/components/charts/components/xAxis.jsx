@@ -1,6 +1,5 @@
 import {getFormattedDate} from 'app/utils/dates';
 import theme from 'app/utils/theme';
-
 import {truncationFormatter} from '../utils';
 
 export default function XAxis({

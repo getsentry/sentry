@@ -1,7 +1,7 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import styled from '@emotion/styled';
 import {Integration, IntegrationProvider} from 'app/types';
 import {RequestOptions} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -13,7 +13,6 @@ import Button from 'app/components/button';
 import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
 import withOrganization from 'app/utils/withOrganization';
 import {sortArray} from 'app/utils';
-
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {

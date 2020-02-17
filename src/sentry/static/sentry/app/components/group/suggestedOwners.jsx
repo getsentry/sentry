@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {ClassNames} from '@emotion/core';
-
 import styled from '@emotion/styled';
+import {ClassNames} from '@emotion/core';
 import space from 'app/styles/space';
+
 import {assignToUser, assignToActor} from 'app/actionCreators/group';
 import {openCreateOwnershipRule} from 'app/actionCreators/modal';
 import {t} from 'app/locale';

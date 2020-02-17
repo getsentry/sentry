@@ -1,4 +1,5 @@
 import isDate from 'lodash/isDate';
+
 import isEqualWith from 'lodash/isEqualWith';
 
 // `lodash.isEqual` does not compare date objects

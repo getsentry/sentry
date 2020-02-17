@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-
 import {defined} from 'app/utils';
 import styled from '@emotion/styled';
 

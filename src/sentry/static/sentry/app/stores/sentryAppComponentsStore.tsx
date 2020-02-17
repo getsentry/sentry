@@ -1,5 +1,4 @@
 import Reflux from 'reflux';
-
 import SentryAppComponentsActions from 'app/actions/sentryAppComponentActions';
 import {SentryAppComponent} from 'app/types';
 

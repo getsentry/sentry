@@ -1,7 +1,7 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {IssueAlertRule} from 'app/types/alerts';
 import {Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';

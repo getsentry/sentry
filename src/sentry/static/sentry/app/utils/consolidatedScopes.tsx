@@ -1,7 +1,6 @@
 import invertBy from 'lodash/invertBy';
 import groupBy from 'lodash/groupBy';
 import pick from 'lodash/pick';
-
 import {Permissions} from 'app/types';
 
 const PERMISSION_LEVELS = {

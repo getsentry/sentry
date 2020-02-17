@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import {t} from 'app/locale';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import GuideAnchor from 'app/components/assistant/guideAnchor';

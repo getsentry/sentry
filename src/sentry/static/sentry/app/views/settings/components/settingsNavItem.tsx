@@ -1,7 +1,7 @@
 import {Link} from 'react-router';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import Badge from 'app/components/badge';
 import HookOrDefault from 'app/components/hookOrDefault';
 import Tag from 'app/views/settings/components/tag';

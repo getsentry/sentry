@@ -2,9 +2,10 @@ import React from 'react';
 import {Link} from 'react-router';
 import isEmpty from 'lodash/isEmpty';
 import queryString from 'query-string';
-import {Location} from 'history';
 
+import {Location} from 'history';
 import {Event, EventTag} from 'app/types';
+
 import EventDataSection from 'app/components/events/eventDataSection';
 import DeviceName from 'app/components/deviceName';
 import {isUrl, generateQueryWithTag} from 'app/utils';

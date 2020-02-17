@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {shallow, mount} from 'sentry-test/enzyme';
 import LazyLoad from 'app/components/lazyLoad';
 

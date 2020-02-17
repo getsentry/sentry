@@ -1,8 +1,9 @@
 import React from 'react';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectAlertRuleDetails from 'app/views/settings/projectAlerts/projectAlertRuleDetails';
+
 import {selectByValue} from 'sentry-test/select';
 
 jest.mock('jquery');

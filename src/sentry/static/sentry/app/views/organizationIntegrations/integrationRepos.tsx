@@ -2,8 +2,8 @@ import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import debounce from 'lodash/debounce';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {migrateRepository, addRepository} from 'app/actionCreators/integrations';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';

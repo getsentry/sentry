@@ -2,8 +2,8 @@ import {Link} from 'react-router';
 import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {t} from 'app/locale';
 import AssigneeSelector from 'app/components/assigneeSelector';

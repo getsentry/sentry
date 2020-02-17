@@ -17,6 +17,7 @@ import InputField from './inputField';
 import ChoiceMapperField from './choiceMapperField';
 import RichListField from './richListField';
 import FieldSeparator from './fieldSeparator';
+
 import {Field} from './type';
 
 type Props = {

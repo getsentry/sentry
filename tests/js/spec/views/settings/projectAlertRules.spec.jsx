@@ -1,6 +1,6 @@
 import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectAlertRules from 'app/views/settings/projectAlerts/projectAlertRules';
 
 describe('projectAlertRules', function() {

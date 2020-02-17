@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+
 import space from 'app/styles/space';
 
 const BREAKPOINT_TO_HIDE_COLUMNS = '600px';

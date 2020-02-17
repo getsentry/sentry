@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {StyledForm} from 'app/components/forms/form';
 import {defined} from 'app/utils';
 import SelectControl from 'app/components/forms/selectControl';

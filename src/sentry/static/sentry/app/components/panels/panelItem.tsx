@@ -1,6 +1,5 @@
 import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
-
 import styled from '@emotion/styled';
 
 const PanelItem = styled(Flex)`

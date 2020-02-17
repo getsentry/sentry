@@ -6,7 +6,6 @@ import {enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 import InactivePlugins from 'app/components/inactivePlugins';
 import PluginConfig from 'app/components/pluginConfig';
 import {t} from 'app/locale';
-
 import {Panel, PanelItem} from './panels';
 
 type Props = {

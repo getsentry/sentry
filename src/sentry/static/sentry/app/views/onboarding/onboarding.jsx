@@ -4,8 +4,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import posed, {PoseGroup} from 'react-pose';
 import scrollToElement from 'scroll-to-element';
-
 import styled from '@emotion/styled';
+
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import Hook from 'app/components/hook';

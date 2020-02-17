@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import {IOSDeviceList} from 'app/types/iOSDeviceList';
 
 export function deviceNameMapper(model: string, iOSDeviceList): string {

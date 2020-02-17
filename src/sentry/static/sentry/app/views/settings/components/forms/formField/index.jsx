@@ -1,8 +1,8 @@
 import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {defined} from 'app/utils';
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 import {t} from 'app/locale';
