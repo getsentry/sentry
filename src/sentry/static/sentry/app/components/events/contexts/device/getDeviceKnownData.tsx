@@ -1,18 +1,15 @@
 import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 
-import getRuntimeKnownDataDetails from './getRuntimeKnownDataDetails';
-import {RuntimeData, RuntimeKnownDataType} from './types';
+import getDeviceKnownDataDetails from './getDeviceKnownDataDetails';
+import {DeviceKnownDataType, DeviceData} from './types';
 
-function getRuntimeKnownData(data: RuntimeData): Array<KeyValueListData> {
+function getOperatingSystemKnownData(data: DeviceData): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
   const dataKeys = Object.keys(data);
   for (const key of dataKeys) {
-    const knownDataDetails = getRuntimeKnownDataDetails(
-      data,
-      key as RuntimeKnownDataType
-    );
+    const knownDataDetails = getDeviceKnownDataDetails(data, key as DeviceKnownDataType);
 
     if (!knownDataDetails) {
       continue;
@@ -27,4 +24,4 @@ function getRuntimeKnownData(data: RuntimeData): Array<KeyValueListData> {
   return knownData;
 }
 
-export default getRuntimeKnownData;
+export default getOperatingSystemKnownData;
