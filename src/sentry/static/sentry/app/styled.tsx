@@ -13,13 +13,14 @@
  * See https://github.com/microsoft/TypeScript/issues/34920
  */
 
-import styled from '@original-emotion/styled';
 import * as React from 'react';
 // TODO(BYK): Figure out why ESLint cannot resolve this
 //            probably need to include `.d.ts` extension
 //            in some resolver config.
 // eslint-disable-next-line import/no-unresolved
 import * as CSS from 'csstype';
+
+import styled from '@original-emotion/styled';
 
 import theme from './utils/theme';
 

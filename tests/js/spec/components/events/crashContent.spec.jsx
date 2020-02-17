@@ -1,6 +1,6 @@
-import {mount} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {mount} from 'sentry-test/enzyme';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 import {withMeta} from 'app/components/events/meta/metaProxy';
 

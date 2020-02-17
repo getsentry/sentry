@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import isEqual from 'lodash/isEqual';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addErrorMessage,

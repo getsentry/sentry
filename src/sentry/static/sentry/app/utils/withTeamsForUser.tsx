@@ -5,6 +5,7 @@ import {Organization, Project, Team, TeamWithProjects} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
 import ConfigStore from 'app/stores/configStore';
+
 import {metric} from './analytics';
 
 // We require these props when using this HOC

@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+
 import Confirm from 'app/components/confirm';
 import Alert from 'app/components/alert';
 import Input from 'app/views/settings/components/forms/controls/input';

@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import debounce from 'lodash/debounce';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {Panel, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';

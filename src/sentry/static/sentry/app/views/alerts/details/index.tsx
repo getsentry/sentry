@@ -9,9 +9,9 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 
 import {fetchIncident, updateSubscription, updateStatus, isOpen} from '../utils';
+import {IncidentStatus, Incident} from '../types';
 import DetailsBody from './body';
 import DetailsHeader from './header';
-import {IncidentStatus, Incident} from '../types';
 
 type Props = {
   api: Client;

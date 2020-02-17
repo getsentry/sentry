@@ -1,8 +1,8 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import get from 'lodash/get';
 import 'intersection-observer'; // this is a polyfill
 
+import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import space from 'app/styles/space';

@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import ErrorBoundary from 'app/components/errorBoundary';
 import BaseBadge from 'app/components/idBadge/baseBadge';
 import MemberBadge from 'app/components/idBadge/memberBadge';

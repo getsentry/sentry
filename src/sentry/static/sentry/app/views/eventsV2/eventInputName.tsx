@@ -1,18 +1,16 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
+import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Organization, SavedQuery} from 'app/types';
 import withApi from 'app/utils/withApi';
-
 import {addErrorMessage} from 'app/actionCreators/indicator';
-
 import InlineInput from 'app/components/inputInline';
-import {handleUpdateQueryName} from './savedQuery/utils';
 
+import {handleUpdateQueryName} from './savedQuery/utils';
 import EventView from './eventView';
 
 type Props = {

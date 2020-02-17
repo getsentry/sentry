@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import RepoLabel from 'app/components/repoLabel';
 import TimeSince from 'app/components/timeSince';

@@ -1,7 +1,7 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
+import styled from '@emotion/styled';
 import space from 'app/styles/space';
 
 const defaultProps = {

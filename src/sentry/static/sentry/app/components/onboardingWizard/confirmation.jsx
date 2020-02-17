@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import styled from '@emotion/styled';
 import {t} from 'app/locale';
-
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import withOrganization from 'app/utils/withOrganization';

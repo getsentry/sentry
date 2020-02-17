@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {Flex} from 'reflexbox';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import PageHeading from 'app/components/pageHeading';
