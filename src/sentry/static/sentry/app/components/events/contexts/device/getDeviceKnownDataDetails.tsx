@@ -10,13 +10,10 @@ import {DeviceKnownDataType, DeviceData} from './types';
 
 type Output = {
   subject: string;
-  value: null | React.ReactNode;
+  value: React.ReactNode | null;
 };
 
-function getDeviceKnownDataDetails(
-  data: DeviceData,
-  type: DeviceKnownDataType
-): Output | undefined {
+function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType): Output {
   switch (type) {
     case DeviceKnownDataType.NAME:
       return {
@@ -182,7 +179,10 @@ function getDeviceKnownDataDetails(
         value: data.screen_width_pixels,
       };
     default:
-      return undefined;
+      return {
+        subject: type,
+        value: data[type] || null,
+      };
   }
 }
 

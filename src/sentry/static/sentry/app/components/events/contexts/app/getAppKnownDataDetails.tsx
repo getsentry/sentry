@@ -4,13 +4,10 @@ import {AppData, AppKnownDataType} from './types';
 
 type Output = {
   subject: string;
-  value: string | null;
+  value: React.ReactNode | null;
 };
 
-function getAppKnownDataDetails(
-  data: AppData,
-  type: AppKnownDataType
-): Output | undefined {
+function getAppKnownDataDetails(data: AppData, type: AppKnownDataType): Output {
   switch (type) {
     case AppKnownDataType.ID:
       return {
@@ -53,7 +50,10 @@ function getAppKnownDataDetails(
         value: data.app_build || null,
       };
     default:
-      return undefined;
+      return {
+        subject: type,
+        value: data[type] || null,
+      };
   }
 }
 

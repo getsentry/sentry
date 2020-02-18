@@ -5,13 +5,10 @@ import {GPUData, GPUKnownDataType} from './types';
 
 type Output = {
   subject: string;
-  value: string | null | boolean | number;
+  value: React.ReactNode | null;
 };
 
-function getGPUKnownDataDetails(
-  data: GPUData,
-  type: GPUKnownDataType
-): Output | undefined {
+function getGPUKnownDataDetails(data: GPUData, type: GPUKnownDataType): Output {
   switch (type) {
     case GPUKnownDataType.NAME:
       return {
@@ -54,7 +51,10 @@ function getGPUKnownDataDetails(
         value: data.id,
       };
     default:
-      return undefined;
+      return {
+        subject: type,
+        value: data[type] || null,
+      };
   }
 }
 

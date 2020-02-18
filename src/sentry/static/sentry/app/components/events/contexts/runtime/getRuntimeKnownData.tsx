@@ -14,10 +14,6 @@ function getRuntimeKnownData(data: RuntimeData): Array<KeyValueListData> {
       key as RuntimeKnownDataType
     );
 
-    if (!knownDataDetails) {
-      continue;
-    }
-
     knownData.push({
       key,
       ...knownDataDetails,
