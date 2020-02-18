@@ -92,6 +92,4 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
 
         # assert we see the install option now
         assert provider_element.install_button.text.strip() == "Install"
-        assert self.browser.element_exists(
-            provider_element.install_button.svg_icon.description("IconAdd")
-        )
+        assert provider_element.install_button.svg_icon.description("IconAdd")

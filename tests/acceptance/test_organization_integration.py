@@ -51,8 +51,8 @@ class OrganizationIntegrationSettingsTest(OrganizationIntegrationAcceptanceTestC
         provider_element = org_settings_page.get_provider(self.provider)
 
         # assert installation rather than upgrade button
-        assert provider_element.install_button.label == "Install"
-        assert self.browser.element_exists(provider_element.install_button.new_icon("Add"))
+        assert provider_element.install_button.text.strip() == "Install"
+        assert provider_element.install_button.svg_icon.description("IconAdd")
 
         integration_details_modal = org_settings_page.click_install_button(provider_element)
         assert integration_details_modal.add_button.label == "Add %s" % self.provider.key
