@@ -11,6 +11,7 @@ import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {defined} from 'app/utils';
 import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
+import {getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
 import Duration from 'app/components/duration';
 import EventView from 'app/views/eventsV2/eventView';
@@ -57,11 +58,17 @@ export default class DetailsBody extends React.Component<Props> {
         .filter(({slug}) => incident.projects.includes(slug))
         .map(({id}) => Number(id)),
       version: 2 as const,
-      range: `${incident.alertRule.timeWindow}m`,
+      start: incident.dateStarted,
+      end: getUtcDateString(new Date()),
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
-    return discoverView.getResultsViewUrlTarget(orgId);
+    const {query, ...toObject} = discoverView.getResultsViewUrlTarget(orgId);
+
+    return {
+      query: {...query, interval: `${incident.alertRule.timeWindow}m`},
+      ...toObject,
+    };
   }
 
   /**
