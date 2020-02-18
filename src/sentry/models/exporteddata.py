@@ -52,6 +52,11 @@ class ExportedData(Model):
         else:
             return ExportStatus.Valid
 
+    def delete(self, *args, **kwargs):
+        super(ExportedData, self).delete(*args, **kwargs)
+        if self.file:
+            self.file.delete()
+
     def complete_upload(self, file, expiration=DEFAULT_EXPIRATION):
         current_time = timezone.now()
         expire_time = current_time + DEFAULT_EXPIRATION
