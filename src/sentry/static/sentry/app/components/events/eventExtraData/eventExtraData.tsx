@@ -2,14 +2,10 @@ import React from 'react';
 
 import {Event} from 'app/types';
 import {t} from 'app/locale';
-import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
-import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import SentryTypes from 'app/sentryTypes';
-import {getMeta} from 'app/components/events/meta/metaProxy';
 
-import EventExtraDataSubject, {EventExtraDataSubjectType} from './eventExtraDataSubject';
+import EventDataContent from './eventDataContent';
 
 type Props = {
   event: Event;
@@ -38,23 +34,6 @@ class EventExtraData extends React.Component<Props, State> {
     });
   };
 
-  getKeyValueListData = (): Array<KeyValueListData> | undefined => {
-    const eventContext = this.props.event.context;
-
-    if (eventContext === undefined || eventContext === null) {
-      return undefined;
-    }
-
-    return Object.keys(eventContext)
-      .map(key => ({
-        key,
-        subject: <EventExtraDataSubject type={key as EventExtraDataSubjectType} />,
-        value: eventContext[key],
-        meta: getMeta(eventContext, key),
-      }))
-      .filter(data => data.key !== null);
-  };
-
   render() {
     return (
       <div className="extra-data">
@@ -64,13 +43,7 @@ class EventExtraData extends React.Component<Props, State> {
           toggleRaw={this.toggleRaw}
           raw={this.state.raw}
         >
-          <ErrorBoundary mini>
-            <KeyValueList
-              data={this.getKeyValueListData()}
-              raw={this.state.raw}
-              isContextData
-            />
-          </ErrorBoundary>
+          <EventDataContent raw={this.state.raw} data={this.props.event.context} />
         </EventDataSection>
       </div>
     );

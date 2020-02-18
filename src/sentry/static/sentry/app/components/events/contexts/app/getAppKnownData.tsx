@@ -11,10 +11,6 @@ function getAppKnownData(data: AppData): Array<KeyValueListData> {
   for (const key of dataKeys) {
     const knownDataDetails = getAppKnownDataDetails(data, key as AppKnownDataType);
 
-    if (!knownDataDetails) {
-      continue;
-    }
-
     knownData.push({
       key,
       ...knownDataDetails,

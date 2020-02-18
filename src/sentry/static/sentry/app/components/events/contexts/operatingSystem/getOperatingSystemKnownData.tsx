@@ -16,10 +16,6 @@ function getOperatingSystemKnownData(
       key as OperatingSystemKnownDataType
     );
 
-    if (!knownDataDetails) {
-      continue;
-    }
-
     knownData.push({
       key,
       ...knownDataDetails,

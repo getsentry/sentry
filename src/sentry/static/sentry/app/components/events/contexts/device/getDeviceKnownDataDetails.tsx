@@ -10,13 +10,10 @@ import {DeviceKnownDataType, DeviceData} from './types';
 
 type Output = {
   subject: string;
-  value: React.ReactNode | null;
+  value?: React.ReactNode;
 };
 
-function getDeviceKnownDataDetails(
-  data: DeviceData,
-  type: DeviceKnownDataType
-): Output | undefined {
+function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType): Output {
   switch (type) {
     case DeviceKnownDataType.NAME:
       return {
@@ -36,7 +33,9 @@ function getDeviceKnownDataDetails(
             <DeviceName>
               {`${data.model} ${data.model_id ? `(${data.model_id})` : ''}`}
             </DeviceName>
-          ) : null,
+          ) : (
+            undefined
+          ),
       };
     case DeviceKnownDataType.CPU_DESCRIPTION:
       return {
@@ -51,7 +50,7 @@ function getDeviceKnownDataDetails(
     case DeviceKnownDataType.BATTERY_LEVEL:
       return {
         subject: t('Battery Level'),
-        value: defined(data.battery_level) ? `${data.battery_level}%` : null,
+        value: defined(data.battery_level) ? `${data.battery_level}%` : undefined,
       };
     case DeviceKnownDataType.BATTERY_STATUS:
       return {
@@ -70,7 +69,7 @@ function getDeviceKnownDataDetails(
         value:
           memory_size && free_memory && usable_memory
             ? formatMemory(memory_size, free_memory, usable_memory)
-            : null,
+            : undefined,
       };
     case DeviceKnownDataType.STORAGE:
       const {
@@ -89,7 +88,7 @@ function getDeviceKnownDataDetails(
                 external_storage_size,
                 external_free_storage
               )
-            : null,
+            : undefined,
       };
     case DeviceKnownDataType.SIMULATOR:
       return {
@@ -182,7 +181,10 @@ function getDeviceKnownDataDetails(
         value: data.screen_width_pixels,
       };
     default:
-      return undefined;
+      return {
+        subject: type,
+        value: data[type],
+      };
   }
 }
 

@@ -21,7 +21,7 @@ type Props = {
 const KeyValueList = ({
   data,
   isContextData = false,
-  isSorted = true,
+  isSorted = false,
   raw = false,
   longKeys = false,
   onClick,
@@ -40,34 +40,40 @@ const KeyValueList = ({
   return (
     <table className="table key-value" onClick={onClick}>
       <tbody>
-        {getData().map(({key, subject, value, meta, subjectIcon, subjectDataTestId}) => (
-          <tr key={key}>
-            <TableData className="key" wide={longKeys}>
-              {subject}
-            </TableData>
-            <td className="val" data-test-id={subjectDataTestId}>
-              {isContextData ? (
-                <ContextData
-                  data={!raw ? value : JSON.stringify(value)}
-                  meta={meta}
-                  withAnnotatedText
-                >
-                  {subjectIcon}
-                </ContextData>
-              ) : (
-                <pre className="val-string">
-                  <AnnotatedText
-                    value={value}
-                    chunks={meta.chunks}
-                    remarks={meta.rem}
-                    errors={meta.err}
-                  />
-                  {subjectIcon}
-                </pre>
-              )}
-            </td>
-          </tr>
-        ))}
+        {getData().map(
+          ({key, subject, value = null, meta, subjectIcon, subjectDataTestId}) => (
+            <tr key={key}>
+              <TableData className="key" wide={longKeys}>
+                {subject}
+              </TableData>
+              <td className="val" data-test-id={subjectDataTestId}>
+                {isContextData ? (
+                  <ContextData
+                    data={!raw ? value : JSON.stringify(value)}
+                    meta={meta}
+                    withAnnotatedText
+                  >
+                    {subjectIcon}
+                  </ContextData>
+                ) : (
+                  <pre className="val-string">
+                    {meta ? (
+                      <AnnotatedText
+                        value={value}
+                        chunks={meta.chunks}
+                        remarks={meta.rem}
+                        errors={meta.err}
+                      />
+                    ) : (
+                      value
+                    )}
+                    {subjectIcon}
+                  </pre>
+                )}
+              </td>
+            </tr>
+          )
+        )}
       </tbody>
     </table>
   );
