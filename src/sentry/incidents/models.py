@@ -191,7 +191,6 @@ class IncidentActivity(Model):
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)
     comment = models.TextField(null=True)
-    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
