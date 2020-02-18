@@ -79,7 +79,7 @@ const Container = styled('div')`
 
 const IntegrationName = styled(Link)`
   font-weight: bold;
-  color: ${props => props.theme.textColor};
+  color: #3d74db;
 `;
 
 const IntegrationDetails = styled('div')`
