@@ -59,7 +59,7 @@ export default class DetailsBody extends React.Component<Props> {
         .map(({id}) => Number(id)),
       version: 2 as const,
       start: incident.dateStarted,
-      end: getUtcDateString(new Date()),
+      end: incident.dateClosed ?? getUtcDateString(new Date()),
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
