@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
+from django.http import StreamingHttpResponse
 
 from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
@@ -10,10 +11,6 @@ from sentry.models import ExportedData
 
 class DataExportDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationEventPermission,)
-
-    def download(self, data_export):
-        # TODO(Leander): Implement safe downloads
-        return
 
     def get(self, request, organization, **kwargs):
         """
@@ -31,3 +28,10 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
             return Response(serialize(data_export, request.user))
         except ExportedData.DoesNotExist:
             return Response(status=404)
+
+    def download(self, data_export):
+        file = data_export.file
+        fp = file.getfile()
+        response = StreamingHttpResponse(iter(lambda: fp.read(4096), b""), content_type="text/csv")
+        response["Content-Disposition"] = u'attachment; filename="{}"'.format(file.name)
+        return response
