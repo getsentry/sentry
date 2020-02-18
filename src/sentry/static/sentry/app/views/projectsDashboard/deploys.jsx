@@ -54,11 +54,10 @@ class Deploy extends React.Component {
   static propTypes = {
     deploy: SentryTypes.Deploy.isRequired,
     project: SentryTypes.Project.isRequired,
-    organization: SentryTypes.Organization.isRequired,
   };
 
   render() {
-    const {deploy, organization, project} = this.props;
+    const {deploy, project} = this.props;
 
     return (
       <DeployRow justifyContent="space-between">
@@ -67,7 +66,6 @@ class Deploy extends React.Component {
         <StyledTextOverflow>
           <Version
             version={deploy.version}
-            orgId={organization.slug}
             projectId={project.id}
             tooltipRawVersion
             truncate

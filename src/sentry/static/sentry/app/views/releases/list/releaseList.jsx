@@ -42,7 +42,6 @@ const ReleaseList = props => {
                   <VersionColumn>
                     <VersionWrapper>
                       <Version
-                        orgId={orgId}
                         version={release.version}
                         preserveGlobalSelection
                         tooltipRawVersion

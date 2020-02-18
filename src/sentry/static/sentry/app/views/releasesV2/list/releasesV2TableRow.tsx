@@ -30,7 +30,6 @@ const ReleasesV2TableRow = ({
   crashes,
   errors,
   releaseAdoptionPercent,
-  organizationId,
 }: Props) => {
   return (
     <StyledPanelItem key={release.name}>
@@ -41,7 +40,6 @@ const ReleasesV2TableRow = ({
 
         <Column>
           <StyledVersion
-            orgId={organizationId}
             version={release.name}
             preserveGlobalSelection
             tooltipRawVersion
