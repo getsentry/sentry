@@ -10,7 +10,7 @@ import {DeviceKnownDataType, DeviceData} from './types';
 
 type Output = {
   subject: string;
-  value: null | React.ReactNode;
+  value: React.ReactNode | null;
 };
 
 function getDeviceKnownDataDetails(
