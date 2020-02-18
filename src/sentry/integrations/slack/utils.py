@@ -298,7 +298,7 @@ def build_incident_attachment(incident, trigger=None):
         color = LEVEL_TO_COLOR["warning"]
     elif incident.status == IncidentStatus.CRITICAL.value:
         status = "Critical"
-        color = LEVEL_TO_COLOR["critical"]
+        color = LEVEL_TO_COLOR["fatal"]
     else:
         # Fail safe? Throw error?
         status = "Fired"
@@ -310,23 +310,32 @@ def build_incident_attachment(incident, trigger=None):
         incident_trigger = (
             IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
         )
-        if incident_trigger:
-            trigger = incident_trigger.alert_rule_trigger
+        trigger = incident_trigger.alert_rule_trigger
+    else:
+        incident_trigger = IncidentTrigger.objects.get(
+            incident=incident, alert_rule_trigger=trigger
+        )
 
     agg_text = QUERY_AGGREGATION_DISPLAY[alert_rule.aggregation]
+
     agg_value = (
-        aggregates["events"]
+        aggregates["count"]
         if alert_rule.aggregation == QueryAggregations.TOTAL.value
         else aggregates["unique_users"]
     )
-    is_active = trigger.status == TriggerStatus.ACTIVE
+    is_active = incident_trigger.status == TriggerStatus.ACTIVE
     is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE
     gt_or_lt = ">" if is_active == is_threshold_type_above else "<"
-    threshold_display = (trigger.alert_threshold if is_active else trigger.resolve_threshold,)
+    threshold_display = trigger.alert_threshold if is_active else trigger.resolve_threshold
+    time_window = alert_rule.time_window / 60
 
-    text = "{} {} in the last {} minutes {} {} \n Query: {}".format(
-        agg_value, agg_text, alert_rule.time_window, gt_or_lt, threshold_display, alert_rule.query
+    text = "{} {} in the last {} minutes ({}{})".format(
+        agg_value, agg_text, time_window, gt_or_lt, threshold_display
     )
+    if alert_rule.query != "":
+        text = text + "\nQuery: {}".format(alert_rule.query)
+    else:
+        text = text + "\nNo filter query."
 
     ts = incident.date_started
 
@@ -436,10 +445,11 @@ def get_channel_id_with_timeout(integration, name, timeout):
 def send_incident_alert_notification(action, incident):
     channel = action.target_identifier
     integration = action.integration
+    integration_token = integration.metadata["access_token"]
     trigger = action.alert_rule_trigger
     attachment = build_incident_attachment(incident, trigger=trigger)
     payload = {
-        "token": integration.metadata["access_token"],
+        "token": integration_token,
         "channel": channel,
         "attachments": json.dumps([attachment]),
     }
