@@ -13,6 +13,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
+import DataExport from 'app/components/dataExport';
 import space from 'app/styles/space';
 import {Group, Tag, TagValue} from 'app/types';
 
@@ -113,8 +114,18 @@ class GroupTagValues extends AsyncComponent<
             href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
             className="btn btn-default btn-sm m-left"
           >
-            {t('Export to CSV')}
+            {t('Export Page to CSV')}
           </a>
+          <DataExport
+            payload={{
+              query_type: 2,
+              query_info: {
+                project_id: group.project.id,
+                group_id: group.id,
+                key: tagKey,
+              },
+            }}
+          />
         </h3>
         <table className="table table-striped">
           <thead>
