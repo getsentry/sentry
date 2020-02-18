@@ -4,6 +4,7 @@ import six
 from enum import Enum
 from datetime import timedelta
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 
@@ -15,6 +16,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.utils.http import absolute_uri
 
 # Arbitrary, subject to change
 DEFAULT_EXPIRATION = timedelta(weeks=4)
@@ -54,6 +56,12 @@ class ExportedData(Model):
         else:
             return ExportStatus.Valid
 
+    @property
+    def date_expired_string(self):
+        if self.date_expired is None:
+            return None
+        return self.date_expired.strftime("%-I:%M %p on %B %d, %Y (%Z)")
+
     def delete_file(self):
         if self.file:
             self.file.delete()
@@ -63,11 +71,26 @@ class ExportedData(Model):
         super(ExportedData, self).delete(*args, **kwargs)
 
     def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION):
-        self.delete_file()
         current_time = timezone.now()
         expire_time = current_time + expiration
         self.update(file=file, date_finished=current_time, date_expired=expire_time)
-        # TODO(Leander): Implement email notification
+        self.email_user()
+
+    def email_user(self):
+        from sentry.utils.email import MessageBuilder
+
+        msg = MessageBuilder(
+            subject="Your Download is Ready!",
+            context={
+                "url": absolute_uri(
+                    reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
+                ),
+                "expiration": self.date_expired_string,
+            },
+            template="sentry/emails/data-export-finished.txt",
+            html_template="sentry/emails/data-export-finished.html",
+        )
+        msg.send_async([self.user.email])
 
     class Meta:
         app_label = "sentry"
