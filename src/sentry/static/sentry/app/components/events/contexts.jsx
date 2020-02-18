@@ -8,8 +8,8 @@ import plugins from 'app/plugins';
 
 const CONTEXT_TYPES = {
   default: require('app/components/events/contexts/default').default,
-  app: require('app/components/events/contexts/app').default,
-  device: require('app/components/events/contexts/device').default,
+  app: require('app/components/events/contexts/app/app').default,
+  device: require('app/components/events/contexts/device/device').default,
   os: require('app/components/events/contexts/operatingSystem/operatingSystem').default,
   runtime: require('app/components/events/contexts/runtime/runtime').default,
   user: require('app/components/events/contexts/user').default,

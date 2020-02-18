@@ -299,19 +299,6 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
     return event_id
 
 
-def _get_project_from_id(project_id):
-    if not project_id:
-        return None
-    if not project_id.isdigit():
-        track_outcome(0, 0, None, Outcome.INVALID, "project_id")
-        raise APIError("Invalid project_id: %r" % project_id)
-    try:
-        return Project.objects.get_from_cache(id=project_id)
-    except Project.DoesNotExist:
-        track_outcome(0, 0, None, Outcome.INVALID, "project_id")
-        raise APIError("Invalid project_id: %r" % project_id)
-
-
 class APIView(BaseView):
     auth_helper_cls = ClientAuthHelper
 
@@ -416,7 +403,7 @@ class APIView(BaseView):
                 project_id, request, self.auth_helper_cls, helper
             )
 
-            project = _get_project_from_id(six.text_type(project_id))
+            project = self._get_project_from_id(six.text_type(project_id))
 
             # Explicitly bind Organization so we don't implicitly query it later
             # this just allows us to comfortably assure that `project.organization` is safe.
@@ -425,7 +412,7 @@ class APIView(BaseView):
             project.organization = Organization.objects.get_from_cache(id=project.organization_id)
 
             # XXX: This never returns a disabled project since visibility of the
-            # project is already verified in `_get_project_from_id`.
+            # project is already verified in `self._get_project_from_id`.
             project_config = get_project_config(project)
 
             helper.context.bind_project(project_config.project)
