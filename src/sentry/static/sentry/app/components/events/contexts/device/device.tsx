@@ -3,8 +3,8 @@ import React from 'react';
 import ContextBlock from 'app/components/events/contexts/contextBlockV2';
 import {defined} from 'app/utils';
 
-import getDeviceKnownData from './getDeviceKnownData';
 import {DeviceData} from './types';
+import getDeviceKnownData from './getDeviceKnownData';
 
 type Props = {
   data?: DeviceData;
