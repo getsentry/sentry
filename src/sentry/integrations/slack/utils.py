@@ -10,7 +10,12 @@ from sentry import http
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import IncidentStatus, TriggerStatus
+from sentry.incidents.models import (
+    IncidentTrigger,
+    IncidentStatus,
+    TriggerStatus,
+    AlertRuleThresholdType,
+)
 from sentry.snuba.models import QUERY_AGGREGATION_DISPLAY, QueryAggregations
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
@@ -302,18 +307,26 @@ def build_incident_attachment(incident, trigger=None):
     if trigger is None:
         # Some paths explicitly have a trigger reference, so we send it in with those. Some don't (unfurling), so we do this.
         # Best guess, grab the most recently updated trigger. It's a pretty good guess with very low failure rate.
-        trigger = IncidentTrigger.objects.filter(
-            incident=incident
-        ).order_by("-date_modified").first().alert_rule_trigger
+        incident_trigger = (
+            IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
+        )
+        if incident_trigger:
+            trigger = incident_trigger.alert_rule_trigger
 
     agg_text = QUERY_AGGREGATION_DISPLAY[alert_rule.aggregation]
-    agg_value = "123" # (alert_rule.aggregation == QueryAggregations.TOTAL.value) ? aggregates["events"] : aggregates["unique_users"]
+    agg_value = (
+        aggregates["events"]
+        if alert_rule.aggregation == QueryAggregations.TOTAL.value
+        else aggregates["unique_users"]
+    )
     is_active = trigger.status == TriggerStatus.ACTIVE
-    # is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE
-    gt_or_lt = "456" # is_active == is_threshold_type_above ? ">" : "<"
-    threshold_display = trigger.alert_threshold if is_active else trigger.resolve_threshold,
+    is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE
+    gt_or_lt = ">" if is_active == is_threshold_type_above else "<"
+    threshold_display = (trigger.alert_threshold if is_active else trigger.resolve_threshold,)
 
-    text = "{} {} in the last {} minutes {} {} ".format(agg_value, agg_text, alert_rule.time_window, gt_or_lt, threshold_display)
+    text = "{} {} in the last {} minutes {} {} ".format(
+        agg_value, agg_text, alert_rule.time_window, gt_or_lt, threshold_display
+    )
 
     ts = incident.date_started
 
