@@ -113,9 +113,12 @@ class ReleaseSeries extends React.Component {
           name: formatVersion(release.version, true),
           value: formatVersion(release.version, true),
           onClick: () => {
-            router.push(
-              `/organizations/${organization.slug}/releases/${release.version}/`
-            );
+            router.push({
+              pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
+              query: new Set(organization.features).has('global-views')
+                ? undefined
+                : {project: router.location.query.project},
+            });
           },
           label: {
             formatter: () => formatVersion(release.version, true),
