@@ -125,7 +125,9 @@ class SubscriptionProcessor(object):
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
+
         self.last_update = subscription_update["timestamp"]
+
         aggregation = QueryAggregations(self.alert_rule.aggregation)
         aggregation_name = query_aggregation_to_snuba[aggregation][2]
         if len(subscription_update["values"]["data"]) > 1:
@@ -139,6 +141,7 @@ class SubscriptionProcessor(object):
                 },
             )
         aggregation_value = subscription_update["values"]["data"][0][aggregation_name]
+
         for trigger in self.triggers:
             alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
                 AlertRuleThresholdType(trigger.threshold_type)
@@ -159,6 +162,7 @@ class SubscriptionProcessor(object):
             else:
                 self.trigger_alert_counts[trigger.id] = 0
                 self.trigger_resolve_counts[trigger.id] = 0
+
         # We update the rule stats here after we commit the transaction. This guarantees
         # that we'll never miss an update, since we'll never roll back if the process
         # is killed here. The trade-off is that we might process an update twice. Mostly
@@ -358,6 +362,7 @@ def get_alert_rule_stats(alert_rule, subscription, triggers):
        trigger id, and the value is an int representing how many consecutive times we
        have triggered the resolve threshold
     """
+
     alert_rule_keys = build_alert_rule_stat_keys(alert_rule, subscription)
     trigger_keys = build_trigger_stat_keys(alert_rule, subscription, triggers)
     results = get_redis_client().mget(alert_rule_keys + trigger_keys)

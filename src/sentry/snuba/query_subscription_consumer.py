@@ -225,5 +225,4 @@ class QuerySubscriptionConsumer(object):
             raise InvalidSchemaError("Message payload does not match schema")
 
         payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
-
         return payload

@@ -445,11 +445,10 @@ def get_channel_id_with_timeout(integration, name, timeout):
 def send_incident_alert_notification(action, incident):
     channel = action.target_identifier
     integration = action.integration
-    integration_token = integration.metadata["access_token"]
     trigger = action.alert_rule_trigger
     attachment = build_incident_attachment(incident, trigger=trigger)
     payload = {
-        "token": integration_token,
+        "token": integration.metadata["access_token"],
         "channel": channel,
         "attachments": json.dumps([attachment]),
     }

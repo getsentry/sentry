@@ -90,7 +90,9 @@ class EmailActionHandler(ActionHandler):
     def build_message(self, context, status, user_id):
         display = self.status_display[status]
         return MessageBuilder(
-            subject=u"Alert Rule {} for Project {}".format(display, self.project.slug),
+            subject=u"[{}] {} - {}".format(
+                context["status"], context["incident_name"], self.project.slug
+            ),
             template=u"sentry/emails/incidents/trigger.txt",
             html_template=u"sentry/emails/incidents/trigger.html",
             type="incident.alert_rule_{}".format(display.lower()),
@@ -166,9 +168,7 @@ class SlackActionHandler(ActionHandler):
         from sentry.integrations.slack.utils import send_incident_alert_notification
 
         # TODO: We should include more information about the trigger/severity etc.
-        send_incident_alert_notification(
-            self.action, self.incident
-        )
+        send_incident_alert_notification(self.action, self.incident)
 
 
 def format_duration(minutes):
