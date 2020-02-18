@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import json
+
 from django.conf.urls import url
 from rest_framework.response import Response
 
@@ -7,12 +9,11 @@ from sentry.exceptions import PluginError
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry.utils.http import absolute_uri
 from six.moves.urllib.parse import urljoin
+from six.moves.http_client import HTTPException
 
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
 
-import httplib
-import json
 import phabricator
 
 
@@ -151,7 +152,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 api.user.whoami()
             except phabricator.APIError as e:
                 raise PluginError("%s %s" % (e.code, e))
-            except httplib.HTTPException as e:
+            except HTTPException as e:
                 raise PluginError("Unable to reach Phabricator host: %s" % (e,))
             except Exception as e:
                 raise PluginError("Unhandled error from Phabricator: %s" % (e,))
@@ -209,7 +210,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             )
         except phabricator.APIError as e:
             raise PluginError("%s %s" % (e.code, e))
-        except httplib.HTTPException as e:
+        except HTTPException as e:
             raise PluginError("Unable to reach Phabricator host: %s" % e)
 
         return data["id"]
