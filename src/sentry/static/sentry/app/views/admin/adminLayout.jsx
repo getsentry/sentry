@@ -1,28 +1,11 @@
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 
-import Footer from 'app/components/footer';
-import HookStore from 'app/stores/hookStore';
+import Hook from 'app/components/hook';
 import ListLink from 'app/components/links/listLink';
 import Sidebar from 'app/components/sidebar';
-import withLatestContext from 'app/utils/withLatestContext';
-
-const SidebarWithLatest = withLatestContext(Sidebar);
 
 export default class AdminLayout extends React.Component {
-  constructor(props) {
-    super(props);
-    // Allow injection via getsentry et all
-    const hooksManage = [];
-    HookStore.get('admin:sidebar:manage').forEach(cb => {
-      hooksManage.push(cb());
-    });
-
-    this.state = {
-      hooksManage,
-    };
-  }
-
   getTitle = () => {
     return 'Sentry Admin';
   };
@@ -31,7 +14,7 @@ export default class AdminLayout extends React.Component {
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app" css={{paddingTop: 20}}>
-          <SidebarWithLatest />
+          <Sidebar />
           <div className="container">
             <div className="content">
               <div className="row">
@@ -72,14 +55,13 @@ export default class AdminLayout extends React.Component {
                     <ListLink to="/manage/organizations/">Organizations</ListLink>
                     <ListLink to="/manage/projects/">Projects</ListLink>
                     <ListLink to="/manage/users/">Users</ListLink>
-                    {this.state.hooksManage}
+                    <Hook name="admin:sidebar:manage" />
                   </ul>
                 </div>
                 <div className="col-md-10">{this.props.children}</div>
               </div>
             </div>
           </div>
-          <Footer />
         </div>
       </DocumentTitle>
     );
