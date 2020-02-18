@@ -39,7 +39,7 @@ class ExportedData(Model):
     file = FlexibleForeignKey("sentry.File", null=True, db_constraint=False)
     date_added = models.DateTimeField(default=timezone.now)
     date_finished = models.DateTimeField(null=True)
-    date_expired = models.DateTimeField(null=True)
+    date_expired = models.DateTimeField(null=True, db_index=True)
     query_type = BoundedPositiveIntegerField(choices=ExportQueryType.as_choices())
     query_info = JSONField()
 
