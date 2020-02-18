@@ -245,120 +245,75 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
         ]
       }
     />
-    <SearchInput
-      onChange={[Function]}
-      placeholder="Find a new integration, or one you already use."
-      value=""
-      width="100%"
-    >
-      <SearchWrapper
-        smaller={false}
-        width="100%"
+    <SearchContainer>
+      <div
+        className="css-1x5xp39-SearchContainer ezentgk2"
       >
-        <div
-          className="css-18cclrs-SearchWrapper e1mrdgrx3"
+        <SearchInput
+          onChange={[Function]}
+          placeholder="Find a new integration, or one you already use."
+          value=""
           width="100%"
         >
-          <SearchIcon>
-            <Component
-              className="css-1ecmh4k-SearchIcon e1mrdgrx0"
-            >
-              <InlineSvg
-                className="css-1ecmh4k-SearchIcon e1mrdgrx0"
-                src="icon-search"
-              >
-                <ForwardRef
-                  className="e1mrdgrx0 css-1aheu2a-InlineSvg-SearchIcon enyz4ql0"
-                  src="icon-search"
-                >
-                  <svg
-                    className="e1mrdgrx0 css-1aheu2a-InlineSvg-SearchIcon enyz4ql0"
-                    height="1em"
-                    viewBox={Object {}}
-                    width="1em"
-                  >
-                    <use
-                      href="#test"
-                      xlinkHref="#test"
-                    />
-                  </svg>
-                </ForwardRef>
-              </InlineSvg>
-            </Component>
-          </SearchIcon>
-          <SearchField
-            onChange={[Function]}
-            placeholder="Find a new integration, or one you already use."
-            value=""
+          <SearchWrapper
+            smaller={false}
+            width="100%"
           >
-            <Input
-              className="css-1pf8c1a-SearchField e1mrdgrx1"
-              onChange={[Function]}
-              placeholder="Find a new integration, or one you already use."
-              value=""
+            <div
+              className="css-18cclrs-SearchWrapper e1mrdgrx3"
+              width="100%"
             >
-              <input
-                className="form-control css-1pf8c1a-SearchField e1mrdgrx1"
+              <SearchIcon>
+                <Component
+                  className="css-1ecmh4k-SearchIcon e1mrdgrx0"
+                >
+                  <InlineSvg
+                    className="css-1ecmh4k-SearchIcon e1mrdgrx0"
+                    src="icon-search"
+                  >
+                    <ForwardRef
+                      className="e1mrdgrx0 css-1aheu2a-InlineSvg-SearchIcon enyz4ql0"
+                      src="icon-search"
+                    >
+                      <svg
+                        className="e1mrdgrx0 css-1aheu2a-InlineSvg-SearchIcon enyz4ql0"
+                        height="1em"
+                        viewBox={Object {}}
+                        width="1em"
+                      >
+                        <use
+                          href="#test"
+                          xlinkHref="#test"
+                        />
+                      </svg>
+                    </ForwardRef>
+                  </InlineSvg>
+                </Component>
+              </SearchIcon>
+              <SearchField
                 onChange={[Function]}
                 placeholder="Find a new integration, or one you already use."
                 value=""
-              />
-            </Input>
-          </SearchField>
-        </div>
-      </SearchWrapper>
-    </SearchInput>
-    <TagsContainer>
-      <div
-        className="css-1sxkgig-TagsContainer ezentgk2"
-      >
-        <Tag
-          key="Source Control"
-        >
-          <span
-            className="css-9xs7c4-Tag ezentgk3"
-          >
-            Source Control
-          </span>
-        </Tag>
-        <Tag
-          key="Ticketing"
-        >
-          <span
-            className="css-9xs7c4-Tag ezentgk3"
-          >
-            Ticketing
-          </span>
-        </Tag>
-        <Tag
-          key="Data Forwarding"
-        >
-          <span
-            className="css-9xs7c4-Tag ezentgk3"
-          >
-            Data Forwarding
-          </span>
-        </Tag>
-        <Tag
-          key="Release Management"
-        >
-          <span
-            className="css-9xs7c4-Tag ezentgk3"
-          >
-            Release Management
-          </span>
-        </Tag>
-        <Tag
-          key="Notifications"
-        >
-          <span
-            className="css-9xs7c4-Tag ezentgk3"
-          >
-            Notifications
-          </span>
-        </Tag>
+              >
+                <Input
+                  className="css-1pf8c1a-SearchField e1mrdgrx1"
+                  onChange={[Function]}
+                  placeholder="Find a new integration, or one you already use."
+                  value=""
+                >
+                  <input
+                    className="form-control css-1pf8c1a-SearchField e1mrdgrx1"
+                    onChange={[Function]}
+                    placeholder="Find a new integration, or one you already use."
+                    value=""
+                  />
+                </Input>
+              </SearchField>
+            </div>
+          </SearchWrapper>
+        </SearchInput>
       </div>
-    </TagsContainer>
+    </SearchContainer>
     <Panel>
       <Component
         className="css-15hwgrz-Panel e119nu470"
