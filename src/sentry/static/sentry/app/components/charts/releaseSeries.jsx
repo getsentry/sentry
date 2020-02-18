@@ -105,7 +105,9 @@ class ReleaseSeries extends React.Component {
             const version = escape(formatVersion(data.name, true));
             return [
               '<div class="tooltip-series">',
-              `<div><span class="tooltip-label"><strong>Release</strong></span> ${version}</div>`,
+              `<div><span class="tooltip-label"><strong>${t(
+                'Release'
+              )}</strong></span> ${version}</div>`,
               '</div>',
               '<div class="tooltip-date">',
               time,
