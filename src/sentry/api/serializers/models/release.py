@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 import six
+from six.moves import zip
 
 from collections import defaultdict
 from django.db.models import Sum
-from itertools import izip
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -107,7 +107,7 @@ class ReleaseSerializer(Serializer):
         commit_ids = set((o.last_commit_id for o in item_list if o.last_commit_id))
         if commit_ids:
             commit_list = list(Commit.objects.filter(id__in=commit_ids).select_related("author"))
-            commits = {c.id: d for c, d in izip(commit_list, serialize(commit_list, user))}
+            commits = {c.id: d for c, d in zip(commit_list, serialize(commit_list, user))}
         else:
             commits = {}
 
@@ -143,7 +143,7 @@ class ReleaseSerializer(Serializer):
         deploy_ids = set((o.last_deploy_id for o in item_list if o.last_deploy_id))
         if deploy_ids:
             deploy_list = list(Deploy.objects.filter(id__in=deploy_ids))
-            deploys = {d.id: c for d, c in izip(deploy_list, serialize(deploy_list, user))}
+            deploys = {d.id: c for d, c in zip(deploy_list, serialize(deploy_list, user))}
         else:
             deploys = {}
 
