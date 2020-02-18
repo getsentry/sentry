@@ -324,8 +324,8 @@ def build_incident_attachment(incident, trigger=None):
     gt_or_lt = ">" if is_active == is_threshold_type_above else "<"
     threshold_display = (trigger.alert_threshold if is_active else trigger.resolve_threshold,)
 
-    text = "{} {} in the last {} minutes {} {} ".format(
-        agg_value, agg_text, alert_rule.time_window, gt_or_lt, threshold_display
+    text = "{} {} in the last {} minutes {} {} \n Query: {}".format(
+        agg_value, agg_text, alert_rule.time_window, gt_or_lt, threshold_display, alert_rule.query
     )
 
     ts = incident.date_started
