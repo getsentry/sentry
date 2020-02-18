@@ -32,7 +32,6 @@ from sentry.incidents.logic import (
     create_incident,
     create_incident_activity,
     create_incident_snapshot,
-    create_initial_event_stats_snapshot,
     delete_alert_rule,
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
@@ -130,9 +129,7 @@ class CreateIncidentTest(TestCase):
         )
         assert (
             IncidentActivity.objects.filter(
-                incident=incident,
-                type=IncidentActivityType.DETECTED.value,
-                event_stats_snapshot__isnull=False,
+                incident=incident, type=IncidentActivityType.DETECTED.value
             ).count()
             == 1
         )
@@ -173,7 +170,6 @@ class UpdateIncidentStatus(TestCase):
         assert activity.value == six.text_type(status.value)
         assert activity.previous_value == six.text_type(prev_status)
         assert activity.comment == comment
-        assert activity.event_stats_snapshot is None
 
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0]
@@ -425,35 +421,6 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         self.assert_notifications_sent(activity)
         assert not self.record_event.called
 
-    def test_snapshot(self):
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=1))
-        # Define events outside incident range. Should be included in the
-        # snapshot
-        self.create_event(self.now - timedelta(minutes=20))
-        self.create_event(self.now - timedelta(minutes=30))
-
-        # Too far out, should be excluded
-        self.create_event(self.now - timedelta(minutes=100))
-
-        incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
-        )
-        event_stats_snapshot = create_initial_event_stats_snapshot(incident)
-        self.record_event.reset_mock()
-        activity = create_incident_activity(
-            incident, IncidentActivityType.DETECTED, event_stats_snapshot=event_stats_snapshot
-        )
-        assert activity.incident == incident
-        assert activity.type == IncidentActivityType.DETECTED.value
-        assert activity.value is None
-        assert activity.previous_value is None
-
-        assert event_stats_snapshot == activity.event_stats_snapshot
-        self.assert_notifications_sent(activity)
-        assert not self.record_event.called
-
     def test_comment(self):
         incident = self.create_incident()
         comment = "hello"
@@ -525,28 +492,6 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
             "user_id": six.text_type(self.user.id),
             "activity_id": six.text_type(activity.id),
         }
-
-
-class CreateInitialEventStatsSnapshotTest(TestCase, BaseIncidentsTest):
-    def test_snapshot(self):
-        with freeze_time(self.now):
-            self.create_event(self.now - timedelta(minutes=2))
-            self.create_event(self.now - timedelta(minutes=2))
-            self.create_event(self.now - timedelta(minutes=1))
-            # Define events outside incident range. Should be included in the
-            # snapshot
-            self.create_event(self.now - timedelta(minutes=15))
-            self.create_event(self.now - timedelta(minutes=20))
-
-            # Too far out, should be excluded
-            self.create_event(self.now - timedelta(minutes=100))
-
-            incident = self.create_incident(
-                date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
-            )
-            event_stat_snapshot = create_initial_event_stats_snapshot(incident)
-            assert event_stat_snapshot.start == self.now - timedelta(minutes=20)
-            assert [row[1] for row in event_stat_snapshot.values] == [1, 1, 2, 1]
 
 
 class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
