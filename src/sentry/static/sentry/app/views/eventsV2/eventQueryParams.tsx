@@ -10,7 +10,7 @@ export type ColumnValueType =
   | 'boolean'
   | 'never'; // Matches to nothing
 
-// Refer to src/sentry/api/event_searc.py
+// Refer to src/sentry/api/event_search.py
 export const AGGREGATIONS = {
   count: {
     type: '*',
