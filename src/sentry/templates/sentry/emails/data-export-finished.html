@@ -1,0 +1,10 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Your Data is Ready!</h3>
+    <p>We've finished assembling your download, check it out by clicking the button below.</p>
+    <p>This download file will expire at {{expiration}}.</p>
+    <a href="{{ url }}" class="btn">Go to Download</a>
+{% endblock %}
