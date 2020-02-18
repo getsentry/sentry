@@ -87,7 +87,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.snapshot("issue details cocoa")
 
     def test_unity_event(self):
-        event = self.create_sample_event(default="unity", platform="csharp")
+        event = self.create_sample_event(platform="unity")
         self.visit_issue(event.group.id)
         self.browser.snapshot("issue details unity")
 
@@ -102,7 +102,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.snapshot("issue details android-ndk")
 
     def test_aspnetcore_event(self):
-        event = self.create_sample_event(default="aspnetcore", platform="csharp")
+        event = self.create_sample_event(platform="aspnetcore")
         self.visit_issue(event.group.id)
         self.browser.snapshot("issue details aspnetcore")
 
