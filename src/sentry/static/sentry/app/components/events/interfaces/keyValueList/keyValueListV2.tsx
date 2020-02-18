@@ -72,7 +72,7 @@ const KeyValueList = ({
 
 const TableSubject = styled('td')<{wide?: boolean}>`
   @media (min-width: ${theme.breakpoints[2]}) {
-    max-width: ${p => (p.wide ? '620px !important' : 'auto')};
+    max-width: ${p => (p.wide ? '620px !important' : 'none')};
   }
 `;
 
