@@ -8,7 +8,7 @@ import FileSize from 'app/components/fileSize';
 import Duration from 'app/components/duration';
 import DateTime from 'app/components/dateTime';
 import Count from 'app/components/count';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 storiesOf('Utility|Formatters', module)
   .add(

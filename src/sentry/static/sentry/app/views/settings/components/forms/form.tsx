@@ -6,10 +6,7 @@ import styled from '@emotion/styled';
 import {APIRequestMethod} from 'app/api';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import FormModel, {
-  FormOptions,
-  FieldValue,
-} from 'app/views/settings/components/forms/model';
+import FormModel, {FormOptions} from 'app/views/settings/components/forms/model';
 import Panel from 'app/components/panels/panel';
 import space from 'app/styles/space';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
@@ -296,5 +293,3 @@ const DefaultButtons = styled('div')`
   justify-content: flex-end;
   flex: 1;
 `;
-
-export {FieldValue};
