@@ -834,6 +834,20 @@ export type Tag = {
   predefined?: boolean;
 };
 
+export type TagValue = {
+  count: number;
+  name: string;
+  value: string;
+  lastSeen: string;
+  key: string;
+  firstSeen: string;
+  query?: string;
+  email?: string;
+  username?: string;
+  identifier?: string;
+  ipAddress?: string;
+} & AvatarUser;
+
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 
 export type Meta = {
