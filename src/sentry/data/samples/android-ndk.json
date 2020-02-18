@@ -1,0 +1,148 @@
+{
+  "event_id": "3882f0cd-6fcf-4b16-b941-7ce61f8bfb13",
+  "level": "fatal",
+  "exception": {
+    "values": [
+      {
+        "type": "SIGSEGV",
+        "value": "Segfault",
+        "mechanism": {
+          "type": "signalhandler",
+          "synthetic": true,
+          "handled": false,
+          "meta": {
+            "signal": {
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          }
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "instruction_addr": "0x708ebbf9"
+            },
+            {
+              "instruction_addr": "0xe625e154"
+            },
+            {
+              "instruction_addr": "0xe62f1330"
+            },
+            {
+              "instruction_addr": "0xe62ef514"
+            },
+            {
+              "instruction_addr": "0xe5edea7b"
+            },
+            {
+              "instruction_addr": "0xe5ed39a3"
+            },
+            {
+              "instruction_addr": "0xe5eda03e"
+            },
+            {
+              "instruction_addr": "0xe6404bda"
+            },
+            {
+              "instruction_addr": "0xe6094cc6"
+            },
+            {
+              "instruction_addr": "0xe608de0b"
+            },
+            {
+              "instruction_addr": "0xe5ecd9a2"
+            },
+            {
+              "instruction_addr": "0xe6419f6d"
+            },
+            {
+              "instruction_addr": "0xe5ecd822"
+            },
+            {
+              "instruction_addr": "0xe6416add"
+            },
+            {
+              "instruction_addr": "0xe5ecd9a2"
+            },
+            {
+              "instruction_addr": "0xe6419f6d"
+            },
+            {
+              "instruction_addr": "0xe5ecda22"
+            },
+            {
+              "instruction_addr": "0xe64187bd"
+            },
+            {
+              "instruction_addr": "0xe5ecd9a2"
+            },
+            {
+              "instruction_addr": "0xe6419f6d"
+            },
+            {
+              "instruction_addr": "0xe5ecd922"
+            },
+            {
+              "instruction_addr": "0xe64195ad"
+            },
+            {
+              "instruction_addr": "0xe5ecd822"
+            },
+            {
+              "instruction_addr": "0xe6416add"
+            },
+            {
+              "instruction_addr": "0xe5ecda22"
+            },
+            {
+              "instruction_addr": "0xe64187bd"
+            },
+            {
+              "instruction_addr": "0xe5ecd9a2"
+            },
+            {
+              "instruction_addr": "0xe6419f6d"
+            },
+            {
+              "instruction_addr": "0xe5ecd9a2"
+            },
+            {
+              "instruction_addr": "0xe6419d04"
+            },
+            {
+              "instruction_addr": "0xe60c119d"
+            },
+            {
+              "instruction_addr": "0xe60c7503"
+            },
+            {
+              "instruction_addr": "0xe5edea7b"
+            },
+            {
+              "instruction_addr": "0xe5ed39a3"
+            },
+            {
+              "instruction_addr": "0xe5ed9f68"
+            },
+            {
+              "instruction_addr": "0xbcc196b4"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "platform": "native",
+  "debug_meta": {
+    "images": [
+      {
+        "type": "elf",
+        "image_addr": "0xe5d95000",
+        "image_size": 6975488,
+        "code_file": "/apex/com.android.runtime/lib/libart.so",
+        "code_id": "a0a062684495092d1756e30ba2dff37d",
+        "debug_id": "6862a0a0-9544-2d09-1756-e30ba2dff37d"
+      }
+    ]
+  }
+}
