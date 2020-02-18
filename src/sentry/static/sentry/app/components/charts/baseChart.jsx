@@ -2,11 +2,13 @@ import 'zrender/lib/svg/svg';
 
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts from 'echarts/lib/echarts';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
 import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 import Grid from './components/grid';
@@ -229,72 +231,125 @@ class BaseChart extends React.Component {
       : [YAxis(), YAxis()];
 
     return (
-      <ReactEchartsCore
-        ref={forwardedRef}
-        echarts={echarts}
-        notMerge={notMerge}
-        lazyUpdate={lazyUpdate}
-        silent={silent}
-        theme={this.props.theme}
-        onChartReady={this.handleChartReady}
-        onEvents={this.getEventsMap}
-        opts={{
-          height,
-          width,
-          renderer,
-          devicePixelRatio,
-        }}
-        style={{
-          height: getDimensionValue(height),
-          width: getDimensionValue(width),
-          ...style,
-        }}
-        option={{
-          ...options,
-          useUTC: utc,
-          color: colors || this.getColorPalette(),
-          grid: Grid(grid),
-          tooltip:
-            tooltip !== null
-              ? Tooltip({showTimeInTooltip, isGroupedByDate, utc, ...tooltip})
-              : null,
-          legend: legend ? Legend({...legend}) : null,
-          yAxis: yAxisOrCustom,
-          xAxis:
-            xAxis !== null
-              ? XAxis({
-                  ...xAxis,
-                  shouldRenderTimeOnly: shouldXAxisRenderTimeOnly,
-                  isGroupedByDate,
-                  utc,
-                })
-              : null,
-          series: !previousPeriod
-            ? series
-            : [
-                ...series,
-                ...previousPeriod.map(previous =>
-                  LineSeries({
-                    name: previous.seriesName,
-                    data: previous.data.map(({name, value}) => [name, value]),
-                    lineStyle: {
-                      color: theme.gray1,
-                      type: 'dotted',
-                    },
-                    itemStyle: {
-                      color: theme.gray1,
-                    },
+      <ChartContainer>
+        <ReactEchartsCore
+          ref={forwardedRef}
+          echarts={echarts}
+          notMerge={notMerge}
+          lazyUpdate={lazyUpdate}
+          silent={silent}
+          theme={this.props.theme}
+          onChartReady={this.handleChartReady}
+          onEvents={this.getEventsMap}
+          opts={{
+            height,
+            width,
+            renderer,
+            devicePixelRatio,
+          }}
+          style={{
+            height: getDimensionValue(height),
+            width: getDimensionValue(width),
+            ...style,
+          }}
+          option={{
+            ...options,
+            useUTC: utc,
+            color: colors || this.getColorPalette(),
+            grid: Grid(grid),
+            tooltip:
+              tooltip !== null
+                ? Tooltip({showTimeInTooltip, isGroupedByDate, utc, ...tooltip})
+                : null,
+            legend: legend ? Legend({...legend}) : null,
+            yAxis: yAxisOrCustom,
+            xAxis:
+              xAxis !== null
+                ? XAxis({
+                    ...xAxis,
+                    shouldRenderTimeOnly: shouldXAxisRenderTimeOnly,
+                    isGroupedByDate,
+                    utc,
                   })
-                ),
-              ],
-          dataZoom,
-          toolbox: toolBox,
-          graphic,
-        }}
-      />
+                : null,
+            series: !previousPeriod
+              ? series
+              : [
+                  ...series,
+                  ...previousPeriod.map(previous =>
+                    LineSeries({
+                      name: previous.seriesName,
+                      data: previous.data.map(({name, value}) => [name, value]),
+                      lineStyle: {
+                        color: theme.gray1,
+                        type: 'dotted',
+                      },
+                      itemStyle: {
+                        color: theme.gray1,
+                      },
+                    })
+                  ),
+                ],
+            dataZoom,
+            toolbox: toolBox,
+            graphic,
+          }}
+        />
+      </ChartContainer>
     );
   }
 }
+
+// Contains styling for chart elements as we can't easily style those
+// elements directly
+const ChartContainer = styled('div')`
+  /* Tooltip styling */
+  .tooltip-series,
+  .tooltip-date {
+    color: ${theme.gray2};
+    font-family: ${theme.text.family};
+    background: ${theme.gray5};
+    padding: ${space(1)} ${space(2)};
+    border-radius: ${theme.borderRadius} ${theme.borderRadius} 0 0;
+  }
+  .tooltip-label {
+    margin-right: ${space(1)};
+  }
+  .tooltip-label strong {
+    font-weight: normal;
+    color: #fff;
+  }
+  .tooltip-series > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .tooltip-date {
+    border-top: 1px solid ${theme.gray3};
+    text-align: center;
+    position: relative;
+    width: auto;
+    border-radius: ${theme.borderRadiusBottom};
+  }
+  .tooltip-date:after {
+    top: 100%;
+    left: 50%;
+    border: solid transparent;
+    content: ' ';
+    height: 0;
+    width: 0;
+    position: absolute;
+    pointer-events: none;
+    border-color: transparent;
+    border-top-color: ${theme.gray5};
+    border-width: 8px;
+    margin-left: -8px;
+  }
+
+  .echarts-for-react div:first-child {
+    width: 100% !important;
+  }
+`;
 
 const BaseChartRef = React.forwardRef((props, ref) => (
   <BaseChart forwardedRef={ref} {...props} />
