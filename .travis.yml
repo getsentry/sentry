@@ -204,6 +204,28 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
+    # XXX: this needs to be the same as postgres_default (other than python, name, env, and the rb package override)
+    # Allowed to fail!
+    - python: 3.6
+      name: 'Python 3.6 backend with migrations [Postgres]'
+      env: TEST_SUITE=postgres DB=postgres MIGRATIONS_TEST_MIGRATE=1 SENTRY_PYTHON3=1
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+      before_install:
+        - *pip_install
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
+        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+        - docker ps -a
+      install:
+        - python setup.py install_egg_info
+        - pip install -U -e ".[dev]"
+        - pip uninstall -y rb
+        - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
     # Deploy 'storybook' (component & style guide) - allowed to fail
     - name: 'Storybook Deploy'
       language: node_js
@@ -227,6 +249,7 @@ matrix:
       after_failure: skip
 
   allow_failures:
+    - name: 'Python 3.6 backend with migrations [Postgres]'
     - name: 'Storybook Deploy'
 
 notifications:
