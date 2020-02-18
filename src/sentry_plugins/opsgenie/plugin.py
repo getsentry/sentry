@@ -13,6 +13,14 @@ from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import OpsGenieApiClient
 
+DESCRIPTION = """
+Trigger alerts in Opsgenie from Sentry.
+
+Opsgenie is a cloud-based service for dev & ops teams, providing reliable
+alerts, on-call schedule management and escalations. OpsGenie integrates with
+monitoring tools & services, ensures the right people are notified.
+"""
+
 
 class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
     api_key = forms.CharField(
@@ -41,7 +49,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
     author_url = "https://github.com/getsentry"
     title = "OpsGenie"
     slug = "opsgenie"
-    description = "Create OpsGenie alerts out of notifications."
+    description = DESCRIPTION
     conf_key = "opsgenie"
     version = sentry.VERSION
     project_conf_form = OpsGenieOptionsForm
@@ -49,7 +57,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
     feature_descriptions = [
         FeatureDescription(
             """
-            Configure rule based OpsGenie alerts to automatically be triggered in a specific service
+            Configure rule based OpsGenie alerts to automatically be triggered.
             """,
             IntegrationFeatures.ALERT_RULE,
         )

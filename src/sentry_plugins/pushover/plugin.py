@@ -6,18 +6,34 @@ from sentry.plugins.bases.notify import NotifyPlugin
 
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import PushoverClient
 
 from sentry.exceptions import PluginError
 
+DESCRIPTION = """
+Get notified of Sentry alerts on any device using the Pushover integration.
+
+Pushover makes it easy to get real-time notifications on your Android, iPhone, iPad, and Desktop.
+"""
+
 
 class PushoverPlugin(CorePluginMixin, NotifyPlugin):
+    description = DESCRIPTION
     slug = "pushover"
     title = "Pushover"
     conf_title = "Pushover"
     conf_key = "pushover"
     required_field = "apikey"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Configure rule based Pushover notifications to be sent.
+            """,
+            IntegrationFeatures.ALERT_RULE,
+        )
+    ]
 
     def is_configured(self, project):
         return all(self.get_option(key, project) for key in ("userkey", "apikey"))

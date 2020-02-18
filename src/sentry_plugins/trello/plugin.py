@@ -16,9 +16,17 @@ SETUP_URL = "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/
 
 LABLEX_REGEX = re.compile(r"\w+/https://trello\.com/")
 
+DESCRIPTION = """
+Create cards in Trello directly from Sentry. This integration also allows
+you to link Sentry issues to existing cards in Trello.
+
+Trello is the easy, free, flexible, and visual way to manage your projects
+and organize anything, trusted by millions of people from all over the world.
+"""
+
 
 class TrelloPlugin(CorePluginMixin, IssuePlugin2):
-    description = "Create Trello cards on issues"
+    description = DESCRIPTION
     slug = "trello"
     title = "Trello"
     conf_title = title
