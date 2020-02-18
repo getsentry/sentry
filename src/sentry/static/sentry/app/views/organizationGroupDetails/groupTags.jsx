@@ -100,7 +100,7 @@ class GroupTags extends React.Component {
               >
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
                 <span className="tag-bar-label">
-                  <DeviceName>{tagValue.name}</DeviceName>
+                  <DeviceName value={tagValue.name} />
                 </span>
                 <span className="tag-bar-count">
                   <Count value={tagValue.count} />

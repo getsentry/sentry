@@ -12,7 +12,7 @@ import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
-import EventContextSummary from 'app/components/events/contextSummary';
+import EventContextSummary from 'app/components/events/contextSummary/contextSummary';
 import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';

@@ -1,59 +1,117 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
+import {Meta} from 'app/types';
+import {getMeta} from 'app/components/events/meta/metaProxy';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
+import DeviceName from 'app/components/deviceName';
+import styled from '@emotion/styled';
+import space from 'app/styles/space';
 
 import generateClassName from './generateClassName';
-
-// class DeviceSummary extends React.Component {
-//   static propTypes = {
-//     data: PropTypes.object.isRequired,
-//   };
-
-//   render() {
-//     const data = this.props.data;
-
-//     if (objectIsEmpty(data)) {
-//       return <NoSummary title={t('Unknown Device')} />;
-//     }
-
-//     // TODO(dcramer): we need a better way to parse it
-//     const className = data.model && generateClassName(data.model);
-
-//     let subTitle = <p />;
-
-//     if (data.arch) {
-//       subTitle = (
-//         <p>
-//           <strong>{t('Arch:')}</strong> {data.arch}
-//         </p>
-//       );
-//     } else if (data.model_id) {
-//       subTitle = (
-//         <p>
-//           <strong>{t('Model:')}</strong> {data.model_id}
-//         </p>
-//       );
-//     }
-
-//     return (
-//       <div className={`context-item ${className}`}>
-//         <span className="context-item-icon" />
-//         <h3>
-//           {data.model ? <DeviceName>{data.model}</DeviceName> : t('Unknown Device')}
-//         </h3>
-//         {subTitle}
-//       </div>
-//     );
-//   }
-// }
+import ContextSummaryNoSummary from './contextSummaryNoSummary';
 
 type Props = {
-  data: {};
+  data: Data;
+};
+
+type Data = {
+  model?: string;
+  arch?: string;
+  model_id?: string;
+};
+
+type SubTitle = {
+  subject: string;
+  value: string;
+  meta?: Meta;
 };
 
 const ContextSummaryDevice = ({data}: Props) => {
-  console.log('ContextSummaryDevice', data);
-  return null;
+  if (Object.keys(data).length === 0) {
+    return <ContextSummaryNoSummary title={t('Unknown Device')} />;
+  }
+
+  const renderName = () => {
+    if (!data.model) {
+      return t('Unknown Device');
+    }
+
+    const meta = getMeta(data, 'model');
+
+    return (
+      <DeviceName value={data.model}>
+        {deviceName => {
+          if (!meta) {
+            return deviceName;
+          }
+          return (
+            <AnnotatedText
+              value={deviceName}
+              chunks={meta.chunks}
+              remarks={meta.rem}
+              errors={meta.err}
+            />
+          );
+        }}
+      </DeviceName>
+    );
+  };
+
+  const getSubTitle = (): SubTitle | null => {
+    if (data.arch) {
+      return {
+        subject: t('Arch:'),
+        value: data.arch,
+        meta: getMeta(data, 'arch'),
+      };
+    }
+
+    if (data.model_id) {
+      return {
+        subject: t('Model:'),
+        value: data.model_id,
+        meta: getMeta(data, 'model_id'),
+      };
+    }
+
+    return null;
+  };
+
+  // TODO(dcramer): we need a better way to parse it
+  const className = data.model && generateClassName(data.model);
+  const subTitle = getSubTitle();
+
+  return (
+    <div className={`context-item ${className}`}>
+      <span className="context-item-icon" />
+      <h3>{renderName()}</h3>
+      {subTitle && (
+        <p>
+          <StyledSubject>{subTitle.subject}</StyledSubject>
+          {subTitle.meta ? (
+            <AnnotatedText
+              value={subTitle.value}
+              chunks={subTitle.meta.chunks}
+              remarks={subTitle.meta.rem}
+              errors={subTitle.meta.err}
+            />
+          ) : (
+            subTitle.value
+          )}
+        </p>
+      )}
+    </div>
+  );
+};
+
+ContextSummaryDevice.propTypes = {
+  data: PropTypes.object.isRequired,
 };
 
 export default ContextSummaryDevice;
+
+const StyledSubject = styled('strong')`
+  margin-right: ${space(0.5)};
+`;

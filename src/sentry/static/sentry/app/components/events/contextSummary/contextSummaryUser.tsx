@@ -1,12 +1,13 @@
 import React from 'react';
 
-import {EventUser} from 'app/types';
+import {t} from 'app/locale';
+import {Meta, EventUser} from 'app/types';
 import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';
-import AnnotatedText from 'app/components/events/meta/annotatedText';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
-import {t} from 'app/locale';
 
 type Props = {
   data: EventUser;
@@ -23,6 +24,29 @@ const ContextSummaryUser = ({data}: Props) => {
   if (Object.keys(user).length === 0) {
     return <ContextSummaryNoSummary title={t('Unknown User')} />;
   }
+
+  const renderUserDetails = (key: 'id' | 'username') => {
+    const value = user[key];
+
+    const subject = key === 'id' ? t('ID:') : t('username:');
+    const meta = getMeta(data, key);
+
+    return (
+      <p>
+        <strong>{subject}</strong>
+        {meta ? (
+          <AnnotatedText
+            value={value}
+            chunks={meta.chunks}
+            remarks={meta.rem}
+            errors={meta.err}
+          />
+        ) : (
+          value
+        )}
+      </p>
+    );
+  };
 
   const getUserTitle = (): UserTitle | undefined => {
     if (user.email) {
@@ -52,86 +76,45 @@ const ContextSummaryUser = ({data}: Props) => {
         meta: getMeta(data, 'username'),
       };
     }
+
+    return undefined;
   };
+
+  const userTitle = getUserTitle();
 
   return (
     <div className="context-item user">
-      Oi
-      {/* {userTitle ? (
-        <UserAvatar
-          user={user}
-          size={48}
-          className="context-item-icon"
-          gravatar={false}
-        />
+      {userTitle ? (
+        <React.Fragment>
+          <UserAvatar
+            user={user}
+            size={48}
+            className="context-item-icon"
+            gravatar={false}
+          />
+          <h3 data-test-id="user-title">
+            {userTitle?.meta ? (
+              <AnnotatedText
+                value={userTitle.value}
+                chunks={userTitle.meta.chunks}
+                remarks={userTitle.meta.rem}
+                errors={userTitle.meta.err}
+              />
+            ) : (
+              userTitle?.value
+            )}
+          </h3>
+        </React.Fragment>
       ) : (
         <span className="context-item-icon" />
       )}
-      <h3 data-test-id="user-title">{userTitle}</h3>
-      {user.id && user.id !== userTitle ? (
-        <p>
-          <strong>{t('ID:')}</strong> {user.id}
-        </p>
-      ) : (
-        user.username &&
-        user.username !== userTitle && (
-          <p>
-            <strong>{t('Username:')}</strong> {user.username}
-          </p>
-        )
-      )} */}
+      {user.id && user.id !== userTitle?.value
+        ? renderUserDetails('id')
+        : user.username &&
+          user.username !== userTitle?.value &&
+          renderUserDetails('username')}
     </div>
   );
 };
 
 export default ContextSummaryUser;
-
-// export class UserSummary extends React.Component {
-//   static propTypes = {
-//     data: PropTypes.object.isRequired,
-//   };
-
-//   render() {
-//     const user = removeFilterMaskedEntries(this.props.data);
-
-//     if (objectIsEmpty(user)) {
-//       return <NoSummary title={t('Unknown User')} />;
-//     }
-
-//     const userTitle = user.email
-//       ? user.email
-//       : user.ip_address || user.id || user.username;
-
-//     if (!userTitle) {
-//       return <NoSummary title={t('Unknown User')} />;
-//     }
-
-//     return (
-//       <div className="context-item user">
-//         {userTitle ? (
-//           <UserAvatar
-//             user={user}
-//             size={48}
-//             className="context-item-icon"
-//             gravatar={false}
-//           />
-//         ) : (
-//           <span className="context-item-icon" />
-//         )}
-//         <h3 data-test-id="user-title">{userTitle}</h3>
-//         {user.id && user.id !== userTitle ? (
-//           <p>
-//             <strong>{t('ID:')}</strong> {user.id}
-//           </p>
-//         ) : (
-//           user.username &&
-//           user.username !== userTitle && (
-//             <p>
-//               <strong>{t('Username:')}</strong> {user.username}
-//             </p>
-//           )
-//         )}
-//       </div>
-//     );
-//   }
-// }
