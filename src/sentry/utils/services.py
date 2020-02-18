@@ -99,11 +99,12 @@ class LazyServiceWrapper(LazyObject):
 
     def expose(self, context):
         base = self._base
+        base_instance = base()
         for key in itertools.chain(base.__all__, ("validate", "setup")):
-            if inspect.ismethod(getattr(base, key)):
+            if inspect.ismethod(getattr(base_instance, key)):
                 context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)
             else:
-                context[key] = getattr(base, key)
+                context[key] = getattr(base_instance, key)
 
 
 def resolve_callable(value):
