@@ -43,7 +43,7 @@ const KeyValueList = ({
         {getData().map(({key, subject, value = null, meta}) => (
           <tr key={key}>
             <TableData className="key" wide={longKeys}>
-              {subject || key}
+              {subject}
             </TableData>
             <td className="val">
               {isContextData ? (

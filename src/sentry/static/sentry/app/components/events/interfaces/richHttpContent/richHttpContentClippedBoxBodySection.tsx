@@ -49,7 +49,12 @@ const RichHttpContentClippedBoxBodySection = ({
       case 'multipart/form-data':
         return (
           <KeyValueList
-            data={getTransformedData(value).map(([key, v]) => ({key, value: v, meta}))}
+            data={getTransformedData(value).map(([key, v]) => ({
+              key,
+              subject: key,
+              value: v,
+              meta,
+            }))}
             isContextData
           />
         );
