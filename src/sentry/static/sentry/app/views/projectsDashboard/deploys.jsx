@@ -5,10 +5,10 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import getDynamicText from 'app/utils/getDynamicText';
+import Version from 'app/components/version';
 
 const DEPLOY_COUNT = 2;
 
@@ -54,23 +54,25 @@ class Deploy extends React.Component {
   static propTypes = {
     deploy: SentryTypes.Deploy.isRequired,
     project: SentryTypes.Project.isRequired,
-    organization: SentryTypes.Organization.isRequired,
   };
 
   render() {
-    const {deploy, organization, project} = this.props;
+    const {deploy, project} = this.props;
 
     return (
       <DeployRow justifyContent="space-between">
         <Environment>{deploy.environment}</Environment>
-        <Version>
-          <StyledLink
-            to={`/organizations/${organization.slug}/releases/${deploy.version}/?project=${project.id}`}
-          >
-            {deploy.version}
-          </StyledLink>
-        </Version>
-        <Flex width={90} justifyContent="flex-end">
+
+        <StyledTextOverflow>
+          <Version
+            version={deploy.version}
+            projectId={project.id}
+            tooltipRawVersion
+            truncate
+          />
+        </StyledTextOverflow>
+
+        <Flex width={90} justifyContent="flex-end" flexGrow={1} flexShrink={0}>
           <DeployTimeWrapper>
             {getDynamicText({
               value: moment(deploy.dateFinished).fromNow(),
@@ -98,18 +100,11 @@ const Environment = styled(TextOverflow)`
   background-color: ${p => p.theme.offWhite};
   text-align: center;
   border-radius: ${p => p.theme.borderRadius};
+  flex-shrink: 0;
 `;
 
-const Version = styled(TextOverflow)`
-  display: flex;
-  flex: 1;
+const StyledTextOverflow = styled(TextOverflow)`
   margin-right: 8px;
-`;
-
-const StyledLink = styled(Link)`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
 `;
 
 const DeployTimeWrapper = styled('div')`

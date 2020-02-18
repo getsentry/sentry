@@ -4,7 +4,7 @@ import {Client} from 'app/api';
 import {Config, Organization, Project} from 'app/types';
 import {MetricAction} from 'app/types/alerts';
 import {fetchOrgMembers} from 'app/actionCreators/members';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import ActionsPanel from 'app/views/settings/incidentRules/triggers/actionsPanel';
 import Field from 'app/views/settings/components/forms/field';
 import ThresholdControl from 'app/views/settings/incidentRules/triggers/thresholdControl';
@@ -78,7 +78,9 @@ class TriggerForm extends React.PureComponent<Props> {
       <React.Fragment>
         <Field
           label={triggerLabel}
-          help={t('The threshold that will trigger the associated action(s)')}
+          help={tct('The threshold that will activate the [severity] status', {
+            severity: isCritical ? t('critical') : t('warning'),
+          })}
           required
           error={error && error.alertThreshold}
         >
@@ -93,7 +95,9 @@ class TriggerForm extends React.PureComponent<Props> {
 
         <Field
           label={resolutionLabel}
-          help={t('The threshold that will resolve an alert')}
+          help={tct('The threshold that will de-activate the [severity] status', {
+            severity: isCritical ? t('critical') : t('warning'),
+          })}
           error={error && error.resolveThreshold}
         >
           <ThresholdControl

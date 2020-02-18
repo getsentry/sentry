@@ -6,6 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.exceptions import PluginError
 from sentry.plugins.bases.issue import IssuePlugin
+from sentry_plugins.base import CorePluginMixin
 from sentry.utils.http import absolute_uri
 import sentry
 
@@ -13,7 +14,7 @@ from .client import RedmineClient
 from .forms import RedmineNewIssueForm
 
 
-class RedminePlugin(IssuePlugin):
+class RedminePlugin(CorePluginMixin, IssuePlugin):
     author = "Sentry"
     author_url = "https://github.com/getsentry/sentry"
     version = sentry.VERSION

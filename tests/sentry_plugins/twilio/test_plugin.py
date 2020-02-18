@@ -1,8 +1,13 @@
 from __future__ import absolute_import
 
+import responses
+
 from exam import fixture
+from sentry.models import Rule
+from sentry.plugins.base import Notification
 from sentry.testutils import TestCase, PluginTestCase
 from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin
+from six.moves.urllib.parse import parse_qs
 
 
 class TwilioConfigurationFormTest(TestCase):
@@ -49,8 +54,6 @@ class TwilioConfigurationFormTest(TestCase):
 
 
 class TwilioPluginTest(PluginTestCase):
-    # TODO: actually test the plugin
-
     @fixture
     def plugin(self):
         return TwilioPlugin()
@@ -62,7 +65,40 @@ class TwilioPluginTest(PluginTestCase):
         self.assertPluginInstalled("twilio", self.plugin)
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(self.project) is False
         for o in ("account_sid", "auth_token", "sms_from", "sms_to"):
+            assert self.plugin.is_configured(self.project) is False
             self.plugin.set_option(o, "foo", self.project)
         assert self.plugin.is_configured(self.project) is True
+
+    @responses.activate
+    def test_simple_notification(self):
+        responses.add("POST", "https://api.twilio.com/2010-04-01/Accounts/abcdef/Messages.json")
+        self.plugin.set_option("account_sid", "abcdef", self.project)
+        self.plugin.set_option("auth_token", "abcd", self.project)
+        self.plugin.set_option("sms_from", "4158675309", self.project)
+        self.plugin.set_option("sms_to", "4154444444", self.project)
+
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "warning",
+                "platform": "python",
+                "culprit": "foo.bar",
+            },
+            project_id=self.project.id,
+        )
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}):
+            self.plugin.notify(notification)
+
+        request = responses.calls[0].request
+        payload = parse_qs(request.body)
+        assert payload == {
+            "To": ["+14154444444"],
+            "From": ["+14158675309"],
+            "Body": ["Sentry [%s] WARNING: Hello world" % self.project.slug.title()],
+        }

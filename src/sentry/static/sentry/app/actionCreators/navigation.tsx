@@ -24,7 +24,7 @@ export function navigateTo(to: string, router: InjectedRouter) {
           comingFromProjectId={comingFromProjectId}
           onFinish={path => {
             closeModal();
-            router.push(path);
+            setTimeout(() => router.push(path), 0);
           }}
         />
       ),

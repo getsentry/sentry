@@ -17,7 +17,6 @@ from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
 from sentry.attachments import attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
-    LOG_LEVELS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     MAX_SECS_IN_FUTURE,
@@ -583,13 +582,6 @@ class EventManager(object):
         # Pull the toplevel data we're interested in
         level = data.get("level")
 
-        # TODO(mitsuhiko): this code path should be gone by July 2018.
-        # This is going to be fine because no code actually still depends
-        # on integers here.  When we need an integer it will be converted
-        # into one later.  Old workers used to send integers here.
-        if level is not None and isinstance(level, six.integer_types):
-            level = LOG_LEVELS[level]
-
         transaction_name = data.get("transaction")
         logger_name = data.get("logger")
         release = data.get("release")
@@ -651,56 +643,64 @@ class EventManager(object):
             pop_tag(data, "user")
             set_tag(data, "sentry:user", event_user.tag_value)
 
-        # At this point we want to normalize the in_app values in case the
-        # clients did not set this appropriately so far.
-        grouping_config = load_grouping_config(
-            get_grouping_config_dict_for_event_data(data, project)
-        )
-        normalize_stacktraces_for_grouping(data, grouping_config)
+        with metrics.timer("event_manager.load_grouping_config"):
+            # At this point we want to normalize the in_app values in case the
+            # clients did not set this appropriately so far.
+            grouping_config = load_grouping_config(
+                get_grouping_config_dict_for_event_data(data, project)
+            )
 
-        for plugin in plugins.for_project(project, version=None):
-            added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
-            if added_tags:
-                # plugins should not override user provided tags
-                for key, value in added_tags:
-                    if get_tag(data, key) is None:
-                        set_tag(data, key, value)
+        with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
+            normalize_stacktraces_for_grouping(data, grouping_config)
 
-        for path, iface in six.iteritems(event.interfaces):
-            for k, v in iface.iter_tags():
-                set_tag(data, k, v)
-            # Get rid of ephemeral interface data
-            if iface.ephemeral:
-                data.pop(iface.path, None)
+        with metrics.timer("event_manager.plugins"):
+            for plugin in plugins.for_project(project, version=None):
+                added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
+                if added_tags:
+                    # plugins should not override user provided tags
+                    for key, value in added_tags:
+                        if get_tag(data, key) is None:
+                            set_tag(data, key, value)
 
-        # The active grouping config was put into the event in the
-        # normalize step before.  We now also make sure that the
-        # fingerprint was set to `'{{ default }}' just in case someone
-        # removed it from the payload.  The call to get_hashes will then
-        # look at `grouping_config` to pick the right parameters.
-        data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
-        apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
+        with metrics.timer("event_manager.set_tags"):
+            for path, iface in six.iteritems(event.interfaces):
+                for k, v in iface.iter_tags():
+                    set_tag(data, k, v)
+                # Get rid of ephemeral interface data
+                if iface.ephemeral:
+                    data.pop(iface.path, None)
 
-        # Here we try to use the grouping config that was requested in the
-        # event.  If that config has since been deleted (because it was an
-        # experimental grouping config) we fall back to the default.
-        try:
-            hashes = event.get_hashes()
-        except GroupingConfigNotFound:
-            data["grouping_config"] = get_grouping_config_dict_for_project(project)
-            hashes = event.get_hashes()
+        with metrics.timer("event_manager.apply_server_fingerprinting"):
+            # The active grouping config was put into the event in the
+            # normalize step before.  We now also make sure that the
+            # fingerprint was set to `'{{ default }}' just in case someone
+            # removed it from the payload.  The call to get_hashes will then
+            # look at `grouping_config` to pick the right parameters.
+            data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
+            apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
+
+        with metrics.timer("event_manager.event.get_hashes"):
+            # Here we try to use the grouping config that was requested in the
+            # event.  If that config has since been deleted (because it was an
+            # experimental grouping config) we fall back to the default.
+            try:
+                hashes = event.get_hashes()
+            except GroupingConfigNotFound:
+                data["grouping_config"] = get_grouping_config_dict_for_project(project)
+                hashes = event.get_hashes()
 
         data["hashes"] = hashes
 
-        # we want to freeze not just the metadata and type in but also the
-        # derived attributes.  The reason for this is that we push this
-        # data into kafka for snuba processing and our postprocessing
-        # picks up the data right from the snuba topic.  For most usage
-        # however the data is dynamically overridden by Event.title and
-        # Event.location (See Event.as_dict)
-        materialized_metadata = self.materialize_metadata()
-        data.update(materialized_metadata)
-        data["culprit"] = culprit
+        with metrics.timer("event_manager.materialize_metadata"):
+            # we want to freeze not just the metadata and type in but also the
+            # derived attributes.  The reason for this is that we push this
+            # data into kafka for snuba processing and our postprocessing
+            # picks up the data right from the snuba topic.  For most usage
+            # however the data is dynamically overridden by Event.title and
+            # Event.location (See Event.as_dict)
+            materialized_metadata = self.materialize_metadata()
+            data.update(materialized_metadata)
+            data["culprit"] = culprit
 
         received_timestamp = event.data.get("received") or float(event.datetime.strftime("%s"))
 
@@ -823,8 +823,9 @@ class EventManager(object):
                 key = "bytes.stored.%s" % (attachment.type,)
                 event_metrics[key] = (event_metrics.get(key) or 0) + len(attachment.data)
 
-        # Write the event to Nodestore
-        event.data.save()
+        with metrics.timer("event_manager.nodestore.save"):
+            # Write the event to Nodestore
+            event.data.save()
 
         if event_user:
             counters = [

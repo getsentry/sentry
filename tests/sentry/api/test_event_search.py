@@ -1078,15 +1078,26 @@ class GetSnubaQueryArgsTest(TestCase):
 
         params = {"project_id": [p1.id, p2.id]}
         filter = get_filter("project.name:{}".format(p1.slug), params)
-        filter.conditions == [["project_id", "=", p1.id]]
-        filter.filter_keys == {"project_id": [p1.id, p2.id]}
-        filter.project_ids == [p1.id, p2.id]
+        assert filter.conditions == [["project_id", "=", p1.id]]
+        assert filter.filter_keys == {"project_id": [p1.id, p2.id]}
+        assert filter.project_ids == [p1.id, p2.id]
 
-        params = {"project_id": []}
+        params = {"project_id": [p1.id, p2.id]}
         filter = get_filter("!project.name:{}".format(p1.slug), params)
-        filter.conditions == [["project_id", "!=", p1.id]]
-        filter.filter_keys == {}
-        filter.project_ids == []
+        assert filter.conditions == [
+            [[["isNull", ["project_id"]], "=", 1], ["project_id", "!=", p1.id]]
+        ]
+        assert filter.filter_keys == {"project_id": [p1.id, p2.id]}
+        assert filter.project_ids == [p1.id, p2.id]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            params = {"project_id": []}
+            get_filter("project.name:{}".format(p1.slug), params)
+        assert (
+            "Invalid query. Project %s does not exist or is not an actively selected project"
+            % p1.slug
+            in six.text_type(err)
+        )
 
     def test_transaction_status(self):
         for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
@@ -1105,6 +1116,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
         result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
         assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
@@ -1269,6 +1281,41 @@ class ResolveFieldListTest(unittest.TestCase):
             fields = ["min(message)"]
             resolve_field_list(fields, {})
         assert "Invalid column" in six.text_type(err)
+
+    def test_percentile_function(self):
+        fields = ["percentile(transaction.duration, 0.75)"]
+        result = resolve_field_list(fields, {})
+
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(0.75)"]
+            result = resolve_field_list(fields, {})
+        assert "percentile(0.75): expected 2 arguments" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(sanchez, 0.75)"]
+            result = resolve_field_list(fields, {})
+        assert "percentile(sanchez, 0.75): sanchez is not a valid column" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(id, 0.75)"]
+            result = resolve_field_list(fields, {})
+        assert "percentile(id, 0.75): id is not a numeric column" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(transaction.duration, 75)"]
+            result = resolve_field_list(fields, {})
+        assert (
+            "percentile(transaction.duration, 75): 75.0 argument invalid: not between 0 and 1"
+            in six.text_type(err)
+        )
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:

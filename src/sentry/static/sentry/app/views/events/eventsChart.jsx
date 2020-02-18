@@ -130,7 +130,7 @@ class EventsChart extends React.Component {
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !start && !end;
 
-    let tooltip = null;
+    let tooltip = undefined;
     if (onTooltipUpdate) {
       tooltip = {
         formatter(seriesData) {

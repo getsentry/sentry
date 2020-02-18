@@ -21,6 +21,7 @@ class IntegrationSerializer(Serializer):
             "status": obj.get_status_display(),
             "provider": {
                 "key": provider.key,
+                "slug": provider.key,
                 "name": provider.name,
                 "canAdd": provider.can_add,
                 "canDisable": provider.can_disable,
@@ -85,6 +86,7 @@ class IntegrationProviderSerializer(Serializer):
 
         return {
             "key": obj.key,
+            "slug": obj.key,
             "name": obj.name,
             "metadata": metadata,
             "canAdd": obj.can_add,

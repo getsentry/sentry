@@ -7,6 +7,7 @@ import Duration from 'app/components/duration';
 import YAxisSelector from 'app/views/events/yAxisSelector';
 import {getFormattedDate} from 'app/utils/dates';
 import space from 'app/styles/space';
+import Version from 'app/components/version';
 
 import {decodeColumnOrder} from './utils';
 import {ChartControls, InlineContainer, SectionHeading} from './styles';
@@ -29,10 +30,18 @@ type Props = {
   hoverState: TooltipData;
 };
 
-function formatValue(val: string | number, columnName: string) {
+function formatValue(val: string | number, columnName: string, itemName: string) {
   // Extract metadata from the columnName so we can format the
   // value appropriately.
   const columnData = decodeColumnOrder([{field: columnName}])[0];
+
+  if (itemName === t('Release')) {
+    return (
+      <Value>
+        <Version version={String(val)} anchor={false} withPackage />
+      </Value>
+    );
+  }
 
   if (val === null || val === undefined) {
     return <Value>-</Value>;
@@ -59,18 +68,32 @@ export default function ChartFooter({
 }: Props) {
   const elements: React.ReactNode[] = [];
   if (hoverState.values.length === 0) {
-    elements.push(<SectionHeading>{t('Total')}</SectionHeading>);
+    elements.push(<SectionHeading key="total-label">{t('Total')}</SectionHeading>);
     elements.push(
-      total === null ? <Value>-</Value> : <Value>{total.toLocaleString()}</Value>
+      total === null ? (
+        <Value data-test-id="loading-placeholder" key="total-value">
+          -
+        </Value>
+      ) : (
+        <Value key="total-value">{total.toLocaleString()}</Value>
+      )
     );
   } else {
-    elements.push(<SectionHeading>{t('Time')}</SectionHeading>);
+    elements.push(<SectionHeading key="time-label">{t('Time')}</SectionHeading>);
     elements.push(
-      <Value>{getFormattedDate(hoverState.timestamp, 'MMM D, LTS', {local: true})}</Value>
+      <Value key="time-value">
+        {getFormattedDate(hoverState.timestamp, 'MMM D, LTS', {local: true})}
+      </Value>
     );
     hoverState.values.forEach(item => {
-      elements.push(<SectionHeading>{item.name}</SectionHeading>);
-      elements.push(formatValue(item.value, yAxisValue));
+      elements.push(
+        <SectionHeading key={`${item.name}-label`}>{item.name}</SectionHeading>
+      );
+      elements.push(
+        <React.Fragment key={`${item.name}-value`}>
+          {formatValue(item.value, yAxisValue, item.name)}
+        </React.Fragment>
+      );
     });
   }
 
