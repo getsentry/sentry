@@ -115,16 +115,15 @@ class SlackNotifyServiceAction(EventAction):
 
             session = http.build_session()
             resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
-            resp.raise_for_status()
             status_code = resp.status_code
-            resp = resp.json()
-            track_response_code(status_code, resp.get("ok"))
-
-            if not resp.get("ok"):
+            response = resp.json()
+            track_response_code(status_code, response.get("ok"))
+            resp.raise_for_status()
+            if not response.get("ok"):
                 self.logger.info(
                     "rule.fail.slack_post",
                     extra={
-                        "error": resp.get("error"),
+                        "error": response.get("error"),
                         "project_id": event.project_id,
                         "event_id": event.event_id,
                     },

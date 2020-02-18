@@ -390,7 +390,6 @@ def get_channel_id_with_timeout(integration, name, timeout):
                 # Slack limits the response of `<list_type>.list` to 1000 channels
                 params=dict(payload, cursor=cursor, limit=1000),
             )
-            items.raise_for_status()
             status_code = items.status_code
             items = items.json()
             track_response_code(status_code, items.get("ok"))
@@ -426,11 +425,8 @@ def send_incident_alert_notification(integration, incident, channel):
     session = http.build_session()
     resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
     status_code = resp.status_code
+    response = resp.json()
+    track_response_code(status_code, response.get("ok"))
     resp.raise_for_status()
-    resp = resp.json()
-    if not resp.get("ok"):
-        logger.info("rule.fail.slack_post", extra={"error": resp.get("error")})
-    metrics.incr(
-        SLACK_DATADOG_METRIC,
-        tags={"ok": False if resp.get("ok") is False else True, "status": status_code},
-    )
+    if not response.get("ok"):
+        logger.info("rule.fail.slack_post", extra={"error": response.get("error")})
