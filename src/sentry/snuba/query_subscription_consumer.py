@@ -220,19 +220,10 @@ class QuerySubscriptionConsumer(object):
         payload = wrapper["payload"]
         try:
             jsonschema.validate(payload, SUBSCRIPTION_PAYLOAD_VERSIONS[schema_version])
-        except jsonschema.ValidationError as ex:
+        except jsonschema.ValidationError:
             metrics.incr("snuba_query_subscriber.message_payload_invalid")
-            if len(ex.path) > 0:
-                # NOTE: For whole OpenStack message consistency, this error
-                #       message has been written as the similar format of WSME.
-                detail = (
-                    "Invalid input for field/attribute %(path)s. Value: %(value)s. %(message)s"
-                    % {"path": ex.path.pop(), "value": ex.instance, "message": ex.message}
-                )
-            else:
-                detail = ex.message
-            # raise exception.ValidationError(detail=detail)
-            raise InvalidSchemaError(detail)
+            raise InvalidSchemaError("Message payload does not match schema")
+
         payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
 
         return payload
