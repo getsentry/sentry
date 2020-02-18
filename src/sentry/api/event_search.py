@@ -913,7 +913,21 @@ FUNCTIONS = {
             },
         ],
         "transform": "quantile(%(percentile).2f)(%(column)s)",
-    }
+    },
+    "rps": {
+        "name": "rps",
+        "args": [
+            {"name": "interval", "type": NUMBER, "validator": lambda v: (v > 0, "must be positive integer")},
+        ],
+        "transform": "divide(count(), %(interval)d)",
+    },
+    "rpm": {
+        "name": "rpm",
+        "args": [
+            {"name": "interval", "type": NUMBER, "validator": lambda v: (v > 0, "must be positive integer")},
+        ],
+        "transform": "divide(count(), divide(%(interval)d, 60))",
+    },
 }
 
 
