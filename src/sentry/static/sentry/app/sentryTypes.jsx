@@ -800,7 +800,7 @@ export const EChartsTooltip = PropTypes.shape({
 
   // The position of the tooltip's floating layer, which would follow the position of mouse by default.
   // See https://ecomfe.github.io/echarts-doc/public/en/option.html#tooltip.position
-  position: PropTypes.oneOfType([PropTypes.string, PropTypes.array]),
+  position: PropTypes.oneOfType([PropTypes.string, PropTypes.array, PropTypes.func]),
 
   // The content formatter of tooltip's floating layer which supports string template and callback function.
   // See https://ecomfe.github.io/echarts-doc/public/en/option.html#tooltip.formatter
