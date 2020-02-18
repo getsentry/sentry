@@ -97,7 +97,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.snapshot("issue details android")
 
     def test_android_ndk_event(self):
-        event = self.create_sample_event(default="android-ndk", platform="native")
+        event = self.create_sample_event(default="android-ndk", platform="android-ndk")
         self.visit_issue(event.group.id)
         self.browser.snapshot("issue details android-ndk")
 
