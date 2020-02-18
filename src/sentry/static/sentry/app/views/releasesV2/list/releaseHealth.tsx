@@ -1,8 +1,16 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Release} from 'app/types';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
+import CircleProgress from 'app/components/circleProgress';
+import Count from 'app/components/count';
+
+import UsersChart from './usersChart';
+import {mockData} from './mock';
 
 type Props = {
   release: Release;
@@ -11,24 +19,93 @@ type Props = {
 const ReleaseHealth = ({release}: Props) => {
   return (
     <React.Fragment>
-      <PanelHeader>
-        <div>{t('Project')}</div>
-        <div>{t('Crash free users')}</div>
-        <div>{t('Crash free sessions')}</div>
-        <div>{t('Daily active users')}</div>
-        <div>{t('Total crashes')}</div>
-        <div>{t('Total errors')}</div>
-      </PanelHeader>
+      <StyledPanelHeader>
+        <Layout>
+          <div>{t('Project')}</div>
+          <div>{t('Crash free users')}</div>
+          <div>{t('Crash free sessions')}</div>
+          <div>{t('Daily active users')}</div>
+          <RightColumn>{t('Total crashes')}</RightColumn>
+          <RightColumn>{t('Total errors')}</RightColumn>
+        </Layout>
+      </StyledPanelHeader>
 
       <PanelBody>
-        <p>
-          Lorem ipsum dolor sit, amet consectetur adipisicing elit. Corporis blanditiis
-          eos ab, quos nostrum non numquam minima culpa soluta corrupti quia a pariatur
-          officia harum, magni ut. Ullam, quis dolor?
-        </p>
+        {[1, 2, 3].map(index => (
+          <PanelItem key={index}>
+            <Layout>
+              <div>
+                {/* TODO(releasesv2): make dynamic once api is finished */}
+                <ProjectBadge project={release.projects[0]} avatarSize={14} />
+              </div>
+              <div>
+                <StyledCircleProgress value={mockData[index].crashFreeUsersPercent} />
+                {mockData[index].crashFreeUsersPercent}%
+              </div>
+              <div>
+                <StyledCircleProgress
+                  value={mockData[index].crashFreeUsersSessionsPercent}
+                />
+                {mockData[index].crashFreeUsersSessionsPercent}%
+              </div>
+              <ChartColumn>
+                <ChartWrapper>
+                  <UsersChart data={mockData[index].graphData} statsPeriod="24h" />
+                </ChartWrapper>
+                {mockData[index].dailyActiveUsers}%
+              </ChartColumn>
+              <RightColumn>
+                <ColoredCount value={mockData[index].crashes} />
+              </RightColumn>
+              <RightColumn>
+                <ColoredCount value={mockData[index].errors} />
+              </RightColumn>
+            </Layout>
+          </PanelItem>
+        ))}
       </PanelBody>
     </React.Fragment>
   );
 };
+
+const StyledPanelHeader = styled(PanelHeader)`
+  border-top: 1px solid ${p => p.theme.borderDark};
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  color: ${p => p.theme.gray2};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const Layout = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 200px 1fr 1fr;
+  grid-column-gap: ${space(1.5)};
+  width: 100%;
+  align-items: center;
+`;
+
+const RightColumn = styled('div')`
+  text-align: right;
+`;
+
+const StyledCircleProgress = styled(CircleProgress)`
+  margin-right: ${space(1)};
+`;
+
+const ChartColumn = styled('div')`
+  display: flex;
+`;
+
+const ChartWrapper = styled('div')`
+  width: 150px;
+  margin-right: ${space(2)};
+  position: relative;
+  bottom: 4px;
+`;
+
+const ColoredCount = styled(Count)`
+  /* this should not be count */
+  ${p => p.value > 7000 && `color: ${p.theme.red};`}
+`;
 
 export default ReleaseHealth;

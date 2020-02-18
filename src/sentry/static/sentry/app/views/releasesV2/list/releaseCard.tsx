@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import Count from 'app/components/count';
-import LatestDeployOrReleaseTime from 'app/views/releases/list/latestDeployOrReleaseTime';
 import Version from 'app/components/version';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import ProjectList from 'app/views/releases/list/projectList';
 import ReleaseStats from 'app/components/releaseStats';
 import {Project, Release} from 'app/types';
 import TimeSince from 'app/components/timeSince';
+import {t, tn} from 'app/locale';
+
 import ReleaseHealth from './releaseHealth';
 
 type Props = {
@@ -25,9 +26,8 @@ const ReleaseCard = ({release, projects, orgId}: Props) => {
         <StyledPanelItem>
           <Layout>
             <Column>
-              Release <br />
+              <ColumnTitle>{t('Release')}</ColumnTitle>
               <Version
-                orgId={orgId}
                 version={release.version}
                 preserveGlobalSelection
                 tooltipRawVersion
@@ -43,12 +43,16 @@ const ReleaseCard = ({release, projects, orgId}: Props) => {
             </Column>
 
             <RightAlignedColumn>
-              Created <br />
-              <LatestDeployOrReleaseTime release={release} />
+              <ColumnTitle>{t('Created')}</ColumnTitle>
+              {release && (release.dateReleased || release.dateCreated) ? (
+                <TimeSince date={release.dateReleased || release.dateCreated} />
+              ) : (
+                <span>-</span>
+              )}
             </RightAlignedColumn>
 
             <RightAlignedColumn>
-              Last event <br />
+              <ColumnTitle>{t('Last event')}</ColumnTitle>
               {release.lastEvent ? (
                 <TimeSince date={release.lastEvent} />
               ) : (
@@ -57,7 +61,7 @@ const ReleaseCard = ({release, projects, orgId}: Props) => {
             </RightAlignedColumn>
 
             <RightAlignedColumn>
-              New issues <br />
+              <ColumnTitle>{t('New issues')}</ColumnTitle>
               <Count value={release.newGroups || 0} />
             </RightAlignedColumn>
           </Layout>
@@ -76,7 +80,7 @@ const StyledPanelItem = styled(PanelItem)`
 
 const Layout = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 200px 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
@@ -91,37 +95,13 @@ const RightAlignedColumn = styled('div')`
   text-align: right;
 `;
 
-const ChartColumn = styled('div')`
-  margin-left: ${space(2)};
-  margin-right: ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    display: none;
-  }
-`;
-
-const CrashFreeUsers = styled('span')<{percent: number}>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => p.theme.gray4};
-  /*  TODO(releasesv2): this color coated demonstration is turned off for now, waiting for decision
-  color: ${p => {
-    if (p.percent < 33) {
-      return p.theme.red;
-    }
-    if (p.percent < 66) {
-      return p.theme.yellowOrange;
-    }
-    if (p.percent >= 66) {
-      return p.theme.green;
-    }
-
-    return p.theme.gray3;
-  }};
-  */
-`;
-
-const StyledCount = styled(Count)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => p.theme.gray4};
+const ColumnTitle = styled('div')`
+  text-transform: uppercase;
+  color: ${p => p.theme.gray2};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  margin-bottom: ${space(0.75)};
+  line-height: 1.2;
 `;
 
 export default ReleaseCard;

@@ -3,6 +3,7 @@ const mock = () => ({
   crashFreeUsersSessionsPercent: Math.floor(Math.random() * 100),
   crashes: Math.floor(Math.random() * 10000),
   errors: Math.floor(Math.random() * 10000),
+  dailyActiveUsers: Math.floor(Math.random() * 100),
   graphData: {
     '24h': [
       [1578996000, 2718],
@@ -30,7 +31,7 @@ const mock = () => ({
       [1579075200, 2218],
       [1579078800, 1136],
     ],
-  },
+  } as any,
 });
 
 export const mockData = [...Array(20)].map(mock);
