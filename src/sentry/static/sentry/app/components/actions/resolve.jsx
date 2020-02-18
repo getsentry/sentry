@@ -8,7 +8,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Version from 'app/components/version';
+import {formatVersion} from 'app/utils/formatters';
 
 export default class ResolveActions extends React.Component {
   static propTypes = {
@@ -187,7 +187,7 @@ export default class ResolveActions extends React.Component {
                       {latestRelease
                         ? t(
                             'The current release (%s)',
-                            <Version version={latestRelease.version} anchor={false} />
+                            formatVersion(latestRelease.version)
                           )
                         : t('The current release')}
                     </ActionLink>
