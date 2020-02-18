@@ -4,13 +4,13 @@ import {RuntimeData, RuntimeKnownDataType} from './types';
 
 type Output = {
   subject: string;
-  value: string | null;
+  value?: React.ReactNode;
 };
 
 function getRuntimeKnownDataDetails(
   data: RuntimeData,
   type: RuntimeKnownDataType
-): Output | undefined {
+): Output {
   switch (type) {
     case RuntimeKnownDataType.NAME:
       return {
@@ -23,7 +23,10 @@ function getRuntimeKnownDataDetails(
         value: `${data.version}${data.build ? `(${data.build})` : ''}`,
       };
     default:
-      return undefined;
+      return {
+        subject: type,
+        value: data[type],
+      };
   }
 }
 

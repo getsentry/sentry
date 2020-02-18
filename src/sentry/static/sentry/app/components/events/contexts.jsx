@@ -13,7 +13,7 @@ const CONTEXT_TYPES = {
   os: require('app/components/events/contexts/operatingSystem/operatingSystem').default,
   runtime: require('app/components/events/contexts/runtime/runtime').default,
   user: require('app/components/events/contexts/user').default,
-  gpu: require('app/components/events/contexts/gpu').default,
+  gpu: require('app/components/events/contexts/gpu/gpu').default,
 };
 
 function getContextComponent(type) {
