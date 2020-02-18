@@ -297,42 +297,22 @@ describe('IntegrationListDirectory', function() {
       expect(wrapper.find('SearchInput').exists()).toBeTruthy();
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
       expect(wrapper.find('IntegrationRow')).toHaveLength(6);
-      expect(
-        wrapper
-          .find('IntegrationRow')
-          .first()
-          .props().slug
-      ).toEqual('bitbucket');
-      expect(
-        wrapper
-          .find('IntegrationRow')
-          .at(1)
-          .props().slug
-      ).toEqual('my-headband-washer-289499');
-      expect(
-        wrapper
-          .find('IntegrationRow')
-          .at(2)
-          .props().slug
-      ).toEqual('pagerduty');
-      expect(
-        wrapper
-          .find('IntegrationRow')
-          .at(3)
-          .props().slug
-      ).toEqual('amazon-sqs');
-      expect(
-        wrapper
-          .find('IntegrationRow')
-          .at(4)
-          .props().slug
-      ).toEqual('clickup');
-      expect(
-        wrapper
-          .find('IntegrationRow')
-          .last()
-          .props().slug
-      ).toEqual('la-croix-monitor');
+
+      [
+        'bitbucket',
+        'my-headband-washer-289499',
+        'pagerduty',
+        'amazon-sqs',
+        'clickup',
+        'la-croix-monitor',
+      ].map((name, index) =>
+        expect(
+          wrapper
+            .find('IntegrationRow')
+            .at(index)
+            .props().slug
+        ).toEqual(name)
+      );
     });
 
     it('does not show legacy plugin that has a First Party Integration if not installed', async function() {
