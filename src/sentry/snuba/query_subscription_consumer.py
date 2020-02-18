@@ -205,7 +205,6 @@ class QuerySubscriptionConsumer(object):
         :param value: A json formatted string
         :return: A dict with the parsed message
         """
-        print ("parse_message_value", value)
         wrapper = loads(value)
         try:
             jsonschema.validate(wrapper, SUBSCRIPTION_WRAPPER_SCHEMA)
@@ -234,8 +233,6 @@ class QuerySubscriptionConsumer(object):
                 detail = ex.message
             # raise exception.ValidationError(detail=detail)
             raise InvalidSchemaError(detail)
-        print ("payload['timestamp]:", payload["timestamp"])
         payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
-        print ("payload['timestamp]:", payload["timestamp"])
 
         return payload

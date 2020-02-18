@@ -147,8 +147,6 @@ def handle_snuba_query_update(subscription_update, subscription):
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
 
-    print ("subscription:", subscription)
-    print ("subscription_update:", subscription_update)
     SubscriptionProcessor(subscription).process_update(subscription_update)
 
 

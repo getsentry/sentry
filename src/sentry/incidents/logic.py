@@ -73,7 +73,6 @@ def create_incident(
     user=None,
     alert_rule=None,
 ):
-    print ("Creating incident:", date_started, date_detected)
     if groups:
         group_projects = [g.project for g in groups]
         if projects is None:
@@ -85,9 +84,6 @@ def create_incident(
 
     if date_detected is None:
         date_detected = date_started
-
-    print ("calculated date_started:", date_started)
-    print ("calculated date_detected:", date_detected)
 
     with transaction.atomic():
         incident = Incident.objects.create(
@@ -413,7 +409,6 @@ def build_incident_query_params(incident, start=None, end=None):
 
 
 def bulk_build_incident_query_params(incidents, start=None, end=None):
-    print ("bulk_build_incident_query_params", start, end)
     incident_groups = defaultdict(list)
     for incident_id, group_id in IncidentGroup.objects.filter(incident__in=incidents).values_list(
         "incident_id", "group_id"
@@ -427,7 +422,6 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
 
     query_args_list = []
     for incident in incidents:
-        print ("setting start and end dates", incident.date_started, incident.current_end_date)
         params = {
             "start": incident.date_started if start is None else start,
             "end": incident.current_end_date if end is None else end,
@@ -458,13 +452,11 @@ def get_incident_event_stats(incident, start=None, end=None, data_points=50):
     Gets event stats for an incident. If start/end are provided, uses that time
     period, otherwise uses the incident start/current_end.
     """
-    print ("get_incident_event_stats:", start, end)
     query_params = bulk_build_incident_query_params([incident], start=start, end=end)
     return bulk_get_incident_event_stats([incident], query_params, data_points=data_points)[0]
 
 
 def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
-    print ("bulk_get_incident_event_stats: ", incidents, query_params_list, data_points)
     snuba_params_list = [
         SnubaQueryParams(
             aggregations=[
