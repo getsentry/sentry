@@ -174,7 +174,7 @@ describe('ProjectAlertsCreate', function() {
         wrapper
           .find('RuleNode')
           .at(0)
-          .find('button[aria-label="Delete Rule"]')
+          .find('button[aria-label="Delete Node"]')
           .simulate('click');
 
         selectByValue(
@@ -203,7 +203,7 @@ describe('ProjectAlertsCreate', function() {
         wrapper
           .find('PanelRuleItem')
           .at(1)
-          .find('button[aria-label="Delete Rule"]')
+          .find('button[aria-label="Delete Node"]')
           .simulate('click');
 
         selectByValue(
