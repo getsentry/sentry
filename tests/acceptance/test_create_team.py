@@ -20,7 +20,7 @@ class CreateTeamTest(AcceptanceTestCase):
         self.browser.wait_until_test_id("team-list")
 
         # Open the modal
-        self.browser.click('button[aria-label="Create Team"]')
+        self.browser.find_element_by_xpath('//span[text()="Create Team"]').click()
         self.browser.wait_until(".modal-header")
         self.browser.element('input[id="slug"]').send_keys("new-team")
         self.browser.click('.modal-dialog button[aria-label="Create Team"]')

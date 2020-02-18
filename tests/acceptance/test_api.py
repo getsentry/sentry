@@ -36,7 +36,7 @@ class ApiApplicationTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
         self.browser.snapshot("api applications - no applications")
 
-        self.browser.click_when_visible('[aria-label="Create New Application"]')
+        self.browser.find_element_by_xpath('//span[text()="Create New Application"]').click()
         self.browser.wait_until_not(".loading")
         self.browser.snapshot("api applications - new application")
 

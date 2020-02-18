@@ -27,7 +27,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
     def test_create_new_public_integration(self):
         self.load_page(self.org_developer_settings_path)
 
-        self.browser.click('[aria-label="New Public Integration"]')
+        self.browser.find_element_by_xpath("//span[text()='New Public Integration']").click()
 
         self.browser.element('input[name="name"]').send_keys("Tesla")
         self.browser.element('input[name="author"]').send_keys("Elon Musk")
@@ -40,13 +40,13 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
     def test_create_new_internal_integration(self):
         self.load_page(self.org_developer_settings_path)
 
-        self.browser.click('[aria-label="New Internal Integration"]')
+        self.browser.find_element_by_xpath("//span[text()='New Internal Integration']").click()
 
         self.browser.element('input[name="name"]').send_keys("Tesla")
 
         self.browser.click('[aria-label="Save Changes"]')
 
-        self.browser.wait_until(xpath="//button//span[contains(text(), 'New Token')]", timeout=3)
+        self.browser.wait_until(xpath="//span[text()='New Token']", timeout=3)
 
 
 class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):

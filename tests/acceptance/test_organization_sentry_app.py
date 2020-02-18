@@ -46,8 +46,8 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
         provider_element = org_settings_page.get_provider(self.provider)
 
         # assert installation rather than upgrade button
-        assert provider_element.install_button.label == "Install"
-        assert self.browser.element_exists(provider_element.install_button.new_icon("Add"))
+        assert provider_element.install_button.text.strip() == "Install"
+        assert provider_element.install_button.svg_icon.description("IconAdd")
 
         provider_element.install_button.click()
 
@@ -91,5 +91,7 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
         provider_element = org_settings_page.get_provider(self.provider)
 
         # assert we see the install option now
-        assert provider_element.install_button.label == "Install"
-        assert self.browser.element_exists(provider_element.install_button.new_icon("Add"))
+        assert provider_element.install_button.text.strip() == "Install"
+        assert self.browser.element_exists(
+            provider_element.install_button.svg_icon.description("IconAdd")
+        )

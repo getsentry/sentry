@@ -19,6 +19,10 @@ class BaseElement(object):
     def __init__(self, element):
         self.element = element
 
+    @property
+    def text(self):
+        return self.element.text
+
 
 class ButtonElement(BaseElement):
     label_attr = "aria-label"
@@ -41,8 +45,18 @@ class ButtonWithIconElement(ButtonElement):
     def icon_href(self):
         return self.element.find_element_by_tag_name("use").get_attribute("href")
 
-    def new_icon(self, icon_name):
-        return self.element.find_element_by_tag_name("Icon{}".format(icon_name))
+    @property
+    def svg_icon(self):
+        return SvgIconElement(self.element.find_element_by_tag_name("svg"))
+
+
+class SvgIconElement(BaseElement):
+    def description(self, description):
+        """Selenium doesn't think <desc> items have text. Need to use xpath to check instead"""
+        # Because of xml namespacing, needs to be //* instead of //desc
+        return self.element.find_element_by_xpath(
+            '//*[local-name()="desc" and text()="{}"]'.format(description)
+        )
 
 
 class TextBoxElement(BaseElement):
