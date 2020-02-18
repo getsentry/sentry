@@ -40,7 +40,7 @@ const KeyValueList = ({
   return (
     <table className="table key-value" onClick={onClick}>
       <tbody>
-        {getData().map(({key, subject, value, meta}) => (
+        {getData().map(({key, subject, value = null, meta}) => (
           <tr key={key}>
             <TableData className="key" wide={longKeys}>
               {subject}

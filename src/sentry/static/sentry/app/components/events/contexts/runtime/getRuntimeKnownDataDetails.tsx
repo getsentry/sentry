@@ -4,7 +4,7 @@ import {RuntimeData, RuntimeKnownDataType} from './types';
 
 type Output = {
   subject: string;
-  value: React.ReactNode | null;
+  value?: React.ReactNode;
 };
 
 function getRuntimeKnownDataDetails(
@@ -25,7 +25,7 @@ function getRuntimeKnownDataDetails(
     default:
       return {
         subject: type,
-        value: data[type] || null,
+        value: data[type],
       };
   }
 }
