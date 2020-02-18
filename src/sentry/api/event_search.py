@@ -165,7 +165,10 @@ SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
 no_conversion = set(["start", "end"])
 
-PROJECT_KEY = "project.name"
+PROJECT_NAME_ALIAS = "project.name"
+PROJECT_ALIAS = "project"
+ISSUE_ALIAS = "issue"
+ISSUE_ID_ALIAS = "issue.id"
 
 
 class InvalidSearchQuery(Exception):
@@ -750,32 +753,35 @@ def get_filter(query=None, params=None):
         "group_ids": [],
     }
 
-    def get_projects(params):
-        return {
-            p["slug"]: p["id"]
-            for p in Project.objects.filter(id__in=params.get("project_id", [])).values(
-                "id", "slug"
-            )
-        }
-
     def to_list(value):
         if isinstance(value, list):
             return value
         return [value]
 
-    projects = None
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
-            if name == PROJECT_KEY:
-                if projects is None:
-                    projects = get_projects(params)
-                condition = ["project_id", "=", projects.get(term.value.value)]
-                kwargs["conditions"].append(condition)
-            elif name == "issue.id" and term.value.value != "":
+            if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
+                project = None
+                try:
+                    project = Project.objects.get(
+                        id__in=params.get("project_id", []), slug=term.value.value
+                    )
+                except Exception:
+                    raise InvalidSearchQuery(
+                        "Invalid query. Project %s does not exist or is not an actively selected project."
+                        % term.value.value
+                    )
+
+                # Create a new search filter with the correct values
+                term = SearchFilter(SearchKey("project_id"), term.operator, SearchValue(project.id))
+                converted_filter = convert_search_filter_to_snuba_query(term)
+                if converted_filter:
+                    kwargs["conditions"].append(converted_filter)
+            elif name == ISSUE_ID_ALIAS and term.value.value != "":
                 # A blank term value means that this is a has filter
                 kwargs["group_ids"].extend(to_list(term.value.value))
-            elif name == "issue" and term.value.value != "":
+            elif name == ISSUE_ALIAS and term.value.value != "":
                 if params and "organization_id" in params:
                     try:
                         group = Group.objects.by_qualified_short_id(
@@ -786,7 +792,7 @@ def get_filter(query=None, params=None):
                         raise InvalidSearchQuery(
                             u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
                         )
-            elif name in FIELD_ALIASES:
+            elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 converted_filter = convert_aggregate_filter_to_snuba_query(term, True)
                 if converted_filter:
                     kwargs["having"].append(converted_filter)
@@ -814,7 +820,7 @@ def get_filter(query=None, params=None):
         if "group_ids" in params:
             kwargs["group_ids"] = to_list(params["group_ids"])
         # Deprecated alias, use `group_ids` instead
-        if "issue.id" in params:
+        if ISSUE_ID_ALIAS in params:
             kwargs["group_ids"] = to_list(params["issue.id"])
 
     return eventstore.Filter(**kwargs)
