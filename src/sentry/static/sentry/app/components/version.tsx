@@ -64,7 +64,7 @@ const Version = ({
   truncate,
   className,
   location,
-}: ReactRouter.WithRouterProps & Props) => {
+}: WithRouterProps & Props) => {
   const LinkComponent = preserveGlobalSelection ? GlobalSelectionLink : Link;
   const versionToDisplay = formatVersion(version, withPackage);
 
@@ -176,6 +176,6 @@ const TooltipClipboardIconWrapper = styled('span')`
 
 type PropsWithoutOrg = Omit<Props, 'organization'>;
 
-export default withOrganization(ReactRouter.withRouter(Version)) as React.ComponentClass<
+export default withOrganization(withRouter(Version)) as React.ComponentClass<
   PropsWithoutOrg
 >;
