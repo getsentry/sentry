@@ -17,6 +17,7 @@ from sentry.api.fields.actor import Actor
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
+    ApiToken,
     Commit,
     Environment,
     Group,
@@ -33,6 +34,7 @@ from sentry.models import (
     GroupSubscription,
     GroupSubscriptionReason,
     Integration,
+    SentryAppInstallationToken,
     User,
     UserOption,
     UserOptionValue,
@@ -347,8 +349,24 @@ class GroupSerializerBase(Serializer):
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
         is_superuser = request and is_active_superuser(request) and request.user == user
-        if is_superuser or (
-            user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists()
+
+        # If user is a sentry_app then it's a proxy user meaning we can't do a org lookup via `get_orgs()`
+        # because the user isn't an org member. Instead we can use the auth token and the installation
+        # it's associated with to find out what organization the token has access to.
+        is_valid_sentryapp = False
+        if (
+            request
+            and getattr(request.user, "is_sentry_app", False)
+            and isinstance(request.auth, ApiToken)
+        ):
+            is_valid_sentryapp = SentryAppInstallationToken.has_organization_access(
+                request.auth, obj.organization
+            )
+
+        if (
+            is_superuser
+            or (user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists())
+            or is_valid_sentryapp
         ):
             permalink = obj.get_absolute_url()
         else:

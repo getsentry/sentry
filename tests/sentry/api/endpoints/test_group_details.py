@@ -150,6 +150,22 @@ class GroupDetailsTest(APITestCase):
         assert "http://" in result
         assert "{}/issues/{}".format(group.organization.slug, group.id) in result
 
+    def test_permalink_sentry_app_installation_token(self):
+        project = self.create_project(organization=self.organization, teams=[self.team])
+        internal_app = self.create_internal_integration(
+            name="Internal app",
+            organization=self.organization,
+            scopes=("project:read", "org:read", "event:write"),
+        )
+        token = internal_app.installations.first().api_token
+
+        group = self.create_group(project=project)
+        url = u"/api/0/issues/{}/".format(group.id)
+        response = self.client.get(url, HTTP_AUTHORIZATION="Bearer {}".format(token), format="json")
+        result = response.data["permalink"]
+        assert "http://" in result
+        assert "{}/issues/{}".format(group.organization.slug, group.id) in result
+
 
 class GroupUpdateTest(APITestCase):
     def test_resolve(self):
