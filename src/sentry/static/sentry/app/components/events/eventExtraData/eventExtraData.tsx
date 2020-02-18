@@ -43,7 +43,7 @@ class EventExtraData extends React.Component<Props, State> {
           toggleRaw={this.toggleRaw}
           raw={this.state.raw}
         >
-          <EventDataContent raw={this.state.raw} />
+          <EventDataContent raw={this.state.raw} data={this.props.event.context} />
         </EventDataSection>
       </div>
     );
