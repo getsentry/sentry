@@ -1,17 +1,17 @@
 import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 
-import getRuntimeKnownDataDetails from './getRuntimeKnownDataDetails';
-import {RuntimeData, RuntimeKnownDataType} from './types';
+import getEventExtraDataKnownDataDetails from './getEventExtraDataKnownDataDetails';
+import {EventExtraData, EventExtraDataType} from './types';
 
-function getRuntimeKnownData(data: RuntimeData): Array<KeyValueListData> {
+function getEventExtraDataKnownData(data: EventExtraData): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
   const dataKeys = Object.keys(data);
   for (const key of dataKeys) {
-    const knownDataDetails = getRuntimeKnownDataDetails(
+    const knownDataDetails = getEventExtraDataKnownDataDetails(
       data,
-      key as RuntimeKnownDataType
+      key as EventExtraDataType
     );
 
     knownData.push({
@@ -23,4 +23,4 @@ function getRuntimeKnownData(data: RuntimeData): Array<KeyValueListData> {
   return knownData;
 }
 
-export default getRuntimeKnownData;
+export default getEventExtraDataKnownData;
