@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import * as ReactRouter from 'react-router';
 
 import {Organization} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
@@ -13,7 +14,6 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {formatVersion} from 'app/utils/formatters';
 import withOrganization from 'app/utils/withOrganization';
-import * as ReactRouter from 'react-router';
 
 type Props = {
   /**
