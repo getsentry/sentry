@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import * as ReactRouter from 'react-router';
+import {withRouter} from 'react-router';
+import {WithRouterProps} from 'react-router/lib/withRouter';
 
 import {Organization} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
