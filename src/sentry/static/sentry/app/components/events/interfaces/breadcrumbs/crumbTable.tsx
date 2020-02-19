@@ -14,7 +14,7 @@ type Props = {
 };
 
 type KvData = {
-  [key: string]: string | undefined;
+  [key: string]: any;
 };
 
 const CrumbTable = ({children, kvData, crumb, summary}: Props) => {

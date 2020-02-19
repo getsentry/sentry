@@ -5,6 +5,7 @@ import CrumbTable from 'app/components/events/interfaces/breadcrumbs/crumbTable'
 import SummaryLine from 'app/components/events/interfaces/breadcrumbs/summaryLine';
 import ExternalLink from 'app/components/links/externalLink';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import {defined} from 'app/utils';
 import {t} from 'app/locale';
 
 import getBreadcrumbCustomRendererValue from './getBreadcrumbCustomRendererValue';
@@ -20,7 +21,9 @@ const HttpRenderer = ({crumb}: Props) => {
   const renderUrl = (url: any) => {
     if (typeof url === 'string') {
       return url.match(/^https?:\/\//) ? (
-        <ExternalLink href={url}>{url}</ExternalLink>
+        <ExternalLink data-test-id="http-renderer-external-link" href={url}>
+          {url}
+        </ExternalLink>
       ) : (
         <em>{url}</em>
       );
@@ -40,19 +43,21 @@ const HttpRenderer = ({crumb}: Props) => {
         <SummaryLine>
           <pre>
             <code>
-              {data.method &&
+              {defined(data.method) &&
                 getBreadcrumbCustomRendererValue({
-                  value: <strong>{data.method}</strong>,
+                  value: <strong>{`${data.method} `}</strong>,
                   meta: getMeta(data, 'method'),
                 })}
-              {data.url &&
+              {defined(data.url) &&
                 getBreadcrumbCustomRendererValue({
                   value: renderUrl(data.url),
                   meta: getMeta(data, 'url'),
                 })}
-              {data.status_code &&
+              {defined(data.status_code) &&
                 getBreadcrumbCustomRendererValue({
-                  value: <span>{` [${data.status_code}]`}</span>,
+                  value: (
+                    <span data-test-id="http-renderer-status-code">{` [${data.status_code}]`}</span>
+                  ),
                   meta: getMeta(data, 'status_code'),
                 })}
             </code>

@@ -9,6 +9,6 @@ type Data = {
   type?: string;
   value?: string;
   method?: string;
-  status_code?: string;
+  status_code?: number | string;
   url?: any;
 };
