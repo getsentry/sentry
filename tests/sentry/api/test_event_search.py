@@ -24,7 +24,7 @@ from sentry.api.event_search import (
     SearchVisitor,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 def test_get_json_meta_type():
@@ -1303,17 +1303,23 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75,)"]
             resolve_field_list(fields, {})
-        assert "percentile(0.75): expected 2 arguments" in six.text_type(err)
+        assert "percentile(0.75,): expected 2 arguments" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(sanchez, 0.75)"]
             resolve_field_list(fields, {})
-        assert "percentile(sanchez, 0.75): column argument invalid: sanchez is not a valid column" in six.text_type(err)
+        assert (
+            "percentile(sanchez, 0.75): column argument invalid: sanchez is not a valid column"
+            in six.text_type(err)
+        )
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(id, 0.75)"]
             resolve_field_list(fields, {})
-        assert "percentile(id, 0.75): column argument invalid: id is not a numeric column" in six.text_type(err)
+        assert (
+            "percentile(id, 0.75): column argument invalid: id is not a numeric column"
+            in six.text_type(err)
+        )
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(transaction.duration, 75)"]
@@ -1337,7 +1343,10 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["rpm(30)"]
             resolve_field_list(fields, {})
-        assert "rpm(30): interval argument invalid: 30 must be greater than or equal to 60" in six.text_type(err)
+        assert (
+            "rpm(30): interval argument invalid: 30 must be greater than or equal to 60"
+            in six.text_type(err)
+        )
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["rpm()"]
@@ -1347,10 +1356,14 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["rpm()"]
             resolve_field_list(fields, {}, params={"start": "abc", "end": "def"})
-        assert "rpm(): invalid arguments: function called with invalid default" in six.text_type(err)
+        assert "rpm(): invalid arguments: function called with invalid default" in six.text_type(
+            err
+        )
 
         fields = ["rpm()"]
-        result = resolve_field_list(fields, {}, params={"start": before_now(hours=2), "end": before_now(hours=1)})
+        result = resolve_field_list(
+            fields, {}, params={"start": before_now(hours=2), "end": before_now(hours=1)}
+        )
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
             ["divide(count(), divide(3600, 60))", None, "rpm_3600"],
@@ -1374,7 +1387,10 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["rps(0)"]
             result = resolve_field_list(fields, {})
-        assert "rps(0): interval argument invalid: 0 must be greater than or equal to 1" in six.text_type(err)
+        assert (
+            "rps(0): interval argument invalid: 0 must be greater than or equal to 1"
+            in six.text_type(err)
+        )
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
