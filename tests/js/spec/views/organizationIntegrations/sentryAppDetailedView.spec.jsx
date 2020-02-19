@@ -111,6 +111,7 @@ describe('SentryAppDetailedView', function() {
       await tick();
       wrapper.update();
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
+      expect(wrapper.find('UninstallButton').exists()).toEqual(true);
     });
   });
 
