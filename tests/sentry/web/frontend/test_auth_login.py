@@ -66,7 +66,8 @@ class AuthLoginTest(TestCase):
             resp = self.client.get(self.path)
             assert resp.context["register_form"] is None
 
-    def test_registration_valid(self):
+    @mock.patch("sentry.analytics.record")
+    def test_registration_valid(self, mock_record):
         options.set("auth.allow-registration", True)
         with self.feature("auth:register"):
             resp = self.client.post(
@@ -86,6 +87,17 @@ class AuthLoginTest(TestCase):
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
         assert not OrganizationMember.objects.filter(user=user).exists()
+
+        signup_record = filter(lambda r: r[0][0] == "user.signup", mock_record.call_args_list)
+        assert signup_record == [
+            mock.call(
+                "user.signup",
+                user_id=user.id,
+                source="register-form",
+                provider=None,
+                referrer="in-app",
+            )
+        ]
 
     def test_register_renders_correct_template(self):
         options.set("auth.allow-registration", True)
