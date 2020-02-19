@@ -27,12 +27,15 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
         installation = self.get_installation(config.get("installation"), organization.id)
         client = installation.get_client()
         try:
-            repo = client.get_repo(config["project"], config["repo"])
+            project, repo = config["identifier"].split("/", 1)
+            repo = client.get_repo(project, repo)
         except Exception as e:
             installation.raise_error(e)
         else:
             config["external_id"] = six.text_type(repo["id"])
-            config["name"] = repo["project"]["name"] + "/" + repo["name"]
+            config["name"] = repo["project"]["key"] + "/" + repo["name"]
+            config["project"] = repo["project"]["key"]
+            config["repo"] = repo["name"]
         return config
 
     def build_repository_config(self, organization, data):
