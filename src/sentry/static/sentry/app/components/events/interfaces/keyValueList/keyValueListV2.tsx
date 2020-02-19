@@ -25,6 +25,7 @@ const KeyValueList = ({
   raw = false,
   longKeys = false,
   onClick,
+  ...props
 }: Props) => {
   if (!defined(data) || data.length === 0) {
     return null;
@@ -38,7 +39,7 @@ const KeyValueList = ({
   };
 
   return (
-    <table className="table key-value" onClick={onClick}>
+    <table className="table key-value" onClick={onClick} {...props}>
       <tbody>
         {getData().map(({key, subject, value = null, meta}) => (
           <tr key={key}>

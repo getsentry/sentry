@@ -11,14 +11,12 @@ import ClippedBox from 'app/components/clippedBox';
 import {t} from 'app/locale';
 
 import getTransformedData from './getTransformedData';
+import {SubData, InferredContentType} from './types';
 
 type Props = {
-  data: any;
+  data: SubData;
+  inferredContentType: InferredContentType;
   meta?: Meta;
-  inferredContentType?:
-    | 'application/json'
-    | 'application/x-www-form-urlencoded'
-    | 'multipart/form-data';
 };
 
 const RichHttpContentClippedBoxBodySection = ({
@@ -44,11 +42,18 @@ const RichHttpContentClippedBoxBodySection = ({
 
     switch (inferredContentType) {
       case 'application/json':
-        return <ContextData data={value} preserveQuotes />;
+        return (
+          <ContextData
+            data-test-id="rich-http-content-body-context-data"
+            data={value}
+            preserveQuotes
+          />
+        );
       case 'application/x-www-form-urlencoded':
       case 'multipart/form-data':
         return (
           <KeyValueList
+            data-test-id="rich-http-content-body-key-value-list"
             data={getTransformedData(value).map(([key, v]) => ({
               key,
               subject: key,
@@ -59,7 +64,11 @@ const RichHttpContentClippedBoxBodySection = ({
           />
         );
       default:
-        return <pre>{JSON.stringify(value, null, 2)}</pre>;
+        return (
+          <pre data-test-id="rich-http-content-body-section-pre">
+            {JSON.stringify(value, null, 2)}
+          </pre>
+        );
     }
   };
 

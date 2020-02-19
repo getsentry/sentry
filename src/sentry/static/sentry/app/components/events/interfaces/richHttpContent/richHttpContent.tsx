@@ -8,21 +8,9 @@ import ErrorBoundary from 'app/components/errorBoundary';
 
 import RichHttpContentClippedBoxKeyValueList from './richHttpContentClippedBoxKeyValueList';
 import RichHttpContentClippedBoxBodySection from './richHttpContentClippedBoxBodySection';
+import {RichHttpContentData} from './types';
 
-type Props = {
-  data: Data;
-};
-
-type Data = {
-  headers?: any;
-  query?: any;
-  env?: any;
-  fragment?: any;
-  cookies?: any;
-  data?: any;
-};
-
-const RichHttpContent = ({data}: Props) => (
+const RichHttpContent = ({data, inferredContentType}: RichHttpContentData) => (
   <React.Fragment>
     {defined(data.query) && (
       <RichHttpContentClippedBoxKeyValueList
@@ -43,6 +31,7 @@ const RichHttpContent = ({data}: Props) => (
       <RichHttpContentClippedBoxBodySection
         data={data.data}
         meta={getMeta(data, 'data')}
+        inferredContentType={inferredContentType}
       />
     )}
     {defined(data.cookies) && Object.keys(data.cookies).length > 0 && (
