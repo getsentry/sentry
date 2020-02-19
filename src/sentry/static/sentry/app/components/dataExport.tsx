@@ -36,10 +36,11 @@ class DataExport extends React.Component<Props, State> {
 
   async startDataExport() {
     const {
+      api,
       organization: {slug},
       payload,
     } = this.props;
-    const {id: dataExportId} = await this.props.api.requestPromise(
+    const {id: dataExportId} = await api.requestPromise(
       `/organizations/${slug}/data-export/`,
       {
         method: 'POST',
@@ -74,4 +75,5 @@ class DataExport extends React.Component<Props, State> {
   }
 }
 
+export {DataExport};
 export default withApi(withOrganization(DataExport));
