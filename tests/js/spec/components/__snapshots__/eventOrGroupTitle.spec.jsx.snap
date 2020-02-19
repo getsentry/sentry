@@ -8,15 +8,10 @@ exports[`EventOrGroupTitle renders with no subtitle when \`type = default\` 1`] 
 
 exports[`EventOrGroupTitle renders with subtitle when \`type = csp\` 1`] = `
 <span>
-  <span
-    style={
-      Object {
-        "marginRight": 10,
-      }
-    }
-  >
+  <span>
     metadata directive
   </span>
+  <Spacer />
   <em
     title="metadata uri"
   >
@@ -28,15 +23,10 @@ exports[`EventOrGroupTitle renders with subtitle when \`type = csp\` 1`] = `
 
 exports[`EventOrGroupTitle renders with subtitle when \`type = error\` 1`] = `
 <span>
-  <span
-    style={
-      Object {
-        "marginRight": 10,
-      }
-    }
-  >
+  <span>
     metadata type
   </span>
+  <Spacer />
   <em
     title="culprit"
   >
