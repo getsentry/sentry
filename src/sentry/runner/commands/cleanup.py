@@ -226,6 +226,17 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
             queryset.delete()
 
+    if not silent:
+        click.echo("Removing expired files associated with ExportedData")
+
+    if is_filtered(models.ExportedData):
+        if not silent:
+            click.echo(">> Skipping ExportedData files")
+    else:
+        queryset = models.ExportedData.objects.filter(date_expired__lt=(timezone.now()))
+        for item in queryset:
+            item.file.delete()
+
     project_id = None
     if project:
         click.echo("Bulk NodeStore deletion not available for project selection", err=True)

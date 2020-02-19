@@ -31,7 +31,7 @@ def assemble_download(data_export):
         with transaction.atomic():
             file = File.objects.create(name=file_name, type="export.csv")
             file.putfile(tf)
-            data_export.complete_upload(file=file)
+            data_export.finalize_upload(file=file)
 
 
 def process_discover_v2(data_export, file):
