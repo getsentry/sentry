@@ -105,8 +105,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
         data = {
             "provider": "integrations:bitbucket_server",
-            "project": project,
-            "repo": repo,
+            "identifer": project + "/" + repo,
             "installation": integration.id,
         }
         data = self.provider.get_repository_data(organization, data)
