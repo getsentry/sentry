@@ -157,7 +157,7 @@ class ShareIssue extends React.Component {
     this.state = {busy: false};
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (
       this.state.busy &&
       (this.props.shareUrl !== nextProps.shareUrl ||

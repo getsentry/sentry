@@ -47,7 +47,7 @@ class GroupSidebar extends React.Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     const {group, api} = this.props;
     api.request(`/issues/${group.id}/participants/`, {
       success: data => {
@@ -80,7 +80,7 @@ class GroupSidebar extends React.Component {
     this.fetchTagData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (!isEqual(nextProps.environments, this.props.environments)) {
       this.setState({environments: nextProps.environments}, this.fetchTagData);
     }

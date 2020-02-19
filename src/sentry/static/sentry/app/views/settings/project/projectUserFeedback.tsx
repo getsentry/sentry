@@ -29,8 +29,8 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
     setProjectNavSection: PropTypes.func,
   };
 
-  componentWillMount() {
-    super.componentWillMount();
+  UNSAFE_componentWillMount() {
+    super.UNSAFE_componentWillMount();
     this.props.setProjectNavSection('settings');
   }
 

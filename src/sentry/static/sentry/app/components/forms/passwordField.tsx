@@ -35,7 +35,7 @@ export default class PasswordField extends InputField<Props, State> {
     this.state = {...this.state, editing: false};
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     // close edit mode after successful save
     // TODO(dcramer): this needs to work with this.context.form
     if (

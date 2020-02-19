@@ -28,7 +28,7 @@ class OrganizationApiKeyDetails extends AsyncView {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (
       nextProps.location.search !== this.props.location.search ||
       nextProps.params.orgId !== this.props.params.orgId

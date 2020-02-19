@@ -17,8 +17,8 @@ export default class ProjectExpectCtReports extends AsyncView {
     setProjectNavSection: PropTypes.func,
   };
 
-  componentWillMount() {
-    super.componentWillMount();
+  UNSAFE_componentWillMount() {
+    super.UNSAFE_componentWillMount();
     this.props.setProjectNavSection('settings');
   }
 

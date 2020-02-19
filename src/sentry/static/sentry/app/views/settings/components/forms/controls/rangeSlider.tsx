@@ -126,7 +126,7 @@ class RangeSlider extends React.Component<Props, State> {
       : this.props.value,
   };
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     // Update local state when re-rendered with next `props.value` (e.g if this is controlled)
     if (typeof nextProps.value !== 'undefined') {
       const {allowedValues} = this.props;

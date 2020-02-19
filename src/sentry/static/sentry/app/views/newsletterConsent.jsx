@@ -10,7 +10,7 @@ export default class NewsletterConsent extends React.Component {
     onSubmitSuccess: PropTypes.func,
   };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     document.body.classList.add('auth');
   }
 

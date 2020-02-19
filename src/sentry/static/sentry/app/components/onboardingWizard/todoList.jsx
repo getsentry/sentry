@@ -19,7 +19,7 @@ class TodoList extends React.Component {
     seeAll: false, // Show all tasks, included those completed
   };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     const {organization} = this.props;
     const tasks = getOnboardingTasks(organization);
 

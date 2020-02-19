@@ -92,7 +92,7 @@ export default class Discover extends React.Component<Props, State> {
     };
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     const {
       queryBuilder,
       location: {search},

@@ -81,7 +81,7 @@ class Sidebar extends React.Component {
     this.doCollapse(this.props.collapsed);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const {collapsed, location} = this.props;
     const nextLocation = nextProps.location;
 

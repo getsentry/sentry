@@ -33,7 +33,7 @@ export default class SelectCreatableField extends SelectField {
     this.options = this.getOptions(props);
   }
 
-  componentWillReceiveProps(nextProps, nextContext) {
+  UNSAFE_componentWillReceiveProps(nextProps, nextContext) {
     const newError = this.getError(nextProps, nextContext);
     if (newError !== this.state.error) {
       this.setState({error: newError});

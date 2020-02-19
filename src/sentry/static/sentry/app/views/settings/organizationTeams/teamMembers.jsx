@@ -43,11 +43,11 @@ class TeamMembers extends React.Component {
     orgMemberList: null,
   };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const params = this.props.params;
     if (
       nextProps.params.teamId !== params.teamId ||
