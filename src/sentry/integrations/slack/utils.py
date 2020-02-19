@@ -308,7 +308,7 @@ def build_incident_attachment(incident):
     text = "{} {} in the last {} minutes".format(agg_value, agg_text, time_window)
 
     if alert_rule.query != "":
-        text = text + "\nQuery: {}".format(alert_rule.query)
+        text = text + "\Filter: {}".format(alert_rule.query)
 
     ts = incident.date_started
 
