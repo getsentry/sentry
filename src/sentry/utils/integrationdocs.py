@@ -2,6 +2,7 @@
 # process.  Thus we do not want to import non stdlib things here.
 from __future__ import absolute_import
 
+import io
 import os
 import sys
 import json
@@ -60,7 +61,7 @@ def dump_doc(path, data):
         os.makedirs(directory)
     except OSError:
         pass
-    with open(fn, "wb") as f:
+    with io.open(fn, "wt", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
         f.write("\n")
 
@@ -70,7 +71,7 @@ def load_doc(path):
         return None
     fn = os.path.join(DOC_FOLDER, path + ".json")
     try:
-        with open(fn, "rb") as f:
+        with io.open(fn, "rt", encoding="utf-8") as f:
             return json.load(f)
     except IOError:
         return None
