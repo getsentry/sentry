@@ -112,7 +112,7 @@ class GroupTagValues extends AsyncComponent<
           {tag.key === 'user' ? t('Affected Users') : tag.name}
           <a
             href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
-            className="btn btn-default btn-sm m-left"
+            className="btn btn-default btn-sm m-left m-right"
           >
             {t('Export Page to CSV')}
           </a>
@@ -151,6 +151,9 @@ class GroupTagValues extends AsyncComponent<
 const TableWrapper = styled('div')`
   .m-left {
     margin-left: ${space(1.5)};
+  }
+  .m-right {
+    margin-right: ${space(1.5)};
   }
 `;
 
