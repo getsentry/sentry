@@ -44,7 +44,7 @@ export default class Subscriptions extends React.Component<Props> {
     this.context.form.setValue('events', this.props.events);
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     // if webhooks are disabled, unset the events
     if (nextProps.webhookDisabled && this.props.events.length) {
       this.save([]);
