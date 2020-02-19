@@ -5,25 +5,25 @@ import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Version from 'app/components/version';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
-import ProjectList from 'app/views/releases/list/projectList';
 import ReleaseStats from 'app/components/releaseStats';
-import {Project, Release} from 'app/types';
+import {Project, AvatarProject, Release} from 'app/types';
 import TimeSince from 'app/components/timeSince';
 import {t, tn} from 'app/locale';
+import {AvatarListWrapper} from 'app/components/avatar/avatarList';
+import ProjectList from 'app/components/avatar/projectList';
 
 import ReleaseHealth from './releaseHealth';
 
 type Props = {
   release: Release;
-  projects: Project[];
-  orgId: string;
+  projects: Project[] | AvatarProject[];
 };
 
-const ReleaseCard = ({release, projects, orgId}: Props) => {
+const ReleaseCard = ({release, projects}: Props) => {
   return (
     <Panel>
       <PanelBody>
-        <StyledPanelItem>
+        <PanelItem>
           <Layout>
             <Column>
               <ColumnTitle>{t('Release')}</ColumnTitle>
@@ -35,7 +35,10 @@ const ReleaseCard = ({release, projects, orgId}: Props) => {
             </Column>
 
             <Column>
-              <ProjectList projects={projects} orgId={orgId} version={release.version} />
+              <ColumnTitle>
+                {tn('%s project', '%s projects', projects.length)}
+              </ColumnTitle>
+              <ProjectList projects={projects} />
             </Column>
 
             <Column>
@@ -65,7 +68,7 @@ const ReleaseCard = ({release, projects, orgId}: Props) => {
               <Count value={release.newGroups || 0} />
             </RightAlignedColumn>
           </Layout>
-        </StyledPanelItem>
+        </PanelItem>
       </PanelBody>
 
       {/*  TODO(releasesv2)if has release health data */}
@@ -73,10 +76,6 @@ const ReleaseCard = ({release, projects, orgId}: Props) => {
     </Panel>
   );
 };
-
-const StyledPanelItem = styled(PanelItem)`
-  /* padding: ${space(1)} ${space(2)}; */
-`;
 
 const Layout = styled('div')`
   display: grid;
@@ -88,6 +87,9 @@ const Layout = styled('div')`
 
 const Column = styled('div')`
   overflow: hidden;
+  ${AvatarListWrapper} {
+    padding-left: ${space(0.75)};
+  }
 `;
 
 const RightAlignedColumn = styled('div')`

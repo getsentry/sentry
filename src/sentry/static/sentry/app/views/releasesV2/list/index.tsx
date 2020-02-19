@@ -91,7 +91,6 @@ class ReleasesList extends AsyncView<Props, State> {
             <ReleaseCard
               key={release.version}
               release={release}
-              orgId={organization.slug}
               projects={projects.filter(project =>
                 release.projects.map(p => p.slug).includes(project.slug)
               )}

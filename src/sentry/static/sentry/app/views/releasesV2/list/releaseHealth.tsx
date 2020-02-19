@@ -6,7 +6,7 @@ import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import CircleProgress from 'app/components/circleProgress';
+import CircleProgress from 'app/components/circularProgressbar';
 import Count from 'app/components/count';
 
 import UsersChart from './usersChart';
@@ -31,22 +31,24 @@ const ReleaseHealth = ({release}: Props) => {
       </StyledPanelHeader>
 
       <PanelBody>
-        {[1, 2, 3].map(index => (
-          <PanelItem key={index}>
+        {release.projects.map((project, index) => (
+          <PanelItem key={project.slug}>
             <Layout>
               <div>
-                {/* TODO(releasesv2): make dynamic once api is finished */}
-                <ProjectBadge project={release.projects[0]} avatarSize={14} />
+                <ProjectBadge project={project} avatarSize={14} />
+              </div>
+              {/* TODO(releasesv2): make dynamic once api is finished */}
+              <div>
+                <CircleProgress value={mockData[index].crashFreeUsersPercent} />
+                <CircleProgressCaption>
+                  {mockData[index].crashFreeUsersPercent}%
+                </CircleProgressCaption>
               </div>
               <div>
-                <StyledCircleProgress value={mockData[index].crashFreeUsersPercent} />
-                {mockData[index].crashFreeUsersPercent}%
-              </div>
-              <div>
-                <StyledCircleProgress
-                  value={mockData[index].crashFreeUsersSessionsPercent}
-                />
-                {mockData[index].crashFreeUsersSessionsPercent}%
+                <CircleProgress value={mockData[index].crashFreeUsersSessionsPercent} />
+                <CircleProgressCaption>
+                  {mockData[index].crashFreeUsersSessionsPercent}%
+                </CircleProgressCaption>
               </div>
               <ChartColumn>
                 <ChartWrapper>
@@ -88,8 +90,8 @@ const RightColumn = styled('div')`
   text-align: right;
 `;
 
-const StyledCircleProgress = styled(CircleProgress)`
-  margin-right: ${space(1)};
+const CircleProgressCaption = styled('span')`
+  margin-left: ${space(1)};
 `;
 
 const ChartColumn = styled('div')`
@@ -104,7 +106,7 @@ const ChartWrapper = styled('div')`
 `;
 
 const ColoredCount = styled(Count)`
-  /* this should not be count */
+  /* TODO(releasesv2): decide on threshold, make dynamic */
   ${p => p.value > 7000 && `color: ${p.theme.red};`}
 `;
 
