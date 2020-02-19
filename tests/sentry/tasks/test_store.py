@@ -282,5 +282,5 @@ def test_scrubbing_after_processing(
     assert duration == 3600
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1", data=None, start_time=1, event_id=None, project_id=default_project.id
+        cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
     )
