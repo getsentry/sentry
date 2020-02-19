@@ -27,7 +27,7 @@ from django.views.generic.base import View as BaseView
 from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError, Unreal4Crash, Unreal4Error
-from sentry_relay import ProcessingActionInvalidTransaction, scrub_event
+from sentry_relay import ProcessingErrorInvalidTransaction
 
 from sentry import features, options, quotas
 from sentry.attachments import CachedAttachment
@@ -75,6 +75,7 @@ from sentry.utils.sdk import configure_scope
 from sentry.web.helpers import render_to_response
 from sentry.web.client_config import get_client_config
 from sentry.relay.config import get_project_config
+from sentry.datascrubbing import scrub_data
 
 logger = logging.getLogger("sentry")
 minidumps_logger = logging.getLogger("sentry.minidumps")
@@ -284,8 +285,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         )
         raise APIForbidden("An event with the same ID already exists (%s)" % (event_id,))
 
-    datascrubbing_settings = project_config.config.get("datascrubbingSettings") or {}
-    data = scrub_event(datascrubbing_settings, dict(data))
+    data = scrub_data(project_config, dict(data))
 
     # mutates data (strips a lot of context if not queued)
     helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
@@ -624,7 +624,7 @@ class StoreView(APIView):
 
         try:
             event_manager.normalize()
-        except ProcessingActionInvalidTransaction as e:
+        except ProcessingErrorInvalidTransaction as e:
             track_outcome(
                 organization_id, project_id, key.id, Outcome.INVALID, "invalid_transaction"
             )
