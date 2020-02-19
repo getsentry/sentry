@@ -167,7 +167,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     addLoadingMessage(t('Deleting...'));
 
     try {
-      const resp = await this.api.requestPromise(endpoint, {
+      await this.api.requestPromise(endpoint, {
         method: 'DELETE',
       });
 
