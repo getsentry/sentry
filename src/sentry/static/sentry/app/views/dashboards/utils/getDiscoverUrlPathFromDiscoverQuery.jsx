@@ -60,7 +60,7 @@ export function getDiscover2UrlPathFromDiscoverQuery({
     const operator = c[1] || '';
     const isNot = operator.includes('!') || operator.includes('NOT');
     const isNull = operator.includes('NULL');
-    const isLike = operator.includes('LIKE') || operator.includes('=');
+    const isLike = operator.includes('LIKE') || operator.includes('*');
     const hasSpace = val.includes(' ');
 
     // Put condition into the columns

@@ -2,19 +2,19 @@ import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
+
+import Button from 'app/components/button';
+import DropdownMenu from 'app/components/dropdownMenu';
+import InlineSvg from 'app/components/inlineSvg';
 import {
   getDiscoverUrlPathFromDiscoverQuery,
   getDiscover2UrlPathFromDiscoverQuery,
 } from 'app/views/dashboards/utils/getDiscoverUrlPathFromDiscoverQuery';
 import {getEventsUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getEventsUrlPathFromDiscoverQuery';
-import {t} from 'app/locale';
-import Button from 'app/components/button';
-import DropdownMenu from 'app/components/dropdownMenu';
-import Feature from 'app/components/acl/feature';
-import InlineSvg from 'app/components/inlineSvg';
-import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
 
 class ExploreWidget extends React.Component {
   static propTypes = {
@@ -39,9 +39,129 @@ class ExploreWidget extends React.Component {
     });
   };
 
+  // TODO(discover1): Can be removed when Discover1 is deprecated
+  // Copied from https://github.com/getsentry/sentry/blob/8d31f8651558b3f9a5f65dc45e0f439c5ac19d55/src/sentry/static/sentry/app/components/sidebar/index.jsx#L230-L278
+  getDiscoverFlags(organization) {
+    const flags = {
+      discover1: false,
+      discover2: false,
+      events: false,
+    };
+
+    // Bail as we can't do any more checks.
+    if (!organization || !organization.features) {
+      return flags;
+    }
+
+    // Localstorage returns either null, 1 or 2. Default to 2.
+    const version = String(localStorage.getItem('discover:version') || 2);
+    const features = organization.features;
+
+    if (features.includes('discover-basic')) {
+      // If there is no opt-out state show discover2
+      if (!version || version === '2') {
+        flags.discover2 = true;
+      }
+      // User wants discover1
+      if (version === '1') {
+        flags.discover1 = true;
+        flags.events = true;
+      }
+      return flags;
+    }
+
+    // If an account has the old features they continue to have
+    // access to them.
+    if (features.includes('discover')) {
+      flags.discover1 = true;
+    }
+    if (features.includes('events')) {
+      flags.events = true;
+    }
+
+    // If an organization doesn't have events, or discover-basic
+    // Enable the tab so we can show an upsell state in saas.
+    if (!flags.events) {
+      flags.discover2 = true;
+    }
+
+    return flags;
+  }
+
+  renderActionToDiscover1(query, flags) {
+    // Hide if preference is Discover2
+    if (flags.discover2) {
+      return null;
+    }
+
+    if (!flags.discover1) {
+      return null;
+    }
+
+    return (
+      <ExploreAction
+        to={this.getExportToDiscover(query)}
+        title={
+          flags.discover1
+            ? t('Explore data in Discover')
+            : t('You do not have access to Discover')
+        }
+      >
+        <InlineSvg src="icon-discover" />
+      </ExploreAction>
+    );
+  }
+
+  renderActionToDiscover2(query, flags) {
+    // If Discover1 is the preference, do not show
+    if (flags.discover1 && flags.events && !flags.discover2) {
+      return null;
+    }
+
+    return (
+      <ExploreAction
+        to={flags.discover2 ? this.getExportToDiscover(query, true) : ''}
+        href={!flags.discover2 ? 'https://docs.sentry.io/workflow/discover2/' : ''}
+        target={!flags.discover2 ? '_blank' : ''}
+        title={
+          flags.discover2
+            ? t('Explore data in the new Discover')
+            : t('You do not have access to the new Discover. Click to learn more.')
+        }
+      >
+        <InlineSvg src="icon-telescope" />
+      </ExploreAction>
+    );
+  }
+
+  renderActionToEvent(query, flags) {
+    // Hide if preference is Discover2
+    if (flags.discover2) {
+      return null;
+    }
+
+    if (!flags.events) {
+      return null;
+    }
+
+    return (
+      <ExploreAction
+        to={this.getExportToEvents(query)}
+        title={
+          flags.events
+            ? t('Explore data in Events')
+            : t('You do not have access to Events')
+        }
+      >
+        <InlineSvg src="icon-stack" />
+      </ExploreAction>
+    );
+  }
+
   render() {
     const {organization, widget} = this.props;
     const discoverQueries = widget.queries.discover;
+    const flags = this.getDiscoverFlags(organization);
 
     return (
       <DropdownMenu>
@@ -58,45 +178,9 @@ class ExploreWidget extends React.Component {
                 <ExploreRow key={query.name}>
                   <QueryName>{query.name}</QueryName>
 
-                  <Feature features={['discover']} organization={organization}>
-                    {({hasFeature}) => (
-                      <ExploreAction
-                        to={this.getExportToDiscover(query)}
-                        disabled={!hasFeature}
-                        title={hasFeature ? '' : t('You do not have access to Discover')}
-                      >
-                        <InlineSvg src="icon-discover" />
-                      </ExploreAction>
-                    )}
-                  </Feature>
-
-                  <Feature features={['discover-basic']} organization={organization}>
-                    {({hasFeature}) =>
-                      !hasFeature ? null : (
-                        <ExploreAction
-                          to={this.getExportToDiscover(query, true)}
-                          disabled={!hasFeature}
-                          title={
-                            hasFeature ? '' : t('You do not have access to Discover2')
-                          }
-                        >
-                          <InlineSvg src="icon-telescope" />
-                        </ExploreAction>
-                      )
-                    }
-                  </Feature>
-
-                  <Feature features={['events']} organization={organization}>
-                    {({hasFeature}) => (
-                      <ExploreAction
-                        to={this.getExportToEvents(query)}
-                        disabled={!hasFeature}
-                        title={hasFeature ? '' : t('You do not have access to Events')}
-                      >
-                        <InlineSvg src="icon-stack" />
-                      </ExploreAction>
-                    )}
-                  </Feature>
+                  {this.renderActionToDiscover1(query, flags)}
+                  {this.renderActionToDiscover2(query, flags)}
+                  {this.renderActionToEvent(query, flags)}
                 </ExploreRow>
               ))}
             </ExploreMenu>
