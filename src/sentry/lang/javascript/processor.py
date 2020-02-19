@@ -442,6 +442,10 @@ def generate_module(src):
     return CLEAN_MODULE_RE.sub("", filename) or UNKNOWN_MODULE
 
 
+def is_valid_frame(frame):
+    return frame is not None and frame.get("lineno") is not None
+
+
 class JavaScriptStacktraceProcessor(StacktraceProcessor):
     """
     Attempts to fetch source code for javascript frames.
@@ -490,13 +494,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # build list of frames that we can actually grab source for
         frames = []
         for info in self.stacktrace_infos:
-            frames.extend(
-                [
-                    f
-                    for f in info.stacktrace["frames"] or ()
-                    if f is not None and f.get("lineno") is not None
-                ]
-            )
+            frames.extend(get_path(info.stacktrace, "frames", filter=is_valid_frame, default=()))
         return frames
 
     def preprocess_step(self, processing_task):

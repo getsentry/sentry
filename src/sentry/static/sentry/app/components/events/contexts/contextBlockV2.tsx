@@ -6,16 +6,17 @@ import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/ty
 
 type Props = {
   knownData: Array<KeyValueListData>;
+  raw?: boolean;
 };
 
-const ContextBlock = ({knownData}: Props) => {
+const ContextBlock = ({knownData, raw = false}: Props) => {
   if (knownData.length === 0) {
     return null;
   }
 
   return (
     <ErrorBoundary mini>
-      <KeyValueList data={knownData} isContextData />
+      <KeyValueList data={knownData} raw={raw} isContextData />
     </ErrorBoundary>
   );
 };

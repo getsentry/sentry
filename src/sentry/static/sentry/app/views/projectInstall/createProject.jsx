@@ -95,7 +95,7 @@ class CreateProject extends React.Component {
         </div>
         <div>
           <FormLabel>
-            {hasIssueAlertOptionsEnabled ? t('Name') : t('Assign a Team')}
+            {hasIssueAlertOptionsEnabled ? t('Team') : t('Assign a Team')}
           </FormLabel>
           <TeamSelectInput>
             <SelectControl

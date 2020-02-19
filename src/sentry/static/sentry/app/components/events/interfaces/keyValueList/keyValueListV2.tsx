@@ -21,7 +21,7 @@ type Props = {
 const KeyValueList = ({
   data,
   isContextData = false,
-  isSorted = true,
+  isSorted = false,
   raw = false,
   longKeys = false,
   onClick,
@@ -40,7 +40,7 @@ const KeyValueList = ({
   return (
     <table className="table key-value" onClick={onClick}>
       <tbody>
-        {getData().map(({key, subject, value, meta}) => (
+        {getData().map(({key, subject, value = null, meta}) => (
           <tr key={key}>
             <TableSubject className="key" wide={longKeys}>
               {subject}
@@ -54,12 +54,16 @@ const KeyValueList = ({
                 />
               ) : (
                 <pre className="val-string">
-                  <AnnotatedText
-                    value={value}
-                    chunks={meta.chunks}
-                    remarks={meta.rem}
-                    errors={meta.err}
-                  />
+                  {meta ? (
+                    <AnnotatedText
+                      value={value}
+                      chunks={meta.chunks}
+                      remarks={meta.rem}
+                      errors={meta.err}
+                    />
+                  ) : (
+                    value
+                  )}
                 </pre>
               )}
             </td>
