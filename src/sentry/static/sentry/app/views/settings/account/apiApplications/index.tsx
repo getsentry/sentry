@@ -57,7 +57,7 @@ class ApiApplications extends AsyncView<Props, State> {
     const action = (
       <Button priority="primary" size="small" onClick={this.handleCreateApplication}>
         <IconAdd size="xs" circle />
-        {t('Create New Application')}
+        &nbsp;{t('Create New Application')}
       </Button>
     );
 

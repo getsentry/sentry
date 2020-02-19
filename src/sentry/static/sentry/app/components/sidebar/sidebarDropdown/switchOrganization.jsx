@@ -77,7 +77,7 @@ class SwitchOrganization extends React.Component {
                       style={{alignItems: 'center'}}
                     >
                       <MenuItemLabelWithIcon>
-                        <IconAdd circle />
+                        <IconAdd size="xs" circle />
                         &nbsp;{t('Create a new organization')}
                       </MenuItemLabelWithIcon>
                     </SidebarMenuItem>

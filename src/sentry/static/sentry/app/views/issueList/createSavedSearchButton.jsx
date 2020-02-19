@@ -105,8 +105,8 @@ class CreateSavedSearchButton extends React.Component {
           aria-label={t('Add to organization saved searches')}
           className={buttonClassName}
         >
-          <IconAdd size="xs" />
-          {!iconOnly && t('Create Saved Search')}
+          <IconAdd size="xs" circle />
+          &nbsp;{!iconOnly && t('Create Saved Search')}
         </Button>
         <Modal show={isModalOpen} animation={false} onHide={this.onToggle}>
           <form onSubmit={this.onSubmit}>

@@ -157,7 +157,7 @@ class RuleBuilder extends React.Component {
             onClick={this.handleAddRule}
             size="small"
           >
-            <IconAdd circle />
+            <IconAdd size="xs" circle />
           </AddButton>
         </BuilderBar>
       </React.Fragment>

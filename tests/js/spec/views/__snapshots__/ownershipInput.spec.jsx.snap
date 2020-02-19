@@ -980,12 +980,13 @@ exports[`Project Ownership Input renders 1`] = `
                         >
                           <IconAdd
                             circle={true}
+                            size="xs"
                           >
                             <svg
                               fill="currentColor"
-                              height="16px"
+                              height="12px"
                               viewBox="0 0 16 16"
-                              width="16px"
+                              width="12px"
                             >
                               <desc>
                                 IconAdd
