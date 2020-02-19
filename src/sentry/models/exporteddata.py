@@ -71,6 +71,7 @@ class ExportedData(Model):
         super(ExportedData, self).delete(*args, **kwargs)
 
     def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION):
+        self.delete_file()
         current_time = timezone.now()
         expire_time = current_time + expiration
         self.update(file=file, date_finished=current_time, date_expired=expire_time)
@@ -79,6 +80,8 @@ class ExportedData(Model):
     def email_user(self):
         from sentry.utils.email import MessageBuilder
 
+        if self.date_finished is None or self.date_expired is None or self.file is None:
+            return
         msg = MessageBuilder(
             subject="Your Download is Ready!",
             context={

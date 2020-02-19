@@ -2,10 +2,15 @@ from __future__ import absolute_import
 
 import tempfile
 from datetime import timedelta
+from django.core import mail
+from django.core.urlresolvers import reverse
+from django.utils import timezone
 
 from sentry.models import ExportedData, File
-from sentry.models.exporteddata import DEFAULT_EXPIRATION
+from sentry.models.exporteddata import DEFAULT_EXPIRATION, ExportStatus
 from sentry.testutils import TestCase
+from sentry.utils.http import absolute_uri
+from sentry.utils.compat.mock import patch
 
 
 class ExportedDataTest(TestCase):
@@ -21,6 +26,24 @@ class ExportedDataTest(TestCase):
         )
         self.file2 = File.objects.create(
             name="tempfile-data-export", type="export.csv", headers={"Content-Type": "text/csv"}
+        )
+
+    def test_status_property(self):
+        assert self.data_export.status == ExportStatus.Early
+        self.data_export.update(
+            date_expired=timezone.now() + timedelta(weeks=2),
+            date_finished=timezone.now() - timedelta(weeks=2),
+        )
+        assert self.data_export.status == ExportStatus.Valid
+        self.data_export.update(date_expired=timezone.now() - timedelta(weeks=1))
+        assert self.data_export.status == ExportStatus.Expired
+
+    def test_date_expired_string_property(self):
+        assert self.data_export.date_expired_string is None
+        current_time = timezone.now()
+        self.data_export.update(date_expired=current_time)
+        assert self.data_export.date_expired_string == current_time.strftime(
+            "%-I:%M %p on %B %d, %Y (%Z)"
         )
 
     def test_delete_file(self):
@@ -70,4 +93,30 @@ class ExportedDataTest(TestCase):
         assert self.data_export.date_expired == self.data_export.date_finished + timedelta(weeks=2)
 
     def test_email_user(self):
-        return
+        # Shouldn't send if ExportedData is incomplete
+        with self.tasks():
+            self.data_export.email_user()
+        assert len(mail.outbox) == 0
+        # Should send one email if complete
+        self.data_export.finalize_upload(file=self.file1)
+        with self.tasks():
+            self.data_export.email_user()
+        assert len(mail.outbox) == 1
+
+    @patch("sentry.utils.email.MessageBuilder")
+    def test_email_user_content(self, builder):
+        self.data_export.finalize_upload(file=self.file1)
+        with self.tasks():
+            self.data_export.email_user()
+        expected_url = absolute_uri(
+            reverse(
+                "sentry-data-export-details", args=[self.organization.slug, self.data_export.id]
+            )
+        )
+        expected_email_args = {
+            "subject": "Your Download is Ready!",
+            "context": {"url": expected_url, "expiration": self.data_export.date_expired_string},
+            "template": "sentry/emails/data-export-finished.txt",
+            "html_template": "sentry/emails/data-export-finished.html",
+        }
+        assert builder.call_args[1] == expected_email_args
