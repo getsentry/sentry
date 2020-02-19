@@ -127,7 +127,7 @@ class VersionHoverCard extends React.Component {
         <HeaderWrapper>
           {t('Release')}
           <VersionWrapper>
-            <StyledVersion version={version} truncate />
+            <StyledVersion version={version} truncate anchor={false} />
 
             <Clipboard value={version}>
               <ClipboardIconWrapper>

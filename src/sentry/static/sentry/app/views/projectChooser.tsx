@@ -26,7 +26,7 @@ class ProjectChooser extends React.Component<Props> {
     organization: SentryTypes.Organization.isRequired,
   };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.redirectNoMultipleProjects();
   }
 
