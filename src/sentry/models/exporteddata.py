@@ -39,7 +39,7 @@ class ExportedData(Model):
     file = FlexibleForeignKey("sentry.File", null=True, db_constraint=False)
     date_added = models.DateTimeField(default=timezone.now)
     date_finished = models.DateTimeField(null=True)
-    date_expired = models.DateTimeField(null=True)
+    date_expired = models.DateTimeField(null=True, db_index=True)
     query_type = BoundedPositiveIntegerField(choices=ExportQueryType.as_choices())
     query_info = JSONField()
 
@@ -52,9 +52,18 @@ class ExportedData(Model):
         else:
             return ExportStatus.Valid
 
-    def complete_upload(self, file, expiration=DEFAULT_EXPIRATION):
+    def delete_file(self):
+        if self.file:
+            self.file.delete()
+
+    def delete(self, *args, **kwargs):
+        self.delete_file()
+        super(ExportedData, self).delete(*args, **kwargs)
+
+    def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION):
+        self.delete_file()
         current_time = timezone.now()
-        expire_time = current_time + DEFAULT_EXPIRATION
+        expire_time = current_time + expiration
         self.update(file=file, date_finished=current_time, date_expired=expire_time)
         # TODO(Leander): Implement email notification
 

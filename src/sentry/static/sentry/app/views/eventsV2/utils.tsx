@@ -389,7 +389,16 @@ export function getExpandedResults(
     // match their name.
     if (dataRow) {
       if (dataRow[dataKey]) {
-        additionalConditions[column.field] = String(dataRow[dataKey]).trim();
+        const nextValue = String(dataRow[dataKey]).trim();
+
+        switch (column.field) {
+          case 'timestamp':
+            // normalize the "timestamp" field to ensure the payload works
+            additionalConditions[column.field] = getUtcDateString(nextValue);
+            break;
+          default:
+            additionalConditions[column.field] = nextValue;
+        }
       }
       // If we have an event, check tags as well.
       if (dataRow && dataRow.tags && dataRow.tags instanceof Array) {

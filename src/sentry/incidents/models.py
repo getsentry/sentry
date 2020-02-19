@@ -82,7 +82,6 @@ class IncidentManager(BaseManager):
 
 class IncidentType(Enum):
     DETECTED = 0
-    CREATED = 1
     ALERT_TRIGGERED = 2
 
 
@@ -109,7 +108,7 @@ class Incident(Model):
     # Identifier used to match incoming events from the detection algorithm
     detection_uuid = UUIDField(null=True, db_index=True)
     status = models.PositiveSmallIntegerField(default=IncidentStatus.OPEN.value)
-    type = models.PositiveSmallIntegerField(default=IncidentType.CREATED.value)
+    type = models.PositiveSmallIntegerField()
     aggregation = models.PositiveSmallIntegerField(default=QueryAggregations.TOTAL.value)
     title = models.TextField()
     # Query used to fetch events related to an incident
@@ -178,7 +177,6 @@ class TimeSeriesSnapshot(Model):
 
 
 class IncidentActivityType(Enum):
-    CREATED = 0
     DETECTED = 1
     STATUS_CHANGE = 2
     COMMENT = 3
@@ -336,7 +334,7 @@ class IncidentTrigger(Model):
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
     status = models.SmallIntegerField()
-    date_modified = models.DateTimeField(default=timezone.now, null=True)
+    date_modified = models.DateTimeField(default=timezone.now, null=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

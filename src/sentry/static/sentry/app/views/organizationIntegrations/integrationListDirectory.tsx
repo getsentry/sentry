@@ -1,9 +1,7 @@
 import groupBy from 'lodash/groupBy';
 import keyBy from 'lodash/keyBy';
 import React from 'react';
-import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import capitalize from 'lodash/capitalize';
 
 import {
   Organization,
@@ -13,25 +11,27 @@ import {
   SentryAppInstallation,
   PluginWithProjectList,
 } from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import {RequestOptions} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {
+  trackIntegrationEvent,
+  getSentryAppInstallStatus,
+} from 'app/utils/integrationUtil';
 import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import IntegrationRow from './integrationRow';
+import {legacyIds} from './constants';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
@@ -243,13 +243,6 @@ class OrganizationIntegrations extends AsyncComponent<
     return this.state.appInstalls.find(i => i.app.slug === app.slug);
   };
 
-  getAppInstallStatus = (install: SentryAppInstallation | undefined) => {
-    if (install) {
-      return capitalize(install.status) as 'Installed' | 'Pending';
-    }
-    return 'Not Installed';
-  };
-
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
@@ -326,16 +319,6 @@ class OrganizationIntegrations extends AsyncComponent<
   renderPlugin = (plugin: PluginWithProjectList) => {
     const {organization} = this.props;
 
-    const legacyIds = [
-      'jira',
-      'bitbucket',
-      'github',
-      'gitlab',
-      'slack',
-      'pagerduty',
-      'clubhouse',
-      'vsts',
-    ];
     const isLegacy = legacyIds.includes(plugin.id);
     const displayName = `${plugin.name} ${!!isLegacy ? '(Legacy)' : ''}`;
     //hide legacy integrations if we don't have any projects with them
@@ -360,7 +343,7 @@ class OrganizationIntegrations extends AsyncComponent<
   //render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
-    const status = this.getAppInstallStatus(this.getAppInstall(app));
+    const status = getSentryAppInstallStatus(this.getAppInstall(app));
 
     return (
       <IntegrationRow
@@ -388,91 +371,40 @@ class OrganizationIntegrations extends AsyncComponent<
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {reloading, displayedList} = this.state;
+    const {displayedList} = this.state;
 
     const title = t('Integrations');
-    const tags = [
-      'Source Control',
-      'Ticketing',
-      'Data Forwarding',
-      'Release Management',
-      'Notifications',
-    ];
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
-        {!this.props.hideHeader && <SettingsPageHeader title={title} />}
-        <PermissionAlert access={['org:integrations']} />
 
+        {!this.props.hideHeader && (
+          <SettingsPageHeader
+            title={title}
+            action={
+              <SearchInput
+                value={this.state.searchInput || ''}
+                onChange={this.onSearchChange}
+                placeholder="Search Integrations..."
+                width="25em"
+              />
+            }
+          />
+        )}
+
+        <PermissionAlert access={['org:integrations']} />
         <MigrationWarnings
           orgId={this.props.params.orgId}
           providers={this.providers}
           onInstall={this.onInstall}
         />
-        <SearchInput
-          value={this.state.searchInput || ''}
-          onChange={this.onSearchChange}
-          placeholder="Find a new integration, or one you already use."
-          width="100%"
-        />
-        <TagsContainer>
-          {tags.map(tag => (
-            <Tag key={tag}>{tag}</Tag>
-          ))}
-        </TagsContainer>
         <Panel>
-          <PanelHeader disablePadding>
-            <Heading>{t('Integrations')}</Heading>
-            {reloading && <StyledLoadingIndicator mini />}
-          </PanelHeader>
           <PanelBody>{displayedList.map(this.renderIntegration)}</PanelBody>
         </Panel>
       </React.Fragment>
     );
   }
 }
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  position: absolute;
-  right: 7px;
-  top: 50%;
-  transform: translateY(-16px);
-`;
-
-const Heading = styled('div')`
-  flex: 1;
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-`;
-
-const TagsContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  padding-top: ${space(3)};
-  padding-bottom: ${space(1)};
-`;
-
-const Tag = styled('span')`
-  transition: border-color 0.15s ease;
-  font-size: 14px;
-  line-height: 1;
-  padding: ${space(1)};
-  margin: 0 ${space(1)} ${space(1)} 0;
-  border: 1px solid ${p => p.theme.borderDark};
-  border-radius: 30px;
-  height: 28px;
-  box-shadow: inset ${p => p.theme.dropShadowLight};
-  cursor: pointer;
-
-  &:focus {
-    outline: none;
-    border: 1px solid ${p => p.theme.gray1};
-  }
-
-  &::placeholder {
-    color: ${p => p.theme.gray2};
-  }
-`;
 
 export default withOrganization(OrganizationIntegrations);
 export {OrganizationIntegrations};
