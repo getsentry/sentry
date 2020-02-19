@@ -111,15 +111,25 @@ def scope_consumers():
       be created once per test session).
 
     """
-    return {
+    all_consumers = {
         "ingest_events": None,
         "ingest_transactions": None,
         "ingest_attachments": None,
         "outcomes": None,
     }
+    yield all_consumers
 
-
-import datetime
+    for consumer in (all_consumers.get(consumer_name) for consumer_name in ("ingest_events",
+                                                                            "ingest_transactions",
+                                                                            "ingest_attachments",
+                                                                            "outcomes")):
+        if consumer is not None:
+            try:
+                # stop the consumer
+                consumer.signal_shutdown()
+                consumer.run()
+            except:  # noqa:
+                pass # we tried a clean shutdown, nothing we can do about the error
 
 
 @pytest.fixture(scope="function")
@@ -127,13 +137,13 @@ def session_ingest_consumer(scope_consumers, kafka_admin):
     def ingest_consumer(settings):
         from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
 
-        # if scope_consumers["ingest_events"] is not None:
-        #     return scope_consumers["ingest_events"]  # reuse whatever was already created (will ignore the settings)
+        if scope_consumers["ingest_events"] is not None:
+            return scope_consumers["ingest_events"]  # reuse whatever was already created (will ignore the settings)
 
         # first time the consumer is requested, create it using settings
-        # topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
-        # admin = kafka_admin(settings)
-        # admin.delete_topic(topic_event_name)
+        topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
+        admin = kafka_admin(settings)
+        admin.delete_topic(topic_event_name)
 
         # simulate the event ingestion task
         group_id = "test-consumer"

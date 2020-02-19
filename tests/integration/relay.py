@@ -3,6 +3,9 @@
 from __future__ import absolute_import, print_function
 
 import datetime
+
+from django.db import IntegrityError
+
 from sentry import eventstore
 import pytest
 import requests
@@ -29,22 +32,14 @@ class RelayIntegrationTest(TransactionTestCase):
             Relay.objects.create(
                 relay_id="88888888-4444-4444-8444-cccccccccccc",
                 public_key="SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8",
-                is_internal=True,
+                is_internal=True
             )
         except:
             pass
 
     @pytest.fixture(autouse=True)
-    def setup_fixtures(
-        self,
-        settings,
-        live_server,
-        relay_server,
-        task_runner,
-        kafka_admin,
-        kafka_topics_setter,
-        session_ingest_consumer,
-    ):
+    def setup_fixtures(self, settings, live_server, relay_server, task_runner, kafka_admin,
+                       session_ingest_consumer):
         """
             Used to inject the sentry server (live_server) and
             the relay_server in the test class.
@@ -59,7 +54,7 @@ class RelayIntegrationTest(TransactionTestCase):
             }
         }
 
-        # kafka_topics_setter(settings)
+        # settings)
         self.live_server = live_server
         self.relay_server = relay_server
         self.kafka_admin = kafka_admin
@@ -148,295 +143,135 @@ class RelayIntegrationTest(TransactionTestCase):
                 i += 1
 
         # stop the consumer
-        consumer.signal_shutdown()
-        consumer.run()
+        # consumer.signal_shutdown()
+        # consumer.run()
 
         # Found the event in snuba
-        # assert event is not None
+        assert event is not None
 
 
-def test_1(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_1(settings, live_server, relay_server, task_runner, kafka_admin,
+           session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_2(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_2(settings, live_server, relay_server, task_runner, kafka_admin,
+           session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_3(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_3(settings, live_server, relay_server, task_runner, kafka_admin,
+           session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_4(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_4(settings, live_server, relay_server, task_runner, kafka_admin,
+           session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_5(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_5(settings, live_server, relay_server, task_runner, kafka_admin,
+           session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_6(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_6(settings, live_server, relay_server, task_runner, kafka_admin,
+           session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_7(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_7(settings, live_server, relay_server, task_runner, kafka_admin,
+           session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_8(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_8(settings, live_server, relay_server, task_runner, kafka_admin,
+           session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_9(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_9(settings, live_server, relay_server, task_runner, kafka_admin,
+           session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_10(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_10(settings, live_server, relay_server, task_runner, kafka_admin,
+            session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_1_1(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_1_1(settings, live_server, relay_server, task_runner, kafka_admin,
+             session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_2_1(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_2_1(settings, live_server, relay_server, task_runner, kafka_admin,
+             session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_3_1(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_3_1(settings, live_server, relay_server, task_runner, kafka_admin,
+             session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_4_1(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_4_1(settings, live_server, relay_server, task_runner, kafka_admin,
+             session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_5_1(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_5_1(settings, live_server, relay_server, task_runner, kafka_admin,
+             session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_6_1(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_6_1(settings, live_server, relay_server, task_runner, kafka_admin,
+             session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_7_1(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_7_1(settings, live_server, relay_server, task_runner, kafka_admin,
+             session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_8_1(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_8_1(settings, live_server, relay_server, task_runner, kafka_admin,
+             session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_9_1(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_9_1(settings, live_server, relay_server, task_runner, kafka_admin,
+             session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def test_10_1(
-    settings,
-    live_server,
-    relay_server,
-    task_runner,
-    kafka_admin,
-    kafka_topics_setter,
-    session_ingest_consumer,
-    default_project,
-    default_projectkey,
-):
-    t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey)
+def test_10_1(settings, live_server, relay_server, task_runner, kafka_admin,
+              session_ingest_consumer, default_project, default_projectkey):
+    t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey)
 
 
-def t_relay(settings, relay_server, task_runner, kafka_admin, default_project, default_projectkey):
-
+def t_relay(settings, relay_server, task_runner, kafka_admin, session_ingest_consumer, default_project,
+            default_projectkey):
     settings.ALLOWED_HOSTS = ["localhost", "testserver", "host.docker.internal"]
     settings.KAFKA_CLUSTERS = {
         "default": {
@@ -444,23 +279,21 @@ def t_relay(settings, relay_server, task_runner, kafka_admin, default_project, d
             "compression.type": "lz4",
             "message.max.bytes": 50000000,  # 50MB, default is 1MB
         }
+
     }
     project = default_project
     projectkey = default_projectkey
 
     try:
         Relay.objects.create(
-            relay_id="88888888-4444-4444-8444-cccccccccccc",
-            public_key="SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8",
-            is_internal=True,
+            relay_id="88888888-4444-4444-8444-cccccccccccc", public_key="SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8",
+            is_internal=True
         )
-    except Exception as ex:
-        #  this should happen for the first test that runs after relay registers with upstream (i.e. first test using relay)
-        print ("Relay object already exists !", type(ex))
+    except IntegrityError:
+        #  this should happen for the first test that runs after relay registers with upstream (i.e. first test using
+        #  relay)
+        pass
 
-    topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
-    admin = kafka_admin(settings)
-    admin.delete_topic(topic_event_name)
 
     auth = get_auth_header(
         "TEST_USER_AGENT/0.0.0", projectkey.public_key, projectkey.secret_key, "7"
@@ -473,7 +306,9 @@ def t_relay(settings, relay_server, task_runner, kafka_admin, default_project, d
     data = '{{"message": "{}", "extra": "{}"}}'.format(message, timestamp)
     # send request to relay
     response = requests.post(
-        url, headers={"x-sentry-auth": auth, "content-type": "application/json"}, data=bytes(data)
+        url,
+        headers={"x-sentry-auth": auth, "content-type": "application/json"},
+        data=bytes(data),
     )
 
     assert response.ok
@@ -481,16 +316,20 @@ def t_relay(settings, relay_server, task_runner, kafka_admin, default_project, d
     event_id = resp_body["id"]
 
     # simulate the event ingestion task
-    group_id = "test-consumer"
+    # topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
+    # admin = kafka_admin(settings)
+    # admin.delete_topic(topic_event_name)
 
-    consumer = get_ingest_consumer(
-        max_batch_size=2,
-        max_batch_time=10,
-        group_id=group_id,
-        consumer_type=ConsumerType.Events,
-        auto_offset_reset="earliest",
-    )
-    # consumer = self.session_ingest_consumer(self.settings)
+    # group_id = "test-consumer"
+
+    # consumer = get_ingest_consumer(
+    #     max_batch_size=2,
+    #     max_batch_time=10,
+    #     group_id=group_id,
+    #     consumer_type=ConsumerType.Events,
+    #     auto_offset_reset="earliest",
+    # )
+    consumer = session_ingest_consumer(settings)
 
     # run the ingest consumer and consume the kafka events coming from relay
     event = None
@@ -505,8 +344,8 @@ def t_relay(settings, relay_server, task_runner, kafka_admin, default_project, d
             i += 1
 
     # stop the consumer
-    consumer.signal_shutdown()
-    consumer.run()
+    # consumer.signal_shutdown()
+    # consumer.run()
 
     # Found the event in snuba
     assert event is not None
