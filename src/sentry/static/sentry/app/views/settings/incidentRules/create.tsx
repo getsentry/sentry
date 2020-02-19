@@ -4,6 +4,8 @@ import React from 'react';
 import {Organization, Project} from 'app/types';
 import {createDefaultRule} from 'app/views/settings/incidentRules/constants';
 import recreateRoute from 'app/utils/recreateRoute';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
 
 import RuleForm from './ruleForm';
 
@@ -41,4 +43,4 @@ class IncidentRulesCreate extends React.Component<Props> {
   }
 }
 
-export default IncidentRulesCreate;
+export default withProject(withOrganization(IncidentRulesCreate));
