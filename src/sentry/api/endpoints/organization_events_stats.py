@@ -13,6 +13,7 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.discover.utils import transform_aliases_and_query
 from sentry.snuba import discover
 from sentry.utils import snuba
+from sentry.utils.snuba import QUERY_LIMIT
 from sentry.utils.dates import parse_stats_period
 
 
@@ -80,7 +81,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             groupby=["time"],
             rollup=rollup,
             referrer="api.organization-events-stats",
-            limit=10000,
+            limit=QUERY_LIMIT,
         )
         serializer = SnubaTSResultSerializer(organization, None, request.user)
         return Response(

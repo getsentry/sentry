@@ -38,6 +38,8 @@ from sentry.snuba.dataset import Dataset
 MAX_ISSUES = 500
 MAX_HASHES = 5000
 
+QUERY_LIMIT = 1000
+
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
 

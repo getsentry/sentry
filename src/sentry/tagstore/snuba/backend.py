@@ -20,6 +20,7 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
 from sentry.utils import snuba, metrics
+from sentry.utils.snuba import QUERY_LIMIT
 from sentry.utils.hashlib import md5_text
 from sentry.utils.dates import to_timestamp
 
@@ -741,7 +742,7 @@ class SnubaTagStorage(TagStorage):
             conditions=conditions,
             orderby=order_by,
             # TODO: This means they can't actually paginate all TagValues.
-            limit=1000,
+            limit=QUERY_LIMIT,
             arrayjoin=snuba.get_arrayjoin(snuba_key),
             referrer="tagstore.get_tag_value_paginator_for_projects",
         )
@@ -777,7 +778,7 @@ class SnubaTagStorage(TagStorage):
                 ["max", "timestamp", "last_seen"],
             ],
             orderby="-first_seen",  # Closest thing to pre-existing `-id` order
-            limit=1000,
+            limit=QUERY_LIMIT,
             referrer="tagstore.get_group_tag_value_iter",
             offset=offset,
         )
@@ -839,7 +840,7 @@ class SnubaTagStorage(TagStorage):
             conditions=conditions,
             orderby="-timestamp",
             filter_keys=filters,
-            limit=1000,
+            limit=QUERY_LIMIT,
             referrer="tagstore.get_group_event_filter",
         )
 

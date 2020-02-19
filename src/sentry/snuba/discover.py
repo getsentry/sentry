@@ -24,6 +24,7 @@ from sentry.utils.snuba import (
     SnubaTSResult,
     DISCOVER_COLUMN_MAP,
     QUOTED_LITERAL_RE,
+    QUERY_LIMIT,
     raw_query,
     to_naive_timestamp,
     naiveify_datetime,
@@ -424,7 +425,7 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
         orderby="time",
         groupby=["time"],
         dataset=Dataset.Discover,
-        limit=10000,
+        limit=QUERY_LIMIT,
         referrer=referrer,
     )
     result = zerofill(result["data"], snuba_args["start"], snuba_args["end"], rollup, "time")
