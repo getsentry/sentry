@@ -38,7 +38,7 @@ class OrganizationStatsContainer extends React.Component {
     };
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   }
 

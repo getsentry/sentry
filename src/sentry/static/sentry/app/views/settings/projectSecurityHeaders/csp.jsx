@@ -21,8 +21,8 @@ export default class ProjectCspReports extends AsyncView {
     setProjectNavSection: PropTypes.func,
   };
 
-  UNSAFE_componentWillMount() {
-    super.UNSAFE_componentWillMount();
+  componentDidMount() {
+    super.componentDidMount();
     this.props.setProjectNavSection('settings');
   }
 

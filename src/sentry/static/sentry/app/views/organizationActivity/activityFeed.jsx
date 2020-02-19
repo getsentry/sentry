@@ -38,7 +38,7 @@ class ActivityFeed extends React.Component {
     };
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   }
 

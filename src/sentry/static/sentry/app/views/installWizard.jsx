@@ -13,8 +13,8 @@ export default class InstallWizard extends AsyncView {
     onConfigured: PropTypes.func.isRequired,
   };
 
-  UNSAFE_componentWillMount() {
-    super.UNSAFE_componentWillMount();
+  componentDidMount() {
+    super.componentDidMount();
     document.body.classList.add('install-wizard');
   }
 

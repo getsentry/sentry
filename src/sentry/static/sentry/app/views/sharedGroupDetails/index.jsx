@@ -40,7 +40,7 @@ const SharedGroupDetails = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
     document.body.classList.add('shared-group');
   },

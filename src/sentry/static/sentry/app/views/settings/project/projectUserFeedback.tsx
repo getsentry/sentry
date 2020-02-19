@@ -29,12 +29,10 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
     setProjectNavSection: PropTypes.func,
   };
 
-  UNSAFE_componentWillMount() {
-    super.UNSAFE_componentWillMount();
-    this.props.setProjectNavSection('settings');
-  }
-
   componentDidMount() {
+    super.componentDidMount();
+    this.props.setProjectNavSection('settings');
+
     window.sentryEmbedCallback = function(embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty

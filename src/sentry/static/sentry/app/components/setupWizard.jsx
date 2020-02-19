@@ -18,7 +18,7 @@ class SetupWizard extends React.Component {
     this.state = this.getDefaultState();
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.api = new Client();
     this.pollFinished();
   }

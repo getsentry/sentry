@@ -115,7 +115,7 @@ export default class AsyncComponent<
     }
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.api = new Client();
     this.fetchData();
 

@@ -49,7 +49,7 @@ class DeletionPending extends Component {
     this.state = {submitInProgress: false};
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.api = new Client();
   }
 

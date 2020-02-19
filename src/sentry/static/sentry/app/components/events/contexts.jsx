@@ -48,7 +48,7 @@ class ContextChunk extends React.Component {
     };
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.syncPlugin();
   }
 

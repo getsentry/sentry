@@ -46,7 +46,7 @@ class PluginComponentBase extends React.Component {
     };
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.api = new Client();
   }
 

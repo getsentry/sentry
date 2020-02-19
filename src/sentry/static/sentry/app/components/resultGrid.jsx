@@ -196,7 +196,7 @@ const ResultGrid = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   },
 
