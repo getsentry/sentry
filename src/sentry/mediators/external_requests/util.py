@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from jsonschema import Draft4Validator
 from requests.exceptions import RequestException
 
+from sentry.utils import metrics
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 from sentry.http import safe_urlopen
 
@@ -55,11 +56,22 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
     try:
         resp = safe_urlopen(url=url, **kwargs)
     except RequestException:
+        if sentry_app.status == 1:  # 1 is published
+            metrics.incr(
+                "integration-platform.http_response",
+                sample_rate=1.0,
+                tags={"status": 0, "integration": sentry_app.slug},
+            )
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
-
+    if sentry_app.status == 1:  # 1 is published
+        metrics.incr(
+            "integration-platform.http_response",
+            sample_rate=1.0,
+            tags={"status": resp.status_code, "integration": sentry_app.slug},
+        )
     buffer.add_request(
         response_code=resp.status_code,
         org_id=org_id,
