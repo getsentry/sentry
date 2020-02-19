@@ -4,6 +4,7 @@ import unittest
 from datetime import timedelta
 
 import six
+from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from exam import patcher
@@ -11,7 +12,14 @@ from freezegun import freeze_time
 from sentry.utils.compat.mock import Mock, patch
 
 from sentry.db.models.manager import BaseManager
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus, IncidentType
+from sentry.incidents.models import (
+    AlertRule,
+    AlertRuleTriggerAction,
+    Incident,
+    IncidentStatus,
+    IncidentType,
+)
+from sentry.incidents.logic import delete_alert_rule
 from sentry.testutils import TestCase
 
 
@@ -52,6 +60,54 @@ class FetchForOrganizationTest(TestCase):
         assert [incident] == list(
             Incident.objects.fetch_for_organization(self.organization, [self.project, project])
         )
+
+
+class IncidentGetForSubscriptionTest(TestCase):
+    def test(self):
+        alert_rule = self.create_alert_rule()
+        subscription = alert_rule.query_subscriptions.get()
+        # First test fetching from database
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % subscription.id) is None
+        assert AlertRule.objects.get_for_subscription(subscription) == alert_rule
+
+        # Now test fetching from cache
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % subscription.id) == alert_rule
+        assert AlertRule.objects.get_for_subscription(subscription) == alert_rule
+
+
+class IncidentClearSubscriptionCacheTest(TestCase):
+    def setUp(self):
+        self.alert_rule = self.create_alert_rule()
+        self.subscription = self.alert_rule.query_subscriptions.get()
+
+    def test_updated_subscription(self):
+        AlertRule.objects.get_for_subscription(self.subscription)
+        assert (
+            cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id)
+            == self.alert_rule
+        )
+        self.subscription.save()
+        assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id) is None
+
+    def test_deleted_subscription(self):
+        AlertRule.objects.get_for_subscription(self.subscription)
+        assert (
+            cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id)
+            == self.alert_rule
+        )
+        self.subscription.delete()
+        with self.assertRaises(AlertRule.DoesNotExist):
+            AlertRule.objects.get_for_subscription(self.subscription)
+
+    def test_deleted_alert_rule(self):
+        AlertRule.objects.get_for_subscription(self.subscription)
+        assert (
+            cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id)
+            == self.alert_rule
+        )
+        delete_alert_rule(self.alert_rule)
+        with self.assertRaises(AlertRule.DoesNotExist):
+            AlertRule.objects.get_for_subscription(self.subscription)
 
 
 class IncidentCreationTest(TestCase):
