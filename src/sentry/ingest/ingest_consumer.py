@@ -93,9 +93,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
             ):
                 pass
 
-        with metrics.timer(
-            "ingest_consumer.process_other_messages_batch", tags=self.__metrics_default_tags
-        ):
+        with metrics.timer("ingest_consumer.process_other_messages_batch"):
             for _ in self.pool.imap_unordered(
                 lambda args: args[0](args[1], projects=projects), other_messages, chunksize=100
             ):
