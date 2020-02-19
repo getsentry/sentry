@@ -2,7 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {Organization, IntegrationFeature, IntegrationInstallationStatus} from 'app/types';
+import {
+  Organization,
+  IntegrationFeature,
+  IntegrationInstallationStatus,
+  SentryAppStatus,
+} from 'app/types';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import space from 'app/styles/space';
@@ -11,7 +16,11 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import InlineSvg from 'app/components/inlineSvg';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
-import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
+import {
+  getIntegrationFeatureGate,
+  trackIntegrationEvent,
+  SingleIntegrationEvent,
+} from 'app/utils/integrationUtil';
 import Alert, {Props as AlertProps} from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import marked, {singleLineRenderer} from 'app/utils/marked';
@@ -43,6 +52,7 @@ class AbstractIntegrationDetailedView<
     const value =
       location.query.tab === 'configurations' ? 'configurations' : 'information';
 
+
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({tab: value});
   }
@@ -50,6 +60,12 @@ class AbstractIntegrationDetailedView<
   /***
    * Abstract methods defined below
    */
+
+  //The analytics type used in analytics
+  get integrationType(): 'sentry_app' | 'first_party' | 'plugin' {
+    // Allow children to implement this
+    throw new Error('Not implemented');
+  }
 
   get description(): string {
     // Allow children to implement this
@@ -123,6 +139,27 @@ class AbstractIntegrationDetailedView<
    * Actually implmeented methods below*
    */
 
+  get integrationSlug() {
+    return this.props.params.integrationSlug;
+  }
+
+  //Wrapper around trackIntegrationEvent that automatically provides the view and org
+  trackIntegrationEvent = (
+    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'> & {
+      integration_status?: SentryAppStatus;
+      project_id?: string;
+    }
+  ) => {
+    const params = {
+      view: 'integrations_directory_details_view',
+      integration: this.integrationSlug,
+      integration_type: this.integrationType,
+      already_installed: this.installationStatus !== 'Not Installed', //pending counts as installed here
+      ...options,
+    } as Parameters<typeof trackIntegrationEvent>[0];
+    trackIntegrationEvent(params, this.props.organization);
+  };
+
   //Returns the props as needed by the hooks integrations:feature-gates
   get featureProps() {
     const {organization} = this.props;
@@ -143,13 +180,12 @@ class AbstractIntegrationDetailedView<
 
   //Returns the content shown in the top section of the integration detail
   renderTopSection() {
-    const {integrationSlug} = this.props.params;
     const {organization} = this.props;
 
     const {IntegrationFeatures} = getIntegrationFeatureGate();
     return (
       <Flex>
-        <PluginIcon pluginId={integrationSlug} size={50} />
+        <PluginIcon pluginId={this.integrationSlug} size={50} />
         <NameContainer>
           <Flex>
             <Name>{this.integrationName}</Name>
@@ -214,10 +250,7 @@ class AbstractIntegrationDetailedView<
     return (
       <React.Fragment>
         <Description dangerouslySetInnerHTML={{__html: marked(this.description)}} />
-        <FeatureList
-          {...this.featureProps}
-          provider={{key: this.props.params.integrationSlug}}
-        />
+        <FeatureList {...this.featureProps} provider={{key: this.integrationSlug}} />
         {this.renderPermissions()}
         <Metadata>
           {!!this.author && <AuthorName>{t('By %s', this.author)}</AuthorName>}

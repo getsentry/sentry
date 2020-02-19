@@ -74,6 +74,12 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   };
 
   handleEnablePlugin = (projectId: string) => {
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.enabled',
+      eventName: 'Integrations: Enabled',
+      project_id: projectId,
+    });
+
     //make a copy of our project list
     const projectList = this.plugin.projectList.slice();
     //find the index of the project

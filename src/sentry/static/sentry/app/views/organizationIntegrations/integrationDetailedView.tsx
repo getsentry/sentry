@@ -6,7 +6,6 @@ import {Integration, IntegrationProvider} from 'app/types';
 import {RequestOptions} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import space from 'app/styles/space';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Button from 'app/components/button';
@@ -140,17 +139,10 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   };
 
   handleExternalInstall = () => {
-    const {organization} = this.props;
-    const provider = this.provider;
-    trackIntegrationEvent(
-      {
-        eventKey: 'integrations.installation_start',
-        eventName: 'Integrations: Installation Start',
-        integration: provider.key,
-        integration_type: 'first_party',
-      },
-      organization
-    );
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.installation_start',
+      eventName: 'Integrations: Installation Start',
+    });
   };
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
@@ -212,6 +204,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
               onDisable={this.onDisable}
               onReinstallIntegration={this.onInstall}
               data-test-id={integration.id}
+              trackIntegrationEvent={this.trackIntegrationEvent}
             />
           </InstallWrapper>
         ))}

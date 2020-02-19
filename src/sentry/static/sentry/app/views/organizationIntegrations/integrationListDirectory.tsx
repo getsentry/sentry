@@ -123,7 +123,7 @@ class OrganizationIntegrations extends AsyncComponent<
   trackPageViewed() {
     //count the number of installed apps
 
-    const {integrations, publishedApps} = this.state;
+    const {integrations, publishedApps, plugins} = this.state;
     const integrationsInstalled = new Set();
     //add installed integrations
     integrations.forEach((integration: Integration) => {
@@ -133,12 +133,18 @@ class OrganizationIntegrations extends AsyncComponent<
     publishedApps.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
       integrationsInstalled.add(sentryApp.slug);
     });
+    //add plugins
+    plugins.forEach((plugin: PluginWithProjectList) => {
+      if (plugin.projectList.length) {
+        integrationsInstalled.add(plugin.slug);
+      }
+    });
     trackIntegrationEvent(
       {
         eventKey: 'integrations.index_viewed',
         eventName: 'Integrations: Index Page Viewed',
         integrations_installed: integrationsInstalled.size,
-        view: 'integrations_page',
+        view: 'integrations_directory',
       },
       this.props.organization,
       {startSession: true}
