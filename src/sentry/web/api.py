@@ -27,7 +27,7 @@ from django.views.generic.base import View as BaseView
 from functools import wraps
 from querystring_parser import parser
 from symbolic import ProcessMinidumpError, Unreal4Crash, Unreal4Error
-from sentry_relay import ProcessingActionInvalidTransaction
+from sentry_relay import ProcessingErrorInvalidTransaction
 
 from sentry import features, options, quotas
 from sentry.attachments import CachedAttachment
@@ -624,7 +624,7 @@ class StoreView(APIView):
 
         try:
             event_manager.normalize()
-        except ProcessingActionInvalidTransaction as e:
+        except ProcessingErrorInvalidTransaction as e:
             track_outcome(
                 organization_id, project_id, key.id, Outcome.INVALID, "invalid_transaction"
             )
