@@ -5,7 +5,7 @@ import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRende
 
 describe('HttpRenderer', function() {
   describe('render()', function() {
-    it.only('should work', function() {
+    it('should work', function() {
       const httpRendererWrapper = shallow(
         <HttpRenderer
           crumb={{
