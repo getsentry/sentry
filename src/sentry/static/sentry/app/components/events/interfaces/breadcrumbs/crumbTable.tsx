@@ -4,13 +4,17 @@ import Category from 'app/components/events/interfaces/breadcrumbs/category';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 
 import {Crumb} from './types';
-import BreadcrumbCustomRendererValue from './breadcrumbCustomRendererValue';
+import getBreadcrumbCustomRendererValue from './getBreadcrumbCustomRendererValue';
 
 type Props = {
   crumb: Crumb;
-  kvData?: {};
+  kvData?: KvData;
   summary: React.ReactElement;
   children?: React.ReactNode;
+};
+
+type KvData = {
+  [key: string]: string | undefined;
 };
 
 const CrumbTable = ({children, kvData, crumb, summary}: Props) => {
@@ -23,14 +27,13 @@ const CrumbTable = ({children, kvData, crumb, summary}: Props) => {
         <td className="key">{key}</td>
         <td className="value">
           <pre>
-            <BreadcrumbCustomRendererValue
-              value={
+            {getBreadcrumbCustomRendererValue({
+              value:
                 typeof kvData[key] === 'object'
                   ? JSON.stringify(kvData[key])
-                  : kvData[key]
-              }
-              meta={getMeta(kvData, key)}
-            />
+                  : kvData[key],
+              meta: getMeta(kvData, key),
+            })}
           </pre>
         </td>
       </tr>

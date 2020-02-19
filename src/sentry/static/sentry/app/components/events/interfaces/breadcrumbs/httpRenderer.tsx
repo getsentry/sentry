@@ -6,7 +6,7 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 import {filterProps} from 'app/utils';
 import {t} from 'app/locale';
 
-import BreadcrumbCustomRendererValue from './breadcrumbCustomRendererValue';
+import getBreadcrumbCustomRendererValue from './getBreadcrumbCustomRendererValue';
 import {Crumb} from './types';
 
 type Props = {
@@ -35,24 +35,21 @@ const HttpRenderer = ({crumb}: Props) => {
         <SummaryLine>
           <pre>
             <code>
-              {data.method && (
-                <BreadcrumbCustomRendererValue
-                  value={<strong>{data.method}</strong>}
-                  meta={getMeta(data, 'method')}
-                />
-              )}
-              {data.url && (
-                <BreadcrumbCustomRendererValue
-                  value={renderUrl(data.url)}
-                  meta={getMeta(data, 'url')}
-                />
-              )}
-              {data.status_code && (
-                <BreadcrumbCustomRendererValue
-                  value={<span>{` [${data.status_code}]`}</span>}
-                  meta={getMeta(data, 'status_code')}
-                />
-              )}
+              {data.method &&
+                getBreadcrumbCustomRendererValue({
+                  value: <strong>{data.method}</strong>,
+                  meta: getMeta(data, 'method'),
+                })}
+              {data.url &&
+                getBreadcrumbCustomRendererValue({
+                  value: renderUrl(data.url),
+                  meta: getMeta(data, 'url'),
+                })}
+              {data.status_code &&
+                getBreadcrumbCustomRendererValue({
+                  value: <span>{` [${data.status_code}]`}</span>,
+                  meta: getMeta(data, 'status_code'),
+                })}
             </code>
           </pre>
         </SummaryLine>

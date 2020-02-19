@@ -4,13 +4,13 @@ import {Meta} from 'app/types';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 
 type Props = {
+  value: React.ReactNode;
   meta?: Meta;
-  value: React.ReactElement | string;
 };
 
-const BreadcrumbCustomRendererValue = ({value, meta}: Props) => {
+function getBreadcrumbCustomRendererValue({value, meta}: Props) {
   if (!meta) {
-    return typeof value === 'string' ? <React.Fragment>{value}</React.Fragment> : value;
+    return value;
   }
 
   return (
@@ -21,6 +21,6 @@ const BreadcrumbCustomRendererValue = ({value, meta}: Props) => {
       errors={meta.err}
     />
   );
-};
+}
 
-export default BreadcrumbCustomRendererValue;
+export default getBreadcrumbCustomRendererValue;

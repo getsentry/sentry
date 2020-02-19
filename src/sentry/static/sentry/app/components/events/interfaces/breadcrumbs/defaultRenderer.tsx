@@ -4,7 +4,7 @@ import CrumbTable from 'app/components/events/interfaces/breadcrumbs/crumbTable'
 import SummaryLine from 'app/components/events/interfaces/breadcrumbs/summaryLine';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 
-import BreadcrumbCustomRendererValue from './breadcrumbCustomRendererValue';
+import getBreadcrumbCustomRendererValue from './getBreadcrumbCustomRendererValue';
 import {Crumb} from './types';
 
 type Props = {
@@ -19,10 +19,10 @@ const DefaultRenderer = ({crumb}: Props) => (
         {crumb.message && (
           <pre>
             <code>
-              <BreadcrumbCustomRendererValue
-                value={crumb.message}
-                meta={getMeta(crumb, 'message')}
-              />
+              {getBreadcrumbCustomRendererValue({
+                value: crumb.message,
+                meta: getMeta(crumb, 'message'),
+              })}
             </code>
           </pre>
         )}
