@@ -66,10 +66,26 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
       </SideEffect(DocumentTitle)>
     </SentryDocumentTitle>
     <StyledSettingsPageHeading
+      action={
+        <SearchInput
+          onChange={[Function]}
+          placeholder="Search Integrations..."
+          value=""
+          width="25em"
+        />
+      }
       noTitleStyles={false}
       title="Integrations"
     >
       <SettingsPageHeading
+        action={
+          <SearchInput
+            onChange={[Function]}
+            placeholder="Search Integrations..."
+            value=""
+            width="25em"
+          />
+        }
         className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
         noTitleStyles={false}
         title="Integrations"
@@ -96,6 +112,75 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
                   </HeaderTitle>
                 </div>
               </Title>
+              <Action>
+                <div
+                  className="css-au7gsx-Action e1uay4fd3"
+                >
+                  <SearchInput
+                    onChange={[Function]}
+                    placeholder="Search Integrations..."
+                    value=""
+                    width="25em"
+                  >
+                    <SearchWrapper
+                      smaller={false}
+                      width="25em"
+                    >
+                      <div
+                        className="css-11yyhbu-SearchWrapper e1mrdgrx3"
+                        width="25em"
+                      >
+                        <SearchIcon>
+                          <Component
+                            className="css-1ecmh4k-SearchIcon e1mrdgrx0"
+                          >
+                            <InlineSvg
+                              className="css-1ecmh4k-SearchIcon e1mrdgrx0"
+                              src="icon-search"
+                            >
+                              <ForwardRef
+                                className="e1mrdgrx0 css-1aheu2a-InlineSvg-SearchIcon enyz4ql0"
+                                src="icon-search"
+                              >
+                                <svg
+                                  className="e1mrdgrx0 css-1aheu2a-InlineSvg-SearchIcon enyz4ql0"
+                                  height="1em"
+                                  viewBox={Object {}}
+                                  width="1em"
+                                >
+                                  <use
+                                    href="#test"
+                                    xlinkHref="#test"
+                                  />
+                                </svg>
+                              </ForwardRef>
+                            </InlineSvg>
+                          </Component>
+                        </SearchIcon>
+                        <SearchField
+                          onChange={[Function]}
+                          placeholder="Search Integrations..."
+                          value=""
+                        >
+                          <Input
+                            className="css-1pf8c1a-SearchField e1mrdgrx1"
+                            onChange={[Function]}
+                            placeholder="Search Integrations..."
+                            value=""
+                          >
+                            <input
+                              className="form-control css-1pf8c1a-SearchField e1mrdgrx1"
+                              onChange={[Function]}
+                              placeholder="Search Integrations..."
+                              value=""
+                            />
+                          </Input>
+                        </SearchField>
+                      </div>
+                    </SearchWrapper>
+                  </SearchInput>
+                </div>
+              </Action>
             </div>
           </TitleAndActions>
         </div>
@@ -245,75 +330,6 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
         ]
       }
     />
-    <SearchContainer>
-      <div
-        className="css-1x5xp39-SearchContainer ezentgk2"
-      >
-        <SearchInput
-          onChange={[Function]}
-          placeholder="Find a new integration, or one you already use."
-          value=""
-          width="100%"
-        >
-          <SearchWrapper
-            smaller={false}
-            width="100%"
-          >
-            <div
-              className="css-18cclrs-SearchWrapper e1mrdgrx3"
-              width="100%"
-            >
-              <SearchIcon>
-                <Component
-                  className="css-1ecmh4k-SearchIcon e1mrdgrx0"
-                >
-                  <InlineSvg
-                    className="css-1ecmh4k-SearchIcon e1mrdgrx0"
-                    src="icon-search"
-                  >
-                    <ForwardRef
-                      className="e1mrdgrx0 css-1aheu2a-InlineSvg-SearchIcon enyz4ql0"
-                      src="icon-search"
-                    >
-                      <svg
-                        className="e1mrdgrx0 css-1aheu2a-InlineSvg-SearchIcon enyz4ql0"
-                        height="1em"
-                        viewBox={Object {}}
-                        width="1em"
-                      >
-                        <use
-                          href="#test"
-                          xlinkHref="#test"
-                        />
-                      </svg>
-                    </ForwardRef>
-                  </InlineSvg>
-                </Component>
-              </SearchIcon>
-              <SearchField
-                onChange={[Function]}
-                placeholder="Find a new integration, or one you already use."
-                value=""
-              >
-                <Input
-                  className="css-1pf8c1a-SearchField e1mrdgrx1"
-                  onChange={[Function]}
-                  placeholder="Find a new integration, or one you already use."
-                  value=""
-                >
-                  <input
-                    className="form-control css-1pf8c1a-SearchField e1mrdgrx1"
-                    onChange={[Function]}
-                    placeholder="Find a new integration, or one you already use."
-                    value=""
-                  />
-                </Input>
-              </SearchField>
-            </div>
-          </SearchWrapper>
-        </SearchInput>
-      </div>
-    </SearchContainer>
     <Panel>
       <Component
         className="css-15hwgrz-Panel e119nu470"
@@ -321,21 +337,6 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
         <div
           className="css-15hwgrz-Panel e119nu470"
         >
-          <PanelHeader
-            disablePadding={true}
-          >
-            <div
-              className="css-1swm9xr-PanelHeader en8g1d30"
-            >
-              <Heading>
-                <div
-                  className="css-w4ryog-Heading ezentgk1"
-                >
-                  Integrations
-                </div>
-              </Heading>
-            </div>
-          </PanelHeader>
           <PanelBody
             direction="column"
             disablePadding={true}
@@ -416,17 +417,17 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
                                 to="/settings/org-slug/integrations/bitbucket/"
                               >
                                 <Link
-                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                                   to="/settings/org-slug/integrations/bitbucket/"
                                 >
                                   <Link
-                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                                     onlyActiveOnIndex={false}
                                     style={Object {}}
                                     to="/settings/org-slug/integrations/bitbucket/"
                                   >
                                     <a
-                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                                       onClick={[Function]}
                                       style={Object {}}
                                     >
@@ -570,17 +571,17 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
                                 to="/settings/org-slug/sentry-apps/my-headband-washer-289499/"
                               >
                                 <Link
-                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                                   to="/settings/org-slug/sentry-apps/my-headband-washer-289499/"
                                 >
                                   <Link
-                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                                     onlyActiveOnIndex={false}
                                     style={Object {}}
                                     to="/settings/org-slug/sentry-apps/my-headband-washer-289499/"
                                   >
                                     <a
-                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                                       onClick={[Function]}
                                       style={Object {}}
                                     >
@@ -715,17 +716,17 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
                                 to="/settings/org-slug/plugins/pagerduty/"
                               >
                                 <Link
-                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                                   to="/settings/org-slug/plugins/pagerduty/"
                                 >
                                   <Link
-                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                                     onlyActiveOnIndex={false}
                                     style={Object {}}
                                     to="/settings/org-slug/plugins/pagerduty/"
                                   >
                                     <a
-                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                                       onClick={[Function]}
                                       style={Object {}}
                                     >
@@ -869,17 +870,17 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
                                 to="/settings/org-slug/plugins/amazon-sqs/"
                               >
                                 <Link
-                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                                   to="/settings/org-slug/plugins/amazon-sqs/"
                                 >
                                   <Link
-                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                                     onlyActiveOnIndex={false}
                                     style={Object {}}
                                     to="/settings/org-slug/plugins/amazon-sqs/"
                                   >
                                     <a
-                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                                       onClick={[Function]}
                                       style={Object {}}
                                     >
@@ -1000,17 +1001,17 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
                                 to="/settings/org-slug/sentry-apps/clickup/"
                               >
                                 <Link
-                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                                   to="/settings/org-slug/sentry-apps/clickup/"
                                 >
                                   <Link
-                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                                     onlyActiveOnIndex={false}
                                     style={Object {}}
                                     to="/settings/org-slug/sentry-apps/clickup/"
                                   >
                                     <a
-                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                                       onClick={[Function]}
                                       style={Object {}}
                                     >
@@ -1131,17 +1132,17 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
                                 to="/settings/org-slug/sentry-apps/la-croix-monitor/"
                               >
                                 <Link
-                                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                                   to="/settings/org-slug/sentry-apps/la-croix-monitor/"
                                 >
                                   <Link
-                                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                                     onlyActiveOnIndex={false}
                                     style={Object {}}
                                     to="/settings/org-slug/sentry-apps/la-croix-monitor/"
                                   >
                                     <a
-                                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                                       onClick={[Function]}
                                       style={Object {}}
                                     >

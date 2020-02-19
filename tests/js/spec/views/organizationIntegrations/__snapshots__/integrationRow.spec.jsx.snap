@@ -68,17 +68,17 @@ exports[`IntegrationRow First Party Integration has been installed (1 configurat
                 to="/settings/org-slug/integrations/bitbucket/"
               >
                 <Link
-                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                   to="/settings/org-slug/integrations/bitbucket/"
                 >
                   <Link
-                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                     onlyActiveOnIndex={false}
                     style={Object {}}
                     to="/settings/org-slug/integrations/bitbucket/"
                   >
                     <a
-                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                       onClick={[Function]}
                       style={Object {}}
                     >
@@ -224,17 +224,17 @@ exports[`IntegrationRow First Party Integration has been installed (3 configurat
                 to="/settings/org-slug/integrations/bitbucket/"
               >
                 <Link
-                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                   to="/settings/org-slug/integrations/bitbucket/"
                 >
                   <Link
-                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                     onlyActiveOnIndex={false}
                     style={Object {}}
                     to="/settings/org-slug/integrations/bitbucket/"
                   >
                     <a
-                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                       onClick={[Function]}
                       style={Object {}}
                     >
@@ -380,17 +380,17 @@ exports[`IntegrationRow First Party Integration has not been installed 1`] = `
                 to="/settings/org-slug/integrations/github/"
               >
                 <Link
-                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                   to="/settings/org-slug/integrations/github/"
                 >
                   <Link
-                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                     onlyActiveOnIndex={false}
                     style={Object {}}
                     to="/settings/org-slug/integrations/github/"
                   >
                     <a
-                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                       onClick={[Function]}
                       style={Object {}}
                     >
@@ -513,17 +513,17 @@ exports[`IntegrationRow Plugin has been installed (1 project) 1`] = `
                 to="/settings/org-slug/plugins/twilio/"
               >
                 <Link
-                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                   to="/settings/org-slug/plugins/twilio/"
                 >
                   <Link
-                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                     onlyActiveOnIndex={false}
                     style={Object {}}
                     to="/settings/org-slug/plugins/twilio/"
                   >
                     <a
-                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                       onClick={[Function]}
                       style={Object {}}
                     >
@@ -669,17 +669,17 @@ exports[`IntegrationRow Plugin has been installed (3 projects) 1`] = `
                 to="/settings/org-slug/plugins/twilio/"
               >
                 <Link
-                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                   to="/settings/org-slug/plugins/twilio/"
                 >
                   <Link
-                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                     onlyActiveOnIndex={false}
                     style={Object {}}
                     to="/settings/org-slug/plugins/twilio/"
                   >
                     <a
-                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                       onClick={[Function]}
                       style={Object {}}
                     >
@@ -825,17 +825,17 @@ exports[`IntegrationRow Plugin has not been installed 1`] = `
                 to="/settings/org-slug/plugins/amazon-sqs/"
               >
                 <Link
-                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  className="css-1mke3sx-IntegrationName e12p8vfu2"
                   to="/settings/org-slug/plugins/amazon-sqs/"
                 >
                   <Link
-                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    className="css-1mke3sx-IntegrationName e12p8vfu2"
                     onlyActiveOnIndex={false}
                     style={Object {}}
                     to="/settings/org-slug/plugins/amazon-sqs/"
                   >
                     <a
-                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      className="css-1mke3sx-IntegrationName e12p8vfu2"
                       onClick={[Function]}
                       style={Object {}}
                     >
