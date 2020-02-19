@@ -65,7 +65,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
         projects_to_fetch = set()
 
-        with metrics.timer("ingest_consumer.prepare_messages", tags=self.__metrics_default_tags):
+        with metrics.timer("ingest_consumer.prepare_messages"):
             for message in batch:
                 message_type = message["type"]
                 projects_to_fetch.add(message["project_id"])
@@ -81,13 +81,11 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 else:
                     raise ValueError("Unknown message type: {}".format(message_type))
 
-        with metrics.timer("ingest_consumer.fetch_projects", tags=self.__metrics_default_tags):
+        with metrics.timer("ingest_consumer.fetch_projects"):
             projects = {p.id: p for p in Project.objects.get_many_from_cache(projects_to_fetch)}
 
         # attachment_chunk messages need to be processed before attachment/event messages.
-        with metrics.timer(
-            "ingest_consumer.process_attachment_chunk_batch", tags=self.__metrics_default_tags
-        ):
+        with metrics.timer("ingest_consumer.process_attachment_chunk_batch"):
             for _ in self.pool.imap_unordered(
                 lambda msg: process_attachment_chunk(msg, projects=projects),
                 attachment_chunks,
