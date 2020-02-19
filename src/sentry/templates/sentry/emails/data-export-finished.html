@@ -6,5 +6,5 @@
     <h3>Your Data is Ready!</h3>
     <p>We've finished assembling your download, check it out by clicking the button below.</p>
     <p>This download file will expire at {{expiration}}.</p>
-    <a href="{{ url }}" class="btn">Go to Download</a>
+    <a href="{{ url|safe }}" class="btn">Go to Download</a>
 {% endblock %}

@@ -8,9 +8,9 @@ from sentry.models.exporteddata import DEFAULT_EXPIRATION
 from sentry.testutils import TestCase
 
 
-class DeleteExportedDataTest(TestCase):
+class ExportedDataTest(TestCase):
     def setUp(self):
-        super(DeleteExportedDataTest, self).setUp()
+        super(ExportedDataTest, self).setUp()
         self.user = self.create_user()
         self.organization = self.create_organization()
         self.data_export = ExportedData.objects.create(
@@ -68,3 +68,6 @@ class DeleteExportedDataTest(TestCase):
         # Ensure the first file is deleted
         assert not File.objects.filter(id=self.file1.id).exists()
         assert self.data_export.date_expired == self.data_export.date_finished + timedelta(weeks=2)
+
+    def test_email_user(self):
+        return
