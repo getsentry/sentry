@@ -19,6 +19,7 @@ export {IconDownload} from './iconDownload';
 export {IconCopy} from './iconCopy';
 export {IconEdit} from './iconEdit';
 export {IconEllipsis} from './iconEllipsis';
+export {IconEvent} from './iconEvent';
 export {IconFile} from './iconFile';
 export {IconGeneric} from './iconGeneric';
 export {IconGithub} from './iconGithub';
