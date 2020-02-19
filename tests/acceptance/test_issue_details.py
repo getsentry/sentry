@@ -91,7 +91,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_android_ndk_event(self):
         event = self.create_sample_event(default="android-ndk", platform="android-ndk")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details android-ndk")
 
     def test_aspnetcore_event(self):
