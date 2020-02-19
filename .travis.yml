@@ -226,7 +226,7 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
-    # Deploy 'storybook' (component & style guide) - allowed to fail
+    # Deploy 'storybook' (component & style guide)
     - name: 'Storybook Deploy'
       language: node_js
       env: STORYBOOK_BUILD=1
@@ -250,7 +250,6 @@ matrix:
 
   allow_failures:
     - name: 'Python 3.6 backend with migrations [Postgres]'
-    - name: 'Storybook Deploy'
 
 notifications:
   webhooks:

@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.exceptions import PluginError
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry.utils.http import absolute_uri
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from six.moves.urllib.parse import urljoin
 from six.moves.http_client import HTTPException
 
@@ -15,6 +16,14 @@ from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
 
 import phabricator
+
+DESCRIPTION = """
+Improve your productivity by creating tickets in Phabricator directly from Sentry issues.
+This integration also allows you to link Sentry issues to existing tickets in Phabricator.
+
+Phabricator is a set of tools for developing software. It includes applications for
+code review, repository hosting, bug tracking, project management, and more.
+"""
 
 
 def query_to_result(field, result):
@@ -28,13 +37,28 @@ def query_to_result(field, result):
 
 
 class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
-    description = "Integrate Phabricator issue tracking by linking a user account to a project."
+    description = DESCRIPTION
 
     slug = "phabricator"
     title = "Phabricator"
     conf_title = "Phabricator"
     conf_key = "phabricator"
     required_field = "host"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Create and link Sentry issue groups directly to a Phabricator ticket in any of your
+            projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+        FeatureDescription(
+            """
+            Link Sentry issues to existing Phabricator tickets.
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+    ]
 
     def get_api(self, project):
         return phabricator.Phabricator(

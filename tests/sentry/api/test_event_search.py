@@ -1317,6 +1317,40 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_rpm_function(self):
+        fields = ["rpm(3600)"]
+        result = resolve_field_list(fields, {})
+
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["divide(count(), divide(3600, 60))", None, "rpm_3600"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["rpm(30)"]
+            result = resolve_field_list(fields, {})
+        assert "rpm(30): 30.0 argument invalid: must be greater than 60 seconds" in six.text_type(err)
+
+    def test_rps_function(self):
+        fields = ["rps(3600)"]
+        result = resolve_field_list(fields, {})
+
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["divide(count(), 3600)", None, "rps_3600"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["rps(0)"]
+            result = resolve_field_list(fields, {})
+        assert "rps(0): 0.0 argument invalid: must be positive integer" in six.text_type(err)
+
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]

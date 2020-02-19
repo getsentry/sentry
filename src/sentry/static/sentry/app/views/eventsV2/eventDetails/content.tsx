@@ -22,13 +22,15 @@ import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import EventEntries from 'app/components/events/eventEntries';
+import Projects from 'app/utils/projects';
+import {DataSection} from 'app/components/events/eventDataSection';
 
 import EventView from '../eventView';
 import {hasAggregateField, EventQuery, generateTitle} from '../utils';
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
 import TagsTable from '../tagsTable';
-import EventInterfaces from './eventInterfaces';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 import {SectionHeading, ContentBox, HeaderBox} from '../styles';
@@ -164,12 +166,19 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 ),
                 fixed: 'events chart',
               })}
-            <EventInterfaces
-              organization={organization}
-              event={event}
-              projectId={this.projectId}
-              eventView={eventView}
-            />
+            <Projects orgId={organization.slug} slugs={[this.projectId]}>
+              {({projects}) => (
+                <StyledEventEntries
+                  organization={organization}
+                  orgId={organization.slug}
+                  event={event}
+                  project={projects[0]}
+                  location={location}
+                  showExampleCommit={false}
+                  showTagSummary={false}
+                />
+              )}
+            </Projects>
           </div>
           <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>
             <EventMetadata
@@ -347,6 +356,16 @@ const MetadataContainer = styled('div')`
 
 const MetadataJSON = styled(ExternalLink)`
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledEventEntries = styled(EventEntries)`
+  & ${DataSection} {
+    padding: ${space(3)} 0 0 0;
+  }
+  & ${DataSection}:first-child {
+    padding-top: 0;
+    border-top: none;
+  }
 `;
 
 export default withApi(EventDetailsContent);
