@@ -40,6 +40,19 @@ env:
 before_install:
   - &pip_install pip install --no-cache-dir "pip>=20.0.2"
   - '[ "$TRAVIS_BRANCH" != "master" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1'
+  - >-
+    cd /tmp
+    && git clone https://github.com/yaml/libyaml.git libyaml
+    && cd libyaml
+    && git reset --hard 0.2.2
+    && ./bootstrap
+    && ./configure
+    && make
+    && make test-all
+    && sudo make install
+    && sudo ldconfig
+    && cd "$TRAVIS_BUILD_DIR"
+
 
 script:
   # certain commands require sentry init to be run, but this is only true for
