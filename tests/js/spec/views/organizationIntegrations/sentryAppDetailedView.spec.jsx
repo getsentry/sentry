@@ -182,7 +182,7 @@ describe('SentryAppDetailedView', function() {
     });
   });
 
-  describe('Unpublished Sentry App', function() {
+  describe('Unpublished Sentry App without Redirect Url', function() {
     beforeEach(() => {
       Client.clearMockResponses();
 
@@ -264,6 +264,93 @@ describe('SentryAppDetailedView', function() {
       wrapper.update();
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
       expect(wrapper.find('UninstallButton').exists()).toEqual(true);
+    });
+  });
+
+  describe('Unpublished Sentry App with Redirect Url', function() {
+    let createRequest;
+    beforeEach(() => {
+      Client.clearMockResponses();
+
+      mockResponse([
+        [
+          '/sentry-apps/go-to-google/',
+          {
+            status: 'unpublished',
+            scopes: ['project:read', 'team:read'],
+            isAlertable: false,
+            clientSecret:
+              '6405a4a7b8084cdf8dbea53b53e2163983deb428b78e4c6997bc408d44d93878',
+            overview: null,
+            verifyInstall: false,
+            owner: {id: 1, slug: 'sentry'},
+            slug: 'go-to-google',
+            name: 'Go to Google',
+            uuid: 'a4b8f364-4300-41ac-b8af-d8791ad50e77',
+            author: 'Nisanthan Nanthakumar',
+            webhookUrl: 'https://www.google.com',
+            clientId: '0974b5df6b57480b99c2e1f238eef769ef2c27ec156d4791a26903a896d5807e',
+            redirectUrl: 'https://www.google.com',
+            allowedOrigins: [],
+            events: [],
+            schema: {},
+          },
+        ],
+        [
+          '/sentry-apps/go-to-google/features/',
+          [
+            {
+              featureGate: 'integrations-api',
+              description:
+                'Go to Google can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).',
+            },
+          ],
+        ],
+        [`/organizations/${org.slug}/sentry-app-installations/`, []],
+      ]);
+
+      createRequest = Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        body: {
+          status: 'installed',
+          organization: {slug: 'sentry'},
+          app: {uuid: 'a4b8f364-4300-41ac-b8af-d8791ad50e77', slug: 'go-to-google'},
+          code: '1f0e7c1b99b940abac7a19b86e69bbe1',
+          uuid: '4d803538-fd42-4278-b410-492f5ab677b5',
+        },
+        method: 'POST',
+      });
+
+      wrapper = mountWithTheme(
+        <SentryAppDetailedView
+          params={{integrationSlug: 'go-to-google', orgId: org.slug}}
+          location={{query: {}}}
+          router={router}
+        />,
+        routerContext
+      );
+      mockRouterPush(wrapper, router);
+    });
+    it('shows the Integration name and install status', async function() {
+      expect(wrapper.find('Name').props().children).toEqual('Go to Google');
+      expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
+    });
+    it('shows the Accept & Install button', async function() {
+      expect(wrapper.find('InstallButton').props().disabled).toEqual(false);
+      expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
+    });
+
+    it('onClick: redirects url', async function() {
+      window.location.assign = jest.fn();
+
+      wrapper.find('InstallButton').simulate('click');
+      await tick();
+      expect(createRequest).toHaveBeenCalled();
+
+      wrapper.update();
+      expect(window.location.assign).toHaveBeenLastCalledWith(
+        'https://www.google.com/?code=1f0e7c1b99b940abac7a19b86e69bbe1&installationId=4d803538-fd42-4278-b410-492f5ab677b5&orgSlug=org-slug'
+      );
     });
   });
 });
