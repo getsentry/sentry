@@ -5,6 +5,7 @@ import {css} from '@emotion/core';
 
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
+import {IconClose} from 'app/icons';
 
 type Props = React.HTMLProps<HTMLDivElement> & {
   title?: string;
@@ -23,10 +24,8 @@ const SidebarPanel = ({
 }: Props) => (
   <StyledSidebarPanel collapsed={collapsed} orientation={orientation} {...props}>
     <SidebarPanelHeader>
-      <PanelClose onClick={hidePanel}>
-        <span className="icon-close" />
-      </PanelClose>
       <Title>{title}</Title>
+      <PanelClose onClick={hidePanel} />
     </SidebarPanelHeader>
 
     <SidebarPanelBody>{children}</SidebarPanelBody>
@@ -77,6 +76,9 @@ const SidebarPanelHeader = styled('div')`
   background: ${p => p.theme.background};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   height: ${p => p.theme.sidebar.panel.headerHeight};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 const SidebarPanelBody = styled('div')`
   position: absolute;
@@ -87,18 +89,20 @@ const SidebarPanelBody = styled('div')`
   overflow: auto;
 `;
 
-const PanelClose = styled('a')`
-  float: right;
-  font-size: ${p => p.theme.headerFontSize};
-  position: relative;
-  top: 0;
-  right: -3px;
+const PanelClose = styled(IconClose)`
   color: ${p => p.theme.gray3};
+  cursor: pointer;
+  position: relative;
+  padding: ${space(0.75)};
 
   &:hover {
     color: ${p => p.theme.gray5};
   }
 `;
+
+PanelClose.defaultProps = {
+  size: 'lg',
+};
 
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
