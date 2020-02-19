@@ -10,7 +10,7 @@ from sentry import http
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import IncidentTrigger, IncidentStatus
+from sentry.incidents.models import IncidentTrigger, IncidentStatus, TriggerStatus
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
@@ -299,8 +299,15 @@ def build_incident_attachment(incident, trigger=None):
     if trigger is None:
         # Some paths explicitly have a trigger reference, so we send it in with those. Some don't (unfurling), so we do this.
         # Best guess, grab the most recently updated trigger. It's a pretty good guess with very low failure rate.
+        incident_trigger_status = (
+            TriggerStatus.RESOLVED.value
+            if incident.status == IncidentStatus.CLOSED.value
+            else TriggerStatus.ACTIVE.value
+        )
         incident_trigger = (
-            IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
+            IncidentTrigger.objects.filter(incident=incident, status=incident_trigger_status)
+            .order_by("-date_modified")
+            .first()
         )
         trigger = incident_trigger.alert_rule_trigger
     else:
