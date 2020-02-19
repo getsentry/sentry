@@ -10,13 +10,8 @@ from sentry import http
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import (
-    IncidentTrigger,
-    IncidentStatus,
-    TriggerStatus,
-    AlertRuleThresholdType,
-)
-from sentry.snuba.models import QUERY_AGGREGATION_DISPLAY, QueryAggregations
+from sentry.incidents.models import IncidentTrigger, IncidentStatus
+from sentry.snuba.models import QueryAggregations
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -49,6 +44,7 @@ MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
+QUERY_AGGREGATION_DISPLAY = ["events", "users affected"]
 
 
 def format_actor_option(actor):
@@ -299,10 +295,6 @@ def build_incident_attachment(incident, trigger=None):
     elif incident.status == IncidentStatus.CRITICAL.value:
         status = "Critical"
         color = LEVEL_TO_COLOR["fatal"]
-    else:
-        # Fail safe? Throw error?
-        status = "Fired"
-        color = LEVEL_TO_COLOR["error"]
 
     if trigger is None:
         # Some paths explicitly have a trigger reference, so we send it in with those. Some don't (unfurling), so we do this.
@@ -323,19 +315,12 @@ def build_incident_attachment(incident, trigger=None):
         if alert_rule.aggregation == QueryAggregations.TOTAL.value
         else aggregates["unique_users"]
     )
-    is_active = incident_trigger.status == TriggerStatus.ACTIVE
-    is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE
-    gt_or_lt = ">" if is_active == is_threshold_type_above else "<"
-    threshold_display = trigger.alert_threshold if is_active else trigger.resolve_threshold
-    time_window = alert_rule.time_window / 60
+    time_window = alert_rule.time_window
 
-    text = "{} {} in the last {} minutes ({}{})".format(
-        agg_value, agg_text, time_window, gt_or_lt, threshold_display
-    )
+    text = "{} {} in the last {} minutes".format(agg_value, agg_text, time_window)
+
     if alert_rule.query != "":
         text = text + "\nQuery: {}".format(alert_rule.query)
-    else:
-        text = text + "\nNo filter query."
 
     ts = incident.date_started
 
