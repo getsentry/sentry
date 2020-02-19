@@ -21,6 +21,8 @@ import {
 import {getDisplayName} from 'app/utils/environment';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import Form from 'app/views/settings/components/forms/form';
 import LoadingMask from 'app/components/loadingMask';
 import PanelAlert from 'app/components/panels/panelAlert';
@@ -150,6 +152,35 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
   };
 
+  handleDeleteRule = async () => {
+    const {rule} = this.state;
+    const ruleId = isSavedAlertRule(rule) ? `${rule.id}/` : '';
+    const isNew = !ruleId;
+    const {project, organization} = this.props;
+
+    if (isNew) {
+      return;
+    }
+
+    const endpoint = `/projects/${organization.slug}/${project.slug}/rules/${ruleId}`;
+
+    addLoadingMessage(t('Deleting...'));
+
+    try {
+      await this.api.requestPromise(endpoint, {
+        method: 'DELETE',
+      });
+
+      addSuccessMessage(t('Deleted alert rule'));
+      browserHistory.replace(recreateRoute('', {...this.props, stepBack: -2}));
+    } catch (err) {
+      this.setState({
+        detailedError: err.responseJSON || {__all__: 'Unknown error'},
+      });
+      addErrorMessage(t('There was a problem deleting the alert'));
+    }
+  };
+
   handleCancel = () => {
     const {router} = this.props;
 
@@ -263,6 +294,19 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           onSubmit={this.handleSubmit}
           initialData={{...rule, environment, actionMatch, frequency: `${frequency}`}}
           submitLabel={t('Save Rule')}
+          extraButton={
+            <Confirm
+              priority="danger"
+              confirmText={t('Delete Rule')}
+              onConfirm={this.handleDeleteRule}
+              header={t('Delete Rule')}
+              message={t('Are you sure you want to delete this rule?')}
+            >
+              <Button priority="danger" type="button">
+                {t('Delete Rule')}
+              </Button>
+            </Confirm>
+          }
         >
           {this.state.loading && <SemiTransparentLoadingMask />}
           <Panel>

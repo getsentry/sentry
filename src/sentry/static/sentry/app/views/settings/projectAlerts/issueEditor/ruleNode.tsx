@@ -149,7 +149,13 @@ class RuleNode extends React.Component<Props> {
       <React.Fragment>
         {data && <input type="hidden" name="id" value={data.id} />}
         {this.renderRow()}
-        <DeleteButton onClick={onDelete} type="button" size="small" icon="icon-trash" />
+        <DeleteButton
+          label={t('Delete Node')}
+          onClick={onDelete}
+          type="button"
+          size="small"
+          icon="icon-trash"
+        />
       </React.Fragment>
     );
   }
