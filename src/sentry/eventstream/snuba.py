@@ -5,6 +5,7 @@ from datetime import datetime
 from uuid import uuid4
 
 import pytz
+import six
 import urllib3
 
 from sentry import quotas
@@ -126,7 +127,7 @@ class SnubaProtocolEventStream(EventStream):
                     "skip_consume": skip_consume,
                 },
             ),
-            headers={'Received-Timestamp': str(received_timestamp)}
+            headers={'Received-Timestamp': six.text_type(received_timestamp)}
         )
 
     def start_delete_groups(self, project_id, group_ids):
