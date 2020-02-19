@@ -14,6 +14,14 @@ from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 logger = logging.getLogger(__name__)
 
+DESCRIPTION = """
+Forward Sentry events to Amazon SQS.
+
+Amazon Simple Queue Service (SQS) is a fully managed message
+queuing service that enables you to decouple and scale microservices,
+distributed systems, and serverless applications.
+"""
+
 
 def get_regions():
     public_region_list = boto3.session.Session().get_available_regions("sqs")
@@ -24,10 +32,9 @@ def get_regions():
 class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
     title = "Amazon SQS"
     slug = "amazon-sqs"
-    description = "Forward Sentry events to Amazon SQS."
+    description = DESCRIPTION
     conf_key = "amazon-sqs"
     required_field = "queue_url"
-    # TODO(phillip): Probably need a better feature description
     feature_descriptions = [
         FeatureDescription(
             """

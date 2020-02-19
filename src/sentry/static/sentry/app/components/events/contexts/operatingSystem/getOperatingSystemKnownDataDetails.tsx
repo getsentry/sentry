@@ -5,13 +5,13 @@ import {OperatingSystemKnownData, OperatingSystemKnownDataType} from './types';
 
 type Output = {
   subject: string;
-  value: string | null;
+  value: React.ReactNode | null;
 };
 
 function getOperatingSystemKnownDataDetails(
   data: OperatingSystemKnownData,
   type: OperatingSystemKnownDataType
-): Output | undefined {
+): Output {
   switch (type) {
     case OperatingSystemKnownDataType.NAME:
       return {
@@ -34,7 +34,10 @@ function getOperatingSystemKnownDataDetails(
         value: defined(data.rooted) ? (data.rooted ? 'yes' : 'no') : null,
       };
     default:
-      return undefined;
+      return {
+        subject: type,
+        value: data[type] || null,
+      };
   }
 }
 

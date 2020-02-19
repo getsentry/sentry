@@ -11,7 +11,7 @@ from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus
-from sentry.utils import json
+from sentry.utils import metrics, json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -43,6 +43,15 @@ MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
+SLACK_DATADOG_METRIC = "integrations.slack.http_response"
+
+
+def track_response_code(status_code, is_ok):
+    metrics.incr(
+        SLACK_DATADOG_METRIC,
+        sample_rate=1.0,
+        tags={"ok": False if is_ok is False else True, "status": status_code},
+    )
 
 
 def format_actor_option(actor):
@@ -381,7 +390,9 @@ def get_channel_id_with_timeout(integration, name, timeout):
                 # Slack limits the response of `<list_type>.list` to 1000 channels
                 params=dict(payload, cursor=cursor, limit=1000),
             )
+            status_code = items.status_code
             items = items.json()
+            track_response_code(status_code, items.get("ok"))
             if not items.get("ok"):
                 logger.info(
                     "rule.slack.%s_list_failed" % list_type, extra={"error": items.get("error")}
@@ -413,7 +424,9 @@ def send_incident_alert_notification(integration, incident, channel):
 
     session = http.build_session()
     resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
+    status_code = resp.status_code
+    response = resp.json()
+    track_response_code(status_code, response.get("ok"))
     resp.raise_for_status()
-    resp = resp.json()
-    if not resp.get("ok"):
-        logger.info("rule.fail.slack_post", extra={"error": resp.get("error")})
+    if not response.get("ok"):
+        logger.info("rule.fail.slack_post", extra={"error": response.get("error")})
