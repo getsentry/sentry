@@ -1,9 +1,9 @@
 import React from 'react';
+import omit from 'lodash/omit';
 
 import CrumbTable from 'app/components/events/interfaces/breadcrumbs/crumbTable';
 import SummaryLine from 'app/components/events/interfaces/breadcrumbs/summaryLine';
 import {getMeta} from 'app/components/events/meta/metaProxy';
-import {filterProps} from 'app/utils';
 
 import getBreadcrumbCustomRendererValue from './getBreadcrumbCustomRendererValue';
 import {Crumb} from './types';
@@ -40,7 +40,7 @@ const ErrorRenderer = ({crumb}: Props) => {
           </pre>
         </SummaryLine>
       }
-      kvData={filterProps(data, ['type', 'value'])}
+      kvData={omit(data, ['type', 'value'])}
     />
   );
 };

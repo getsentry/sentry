@@ -1,9 +1,10 @@
 import React from 'react';
+import omit from 'lodash/omit';
 
 import CrumbTable from 'app/components/events/interfaces/breadcrumbs/crumbTable';
 import SummaryLine from 'app/components/events/interfaces/breadcrumbs/summaryLine';
+import ExternalLink from 'app/components/links/externalLink';
 import {getMeta} from 'app/components/events/meta/metaProxy';
-import {filterProps} from 'app/utils';
 import {t} from 'app/locale';
 
 import getBreadcrumbCustomRendererValue from './getBreadcrumbCustomRendererValue';
@@ -18,7 +19,11 @@ const HttpRenderer = ({crumb}: Props) => {
 
   const renderUrl = (url: any) => {
     if (typeof url === 'string') {
-      return url.match(/^https?:\/\//) ? <a href={url}>{url}</a> : <em>{url}</em>;
+      return url.match(/^https?:\/\//) ? (
+        <ExternalLink href={url}>{url}</ExternalLink>
+      ) : (
+        <em>{url}</em>
+      );
     }
 
     try {
@@ -54,7 +59,7 @@ const HttpRenderer = ({crumb}: Props) => {
           </pre>
         </SummaryLine>
       }
-      kvData={filterProps(data, ['method', 'url', 'status_code'])}
+      kvData={omit(data, ['method', 'url', 'status_code'])}
     />
   );
 };
