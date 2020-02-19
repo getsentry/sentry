@@ -119,9 +119,10 @@ class TestAlertRuleSerializer(TestCase):
             context=self.context, instance=alert_rule, data=base_params
         )
         assert serializer.is_valid()
-        serializer.save()
+        alert_rule = serializer.save()
 
         assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 2
+        assert len(list(alert_rule.environment.all())) == 2
 
         base_params.update({"environment": [env_2.name]})
         serializer = AlertRuleSerializer(
