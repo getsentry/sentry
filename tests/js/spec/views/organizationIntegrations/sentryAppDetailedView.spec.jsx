@@ -183,6 +183,8 @@ describe('SentryAppDetailedView', function() {
   });
 
   describe('Unpublished Sentry App without Redirect Url', function() {
+    let createRequest;
+
     beforeEach(() => {
       Client.clearMockResponses();
 
@@ -228,18 +230,19 @@ describe('SentryAppDetailedView', function() {
           ],
         ],
         [`/organizations/${org.slug}/sentry-app-installations/`, []],
-        [
-          `/organizations/${org.slug}/sentry-app-installations/`,
-          {
-            status: 'installed',
-            organization: {slug: 'sentry'},
-            app: {uuid: 'a59c8fcc-2f27-49f8-af9e-02661fc3e8d7', slug: 'la-croix-monitor'},
-            code: '21c87231918a4e5c85d9b9e799c07382',
-            uuid: '258ad77c-7e6c-4cfe-8a40-6171cff30d61',
-          },
-          'POST',
-        ],
       ]);
+
+      createRequest = Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        body: {
+          status: 'installed',
+          organization: {slug: 'sentry'},
+          app: {uuid: 'a59c8fcc-2f27-49f8-af9e-02661fc3e8d7', slug: 'la-croix-monitor'},
+          code: '21c87231918a4e5c85d9b9e799c07382',
+          uuid: '258ad77c-7e6c-4cfe-8a40-6171cff30d61',
+        },
+        method: 'POST',
+      });
 
       wrapper = mountWithTheme(
         <SentryAppDetailedView
@@ -261,6 +264,7 @@ describe('SentryAppDetailedView', function() {
     it('onClick: installs app', async function() {
       wrapper.find('InstallButton').simulate('click');
       await tick();
+      expect(createRequest).toHaveBeenCalled();
       wrapper.update();
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
       expect(wrapper.find('UninstallButton').exists()).toEqual(true);
