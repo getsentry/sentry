@@ -52,6 +52,13 @@ class RuleNode extends React.Component<Props> {
         isClearable={false}
         name={name}
         value={initialVal}
+        styles={{
+          control: provided => ({
+            ...provided,
+            minHeight: '28px',
+            height: '28px',
+          }),
+        }}
         choices={fieldConfig.choices}
         onChange={({value}) => this.props.onPropertyChange(name, value)}
       />
