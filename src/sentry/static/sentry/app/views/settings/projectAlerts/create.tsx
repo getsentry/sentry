@@ -14,7 +14,6 @@ type RouteParams = {
   orgId: string;
   projectId: string;
   incidentRuleId: string;
-  ruleId: string; //TODO(ts): Make ruleId optional
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
