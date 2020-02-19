@@ -1,0 +1,51 @@
+import styled from '@emotion/styled';
+
+import space from 'app/styles/space';
+import theme from 'app/utils/theme';
+
+const COLORS = {
+  default: {
+    background: theme.whiteDark,
+    border: theme.borderLight,
+  },
+  danger: {
+    background: theme.redLightest,
+    // TODO(theme) This pink is non-standard
+    border: '#e7c0bc',
+  },
+} as const;
+
+type BannerProps = {
+  priority: 'default' | 'danger';
+};
+
+export const BannerContainer = styled('div')<BannerProps>`
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  background: ${p => COLORS[p.priority].background};
+  border-top: 1px solid ${p => COLORS[p.priority].border};
+  border-bottom: 1px solid ${p => COLORS[p.priority].border};
+`;
+
+export const BannerSummary = styled('p')`
+  display: flex;
+  align-items: flex-start;
+  padding: ${space(2)} ${space(4)} ${space(2)} 40px;
+  margin-bottom: 0;
+
+  /* Get icons in top right of content box */
+  & > .icon,
+  & > svg {
+    flex-shrink: 0;
+    margin-right: ${space(1)};
+    margin-top: ${space(0.5)};
+  }
+
+  & > span {
+    flex-grow: 1;
+  }
+
+  & > a {
+    align-self: flex-end;
+  }
+`;
