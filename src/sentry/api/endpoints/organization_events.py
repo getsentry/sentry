@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 import logging
 import six
-import uuid
+import sentry_sdk
+
 from functools import partial
 from django.utils.http import urlquote
 from rest_framework.response import Response
@@ -160,21 +161,13 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
             )
         except discover.InvalidSearchQuery as error:
             raise ParseError(detail=six.text_type(error))
-        except (snuba.SnubaError, snuba.QueryOutsideRetentionError) as error:
-            logger.info(
-                "organization.events.snuba-error",
-                extra={
-                    "organization_id": organization.id,
-                    "user_id": request.user.id,
-                    "error": six.text_type(error),
-                },
-            )
+        except snuba.QueryOutsideRetentionError:
+            raise ParseError(detail="Invalid date range. Please try a more recent date range.")
+        except snuba.QueryIllegalTypeOfArgument:
+            raise ParseError(detail="Invalid query. Argument to function is wrong type.")
+        except snuba.SnubaError as error:
             message = "Internal error. Please try again."
-            if isinstance(error, snuba.QueryIllegalTypeOfArgument):
-                message = "Invalid query. Argument to function is wrong type."
-            elif isinstance(error, snuba.QueryOutsideRetentionError):
-                message = "Invalid date range. Please try a more recent date range."
-            elif isinstance(
+            if isinstance(
                 error,
                 (
                     snuba.RateLimitExceeded,
@@ -191,7 +184,8 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
                     snuba.SchemaValidationError,
                 ),
             ):
-                message = "Invalid query."
+                sentry_sdk.capture_exception(error)
+                message = "Internal error. Your query failed to run."
 
             raise ParseError(detail=message)
 
@@ -218,18 +212,9 @@ class OrganizationEventsV2Endpoint(OrganizationEventsEndpointBase):
 
         # TODO(mark) move all of this result formatting into discover.query()
         # once those APIs are used across the application.
-        tests = {
-            "transaction.status": "transaction.status" in first_row,
-            "trace": "trace" in first_row,
-        }
-        if any(tests.values()):
+        if "transaction.status" in first_row:
             for row in results:
-                if tests["transaction.status"]:
-                    row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
-                        row["transaction.status"]
-                    )
-                if tests["trace"]:
-                    row["trace"] = uuid.UUID(row["trace"]).hex
+                row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
         fields = request.GET.getlist("field")
         issues = {}
