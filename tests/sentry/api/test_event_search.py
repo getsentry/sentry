@@ -1332,7 +1332,7 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["rpm(30)"]
             result = resolve_field_list(fields, {})
-        assert "rpm(30): 30.0 argument invalid: can't be less than 60 seconds" in six.text_type(err)
+        assert "rpm(30): 30.0 argument invalid: must be greater than 60 seconds" in six.text_type(err)
 
     def test_rps_function(self):
         fields = ["rps(3600)"]
