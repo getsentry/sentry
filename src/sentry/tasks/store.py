@@ -188,6 +188,8 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     data = CanonicalKeyDict(data)
 
     project_id = data["project"]
+    event_id = data["event_id"]
+
     project = Project.objects.get_from_cache(id=project_id)
 
     with_datascrubbing = features.has(
@@ -222,10 +224,18 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
             has_changed = True
             data = new_data
     except RetrySymbolication as e:
+        if start_time and (time() - start_time) > 120:
+            error_logger.warning(
+                "process.slow", extra={"project_id": project_id, "event_id": event_id}
+            )
+
         if start_time and (time() - start_time) > 3600:
             # Do not drop event but actually continue with rest of pipeline
             # (persisting unsymbolicated event)
-            error_logger.exception("process.failed.infinite_retry")
+            error_logger.exception(
+                "process.failed.infinite_retry",
+                extra={"project_id": project_id, "event_id": event_id},
+            )
         else:
             retry_process_event.apply_async(
                 args=(),
