@@ -10,7 +10,7 @@ from sentry import http
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import IncidentTrigger, IncidentStatus, TriggerStatus
+from sentry.incidents.models import IncidentStatus
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
@@ -281,7 +281,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     }
 
 
-def build_incident_attachment(incident, trigger=None):
+def build_incident_attachment(incident):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
     aggregates = get_incident_aggregates(incident)
@@ -295,25 +295,6 @@ def build_incident_attachment(incident, trigger=None):
     elif incident.status == IncidentStatus.CRITICAL.value:
         status = "Critical"
         color = LEVEL_TO_COLOR["fatal"]
-
-    if trigger is None:
-        # Some paths explicitly have a trigger reference, so we send it in with those. Some don't (unfurling), so we do this.
-        # Best guess, grab the most recently updated trigger. It's a pretty good guess with very low failure rate.
-        incident_trigger_status = (
-            TriggerStatus.RESOLVED.value
-            if incident.status == IncidentStatus.CLOSED.value
-            else TriggerStatus.ACTIVE.value
-        )
-        incident_trigger = (
-            IncidentTrigger.objects.filter(incident=incident, status=incident_trigger_status)
-            .order_by("-date_modified")
-            .first()
-        )
-        trigger = incident_trigger.alert_rule_trigger
-    else:
-        incident_trigger = IncidentTrigger.objects.get(
-            incident=incident, alert_rule_trigger=trigger
-        )
 
     agg_text = QUERY_AGGREGATION_DISPLAY[alert_rule.aggregation]
 
@@ -437,8 +418,7 @@ def get_channel_id_with_timeout(integration, name, timeout):
 def send_incident_alert_notification(action, incident):
     channel = action.target_identifier
     integration = action.integration
-    trigger = action.alert_rule_trigger
-    attachment = build_incident_attachment(incident, trigger=trigger)
+    attachment = build_incident_attachment(incident)
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,
