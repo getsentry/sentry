@@ -1,9 +1,8 @@
-import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
+import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
@@ -108,7 +107,6 @@ class EventsChart extends React.Component {
     router: PropTypes.object,
     showLegend: PropTypes.bool,
     yAxis: PropTypes.string,
-    onTooltipUpdate: PropTypes.func,
   };
 
   render() {
@@ -124,34 +122,10 @@ class EventsChart extends React.Component {
       environments,
       showLegend,
       yAxis,
-      onTooltipUpdate,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !start && !end;
-
-    let tooltip = undefined;
-    if (onTooltipUpdate) {
-      tooltip = {
-        formatter(seriesData) {
-          // Releases are the only markline we use right now.
-          if (seriesData.componentType === 'markLine') {
-            onTooltipUpdate({
-              values: [{name: t('Release'), value: seriesData.data.name}],
-              timestamp: seriesData.data.coord[0],
-            });
-
-            return null;
-          }
-          const series = Array.isArray(seriesData) ? seriesData : [seriesData];
-          onTooltipUpdate({
-            values: series.map(item => ({name: item.seriesName, value: item.data[1]})),
-            timestamp: series[0].data[0],
-          });
-          return null;
-        },
-      };
-    }
 
     return (
       <ChartZoom
@@ -171,7 +145,7 @@ class EventsChart extends React.Component {
             environment={environments}
             start={start}
             end={end}
-            interval={getInterval(this.props, true)}
+            interval={router?.location?.query?.interval || getInterval(this.props, true)}
             showLoading={false}
             query={query}
             includePrevious={includePrevious}
@@ -179,7 +153,7 @@ class EventsChart extends React.Component {
           >
             {({loading, reloading, errored, timeseriesData, previousTimeseriesData}) => {
               return (
-                <ReleaseSeries tooltip={tooltip} utc={utc} api={api} projects={projects}>
+                <ReleaseSeries utc={utc} api={api} projects={projects}>
                   {({releaseSeries}) => {
                     if (errored) {
                       return (
@@ -204,7 +178,6 @@ class EventsChart extends React.Component {
                           releaseSeries={releaseSeries}
                           timeseriesData={timeseriesData}
                           previousTimeseriesData={previousTimeseriesData}
-                          tooltip={tooltip}
                         />
                       </React.Fragment>
                     );
