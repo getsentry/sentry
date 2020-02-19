@@ -40,7 +40,6 @@ export default class ProviderRow extends React.Component<Props> {
   static propTypes = {
     provider: PropTypes.object.isRequired,
     integrations: PropTypes.array.isRequired,
-    orgId: PropTypes.string.isRequired,
     onInstall: PropTypes.func.isRequired,
     onRemove: PropTypes.func.isRequired,
     onDisable: PropTypes.func.isRequired,
