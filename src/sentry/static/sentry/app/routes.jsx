@@ -1,6 +1,7 @@
 import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
 
+import {t} from 'app/locale';
 import {EXPERIMENTAL_SPA} from 'app/constants';
 import App from 'app/views/app';
 import AuthLayout from 'app/views/auth/layout';
@@ -391,6 +392,18 @@ function routes() {
         }
         component={errorHandler(LazyLoad)}
       />
+
+      <Route
+        name={t('Data Privacy')}
+        path="data-privacy/"
+        component={errorHandler(LazyLoad)}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "ProjectDataPrivacy" */ 'app/views/settings/projectDataPrivacy/projectDataPrivacy'
+          )
+        }
+      />
+
       <Route
         path="debug-symbols/"
         name="Debug Information Files"
