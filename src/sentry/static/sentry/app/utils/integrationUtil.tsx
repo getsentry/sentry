@@ -54,6 +54,7 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Uninstall Completed'
     | 'Integrations: Enabled'
     | 'Integrations: Disabled'
+    | 'Integrations: Integration Tab Clicked'
     | 'Integrations: Config Saved';
   integration: string; //the slug
   already_installed?: boolean;
@@ -65,6 +66,7 @@ type SentryAppEvent = {
   //include the status since people might do weird things testing unpublished integrations
   integration_status: SentryAppStatus;
 };
+type NonSentryAppEvent = {
   integration_type: 'plugin' | 'first_party';
 };
 

@@ -12,7 +12,7 @@ import IntegrationItem from 'app/views/organizationIntegrations/integrationItem'
 import Tooltip from 'app/components/tooltip';
 import {IntegrationProvider, Integration, Organization} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
@@ -23,10 +23,14 @@ export type Props = {
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
   onReinstallIntegration: (integration: Integration) => void;
+  trackIntegrationEvent: (
+    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
+  ) => void; //analytics callback
   className?: string;
 };
 
-export default class InstalledIntegration extends React.Component<Props> {
+//TODO: Rename to InstalledIntegration when we can remove the old one
+export default class InstalledIntegrationInDirectory extends React.Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     provider: PropTypes.object.isRequired,
@@ -60,15 +64,10 @@ export default class InstalledIntegration extends React.Component<Props> {
   };
 
   handleUninstallClick = () => {
-    trackIntegrationEvent(
-      {
-        eventKey: 'integrations.uninstall_clicked',
-        eventName: 'Integrations: Uninstall Clicked',
-        integration: this.props.provider.key,
-        integration_type: 'first_party',
-      },
-      this.props.organization
-    );
+    this.props.trackIntegrationEvent({
+      eventKey: 'integrations.uninstall_clicked',
+      eventName: 'Integrations: Uninstall Clicked',
+    });
   };
 
   getRemovalBodyAndText(aspects) {
@@ -89,15 +88,10 @@ export default class InstalledIntegration extends React.Component<Props> {
 
   handleRemove(integration: Integration) {
     this.props.onRemove(integration);
-    trackIntegrationEvent(
-      {
-        eventKey: 'integrations.uninstall_completed',
-        eventName: 'Integrations: Uninstall Completed',
-        integration: this.props.provider.key,
-        integration_type: 'first_party',
-      },
-      this.props.organization
-    );
+    this.props.trackIntegrationEvent({
+      eventKey: 'integrations.uninstall_completed',
+      eventName: 'Integrations: Uninstall Completed',
+    });
   }
 
   get removeConfirmProps() {

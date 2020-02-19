@@ -51,17 +51,23 @@ class AbstractIntegrationDetailedView<
     const {location} = this.props;
     const value =
       location.query.tab === 'configurations' ? 'configurations' : 'information';
-
-
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({tab: value});
+  }
+
+  onLoadAllEndpointsSuccess() {
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.integration_viewed',
+      eventName: 'Integrations: Integration Viewed',
+      integration_tab: this.state.tab,
+    });
   }
 
   /***
    * Abstract methods defined below
    */
 
-  //The analytics type used in analytics
+  //The analytics type used in analytics which is snake caseƒ
   get integrationType(): 'sentry_app' | 'first_party' | 'plugin' {
     // Allow children to implement this
     throw new Error('Not implemented');
@@ -105,6 +111,11 @@ class AbstractIntegrationDetailedView<
   }
 
   onTabChange = (value: Tab) => {
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.integration_tab_clicked',
+      eventName: 'Integrations: Integration Tab Clicked',
+      integration_tab: value,
+    });
     this.setState({tab: value});
   };
 
@@ -145,19 +156,28 @@ class AbstractIntegrationDetailedView<
 
   //Wrapper around trackIntegrationEvent that automatically provides the view and org
   trackIntegrationEvent = (
-    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'> & {
+    options: Pick<
+      SingleIntegrationEvent,
+      'eventKey' | 'eventName' | 'integration_tab'
+    > & {
       integration_status?: SentryAppStatus;
       project_id?: string;
     }
   ) => {
-    const params = {
+    //If we use this intermediate type we get type checking on the things we care about
+    const params: Omit<
+      Parameters<typeof trackIntegrationEvent>[0],
+      'integrations_installed'
+    > = {
       view: 'integrations_directory_details_view',
       integration: this.integrationSlug,
       integration_type: this.integrationType,
       already_installed: this.installationStatus !== 'Not Installed', //pending counts as installed here
       ...options,
-    } as Parameters<typeof trackIntegrationEvent>[0];
-    trackIntegrationEvent(params, this.props.organization);
+    };
+    //type cast here so TS won't complain
+    const typeCasted = params as Parameters<typeof trackIntegrationEvent>[0];
+    trackIntegrationEvent(typeCasted, this.props.organization);
   };
 
   //Returns the props as needed by the hooks integrations:feature-gates

@@ -28,6 +28,10 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     ];
   }
 
+  get integrationType() {
+    return 'plugin' as const;
+  }
+
   get plugin() {
     return this.state.plugins[0];
   }
@@ -157,6 +161,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
             projectItem={projectItem}
             onResetConfiguration={this.handleResetConfiguration}
             onEnablePlugin={this.handleEnablePlugin}
+            trackIntegrationEvent={this.trackIntegrationEvent}
           />
         ))}
       </div>

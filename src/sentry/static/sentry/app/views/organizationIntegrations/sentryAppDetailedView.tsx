@@ -54,14 +54,19 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
       router,
     } = this.props;
 
-    return (
-      this.sentryApp.status === 'internal' &&
-      router.push(`/settings/${organization.slug}/developer-settings/${integrationSlug}/`)
-    );
+    //redirect for internal integrations
+    if (this.sentryApp.status === 'internal') {
+      router.push(
+        `/settings/${organization.slug}/developer-settings/${integrationSlug}/`
+      );
+      return;
+    }
+
+    super.onLoadAllEndpointsSuccess();
   }
 
   get integrationType() {
-    return 'sentry_app';
+    return 'sentry_app' as const;
   }
 
   get sentryApp() {
