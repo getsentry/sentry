@@ -221,7 +221,7 @@ class SnubaProtocolEventStream(EventStream):
         _type,
         extra_data=(),
         asynchronous=True,
-        headers=None,  # type: Optional[Mapping[str, str]]
+        headers=None,  # Optional[Mapping[str, str]]
     ):
         raise NotImplementedError
 
@@ -233,7 +233,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         _type,
         extra_data=(),
         asynchronous=True,
-        headers=None,  # type: Optional[Mapping[str, str]]
+        headers=None,  # Optional[Mapping[str, str]]
     ):
         if headers is None:
             headers = {}

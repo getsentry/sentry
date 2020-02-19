@@ -34,7 +34,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         _type,
         extra_data=(),
         asynchronous=True,
-        headers=None,  # type: Optional[Mapping[str, str]]
+        headers=None,  # Optional[Mapping[str, str]]
     ):
         if headers is None:
             headers = {}
