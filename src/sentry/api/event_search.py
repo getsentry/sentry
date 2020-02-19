@@ -924,7 +924,7 @@ FUNCTIONS = {
     "rpm": {
         "name": "rpm",
         "args": [
-            {"name": "interval", "type": NUMBER, "validator": lambda v: (v > 0, "must be positive integer")},
+            {"name": "interval", "type": NUMBER, "validator": lambda v: (v >= 60, "can't be less than 60 seconds")},
         ],
         "transform": "divide(count(), divide(%(interval)d, 60))",
     },
