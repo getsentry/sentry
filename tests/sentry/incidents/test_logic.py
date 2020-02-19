@@ -25,7 +25,6 @@ from sentry.incidents.logic import (
     bulk_get_incident_aggregates,
     bulk_get_incident_event_stats,
     bulk_get_incident_stats,
-    calculate_incident_start,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
@@ -45,7 +44,6 @@ from sentry.incidents.logic import (
     get_incident_event_stats,
     get_incident_subscribers,
     get_triggers_for_alert_rule,
-    INCIDENT_START_ROLLUP,
     ProjectsNotAssociatedWithAlertRuleError,
     subscribe_to_incident,
     update_alert_rule,
@@ -80,7 +78,7 @@ class CreateIncidentTest(TestCase):
     record_event = patcher("sentry.analytics.base.Analytics.record_event")
 
     def test_simple(self):
-        incident_type = IncidentType.CREATED
+        incident_type = IncidentType.ALERT_TRIGGERED
         title = "hello"
         query = "goodbye"
         aggregation = QueryAggregations.UNIQUE_USERS
@@ -110,7 +108,8 @@ class CreateIncidentTest(TestCase):
             alert_rule=alert_rule,
         )
         assert incident.identifier == 1
-        assert incident.status == incident_type.value
+        assert incident.status == IncidentStatus.OPEN.value
+        assert incident.type == incident_type.value
         assert incident.title == title
         assert incident.query == query
         assert incident.aggregation == aggregation.value
@@ -132,7 +131,7 @@ class CreateIncidentTest(TestCase):
         assert (
             IncidentActivity.objects.filter(
                 incident=incident,
-                type=IncidentActivityType.CREATED.value,
+                type=IncidentActivityType.DETECTED.value,
                 event_stats_snapshot__isnull=False,
             ).count()
             == 1
@@ -143,7 +142,7 @@ class CreateIncidentTest(TestCase):
         assert event.data == {
             "organization_id": six.text_type(self.organization.id),
             "incident_id": six.text_type(incident.id),
-            "incident_type": six.text_type(IncidentType.CREATED.value),
+            "incident_type": six.text_type(IncidentType.ALERT_TRIGGERED.value),
         }
 
 
@@ -190,7 +189,7 @@ class UpdateIncidentStatus(TestCase):
     def test_closed(self):
         incident = create_incident(
             self.organization,
-            IncidentType.CREATED,
+            IncidentType.ALERT_TRIGGERED,
             "Test",
             "",
             QueryAggregations.TOTAL,
@@ -444,10 +443,10 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         event_stats_snapshot = create_initial_event_stats_snapshot(incident)
         self.record_event.reset_mock()
         activity = create_incident_activity(
-            incident, IncidentActivityType.CREATED, event_stats_snapshot=event_stats_snapshot
+            incident, IncidentActivityType.DETECTED, event_stats_snapshot=event_stats_snapshot
         )
         assert activity.incident == incident
-        assert activity.type == IncidentActivityType.CREATED.value
+        assert activity.type == IncidentActivityType.DETECTED.value
         assert activity.value is None
         assert activity.previous_value is None
 
@@ -583,7 +582,7 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
     def test(self):
         closed_incident = create_incident(
             self.organization,
-            IncidentType.CREATED,
+            IncidentType.ALERT_TRIGGERED,
             "Closed",
             "",
             QueryAggregations.TOTAL,
@@ -593,7 +592,7 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
         update_incident_status(closed_incident, IncidentStatus.CLOSED)
         open_incident = create_incident(
             self.organization,
-            IncidentType.CREATED,
+            IncidentType.ALERT_TRIGGERED,
             "Open",
             "",
             QueryAggregations.TOTAL,
@@ -870,67 +869,6 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
         assert Incident.objects.filter(id=incident.id, alert_rule_id__isnull=True).exists()
-
-
-@freeze_time()
-class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
-    def test_empty(self):
-        assert timezone.now() == calculate_incident_start("", [self.project], [])
-
-    def test_single_event(self):
-        start = self.now - timedelta(minutes=2)
-        event = self.create_event(start)
-        assert start == calculate_incident_start("", [self.project], [event.group])
-
-    def test_single_spike(self):
-        fingerprint = "hello"
-        start = self.now - (INCIDENT_START_ROLLUP * 2)
-        for _ in range(3):
-            event = self.create_event(start, fingerprint=fingerprint)
-
-        end = self.now - INCIDENT_START_ROLLUP
-        for _ in range(4):
-            event = self.create_event(end, fingerprint=fingerprint)
-        assert start + ((end - start) / 3) == calculate_incident_start(
-            "", [self.project], [event.group]
-        )
-
-    def test_multiple_same_size_spikes(self):
-        # The most recent spike should take precedence
-        fingerprint = "hello"
-        older_spike = self.now - (INCIDENT_START_ROLLUP * 3)
-        for _ in range(3):
-            event = self.create_event(older_spike, fingerprint=fingerprint)
-
-        newer_spike = self.now - INCIDENT_START_ROLLUP
-        for _ in range(3):
-            event = self.create_event(newer_spike, fingerprint=fingerprint)
-        assert newer_spike == calculate_incident_start("", [self.project], [event.group])
-
-    def test_multiple_spikes_large_older(self):
-        # The older spike should take precedence because it's much larger
-        fingerprint = "hello"
-        older_spike = self.now - (INCIDENT_START_ROLLUP * 2)
-        for _ in range(4):
-            event = self.create_event(older_spike, fingerprint=fingerprint)
-
-        newer_spike = self.now - INCIDENT_START_ROLLUP
-        for _ in range(2):
-            event = self.create_event(newer_spike, fingerprint=fingerprint)
-        assert older_spike == calculate_incident_start("", [self.project], [event.group])
-
-    def test_multiple_spikes_large_much_older(self):
-        # The most recent spike should take precedence because even though the
-        # older spike is larger, it's much older.
-        fingerprint = "hello"
-        older_spike = self.now - (INCIDENT_START_ROLLUP * 1000)
-        for _ in range(3):
-            event = self.create_event(older_spike, fingerprint=fingerprint)
-
-        newer_spike = self.now - INCIDENT_START_ROLLUP
-        for _ in range(2):
-            event = self.create_event(newer_spike, fingerprint=fingerprint)
-        assert newer_spike == calculate_incident_start("", [self.project], [event.group])
 
 
 class TestGetExcludedProjectsForAlertRule(TestCase):

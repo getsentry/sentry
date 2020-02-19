@@ -23,7 +23,6 @@ import {
 import ImageForBar from 'app/components/events/interfaces/imageForBar';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
 
 const IMAGE_ADDR_LEN = 12;
 const MIN_FILTER_LEN = 3;
@@ -427,14 +426,9 @@ class DebugMetaInterface extends React.PureComponent {
     const filteredImages = images.filter(image => this.filterImage(image));
 
     const titleElement = (
-      <div>
-        <GuideAnchor target="packages" position="top">
-          <AlignItems>
-            <ImagesTitle>{t('Images Loaded')}</ImagesTitle>
-            {this.renderToolbar()}
-          </AlignItems>
-        </GuideAnchor>
-      </div>
+      <GuideAnchor target="packages" position="top">
+        <h3>{t('Images Loaded')}</h3>
+      </GuideAnchor>
     );
 
     const frames = get(
@@ -450,6 +444,7 @@ class DebugMetaInterface extends React.PureComponent {
         event={this.props.event}
         type="packages"
         title={titleElement}
+        actions={this.renderToolbar()}
         wrapTitle={false}
       >
         <DebugImagesPanel>
@@ -479,19 +474,6 @@ class DebugMetaInterface extends React.PureComponent {
     );
   }
 }
-
-//remove important once less files are gone
-const AlignItems = styled('div')`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  margin-bottom: ${space(3)};
-`;
-const ImagesTitle = styled('h3')`
-  margin-bottom: 0 !important;
-  padding-right: ${space(1)};
-`;
 
 const Label = styled('label')`
   font-weight: normal;
@@ -566,8 +548,9 @@ const SymbolicationStatus = styled('span')`
 `;
 
 const EmptyItem = styled(PanelItem)`
-  display: block;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   ${ImageIcon} {
     opacity: 0.4;

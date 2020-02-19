@@ -12,6 +12,7 @@ import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {escape} from 'app/utils';
 import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
@@ -98,11 +99,21 @@ class ReleaseSeries extends React.Component {
         },
         tooltip: tooltip || {
           formatter: ({data}) => {
-            return `<div>${moment
+            const time = moment
               .tz(data.value, utc ? 'UTC' : getUserTimezone())
-              .format('MMM D, YYYY LT')} <br />
-            Release: ${formatVersion(data.name, true)}<br />
-            </div>`;
+              .format('MMM D, YYYY LT');
+            const version = escape(formatVersion(data.name, true));
+            return [
+              '<div class="tooltip-series">',
+              `<div><span class="tooltip-label"><strong>${t(
+                'Release'
+              )}</strong></span> ${version}</div>`,
+              '</div>',
+              '<div class="tooltip-date">',
+              time,
+              '</div>',
+              '</div>',
+            ].join('');
           },
         },
         label: {
@@ -113,9 +124,12 @@ class ReleaseSeries extends React.Component {
           name: formatVersion(release.version, true),
           value: formatVersion(release.version, true),
           onClick: () => {
-            router.push(
-              `/organizations/${organization.slug}/releases/${release.version}/`
-            );
+            router.push({
+              pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
+              query: new Set(organization.features).has('global-views')
+                ? undefined
+                : {project: router.location.query.project},
+            });
           },
           label: {
             formatter: () => formatVersion(release.version, true),

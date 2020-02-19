@@ -63,11 +63,11 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
         ).exists()
 
     def test_invalid_types(self):
-        for activity_type in (IncidentActivityType.CREATED, IncidentActivityType.DETECTED):
-            activity = create_incident_activity(self.incident, activity_type)
-            send_subscriber_notifications(activity.id)
-            self.send_async.assert_not_called()  # NOQA
-            self.send_async.reset_mock()
+        activity_type = IncidentActivityType.DETECTED
+        activity = create_incident_activity(self.incident, activity_type)
+        send_subscriber_notifications(activity.id)
+        self.send_async.assert_not_called()  # NOQA
+        self.send_async.reset_mock()
 
 
 class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):

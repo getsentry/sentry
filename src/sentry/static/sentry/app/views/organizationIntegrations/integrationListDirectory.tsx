@@ -1,6 +1,5 @@
 import groupBy from 'lodash/groupBy';
 import React from 'react';
-import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {
@@ -11,23 +10,22 @@ import {
   SentryAppInstallation,
   PluginWithProjectList,
 } from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
 } from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import IntegrationRow from './integrationRow';
+import {legacyIds} from './constants';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
@@ -254,16 +252,6 @@ export class OrganizationIntegrations extends AsyncComponent<
   renderPlugin = (plugin: PluginWithProjectList) => {
     const {organization} = this.props;
 
-    const legacyIds = [
-      'jira',
-      'bitbucket',
-      'github',
-      'gitlab',
-      'slack',
-      'pagerduty',
-      'clubhouse',
-      'vsts',
-    ];
     const isLegacy = legacyIds.includes(plugin.id);
     const displayName = `${plugin.name} ${!!isLegacy ? '(Legacy)' : ''}`;
     //hide legacy integrations if we don't have any projects with them
@@ -316,51 +304,34 @@ export class OrganizationIntegrations extends AsyncComponent<
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {reloading, displayedList} = this.state;
+    const {displayedList} = this.state;
 
     const title = t('Integrations');
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
-        {!this.props.hideHeader && <SettingsPageHeader title={title} />}
-        <PermissionAlert access={['org:integrations']} />
-        <SearchContainer>
-          <SearchInput
-            value={this.state.searchInput || ''}
-            onChange={this.onSearchChange}
-            placeholder="Find a new integration, or one you already use."
-            width="100%"
+
+        {!this.props.hideHeader && (
+          <SettingsPageHeader
+            title={title}
+            action={
+              <SearchInput
+                value={this.state.searchInput || ''}
+                onChange={this.onSearchChange}
+                placeholder="Search Integrations..."
+                width="25em"
+              />
+            }
           />
-        </SearchContainer>
+        )}
+
+        <PermissionAlert access={['org:integrations']} />
         <Panel>
-          <PanelHeader disablePadding>
-            <Heading>{t('Integrations')}</Heading>
-            {reloading && <StyledLoadingIndicator mini />}
-          </PanelHeader>
           <PanelBody>{displayedList.map(this.renderIntegration)}</PanelBody>
         </Panel>
       </React.Fragment>
     );
   }
 }
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  position: absolute;
-  right: 7px;
-  top: 50%;
-  transform: translateY(-16px);
-`;
-
-const Heading = styled('div')`
-  flex: 1;
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-`;
-
-const SearchContainer = styled('div')`
-  display: flex;
-  width: 100%;
-  margin-bottom: ${space(2)};
-`;
 
 export default withOrganization(OrganizationIntegrations);
