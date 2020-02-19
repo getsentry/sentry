@@ -148,6 +148,18 @@ class OrganizationSearchPermission(OrganizationPermission):
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
+    def get_requested_project_ids(self, request):
+        """
+        Returns the project ids that were requested by the request.
+
+        To determine the projects to filter this endpoint by with full
+        permission checking, use ``get_projects``, instead.
+        """
+        try:
+            return set(map(int, request.GET.getlist("project")))
+        except ValueError:
+            raise ParseError(detail="Invalid project parameter. Values must be numbers.")
+
     def get_projects(
         self, request, organization, force_global_perms=False, include_all_accessible=False
     ):
@@ -171,10 +183,7 @@ class OrganizationEndpoint(Endpoint):
         standardize how this is used and remove this parameter.
         :return: A list of Project objects, or raises PermissionDenied.
         """
-        try:
-            project_ids = set(map(int, request.GET.getlist("project")))
-        except ValueError:
-            raise ParseError(detail="Invalid project parameter. Values must be numbers.")
+        project_ids = self.get_requested_project_ids(request)
         return self._get_projects_by_id(
             project_ids, request, organization, force_global_perms, include_all_accessible
         )
@@ -317,7 +326,8 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         on the projects to which the release is attached?
 
         If the given request has an actor (user or ApiKey), cache the results
-        for a minute on the unique combination of actor,org,release.
+        for a minute on the unique combination of actor,org,release, and project
+        ids.
         """
         actor_id = None
         has_perms = None
@@ -326,7 +336,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if getattr(request, "auth", None) and request.auth.id:
             actor_id = "apikey:%s" % request.auth.id
         if actor_id is not None:
-            key = "release_perms:1:%s" % hash_values([actor_id, organization.id, release.id])
+            project_ids = sorted(self.get_requested_project_ids(request))
+            key = "release_perms:1:%s" % hash_values(
+                [actor_id, organization.id, release.id] + project_ids
+            )
             has_perms = cache.get(key)
         if has_perms is None:
             has_perms = ReleaseProject.objects.filter(

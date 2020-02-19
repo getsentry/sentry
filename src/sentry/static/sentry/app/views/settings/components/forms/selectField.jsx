@@ -60,23 +60,13 @@ export default class SelectField extends React.Component {
       <InputField
         {...otherProps}
         alignRight={this.props.small}
-        field={({onChange, onBlur, disabled, required: _required, ...props}) => {
-          // We remove the required property here since applying it to the
-          // DOM causes the native tooltip to render in strange places.
-          const choices = getChoices(props);
-
+        field={({onChange, onBlur, required: _required, ...props}) => {
           return (
             <SelectControl
               {...props}
               clearable={allowClear}
               multiple={multiple}
-              disabled={disabled}
               onChange={this.handleChange.bind(this, onBlur, onChange)}
-              value={props.value}
-              options={choices.map(([value, label]) => ({
-                value,
-                label,
-              }))}
             />
           );
         }}

@@ -20,68 +20,70 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
       setPlatform={[Function]}
       showOther={true}
     />
-    <CreateProjectForm
-      onSubmit={[Function]}
-    >
-      <div>
-        <FormLabel>
-          Give your project a name
-        </FormLabel>
-        <ProjectNameInput>
-          <ProjectPlatformIcon
-            monoTone={true}
-            platform=""
-          />
-          <input
-            autoComplete="off"
-            label="Project Name"
-            name="name"
-            onChange={[Function]}
-            placeholder="Project name"
-            type="text"
-            value=""
-          />
-        </ProjectNameInput>
-      </div>
-      <div>
-        <FormLabel>
-          Assign a Team
-        </FormLabel>
-        <TeamSelectInput>
-          <ForwardRef(RefForwardedSelectControl)
-            clearable={false}
-            deprecatedSelectControl={true}
-            name="select-team"
-            onChange={[Function]}
-            options={Array []}
-            placeholder="Select a Team"
-            value={0}
-          />
-          <Tooltip
-            containerDisplayMode="inline-block"
-            position="top"
-            title="Create a team"
-          >
-            <forwardRef<Button>
-              borderless={true}
-              data-test-id="create-team"
-              icon="icon-circle-add"
-              onClick={[Function]}
-              type="button"
+    <StickyWrapper>
+      <CreateProjectForm
+        onSubmit={[Function]}
+      >
+        <div>
+          <FormLabel>
+            Give your project a name
+          </FormLabel>
+          <ProjectNameInput>
+            <ProjectPlatformIcon
+              monoTone={true}
+              platform=""
             />
-          </Tooltip>
-        </TeamSelectInput>
-      </div>
-      <div>
-        <forwardRef<Button>
-          data-test-id="create-project"
-          disabled={true}
-          priority="primary"
-        >
-          Create Project
-        </forwardRef<Button>>
-      </div>
-    </CreateProjectForm>
+            <input
+              autoComplete="off"
+              label="Project Name"
+              name="name"
+              onChange={[Function]}
+              placeholder="Project name"
+              type="text"
+              value=""
+            />
+          </ProjectNameInput>
+        </div>
+        <div>
+          <FormLabel>
+            Assign a Team
+          </FormLabel>
+          <TeamSelectInput>
+            <ForwardRef(RefForwardedSelectControl)
+              clearable={false}
+              deprecatedSelectControl={true}
+              name="select-team"
+              onChange={[Function]}
+              options={Array []}
+              placeholder="Select a Team"
+              value={0}
+            />
+            <Tooltip
+              containerDisplayMode="inline-block"
+              position="top"
+              title="Create a team"
+            >
+              <forwardRef<Button>
+                borderless={true}
+                data-test-id="create-team"
+                icon="icon-circle-add"
+                onClick={[Function]}
+                type="button"
+              />
+            </Tooltip>
+          </TeamSelectInput>
+        </div>
+        <div>
+          <forwardRef<Button>
+            data-test-id="create-project"
+            disabled={true}
+            priority="primary"
+          >
+            Create Project
+          </forwardRef<Button>>
+        </div>
+      </CreateProjectForm>
+    </StickyWrapper>
   </div>
 </Fragment>
 `;
@@ -1226,116 +1228,91 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
         </div>
       </PlatformList>
     </PlatformPicker>
-    <CreateProjectForm
-      onSubmit={[Function]}
-    >
-      <form
-        className="css-8zz3uw-CreateProjectForm e19kiapg0"
-        onSubmit={[Function]}
+    <StickyWrapper>
+      <div
+        className="css-1n1wv6u-StickyWrapper e19kiapg6"
       >
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Give your project a name
-            </div>
-          </FormLabel>
-          <ProjectNameInput>
-            <div
-              className="css-9ctizw-ProjectNameInput e19kiapg3"
-            >
-              <ProjectPlatformIcon
-                monoTone={true}
-                platform=""
-              >
+        <CreateProjectForm
+          onSubmit={[Function]}
+        >
+          <form
+            className="css-1dq1lt0-CreateProjectForm e19kiapg0"
+            onSubmit={[Function]}
+          >
+            <div>
+              <FormLabel>
                 <div
-                  className="css-12loq7n-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
-                />
-              </ProjectPlatformIcon>
-              <input
-                autoComplete="off"
-                label="Project Name"
-                name="name"
-                onChange={[Function]}
-                placeholder="Project name"
-                type="text"
-                value=""
-              />
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Give your project a name
+                </div>
+              </FormLabel>
+              <ProjectNameInput>
+                <div
+                  className="css-9ctizw-ProjectNameInput e19kiapg3"
+                >
+                  <ProjectPlatformIcon
+                    monoTone={true}
+                    platform=""
+                  >
+                    <div
+                      className="css-12loq7n-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
+                    />
+                  </ProjectPlatformIcon>
+                  <input
+                    autoComplete="off"
+                    label="Project Name"
+                    name="name"
+                    onChange={[Function]}
+                    placeholder="Project name"
+                    type="text"
+                    value=""
+                  />
+                </div>
+              </ProjectNameInput>
             </div>
-          </ProjectNameInput>
-        </div>
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Assign a Team
-            </div>
-          </FormLabel>
-          <TeamSelectInput>
-            <div
-              className="css-15lxetg-TeamSelectInput e19kiapg4"
-            >
-              <ForwardRef(RefForwardedSelectControl)
-                clearable={false}
-                deprecatedSelectControl={true}
-                name="select-team"
-                onChange={[Function]}
-                options={Array []}
-                placeholder="Select a Team"
-                value={0}
-              >
-                <SelectControl
-                  clearable={false}
-                  deprecatedSelectControl={true}
-                  forwardedRef={null}
-                  name="select-team"
-                  onChange={[Function]}
-                  options={Array []}
-                  placeholder="Select a Team"
-                  value={0}
+            <div>
+              <FormLabel>
+                <div
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Assign a Team
+                </div>
+              </FormLabel>
+              <TeamSelectInput>
+                <div
+                  className="css-15lxetg-TeamSelectInput e19kiapg4"
                 >
                   <ForwardRef(RefForwardedSelectControl)
                     clearable={false}
-                    forwardedRef={null}
+                    deprecatedSelectControl={true}
                     name="select-team"
                     onChange={[Function]}
                     options={Array []}
                     placeholder="Select a Team"
                     value={0}
                   >
-                    <SelectControlLegacy
+                    <SelectControl
                       clearable={false}
+                      deprecatedSelectControl={true}
                       forwardedRef={null}
-                      height={36}
-                      multiple={false}
                       name="select-team"
                       onChange={[Function]}
                       options={Array []}
                       placeholder="Select a Team"
                       value={0}
                     >
-                      <StyledSelect
-                        arrowRenderer={[Function]}
-                        backspaceRemoves={false}
+                      <ForwardRef(RefForwardedSelectControl)
                         clearable={false}
-                        deleteRemoves={false}
                         forwardedRef={null}
-                        height={36}
-                        multiple={false}
                         name="select-team"
                         onChange={[Function]}
                         options={Array []}
                         placeholder="Select a Team"
                         value={0}
                       >
-                        <SelectPicker
-                          arrowRenderer={[Function]}
-                          backspaceRemoves={false}
-                          className="css-140v9or-StyledSelect e1ynsgsr0"
+                        <SelectControlLegacy
                           clearable={false}
-                          deleteRemoves={false}
                           forwardedRef={null}
                           height={36}
                           multiple={false}
@@ -1345,350 +1322,381 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                           placeholder="Select a Team"
                           value={0}
                         >
-                          <Select
+                          <StyledSelect
                             arrowRenderer={[Function]}
-                            autosize={true}
                             backspaceRemoves={false}
-                            backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="css-140v9or-StyledSelect e1ynsgsr0"
-                            clearAllText="Clear all"
-                            clearRenderer={[Function]}
-                            clearValueText="Clear value"
                             clearable={false}
-                            closeOnSelect={true}
                             deleteRemoves={false}
-                            delimiter=","
-                            disabled={false}
-                            escapeClearsValue={true}
-                            filterOptions={[Function]}
+                            forwardedRef={null}
                             height={36}
-                            ignoreAccents={true}
-                            ignoreCase={true}
-                            inputProps={Object {}}
-                            isLoading={false}
-                            joinValues={false}
-                            labelKey="label"
-                            matchPos="any"
-                            matchProp="any"
-                            menuBuffer={0}
-                            menuRenderer={[Function]}
-                            multi={false}
                             multiple={false}
                             name="select-team"
-                            noResultsText="No results found"
-                            onBlurResetsInput={true}
                             onChange={[Function]}
-                            onCloseResetsInput={true}
-                            onSelectResetsInput={true}
-                            openOnClick={true}
-                            optionComponent={[Function]}
                             options={Array []}
-                            pageSize={5}
                             placeholder="Select a Team"
-                            removeSelected={true}
-                            required={false}
-                            rtl={false}
-                            scrollMenuIntoView={true}
-                            searchable={true}
-                            simpleValue={false}
-                            tabSelectsValue={true}
-                            trimFilter={true}
                             value={0}
-                            valueComponent={[Function]}
-                            valueKey="value"
                           >
-                            <div
-                              className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                            <SelectPicker
+                              arrowRenderer={[Function]}
+                              backspaceRemoves={false}
+                              className="css-140v9or-StyledSelect e1ynsgsr0"
+                              clearable={false}
+                              deleteRemoves={false}
+                              forwardedRef={null}
+                              height={36}
+                              multiple={false}
+                              name="select-team"
+                              onChange={[Function]}
+                              options={Array []}
+                              placeholder="Select a Team"
+                              value={0}
                             >
-                              <div
-                                className="Select-control"
-                                onKeyDown={[Function]}
-                                onMouseDown={[Function]}
-                                onTouchEnd={[Function]}
-                                onTouchMove={[Function]}
-                                onTouchStart={[Function]}
+                              <Select
+                                arrowRenderer={[Function]}
+                                autosize={true}
+                                backspaceRemoves={false}
+                                backspaceToRemoveMessage="Press backspace to remove {label}"
+                                className="css-140v9or-StyledSelect e1ynsgsr0"
+                                clearAllText="Clear all"
+                                clearRenderer={[Function]}
+                                clearValueText="Clear value"
+                                clearable={false}
+                                closeOnSelect={true}
+                                deleteRemoves={false}
+                                delimiter=","
+                                disabled={false}
+                                escapeClearsValue={true}
+                                filterOptions={[Function]}
+                                height={36}
+                                ignoreAccents={true}
+                                ignoreCase={true}
+                                inputProps={Object {}}
+                                isLoading={false}
+                                joinValues={false}
+                                labelKey="label"
+                                matchPos="any"
+                                matchProp="any"
+                                menuBuffer={0}
+                                menuRenderer={[Function]}
+                                multi={false}
+                                multiple={false}
+                                name="select-team"
+                                noResultsText="No results found"
+                                onBlurResetsInput={true}
+                                onChange={[Function]}
+                                onCloseResetsInput={true}
+                                onSelectResetsInput={true}
+                                openOnClick={true}
+                                optionComponent={[Function]}
+                                options={Array []}
+                                pageSize={5}
+                                placeholder="Select a Team"
+                                removeSelected={true}
+                                required={false}
+                                rtl={false}
+                                scrollMenuIntoView={true}
+                                searchable={true}
+                                simpleValue={false}
+                                tabSelectsValue={true}
+                                trimFilter={true}
+                                value={0}
+                                valueComponent={[Function]}
+                                valueKey="value"
                               >
                                 <div
-                                  className="Select-multi-value-wrapper"
-                                  id="react-select-5--value"
+                                  className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
                                 >
                                   <div
-                                    className="Select-placeholder"
-                                  >
-                                    Select a Team
-                                  </div>
-                                  <AutosizeInput
-                                    aria-activedescendant="react-select-5--value"
-                                    aria-expanded="false"
-                                    aria-haspopup="false"
-                                    aria-owns=""
-                                    className="Select-input"
-                                    injectStyles={true}
-                                    minWidth="5"
-                                    onBlur={[Function]}
-                                    onChange={[Function]}
-                                    onFocus={[Function]}
-                                    required={false}
-                                    role="combobox"
-                                    value=""
+                                    className="Select-control"
+                                    onKeyDown={[Function]}
+                                    onMouseDown={[Function]}
+                                    onTouchEnd={[Function]}
+                                    onTouchMove={[Function]}
+                                    onTouchStart={[Function]}
                                   >
                                     <div
-                                      className="Select-input"
-                                      style={
-                                        Object {
-                                          "display": "inline-block",
-                                        }
-                                      }
+                                      className="Select-multi-value-wrapper"
+                                      id="react-select-5--value"
                                     >
-                                      <input
+                                      <div
+                                        className="Select-placeholder"
+                                      >
+                                        Select a Team
+                                      </div>
+                                      <AutosizeInput
                                         aria-activedescendant="react-select-5--value"
                                         aria-expanded="false"
                                         aria-haspopup="false"
                                         aria-owns=""
+                                        className="Select-input"
+                                        injectStyles={true}
+                                        minWidth="5"
                                         onBlur={[Function]}
                                         onChange={[Function]}
                                         onFocus={[Function]}
                                         required={false}
                                         role="combobox"
-                                        style={
-                                          Object {
-                                            "boxSizing": "content-box",
-                                            "width": "5px",
-                                          }
-                                        }
                                         value=""
-                                      />
-                                      <div
-                                        style={
-                                          Object {
-                                            "height": 0,
-                                            "left": 0,
-                                            "overflow": "scroll",
-                                            "position": "absolute",
-                                            "top": 0,
-                                            "visibility": "hidden",
-                                            "whiteSpace": "pre",
+                                      >
+                                        <div
+                                          className="Select-input"
+                                          style={
+                                            Object {
+                                              "display": "inline-block",
+                                            }
                                           }
-                                        }
-                                      />
+                                        >
+                                          <input
+                                            aria-activedescendant="react-select-5--value"
+                                            aria-expanded="false"
+                                            aria-haspopup="false"
+                                            aria-owns=""
+                                            onBlur={[Function]}
+                                            onChange={[Function]}
+                                            onFocus={[Function]}
+                                            required={false}
+                                            role="combobox"
+                                            style={
+                                              Object {
+                                                "boxSizing": "content-box",
+                                                "width": "5px",
+                                              }
+                                            }
+                                            value=""
+                                          />
+                                          <div
+                                            style={
+                                              Object {
+                                                "height": 0,
+                                                "left": 0,
+                                                "overflow": "scroll",
+                                                "position": "absolute",
+                                                "top": 0,
+                                                "visibility": "hidden",
+                                                "whiteSpace": "pre",
+                                              }
+                                            }
+                                          />
+                                        </div>
+                                      </AutosizeInput>
                                     </div>
-                                  </AutosizeInput>
+                                    <span
+                                      className="Select-arrow-zone"
+                                      onMouseDown={[Function]}
+                                    >
+                                      <span
+                                        className="icon-arrow-down"
+                                      />
+                                    </span>
+                                  </div>
                                 </div>
-                                <span
-                                  className="Select-arrow-zone"
-                                  onMouseDown={[Function]}
-                                >
-                                  <span
-                                    className="icon-arrow-down"
-                                  />
-                                </span>
-                              </div>
-                            </div>
-                          </Select>
-                        </SelectPicker>
-                      </StyledSelect>
-                    </SelectControlLegacy>
+                              </Select>
+                            </SelectPicker>
+                          </StyledSelect>
+                        </SelectControlLegacy>
+                      </ForwardRef(RefForwardedSelectControl)>
+                    </SelectControl>
                   </ForwardRef(RefForwardedSelectControl)>
-                </SelectControl>
-              </ForwardRef(RefForwardedSelectControl)>
-              <Tooltip
-                containerDisplayMode="inline-block"
-                position="top"
-                title="Create a team"
-              >
-                <Manager>
-                  <Reference>
-                    <InnerReference
-                      setReferenceNode={[Function]}
-                    >
-                      <Container
-                        aria-describedby="tooltip-123456"
-                        containerDisplayMode="inline-block"
-                        onBlur={[Function]}
-                        onFocus={[Function]}
-                        onMouseEnter={[Function]}
-                        onMouseLeave={[Function]}
-                      >
-                        <span
-                          aria-describedby="tooltip-123456"
-                          className="css-sce1yi-Container eowlwvy0"
-                          onBlur={[Function]}
-                          onFocus={[Function]}
-                          onMouseEnter={[Function]}
-                          onMouseLeave={[Function]}
+                  <Tooltip
+                    containerDisplayMode="inline-block"
+                    position="top"
+                    title="Create a team"
+                  >
+                    <Manager>
+                      <Reference>
+                        <InnerReference
+                          setReferenceNode={[Function]}
                         >
-                          <forwardRef<Button>
-                            borderless={true}
-                            data-test-id="create-team"
-                            icon="icon-circle-add"
-                            onClick={[Function]}
-                            type="button"
+                          <Container
+                            aria-describedby="tooltip-123456"
+                            containerDisplayMode="inline-block"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <Button
-                              align="center"
-                              borderless={true}
-                              data-test-id="create-team"
-                              disabled={false}
-                              forwardRef={null}
-                              icon="icon-circle-add"
-                              onClick={[Function]}
-                              type="button"
+                            <span
+                              aria-describedby="tooltip-123456"
+                              className="css-sce1yi-Container eowlwvy0"
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
                             >
-                              <StyledButton
-                                aria-disabled={false}
+                              <forwardRef<Button>
                                 borderless={true}
                                 data-test-id="create-team"
-                                disabled={false}
-                                forwardRef={null}
+                                icon="icon-circle-add"
                                 onClick={[Function]}
-                                role="button"
                                 type="button"
                               >
-                                <Component
-                                  aria-disabled={false}
-                                  className="css-e1k74m-StyledButton edwq9my0"
+                                <Button
+                                  align="center"
+                                  borderless={true}
                                   data-test-id="create-team"
+                                  disabled={false}
                                   forwardRef={null}
+                                  icon="icon-circle-add"
                                   onClick={[Function]}
-                                  role="button"
                                   type="button"
                                 >
-                                  <button
+                                  <StyledButton
                                     aria-disabled={false}
-                                    className="css-e1k74m-StyledButton edwq9my0"
+                                    borderless={true}
                                     data-test-id="create-team"
+                                    disabled={false}
+                                    forwardRef={null}
                                     onClick={[Function]}
                                     role="button"
                                     type="button"
                                   >
-                                    <ButtonLabel
-                                      align="center"
-                                      borderless={true}
+                                    <Component
+                                      aria-disabled={false}
+                                      className="css-e1k74m-StyledButton edwq9my0"
+                                      data-test-id="create-team"
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      role="button"
+                                      type="button"
                                     >
-                                      <Component
-                                        align="center"
-                                        borderless={true}
-                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      <button
+                                        aria-disabled={false}
+                                        className="css-e1k74m-StyledButton edwq9my0"
+                                        data-test-id="create-team"
+                                        onClick={[Function]}
+                                        role="button"
+                                        type="button"
                                       >
-                                        <span
-                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                        <ButtonLabel
+                                          align="center"
+                                          borderless={true}
                                         >
-                                          <Icon
-                                            hasChildren={false}
+                                          <Component
+                                            align="center"
+                                            borderless={true}
+                                            className="css-cmi7y3-ButtonLabel edwq9my1"
                                           >
-                                            <Component
-                                              className="css-heib7e-Icon edwq9my2"
-                                              hasChildren={false}
+                                            <span
+                                              className="css-cmi7y3-ButtonLabel edwq9my1"
                                             >
-                                              <span
-                                                className="css-heib7e-Icon edwq9my2"
+                                              <Icon
+                                                hasChildren={false}
                                               >
-                                                <StyledInlineSvg
-                                                  size="14px"
-                                                  src="icon-circle-add"
+                                                <Component
+                                                  className="css-heib7e-Icon edwq9my2"
+                                                  hasChildren={false}
                                                 >
-                                                  <ForwardRef
-                                                    className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                    size="14px"
-                                                    src="icon-circle-add"
+                                                  <span
+                                                    className="css-heib7e-Icon edwq9my2"
                                                   >
-                                                    <svg
-                                                      className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                      height="14px"
-                                                      viewBox={Object {}}
-                                                      width="14px"
+                                                    <StyledInlineSvg
+                                                      size="14px"
+                                                      src="icon-circle-add"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </ForwardRef>
-                                                </StyledInlineSvg>
-                                              </span>
-                                            </Component>
-                                          </Icon>
-                                        </span>
-                                      </Component>
-                                    </ButtonLabel>
-                                  </button>
-                                </Component>
-                              </StyledButton>
-                            </Button>
-                          </forwardRef<Button>>
-                        </span>
-                      </Container>
-                    </InnerReference>
-                  </Reference>
-                </Manager>
-              </Tooltip>
+                                                      <ForwardRef
+                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                        size="14px"
+                                                        src="icon-circle-add"
+                                                      >
+                                                        <svg
+                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                          height="14px"
+                                                          viewBox={Object {}}
+                                                          width="14px"
+                                                        >
+                                                          <use
+                                                            href="#test"
+                                                            xlinkHref="#test"
+                                                          />
+                                                        </svg>
+                                                      </ForwardRef>
+                                                    </StyledInlineSvg>
+                                                  </span>
+                                                </Component>
+                                              </Icon>
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </forwardRef<Button>>
+                            </span>
+                          </Container>
+                        </InnerReference>
+                      </Reference>
+                    </Manager>
+                  </Tooltip>
+                </div>
+              </TeamSelectInput>
             </div>
-          </TeamSelectInput>
-        </div>
-        <div>
-          <forwardRef<Button>
-            data-test-id="create-project"
-            disabled={true}
-            priority="primary"
-          >
-            <Button
-              align="center"
-              data-test-id="create-project"
-              disabled={true}
-              forwardRef={null}
-              priority="primary"
-            >
-              <StyledButton
-                aria-disabled={true}
-                aria-label="Create Project"
+            <div>
+              <forwardRef<Button>
                 data-test-id="create-project"
                 disabled={true}
-                forwardRef={null}
-                onClick={[Function]}
                 priority="primary"
-                role="button"
               >
-                <Component
-                  aria-disabled={true}
-                  aria-label="Create Project"
-                  className="css-1e3hcbu-StyledButton edwq9my0"
+                <Button
+                  align="center"
                   data-test-id="create-project"
+                  disabled={true}
                   forwardRef={null}
-                  onClick={[Function]}
-                  role="button"
+                  priority="primary"
                 >
-                  <button
+                  <StyledButton
                     aria-disabled={true}
                     aria-label="Create Project"
-                    className="css-1e3hcbu-StyledButton edwq9my0"
                     data-test-id="create-project"
+                    disabled={true}
+                    forwardRef={null}
                     onClick={[Function]}
+                    priority="primary"
                     role="button"
                   >
-                    <ButtonLabel
-                      align="center"
-                      priority="primary"
+                    <Component
+                      aria-disabled={true}
+                      aria-label="Create Project"
+                      className="css-1e3hcbu-StyledButton edwq9my0"
+                      data-test-id="create-project"
+                      forwardRef={null}
+                      onClick={[Function]}
+                      role="button"
                     >
-                      <Component
-                        align="center"
-                        className="css-zmpclt-ButtonLabel edwq9my1"
-                        priority="primary"
+                      <button
+                        aria-disabled={true}
+                        aria-label="Create Project"
+                        className="css-1e3hcbu-StyledButton edwq9my0"
+                        data-test-id="create-project"
+                        onClick={[Function]}
+                        role="button"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
+                        <ButtonLabel
+                          align="center"
+                          priority="primary"
                         >
-                          Create Project
-                        </span>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
-              </StyledButton>
-            </Button>
-          </forwardRef<Button>>
-        </div>
-      </form>
-    </CreateProjectForm>
+                          <Component
+                            align="center"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
+                            priority="primary"
+                          >
+                            <span
+                              className="css-zmpclt-ButtonLabel edwq9my1"
+                            >
+                              Create Project
+                            </span>
+                          </Component>
+                        </ButtonLabel>
+                      </button>
+                    </Component>
+                  </StyledButton>
+                </Button>
+              </forwardRef<Button>>
+            </div>
+          </form>
+        </CreateProjectForm>
+      </div>
+    </StickyWrapper>
   </div>
 </CreateProject>
 `;
@@ -2244,116 +2252,91 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
         </div>
       </PlatformList>
     </PlatformPicker>
-    <CreateProjectForm
-      onSubmit={[Function]}
-    >
-      <form
-        className="css-8zz3uw-CreateProjectForm e19kiapg0"
-        onSubmit={[Function]}
+    <StickyWrapper>
+      <div
+        className="css-1n1wv6u-StickyWrapper e19kiapg6"
       >
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Give your project a name
-            </div>
-          </FormLabel>
-          <ProjectNameInput>
-            <div
-              className="css-9ctizw-ProjectNameInput e19kiapg3"
-            >
-              <ProjectPlatformIcon
-                monoTone={true}
-                platform="ruby"
-              >
+        <CreateProjectForm
+          onSubmit={[Function]}
+        >
+          <form
+            className="css-1dq1lt0-CreateProjectForm e19kiapg0"
+            onSubmit={[Function]}
+          >
+            <div>
+              <FormLabel>
                 <div
-                  className="css-17k22u3-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
-                />
-              </ProjectPlatformIcon>
-              <input
-                autoComplete="off"
-                label="Project Name"
-                name="name"
-                onChange={[Function]}
-                placeholder="Project name"
-                type="text"
-                value="Ruby"
-              />
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Give your project a name
+                </div>
+              </FormLabel>
+              <ProjectNameInput>
+                <div
+                  className="css-9ctizw-ProjectNameInput e19kiapg3"
+                >
+                  <ProjectPlatformIcon
+                    monoTone={true}
+                    platform="ruby"
+                  >
+                    <div
+                      className="css-17k22u3-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
+                    />
+                  </ProjectPlatformIcon>
+                  <input
+                    autoComplete="off"
+                    label="Project Name"
+                    name="name"
+                    onChange={[Function]}
+                    placeholder="Project name"
+                    type="text"
+                    value="Ruby"
+                  />
+                </div>
+              </ProjectNameInput>
             </div>
-          </ProjectNameInput>
-        </div>
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Assign a Team
-            </div>
-          </FormLabel>
-          <TeamSelectInput>
-            <div
-              className="css-15lxetg-TeamSelectInput e19kiapg4"
-            >
-              <ForwardRef(RefForwardedSelectControl)
-                clearable={false}
-                deprecatedSelectControl={true}
-                name="select-team"
-                onChange={[Function]}
-                options={Array []}
-                placeholder="Select a Team"
-                value={0}
-              >
-                <SelectControl
-                  clearable={false}
-                  deprecatedSelectControl={true}
-                  forwardedRef={null}
-                  name="select-team"
-                  onChange={[Function]}
-                  options={Array []}
-                  placeholder="Select a Team"
-                  value={0}
+            <div>
+              <FormLabel>
+                <div
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Assign a Team
+                </div>
+              </FormLabel>
+              <TeamSelectInput>
+                <div
+                  className="css-15lxetg-TeamSelectInput e19kiapg4"
                 >
                   <ForwardRef(RefForwardedSelectControl)
                     clearable={false}
-                    forwardedRef={null}
+                    deprecatedSelectControl={true}
                     name="select-team"
                     onChange={[Function]}
                     options={Array []}
                     placeholder="Select a Team"
                     value={0}
                   >
-                    <SelectControlLegacy
+                    <SelectControl
                       clearable={false}
+                      deprecatedSelectControl={true}
                       forwardedRef={null}
-                      height={36}
-                      multiple={false}
                       name="select-team"
                       onChange={[Function]}
                       options={Array []}
                       placeholder="Select a Team"
                       value={0}
                     >
-                      <StyledSelect
-                        arrowRenderer={[Function]}
-                        backspaceRemoves={false}
+                      <ForwardRef(RefForwardedSelectControl)
                         clearable={false}
-                        deleteRemoves={false}
                         forwardedRef={null}
-                        height={36}
-                        multiple={false}
                         name="select-team"
                         onChange={[Function]}
                         options={Array []}
                         placeholder="Select a Team"
                         value={0}
                       >
-                        <SelectPicker
-                          arrowRenderer={[Function]}
-                          backspaceRemoves={false}
-                          className="css-140v9or-StyledSelect e1ynsgsr0"
+                        <SelectControlLegacy
                           clearable={false}
-                          deleteRemoves={false}
                           forwardedRef={null}
                           height={36}
                           multiple={false}
@@ -2363,350 +2346,381 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                           placeholder="Select a Team"
                           value={0}
                         >
-                          <Select
+                          <StyledSelect
                             arrowRenderer={[Function]}
-                            autosize={true}
                             backspaceRemoves={false}
-                            backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="css-140v9or-StyledSelect e1ynsgsr0"
-                            clearAllText="Clear all"
-                            clearRenderer={[Function]}
-                            clearValueText="Clear value"
                             clearable={false}
-                            closeOnSelect={true}
                             deleteRemoves={false}
-                            delimiter=","
-                            disabled={false}
-                            escapeClearsValue={true}
-                            filterOptions={[Function]}
+                            forwardedRef={null}
                             height={36}
-                            ignoreAccents={true}
-                            ignoreCase={true}
-                            inputProps={Object {}}
-                            isLoading={false}
-                            joinValues={false}
-                            labelKey="label"
-                            matchPos="any"
-                            matchProp="any"
-                            menuBuffer={0}
-                            menuRenderer={[Function]}
-                            multi={false}
                             multiple={false}
                             name="select-team"
-                            noResultsText="No results found"
-                            onBlurResetsInput={true}
                             onChange={[Function]}
-                            onCloseResetsInput={true}
-                            onSelectResetsInput={true}
-                            openOnClick={true}
-                            optionComponent={[Function]}
                             options={Array []}
-                            pageSize={5}
                             placeholder="Select a Team"
-                            removeSelected={true}
-                            required={false}
-                            rtl={false}
-                            scrollMenuIntoView={true}
-                            searchable={true}
-                            simpleValue={false}
-                            tabSelectsValue={true}
-                            trimFilter={true}
                             value={0}
-                            valueComponent={[Function]}
-                            valueKey="value"
                           >
-                            <div
-                              className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                            <SelectPicker
+                              arrowRenderer={[Function]}
+                              backspaceRemoves={false}
+                              className="css-140v9or-StyledSelect e1ynsgsr0"
+                              clearable={false}
+                              deleteRemoves={false}
+                              forwardedRef={null}
+                              height={36}
+                              multiple={false}
+                              name="select-team"
+                              onChange={[Function]}
+                              options={Array []}
+                              placeholder="Select a Team"
+                              value={0}
                             >
-                              <div
-                                className="Select-control"
-                                onKeyDown={[Function]}
-                                onMouseDown={[Function]}
-                                onTouchEnd={[Function]}
-                                onTouchMove={[Function]}
-                                onTouchStart={[Function]}
+                              <Select
+                                arrowRenderer={[Function]}
+                                autosize={true}
+                                backspaceRemoves={false}
+                                backspaceToRemoveMessage="Press backspace to remove {label}"
+                                className="css-140v9or-StyledSelect e1ynsgsr0"
+                                clearAllText="Clear all"
+                                clearRenderer={[Function]}
+                                clearValueText="Clear value"
+                                clearable={false}
+                                closeOnSelect={true}
+                                deleteRemoves={false}
+                                delimiter=","
+                                disabled={false}
+                                escapeClearsValue={true}
+                                filterOptions={[Function]}
+                                height={36}
+                                ignoreAccents={true}
+                                ignoreCase={true}
+                                inputProps={Object {}}
+                                isLoading={false}
+                                joinValues={false}
+                                labelKey="label"
+                                matchPos="any"
+                                matchProp="any"
+                                menuBuffer={0}
+                                menuRenderer={[Function]}
+                                multi={false}
+                                multiple={false}
+                                name="select-team"
+                                noResultsText="No results found"
+                                onBlurResetsInput={true}
+                                onChange={[Function]}
+                                onCloseResetsInput={true}
+                                onSelectResetsInput={true}
+                                openOnClick={true}
+                                optionComponent={[Function]}
+                                options={Array []}
+                                pageSize={5}
+                                placeholder="Select a Team"
+                                removeSelected={true}
+                                required={false}
+                                rtl={false}
+                                scrollMenuIntoView={true}
+                                searchable={true}
+                                simpleValue={false}
+                                tabSelectsValue={true}
+                                trimFilter={true}
+                                value={0}
+                                valueComponent={[Function]}
+                                valueKey="value"
                               >
                                 <div
-                                  className="Select-multi-value-wrapper"
-                                  id="react-select-4--value"
+                                  className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
                                 >
                                   <div
-                                    className="Select-placeholder"
-                                  >
-                                    Select a Team
-                                  </div>
-                                  <AutosizeInput
-                                    aria-activedescendant="react-select-4--value"
-                                    aria-expanded="false"
-                                    aria-haspopup="false"
-                                    aria-owns=""
-                                    className="Select-input"
-                                    injectStyles={true}
-                                    minWidth="5"
-                                    onBlur={[Function]}
-                                    onChange={[Function]}
-                                    onFocus={[Function]}
-                                    required={false}
-                                    role="combobox"
-                                    value=""
+                                    className="Select-control"
+                                    onKeyDown={[Function]}
+                                    onMouseDown={[Function]}
+                                    onTouchEnd={[Function]}
+                                    onTouchMove={[Function]}
+                                    onTouchStart={[Function]}
                                   >
                                     <div
-                                      className="Select-input"
-                                      style={
-                                        Object {
-                                          "display": "inline-block",
-                                        }
-                                      }
+                                      className="Select-multi-value-wrapper"
+                                      id="react-select-4--value"
                                     >
-                                      <input
+                                      <div
+                                        className="Select-placeholder"
+                                      >
+                                        Select a Team
+                                      </div>
+                                      <AutosizeInput
                                         aria-activedescendant="react-select-4--value"
                                         aria-expanded="false"
                                         aria-haspopup="false"
                                         aria-owns=""
+                                        className="Select-input"
+                                        injectStyles={true}
+                                        minWidth="5"
                                         onBlur={[Function]}
                                         onChange={[Function]}
                                         onFocus={[Function]}
                                         required={false}
                                         role="combobox"
-                                        style={
-                                          Object {
-                                            "boxSizing": "content-box",
-                                            "width": "5px",
-                                          }
-                                        }
                                         value=""
-                                      />
-                                      <div
-                                        style={
-                                          Object {
-                                            "height": 0,
-                                            "left": 0,
-                                            "overflow": "scroll",
-                                            "position": "absolute",
-                                            "top": 0,
-                                            "visibility": "hidden",
-                                            "whiteSpace": "pre",
+                                      >
+                                        <div
+                                          className="Select-input"
+                                          style={
+                                            Object {
+                                              "display": "inline-block",
+                                            }
                                           }
-                                        }
-                                      />
+                                        >
+                                          <input
+                                            aria-activedescendant="react-select-4--value"
+                                            aria-expanded="false"
+                                            aria-haspopup="false"
+                                            aria-owns=""
+                                            onBlur={[Function]}
+                                            onChange={[Function]}
+                                            onFocus={[Function]}
+                                            required={false}
+                                            role="combobox"
+                                            style={
+                                              Object {
+                                                "boxSizing": "content-box",
+                                                "width": "5px",
+                                              }
+                                            }
+                                            value=""
+                                          />
+                                          <div
+                                            style={
+                                              Object {
+                                                "height": 0,
+                                                "left": 0,
+                                                "overflow": "scroll",
+                                                "position": "absolute",
+                                                "top": 0,
+                                                "visibility": "hidden",
+                                                "whiteSpace": "pre",
+                                              }
+                                            }
+                                          />
+                                        </div>
+                                      </AutosizeInput>
                                     </div>
-                                  </AutosizeInput>
+                                    <span
+                                      className="Select-arrow-zone"
+                                      onMouseDown={[Function]}
+                                    >
+                                      <span
+                                        className="icon-arrow-down"
+                                      />
+                                    </span>
+                                  </div>
                                 </div>
-                                <span
-                                  className="Select-arrow-zone"
-                                  onMouseDown={[Function]}
-                                >
-                                  <span
-                                    className="icon-arrow-down"
-                                  />
-                                </span>
-                              </div>
-                            </div>
-                          </Select>
-                        </SelectPicker>
-                      </StyledSelect>
-                    </SelectControlLegacy>
+                              </Select>
+                            </SelectPicker>
+                          </StyledSelect>
+                        </SelectControlLegacy>
+                      </ForwardRef(RefForwardedSelectControl)>
+                    </SelectControl>
                   </ForwardRef(RefForwardedSelectControl)>
-                </SelectControl>
-              </ForwardRef(RefForwardedSelectControl)>
-              <Tooltip
-                containerDisplayMode="inline-block"
-                position="top"
-                title="Create a team"
-              >
-                <Manager>
-                  <Reference>
-                    <InnerReference
-                      setReferenceNode={[Function]}
-                    >
-                      <Container
-                        aria-describedby="tooltip-123456"
-                        containerDisplayMode="inline-block"
-                        onBlur={[Function]}
-                        onFocus={[Function]}
-                        onMouseEnter={[Function]}
-                        onMouseLeave={[Function]}
-                      >
-                        <span
-                          aria-describedby="tooltip-123456"
-                          className="css-sce1yi-Container eowlwvy0"
-                          onBlur={[Function]}
-                          onFocus={[Function]}
-                          onMouseEnter={[Function]}
-                          onMouseLeave={[Function]}
+                  <Tooltip
+                    containerDisplayMode="inline-block"
+                    position="top"
+                    title="Create a team"
+                  >
+                    <Manager>
+                      <Reference>
+                        <InnerReference
+                          setReferenceNode={[Function]}
                         >
-                          <forwardRef<Button>
-                            borderless={true}
-                            data-test-id="create-team"
-                            icon="icon-circle-add"
-                            onClick={[Function]}
-                            type="button"
+                          <Container
+                            aria-describedby="tooltip-123456"
+                            containerDisplayMode="inline-block"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <Button
-                              align="center"
-                              borderless={true}
-                              data-test-id="create-team"
-                              disabled={false}
-                              forwardRef={null}
-                              icon="icon-circle-add"
-                              onClick={[Function]}
-                              type="button"
+                            <span
+                              aria-describedby="tooltip-123456"
+                              className="css-sce1yi-Container eowlwvy0"
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
                             >
-                              <StyledButton
-                                aria-disabled={false}
+                              <forwardRef<Button>
                                 borderless={true}
                                 data-test-id="create-team"
-                                disabled={false}
-                                forwardRef={null}
+                                icon="icon-circle-add"
                                 onClick={[Function]}
-                                role="button"
                                 type="button"
                               >
-                                <Component
-                                  aria-disabled={false}
-                                  className="css-e1k74m-StyledButton edwq9my0"
+                                <Button
+                                  align="center"
+                                  borderless={true}
                                   data-test-id="create-team"
+                                  disabled={false}
                                   forwardRef={null}
+                                  icon="icon-circle-add"
                                   onClick={[Function]}
-                                  role="button"
                                   type="button"
                                 >
-                                  <button
+                                  <StyledButton
                                     aria-disabled={false}
-                                    className="css-e1k74m-StyledButton edwq9my0"
+                                    borderless={true}
                                     data-test-id="create-team"
+                                    disabled={false}
+                                    forwardRef={null}
                                     onClick={[Function]}
                                     role="button"
                                     type="button"
                                   >
-                                    <ButtonLabel
-                                      align="center"
-                                      borderless={true}
+                                    <Component
+                                      aria-disabled={false}
+                                      className="css-e1k74m-StyledButton edwq9my0"
+                                      data-test-id="create-team"
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      role="button"
+                                      type="button"
                                     >
-                                      <Component
-                                        align="center"
-                                        borderless={true}
-                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      <button
+                                        aria-disabled={false}
+                                        className="css-e1k74m-StyledButton edwq9my0"
+                                        data-test-id="create-team"
+                                        onClick={[Function]}
+                                        role="button"
+                                        type="button"
                                       >
-                                        <span
-                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                        <ButtonLabel
+                                          align="center"
+                                          borderless={true}
                                         >
-                                          <Icon
-                                            hasChildren={false}
+                                          <Component
+                                            align="center"
+                                            borderless={true}
+                                            className="css-cmi7y3-ButtonLabel edwq9my1"
                                           >
-                                            <Component
-                                              className="css-heib7e-Icon edwq9my2"
-                                              hasChildren={false}
+                                            <span
+                                              className="css-cmi7y3-ButtonLabel edwq9my1"
                                             >
-                                              <span
-                                                className="css-heib7e-Icon edwq9my2"
+                                              <Icon
+                                                hasChildren={false}
                                               >
-                                                <StyledInlineSvg
-                                                  size="14px"
-                                                  src="icon-circle-add"
+                                                <Component
+                                                  className="css-heib7e-Icon edwq9my2"
+                                                  hasChildren={false}
                                                 >
-                                                  <ForwardRef
-                                                    className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                    size="14px"
-                                                    src="icon-circle-add"
+                                                  <span
+                                                    className="css-heib7e-Icon edwq9my2"
                                                   >
-                                                    <svg
-                                                      className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                      height="14px"
-                                                      viewBox={Object {}}
-                                                      width="14px"
+                                                    <StyledInlineSvg
+                                                      size="14px"
+                                                      src="icon-circle-add"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </ForwardRef>
-                                                </StyledInlineSvg>
-                                              </span>
-                                            </Component>
-                                          </Icon>
-                                        </span>
-                                      </Component>
-                                    </ButtonLabel>
-                                  </button>
-                                </Component>
-                              </StyledButton>
-                            </Button>
-                          </forwardRef<Button>>
-                        </span>
-                      </Container>
-                    </InnerReference>
-                  </Reference>
-                </Manager>
-              </Tooltip>
+                                                      <ForwardRef
+                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                        size="14px"
+                                                        src="icon-circle-add"
+                                                      >
+                                                        <svg
+                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                          height="14px"
+                                                          viewBox={Object {}}
+                                                          width="14px"
+                                                        >
+                                                          <use
+                                                            href="#test"
+                                                            xlinkHref="#test"
+                                                          />
+                                                        </svg>
+                                                      </ForwardRef>
+                                                    </StyledInlineSvg>
+                                                  </span>
+                                                </Component>
+                                              </Icon>
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </forwardRef<Button>>
+                            </span>
+                          </Container>
+                        </InnerReference>
+                      </Reference>
+                    </Manager>
+                  </Tooltip>
+                </div>
+              </TeamSelectInput>
             </div>
-          </TeamSelectInput>
-        </div>
-        <div>
-          <forwardRef<Button>
-            data-test-id="create-project"
-            disabled={true}
-            priority="primary"
-          >
-            <Button
-              align="center"
-              data-test-id="create-project"
-              disabled={true}
-              forwardRef={null}
-              priority="primary"
-            >
-              <StyledButton
-                aria-disabled={true}
-                aria-label="Create Project"
+            <div>
+              <forwardRef<Button>
                 data-test-id="create-project"
                 disabled={true}
-                forwardRef={null}
-                onClick={[Function]}
                 priority="primary"
-                role="button"
               >
-                <Component
-                  aria-disabled={true}
-                  aria-label="Create Project"
-                  className="css-1e3hcbu-StyledButton edwq9my0"
+                <Button
+                  align="center"
                   data-test-id="create-project"
+                  disabled={true}
                   forwardRef={null}
-                  onClick={[Function]}
-                  role="button"
+                  priority="primary"
                 >
-                  <button
+                  <StyledButton
                     aria-disabled={true}
                     aria-label="Create Project"
-                    className="css-1e3hcbu-StyledButton edwq9my0"
                     data-test-id="create-project"
+                    disabled={true}
+                    forwardRef={null}
                     onClick={[Function]}
+                    priority="primary"
                     role="button"
                   >
-                    <ButtonLabel
-                      align="center"
-                      priority="primary"
+                    <Component
+                      aria-disabled={true}
+                      aria-label="Create Project"
+                      className="css-1e3hcbu-StyledButton edwq9my0"
+                      data-test-id="create-project"
+                      forwardRef={null}
+                      onClick={[Function]}
+                      role="button"
                     >
-                      <Component
-                        align="center"
-                        className="css-zmpclt-ButtonLabel edwq9my1"
-                        priority="primary"
+                      <button
+                        aria-disabled={true}
+                        aria-label="Create Project"
+                        className="css-1e3hcbu-StyledButton edwq9my0"
+                        data-test-id="create-project"
+                        onClick={[Function]}
+                        role="button"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
+                        <ButtonLabel
+                          align="center"
+                          priority="primary"
                         >
-                          Create Project
-                        </span>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
-              </StyledButton>
-            </Button>
-          </forwardRef<Button>>
-        </div>
-      </form>
-    </CreateProjectForm>
+                          <Component
+                            align="center"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
+                            priority="primary"
+                          >
+                            <span
+                              className="css-zmpclt-ButtonLabel edwq9my1"
+                            >
+                              Create Project
+                            </span>
+                          </Component>
+                        </ButtonLabel>
+                      </button>
+                    </Component>
+                  </StyledButton>
+                </Button>
+              </forwardRef<Button>>
+            </div>
+          </form>
+        </CreateProjectForm>
+      </div>
+    </StickyWrapper>
   </div>
 </CreateProject>
 `;
@@ -3962,116 +3976,91 @@ exports[`CreateProject should fill in project name if its empty when platform is
         </div>
       </PlatformList>
     </PlatformPicker>
-    <CreateProjectForm
-      onSubmit={[Function]}
-    >
-      <form
-        className="css-8zz3uw-CreateProjectForm e19kiapg0"
-        onSubmit={[Function]}
+    <StickyWrapper>
+      <div
+        className="css-1n1wv6u-StickyWrapper e19kiapg6"
       >
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Give your project a name
-            </div>
-          </FormLabel>
-          <ProjectNameInput>
-            <div
-              className="css-9ctizw-ProjectNameInput e19kiapg3"
-            >
-              <ProjectPlatformIcon
-                monoTone={true}
-                platform="csharp"
-              >
+        <CreateProjectForm
+          onSubmit={[Function]}
+        >
+          <form
+            className="css-1dq1lt0-CreateProjectForm e19kiapg0"
+            onSubmit={[Function]}
+          >
+            <div>
+              <FormLabel>
                 <div
-                  className="css-nwocbk-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
-                />
-              </ProjectPlatformIcon>
-              <input
-                autoComplete="off"
-                label="Project Name"
-                name="name"
-                onChange={[Function]}
-                placeholder="Project name"
-                type="text"
-                value="another"
-              />
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Give your project a name
+                </div>
+              </FormLabel>
+              <ProjectNameInput>
+                <div
+                  className="css-9ctizw-ProjectNameInput e19kiapg3"
+                >
+                  <ProjectPlatformIcon
+                    monoTone={true}
+                    platform="csharp"
+                  >
+                    <div
+                      className="css-nwocbk-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
+                    />
+                  </ProjectPlatformIcon>
+                  <input
+                    autoComplete="off"
+                    label="Project Name"
+                    name="name"
+                    onChange={[Function]}
+                    placeholder="Project name"
+                    type="text"
+                    value="another"
+                  />
+                </div>
+              </ProjectNameInput>
             </div>
-          </ProjectNameInput>
-        </div>
-        <div>
-          <FormLabel>
-            <div
-              className="css-1ynor6-FormLabel e19kiapg1"
-            >
-              Assign a Team
-            </div>
-          </FormLabel>
-          <TeamSelectInput>
-            <div
-              className="css-15lxetg-TeamSelectInput e19kiapg4"
-            >
-              <ForwardRef(RefForwardedSelectControl)
-                clearable={false}
-                deprecatedSelectControl={true}
-                name="select-team"
-                onChange={[Function]}
-                options={Array []}
-                placeholder="Select a Team"
-                value={0}
-              >
-                <SelectControl
-                  clearable={false}
-                  deprecatedSelectControl={true}
-                  forwardedRef={null}
-                  name="select-team"
-                  onChange={[Function]}
-                  options={Array []}
-                  placeholder="Select a Team"
-                  value={0}
+            <div>
+              <FormLabel>
+                <div
+                  className="css-1ynor6-FormLabel e19kiapg1"
+                >
+                  Assign a Team
+                </div>
+              </FormLabel>
+              <TeamSelectInput>
+                <div
+                  className="css-15lxetg-TeamSelectInput e19kiapg4"
                 >
                   <ForwardRef(RefForwardedSelectControl)
                     clearable={false}
-                    forwardedRef={null}
+                    deprecatedSelectControl={true}
                     name="select-team"
                     onChange={[Function]}
                     options={Array []}
                     placeholder="Select a Team"
                     value={0}
                   >
-                    <SelectControlLegacy
+                    <SelectControl
                       clearable={false}
+                      deprecatedSelectControl={true}
                       forwardedRef={null}
-                      height={36}
-                      multiple={false}
                       name="select-team"
                       onChange={[Function]}
                       options={Array []}
                       placeholder="Select a Team"
                       value={0}
                     >
-                      <StyledSelect
-                        arrowRenderer={[Function]}
-                        backspaceRemoves={false}
+                      <ForwardRef(RefForwardedSelectControl)
                         clearable={false}
-                        deleteRemoves={false}
                         forwardedRef={null}
-                        height={36}
-                        multiple={false}
                         name="select-team"
                         onChange={[Function]}
                         options={Array []}
                         placeholder="Select a Team"
                         value={0}
                       >
-                        <SelectPicker
-                          arrowRenderer={[Function]}
-                          backspaceRemoves={false}
-                          className="css-140v9or-StyledSelect e1ynsgsr0"
+                        <SelectControlLegacy
                           clearable={false}
-                          deleteRemoves={false}
                           forwardedRef={null}
                           height={36}
                           multiple={false}
@@ -4081,350 +4070,381 @@ exports[`CreateProject should fill in project name if its empty when platform is
                           placeholder="Select a Team"
                           value={0}
                         >
-                          <Select
+                          <StyledSelect
                             arrowRenderer={[Function]}
-                            autosize={true}
                             backspaceRemoves={false}
-                            backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="css-140v9or-StyledSelect e1ynsgsr0"
-                            clearAllText="Clear all"
-                            clearRenderer={[Function]}
-                            clearValueText="Clear value"
                             clearable={false}
-                            closeOnSelect={true}
                             deleteRemoves={false}
-                            delimiter=","
-                            disabled={false}
-                            escapeClearsValue={true}
-                            filterOptions={[Function]}
+                            forwardedRef={null}
                             height={36}
-                            ignoreAccents={true}
-                            ignoreCase={true}
-                            inputProps={Object {}}
-                            isLoading={false}
-                            joinValues={false}
-                            labelKey="label"
-                            matchPos="any"
-                            matchProp="any"
-                            menuBuffer={0}
-                            menuRenderer={[Function]}
-                            multi={false}
                             multiple={false}
                             name="select-team"
-                            noResultsText="No results found"
-                            onBlurResetsInput={true}
                             onChange={[Function]}
-                            onCloseResetsInput={true}
-                            onSelectResetsInput={true}
-                            openOnClick={true}
-                            optionComponent={[Function]}
                             options={Array []}
-                            pageSize={5}
                             placeholder="Select a Team"
-                            removeSelected={true}
-                            required={false}
-                            rtl={false}
-                            scrollMenuIntoView={true}
-                            searchable={true}
-                            simpleValue={false}
-                            tabSelectsValue={true}
-                            trimFilter={true}
                             value={0}
-                            valueComponent={[Function]}
-                            valueKey="value"
                           >
-                            <div
-                              className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                            <SelectPicker
+                              arrowRenderer={[Function]}
+                              backspaceRemoves={false}
+                              className="css-140v9or-StyledSelect e1ynsgsr0"
+                              clearable={false}
+                              deleteRemoves={false}
+                              forwardedRef={null}
+                              height={36}
+                              multiple={false}
+                              name="select-team"
+                              onChange={[Function]}
+                              options={Array []}
+                              placeholder="Select a Team"
+                              value={0}
                             >
-                              <div
-                                className="Select-control"
-                                onKeyDown={[Function]}
-                                onMouseDown={[Function]}
-                                onTouchEnd={[Function]}
-                                onTouchMove={[Function]}
-                                onTouchStart={[Function]}
+                              <Select
+                                arrowRenderer={[Function]}
+                                autosize={true}
+                                backspaceRemoves={false}
+                                backspaceToRemoveMessage="Press backspace to remove {label}"
+                                className="css-140v9or-StyledSelect e1ynsgsr0"
+                                clearAllText="Clear all"
+                                clearRenderer={[Function]}
+                                clearValueText="Clear value"
+                                clearable={false}
+                                closeOnSelect={true}
+                                deleteRemoves={false}
+                                delimiter=","
+                                disabled={false}
+                                escapeClearsValue={true}
+                                filterOptions={[Function]}
+                                height={36}
+                                ignoreAccents={true}
+                                ignoreCase={true}
+                                inputProps={Object {}}
+                                isLoading={false}
+                                joinValues={false}
+                                labelKey="label"
+                                matchPos="any"
+                                matchProp="any"
+                                menuBuffer={0}
+                                menuRenderer={[Function]}
+                                multi={false}
+                                multiple={false}
+                                name="select-team"
+                                noResultsText="No results found"
+                                onBlurResetsInput={true}
+                                onChange={[Function]}
+                                onCloseResetsInput={true}
+                                onSelectResetsInput={true}
+                                openOnClick={true}
+                                optionComponent={[Function]}
+                                options={Array []}
+                                pageSize={5}
+                                placeholder="Select a Team"
+                                removeSelected={true}
+                                required={false}
+                                rtl={false}
+                                scrollMenuIntoView={true}
+                                searchable={true}
+                                simpleValue={false}
+                                tabSelectsValue={true}
+                                trimFilter={true}
+                                value={0}
+                                valueComponent={[Function]}
+                                valueKey="value"
                               >
                                 <div
-                                  className="Select-multi-value-wrapper"
-                                  id="react-select-3--value"
+                                  className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
                                 >
                                   <div
-                                    className="Select-placeholder"
-                                  >
-                                    Select a Team
-                                  </div>
-                                  <AutosizeInput
-                                    aria-activedescendant="react-select-3--value"
-                                    aria-expanded="false"
-                                    aria-haspopup="false"
-                                    aria-owns=""
-                                    className="Select-input"
-                                    injectStyles={true}
-                                    minWidth="5"
-                                    onBlur={[Function]}
-                                    onChange={[Function]}
-                                    onFocus={[Function]}
-                                    required={false}
-                                    role="combobox"
-                                    value=""
+                                    className="Select-control"
+                                    onKeyDown={[Function]}
+                                    onMouseDown={[Function]}
+                                    onTouchEnd={[Function]}
+                                    onTouchMove={[Function]}
+                                    onTouchStart={[Function]}
                                   >
                                     <div
-                                      className="Select-input"
-                                      style={
-                                        Object {
-                                          "display": "inline-block",
-                                        }
-                                      }
+                                      className="Select-multi-value-wrapper"
+                                      id="react-select-3--value"
                                     >
-                                      <input
+                                      <div
+                                        className="Select-placeholder"
+                                      >
+                                        Select a Team
+                                      </div>
+                                      <AutosizeInput
                                         aria-activedescendant="react-select-3--value"
                                         aria-expanded="false"
                                         aria-haspopup="false"
                                         aria-owns=""
+                                        className="Select-input"
+                                        injectStyles={true}
+                                        minWidth="5"
                                         onBlur={[Function]}
                                         onChange={[Function]}
                                         onFocus={[Function]}
                                         required={false}
                                         role="combobox"
-                                        style={
-                                          Object {
-                                            "boxSizing": "content-box",
-                                            "width": "5px",
-                                          }
-                                        }
                                         value=""
-                                      />
-                                      <div
-                                        style={
-                                          Object {
-                                            "height": 0,
-                                            "left": 0,
-                                            "overflow": "scroll",
-                                            "position": "absolute",
-                                            "top": 0,
-                                            "visibility": "hidden",
-                                            "whiteSpace": "pre",
+                                      >
+                                        <div
+                                          className="Select-input"
+                                          style={
+                                            Object {
+                                              "display": "inline-block",
+                                            }
                                           }
-                                        }
-                                      />
+                                        >
+                                          <input
+                                            aria-activedescendant="react-select-3--value"
+                                            aria-expanded="false"
+                                            aria-haspopup="false"
+                                            aria-owns=""
+                                            onBlur={[Function]}
+                                            onChange={[Function]}
+                                            onFocus={[Function]}
+                                            required={false}
+                                            role="combobox"
+                                            style={
+                                              Object {
+                                                "boxSizing": "content-box",
+                                                "width": "5px",
+                                              }
+                                            }
+                                            value=""
+                                          />
+                                          <div
+                                            style={
+                                              Object {
+                                                "height": 0,
+                                                "left": 0,
+                                                "overflow": "scroll",
+                                                "position": "absolute",
+                                                "top": 0,
+                                                "visibility": "hidden",
+                                                "whiteSpace": "pre",
+                                              }
+                                            }
+                                          />
+                                        </div>
+                                      </AutosizeInput>
                                     </div>
-                                  </AutosizeInput>
+                                    <span
+                                      className="Select-arrow-zone"
+                                      onMouseDown={[Function]}
+                                    >
+                                      <span
+                                        className="icon-arrow-down"
+                                      />
+                                    </span>
+                                  </div>
                                 </div>
-                                <span
-                                  className="Select-arrow-zone"
-                                  onMouseDown={[Function]}
-                                >
-                                  <span
-                                    className="icon-arrow-down"
-                                  />
-                                </span>
-                              </div>
-                            </div>
-                          </Select>
-                        </SelectPicker>
-                      </StyledSelect>
-                    </SelectControlLegacy>
+                              </Select>
+                            </SelectPicker>
+                          </StyledSelect>
+                        </SelectControlLegacy>
+                      </ForwardRef(RefForwardedSelectControl)>
+                    </SelectControl>
                   </ForwardRef(RefForwardedSelectControl)>
-                </SelectControl>
-              </ForwardRef(RefForwardedSelectControl)>
-              <Tooltip
-                containerDisplayMode="inline-block"
-                position="top"
-                title="Create a team"
-              >
-                <Manager>
-                  <Reference>
-                    <InnerReference
-                      setReferenceNode={[Function]}
-                    >
-                      <Container
-                        aria-describedby="tooltip-123456"
-                        containerDisplayMode="inline-block"
-                        onBlur={[Function]}
-                        onFocus={[Function]}
-                        onMouseEnter={[Function]}
-                        onMouseLeave={[Function]}
-                      >
-                        <span
-                          aria-describedby="tooltip-123456"
-                          className="css-sce1yi-Container eowlwvy0"
-                          onBlur={[Function]}
-                          onFocus={[Function]}
-                          onMouseEnter={[Function]}
-                          onMouseLeave={[Function]}
+                  <Tooltip
+                    containerDisplayMode="inline-block"
+                    position="top"
+                    title="Create a team"
+                  >
+                    <Manager>
+                      <Reference>
+                        <InnerReference
+                          setReferenceNode={[Function]}
                         >
-                          <forwardRef<Button>
-                            borderless={true}
-                            data-test-id="create-team"
-                            icon="icon-circle-add"
-                            onClick={[Function]}
-                            type="button"
+                          <Container
+                            aria-describedby="tooltip-123456"
+                            containerDisplayMode="inline-block"
+                            onBlur={[Function]}
+                            onFocus={[Function]}
+                            onMouseEnter={[Function]}
+                            onMouseLeave={[Function]}
                           >
-                            <Button
-                              align="center"
-                              borderless={true}
-                              data-test-id="create-team"
-                              disabled={false}
-                              forwardRef={null}
-                              icon="icon-circle-add"
-                              onClick={[Function]}
-                              type="button"
+                            <span
+                              aria-describedby="tooltip-123456"
+                              className="css-sce1yi-Container eowlwvy0"
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
                             >
-                              <StyledButton
-                                aria-disabled={false}
+                              <forwardRef<Button>
                                 borderless={true}
                                 data-test-id="create-team"
-                                disabled={false}
-                                forwardRef={null}
+                                icon="icon-circle-add"
                                 onClick={[Function]}
-                                role="button"
                                 type="button"
                               >
-                                <Component
-                                  aria-disabled={false}
-                                  className="css-e1k74m-StyledButton edwq9my0"
+                                <Button
+                                  align="center"
+                                  borderless={true}
                                   data-test-id="create-team"
+                                  disabled={false}
                                   forwardRef={null}
+                                  icon="icon-circle-add"
                                   onClick={[Function]}
-                                  role="button"
                                   type="button"
                                 >
-                                  <button
+                                  <StyledButton
                                     aria-disabled={false}
-                                    className="css-e1k74m-StyledButton edwq9my0"
+                                    borderless={true}
                                     data-test-id="create-team"
+                                    disabled={false}
+                                    forwardRef={null}
                                     onClick={[Function]}
                                     role="button"
                                     type="button"
                                   >
-                                    <ButtonLabel
-                                      align="center"
-                                      borderless={true}
+                                    <Component
+                                      aria-disabled={false}
+                                      className="css-e1k74m-StyledButton edwq9my0"
+                                      data-test-id="create-team"
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      role="button"
+                                      type="button"
                                     >
-                                      <Component
-                                        align="center"
-                                        borderless={true}
-                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      <button
+                                        aria-disabled={false}
+                                        className="css-e1k74m-StyledButton edwq9my0"
+                                        data-test-id="create-team"
+                                        onClick={[Function]}
+                                        role="button"
+                                        type="button"
                                       >
-                                        <span
-                                          className="css-cmi7y3-ButtonLabel edwq9my1"
+                                        <ButtonLabel
+                                          align="center"
+                                          borderless={true}
                                         >
-                                          <Icon
-                                            hasChildren={false}
+                                          <Component
+                                            align="center"
+                                            borderless={true}
+                                            className="css-cmi7y3-ButtonLabel edwq9my1"
                                           >
-                                            <Component
-                                              className="css-heib7e-Icon edwq9my2"
-                                              hasChildren={false}
+                                            <span
+                                              className="css-cmi7y3-ButtonLabel edwq9my1"
                                             >
-                                              <span
-                                                className="css-heib7e-Icon edwq9my2"
+                                              <Icon
+                                                hasChildren={false}
                                               >
-                                                <StyledInlineSvg
-                                                  size="14px"
-                                                  src="icon-circle-add"
+                                                <Component
+                                                  className="css-heib7e-Icon edwq9my2"
+                                                  hasChildren={false}
                                                 >
-                                                  <ForwardRef
-                                                    className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                    size="14px"
-                                                    src="icon-circle-add"
+                                                  <span
+                                                    className="css-heib7e-Icon edwq9my2"
                                                   >
-                                                    <svg
-                                                      className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                      height="14px"
-                                                      viewBox={Object {}}
-                                                      width="14px"
+                                                    <StyledInlineSvg
+                                                      size="14px"
+                                                      src="icon-circle-add"
                                                     >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </ForwardRef>
-                                                </StyledInlineSvg>
-                                              </span>
-                                            </Component>
-                                          </Icon>
-                                        </span>
-                                      </Component>
-                                    </ButtonLabel>
-                                  </button>
-                                </Component>
-                              </StyledButton>
-                            </Button>
-                          </forwardRef<Button>>
-                        </span>
-                      </Container>
-                    </InnerReference>
-                  </Reference>
-                </Manager>
-              </Tooltip>
+                                                      <ForwardRef
+                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                        size="14px"
+                                                        src="icon-circle-add"
+                                                      >
+                                                        <svg
+                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
+                                                          height="14px"
+                                                          viewBox={Object {}}
+                                                          width="14px"
+                                                        >
+                                                          <use
+                                                            href="#test"
+                                                            xlinkHref="#test"
+                                                          />
+                                                        </svg>
+                                                      </ForwardRef>
+                                                    </StyledInlineSvg>
+                                                  </span>
+                                                </Component>
+                                              </Icon>
+                                            </span>
+                                          </Component>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </forwardRef<Button>>
+                            </span>
+                          </Container>
+                        </InnerReference>
+                      </Reference>
+                    </Manager>
+                  </Tooltip>
+                </div>
+              </TeamSelectInput>
             </div>
-          </TeamSelectInput>
-        </div>
-        <div>
-          <forwardRef<Button>
-            data-test-id="create-project"
-            disabled={true}
-            priority="primary"
-          >
-            <Button
-              align="center"
-              data-test-id="create-project"
-              disabled={true}
-              forwardRef={null}
-              priority="primary"
-            >
-              <StyledButton
-                aria-disabled={true}
-                aria-label="Create Project"
+            <div>
+              <forwardRef<Button>
                 data-test-id="create-project"
                 disabled={true}
-                forwardRef={null}
-                onClick={[Function]}
                 priority="primary"
-                role="button"
               >
-                <Component
-                  aria-disabled={true}
-                  aria-label="Create Project"
-                  className="css-1e3hcbu-StyledButton edwq9my0"
+                <Button
+                  align="center"
                   data-test-id="create-project"
+                  disabled={true}
                   forwardRef={null}
-                  onClick={[Function]}
-                  role="button"
+                  priority="primary"
                 >
-                  <button
+                  <StyledButton
                     aria-disabled={true}
                     aria-label="Create Project"
-                    className="css-1e3hcbu-StyledButton edwq9my0"
                     data-test-id="create-project"
+                    disabled={true}
+                    forwardRef={null}
                     onClick={[Function]}
+                    priority="primary"
                     role="button"
                   >
-                    <ButtonLabel
-                      align="center"
-                      priority="primary"
+                    <Component
+                      aria-disabled={true}
+                      aria-label="Create Project"
+                      className="css-1e3hcbu-StyledButton edwq9my0"
+                      data-test-id="create-project"
+                      forwardRef={null}
+                      onClick={[Function]}
+                      role="button"
                     >
-                      <Component
-                        align="center"
-                        className="css-zmpclt-ButtonLabel edwq9my1"
-                        priority="primary"
+                      <button
+                        aria-disabled={true}
+                        aria-label="Create Project"
+                        className="css-1e3hcbu-StyledButton edwq9my0"
+                        data-test-id="create-project"
+                        onClick={[Function]}
+                        role="button"
                       >
-                        <span
-                          className="css-zmpclt-ButtonLabel edwq9my1"
+                        <ButtonLabel
+                          align="center"
+                          priority="primary"
                         >
-                          Create Project
-                        </span>
-                      </Component>
-                    </ButtonLabel>
-                  </button>
-                </Component>
-              </StyledButton>
-            </Button>
-          </forwardRef<Button>>
-        </div>
-      </form>
-    </CreateProjectForm>
+                          <Component
+                            align="center"
+                            className="css-zmpclt-ButtonLabel edwq9my1"
+                            priority="primary"
+                          >
+                            <span
+                              className="css-zmpclt-ButtonLabel edwq9my1"
+                            >
+                              Create Project
+                            </span>
+                          </Component>
+                        </ButtonLabel>
+                      </button>
+                    </Component>
+                  </StyledButton>
+                </Button>
+              </forwardRef<Button>>
+            </div>
+          </form>
+        </CreateProjectForm>
+      </div>
+    </StickyWrapper>
   </div>
 </CreateProject>
 `;
