@@ -6,7 +6,7 @@ from sentry.utils.compat import mock
 from time import time
 
 from sentry import quotas, tsdb
-from sentry.event_manager import EventManager, HashDiscarded
+from sentry.save_event import HashDiscarded
 from sentry.plugins.base.v2 import Plugin2
 from sentry.tasks.store import preprocess_event, process_event, save_event
 from sentry.utils.dates import to_datetime
@@ -217,7 +217,7 @@ def test_hash_discarded_raised(default_project, mock_refund, mock_incr, register
     now = time()
     mock_save = mock.Mock()
     mock_save.side_effect = HashDiscarded
-    with mock.patch.object(EventManager, "save", mock_save):
+    with mock.patch("sentry.tasks.store.save_event_impl", mock_save):
         save_event(data=data, start_time=now)
         mock_incr.assert_called_with(
             [

@@ -8,7 +8,7 @@ from django.db import transaction
 from sentry import eventstore, eventstream
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
-from sentry.event_manager import generate_culprit
+from sentry.culprit import generate_culprit
 from sentry.models import (
     Activity,
     Environment,

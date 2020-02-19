@@ -24,6 +24,7 @@ from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import configure_scope
 from sentry.models import ProjectOption, Activity, Project
+from sentry.save_event import save_event as save_event_impl
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -473,7 +474,7 @@ def _do_save_event(
     Saves an event to the database.
     """
 
-    from sentry.event_manager import HashDiscarded, EventManager
+    from sentry.save_event import HashDiscarded
     from sentry import quotas
     from sentry.models import ProjectKey
     from sentry.utils.outcomes import Outcome, track_outcome
@@ -533,9 +534,8 @@ def _do_save_event(
         event = None
         try:
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
-                manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                event = manager.save(project_id, assume_normalized=True, cache_key=cache_key)
+                event = save_event_impl(data, project_id, cache_key=cache_key)
 
             with metrics.timer("tasks.store.do_save_event.track_outcome"):
                 # This is where we can finally say that we have accepted the event.

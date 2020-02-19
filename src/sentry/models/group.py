@@ -178,7 +178,8 @@ class GroupManager(BaseManager):
         )
 
     def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import HashDiscarded, EventManager
+        from sentry.event_manager import EventManager
+        from sentry.save_event import HashDiscarded
 
         manager = EventManager(kwargs)
         manager.normalize()

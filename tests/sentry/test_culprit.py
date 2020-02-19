@@ -1,161 +1,107 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import absolute_import
 
-from sentry.event_manager import EventManager
+from sentry.constants import MAX_CULPRIT_LENGTH
+from sentry.culprit import generate_culprit
+from sentry.grouping.utils import hash_from_values
 
 
-def get_culprit(data):
-    mgr = EventManager(data)
-    mgr.normalize()
-    return mgr.get_culprit()
+def test_with_exception_interface():
+    data = {
+        "exception": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {"lineno": 1, "filename": "foo.py"},
+                            {"lineno": 1, "filename": "bar.py", "in_app": True},
+                        ]
+                    }
+                }
+            ]
+        },
+        "stacktrace": {
+            "frames": [
+                {"lineno": 1, "filename": "NOTME.py"},
+                {"lineno": 1, "filename": "PLZNOTME.py", "in_app": True},
+            ]
+        },
+        "request": {"url": "http://example.com"},
+    }
+    assert generate_culprit(data) == "bar.py in ?"
 
 
-def test_cocoa_culprit():
-    culprit = get_culprit(
-        {
-            "platform": "cocoa",
-            "exception": {
-                "type": "Crash",
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "filename": "foo/baz.c",
-                            "package": "/foo/bar/baz.dylib",
-                            "lineno": 1,
-                            "in_app": True,
-                            "function": "-[CRLCrashAsyncSafeThread crash]",
-                        }
-                    ]
-                },
-            },
+def test_with_missing_exception_stacktrace():
+    data = {
+        "exception": {
+            "values": [
+                {"stacktrace": None},
+                {"stacktrace": {"frames": None}},
+                {"stacktrace": {"frames": [None]}},
+            ]
+        },
+        "request": {"url": "http://example.com"},
+    }
+    assert generate_culprit(data) == "http://example.com"
+
+
+def test_with_stacktrace_interface():
+    data = {
+        "stacktrace": {
+            "frames": [
+                {"lineno": 1, "filename": "NOTME.py"},
+                {"lineno": 1, "filename": "PLZNOTME.py", "in_app": True},
+            ]
+        },
+        "request": {"url": "http://example.com"},
+    }
+    assert generate_culprit(data) == "PLZNOTME.py in ?"
+
+
+def test_with_missing_stacktrace_frames():
+    data = {"stacktrace": {"frames": None}, "request": {"url": "http://example.com"}}
+    assert generate_culprit(data) == "http://example.com"
+
+
+def test_with_empty_stacktrace():
+    data = {"stacktrace": None, "request": {"url": "http://example.com"}}
+    assert generate_culprit(data) == "http://example.com"
+
+
+def test_with_only_http_interface():
+    data = {"request": {"url": "http://example.com"}}
+    assert generate_culprit(data) == "http://example.com"
+
+    data = {"request": {"url": None}}
+    assert generate_culprit(data) == ""
+
+    data = {"request": {}}
+    assert generate_culprit(data) == ""
+
+    data = {"request": None}
+    assert generate_culprit(data) == ""
+
+
+def test_empty_data():
+    assert generate_culprit({}) == ""
+
+
+def test_truncation():
+    data = {
+        "exception": {
+            "values": [{"stacktrace": {"frames": [{"filename": "x" * (MAX_CULPRIT_LENGTH + 1)}]}}]
         }
-    )
-    assert culprit == "-[CRLCrashAsyncSafeThread crash]"
+    }
+    assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
+
+    data = {"stacktrace": {"frames": [{"filename": "x" * (MAX_CULPRIT_LENGTH + 1)}]}}
+    assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
+
+    data = {"request": {"url": "x" * (MAX_CULPRIT_LENGTH + 1)}}
+    assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
 
 
-def test_emoji_culprit():
-    culprit = get_culprit(
-        {
-            "platform": "native",
-            "exception": {
-                "type": "Crash",
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "filename": "foo/baz.c",
-                            "package": "/foo/bar/baz.dylib",
-                            "module": u"\U0001f62d",
-                            "lineno": 1,
-                            "in_app": True,
-                            "function": u"\U0001f60d",
-                        }
-                    ]
-                },
-            },
-        }
-    )
-    assert culprit == u"\U0001f60d"
-
-
-def test_cocoa_strict_stacktrace():
-    culprit = get_culprit(
-        {
-            "platform": "native",
-            "exception": {
-                "type": "Crash",
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "filename": "foo/baz.c",
-                            "package": "/foo/bar/libswiftCore.dylib",
-                            "lineno": 1,
-                            "in_app": False,
-                            "function": "fooBar",
-                        },
-                        {"package": "/foo/bar/MyApp", "in_app": True, "function": "fooBar2"},
-                        {
-                            "filename": "Mycontroller.swift",
-                            "package": "/foo/bar/MyApp",
-                            "in_app": True,
-                            "function": "-[CRLCrashAsyncSafeThread crash]",
-                        },
-                    ]
-                },
-            },
-        }
-    )
-    assert culprit == "-[CRLCrashAsyncSafeThread crash]"
-
-
-def test_culprit_for_synthetic_event():
-    # Synthetic events do not generate a culprit
-    culprit = get_culprit(
-        {
-            "platform": "javascript",
-            "exception": {
-                "type": "Error",
-                "value": "I threw up stringly",
-                "mechanism": {"type": "string-error", "synthetic": True},
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "filename": "foo/baz.js",
-                            "package": "node_modules/blah/foo/bar.js",
-                            "lineno": 42,
-                            "in_app": True,
-                            "function": "fooBar",
-                        }
-                    ]
-                },
-            },
-        }
-    )
-    assert culprit == ""
-
-
-def test_culprit_for_javascript_event():
-    culprit = get_culprit(
-        {
-            "platform": "javascript",
-            "exception": {
-                "type": "Error",
-                "value": "I fail hard",
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "filename": "foo/baz.js",
-                            "package": "node_modules/blah/foo/bar.js",
-                            "lineno": 42,
-                            "in_app": True,
-                            "function": "fooBar",
-                        }
-                    ]
-                },
-            },
-        }
-    )
-    assert culprit == "fooBar(foo/baz.js)"
-
-
-def test_culprit_for_python_event():
-    culprit = get_culprit(
-        {
-            "platform": "python",
-            "exception": {
-                "type": "ZeroDivisionError",
-                "value": "integer division or modulo by zero",
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "filename": "foo/baz.py",
-                            "module": "foo.baz",
-                            "package": "foo/baz.py",
-                            "lineno": 23,
-                            "in_app": True,
-                            "function": "it_failed",
-                        }
-                    ]
-                },
-            },
-        }
-    )
-    assert culprit == "foo.baz in it_failed"
+def test_hash_from_values():
+    result = hash_from_values(["foo", "bar", u"foô"])
+    assert result == "6d81588029ed4190110b2779ba952a00"

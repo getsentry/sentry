@@ -16,7 +16,8 @@ from sentry import nodestore
 from sentry.app import tsdb
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.eventstore.models import Event
-from sentry.event_manager import HashDiscarded, EventManager, EventUser
+from sentry.event_manager import EventManager
+from sentry.save_event import HashDiscarded, EventUser
 from sentry.grouping.utils import hash_from_values
 from sentry.models import (
     Activity,
@@ -84,7 +85,7 @@ class EventManagerTest(TestCase):
         assert group.platform == "python"
         assert event.platform == "python"
 
-    @mock.patch("sentry.event_manager.eventstream.insert")
+    @mock.patch("sentry.eventstream.insert")
     def test_dupe_message_id(self, eventstream_insert):
         # Saves the latest event to nodestore and eventstream
         project_id = 1
@@ -187,7 +188,7 @@ class EventManagerTest(TestCase):
         group = Group.objects.get(id=group.id)
         assert not group.is_resolved()
 
-    @mock.patch("sentry.event_manager.plugin_is_regression")
+    @mock.patch("sentry.save_event.plugin_is_regression")
     def test_does_not_unresolve_group(self, plugin_is_regression):
         # N.B. EventManager won't unresolve the group unless the event2 has a
         # later timestamp than event1.
@@ -216,7 +217,7 @@ class EventManagerTest(TestCase):
         assert group.is_resolved()
 
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
-    @mock.patch("sentry.event_manager.plugin_is_regression")
+    @mock.patch("sentry.save_event.plugin_is_regression")
     def test_marks_as_unresolved_with_new_release(
         self, plugin_is_regression, mock_send_activity_notifications_delay
     ):
@@ -288,7 +289,7 @@ class EventManagerTest(TestCase):
 
     @mock.patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
-    @mock.patch("sentry.event_manager.plugin_is_regression")
+    @mock.patch("sentry.save_event.plugin_is_regression")
     def test_marks_as_unresolved_with_new_release_with_integration(
         self,
         plugin_is_regression,
@@ -396,7 +397,7 @@ class EventManagerTest(TestCase):
                 mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
-    @mock.patch("sentry.event_manager.plugin_is_regression")
+    @mock.patch("sentry.save_event.plugin_is_regression")
     def test_does_not_mark_as_unresolved_with_pending_commit(
         self, plugin_is_regression, mock_send_activity_notifications_delay
     ):
@@ -433,7 +434,7 @@ class EventManagerTest(TestCase):
         assert group.status == GroupStatus.RESOLVED
 
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
-    @mock.patch("sentry.event_manager.plugin_is_regression")
+    @mock.patch("sentry.save_event.plugin_is_regression")
     def test_mark_as_unresolved_with_released_commit(
         self, plugin_is_regression, mock_send_activity_notifications_delay
     ):
@@ -737,7 +738,7 @@ class EventManagerTest(TestCase):
         assert 42 not in event.tags
         assert None not in event.tags
 
-    @mock.patch("sentry.event_manager.eventstream.insert")
+    @mock.patch("sentry.eventstream.insert")
     def test_group_environment(self, eventstream_insert):
         release_version = "1.0"
 
@@ -1026,7 +1027,7 @@ class EventManagerTest(TestCase):
 
         assert not mock_event_saved.called
         assert_mock_called_once_with_partial(
-            mock_event_discarded, project=group.project, sender=EventManager, signal=event_discarded
+            mock_event_discarded, project=group.project, signal=event_discarded
         )
 
     def test_event_saved_signal(self):
@@ -1038,7 +1039,7 @@ class EventManagerTest(TestCase):
         event = manager.save(1)
 
         assert_mock_called_once_with_partial(
-            mock_event_saved, project=event.group.project, sender=EventManager, signal=event_saved
+            mock_event_saved, project=event.group.project, signal=event_saved
         )
 
     def test_checksum_rehashed(self):

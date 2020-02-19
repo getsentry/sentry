@@ -47,7 +47,7 @@ class Buffer(Service):
 
     def process(self, model, columns, filters, extra=None):
         from sentry.models import Group
-        from sentry.event_manager import ScoreClause
+        from sentry.save_event import ScoreClause
 
         update_kwargs = dict((c, F(c) + v) for c, v in six.iteritems(columns))
         if extra:
