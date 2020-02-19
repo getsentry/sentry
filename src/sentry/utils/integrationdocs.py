@@ -21,7 +21,7 @@ DOC_FOLDER = os.environ.get("INTEGRATION_DOC_FOLDER") or os.path.abspath(
 # We cannot leverage six here, so we need to vendor
 # bits that we need.
 if sys.version_info[0] == 3:
-    unicode = str
+    unicode = str  # NOQA
 
     def iteritems(d, **kw):
         return iter(d.items(**kw))
@@ -63,7 +63,7 @@ def dump_doc(path, data):
     except OSError:
         pass
     with io.open(fn, "wt", encoding="utf-8") as f:
-        f.write(unicode(json.dumps(data, indent=2)))
+        f.write(unicode(json.dumps(data, indent=2)))  # NOQA
         f.write(u"\n")
 
 
