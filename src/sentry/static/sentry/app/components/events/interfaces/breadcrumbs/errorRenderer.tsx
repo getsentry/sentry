@@ -22,17 +22,17 @@ const ErrorRenderer = ({crumb}: Props) => {
         <SummaryLine>
           <pre>
             <code>
-              {defined(data.type) &&
+              {defined(data?.type) &&
                 getBreadcrumbCustomRendererValue({
                   value: <strong>{`${data.type}: `}</strong>,
                   meta: getMeta(data, 'type'),
                 })}
-              {defined(data.value) &&
+              {defined(data?.value) &&
                 getBreadcrumbCustomRendererValue({
                   value: crumb.message ? `${data.value}. ` : data.value,
                   meta: getMeta(data, 'value'),
                 })}
-              {defined(crumb.message) &&
+              {defined(crumb?.message) &&
                 getBreadcrumbCustomRendererValue({
                   value: crumb.message,
                   meta: getMeta(crumb, 'message'),

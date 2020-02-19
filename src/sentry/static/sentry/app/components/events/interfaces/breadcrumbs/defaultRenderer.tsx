@@ -17,7 +17,7 @@ const DefaultRenderer = ({crumb}: Props) => (
     crumb={crumb}
     summary={
       <SummaryLine>
-        {defined(crumb.message) && (
+        {defined(crumb?.message) && (
           <pre>
             <code>
               {getBreadcrumbCustomRendererValue({

@@ -43,17 +43,17 @@ const HttpRenderer = ({crumb}: Props) => {
         <SummaryLine>
           <pre>
             <code>
-              {defined(data.method) &&
+              {defined(data?.method) &&
                 getBreadcrumbCustomRendererValue({
                   value: <strong>{`${data.method} `}</strong>,
                   meta: getMeta(data, 'method'),
                 })}
-              {defined(data.url) &&
+              {defined(data?.url) &&
                 getBreadcrumbCustomRendererValue({
                   value: renderUrl(data.url),
                   meta: getMeta(data, 'url'),
                 })}
-              {defined(data.status_code) &&
+              {defined(data?.status_code) &&
                 getBreadcrumbCustomRendererValue({
                   value: (
                     <span data-test-id="http-renderer-status-code">{` [${data.status_code}]`}</span>
