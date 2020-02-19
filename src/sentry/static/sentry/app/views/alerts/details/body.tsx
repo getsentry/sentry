@@ -124,7 +124,9 @@ export default class DetailsBody extends React.Component<Props> {
         )}
 
         <span>{t('Time Window')}</span>
-        <span>{incident && <Duration seconds={incident.alertRule.timeWindow} />}</span>
+        <span>
+          {incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
+        </span>
       </RuleDetails>
     );
   }
