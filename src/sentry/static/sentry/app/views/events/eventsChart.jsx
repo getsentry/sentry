@@ -11,11 +11,9 @@ import LoadingPanel from 'app/views/events/loadingPanel';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
-import {getFormattedDate} from 'app/utils/dates';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
-import space from 'app/styles/space';
 
 import EventsRequest from './utils/eventsRequest';
 
@@ -75,35 +73,6 @@ class EventsAreaChart extends React.Component {
       data: ['Current', 'Previous'],
     };
 
-    const tooltip = {
-      backgroundColor: 'transparent',
-      transitionDuration: 0,
-      position(pos, _params, dom, _rect, _size) {
-        // Center the tooltip slightly above the cursor.
-        const tipWidth = dom.clientWidth;
-        const tipHeight = dom.clientHeight;
-        return [pos[0] - tipWidth / 2, pos[1] - tipHeight - 16];
-      },
-      formatter(seriesData) {
-        const series = Array.isArray(seriesData) ? seriesData : [seriesData];
-        return [
-          '<div class="tooltip-series">',
-          series
-            .map(
-              s =>
-                `<div><span class="tooltip-label">${s.marker} <strong>${
-                  s.seriesName
-                }</strong></span> ${s.data[1].toLocaleString()}</div>`
-            )
-            .join(''),
-          '</div>',
-          `<div class="tooltip-date">${getFormattedDate(series[0].data[0], 'MMM D, LTS', {
-            local: true,
-          })}</div>`,
-        ].join('');
-      },
-    };
-
     return (
       <AreaChart
         {...props}
@@ -120,7 +89,6 @@ class EventsAreaChart extends React.Component {
           top: '24px',
           bottom: '12px',
         }}
-        tooltip={tooltip}
       />
     );
   }
@@ -177,7 +145,7 @@ class EventsChart extends React.Component {
             environment={environments}
             start={start}
             end={end}
-            interval={getInterval(this.props, true)}
+            interval={router?.location?.query?.interval || getInterval(this.props, true)}
             showLoading={false}
             query={query}
             includePrevious={includePrevious}
@@ -199,7 +167,7 @@ class EventsChart extends React.Component {
                     }
 
                     return (
-                      <ChartContainer>
+                      <React.Fragment>
                         <TransparentLoadingMask visible={reloading} />
                         <EventsAreaChart
                           {...zoomRenderProps}
@@ -211,7 +179,7 @@ class EventsChart extends React.Component {
                           timeseriesData={timeseriesData}
                           previousTimeseriesData={previousTimeseriesData}
                         />
-                      </ChartContainer>
+                      </React.Fragment>
                     );
                   }}
                 </ReleaseSeries>
@@ -255,56 +223,6 @@ const TransparentLoadingMask = styled(LoadingMask)`
   ${p => !p.visible && 'display: none;'};
   opacity: 0.4;
   z-index: 1;
-`;
-
-// Contains styling for chart elements as we can't easily style those
-// elements directly
-const ChartContainer = styled('div')`
-  /* Tooltip styling */
-  .tooltip-series,
-  .tooltip-date {
-    color: ${p => p.theme.gray2};
-    font-family: ${p => p.theme.text.family};
-    background: ${p => p.theme.gray5};
-    padding: ${space(1)} ${space(2)};
-    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  }
-  .tooltip-label {
-    margin-right: ${space(1)};
-  }
-  .tooltip-label strong {
-    font-weight: normal;
-    color: #fff;
-  }
-  .tooltip-series > div {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-  }
-  .tooltip-date {
-    border-top: 1px solid ${p => p.theme.gray3};
-    position: relative;
-    width: auto;
-    border-radius: ${p => p.theme.borderRadiusBottom};
-  }
-  .tooltip-date:after {
-    top: 100%;
-    left: 50%;
-    border: solid transparent;
-    content: ' ';
-    height: 0;
-    width: 0;
-    position: absolute;
-    pointer-events: none;
-    border-color: transparent;
-    border-top-color: ${p => p.theme.gray5};
-    border-width: 8px;
-    margin-left: -8px;
-  }
-
-  .echarts-for-react div:first-child {
-    width: 100% !important;
-  }
 `;
 
 const ErrorPanel = styled('div')`

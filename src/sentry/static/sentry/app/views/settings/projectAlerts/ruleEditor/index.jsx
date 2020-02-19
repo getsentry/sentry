@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -74,7 +73,7 @@ class RuleEditor extends React.Component {
 
   componentDidUpdate() {
     if (this.state.error) {
-      $(document.body).scrollTop($(this.formNode).offset().top);
+      window.scrollTo(0, this.formNode.getBoundingClientRect().top + window.scrollY);
     }
   }
 

@@ -49,16 +49,14 @@ class RuleNode extends React.Component<Props> {
 
     return (
       <SelectControl
-        deprecatedSelectControl
-        clearable={false}
+        isClearable={false}
         placeholder={t('Select integration')}
         noResultsText={t('No integrations available')}
-        height="35"
         name={name}
         value={initialVal}
         choices={fieldConfig.choices}
         key={name}
-        onChange={val => this.props.onPropertyChange(name, val)}
+        onChange={({value}) => this.props.onPropertyChange(name, value)}
       />
     );
   };
@@ -70,7 +68,7 @@ class RuleNode extends React.Component<Props> {
       <InlineInput
         type="text"
         name={name}
-        value={data && data[name]}
+        value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
         key={name}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -87,7 +85,7 @@ class RuleNode extends React.Component<Props> {
       <InlineInput
         type="number"
         name={name}
-        value={data && data[name]}
+        value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
         key={name}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -151,7 +149,13 @@ class RuleNode extends React.Component<Props> {
       <React.Fragment>
         {data && <input type="hidden" name="id" value={data.id} />}
         {this.renderRow()}
-        <DeleteButton onClick={onDelete} type="button" size="small" icon="icon-trash" />
+        <DeleteButton
+          label={t('Delete Node')}
+          onClick={onDelete}
+          type="button"
+          size="small"
+          icon="icon-trash"
+        />
       </React.Fragment>
     );
   }

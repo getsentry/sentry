@@ -1,7 +1,6 @@
 import groupBy from 'lodash/groupBy';
 import keyBy from 'lodash/keyBy';
 import React from 'react';
-import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {
@@ -12,7 +11,7 @@ import {
   SentryAppInstallation,
   PluginWithProjectList,
 } from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import {RequestOptions} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {
@@ -23,13 +22,11 @@ import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
@@ -374,58 +371,40 @@ class OrganizationIntegrations extends AsyncComponent<
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {reloading, displayedList} = this.state;
+    const {displayedList} = this.state;
 
     const title = t('Integrations');
     return (
       <React.Fragment>
         <SentryDocumentTitle title={title} objSlug={orgId} />
-        {!this.props.hideHeader && <SettingsPageHeader title={title} />}
-        <PermissionAlert access={['org:integrations']} />
 
+        {!this.props.hideHeader && (
+          <SettingsPageHeader
+            title={title}
+            action={
+              <SearchInput
+                value={this.state.searchInput || ''}
+                onChange={this.onSearchChange}
+                placeholder="Search Integrations..."
+                width="25em"
+              />
+            }
+          />
+        )}
+
+        <PermissionAlert access={['org:integrations']} />
         <MigrationWarnings
           orgId={this.props.params.orgId}
           providers={this.providers}
           onInstall={this.onInstall}
         />
-        <SearchContainer>
-          <SearchInput
-            value={this.state.searchInput || ''}
-            onChange={this.onSearchChange}
-            placeholder="Find a new integration, or one you already use."
-            width="100%"
-          />
-        </SearchContainer>
         <Panel>
-          <PanelHeader disablePadding>
-            <Heading>{t('Integrations')}</Heading>
-            {reloading && <StyledLoadingIndicator mini />}
-          </PanelHeader>
           <PanelBody>{displayedList.map(this.renderIntegration)}</PanelBody>
         </Panel>
       </React.Fragment>
     );
   }
 }
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  position: absolute;
-  right: 7px;
-  top: 50%;
-  transform: translateY(-16px);
-`;
-
-const Heading = styled('div')`
-  flex: 1;
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-`;
-
-const SearchContainer = styled('div')`
-  display: flex;
-  width: 100%;
-  margin-bottom: ${space(2)};
-`;
 
 export default withOrganization(OrganizationIntegrations);
 export {OrganizationIntegrations};
