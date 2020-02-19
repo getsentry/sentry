@@ -52,14 +52,18 @@ class ExportedData(Model):
         else:
             return ExportStatus.Valid
 
-    def delete(self, *args, **kwargs):
-        super(ExportedData, self).delete(*args, **kwargs)
+    def delete_file(self):
         if self.file:
             self.file.delete()
 
-    def complete_upload(self, file, expiration=DEFAULT_EXPIRATION):
+    def delete(self, *args, **kwargs):
+        self.delete_file()
+        super(ExportedData, self).delete(*args, **kwargs)
+
+    def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION):
+        self.delete_file()
         current_time = timezone.now()
-        expire_time = current_time + DEFAULT_EXPIRATION
+        expire_time = current_time + expiration
         self.update(file=file, date_finished=current_time, date_expired=expire_time)
         # TODO(Leander): Implement email notification
 
