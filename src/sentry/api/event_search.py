@@ -858,7 +858,7 @@ FIELD_ALIASES = {
     "error_rate": {
         "result_type": "number",
         "aggregations": [
-            ["divide(countIf(notEquals(transaction_status, 0)), count(*))", None, "error_rate"]
+            ["divide(countIf(notEquals(transaction_status, 0)), count())", None, "error_rate"]
         ],
     },
 }
@@ -926,14 +926,22 @@ FUNCTIONS = {
     "rps": {
         "name": "rps",
         "args": [
-            {"name": "interval", "type": NUMBER, "validator": lambda v: (v > 0, "must be positive integer")},
+            {
+                "name": "interval",
+                "type": NUMBER,
+                "validator": lambda v: (v > 0, "must be positive integer"),
+            }
         ],
         "transform": "divide(count(), %(interval)d)",
     },
     "rpm": {
         "name": "rpm",
         "args": [
-            {"name": "interval", "type": NUMBER, "validator": lambda v: (v >= 60, "must be greater than 60 seconds")},
+            {
+                "name": "interval",
+                "type": NUMBER,
+                "validator": lambda v: (v >= 60, "must be greater than 60 seconds"),
+            }
         ],
         "transform": "divide(count(), divide(%(interval)d, 60))",
     },
