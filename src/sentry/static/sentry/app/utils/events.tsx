@@ -1,5 +1,5 @@
 import {isNativePlatform} from 'app/utils/platform';
-import {Event} from 'app/types';
+import {Event, Group} from 'app/types';
 
 /**
  * Extract the display message from an event.
@@ -36,7 +36,7 @@ type EventTitle = {
   subtitle: string;
 };
 
-export function getTitle(event: Event): EventTitle {
+export function getTitle(event: Event | Group): EventTitle {
   const {metadata, type, culprit} = event;
   const result: EventTitle = {
     title: event.title,
