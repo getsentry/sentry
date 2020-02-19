@@ -17,9 +17,10 @@ import {AGGREGATE_ALIASES} from '../data';
 
 type Props = {
   organization: OrganizationSummary;
+  parentIndex: number;
   column: Column;
   tagKeys: string[];
-  onChange: (column: Column) => void;
+  onChange: (index: number, column: Column) => void;
 };
 
 type State = {
@@ -64,8 +65,9 @@ class ColumnEditRow extends React.Component<Props, State> {
   };
 
   triggerChange() {
+    const {parentIndex} = this.props;
     const {field, aggregation} = this.state;
-    this.props.onChange({
+    this.props.onChange(parentIndex, {
       field,
       aggregation,
     });

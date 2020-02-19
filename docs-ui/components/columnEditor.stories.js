@@ -35,6 +35,7 @@ storiesOf('Discover|ColumnEditor', module).add(
           column={simple}
           tagKeys={tags}
           onChange={action('onchange')}
+          parentIndex={0}
         />
 
         <h3>Tag field</h3>
@@ -43,6 +44,7 @@ storiesOf('Discover|ColumnEditor', module).add(
           column={simpleTag}
           tagKeys={tags}
           onChange={action('onchange')}
+          parentIndex={0}
         />
 
         <h3>Aggregate field</h3>
@@ -51,6 +53,7 @@ storiesOf('Discover|ColumnEditor', module).add(
           column={aggregateField}
           tagKeys={tags}
           onChange={action('onchange')}
+          parentIndex={0}
         />
       </div>
     );
