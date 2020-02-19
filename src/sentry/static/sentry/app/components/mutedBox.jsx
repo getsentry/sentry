@@ -57,7 +57,7 @@ export default class MutedBox extends React.PureComponent {
         <BannerSummary>
           <span className="icon icon-soundoff" style={{color: theme.red}} />
           <span>
-            {this.renderReason()} —
+            {this.renderReason()}&nbsp;&mdash;&nbsp;
             {t(
               'You will not be notified of any changes and it will not show up by default in feeds.'
             )}
