@@ -194,14 +194,7 @@ export const MOCK_RESP_INCONSISTENT_PLACEHOLDERS = [
     formFields: {
       interval: {
         type: 'choice',
-        choices: [
-          ['1m', 'one minute'],
-          ['1h', 'one hour'],
-          ['12h', 'high noon'],
-          ['1d', 'one day'],
-          ['1w', 'one week'],
-          ['30d', '30 days'],
-        ],
+        choices: DEFAULT_INTERVAL_CHOICES,
       },
       value: {
         placeholder: 80696,
