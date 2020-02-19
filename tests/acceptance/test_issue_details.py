@@ -1,15 +1,14 @@
 from __future__ import absolute_import
 
-import json
 import pytz
 
 from mock import patch
 from datetime import datetime, timedelta
-from django.conf import settings
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
+from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
 event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 now = datetime.utcnow().replace(tzinfo=pytz.utc)
@@ -26,7 +25,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
-        self.dismiss_assistant()
+        self.page = IssueDetailsPage(self.browser, self.client)
 
     def create_sample_event(self, platform, default=None, sample_name=None, time=None):
         event_data = load_data(platform, default=default, sample_name=sample_name)
@@ -51,66 +50,58 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         )
         return event
 
-    def visit_issue(self, groupid):
-        self.dismiss_assistant()
-        self.browser.get(u"/organizations/{}/issues/{}/".format(self.org.slug, groupid))
-        self.wait_until_loaded()
-
     def test_python_event(self):
         event = self.create_sample_event(platform="python", time=event_time)
-
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
 
         # Wait for tag bars to load
-        self.browser.wait_until('[data-test-id="loaded-device-name"]')
+        self.browser.wait_until_test_id("loaded-device-name")
         self.browser.snapshot("issue details python")
 
     def test_python_rawbody_event(self):
         event = self.create_sample_event(platform="python-rawbody")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.move_to(".request pre span")
         self.browser.snapshot("issue details python raw body")
 
     def test_python_formdata_event(self):
         event = self.create_sample_event(platform="python-formdata")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details python formdata")
 
     def test_pii_tooltips(self):
         event = self.create_sample_event(platform="pii-tooltips")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details pii tooltips")
 
     def test_cocoa_event(self):
         event = self.create_sample_event(platform="cocoa")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details cocoa")
 
     def test_unity_event(self):
         event = self.create_sample_event(default="unity", platform="csharp")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details unity")
 
     def test_android_event(self):
         event = self.create_sample_event(platform="android")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details android")
 
     def test_android_ndk_event(self):
         event = self.create_sample_event(default="android-ndk", platform="android-ndk")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details android-ndk")
 
     def test_aspnetcore_event(self):
         event = self.create_sample_event(default="aspnetcore", platform="csharp")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details aspnetcore")
 
     def test_javascript_specific_event(self):
         event = self.create_sample_event(platform="javascript")
-
-        self.dismiss_assistant()
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details javascript - event details")
 
         self.browser.find_element_by_xpath("//a//code[contains(text(), 'curl')]").click()
@@ -119,70 +110,43 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_rust_event(self):
         # TODO: This should become its own "rust" platform type
         event = self.create_sample_event(platform="native", sample_name="Rust")
-        self.visit_issue(event.group.id)
-        self.wait_until_loaded()
+        self.page.visit_issue(self.org.slug, event.group.id)
 
         self.browser.snapshot("issue details rust")
 
     def test_cordova_event(self):
         event = self.create_sample_event(platform="cordova")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
 
         self.browser.snapshot("issue details cordova")
 
     def test_stripped_event(self):
         event = self.create_sample_event(platform="pii")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details pii stripped")
 
     def test_empty_exception(self):
         event = self.create_sample_event(platform="empty-exception")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details empty exception")
 
     def test_empty_stacktrace(self):
         event = self.create_sample_event(platform="empty-stacktrace")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details empty stacktrace")
 
     def test_invalid_interfaces(self):
         event = self.create_sample_event(platform="invalid-interfaces")
-        self.visit_issue(event.group.id)
+        self.page.visit_issue(self.org.slug, event.group.id)
 
         self.browser.click('[data-test-id="event-error-toggle"]')
-        self.browser.wait_until('[data-test-id="event-error-details"]')
+        self.browser.wait_until_test_id("event-error-details")
         self.browser.snapshot("issue details invalid interfaces")
 
     def test_activity_page(self):
         event = self.create_sample_event(platform="python")
+        self.page.visit_issue(self.org.slug, event.group.id)
+        self.page.go_to_subtab("Comments")
 
-        self.browser.get(
-            u"/organizations/{}/issues/{}/activity/".format(self.org.slug, event.group.id)
-        )
         self.browser.wait_until_test_id("activity-item")
         self.browser.snapshot("issue activity python")
-
-    def wait_until_loaded(self):
-        self.browser.wait_until_not(".loading-indicator")
-        self.browser.wait_until(".entries")
-        self.browser.wait_until_test_id("linked-issues")
-        self.browser.wait_until_test_id("loaded-device-name")
-        self.browser.wait_until_test_id("loaded-event-cause-empty")
-
-    def dismiss_assistant(self):
-        # Forward session cookie to django client.
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
-
-        res = self.client.put(
-            "/api/0/assistant/",
-            content_type="application/json",
-            data=json.dumps({"guide_id": 1, "status": "viewed", "useful": True}),
-        )
-        assert res.status_code == 201
-
-        res = self.client.put(
-            "/api/0/assistant/",
-            content_type="application/json",
-            data=json.dumps({"guide_id": 3, "status": "viewed", "useful": True}),
-        )
-        assert res.status_code == 201

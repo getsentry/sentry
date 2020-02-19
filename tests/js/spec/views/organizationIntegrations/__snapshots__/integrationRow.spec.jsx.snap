@@ -1,0 +1,891 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`IntegrationRow First Party Integration has been installed (1 configuration) 1`] = `
+<IntegrationRow
+  configurations={1}
+  data-test-id="integration-row"
+  displayName="Bitbucket"
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+  publishStatus="published"
+  slug="bitbucket"
+  status="Installed"
+  type="firstParty"
+>
+  <PanelItem
+    data-test-id="bitbucket"
+    flexDirection="column"
+    p={0}
+  >
+    <div
+      className="css-v767y6-PanelItem ej5ox20"
+      data-test-id="bitbucket"
+    >
+      <FlexContainer>
+        <div
+          className="css-o4gyye-FlexContainer e12p8vfu0"
+        >
+          <PluginIcon
+            pluginId="bitbucket"
+            size={36}
+          >
+            <div
+              className="css-10qz5vf-PluginIcon e7e65lm0"
+              size={36}
+            />
+          </PluginIcon>
+          <Container>
+            <div
+              className="css-1n3wm29-Container e12p8vfu1"
+            >
+              <IntegrationName
+                to="/settings/org-slug/integrations/bitbucket/"
+              >
+                <Link
+                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  to="/settings/org-slug/integrations/bitbucket/"
+                >
+                  <Link
+                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to="/settings/org-slug/integrations/bitbucket/"
+                  >
+                    <a
+                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Bitbucket
+                    </a>
+                  </Link>
+                </Link>
+              </IntegrationName>
+              <IntegrationDetails>
+                <div
+                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                >
+                  <IntegrationStatus
+                    status="Installed"
+                  >
+                    <Component
+                      className="css-t8gms5-IntegrationStatus euvdmu91"
+                      status="Installed"
+                    >
+                      <StatusWrapper>
+                        <div
+                          className="css-efkdqp-StatusWrapper euvdmu90"
+                        >
+                          <CircleIndicator
+                            color="#57be8c"
+                            enabled={true}
+                            size={6}
+                          >
+                            <div
+                              className="css-s0amrh-CircleIndicator exfjg1y0"
+                              color="#57be8c"
+                              size={6}
+                            />
+                          </CircleIndicator>
+                          <div
+                            className="css-t8gms5-IntegrationStatus euvdmu91"
+                          >
+                            Installed
+                          </div>
+                        </div>
+                      </StatusWrapper>
+                    </Component>
+                  </IntegrationStatus>
+                  <StyledLink
+                    to="/settings/org-slug/integrations/bitbucket/?tab=configurations"
+                  >
+                    <Link
+                      className="css-1b2m980-StyledLink e12p8vfu4"
+                      to="/settings/org-slug/integrations/bitbucket/?tab=configurations"
+                    >
+                      <Link
+                        className="css-1b2m980-StyledLink e12p8vfu4"
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to="/settings/org-slug/integrations/bitbucket/?tab=configurations"
+                      >
+                        <a
+                          className="css-1b2m980-StyledLink e12p8vfu4"
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          1 Configuration
+                        </a>
+                      </Link>
+                    </Link>
+                  </StyledLink>
+                </div>
+              </IntegrationDetails>
+            </div>
+          </Container>
+        </div>
+      </FlexContainer>
+    </div>
+  </PanelItem>
+</IntegrationRow>
+`;
+
+exports[`IntegrationRow First Party Integration has been installed (3 configurations) 1`] = `
+<IntegrationRow
+  configurations={3}
+  data-test-id="integration-row"
+  displayName="Bitbucket"
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+  publishStatus="published"
+  slug="bitbucket"
+  status="Installed"
+  type="firstParty"
+>
+  <PanelItem
+    data-test-id="bitbucket"
+    flexDirection="column"
+    p={0}
+  >
+    <div
+      className="css-v767y6-PanelItem ej5ox20"
+      data-test-id="bitbucket"
+    >
+      <FlexContainer>
+        <div
+          className="css-o4gyye-FlexContainer e12p8vfu0"
+        >
+          <PluginIcon
+            pluginId="bitbucket"
+            size={36}
+          >
+            <div
+              className="css-10qz5vf-PluginIcon e7e65lm0"
+              size={36}
+            />
+          </PluginIcon>
+          <Container>
+            <div
+              className="css-1n3wm29-Container e12p8vfu1"
+            >
+              <IntegrationName
+                to="/settings/org-slug/integrations/bitbucket/"
+              >
+                <Link
+                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  to="/settings/org-slug/integrations/bitbucket/"
+                >
+                  <Link
+                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to="/settings/org-slug/integrations/bitbucket/"
+                  >
+                    <a
+                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Bitbucket
+                    </a>
+                  </Link>
+                </Link>
+              </IntegrationName>
+              <IntegrationDetails>
+                <div
+                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                >
+                  <IntegrationStatus
+                    status="Installed"
+                  >
+                    <Component
+                      className="css-t8gms5-IntegrationStatus euvdmu91"
+                      status="Installed"
+                    >
+                      <StatusWrapper>
+                        <div
+                          className="css-efkdqp-StatusWrapper euvdmu90"
+                        >
+                          <CircleIndicator
+                            color="#57be8c"
+                            enabled={true}
+                            size={6}
+                          >
+                            <div
+                              className="css-s0amrh-CircleIndicator exfjg1y0"
+                              color="#57be8c"
+                              size={6}
+                            />
+                          </CircleIndicator>
+                          <div
+                            className="css-t8gms5-IntegrationStatus euvdmu91"
+                          >
+                            Installed
+                          </div>
+                        </div>
+                      </StatusWrapper>
+                    </Component>
+                  </IntegrationStatus>
+                  <StyledLink
+                    to="/settings/org-slug/integrations/bitbucket/?tab=configurations"
+                  >
+                    <Link
+                      className="css-1b2m980-StyledLink e12p8vfu4"
+                      to="/settings/org-slug/integrations/bitbucket/?tab=configurations"
+                    >
+                      <Link
+                        className="css-1b2m980-StyledLink e12p8vfu4"
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to="/settings/org-slug/integrations/bitbucket/?tab=configurations"
+                      >
+                        <a
+                          className="css-1b2m980-StyledLink e12p8vfu4"
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          3 Configurations
+                        </a>
+                      </Link>
+                    </Link>
+                  </StyledLink>
+                </div>
+              </IntegrationDetails>
+            </div>
+          </Container>
+        </div>
+      </FlexContainer>
+    </div>
+  </PanelItem>
+</IntegrationRow>
+`;
+
+exports[`IntegrationRow First Party Integration has not been installed 1`] = `
+<IntegrationRow
+  configurations={0}
+  data-test-id="integration-row"
+  displayName="Github"
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+  publishStatus="published"
+  slug="github"
+  status="Not Installed"
+  type="firstParty"
+>
+  <PanelItem
+    data-test-id="github"
+    flexDirection="column"
+    p={0}
+  >
+    <div
+      className="css-v767y6-PanelItem ej5ox20"
+      data-test-id="github"
+    >
+      <FlexContainer>
+        <div
+          className="css-o4gyye-FlexContainer e12p8vfu0"
+        >
+          <PluginIcon
+            pluginId="github"
+            size={36}
+          >
+            <div
+              className="css-10qz5vf-PluginIcon e7e65lm0"
+              size={36}
+            />
+          </PluginIcon>
+          <Container>
+            <div
+              className="css-1n3wm29-Container e12p8vfu1"
+            >
+              <IntegrationName
+                to="/settings/org-slug/integrations/github/"
+              >
+                <Link
+                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  to="/settings/org-slug/integrations/github/"
+                >
+                  <Link
+                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to="/settings/org-slug/integrations/github/"
+                  >
+                    <a
+                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Github
+                    </a>
+                  </Link>
+                </Link>
+              </IntegrationName>
+              <IntegrationDetails>
+                <div
+                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                >
+                  <IntegrationStatus
+                    status="Not Installed"
+                  >
+                    <Component
+                      className="css-13e7ceq-IntegrationStatus euvdmu91"
+                      status="Not Installed"
+                    >
+                      <StatusWrapper>
+                        <div
+                          className="css-efkdqp-StatusWrapper euvdmu90"
+                        >
+                          <CircleIndicator
+                            color="#9585A3"
+                            enabled={true}
+                            size={6}
+                          >
+                            <div
+                              className="css-8o8wlf-CircleIndicator exfjg1y0"
+                              color="#9585A3"
+                              size={6}
+                            />
+                          </CircleIndicator>
+                          <div
+                            className="css-13e7ceq-IntegrationStatus euvdmu91"
+                          >
+                            Not Installed
+                          </div>
+                        </div>
+                      </StatusWrapper>
+                    </Component>
+                  </IntegrationStatus>
+                </div>
+              </IntegrationDetails>
+            </div>
+          </Container>
+        </div>
+      </FlexContainer>
+    </div>
+  </PanelItem>
+</IntegrationRow>
+`;
+
+exports[`IntegrationRow Plugin has been installed (1 project) 1`] = `
+<IntegrationRow
+  configurations={1}
+  data-test-id="integration-row"
+  displayName="Twilio (SMS) "
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+  publishStatus="published"
+  slug="twilio"
+  status="Installed"
+  type="plugin"
+>
+  <PanelItem
+    data-test-id="twilio"
+    flexDirection="column"
+    p={0}
+  >
+    <div
+      className="css-v767y6-PanelItem ej5ox20"
+      data-test-id="twilio"
+    >
+      <FlexContainer>
+        <div
+          className="css-o4gyye-FlexContainer e12p8vfu0"
+        >
+          <PluginIcon
+            pluginId="twilio"
+            size={36}
+          >
+            <div
+              className="css-10qz5vf-PluginIcon e7e65lm0"
+              size={36}
+            />
+          </PluginIcon>
+          <Container>
+            <div
+              className="css-1n3wm29-Container e12p8vfu1"
+            >
+              <IntegrationName
+                to="/settings/org-slug/plugins/twilio/"
+              >
+                <Link
+                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  to="/settings/org-slug/plugins/twilio/"
+                >
+                  <Link
+                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to="/settings/org-slug/plugins/twilio/"
+                  >
+                    <a
+                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Twilio (SMS) 
+                    </a>
+                  </Link>
+                </Link>
+              </IntegrationName>
+              <IntegrationDetails>
+                <div
+                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                >
+                  <IntegrationStatus
+                    status="Installed"
+                  >
+                    <Component
+                      className="css-t8gms5-IntegrationStatus euvdmu91"
+                      status="Installed"
+                    >
+                      <StatusWrapper>
+                        <div
+                          className="css-efkdqp-StatusWrapper euvdmu90"
+                        >
+                          <CircleIndicator
+                            color="#57be8c"
+                            enabled={true}
+                            size={6}
+                          >
+                            <div
+                              className="css-s0amrh-CircleIndicator exfjg1y0"
+                              color="#57be8c"
+                              size={6}
+                            />
+                          </CircleIndicator>
+                          <div
+                            className="css-t8gms5-IntegrationStatus euvdmu91"
+                          >
+                            Installed
+                          </div>
+                        </div>
+                      </StatusWrapper>
+                    </Component>
+                  </IntegrationStatus>
+                  <StyledLink
+                    to="/settings/org-slug/plugins/twilio/?tab=configurations"
+                  >
+                    <Link
+                      className="css-1b2m980-StyledLink e12p8vfu4"
+                      to="/settings/org-slug/plugins/twilio/?tab=configurations"
+                    >
+                      <Link
+                        className="css-1b2m980-StyledLink e12p8vfu4"
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to="/settings/org-slug/plugins/twilio/?tab=configurations"
+                      >
+                        <a
+                          className="css-1b2m980-StyledLink e12p8vfu4"
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          1 Configuration
+                        </a>
+                      </Link>
+                    </Link>
+                  </StyledLink>
+                </div>
+              </IntegrationDetails>
+            </div>
+          </Container>
+        </div>
+      </FlexContainer>
+    </div>
+  </PanelItem>
+</IntegrationRow>
+`;
+
+exports[`IntegrationRow Plugin has been installed (3 projects) 1`] = `
+<IntegrationRow
+  configurations={3}
+  data-test-id="integration-row"
+  displayName="Twilio (SMS) "
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+  publishStatus="published"
+  slug="twilio"
+  status="Installed"
+  type="plugin"
+>
+  <PanelItem
+    data-test-id="twilio"
+    flexDirection="column"
+    p={0}
+  >
+    <div
+      className="css-v767y6-PanelItem ej5ox20"
+      data-test-id="twilio"
+    >
+      <FlexContainer>
+        <div
+          className="css-o4gyye-FlexContainer e12p8vfu0"
+        >
+          <PluginIcon
+            pluginId="twilio"
+            size={36}
+          >
+            <div
+              className="css-10qz5vf-PluginIcon e7e65lm0"
+              size={36}
+            />
+          </PluginIcon>
+          <Container>
+            <div
+              className="css-1n3wm29-Container e12p8vfu1"
+            >
+              <IntegrationName
+                to="/settings/org-slug/plugins/twilio/"
+              >
+                <Link
+                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  to="/settings/org-slug/plugins/twilio/"
+                >
+                  <Link
+                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to="/settings/org-slug/plugins/twilio/"
+                  >
+                    <a
+                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Twilio (SMS) 
+                    </a>
+                  </Link>
+                </Link>
+              </IntegrationName>
+              <IntegrationDetails>
+                <div
+                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                >
+                  <IntegrationStatus
+                    status="Installed"
+                  >
+                    <Component
+                      className="css-t8gms5-IntegrationStatus euvdmu91"
+                      status="Installed"
+                    >
+                      <StatusWrapper>
+                        <div
+                          className="css-efkdqp-StatusWrapper euvdmu90"
+                        >
+                          <CircleIndicator
+                            color="#57be8c"
+                            enabled={true}
+                            size={6}
+                          >
+                            <div
+                              className="css-s0amrh-CircleIndicator exfjg1y0"
+                              color="#57be8c"
+                              size={6}
+                            />
+                          </CircleIndicator>
+                          <div
+                            className="css-t8gms5-IntegrationStatus euvdmu91"
+                          >
+                            Installed
+                          </div>
+                        </div>
+                      </StatusWrapper>
+                    </Component>
+                  </IntegrationStatus>
+                  <StyledLink
+                    to="/settings/org-slug/plugins/twilio/?tab=configurations"
+                  >
+                    <Link
+                      className="css-1b2m980-StyledLink e12p8vfu4"
+                      to="/settings/org-slug/plugins/twilio/?tab=configurations"
+                    >
+                      <Link
+                        className="css-1b2m980-StyledLink e12p8vfu4"
+                        onlyActiveOnIndex={false}
+                        style={Object {}}
+                        to="/settings/org-slug/plugins/twilio/?tab=configurations"
+                      >
+                        <a
+                          className="css-1b2m980-StyledLink e12p8vfu4"
+                          onClick={[Function]}
+                          style={Object {}}
+                        >
+                          3 Configurations
+                        </a>
+                      </Link>
+                    </Link>
+                  </StyledLink>
+                </div>
+              </IntegrationDetails>
+            </div>
+          </Container>
+        </div>
+      </FlexContainer>
+    </div>
+  </PanelItem>
+</IntegrationRow>
+`;
+
+exports[`IntegrationRow Plugin has not been installed 1`] = `
+<IntegrationRow
+  configurations={0}
+  data-test-id="integration-row"
+  displayName="Amazon SQS"
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+  publishStatus="published"
+  slug="amazon-sqs"
+  status="Not Installed"
+  type="plugin"
+>
+  <PanelItem
+    data-test-id="amazon-sqs"
+    flexDirection="column"
+    p={0}
+  >
+    <div
+      className="css-v767y6-PanelItem ej5ox20"
+      data-test-id="amazon-sqs"
+    >
+      <FlexContainer>
+        <div
+          className="css-o4gyye-FlexContainer e12p8vfu0"
+        >
+          <PluginIcon
+            pluginId="amazon-sqs"
+            size={36}
+          >
+            <div
+              className="css-10qz5vf-PluginIcon e7e65lm0"
+              size={36}
+            />
+          </PluginIcon>
+          <Container>
+            <div
+              className="css-1n3wm29-Container e12p8vfu1"
+            >
+              <IntegrationName
+                to="/settings/org-slug/plugins/amazon-sqs/"
+              >
+                <Link
+                  className="css-1is5gvj-IntegrationName e12p8vfu2"
+                  to="/settings/org-slug/plugins/amazon-sqs/"
+                >
+                  <Link
+                    className="css-1is5gvj-IntegrationName e12p8vfu2"
+                    onlyActiveOnIndex={false}
+                    style={Object {}}
+                    to="/settings/org-slug/plugins/amazon-sqs/"
+                  >
+                    <a
+                      className="css-1is5gvj-IntegrationName e12p8vfu2"
+                      onClick={[Function]}
+                      style={Object {}}
+                    >
+                      Amazon SQS
+                    </a>
+                  </Link>
+                </Link>
+              </IntegrationName>
+              <IntegrationDetails>
+                <div
+                  className="css-ttnzkc-IntegrationDetails e12p8vfu3"
+                >
+                  <IntegrationStatus
+                    status="Not Installed"
+                  >
+                    <Component
+                      className="css-13e7ceq-IntegrationStatus euvdmu91"
+                      status="Not Installed"
+                    >
+                      <StatusWrapper>
+                        <div
+                          className="css-efkdqp-StatusWrapper euvdmu90"
+                        >
+                          <CircleIndicator
+                            color="#9585A3"
+                            enabled={true}
+                            size={6}
+                          >
+                            <div
+                              className="css-8o8wlf-CircleIndicator exfjg1y0"
+                              color="#9585A3"
+                              size={6}
+                            />
+                          </CircleIndicator>
+                          <div
+                            className="css-13e7ceq-IntegrationStatus euvdmu91"
+                          >
+                            Not Installed
+                          </div>
+                        </div>
+                      </StatusWrapper>
+                    </Component>
+                  </IntegrationStatus>
+                </div>
+              </IntegrationDetails>
+            </div>
+          </Container>
+        </div>
+      </FlexContainer>
+    </div>
+  </PanelItem>
+</IntegrationRow>
+`;
