@@ -1,22 +1,24 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+
 import {t} from 'app/locale';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
+import space from 'app/styles/space';
 
 const defaultProps = {
   wrapTitle: true,
   raw: false,
-  hideGuide: false,
 };
 
 type DefaultProps = Readonly<typeof defaultProps>;
 
 type Props = {
   className?: string;
-  title: React.ReactText;
+  title: React.ReactNode;
   type: string;
   toggleRaw?: (enable: boolean) => void;
+  actions?: React.ReactNode;
 } & DefaultProps;
 
 class EventDataSection extends React.Component<Props> {
@@ -26,7 +28,7 @@ class EventDataSection extends React.Component<Props> {
     wrapTitle: PropTypes.bool,
     toggleRaw: PropTypes.func,
     raw: PropTypes.bool,
-    hideGuide: PropTypes.bool,
+    actions: PropTypes.node,
   };
 
   static defaultProps = defaultProps;
@@ -55,33 +57,26 @@ class EventDataSection extends React.Component<Props> {
     const {
       children,
       className,
-      hideGuide,
       type,
       title,
       toggleRaw,
       raw,
       wrapTitle,
+      actions,
     } = this.props;
 
-    let titleNode = wrapTitle ? <h3>{title}</h3> : <div>{title}</div>;
-    if (type === 'tags' && hideGuide === false) {
-      titleNode = (
-        <GuideAnchor target="tags" position="top">
-          {titleNode}
-        </GuideAnchor>
-      );
-    }
+    const titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
     return (
-      <div className={(className || '') + ' box'}>
+      <DataSection className={className || ''}>
         {title && (
-          <div className="box-header" id={type}>
-            <a href={'#' + type} className="permalink">
+          <SectionHeader id={type}>
+            <Permalink href={'#' + type} className="permalink">
               <em className="icon-anchor" />
-            </a>
+            </Permalink>
             {titleNode}
             {type === 'extra' && (
-              <div className="btn-group pull-right">
+              <div className="btn-group">
                 <a
                   className={(!raw ? 'active' : '') + ' btn btn-default btn-sm'}
                   onClick={() => callIfFunction(toggleRaw, false)}
@@ -96,12 +91,89 @@ class EventDataSection extends React.Component<Props> {
                 </a>
               </div>
             )}
-          </div>
+            {actions && <ActionContainer>{actions}</ActionContainer>}
+          </SectionHeader>
         )}
-        <div className="box-content with-padding">{children}</div>
-      </div>
+        <SectionContents>{children}</SectionContents>
+      </DataSection>
     );
   }
 }
+
+// Exported as discover needs to restyle this.
+export const DataSection = styled('div')`
+  padding: ${space(3)} ${space(4)} 0 40px;
+  border-top: 1px solid ${p => p.theme.borderLight};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(2)} 0;
+  }
+`;
+
+const Permalink = styled('a')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 27px;
+  display: none;
+  position: absolute;
+  top: -1.5px;
+  left: -22px;
+  color: ${p => p.theme.gray6};
+  padding: ${space(0.25)} 5px;
+`;
+
+const SectionHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+
+  & h3,
+  & h3 a {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: ${p => p.theme.gray2};
+  }
+
+  & h3 {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    padding: ${space(0.75)} 0;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  & small {
+    color: ${p => p.theme.foreground};
+    font-size: ${p => p.theme.fontSizeMedium};
+    margin-right: ${space(0.5)};
+    margin-left: ${space(0.5)};
+
+    text-transform: none;
+  }
+  & small a {
+    color: ${p => p.theme.foreground};
+    border-bottom: 1px dotted ${p => p.theme.gray6};
+    font-weight: normal;
+  }
+
+  &:hover ${Permalink} {
+    display: block;
+  }
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    & > small {
+      margin-left: ${space(1)};
+      display: inline-block;
+    }
+  }
+`;
+
+const SectionContents = styled('div')`
+  position: relative;
+`;
+
+const ActionContainer = styled('div')`
+  flex-shrink: 0;
+`;
 
 export default EventDataSection;

@@ -24,5 +24,5 @@ class SharedIssueTest(AcceptanceTestCase):
 
         self.browser.get(u"/share/issue/{}/".format(event.group.get_share_id()))
         self.browser.wait_until_not(".loading-indicator")
-        self.browser.wait_until(".entries")
+        self.browser.wait_until_test_id("event-entries")
         self.browser.snapshot("shared issue python")

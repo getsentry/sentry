@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
@@ -7,6 +9,8 @@ import {getFullUrl, getCurlCommand} from 'app/components/events/interfaces/utils
 import {isUrl} from 'app/utils';
 import {t} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconOpen} from 'app/icons';
+import space from 'app/styles/space';
 
 import Truncate from 'app/components/truncate';
 
@@ -59,10 +63,9 @@ class RequestInterface extends React.Component {
       parsedUrl.href = fullUrl;
     }
 
-    const children = [];
-
+    let actions;
     if (!this.isPartial() && fullUrl) {
-      children.push(
+      actions = (
         <div key="view-buttons" className="btn-group">
           <a
             className={(view === 'formatted' ? 'active' : '') + ' btn btn-default btn-sm'}
@@ -81,36 +84,29 @@ class RequestInterface extends React.Component {
       );
     }
 
-    children.push(
-      <h3 key="title">
+    const title = (
+      <Header key="title">
         <ExternalLink href={fullUrl} title={fullUrl}>
-          <span className="path">
+          <Path>
             <strong>{data.method || 'GET'}</strong>
             <Truncate
               value={parsedUrl ? parsedUrl.pathname : ''}
               maxLength={36}
               leftTrim
             />
-          </span>
-          {fullUrl && (
-            <span className="external-icon">
-              <em className="icon-open" />
-            </span>
-          )}
+          </Path>
+          {fullUrl && <StyledIconOpen size="xs" />}
         </ExternalLink>
-        <small style={{marginLeft: 10}} className="host">
-          {parsedUrl ? parsedUrl.hostname : ''}
-        </small>
-      </h3>
+        <small>{parsedUrl ? parsedUrl.hostname : ''}</small>
+      </Header>
     );
-
-    const title = <div>{children}</div>;
 
     return (
       <EventDataSection
         event={event}
         type={type}
         title={title}
+        actions={actions}
         wrapTitle={false}
         className="request"
       >
@@ -123,5 +119,34 @@ class RequestInterface extends React.Component {
     );
   }
 }
+
+const Path = styled('span')`
+  color: ${p => p.theme.foreground};
+  text-transform: none;
+  font-weight: normal;
+
+  & strong {
+    margin-right: ${space(0.5)};
+  }
+`;
+
+const Header = styled('h3')`
+  display: flex;
+  align-items: center;
+`;
+
+// Nudge the icon down so it is centered. the `external-icon` class
+// doesn't quite get it in place.
+const StyledIconOpen = styled(IconOpen)`
+  transition: 0.1s linear color;
+  margin: 0 ${space(0.5)};
+  color: ${p => p.theme.gray6};
+  position: relative;
+  top: 1px;
+
+  &:hover {
+    color: ${p => p.theme.gray3};
+  }
+`;
 
 export default RequestInterface;
