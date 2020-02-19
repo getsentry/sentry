@@ -17,17 +17,8 @@ LOADER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__), "
 # We cannot leverage six here, so we need to vendor
 # bits that we need.
 if sys.version_info[0] == 3:
-
-    def iteritems(d, **kw):
-        return iter(d.items(**kw))
-
     from urllib.request import urlopen
-
 else:
-
-    def iteritems(d, **kw):
-        return d.iteritems(**kw)  # NOQA
-
     from urllib2 import urlopen
 
 
