@@ -423,7 +423,7 @@ export class Frame extends React.Component {
         className="btn btn-sm btn-default btn-toggle"
         css={this.getPlatform() === 'csharp' && {display: 'block !important'}} // remove important once we get rid of css files
       >
-        {this.state.isExpanded ? <IconSubtract /> : <IconAdd />} />
+        {this.state.isExpanded ? <IconSubtract /> : <IconAdd />}
       </a>
     );
   }
