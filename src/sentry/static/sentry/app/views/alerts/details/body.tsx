@@ -47,13 +47,16 @@ export default class DetailsBody extends React.Component<Props> {
 
     const timeWindowString = `${incident.alertRule.timeWindow}m`;
     const timeWindowInMs = intervalToMilliseconds(timeWindowString);
-    const started = moment(incident.dateStarted);
+    const startBeforeTimeWindow = moment(incident.dateStarted).subtract(
+      timeWindowInMs,
+      'ms'
+    );
     const end = incident.dateClosed ?? getUtcDateString(new Date());
 
     // We want the discover chart to start at "dateStarted" - "timeWindow" - "20%"
-    const start = started
-      .subtract(timeWindowInMs, 'ms')
-      .subtract(moment(end).diff(started, 'ms') * 0.2, 'ms');
+    const additionalWindowBeforeStart =
+      moment(end).diff(startBeforeTimeWindow, 'ms') * 0.2;
+    const start = startBeforeTimeWindow.subtract(additionalWindowBeforeStart, 'ms');
 
     const discoverQuery: NewQuery = {
       id: undefined,
@@ -69,7 +72,7 @@ export default class DetailsBody extends React.Component<Props> {
         .filter(({slug}) => incident.projects.includes(slug))
         .map(({id}) => Number(id)),
       version: 2 as const,
-      start,
+      start: getUtcDateString(start),
       end,
     };
 
