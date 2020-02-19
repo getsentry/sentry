@@ -86,7 +86,7 @@ export default class FormField<
 
   componentDidMount() {}
 
-  componentWillReceiveProps(nextProps: Props, nextContext: Context) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props, nextContext: Context) {
     const newError = this.getError(nextProps, nextContext);
     if (newError !== this.state.error) {
       this.setState({error: newError});
