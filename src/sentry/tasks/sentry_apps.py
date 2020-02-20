@@ -296,12 +296,7 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
 
     org_id = app_platform_event.install.organization_id
     event = "{}.{}".format(app_platform_event.resource, app_platform_event.action)
-
-    slug = sentry_app.slug
-    if sentry_app.status == 2:
-        slug = "internal"
-    if sentry_app.status == 0:
-        slug = "unpublished"
+    slug = sentry_app.datadog_name
 
     try:
         resp = safe_urlopen(
@@ -312,17 +307,16 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         metrics.incr(
             "integration-platform.http_response",
             sample_rate=1.0,
-            tags={"status": "timeout", "integration": slug},
+            tags={"status": "timeout", "integration": slug, "webhook_event": event},
         )
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
-
     metrics.incr(
         "integration-platform.http_response",
         sample_rate=1.0,
-        tags={"status": resp.status_code, "integration": slug},
+        tags={"status": resp.status_code, "integration": slug, "webhook_event": event},
     )
 
     buffer.add_request(

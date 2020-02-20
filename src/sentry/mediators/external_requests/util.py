@@ -7,7 +7,6 @@ from sentry.utils import metrics
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 from sentry.http import safe_urlopen
 
-
 SELECT_OPTIONS_SCHEMA = {
     "type": "array",
     "definitions": {
@@ -53,11 +52,7 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
 
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
-    slug = sentry_app.slug
-    if sentry_app.status == 2:
-        slug = "internal"
-    if sentry_app.status == 0:
-        slug = "unpublished"
+    slug = sentry_app.datadog_name
 
     try:
         resp = safe_urlopen(url=url, **kwargs)
@@ -65,7 +60,7 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
         metrics.incr(
             "integration-platform.http_response",
             sample_rate=1.0,
-            tags={"status": "timeout", "integration": slug},
+            tags={"status": "timeout", "integration": slug, "webhook_event": event},
         )
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
@@ -75,7 +70,7 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
     metrics.incr(
         "integration-platform.http_response",
         sample_rate=1.0,
-        tags={"status": resp.status_code, "integration": slug},
+        tags={"status": resp.status_code, "integration": slug, "webhook_event": event},
     )
     buffer.add_request(
         response_code=resp.status_code,
