@@ -53,25 +53,30 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
 
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
+    slug = sentry_app.slug
+    if sentry_app.status == 2:
+        slug = "internal"
+    if sentry_app.status == 0:
+        slug = "unpublished"
+
     try:
         resp = safe_urlopen(url=url, **kwargs)
     except RequestException:
-        if sentry_app.status == 1:  # 1 is published
-            metrics.incr(
-                "integration-platform.http_response",
-                sample_rate=1.0,
-                tags={"status": 0, "integration": sentry_app.slug},
-            )
+        metrics.incr(
+            "integration-platform.http_response",
+            sample_rate=1.0,
+            tags={"status": "timeout", "integration": slug},
+        )
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
-    if sentry_app.status == 1:  # 1 is published
-        metrics.incr(
-            "integration-platform.http_response",
-            sample_rate=1.0,
-            tags={"status": resp.status_code, "integration": sentry_app.slug},
-        )
+
+    metrics.incr(
+        "integration-platform.http_response",
+        sample_rate=1.0,
+        tags={"status": resp.status_code, "integration": slug},
+    )
     buffer.add_request(
         response_code=resp.status_code,
         org_id=org_id,
