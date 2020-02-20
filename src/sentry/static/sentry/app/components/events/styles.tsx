@@ -53,6 +53,10 @@ export const BannerSummary = styled('p')`
 export const CauseContainer = styled('div')`
   border-top: 1px solid ${p => p.theme.borderLight};
   padding: ${space(3)} ${space(4)} 0 40px;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(2)} 0;
+  }
 `;
 
 export const CauseHeader = styled('div')`
