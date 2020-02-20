@@ -55,7 +55,7 @@ class HelpSource extends React.Component {
     }
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.query !== this.props.query) {
       this.doSearch(nextProps.query);
     }
