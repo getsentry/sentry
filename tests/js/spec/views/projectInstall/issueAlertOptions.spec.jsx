@@ -76,13 +76,13 @@ describe('IssueAlertOptions', function() {
     expect(wrapper.find('RadioLineItem')).toHaveLength(2);
   });
 
-  it('should render only the `Default Rule` and `Create Later` option on responses with different placeholder values', () => {
+  it('should render all(three) options on responses with different placeholder values', () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
     });
     const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
-    expect(wrapper.find('RadioLineItem')).toHaveLength(2);
+    expect(wrapper.find('RadioLineItem')).toHaveLength(3);
   });
 
   it('should ignore conditions that are not `sentry.rules.conditions.event_frequency.EventFrequencyCondition` and `sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition` ', () => {
@@ -114,16 +114,25 @@ describe('IssueAlertOptions', function() {
 
     const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
 
-    expect(wrapper.find('input[data-test-id="range-input"]').props().placeholder).toBe(
-      100
-    );
-
     [
       ['metric-select-control', ['occurrences of', 'users affected by']],
       [
         'interval-select-control',
         ['one minute', 'one hour', 'one day', 'one week', '30 days'],
       ],
-    ].forEach(tuple => selectControlVerifier(wrapper, tuple[0], tuple[1]));
+    ].forEach(([dataTestId, options]) =>
+      selectControlVerifier(wrapper, dataTestId, options)
+    );
+  });
+
+  it('should pre-fill threshold value after a valid server response', () => {
+    MockApiClient.addMockResponse({
+      url: URL,
+      body: MOCK_RESP_VERBOSE,
+    });
+
+    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
+
+    expect(wrapper.find('input[data-test-id="range-input"]').props().value).toBe('10');
   });
 });

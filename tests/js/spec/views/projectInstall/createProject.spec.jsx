@@ -195,6 +195,12 @@ describe('CreateProject', function() {
         .find('PlatformCard')
         .first()
         .simulate('click');
+      expectSubmitButtonToBeDisabled(false);
+
+      wrapper
+        .find('input[data-test-id="range-input"]')
+        .first()
+        .simulate('change', {target: {value: ''}});
       expectSubmitButtonToBeDisabled(true);
 
       wrapper

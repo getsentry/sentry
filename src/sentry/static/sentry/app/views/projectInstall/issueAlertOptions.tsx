@@ -35,6 +35,8 @@ const METRIC_CONDITION_MAP = {
   [MetricValues.USERS]: UNIQUE_USER_FREQUENCY_CONDITION,
 } as const;
 
+const DEFAULT_THRESHOLD_VALUE: string = '10';
+
 type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -44,7 +46,6 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   conditions: any;
   intervalChoices: [string, string][] | undefined;
-  placeholder: string;
   threshold: string;
   interval: string;
   alertSetting: string;
@@ -95,10 +96,7 @@ function unpackConditions(conditions: any[]) {
   const intervalChoices = conditions
     .map(condition => condition.formFields?.interval?.choices)
     .reduce(equalityReducer);
-  const placeholder = conditions
-    .map(condition => condition.formFields?.value?.placeholder)
-    .reduce(equalityReducer);
-  return {intervalChoices, placeholder, interval: intervalChoices?.[0]?.[0]};
+  return {intervalChoices, interval: intervalChoices?.[0]?.[0]};
 }
 
 class IssueAlertOptions extends AsyncComponent<Props, State> {
@@ -110,8 +108,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       alertSetting: `${Actions.CUSTOMIZED_ALERTS}`,
       metric: MetricValues.ERRORS,
       interval: '',
-      placeholder: '',
-      threshold: '',
+      threshold: DEFAULT_THRESHOLD_VALUE,
     };
   }
 
@@ -143,8 +140,8 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
             type="number"
             min="0"
             name=""
+            placeholder={DEFAULT_THRESHOLD_VALUE}
             value={this.state.threshold}
-            placeholder={this.state.placeholder}
             key={name}
             onChange={threshold =>
               this.setStateAndUpdateParents({threshold: threshold.target.value})
@@ -249,15 +246,13 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       return;
     }
 
-    const {intervalChoices, placeholder, interval} = unpackConditions(conditions);
-    if (!intervalChoices || !placeholder || !interval) {
+    const {intervalChoices, interval} = unpackConditions(conditions);
+    if (!intervalChoices || !interval) {
       Sentry.withScope(scope => {
         scope.setExtra('props', this.props);
         scope.setExtra('state', this.state);
         Sentry.captureException(
-          new Error(
-            'Interval choices or value placeholder sent from API endpoint is inconsistent or empty'
-          )
+          new Error('Interval choices or sent from API endpoint is inconsistent or empty')
         );
       });
       this.setStateAndUpdateParents({conditions: undefined});
@@ -267,7 +262,6 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     this.setStateAndUpdateParents({
       conditions,
       intervalChoices,
-      placeholder,
       interval,
     });
   }
