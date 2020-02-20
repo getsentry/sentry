@@ -92,7 +92,7 @@ export default class FieldFromConfig extends React.Component<Props> {
 
     switch (field.type) {
       case 'separator':
-        return <FieldSeparator {...props} />;
+        return <FieldSeparator />;
       case 'secret':
         return <InputField {...props} type="password" />;
       case 'range':

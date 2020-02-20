@@ -48,17 +48,19 @@ class RuleNode extends React.Component<Props> {
     }
 
     return (
-      <SelectControl
-        deprecatedSelectControl
-        clearable={false}
-        placeholder={t('Select integration')}
-        noResultsText={t('No integrations available')}
-        height="35"
+      <InlineSelectControl
+        isClearable={false}
         name={name}
         value={initialVal}
+        styles={{
+          control: provided => ({
+            ...provided,
+            minHeight: '28px',
+            height: '28px',
+          }),
+        }}
         choices={fieldConfig.choices}
-        key={name}
-        onChange={val => this.props.onPropertyChange(name, val)}
+        onChange={({value}) => this.props.onPropertyChange(name, value)}
       />
     );
   };
@@ -70,9 +72,8 @@ class RuleNode extends React.Component<Props> {
       <InlineInput
         type="text"
         name={name}
-        value={data && data[name]}
+        value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
-        key={name}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           onPropertyChange(name, e.target.value)
         }
@@ -87,9 +88,8 @@ class RuleNode extends React.Component<Props> {
       <InlineInput
         type="number"
         name={name}
-        value={data && data[name]}
+        value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
-        key={name}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           onPropertyChange(name, e.target.value)
         }
@@ -117,7 +117,7 @@ class RuleNode extends React.Component<Props> {
 
     const parts = label.split(/({\w+})/).map(part => {
       if (!/^{\w+}$/.test(part)) {
-        return part;
+        return <Separator>{part}</Separator>;
       }
 
       const key = part.slice(1, -1);
@@ -128,19 +128,23 @@ class RuleNode extends React.Component<Props> {
         return null;
       }
 
-      return formFields && formFields.hasOwnProperty(key)
-        ? this.getField(key, formFields[key])
-        : part;
+      return (
+        <Separator key={key}>
+          {formFields && formFields.hasOwnProperty(key)
+            ? this.getField(key, formFields[key])
+            : part}
+        </Separator>
+      );
     });
 
     const [title, ...inputs] = parts;
 
     // We return this so that it can be a grid
     return (
-      <React.Fragment>
-        <div>{title}</div>
-        <RuleNodeForm>{inputs}</RuleNodeForm>
-      </React.Fragment>
+      <Rule>
+        {title}
+        {inputs}
+      </Rule>
     );
   }
 
@@ -148,11 +152,17 @@ class RuleNode extends React.Component<Props> {
     const {data, onDelete} = this.props;
 
     return (
-      <React.Fragment>
+      <RuleRow>
         {data && <input type="hidden" name="id" value={data.id} />}
         {this.renderRow()}
-        <DeleteButton onClick={onDelete} type="button" size="small" icon="icon-trash" />
-      </React.Fragment>
+        <DeleteButton
+          label={t('Delete Node')}
+          onClick={onDelete}
+          type="button"
+          size="small"
+          icon="icon-trash"
+        />
+      </RuleRow>
     );
   }
 }
@@ -161,16 +171,36 @@ export default RuleNode;
 
 const InlineInput = styled(Input)`
   width: auto;
+  height: 28px;
 `;
 
-const RuleNodeForm = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+const InlineSelectControl = styled(SelectControl)`
+  width: 180px;
+`;
+
+const Separator = styled('span')`
+  margin-right: ${space(1)};
+  padding-top: ${space(0.5)};
+  padding-bottom: ${space(0.5)};
+`;
+
+const RuleRow = styled('div')`
+  display: flex;
   align-items: center;
-  white-space: nowrap;
+  padding: ${space(1)};
+
+  &:nth-child(odd) {
+    background-color: ${p => p.theme.offWhite};
+  }
+`;
+
+const Rule = styled('div')`
+  display: flex;
+  align-items: center;
+  flex: 1;
+  flex-wrap: wrap;
 `;
 
 const DeleteButton = styled(Button)`
-  height: 36px;
+  flex-shrink: 0;
 `;

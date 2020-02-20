@@ -393,24 +393,14 @@ export type Config = {
   distPrefix: string;
 };
 
-type Metadata = {
-  value: string;
-  message: string;
-  directive: string;
-  type: string;
-  title: string;
-  uri: string;
-};
-
-type EventOrGroupType = [
-  'error',
-  'csp',
-  'hpkp',
-  'expectct',
-  'expectstaple',
-  'default',
-  'transaction'
-];
+export type EventOrGroupType =
+  | 'error'
+  | 'csp'
+  | 'hpkp'
+  | 'expectct'
+  | 'expectstaple'
+  | 'default'
+  | 'transaction';
 
 // TODO(ts): incomplete
 export type Group = {
@@ -431,7 +421,7 @@ export type Group = {
   lastSeen: string;
   level: string;
   logger: string;
-  metadata: Metadata;
+  metadata: EventMetadata;
   numComments: number;
   participants: any[]; // TODO(ts)
   permalink: string;
@@ -833,6 +823,20 @@ export type Tag = {
   totalValues?: number;
   predefined?: boolean;
 };
+
+export type TagValue = {
+  count: number;
+  name: string;
+  value: string;
+  lastSeen: string;
+  key: string;
+  firstSeen: string;
+  query?: string;
+  email?: string;
+  username?: string;
+  identifier?: string;
+  ipAddress?: string;
+} & AvatarUser;
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 

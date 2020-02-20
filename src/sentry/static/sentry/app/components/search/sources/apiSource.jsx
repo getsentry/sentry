@@ -194,7 +194,7 @@ class ApiSource extends React.Component {
     }
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // Limit the number of times we perform API queries by only attempting API queries
     // using first two characters, otherwise perform in-memory search.
     //

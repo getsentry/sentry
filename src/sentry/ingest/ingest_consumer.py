@@ -63,24 +63,26 @@ class IngestConsumerWorker(AbstractBatchWorker):
         attachment_chunks = []
         other_messages = []
 
-        projects_to_fetch = []
+        projects_to_fetch = set()
 
-        for message in batch:
-            message_type = message["type"]
-            projects_to_fetch.append(message["project_id"])
+        with metrics.timer("ingest_consumer.prepare_messages"):
+            for message in batch:
+                message_type = message["type"]
+                projects_to_fetch.add(message["project_id"])
 
-            if message_type in ("event", "transaction"):
-                other_messages.append((process_event, message))
-            elif message_type == "attachment_chunk":
-                attachment_chunks.append(message)
-            elif message_type == "attachment":
-                other_messages.append((process_individual_attachment, message))
-            elif message_type == "user_report":
-                other_messages.append((process_userreport, message))
-            else:
-                raise ValueError("Unknown message type: {}".format(message_type))
+                if message_type in ("event", "transaction"):
+                    other_messages.append((process_event, message))
+                elif message_type == "attachment_chunk":
+                    attachment_chunks.append(message)
+                elif message_type == "attachment":
+                    other_messages.append((process_individual_attachment, message))
+                elif message_type == "user_report":
+                    other_messages.append((process_userreport, message))
+                else:
+                    raise ValueError("Unknown message type: {}".format(message_type))
 
-        projects = {p.id: p for p in Project.objects.get_many_from_cache(projects_to_fetch)}
+        with metrics.timer("ingest_consumer.fetch_projects"):
+            projects = {p.id: p for p in Project.objects.get_many_from_cache(projects_to_fetch)}
 
         # attachment_chunk messages need to be processed before attachment/event messages.
         with metrics.timer("ingest_consumer.process_attachment_chunk_batch"):

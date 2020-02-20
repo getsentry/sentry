@@ -826,6 +826,9 @@ def get_filter(query=None, params=None):
     return eventstore.Filter(**kwargs)
 
 
+# When adding aliases to this list please also update
+# static/app/views/eventsV2/eventQueryParams.tsx so that
+# the UI builder stays in sync.
 FIELD_ALIASES = {
     "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
     "latest_event": {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]},
@@ -860,6 +863,9 @@ FIELD_ALIASES = {
     },
 }
 
+# When adding functions to this list please also update
+# static/app/views/eventsV2/eventQueryParams.tsx so that
+# the UI builder stays in sync.
 VALID_AGGREGATES = {
     "count_unique": {"snuba_name": "uniq", "fields": "*"},
     "count": {"snuba_name": "count", "fields": "*"},
@@ -901,6 +907,9 @@ FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
 NUMERIC_COLUMN = "numeric_column"
 NUMBER = "number"
 
+# When adding functions to this list please also update
+# static/app/views/eventsV2/eventQueryParams.tsx so that
+# the UI builder stays in sync.
 FUNCTIONS = {
     "percentile": {
         "name": "percentile",
@@ -913,7 +922,21 @@ FUNCTIONS = {
             },
         ],
         "transform": "quantile(%(percentile).2f)(%(column)s)",
-    }
+    },
+    "rps": {
+        "name": "rps",
+        "args": [
+            {"name": "interval", "type": NUMBER, "validator": lambda v: (v > 0, "must be positive integer")},
+        ],
+        "transform": "divide(count(), %(interval)d)",
+    },
+    "rpm": {
+        "name": "rpm",
+        "args": [
+            {"name": "interval", "type": NUMBER, "validator": lambda v: (v >= 60, "must be greater than 60 seconds")},
+        ],
+        "transform": "divide(count(), divide(%(interval)d, 60))",
+    },
 }
 
 

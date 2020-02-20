@@ -8,6 +8,7 @@ import pytest
 
 from django.conf import settings
 
+from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
 from sentry.utils import json
@@ -50,37 +51,10 @@ def _get_test_message(project):
     return val, event_id
 
 
-def _shutdown_requested(max_secs, num_events):
-    """
-    Requests a shutdown after the specified interval has passed or the specified number
-    of events are detected
-    :param max_secs: number of seconds after which to request a shutdown
-    :param num_events: number of events after which to request a shutdown
-    :return: True if a shutdown is requested False otherwise
-    """
-    from sentry.models import Event
-
-    def inner():
-        end_time = time.time()
-        if end_time - start_time > max_secs:
-            logger.debug("Shutdown requested because max secs exceeded")
-            return True
-        elif Event.objects.count() >= num_events:
-            logger.debug("Shutdown requested because num events reached")
-            return True
-        else:
-            return False
-
-    start_time = time.time()
-    return inner
-
-
 @pytest.mark.django_db
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     task_runner, kafka_producer, kafka_admin, requires_kafka
 ):
-    from sentry.models import Event
-
     group_id = "test-consumer"
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
 
@@ -107,14 +81,16 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
 
     with task_runner():
         i = 0
-        while Event.objects.count() < 3 and i < MAX_POLL_ITERATIONS:
+        while i < MAX_POLL_ITERATIONS:
+            if eventstore.get_event_by_id(project.id, event_id):
+                break
+
             consumer._run_once()
             i += 1
 
     # check that we got the messages
-    assert Event.objects.count() == 3
     for event_id in event_ids:
-        message = Event.objects.get(event_id=event_id)
+        message = eventstore.get_event_by_id(project.id, event_id)
         assert message is not None
         # check that the data has not been scrambled
         assert message.data["extra"]["the_id"] == event_id
