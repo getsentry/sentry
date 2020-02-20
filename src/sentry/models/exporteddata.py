@@ -75,9 +75,9 @@ class ExportedData(Model):
         current_time = timezone.now()
         expire_time = current_time + expiration
         self.update(file=file, date_finished=current_time, date_expired=expire_time)
-        self.email_user()
+        self.email_success()
 
-    def email_user(self):
+    def email_success(self):
         from sentry.utils.email import MessageBuilder
 
         if self.date_finished is None or self.date_expired is None or self.file is None:
@@ -90,8 +90,8 @@ class ExportedData(Model):
                 ),
                 "expiration": self.date_expired_string,
             },
-            template="sentry/emails/data-export-finished.txt",
-            html_template="sentry/emails/data-export-finished.html",
+            template="sentry/emails/data-export-success.txt",
+            html_template="sentry/emails/data-export-success.html",
         )
         msg.send_async([self.user.email])
 

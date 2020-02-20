@@ -92,22 +92,22 @@ class ExportedDataTest(TestCase):
         assert not File.objects.filter(id=self.file1.id).exists()
         assert self.data_export.date_expired == self.data_export.date_finished + timedelta(weeks=2)
 
-    def test_email_user(self):
+    def test_email_success(self):
         # Shouldn't send if ExportedData is incomplete
         with self.tasks():
-            self.data_export.email_user()
+            self.data_export.email_success()
         assert len(mail.outbox) == 0
         # Should send one email if complete
         self.data_export.finalize_upload(file=self.file1)
         with self.tasks():
-            self.data_export.email_user()
+            self.data_export.email_success()
         assert len(mail.outbox) == 1
 
     @patch("sentry.utils.email.MessageBuilder")
-    def test_email_user_content(self, builder):
+    def test_email_success_content(self, builder):
         self.data_export.finalize_upload(file=self.file1)
         with self.tasks():
-            self.data_export.email_user()
+            self.data_export.email_success()
         expected_url = absolute_uri(
             reverse(
                 "sentry-data-export-details", args=[self.organization.slug, self.data_export.id]
@@ -116,7 +116,7 @@ class ExportedDataTest(TestCase):
         expected_email_args = {
             "subject": "Your Download is Ready!",
             "context": {"url": expected_url, "expiration": self.data_export.date_expired_string},
-            "template": "sentry/emails/data-export-finished.txt",
-            "html_template": "sentry/emails/data-export-finished.html",
+            "template": "sentry/emails/data-export-success.txt",
+            "html_template": "sentry/emails/data-export-success.html",
         }
         assert builder.call_args[1] == expected_email_args
