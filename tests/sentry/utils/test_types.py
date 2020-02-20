@@ -79,7 +79,7 @@ class OptionsTypesTest(TestCase):
         with self.assertRaises(InvalidTypeError):
             assert Dict("")
         with self.assertRaises(InvalidTypeError):
-            # malformed yaml (a plain scalar, "b: ar", cannot contain ": ")
+            # malformed yaml/json (a plain scalar, "b: ar", cannot contain ": ")
             assert Dict("{foo: b: ar}")
 
     def test_sequence(self):
@@ -95,5 +95,5 @@ class OptionsTypesTest(TestCase):
         with self.assertRaises(InvalidTypeError):
             Sequence("")
         with self.assertRaises(InvalidTypeError):
-            # malformed yaml
+            # malformed yaml/json
             Sequence("[1,")
