@@ -21,12 +21,12 @@ const ReleaseHealth = ({release}: Props) => {
     <React.Fragment>
       <StyledPanelHeader>
         <Layout>
-          <div>{t('Project')}</div>
+          <div>{t('Mobile Project')}</div>
           <div>{t('Crash free users')}</div>
           <div>{t('Crash free sessions')}</div>
           <div>{t('Daily active users')}</div>
-          <RightColumn>{t('Total crashes')}</RightColumn>
-          <RightColumn>{t('Total errors')}</RightColumn>
+          <RightColumn>{t('Mobile crashes')}</RightColumn>
+          <RightColumn>{t('Mobile errors')}</RightColumn>
         </Layout>
       </StyledPanelHeader>
 
