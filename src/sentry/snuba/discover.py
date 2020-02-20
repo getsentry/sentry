@@ -324,7 +324,7 @@ def query(
     if use_aggregate_conditions:
         snuba_args["having"] = snuba_filter.having
 
-    snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=auto_fields))
+    snuba_args.update(resolve_field_list(selected_columns, snuba_args, params=params, auto_fields=auto_fields))
 
     if reference_event:
         ref_conditions = create_reference_event_conditions(reference_event)
