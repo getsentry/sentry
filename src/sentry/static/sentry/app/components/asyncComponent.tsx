@@ -115,7 +115,7 @@ export default class AsyncComponent<
     }
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.api = new Client();
     this.fetchData();
 
@@ -125,7 +125,7 @@ export default class AsyncComponent<
   }
 
   // Compatiblity shim for child classes that call super on this hook.
-  componentWillReceiveProps(_newProps: P, _newContext: any) {}
+  UNSAFE_componentWillReceiveProps(_newProps: P, _newContext: any) {}
 
   componentDidUpdate(prevProps: P, prevContext: any) {
     const isRouterInContext = !!prevContext.router;

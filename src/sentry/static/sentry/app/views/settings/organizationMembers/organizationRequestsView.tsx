@@ -56,8 +56,8 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     };
   }
 
-  componentWillMount() {
-    super.componentWillMount();
+  UNSAFE_componentWillMount() {
+    super.UNSAFE_componentWillMount();
     this.handleRedirect();
   }
 

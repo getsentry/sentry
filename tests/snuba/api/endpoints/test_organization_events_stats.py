@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import six
+import uuid
+
 from datetime import timedelta
 
 from django.core.urlresolvers import reverse
@@ -246,6 +249,155 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 400, response.content
+
+    def test_throughput_rpm_hour_rollup(self):
+        project = self.create_project()
+        # Each of these denotes how many events to create in each hour
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_event(
+                    data={
+                        "event_id": six.binary_type(uuid.uuid1()),
+                        "message": "very bad",
+                        "timestamp": iso_format(
+                            self.day_ago + timedelta(hours=hour, minutes=minute)
+                        ),
+                        "fingerprint": ["group1"],
+                        "tags": {"sentry:user": self.user.email},
+                    },
+                    project_id=project.id,
+                )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=6)),
+                    "interval": "1h",
+                    "yAxis": "rpm()",
+                    "project": project.id,
+                },
+            )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 8
+
+        rows = data[1:7]
+        for test in zip(event_counts, rows):
+            assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
+
+    def test_throughput_rpm_day_rollup(self):
+        project = self.create_project()
+        # Each of these denotes how many events to create in each minute
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_event(
+                    data={
+                        "event_id": six.binary_type(uuid.uuid1()),
+                        "message": "very bad",
+                        "timestamp": iso_format(
+                            self.day_ago + timedelta(hours=hour, minutes=minute)
+                        ),
+                        "fingerprint": ["group1"],
+                        "tags": {"sentry:user": self.user.email},
+                    },
+                    project_id=project.id,
+                )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=6)),
+                    "interval": "24h",
+                    "yAxis": "rpm()",
+                    "project": project.id,
+                },
+            )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[1][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
+
+    def test_throughput_rps_minute_rollup(self):
+        project = self.create_project()
+        # Each of these denotes how many events to create in each minute
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for minute, count in enumerate(event_counts):
+            for second in range(count):
+                self.store_event(
+                    data={
+                        "event_id": six.binary_type(uuid.uuid1()),
+                        "message": "very bad",
+                        "timestamp": iso_format(self.day_ago + timedelta(minutes=minute, seconds=second)),
+                        "fingerprint": ["group1"],
+                        "tags": {"sentry:user": self.user.email},
+                    },
+                    project_id=project.id,
+                )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                    "interval": "1m",
+                    "yAxis": "rps()",
+                    "project": project.id,
+                },
+            )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 8
+
+        rows = data[1:7]
+        for test in zip(event_counts, rows):
+            assert test[1][1][0]["count"] == test[0] / 60.0
+
+    def test_throughput_rps_no_rollup(self):
+        project = self.create_project()
+        # Each of these denotes how many events to create in each minute
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for minute, count in enumerate(event_counts):
+            for second in range(count):
+                self.store_event(
+                    data={
+                        "event_id": six.binary_type(uuid.uuid1()),
+                        "message": "very bad",
+                        "timestamp": iso_format(self.day_ago + timedelta(minutes=minute, seconds=second)),
+                        "fingerprint": ["group1"],
+                        "tags": {"sentry:user": self.user.email},
+                    },
+                    project_id=project.id,
+                )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(minutes=1)),
+                    "interval": "1s",
+                    "yAxis": "rps()",
+                    "project": project.id,
+                },
+            )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 62
+
+        rows = data[1:7]
+        for row in rows:
+            assert row[1][0]["count"] == 1
 
     def test_with_field_and_reference_event_invalid(self):
         with self.feature("organizations:discover-basic"):
