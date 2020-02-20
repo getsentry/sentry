@@ -12,7 +12,7 @@ const CONTEXT_TYPES = {
   device: require('app/components/events/contexts/device/device').default,
   os: require('app/components/events/contexts/operatingSystem/operatingSystem').default,
   runtime: require('app/components/events/contexts/runtime/runtime').default,
-  user: require('app/components/events/contexts/user').default,
+  user: require('app/components/events/contexts/user/user').default,
   gpu: require('app/components/events/contexts/gpu/gpu').default,
 };
 

@@ -1,5 +1,6 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
 import {
@@ -11,6 +12,7 @@ import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {defined} from 'app/utils';
 import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
+import {getUtcDateString, intervalToMilliseconds} from 'app/utils/dates';
 import {t} from 'app/locale';
 import Duration from 'app/components/duration';
 import EventView from 'app/views/eventsV2/eventView';
@@ -43,6 +45,19 @@ export default class DetailsBody extends React.Component<Props> {
       return '';
     }
 
+    const timeWindowString = `${incident.alertRule.timeWindow}m`;
+    const timeWindowInMs = intervalToMilliseconds(timeWindowString);
+    const startBeforeTimeWindow = moment(incident.dateStarted).subtract(
+      timeWindowInMs,
+      'ms'
+    );
+    const end = incident.dateClosed ?? getUtcDateString(new Date());
+
+    // We want the discover chart to start at "dateStarted" - "timeWindow" - "20%"
+    const additionalWindowBeforeStart =
+      moment(end).diff(startBeforeTimeWindow, 'ms') * 0.2;
+    const start = startBeforeTimeWindow.subtract(additionalWindowBeforeStart, 'ms');
+
     const discoverQuery: NewQuery = {
       id: undefined,
       name: (incident && incident.title) || '',
@@ -57,11 +72,17 @@ export default class DetailsBody extends React.Component<Props> {
         .filter(({slug}) => incident.projects.includes(slug))
         .map(({id}) => Number(id)),
       version: 2 as const,
-      range: `${incident.alertRule.timeWindow}m`,
+      start: getUtcDateString(start),
+      end,
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
-    return discoverView.getResultsViewUrlTarget(orgId);
+    const {query, ...toObject} = discoverView.getResultsViewUrlTarget(orgId);
+
+    return {
+      query: {...query, interval: timeWindowString},
+      ...toObject,
+    };
   }
 
   /**
@@ -124,7 +145,9 @@ export default class DetailsBody extends React.Component<Props> {
         )}
 
         <span>{t('Time Window')}</span>
-        <span>{incident && <Duration seconds={incident.alertRule.timeWindow} />}</span>
+        <span>
+          {incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
+        </span>
       </RuleDetails>
     );
   }

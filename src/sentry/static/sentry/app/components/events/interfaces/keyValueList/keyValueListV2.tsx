@@ -40,43 +40,48 @@ const KeyValueList = ({
   return (
     <table className="table key-value" onClick={onClick}>
       <tbody>
-        {getData().map(({key, subject, value = null, meta}) => (
-          <tr key={key}>
-            <TableData className="key" wide={longKeys}>
-              {subject}
-            </TableData>
-            <td className="val">
-              {isContextData ? (
-                <ContextData
-                  data={!raw ? value : JSON.stringify(value)}
-                  meta={meta}
-                  withAnnotatedText
-                />
-              ) : (
-                <pre className="val-string">
-                  {meta ? (
-                    <AnnotatedText
-                      value={value}
-                      chunks={meta.chunks}
-                      remarks={meta.rem}
-                      errors={meta.err}
-                    />
-                  ) : (
-                    value
-                  )}
-                </pre>
-              )}
-            </td>
-          </tr>
-        ))}
+        {getData().map(
+          ({key, subject, value = null, meta, subjectIcon, subjectDataTestId}) => (
+            <tr key={key}>
+              <TableSubject className="key" wide={longKeys}>
+                {subject}
+              </TableSubject>
+              <td className="val" data-test-id={subjectDataTestId}>
+                {isContextData ? (
+                  <ContextData
+                    data={!raw ? value : JSON.stringify(value)}
+                    meta={meta}
+                    withAnnotatedText
+                  >
+                    {subjectIcon}
+                  </ContextData>
+                ) : (
+                  <pre className="val-string">
+                    {meta ? (
+                      <AnnotatedText
+                        value={value}
+                        chunks={meta.chunks}
+                        remarks={meta.rem}
+                        errors={meta.err}
+                      />
+                    ) : (
+                      value
+                    )}
+                    {subjectIcon}
+                  </pre>
+                )}
+              </td>
+            </tr>
+          )
+        )}
       </tbody>
     </table>
   );
 };
 
-const TableData = styled('td')<{wide?: boolean}>`
+const TableSubject = styled('td')<{wide?: boolean}>`
   @media (min-width: ${theme.breakpoints[2]}) {
-    max-width: ${p => (p.wide ? '620px !important' : null)};
+    max-width: ${p => (p.wide ? '620px !important' : 'none')};
   }
 `;
 
