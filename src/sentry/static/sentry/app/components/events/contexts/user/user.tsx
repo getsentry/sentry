@@ -11,8 +11,12 @@ import {defined} from 'app/utils';
 import getUserKnownData from './getUserKnownData';
 
 type Props = {
-  data?: UserType & {data?: any};
+  data?: Data;
 };
+
+type Data = {
+  data?: null | {[key: string]: string};
+} & UserType;
 
 const User = ({data}: Props) => {
   if (!defined(data)) {
@@ -29,7 +33,7 @@ const User = ({data}: Props) => {
         <UserAvatar user={removeFilterMaskedEntries(data)} size={48} gravatar={false} />
       </div>
       <ContextBlock knownData={getUserKnownData(data)} />
-      {data.data && (
+      {defined(data?.data) && (
         <ErrorBoundary mini>
           <KeyValueList data={getKeyValueData(data.data)} isContextData />
         </ErrorBoundary>

@@ -161,6 +161,7 @@ class ContextData extends React.Component {
           <span
             key="value"
             className={
+              (valueInfo.isString ? 'val-string' : '') +
               (valueInfo.isStripped ? ' val-stripped' : '') +
               (valueInfo.isMultiLine ? ' val-string-multiline' : '')
             }
