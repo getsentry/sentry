@@ -71,11 +71,6 @@ class OptionsTypesTest(TestCase):
         assert Dict({"foo": "bar"}) == {"foo": "bar"}
         assert Dict("{foo: bar}") == {"foo": "bar"}
 
-        # these valid yamls are accepted by PyYAML 5.1+
-        # https://github.com/yaml/pyyaml/pull/45
-        assert Dict("{foo:bar}") == {"foo:bar": None}
-        assert Dict("{foo:}") == {"foo": None}
-
         assert Dict() == {}
         with self.assertRaises(InvalidTypeError):
             assert Dict("[]")
