@@ -9,7 +9,6 @@ from enum import Enum
 
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes
 from sentry.db.models import ArrayField, sane_repr
-from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
 from sentry.snuba.models import QueryAggregations
@@ -83,7 +82,6 @@ class IncidentManager(BaseManager):
 
 class IncidentType(Enum):
     DETECTED = 0
-    CREATED = 1
     ALERT_TRIGGERED = 2
 
 
@@ -110,7 +108,7 @@ class Incident(Model):
     # Identifier used to match incoming events from the detection algorithm
     detection_uuid = UUIDField(null=True, db_index=True)
     status = models.PositiveSmallIntegerField(default=IncidentStatus.OPEN.value)
-    type = models.PositiveSmallIntegerField(default=IncidentType.CREATED.value)
+    type = models.PositiveSmallIntegerField()
     aggregation = models.PositiveSmallIntegerField(default=QueryAggregations.TOTAL.value)
     title = models.TextField()
     # Query used to fetch events related to an incident
@@ -179,7 +177,6 @@ class TimeSeriesSnapshot(Model):
 
 
 class IncidentActivityType(Enum):
-    CREATED = 0
     DETECTED = 1
     STATUS_CHANGE = 2
     COMMENT = 3
@@ -217,19 +214,6 @@ class IncidentSubscription(Model):
     __repr__ = sane_repr("incident_id", "user_id")
 
 
-class IncidentSuspectCommit(Model):
-    __core__ = True
-
-    incident = BoundedBigIntegerField(db_column="incident_id")
-    commit = BoundedBigIntegerField(db_column="commit_id", db_index=True)
-    order = models.SmallIntegerField()
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidentsuspectcommit"
-        unique_together = (("incident", "commit"),)
-
-
 class AlertRuleStatus(Enum):
     PENDING = 0
     TRIGGERED = 1
@@ -264,6 +248,18 @@ class AlertRuleManager(BaseManager):
 
     def fetch_for_project(self, project):
         return self.filter(query_subscriptions__project=project)
+
+
+class AlertRuleEnvironment(Model):
+    __core__ = True
+
+    environment = FlexibleForeignKey("sentry.Environment")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleenvironment"
+        unique_together = (("alert_rule", "environment"),)
 
 
 class AlertRuleQuerySubscription(Model):
@@ -307,6 +303,9 @@ class AlertRule(Model):
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     dataset = models.TextField()
     query = models.TextField()
+    environment = models.ManyToManyField(
+        "sentry.Environment", related_name="alert_rule_environment", through=AlertRuleEnvironment
+    )
     # Determines whether we include all current and future projects from this
     # organization in this rule.
     include_all_projects = models.BooleanField(default=False)
@@ -335,6 +334,7 @@ class IncidentTrigger(Model):
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
     status = models.SmallIntegerField()
+    date_modified = models.DateTimeField(default=timezone.now, null=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

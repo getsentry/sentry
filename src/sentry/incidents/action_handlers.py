@@ -4,8 +4,15 @@ import abc
 
 import six
 from django.core.urlresolvers import reverse
+from django.template.defaultfilters import pluralize
 
-from sentry.incidents.models import AlertRuleTriggerAction, QueryAggregations, TriggerStatus
+from sentry.incidents.models import (
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+    QueryAggregations,
+    TriggerStatus,
+    IncidentStatus,
+)
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -13,6 +20,12 @@ from sentry.utils.http import absolute_uri
 @six.add_metaclass(abc.ABCMeta)
 class ActionHandler(object):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
+    incident_status = {
+        IncidentStatus.OPEN: "Open",
+        IncidentStatus.CLOSED: "Resolved",
+        IncidentStatus.CRITICAL: "Critical",
+        IncidentStatus.WARNING: "Warning",
+    }
 
     def __init__(self, action, incident, project):
         self.action = action
@@ -77,7 +90,9 @@ class EmailActionHandler(ActionHandler):
     def build_message(self, context, status, user_id):
         display = self.status_display[status]
         return MessageBuilder(
-            subject=u"Incident Alert Rule {} for Project {}".format(display, self.project.slug),
+            subject=u"[{}] {} - {}".format(
+                context["status"], context["incident_name"], self.project.slug
+            ),
             template=u"sentry/emails/incidents/trigger.txt",
             html_template=u"sentry/emails/incidents/trigger.html",
             type="incident.alert_rule_{}".format(display.lower()),
@@ -87,6 +102,18 @@ class EmailActionHandler(ActionHandler):
     def generate_email_context(self, status):
         trigger = self.action.alert_rule_trigger
         alert_rule = trigger.alert_rule
+        is_active = status == TriggerStatus.ACTIVE
+        is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE
+
+        # if alert threshold and threshold type is above then show '>'
+        # if resolve threshold and threshold type is *BELOW* then show '>'
+        # we can simplify this to be the below statement
+        show_greater_than_string = is_active == is_threshold_type_above
+        environments = list(alert_rule.environment.all())
+        environment_string = (
+            ", ".join(sorted([env.name for env in environments])) if len(environments) else "All"
+        )
+
         return {
             "link": absolute_uri(
                 reverse(
@@ -108,12 +135,19 @@ class EmailActionHandler(ActionHandler):
                 )
             ),
             "incident_name": self.incident.title,
+            "environment": environment_string,
+            "time_window": format_duration(alert_rule.time_window),
+            "triggered_at": trigger.date_added,
             "aggregate": self.query_aggregations_display[QueryAggregations(alert_rule.aggregation)],
             "query": alert_rule.query,
-            "threshold": trigger.alert_threshold
-            if status == TriggerStatus.ACTIVE
-            else trigger.resolve_threshold,
-            "status": self.status_display[status],
+            "threshold": trigger.alert_threshold if is_active else trigger.resolve_threshold,
+            # if alert threshold and threshold type is above then show '>'
+            # if resolve threshold and threshold type is *BELOW* then show '>'
+            "threshold_direction_string": ">" if show_greater_than_string else "<",
+            "status": self.incident_status[IncidentStatus(self.incident.status)],
+            "is_critical": self.incident.status == IncidentStatus.CRITICAL,
+            "is_warning": self.incident.status == IncidentStatus.WARNING,
+            "unsubscribe_link": None,
         }
 
 
@@ -137,3 +171,23 @@ class SlackActionHandler(ActionHandler):
         send_incident_alert_notification(
             self.action.integration, self.incident, self.action.target_identifier
         )
+
+
+def format_duration(minutes):
+    """
+    Format minutes into a duration string
+    """
+
+    if minutes >= 1440:
+        days = minutes / 1440
+        return "{} day{}".format(days, pluralize(days))
+
+    if minutes >= 60:
+        hours = minutes / 60
+        return "{} hour{}".format(hours, pluralize(hours))
+
+    if minutes >= 1:
+        return "{} minute{}".format(minutes, pluralize(minutes))
+
+    seconds = minutes / 60
+    return "{} second{}".format(seconds, pluralize(seconds))

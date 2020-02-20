@@ -33,7 +33,7 @@ class OwnerInput extends React.Component {
     };
   }
 
-  componentWillReceiveProps({initialText}) {
+  UNSAFE_componentWillReceiveProps({initialText}) {
     if (initialText !== this.state.initialText) {
       this.setState({initialText});
     }

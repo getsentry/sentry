@@ -324,7 +324,7 @@ def query(
     if use_aggregate_conditions:
         snuba_args["having"] = snuba_filter.having
 
-    snuba_args.update(resolve_field_list(selected_columns, snuba_args, auto_fields=auto_fields))
+    snuba_args.update(resolve_field_list(selected_columns, snuba_args, params=params, auto_fields=auto_fields))
 
     if reference_event:
         ref_conditions = create_reference_event_conditions(reference_event)
@@ -572,6 +572,8 @@ def get_facets(query, params, limit=10, referrer=None):
             dataset=Dataset.Discover,
             referrer=referrer,
             sample=sample_rate,
+            # Ensures Snuba will not apply FINAL
+            turbo=sample_rate is not None,
         )
         results.extend(
             [
@@ -609,6 +611,8 @@ def get_facets(query, params, limit=10, referrer=None):
             dataset=Dataset.Discover,
             referrer=referrer,
             sample=sample_rate,
+            # Ensures Snuba will not apply FINAL
+            turbo=sample_rate is not None,
         )
         results.extend(
             [
@@ -631,6 +635,8 @@ def get_facets(query, params, limit=10, referrer=None):
             dataset=Dataset.Discover,
             referrer=referrer,
             sample=sample_rate,
+            # Ensures Snuba will not apply FINAL
+            turbo=sample_rate is not None,
             limitby=[TOP_VALUES_DEFAULT_LIMIT, "tags_key"],
         )
         results.extend(

@@ -3,7 +3,6 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import space from 'app/styles/space';
 import {Organization, Tag} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
@@ -19,7 +18,7 @@ type TableProps = {
   eventView: EventView;
   organization: Organization;
   tags: {[key: string]: Tag};
-  setError: (msg: string) => void;
+  setError: (msg: string | undefined) => void;
   title: string;
 };
 
@@ -80,6 +79,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
+    setError(undefined);
 
     this.setState({isLoading: true, tableFetchID});
 
@@ -143,5 +143,4 @@ export default withApi(withTags(Table));
 const Container = styled('div')`
   min-width: 0;
   overflow: hidden;
-  margin-top: ${space(1.5)};
 `;

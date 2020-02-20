@@ -113,6 +113,14 @@ else:
 
 NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
 
+RELAY_CONFIG_DIR = os.path.normpath(
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay")
+)
+
+REVERSE_PROXY_CONFIG = os.path.normpath(
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", "nginx.conf")
+)
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -146,7 +154,6 @@ if "DATABASE_URL" in os.environ:
     )
     if url.scheme == "postgres":
         DATABASES["default"]["ENGINE"] = "sentry.db.postgres"
-
 
 # This should always be UTC.
 TIME_ZONE = "UTC"
@@ -333,7 +340,6 @@ INSTALLED_APPS = (
     "sentry.auth.providers.google.apps.Config",
     "django.contrib.staticfiles",
 )
-
 
 # Silence internal hints from Django's system checks
 SILENCED_SYSTEM_CHECKS = (
@@ -1207,7 +1213,10 @@ SENTRY_ROLES = (
     {
         "id": "admin",
         "name": "Admin",
-        "desc": "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on). Additionally, they can manage memberships of teams that they are members of.",
+        "desc": "Admin privileges on any teams of which they're a member. They can create new teams and projects, "
+        "as well as remove teams and projects which they already hold membership on (or all teams, "
+        "if open membership is on). Additionally, they can manage memberships of teams that they are members "
+        "of.",
         "scopes": set(
             [
                 "event:read",
@@ -1255,7 +1264,8 @@ SENTRY_ROLES = (
     {
         "id": "owner",
         "name": "Owner",
-        "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.",
+        "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete "
+        "projects and members, as well as make billing and plan changes.",
         "is_global": True,
         "scopes": set(
             [
@@ -1320,6 +1330,12 @@ SENTRY_WATCHERS = (
     ),
 )
 
+# Controls whether DEVSERVICES will spin up a Relay and direct store traffic through Relay or not.
+# If Relay is used a reverse proxy server will be run at the 8000 (the port formally used by Sentry) that
+# will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
+# rest will be forwarded to Sentry)
+SENTRY_USE_RELAY = False
+
 SENTRY_DEVSERVICES = {
     "redis": {
         "image": "redis:5.0-alpine",
@@ -1330,7 +1346,7 @@ SENTRY_DEVSERVICES = {
     "postgres": {
         "image": "postgres:9.6-alpine",
         "ports": {"5432/tcp": 5432},
-        "environment": {"POSTGRES_DB": "sentry"},
+        "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
     },
     "zookeeper": {
@@ -1344,7 +1360,8 @@ SENTRY_DEVSERVICES = {
         "environment": {
             "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
             "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092",
-            "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka][ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
+            "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka]"
+            "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
             "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
@@ -1382,6 +1399,18 @@ SENTRY_DEVSERVICES = {
         "pull": True,
         "ports": {"3021/tcp": 3021},
         "command": ["run"],
+    },
+    "reverse_proxy": {
+        "image": "nginx:1.16.1",
+        "ports": {"80/tcp": 8000},
+        "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
+    },
+    "relay": {
+        "image": "us.gcr.io/sentryio/relay:latest",
+        "pull": True,
+        "ports": {"3000/tcp": 3000},
+        "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
+        "command": ["run", "--config", "/etc/relay"],
     },
 }
 
@@ -1454,7 +1483,6 @@ GITHUB_APP_ID = DEAD
 GITHUB_API_SECRET = DEAD
 
 SUDO_URL = "sentry-sudo"
-
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
 # alerting the user on outdated SDKs.
@@ -1610,7 +1638,12 @@ SENTRY_BUILTIN_SOURCES = {
 # Relay
 # List of PKs whitelisted by Sentry.  All relays here are always
 # registered as internal relays.
-SENTRY_RELAY_WHITELIST_PK = []
+SENTRY_RELAY_WHITELIST_PK = [
+    # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
+    # This should NOT be part of any production environment.
+    # This key should match the key in /sentry/config/relay/credentials.json
+    "SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"
+]
 
 # When open registration is not permitted then only relays in the
 # whitelist can register.

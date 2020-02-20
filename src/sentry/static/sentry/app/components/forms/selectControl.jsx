@@ -87,16 +87,23 @@ const defaultStyles = {
     ...provided,
     lineHeight: '1.5',
     fontSize: theme.fontSizeMedium,
-    color: state.isSelected || state.isFocused ? theme.white : theme.textColor,
-    backgroundColor: state.isSelected
-      ? theme.purpleLightest
-      : state.isFocused
-      ? theme.purpleLight
-      : 'none',
+    color: state.isFocused
+      ? theme.textColor
+      : state.isSelected
+      ? theme.white
+      : theme.textColor,
+    backgroundColor: state.isFocused
+      ? theme.offWhiteLight
+      : state.isSelected
+      ? theme.purple
+      : 'transparent',
+    '&:active': {
+      backgroundColor: theme.offWhiteLight,
+    },
   }),
   valueContainer: provided => ({
     ...provided,
-    alignItems: 'flex-start',
+    alignItems: 'center',
   }),
   multiValue: () => ({
     color: '#007eff',
@@ -104,7 +111,6 @@ const defaultStyles = {
     borderRadius: '2px',
     border: '1px solid #c2e0ff',
     display: 'flex',
-    marginTop: '4px',
     marginRight: '4px',
   }),
   multiValueLabel: provided => ({
@@ -167,7 +173,10 @@ const SelectControl = props => {
 
   // Value is expected to be object like the options list, we map it back from
   // the options list
-  const mappedValue = choicesOrOptions.find(opt => opt.value === value);
+  const mappedValue =
+    props.multiple && Array.isArray(value)
+      ? value.map(val => choicesOrOptions.find(option => option.value === val))
+      : choicesOrOptions.find(opt => opt.value === value) || value;
 
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`

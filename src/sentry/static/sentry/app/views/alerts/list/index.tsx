@@ -1,5 +1,6 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
+import omit from 'lodash/omit';
 import React from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
@@ -34,15 +35,21 @@ type State = {
   incidentList: Incident[];
 };
 
+function getQueryStatus(status: any) {
+  return ['open', 'closed', 'all'].includes(status) ? status : DEFAULT_QUERY_STATUS;
+}
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): [string, string, any][] {
     const {params, location} = this.props;
+    const {query} = location;
+    const status = getQueryStatus(query.status);
+
     return [
       [
         'incidentList',
         `/organizations/${params && params.orgId}/incidents/`,
         {
-          query: location && location.query,
+          query: {...query, status},
         },
       ],
     ];
@@ -144,12 +151,11 @@ class IncidentsListContainer extends React.Component<Props> {
     const {pathname, query} = location;
     const {orgId} = params;
 
-    const openIncidentsQuery = {...query, status: 'open'};
-    const closedIncidentsQuery = {...query, status: 'closed'};
-    const allIncidentsQuery = {...query, status: 'all'};
+    const openIncidentsQuery = omit({...query, status: 'open'}, 'cursor');
+    const closedIncidentsQuery = omit({...query, status: 'closed'}, 'cursor');
+    const allIncidentsQuery = omit({...query, status: 'all'}, 'cursor');
 
-    const status = query.status === undefined ? DEFAULT_QUERY_STATUS : query.status;
-
+    const status = getQueryStatus(query.status);
     return (
       <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>

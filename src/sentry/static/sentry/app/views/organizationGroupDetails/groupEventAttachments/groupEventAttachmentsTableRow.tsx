@@ -19,64 +19,59 @@ type Props = {
   isDeleted: boolean;
 };
 
-class GroupEventAttachmentsTableRow extends React.Component<Props> {
-  getEventUrl() {
-    const {attachment, orgId, groupId} = this.props;
+const GroupEventAttachmentsTableRow = ({
+  attachment,
+  projectId,
+  onDelete,
+  isDeleted,
+  orgId,
+  groupId,
+}: Props) => {
+  return (
+    <TableRow isDeleted={isDeleted}>
+      <td>
+        <h5>
+          {attachment.name}
+          <br />
+          <small>
+            <DateTime date={attachment.dateCreated} /> &middot;{' '}
+            <Link
+              to={`/organizations/${orgId}/issues/${groupId}/events/${attachment.event_id}/`}
+            >
+              {attachment.event_id}
+            </Link>
+          </small>
+        </h5>
+      </td>
 
-    return `/organizations/${orgId}/issues/${groupId}/events/${attachment.event_id}/`;
-  }
+      <td>{types[attachment.type] || t('Other')}</td>
 
-  getAttachmentTypeDisplayName(type: string) {
-    return types[type] || t('Other');
-  }
+      <td>
+        <FileSize bytes={attachment.size} />
+      </td>
 
-  render() {
-    const {attachment, projectId, onDelete, isDeleted} = this.props;
+      <td>
+        <AttachmentUrl
+          projectId={projectId}
+          eventId={attachment.event_id}
+          attachment={attachment}
+        >
+          {url =>
+            !isDeleted && (
+              <EventAttachmentActions
+                url={url}
+                onDelete={onDelete}
+                attachmentId={attachment.id}
+              />
+            )
+          }
+        </AttachmentUrl>
+      </td>
+    </TableRow>
+  );
+};
 
-    return (
-      <TableRow isDeleted={isDeleted}>
-        <td>
-          <h5>
-            {attachment.name}
-            <br />
-            <small>
-              <DateTime date={attachment.dateCreated} /> &middot;{' '}
-              <Link to={this.getEventUrl()}>{attachment.event_id}</Link>
-            </small>
-          </h5>
-        </td>
-
-        <td>{this.getAttachmentTypeDisplayName(attachment.type)}</td>
-
-        <td>
-          <FileSize bytes={attachment.size} />
-        </td>
-
-        <td>
-          <AttachmentUrl
-            projectId={projectId}
-            eventId={attachment.event_id}
-            attachment={attachment}
-          >
-            {url =>
-              !isDeleted && (
-                <EventAttachmentActions
-                  url={url}
-                  onDelete={onDelete}
-                  attachmentId={attachment.id}
-                />
-              )
-            }
-          </AttachmentUrl>
-        </td>
-      </TableRow>
-    );
-  }
-}
-
-type TableRowProps = {isDeleted: boolean};
-
-const TableRow = styled('tr')<TableRowProps>`
+const TableRow = styled('tr')<{isDeleted: boolean}>`
   opacity: ${p => (p.isDeleted ? 0.3 : 1)};
   td {
     text-decoration: ${p => (p.isDeleted ? 'line-through' : 'normal')};

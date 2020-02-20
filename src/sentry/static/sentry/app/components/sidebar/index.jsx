@@ -81,7 +81,7 @@ class Sidebar extends React.Component {
     this.doCollapse(this.props.collapsed);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const {collapsed, location} = this.props;
     const nextLocation = nextProps.location;
 
@@ -240,7 +240,7 @@ class Sidebar extends React.Component {
     };
 
     // Bail as we can't do any more checks.
-    if (!organization) {
+    if (!organization || !organization.features) {
       return sidebarState;
     }
     const optState = localStorage.getItem('discover:version');
