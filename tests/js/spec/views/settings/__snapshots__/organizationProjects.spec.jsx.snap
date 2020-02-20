@@ -376,7 +376,6 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                     <FlexBox
                       className="css-1jpon28-OrganizationProjects"
                       disablePadding={true}
-                      flexible={false}
                       withPadding={false}
                     >
                       <div

@@ -117,7 +117,6 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                 >
                   <FlexBox
                     disablePadding={true}
-                    flexible={false}
                     withPadding={false}
                   >
                     <div

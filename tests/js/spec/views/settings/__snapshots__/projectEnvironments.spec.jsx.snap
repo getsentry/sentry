@@ -321,7 +321,6 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
           >
             <FlexBox
               disablePadding={true}
-              flexible={false}
               withPadding={false}
             >
               <div
@@ -678,7 +677,6 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
           >
             <FlexBox
               disablePadding={true}
-              flexible={false}
               withPadding={false}
             >
               <div
@@ -1035,7 +1033,6 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
           >
             <FlexBox
               disablePadding={true}
-              flexible={false}
               withPadding={false}
             >
               <div

@@ -55,7 +55,6 @@ exports[`ReleaseCommits organization release commits 1`] = `
             >
               <FlexBox
                 disablePadding={true}
-                flexible={false}
                 withPadding={false}
               >
                 <div
@@ -428,7 +427,6 @@ exports[`ReleaseCommits project release commits 1`] = `
             >
               <FlexBox
                 disablePadding={true}
-                flexible={false}
                 withPadding={false}
               >
                 <div

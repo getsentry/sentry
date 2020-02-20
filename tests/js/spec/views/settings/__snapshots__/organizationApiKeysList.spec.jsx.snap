@@ -342,7 +342,6 @@ exports[`OrganizationApiKeysList renders 1`] = `
           >
             <FlexBox
               disablePadding={true}
-              flexible={false}
               withPadding={false}
             >
               <div

@@ -310,7 +310,6 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                 >
                   <FlexBox
                     disablePadding={true}
-                    flexible={false}
                     withPadding={false}
                   >
                     <div
@@ -483,7 +482,6 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                 >
                   <FlexBox
                     disablePadding={true}
-                    flexible={false}
                     withPadding={false}
                   >
                     <div

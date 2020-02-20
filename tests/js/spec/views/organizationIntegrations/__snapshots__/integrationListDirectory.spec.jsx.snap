@@ -344,7 +344,6 @@ exports[`IntegrationListDirectory Renders view match previous snapshot 1`] = `
           >
             <FlexBox
               disablePadding={true}
-              flexible={false}
               withPadding={false}
             >
               <div
