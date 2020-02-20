@@ -20,7 +20,7 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
                 context["formFields"] = rule_cls.form_fields
             return context
 
-        if experiments.get(org=organization, experiment_name="AlertDefaultsExperiment") != 1:
+        if experiments.get(org=organization, experiment_name="AlertDefaultsExperimentTmp") != 1:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         return Response(

@@ -14,7 +14,7 @@ const NewProject = ({organization}) => (
         <DocumentTitle title="Sentry" />
         <CreateProject
           hasIssueAlertOptionsEnabled={
-            organization.experiments?.AlertDefaultsExperiment === 1
+            organization.experiments?.AlertDefaultsExperimentTmp === 1
           }
         />
       </Content>
