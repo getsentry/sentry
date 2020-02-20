@@ -5,4 +5,6 @@ export type KeyValueListData = {
   subject: string;
   value?: React.ReactNode;
   meta?: Meta;
+  subjectDataTestId?: string;
+  subjectIcon?: React.ReactNode;
 };
