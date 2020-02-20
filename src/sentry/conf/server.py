@@ -1640,12 +1640,7 @@ SENTRY_BUILTIN_SOURCES = {
 # Relay
 # List of PKs whitelisted by Sentry.  All relays here are always
 # registered as internal relays.
-SENTRY_RELAY_WHITELIST_PK = [
-    # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
-    # This should NOT be part of any production environment.
-    # This key should match the key in /sentry/config/relay/credentials.json
-    "SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"
-]
+SENTRY_RELAY_WHITELIST_PK = []
 
 # When open registration is not permitted then only relays in the
 # whitelist can register.

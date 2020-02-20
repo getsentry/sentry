@@ -1,16 +1,20 @@
 from __future__ import absolute_import
 
 import zipfile
+import pytest
 from six import BytesIO
+import requests
 
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry import eventstore
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, TransactionTestCase, adjust_settings_for_relay_tests
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
+from sentry.testutils.helpers import get_auth_header
 
+MAX_SECONDS_WAITING_FOR_EVENT = 8
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
 PROGUARD_SOURCE = b"""\
@@ -24,7 +28,8 @@ PROGUARD_BUG_UUID = "071207ac-b491-4a74-957c-2c94fd9594f2"
 PROGUARD_BUG_SOURCE = b"x"
 
 
-class BasicResolvingIntegrationTest(TestCase):
+@pytest.mark.uses_sentry_store
+class BasicResolvingIntegrationTest_LEGACY(TestCase):
     def test_basic_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -197,7 +202,28 @@ class BasicResolvingIntegrationTest(TestCase):
         }
 
 
-class BasicResolvingIntegrationTestNew(TestCase):
+@pytest.mark.uses_relay_store
+class BasicResolvingIntegrationTest(TransactionTestCase):
+    def setUp(self):  # NOQA
+        self.auth_header = get_auth_header(
+            "TEST_USER_AGENT/0.0.0", self.projectkey.public_key, self.projectkey.secret_key, "7"
+        )
+        adjust_settings_for_relay_tests(self.settings)
+
+    @pytest.fixture(autouse=True)
+    def setup_fixtures(self, settings, live_server, relay_server, wait_for_ingest_consumer):
+        """
+            Used to inject the sentry server (live_server) and
+            the relay_server in the test class.
+            Called by pytest as an autofixture.
+        """
+        self.settings = settings
+        self.relay_server = relay_server  # noqa
+        self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)  # noqa
+
+    def relay_store_url(self):
+        return "{}/api/{}/store/".format(self.relay_server["url"], self.projectkey.project_id)
+
     def test_basic_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -263,22 +289,38 @@ class BasicResolvingIntegrationTestNew(TestCase):
             "timestamp": iso_format(before_now(seconds=1)),
         }
 
+        # TODO move this into a unittest or remove it
         # We do a preflight post, because there are many queries polluting the array
         # before the actual "processing" happens (like, auth_user)
-        resp = self._postWithHeader(event_data)
-        with self.assertWriteQueries(
-            {
-                "nodestore_node": 2,
-                "sentry_eventuser": 1,
-                "sentry_groupedmessage": 1,
-                "sentry_userreport": 1,
-            }
-        ):
-            self._postWithHeader(event_data)
-        assert resp.status_code == 200
-        event_id = json.loads(resp.content)["id"]
+        # resp = self._postWithHeader(event_data)
+        # with self.assertWriteQueries(
+        #     {
+        #         "nodestore_node": 2,
+        #         "sentry_eventuser": 1,
+        #         "sentry_groupedmessage": 1,
+        #         "sentry_userreport": 1,
+        #     }
+        # ):
+        #     self._postWithHeader(event_data)
 
-        event = eventstore.get_event_by_id(self.project.id, event_id)
+        resp = requests.post(
+            self.relay_store_url(),
+            headers={"x-sentry-auth": self.auth_header, "content-type": "application/json"},
+            json=event_data,
+        )
+
+        assert resp.ok
+        resp_body = resp.json()
+        event_id = resp_body["id"]
+
+        event = self.wait_for_ingest_consumer(
+            lambda: eventstore.get_event_by_id(self.project.id, event_id),
+            MAX_SECONDS_WAITING_FOR_EVENT,
+        )
+
+        # Found the event in snuba
+        assert event is not None
+
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
         frames = bt.frames
@@ -357,11 +399,23 @@ class BasicResolvingIntegrationTestNew(TestCase):
             "timestamp": iso_format(before_now(seconds=1)),
         }
 
-        resp = self._postWithHeader(event_data)
-        assert resp.status_code == 200
-        event_id = json.loads(resp.content)["id"]
+        resp = requests.post(
+            self.relay_store_url(),
+            headers={"x-sentry-auth": self.auth_header, "content-type": "application/json"},
+            json=event_data,
+        )
 
-        event = eventstore.get_event_by_id(self.project.id, event_id)
+        assert resp.ok
+        resp_body = resp.json()
+        event_id = resp_body["id"]
+
+        event = self.wait_for_ingest_consumer(
+            lambda: eventstore.get_event_by_id(self.project.id, event_id),
+            MAX_SECONDS_WAITING_FOR_EVENT,
+        )
+
+        # Found the event in snuba
+        assert event is not None
 
         assert len(event.data["errors"]) == 1
         assert event.data["errors"][0] == {

@@ -94,23 +94,22 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     # cleanup
     shutil.rmtree(config_path)
-    # _remove_container_if_exists(docker_client, container_name)
+    _remove_container_if_exists(docker_client, container_name)
 
 
 @pytest.fixture(scope="function")
-# def relay_server(relay_server_setup):
-#     options = relay_server_setup["options"]
-#
-#     docker_client = get_docker_client()
-#     container_name = _relay_server_container_name()
-#     _remove_container_if_exists(docker_client, container_name)
-#     docker_client = get_docker_client()
-#     docker_client.containers.run(**options)
-#     relay_server_setup["is_started"] = True
-#
-#     return {"url": relay_server_setup["url"]}
-# Original code uses only one Relay
 def relay_server(relay_server_setup):
+    options = relay_server_setup["options"]
+    docker_client = get_docker_client()
+    container_name = _relay_server_container_name()
+    _remove_container_if_exists(docker_client, container_name)
+    docker_client.containers.run(**options)
+    relay_server_setup["is_started"] = True
+    return {"url": relay_server_setup["url"]}
+
+
+@pytest.fixture(scope="function")
+def persistent_relay_server(relay_server_setup):
     options = relay_server_setup["options"]
 
     if not relay_server_setup["is_started"]:

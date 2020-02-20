@@ -6,6 +6,10 @@ import pytest
 import six
 from confluent_kafka.admin import AdminClient
 from confluent_kafka import Producer
+import time
+import logging
+
+_log = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -34,7 +38,7 @@ class _KafkaAdminWrapper:
             futures_dict = self.admin_client.delete_topics([topic_name])
             self._sync_wait_on_result(futures_dict)
         except Exception:  # noqa
-            pass  # noqa nothing to do (probably there was no topic to start with)
+            _log.warning("Could not delete topic %s", topic_name)
 
     def _sync_wait_on_result(self, futures_dict):
         """
@@ -119,26 +123,44 @@ def scope_consumers():
     }
     yield all_consumers
 
-    for consumer in (all_consumers.get(consumer_name) for consumer_name in ("ingest_events",
-                                                                            "ingest_transactions",
-                                                                            "ingest_attachments",
-                                                                            "outcomes")):
+    for (consumer, consumer_name) in (
+        (all_consumers.get(consumer_name), consumer_name)
+        for consumer_name in (
+            "ingest_events",
+            "ingest_transactions",
+            "ingest_attachments",
+            "outcomes",
+        )
+    ):
         if consumer is not None:
             try:
                 # stop the consumer
                 consumer.signal_shutdown()
                 consumer.run()
             except:  # noqa:
-                pass # we tried a clean shutdown, nothing we can do about the error
+                _log.warning("Failed to cleanup consumer %s", consumer_name)
 
 
 @pytest.fixture(scope="function")
-def session_ingest_consumer(scope_consumers, kafka_admin):
+def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
+    """
+    Returns a factory for a session ingest consumer.
+
+    Note/Warning: Once an inject consumer is created it will be reused by all tests in the session.
+    The ingest consumer is created the first time with the provided settings and then reused.
+    If you don't want this behaviour DO NOT USE this fixture (create a fixture, similar with this one,
+    that returns a new consumer at each invocation rather then reusing it)
+
+    :return: a function factory that creates a consumer at first invocation and returns the cached consumer afterwards.
+    """
+
     def ingest_consumer(settings):
         from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
 
         if scope_consumers["ingest_events"] is not None:
-            return scope_consumers["ingest_events"]  # reuse whatever was already created (will ignore the settings)
+            return scope_consumers[
+                "ingest_events"
+            ]  # reuse whatever was already created (will ignore the settings)
 
         # first time the consumer is requested, create it using settings
         topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
@@ -161,3 +183,55 @@ def session_ingest_consumer(scope_consumers, kafka_admin):
         return consumer
 
     return ingest_consumer
+
+
+@pytest.fixture(scope="function")
+def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
+    """
+    Returns a function that can be used to create a wait loop for the ingest consumer
+
+    The ingest consumer will be called in a loop followed by a query to the supplied
+    predicate. If the predicate returns a non None value the wait will be ended and
+    the waiter will return whatever the predicate returned.
+    If the max_time passes the waiter will be terminated and the waiter will return None
+
+    Note: The reason there we return a factory and not directly the waiter is that we
+    need to configure the consumer with the test settings (settings are typically available
+    in the test) so a test would typically first create the waiter and the use it to wait for
+    the required condition:
+
+    waiter = wait_for_ingest_consumer( test_settings_derived_from_the_project_settings)
+    result = waiter( my_predicate, SOME_TIMEOUT)
+    assert result == expected_result
+    """
+
+    def factory(settings):
+        consumer = session_ingest_consumer(settings)
+
+        def waiter(exit_predicate, max_time):
+            """
+            Implements a wait loop for the ingest consumer
+            :param exit_predicate:  A Callable[(),Any] that will be called in a loop after each call
+                to the KafkaConsumer _run_once()
+            :param max_time: maximum time in seconds to wait
+            :return: the first non None result returned by the exit predicate or None if the
+                max time has expired without the exit predicate returning a non None value
+            """
+
+            start_wait = time.time()
+            with task_runner():
+                while time.time() - start_wait < max_time:
+                    consumer._run_once()  # noqa
+                    # check if the condition is satisfied
+                    val = exit_predicate()
+                    if val is not None:
+                        return val  # we got what we were waiting for stop looping
+
+            _log.warning(
+                "Ingest consumer waiter timed-out after %d seconds", time.time() - start_wait
+            )
+            return None  # timout without any success
+
+        return waiter
+
+    return factory
