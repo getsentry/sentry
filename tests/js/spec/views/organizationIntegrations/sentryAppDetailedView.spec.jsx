@@ -38,6 +38,8 @@ describe('SentryAppDetailedView', function() {
   });
 
   describe('Published Sentry App', function() {
+    let createRequest;
+
     beforeEach(() => {
       Client.clearMockResponses();
 
@@ -76,18 +78,19 @@ describe('SentryAppDetailedView', function() {
           ],
         ],
         [`/organizations/${org.slug}/sentry-app-installations/`, []],
-        [
-          `/organizations/${org.slug}/sentry-app-installations/`,
-          {
-            status: 'installed',
-            organization: {slug: `${org.slug}`},
-            app: {uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526', slug: 'clickup'},
-            code: '1dc8b0a28b7f45959d01bbc99d9bd568',
-            uuid: '687323fd-9fa4-4f8f-9bee-ca0089224b3e',
-          },
-          'POST',
-        ],
       ]);
+
+      createRequest = Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        body: {
+          status: 'installed',
+          organization: {slug: `${org.slug}`},
+          app: {uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526', slug: 'clickup'},
+          code: '1dc8b0a28b7f45959d01bbc99d9bd568',
+          uuid: '687323fd-9fa4-4f8f-9bee-ca0089224b3e',
+        },
+        method: 'POST',
+      });
 
       wrapper = mountWithTheme(
         <SentryAppDetailedView
@@ -109,6 +112,7 @@ describe('SentryAppDetailedView', function() {
     it('onClick: installs app', async function() {
       wrapper.find('InstallButton').simulate('click');
       await tick();
+      expect(createRequest).toHaveBeenCalled();
       wrapper.update();
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
       expect(wrapper.find('UninstallButton').exists()).toEqual(true);
