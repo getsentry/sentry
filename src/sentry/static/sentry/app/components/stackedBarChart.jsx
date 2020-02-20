@@ -83,7 +83,7 @@ class StackedBarChart extends React.Component {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.points || nextProps.series) {
       let series = nextProps.series;
       if (nextProps.points.length) {

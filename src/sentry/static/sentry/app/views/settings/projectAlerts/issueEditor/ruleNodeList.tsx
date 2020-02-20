@@ -79,8 +79,8 @@ class RuleNodeList extends React.Component<Props> {
           </RuleNodes>
         )}
         <StyledSelectControl
-          deprecatedSelectControl
           placeholder={placeholder}
+          value={null}
           onChange={obj => onAddRow(obj ? obj.value : obj)}
           options={options}
         />
@@ -97,14 +97,10 @@ const StyledSelectControl = styled(SelectControl)`
 
 const RuleNodes = styled('div')`
   display: grid;
-  grid-template-columns: max-content auto max-content;
-  grid-template-rows: repeat(2, auto);
-  align-items: center;
   margin-bottom: ${space(2)};
   grid-gap: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: none;
     grid-auto-flow: row;
   }
 `;
