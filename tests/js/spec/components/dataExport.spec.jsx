@@ -11,8 +11,8 @@ describe('DataExport', function() {
     features: ['data-export'],
   });
   const mockPayload = {
-    query_type: 2,
-    query_info: {project_id: '1', group_id: '1027', key: 'user'},
+    queryType: 2,
+    queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
   };
   const mockRouterContext = mockOrganization =>
     TestStubs.routerContext([
@@ -54,7 +54,10 @@ describe('DataExport', function() {
       inProgress: false,
     });
     expect(postDataExport).toHaveBeenCalledWith(url, {
-      data: mockPayload,
+      data: {
+        query_type: mockPayload.queryType,
+        query_info: mockPayload.queryInfo,
+      },
       method: 'POST',
       error: expect.anything(),
       success: expect.anything(),

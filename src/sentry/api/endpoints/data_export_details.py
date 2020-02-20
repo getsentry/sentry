@@ -31,7 +31,9 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
 
     def download(self, data_export):
         file = data_export.file
-        fp = file.getfile()
-        response = StreamingHttpResponse(iter(lambda: fp.read(4096), b""), content_type="text/csv")
+        raw_file = file.getfile()
+        response = StreamingHttpResponse(
+            iter(lambda: raw_file.read(4096), b""), content_type="text/csv"
+        )
         response["Content-Disposition"] = u'attachment; filename="{}"'.format(file.name)
         return response

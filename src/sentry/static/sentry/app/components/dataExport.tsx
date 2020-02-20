@@ -9,8 +9,8 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 type DataExportPayload = {
-  query_type: number;
-  query_info: any; // TODO(ts): Formalize different possible payloads
+  queryType: number;
+  queryInfo: any; // TODO(ts): Formalize different possible payloads
 };
 
 type Props = {
@@ -38,13 +38,16 @@ class DataExport extends React.Component<Props, State> {
     const {
       api,
       organization: {slug},
-      payload,
+      payload: {queryType, queryInfo},
     } = this.props;
     const {id: dataExportId} = await api.requestPromise(
       `/organizations/${slug}/data-export/`,
       {
         method: 'POST',
-        data: payload,
+        data: {
+          query_type: queryType,
+          query_info: queryInfo,
+        },
       }
     );
     this.setState({inProgress: true, dataExportId});
