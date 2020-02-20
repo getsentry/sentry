@@ -42,9 +42,9 @@ const KeyValueList = ({
       <tbody>
         {getData().map(({key, subject, value = null, meta}) => (
           <tr key={key}>
-            <TableData className="key" wide={longKeys}>
+            <TableSubject className="key" wide={longKeys}>
               {subject}
-            </TableData>
+            </TableSubject>
             <td className="val">
               {isContextData ? (
                 <ContextData
@@ -74,9 +74,9 @@ const KeyValueList = ({
   );
 };
 
-const TableData = styled('td')<{wide?: boolean}>`
+const TableSubject = styled('td')<{wide?: boolean}>`
   @media (min-width: ${theme.breakpoints[2]}) {
-    max-width: ${p => (p.wide ? '620px !important' : null)};
+    max-width: ${p => (p.wide ? '620px !important' : 'none')};
   }
 `;
 

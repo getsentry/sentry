@@ -9,11 +9,6 @@ import DefaultRenderer from 'app/components/events/interfaces/breadcrumbs/defaul
 import ErrorBoundary from 'app/components/errorBoundary';
 import Tooltip from 'app/components/tooltip';
 
-const CUSTOM_RENDERERS = {
-  http: HttpRenderer,
-  error: ErrorRenderer,
-};
-
 class Breadcrumb extends React.Component {
   static propTypes = {
     crumb: PropTypes.object.isRequired,
@@ -51,8 +46,14 @@ class Breadcrumb extends React.Component {
 
   renderType = () => {
     const {crumb} = this.props;
-    const Renderer = CUSTOM_RENDERERS[crumb.type] || DefaultRenderer;
-    return <Renderer crumb={crumb} />;
+    switch (crumb.type) {
+      case 'error':
+        return <ErrorRenderer crumb={crumb} />;
+      case 'http':
+        return <HttpRenderer crumb={crumb} />;
+      default:
+        return <DefaultRenderer crumb={crumb} />;
+    }
   };
 
   render() {
