@@ -96,7 +96,7 @@ type IntegrationsEventParams = (
     | 'legacy_integrations'
     | 'plugin_details'
     | 'integrations_directory'
-    | 'integrations_directory_details_view';
+    | 'integrations_directory_integration_detail';
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 

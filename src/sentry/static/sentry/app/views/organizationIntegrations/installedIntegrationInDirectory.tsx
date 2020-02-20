@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -11,7 +10,6 @@ import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
 import {IntegrationProvider, Integration, Organization} from 'app/types';
-import SentryTypes from 'app/sentryTypes';
 import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
@@ -31,15 +29,6 @@ export type Props = {
 
 //TODO: Rename to InstalledIntegration when we can remove the old one
 export default class InstalledIntegrationInDirectory extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    provider: PropTypes.object.isRequired,
-    integration: PropTypes.object.isRequired,
-    onRemove: PropTypes.func.isRequired,
-    onDisable: PropTypes.func.isRequired,
-    onReinstallIntegration: PropTypes.func.isRequired,
-  };
-
   /**
    * Integrations have additional configuration when any of the conditions are
    * met:

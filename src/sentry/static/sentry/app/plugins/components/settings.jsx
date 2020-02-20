@@ -93,8 +93,6 @@ class PluginSettings extends PluginComponentBase {
         );
 
         if (!this.state.wasConfiguredOnPageLoad) {
-          //Users cannot install plugins like other integrations but we need the events for the funnel
-          //we will treat a user saving a plugin that wasn't already configured as an installation event
           trackIntegrationEvent(
             {
               eventKey: 'integrations.installation_complete',

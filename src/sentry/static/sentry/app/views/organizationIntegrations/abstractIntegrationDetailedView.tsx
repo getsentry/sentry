@@ -67,7 +67,7 @@ class AbstractIntegrationDetailedView<
    * Abstract methods defined below
    */
 
-  //The analytics type used in analytics which is snake caseƒ
+  //The analytics type used in analytics which is snake case
   get integrationType(): 'sentry_app' | 'first_party' | 'plugin' {
     // Allow children to implement this
     throw new Error('Not implemented');
@@ -154,7 +154,7 @@ class AbstractIntegrationDetailedView<
     return this.props.params.integrationSlug;
   }
 
-  //Wrapper around trackIntegrationEvent that automatically provides the view and org
+  //Wrapper around trackIntegrationEvent that automatically provides many fields and the org
   trackIntegrationEvent = (
     options: Pick<
       SingleIntegrationEvent,
@@ -169,7 +169,7 @@ class AbstractIntegrationDetailedView<
       Parameters<typeof trackIntegrationEvent>[0],
       'integrations_installed'
     > = {
-      view: 'integrations_directory_details_view',
+      view: 'integrations_directory_integration_detail',
       integration: this.integrationSlug,
       integration_type: this.integrationType,
       already_installed: this.installationStatus !== 'Not Installed', //pending counts as installed here

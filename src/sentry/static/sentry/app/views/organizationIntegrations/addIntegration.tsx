@@ -18,7 +18,7 @@ type Props = {
   account?: string;
   organization?: Organization; //for analytics
   analyticsParams?: {
-    view: 'integrations_directory_details_view' | 'integrations_directory';
+    view: 'integrations_directory_integration_detail' | 'integrations_directory';
     already_installed: boolean;
   };
 };

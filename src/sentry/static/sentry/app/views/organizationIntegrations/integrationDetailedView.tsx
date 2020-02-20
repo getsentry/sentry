@@ -172,7 +172,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
           provider={provider}
           onAddIntegration={this.onInstall}
           analyticsParams={{
-            view: 'integrations_directory_details_view',
+            view: 'integrations_directory_integration_detail',
             already_installed: this.installationStatus !== 'Not Installed',
           }}
           {...buttonProps}
