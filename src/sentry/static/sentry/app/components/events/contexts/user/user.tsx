@@ -11,7 +11,7 @@ import {defined} from 'app/utils';
 import getUserKnownData from './getUserKnownData';
 
 type Props = {
-  data?: Data;
+  data: Data;
 };
 
 type Data = {

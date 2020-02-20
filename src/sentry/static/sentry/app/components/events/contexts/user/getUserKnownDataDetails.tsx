@@ -34,6 +34,11 @@ function getUserKnownDataDetails(
         subject: t('ID'),
         value: data.id,
       };
+    case UserKnownDataType.IP_ADDRESS:
+      return {
+        subject: t('IP Address'),
+        value: data.ip_address,
+      };
     case UserKnownDataType.EMAIL:
       return {
         subject: t('Email'),
