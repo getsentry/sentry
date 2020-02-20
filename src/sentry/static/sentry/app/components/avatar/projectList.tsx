@@ -46,9 +46,9 @@ const ProjectList = ({projects, maxVisibleProjects = 5, avatarSize = 20}: Props)
   );
 };
 
-const StyledProjectAvatar = styled(ProjectAvatar)`
+const StyledProjectAvatar = styled(ProjectAvatar)<{size: number}>`
   position: relative;
-  margin-left: -${p => Math.floor(p.size! / 10)}px;
+  margin-left: -${p => Math.floor(p.size / 10)}px;
   img {
     box-shadow: 0 0 0 3px #fff;
   }
