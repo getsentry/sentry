@@ -9,34 +9,28 @@ import textStyles from 'app/styles/text';
 type FlexComponentProps = Omit<React.ComponentPropsWithoutRef<typeof Flex>, 'theme'>;
 
 type Props = FlexComponentProps & {
-  flexible?: boolean;
+  disablePadding?: boolean; // deprecated
   withPadding?: boolean;
-  flexDir?: FlexComponentProps['flexDirection'];
 };
 
-const PanelBody: React.FunctionComponent<Props> = ({flexDir, ...props}: Props) => (
-  <FlexBox
-    {...props}
-    {...(props.flexible && flexDir ? {flexDirection: flexDir} : null)}
-  />
+const PanelBody: React.FunctionComponent<Props> = (props: Props) => (
+  <FlexBox {...props} />
 );
 
 PanelBody.propTypes = {
-  flexible: PropTypes.bool,
-  flexDir: PropTypes.any,
+  disablePadding: PropTypes.bool, // deprecated
   withPadding: PropTypes.bool,
 };
 
 PanelBody.defaultProps = {
-  flexible: false,
-  flexDir: 'column',
   withPadding: false,
+  disablePadding: true,
 };
 
 const FlexBox = styled(Flex)<Props>`
   ${textStyles};
-  ${p => !p.flexible && 'display: block'};
-  ${p => p.withPadding && `padding: ${space(2)}`};
+  ${p => !p.flex && 'display: block'};
+  ${p => (p.withPadding || !p.disablePadding) && `padding: ${space(2)}`};
 `;
 
 export default PanelBody;
