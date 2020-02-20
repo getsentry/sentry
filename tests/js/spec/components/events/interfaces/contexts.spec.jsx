@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'sentry-test/enzyme';
 
-import UserContextType from 'app/components/events/contexts/user';
+import UserContextType from 'app/components/events/contexts/user/user';
 import {FILTER_MASK} from 'app/constants';
 
 describe('UserContextType', function() {
