@@ -35,6 +35,8 @@ const METRIC_CONDITION_MAP = {
   [MetricValues.USERS]: UNIQUE_USER_FREQUENCY_CONDITION,
 } as const;
 
+const DEFAULT_THRESHOLD_VALUE: string = '10';
+
 type StateUpdater = (updatedData: RequestDataFragment) => void;
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -106,7 +108,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       alertSetting: `${Actions.CUSTOMIZED_ALERTS}`,
       metric: MetricValues.ERRORS,
       interval: '',
-      threshold: '10',
+      threshold: DEFAULT_THRESHOLD_VALUE,
     };
   }
 
@@ -138,6 +140,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
             type="number"
             min="0"
             name=""
+            placeholder={DEFAULT_THRESHOLD_VALUE}
             value={this.state.threshold}
             key={name}
             onChange={threshold =>
