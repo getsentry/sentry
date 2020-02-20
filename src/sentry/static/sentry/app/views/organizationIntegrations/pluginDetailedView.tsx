@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import Button from 'app/components/button';
 import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin';
-import {openModal} from 'app/actionCreators/modal';
+import * as modal from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -109,7 +109,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
       eventKey: 'integrations.plugin_add_to_project_clicked',
       eventName: 'Integrations: Plugin Add to Project Clicked',
     });
-    openModal(
+    modal.openModal(
       ({closeModal, Header, Body}) => (
         <ContextPickerModal
           Header={Header}

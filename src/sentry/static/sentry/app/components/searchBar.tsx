@@ -29,7 +29,7 @@ class SearchBar extends React.PureComponent<Props, State> {
     dropdownVisible: false,
   };
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (nextProps.query !== this.props.query) {
       this.setState({
         query: nextProps.query,
