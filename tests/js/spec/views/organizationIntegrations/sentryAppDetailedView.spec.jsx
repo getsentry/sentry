@@ -39,6 +39,7 @@ describe('SentryAppDetailedView', function() {
 
   describe('Published Sentry App', function() {
     let createRequest;
+    let deleteRequest;
 
     beforeEach(() => {
       Client.clearMockResponses();
@@ -92,6 +93,11 @@ describe('SentryAppDetailedView', function() {
         method: 'POST',
       });
 
+      deleteRequest = Client.addMockResponse({
+        url: '/sentry-app-installations/687323fd-9fa4-4f8f-9bee-ca0089224b3e/',
+        body: {},
+        method: 'DELETE',
+      });
       wrapper = mountWithTheme(
         <SentryAppDetailedView
           params={{integrationSlug: 'clickup', orgId: org.slug}}
@@ -100,6 +106,7 @@ describe('SentryAppDetailedView', function() {
         routerContext
       );
     });
+
     it('shows the Integration name and install status', async function() {
       expect(wrapper.find('Name').props().children).toEqual('ClickUp');
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
@@ -109,13 +116,34 @@ describe('SentryAppDetailedView', function() {
       expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
     });
 
-    it('onClick: installs app', async function() {
-      wrapper.find('InstallButton').simulate('click');
-      await tick();
-      expect(createRequest).toHaveBeenCalled();
-      wrapper.update();
-      expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
-      expect(wrapper.find('UninstallButton').exists()).toEqual(true);
+    describe('onClick: ', function() {
+      let wrapperState;
+
+      it('installs app', async function() {
+        wrapper.find('InstallButton').simulate('click');
+        await tick();
+        await tick();
+        expect(createRequest).toHaveBeenCalled();
+        wrapper.update();
+        wrapperState = wrapper;
+        expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
+        expect(wrapper.find('UninstallButton').exists()).toEqual(true);
+      });
+
+      it('uninstalls app', async function() {
+        expect(wrapperState.find('UninstallButton')).toHaveLength(1);
+        wrapperState
+          .find('UninstallButton')
+          .props()
+          .onClickUninstall();
+        await tick();
+        wrapperState
+          .find('Confirm')
+          .props()
+          .onConfirm();
+        await tick();
+        expect(deleteRequest).toHaveBeenCalled();
+      });
     });
   });
 
