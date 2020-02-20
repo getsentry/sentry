@@ -4,7 +4,7 @@ function getTransformedData(data: any) {
   }
 
   if (typeof data === 'object') {
-    Object.keys(data).map(key => [key, data[key]]);
+    return Object.keys(data).map(key => [key, data[key]]);
   }
 
   return [];

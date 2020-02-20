@@ -22,13 +22,13 @@ const RichHttpContentClippedBoxKeyValueList = ({
   isContextData = false,
   meta,
 }: Props) => {
-  const getContent = () => {
+  const getContent = (transformedData: Array<[string, string]>) => {
     // Sentry API abbreviates long query string values, sometimes resulting in
     // an un-parsable querystring ... stay safe kids
     try {
       return (
         <KeyValueList
-          data={data.map(([key, value]) => ({key, subject: key, value, meta}))}
+          data={transformedData.map(([key, value]) => ({key, subject: key, value, meta}))}
           isContextData={isContextData}
         />
       );
@@ -45,7 +45,7 @@ const RichHttpContentClippedBoxKeyValueList = ({
 
   return (
     <ClippedBox title={title} defaultCollapsed={defaultCollapsed}>
-      <ErrorBoundary mini>{getContent()}</ErrorBoundary>
+      <ErrorBoundary mini>{getContent(transformedData)}</ErrorBoundary>
     </ClippedBox>
   );
 };

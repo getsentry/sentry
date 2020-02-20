@@ -1,6 +1,5 @@
 export type RichHttpContentData = {
   data: Data;
-  inferredContentType: InferredContentType;
 };
 
 type Data = {
@@ -10,6 +9,7 @@ type Data = {
   fragment: string | null;
   cookies: Array<any>;
   data: SubData;
+  inferredContentType: InferredContentType;
 };
 
 export type InferredContentType =

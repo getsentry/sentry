@@ -10,7 +10,7 @@ import RichHttpContentClippedBoxKeyValueList from './richHttpContentClippedBoxKe
 import RichHttpContentClippedBoxBodySection from './richHttpContentClippedBoxBodySection';
 import {RichHttpContentData} from './types';
 
-const RichHttpContent = ({data, inferredContentType}: RichHttpContentData) => (
+const RichHttpContent = ({data}: RichHttpContentData) => (
   <React.Fragment>
     {defined(data.query) && (
       <RichHttpContentClippedBoxKeyValueList
@@ -31,7 +31,7 @@ const RichHttpContent = ({data, inferredContentType}: RichHttpContentData) => (
       <RichHttpContentClippedBoxBodySection
         data={data.data}
         meta={getMeta(data, 'data')}
-        inferredContentType={inferredContentType}
+        inferredContentType={data.inferredContentType}
       />
     )}
     {defined(data.cookies) && Object.keys(data.cookies).length > 0 && (
