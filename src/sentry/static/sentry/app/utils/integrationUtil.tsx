@@ -82,6 +82,7 @@ type IntegrationSearchEvent = {
   eventKey: 'integrations.directory_item_searched';
   eventName: 'Integrations: Directory Item Searched';
   search_term: string;
+  num_results: number;
 };
 
 type IntegrationsEventParams = (

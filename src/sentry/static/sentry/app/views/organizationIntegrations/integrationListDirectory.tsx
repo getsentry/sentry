@@ -291,26 +291,26 @@ class OrganizationIntegrations extends AsyncComponent<
     });
   }
 
-  debouncedTrackIntegrationSearch = debounce((search: string) => {
+  debouncedTrackIntegrationSearch = debounce((search: string, numResults: number) => {
     trackIntegrationEvent(
       {
         eventKey: 'integrations.directory_item_searched',
         eventName: 'Integrations: Directory Item Searched',
         view: 'integrations_directory',
         search_term: search,
+        num_results: numResults,
       },
       this.props.organization
     );
   }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
 
   onSearchChange = async ({target}) => {
-    //don't track an empty search
-    target.value && this.debouncedTrackIntegrationSearch(target.value);
     this.setState({searchInput: target.value}, () => {
       if (!target.value) {
         return this.setState({displayedList: this.state.list});
       }
       const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
+      this.debouncedTrackIntegrationSearch(target.value, result.length);
       return this.setState({
         displayedList: this.sortIntegrations(result.map(i => i.item)),
       });
