@@ -289,9 +289,6 @@ describe('IntegrationListDirectory', function() {
         routerContext
       );
     });
-    it('match previous snapshot', async function() {
-      expect(wrapper).toMatchSnapshot();
-    });
 
     it('shows installed integrations at the top', async function() {
       expect(wrapper.find('SearchInput').exists()).toBeTruthy();
