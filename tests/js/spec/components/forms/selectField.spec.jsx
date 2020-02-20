@@ -90,6 +90,34 @@ describe('SelectField', function() {
       );
     });
 
+    it('can set the value to empty string via props with no options', function() {
+      const mock = jest.fn();
+      const wrapper = mountWithTheme(
+        <SelectField
+          deprecatedSelectControl
+          options={[
+            {label: 'a', value: 'a'},
+            {label: 'b', value: 'b'},
+          ]}
+          name="fieldName"
+          onChange={mock}
+        />
+      );
+      // Select a value so there is an option selected.
+      selectByValue(wrapper, 'a', {name: 'fieldName'});
+      expect(mock).toHaveBeenCalledTimes(1);
+      expect(mock).toHaveBeenLastCalledWith('a');
+
+      // Update props to remove value and options.
+      wrapper.setProps({value: '', options: []});
+      wrapper.update();
+      expect(wrapper.find('SelectPicker').props().value).toEqual('');
+
+      // second update.
+      expect(mock).toHaveBeenCalledTimes(2);
+      expect(mock).toHaveBeenLastCalledWith('');
+    });
+
     describe('Multiple', function() {
       it('selects multiple values and submits', function() {
         const mock = jest.fn();
