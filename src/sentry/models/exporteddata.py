@@ -97,6 +97,17 @@ class ExportedData(Model):
         )
         msg.send_async([self.user.email])
 
+    def email_failure(self):
+        from sentry.utils.email import MessageBuilder
+
+        msg = MessageBuilder(
+            subject="[Export] An error has occured",
+            template="sentry/emails/data-export-failure.txt",
+            html_template="sentry/emails/data-export-failure.html",
+        )
+        msg.send_async([self.user.email])
+        self.delete()
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_exporteddata"
