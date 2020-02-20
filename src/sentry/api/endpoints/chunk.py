@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 import logging
 import six
+from six.moves import zip
 from io import BytesIO
 from gzip import GzipFile
-from itertools import izip
 from rest_framework import status
 from six.moves.urllib.parse import urljoin
 from rest_framework.response import Response
@@ -119,7 +119,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             return Response({"error": "Too many chunks"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            FileBlob.from_files(izip(files, checksums), organization=organization, logger=logger)
+            FileBlob.from_files(zip(files, checksums), organization=organization, logger=logger)
         except IOError as err:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": six.text_type(err)}, status=status.HTTP_400_BAD_REQUEST)

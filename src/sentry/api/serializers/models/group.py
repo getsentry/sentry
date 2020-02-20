@@ -5,6 +5,8 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
+from six.moves import zip
+
 from django.conf import settings
 from django.db.models import Min, Q
 from django.utils import timezone
@@ -202,8 +204,7 @@ class GroupSerializerBase(Serializer):
                 )
             )
             commit_resolutions = {
-                i.group_id: d
-                for i, d in itertools.izip(commit_results, serialize(commit_results, user))
+                i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))
             }
         else:
             release_resolutions = {}
@@ -213,7 +214,7 @@ class GroupSerializerBase(Serializer):
         actor_ids.update(r.actor_id for r in six.itervalues(ignore_items))
         if actor_ids:
             users = list(User.objects.filter(id__in=actor_ids, is_active=True))
-            actors = {u.id: d for u, d in itertools.izip(users, serialize(users, user))}
+            actors = {u.id: d for u, d in zip(users, serialize(users, user))}
         else:
             actors = {}
 

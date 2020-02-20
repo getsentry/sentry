@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-from itertools import izip
 import six
+from six.moves import zip
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import LOG_LEVELS
@@ -12,7 +12,7 @@ from sentry.models import GroupTombstone, User
 class GroupTombstoneSerializer(Serializer):
     def get_attrs(self, item_list, user):
         user_list = list(User.objects.filter(id__in=[item.actor_id for item in item_list]))
-        users = {u.id: d for u, d in izip(user_list, serialize(user_list, user))}
+        users = {u.id: d for u, d in zip(user_list, serialize(user_list, user))}
 
         attrs = {}
         for item in item_list:
