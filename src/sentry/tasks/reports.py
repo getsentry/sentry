@@ -31,6 +31,8 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from six.moves import reduce, zip_longest
+from six.moves import filter
+from six.moves import map
 
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")
@@ -182,7 +184,7 @@ def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
     return merge_series(
         reduce(
             merge_series,
-            map(clean, tsdb_range.values()),
+            list(map(clean, tsdb_range.values())),
             clean([(timestamp, 0) for timestamp in series]),
         ),
         clean(
@@ -312,7 +314,7 @@ def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
             value = None
         return (timestamp, value)
 
-    return map(remove_invalid_values, clean_series(start, stop, rollup, series))
+    return list(map(remove_invalid_values, clean_series(start, stop, rollup, series)))
 
 
 def prepare_project_calendar_series(interval, project):
@@ -388,7 +390,7 @@ class DummyReportBackend(ReportBackend):
 
     def fetch(self, timestamp, duration, organization, projects):
         assert all(project.organization_id == organization.id for project in projects)
-        return map(functools.partial(self.build, timestamp, duration), projects)
+        return list(map(functools.partial(self.build, timestamp, duration), projects))
 
 
 class RedisReportBackend(ReportBackend):
@@ -610,10 +612,10 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     ]
 
     reports = dict(
-        filter(
+        list(filter(
             lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
             zip(projects, backend.fetch(timestamp, duration, organization, projects)),
-        )
+        ))
     )
 
     if not reports:
@@ -652,7 +654,7 @@ def build_project_breakdown_series(reports):
 
     # Find the reports with the most total events. (The number of reports to
     # keep is the same as the number of colors available to use in the legend.)
-    instances = map(
+    instances = list(map(
         operator.itemgetter(0),
         sorted(
             reports.items(),
@@ -661,14 +663,14 @@ def build_project_breakdown_series(reports):
             ),
             reverse=True,
         ),
-    )[: len(colors)]
+    ))[: len(colors)]
 
     # Starting building the list of items to include in the report chart. This
     # is a list of [Key, Report] pairs, in *ascending* order of the total sum
     # of values in the series. (This is so when we render the series, the
     # largest color blocks are at the bottom and it feels appropriately
     # weighted.)
-    selections = map(
+    selections = list(map(
         lambda instance__color: (
             Key(
                 instance__color[0].slug,
@@ -679,7 +681,7 @@ def build_project_breakdown_series(reports):
             reports[instance__color[0]],
         ),
         zip(instances, colors),
-    )[::-1]
+    ))[::-1]
 
     # Collect any reports that weren't in the selection set, merge them
     # together and add it at the top (front) of the stack.
@@ -820,7 +822,7 @@ def to_calendar(interval, series):
         weeks = []
 
         for week in calendar.monthdatescalendar(year, month):
-            weeks.append(map(get_data_for_date, week))
+            weeks.append(list(map(get_data_for_date, week)))
 
         sheets.append((datetime(year, month, 1, tzinfo=pytz.utc), weeks))
 

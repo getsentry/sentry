@@ -18,6 +18,7 @@ from sentry.search.utils import (
     parse_release,
     parse_status_value,
 )
+from six.moves import map
 
 
 class IssueSearchVisitor(SearchVisitor):
@@ -131,4 +132,4 @@ def convert_query_values(search_filters, projects, user, environments):
             search_filter = search_filter._replace(value=SearchValue(new_value))
         return search_filter
 
-    return map(convert_search_filter, search_filters)
+    return list(map(convert_search_filter, search_filters))

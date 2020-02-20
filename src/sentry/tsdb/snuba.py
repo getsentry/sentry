@@ -222,7 +222,7 @@ class SnubaTSDB(BaseTSDB):
             TSDBModel.key_total_blacklisted,
             TSDBModel.key_total_rejected,
         ]:
-            keys = list(set(map(lambda x: int(x), keys)))
+            keys = list(set([int(x) for x in keys]))
 
         # 10s is the only rollup under an hour that we support
         if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():

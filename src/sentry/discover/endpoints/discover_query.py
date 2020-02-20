@@ -14,6 +14,7 @@ from sentry.discover.utils import transform_aliases_and_query
 from sentry import features
 
 from .serializers import DiscoverQuerySerializer
+from six.moves import map
 
 
 class DiscoverQueryPermission(OrganizationPermission):

@@ -11,6 +11,7 @@ from django.utils.http import is_safe_url
 from time import time
 
 from sentry.models import User, Authenticator
+from six.moves import map
 
 logger = logging.getLogger("sentry.auth")
 
@@ -34,7 +35,7 @@ def parse_auth_header(header):
     if isinstance(header, bytes):
         header = header.decode("latin1")
     try:
-        return dict(map(_make_key_value, header.split(u" ", 1)[1].split(u",")))
+        return dict(list(map(_make_key_value, header.split(u" ", 1)[1].split(u","))))
     except Exception:
         return {}
 

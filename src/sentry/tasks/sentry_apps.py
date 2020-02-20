@@ -24,6 +24,7 @@ from sentry.models import (
     SentryApp,
 )
 from sentry.models.sentryapp import VALID_EVENTS
+from six.moves import filter
 
 logger = logging.getLogger("sentry.tasks.sentry_apps")
 
@@ -155,10 +156,10 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             id=Project.objects.get_from_cache(id=instance.project_id).organization_id
         )
 
-    installations = filter(
+    installations = list(filter(
         lambda i: event in i.sentry_app.events,
         org.sentry_app_installations.select_related("sentry_app"),
-    )
+    ))
 
     for installation in installations:
         data = {}

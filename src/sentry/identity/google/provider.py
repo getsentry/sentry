@@ -6,6 +6,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.utils import json
 from sentry.utils.signing import urlsafe_b64decode
 from sentry.auth.provider import MigratingIdentityId
+from six.moves import map
 
 
 # When no hosted domain is in use for the authenticated user, we default to the
@@ -39,7 +40,7 @@ class GoogleIdentityProvider(OAuth2Provider):
             raise IdentityNotValid(u"Missing id_token in OAuth response: %s" % data)
 
         try:
-            _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
+            _, payload, _ = list(map(urlsafe_b64decode, id_token.split(".", 2)))
         except Exception as exc:
             raise IdentityNotValid(u"Unable to decode id_token: %s" % exc)
 

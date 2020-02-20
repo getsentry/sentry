@@ -338,9 +338,7 @@ class Event(object):
             if hashes is not None:
                 return hashes
 
-        return filter(
-            None, [x.get_hash() for x in self.get_grouping_variants(force_config).values()]
-        )
+        return [_f for _f in [x.get_hash() for x in self.get_grouping_variants(force_config).values()] if _f]
 
     def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """

@@ -129,7 +129,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
 
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
 
-        return filter(lambda repo: repo.name not in accessible_repos, repos)
+        return [repo for repo in repos if repo.name not in accessible_repos]
 
     def reinstall(self):
         self.reinstall_repositories()

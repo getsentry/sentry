@@ -11,6 +11,7 @@ from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, KEYWORD_MAP, Release, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
+from six.moves import map
 
 
 class InvalidQuery(Exception):
@@ -296,7 +297,7 @@ def tokenize_query(query):
                 break
         query_params[state].append(token)
 
-    result["query"] = map(format_query, query_params["query"])
+    result["query"] = list(map(format_query, query_params["query"]))
     for tag in query_params["tags"]:
         key, value = format_tag(tag)
         result[key].append(value)

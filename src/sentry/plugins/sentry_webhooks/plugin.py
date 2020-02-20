@@ -13,6 +13,7 @@ from sentry.plugins.bases import notify
 from sentry.http import is_valid_url, safe_urlopen
 from sentry.utils.safe import safe_execute
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from six.moves import filter
 
 DESCRIPTION = """
 Trigger outgoing HTTP POST requests from Sentry.
@@ -25,7 +26,7 @@ Note: To configure webhooks over multiple projects, we recommend setting up an
 def split_urls(value):
     if not value:
         return ()
-    return filter(bool, (url.strip() for url in value.splitlines()))
+    return list(filter(bool, (url.strip() for url in value.splitlines())))
 
 
 def validate_urls(value, **kwargs):

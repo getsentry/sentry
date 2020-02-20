@@ -10,6 +10,7 @@ from django.conf import settings
 from sentry.utils import metrics, warnings
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
+from six.moves import map
 
 logger = logging.getLogger("sentry.runner.initializer")
 
@@ -458,7 +459,7 @@ def show_big_error(message):
         lines = message.strip().splitlines()
     else:
         lines = message
-    maxline = max(map(len, lines))
+    maxline = max(list(map(len, lines)))
     click.echo("", err=True)
     click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
     click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")

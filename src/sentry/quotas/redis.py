@@ -12,6 +12,7 @@ from sentry.utils.redis import (
     load_script,
 )
 from sentry.utils.json import prune_empty_keys
+from six.moves import map
 
 is_rate_limited = load_script("quotas/is_rate_limited.lua")
 
@@ -219,15 +220,15 @@ class RedisQuota(Quota):
             return int(result.value or 0) - int(refund_result.value or 0)
 
         if self.is_redis_cluster:
-            results = map(functools.partial(get_usage_for_quota, self.cluster), quotas)
+            results = list(map(functools.partial(get_usage_for_quota, self.cluster), quotas))
         else:
             with self.cluster.fanout() as client:
-                results = map(
+                results = list(map(
                     functools.partial(
                         get_usage_for_quota, client.target_key(six.text_type(organization_id))
                     ),
                     quotas,
-                )
+                ))
 
         return [get_value_for_result(*r) for r in results]
 

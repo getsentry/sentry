@@ -5,6 +5,7 @@ import six
 
 from django.utils.encoding import force_bytes
 from django.http import StreamingHttpResponse
+from six.moves import map
 
 # Python 2 doesn't support unicode with CSV, but Python 3 does via
 # the encoding param
@@ -17,7 +18,7 @@ if six.PY3:
 else:
 
     def encode_row(row):
-        return map(force_bytes, row)
+        return list(map(force_bytes, row))
 
 
 # csv.writer doesn't provide a non-file interface
