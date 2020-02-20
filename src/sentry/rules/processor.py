@@ -8,6 +8,7 @@ from datetime import timedelta
 from django.core.cache import cache
 from django.utils import timezone
 
+from sentry import analytics
 from sentry.models import GroupRuleStatus, Rule
 from sentry.rules import EventState, rules
 from sentry.utils.hashlib import hash_values
@@ -108,6 +109,14 @@ class RuleProcessor(object):
 
         if not passed:
             return
+
+        analytics.record(
+            "issue_alert.fired",
+            issue_id=self.group.id,
+            project_id=rule.project.id,
+            organization_id=rule.project.organization.id,
+            rule_id=rule.id,
+        )
 
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
