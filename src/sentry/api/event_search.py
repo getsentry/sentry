@@ -956,7 +956,7 @@ class IntervalDefault(NumberRange):
             raise InvalidFunctionArgument("function called with invalid default")
 
         interval = (params["end"] - params["start"]).total_seconds()
-        return interval
+        return int(interval)
 
 
 # When adding functions to this list please also update
@@ -1014,7 +1014,7 @@ def resolve_function(field, match=None, params=None):
 
         if default:
             # Hacky, but we expect column arguments to be strings so easiest to convert it back
-            columns = [six.binary_type(default)]
+            columns = [six.text_type(default)]
 
     if len(columns) != len(function["args"]):
         raise InvalidSearchQuery(u"{}: expected {} arguments".format(field, len(function["args"])))
@@ -1028,6 +1028,7 @@ def resolve_function(field, match=None, params=None):
             raise InvalidSearchQuery(u"{}: {} argument invalid: {}".format(field, argument.name, e))
 
     snuba_string = function["transform"].format(**arguments)
+
     return [], [[snuba_string, None, get_function_alias(function["name"], columns)]]
 
 
