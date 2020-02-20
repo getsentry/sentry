@@ -63,8 +63,9 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         with self.tasks():
             assemble_download(de2)
         # Convert raw csv to list of line-strings
-        raw2 = de2.file.getfile().read().strip().split("\r\n")
-        assert len(raw2) == 3
-        assert raw2[0] == "value,times_seen,last_seen,first_seen"
-        assert raw2[1].startswith("bar,1,")
-        assert raw2[2].startswith("bar2,2,")
+        header, raw1, raw2 = de2.file.getfile().read().strip().split("\r\n")
+        assert header == "value,times_seen,last_seen,first_seen"
+
+        raw1, raw2 = sorted([raw1, raw2])
+        assert raw1.startswith("bar,1,")
+        assert raw2.startswith("bar2,2,")
