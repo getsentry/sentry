@@ -23,7 +23,7 @@ from sentry.models import (
     ServiceHookProject,
     SentryApp,
 )
-from sentry.models.sentryapp import VALID_EVENTS
+from sentry.models.sentryapp import VALID_EVENTS, track_response_code
 
 logger = logging.getLogger("sentry.tasks.sentry_apps")
 
@@ -304,20 +304,12 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         )
 
     except RequestException:
-        metrics.incr(
-            "integration-platform.http_response",
-            sample_rate=1.0,
-            tags={"status": "timeout", "integration": slug, "webhook_event": event},
-        )
+        track_response_code("timeout", slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
-    metrics.incr(
-        "integration-platform.http_response",
-        sample_rate=1.0,
-        tags={"status": resp.status_code, "integration": slug, "webhook_event": event},
-    )
+    track_response_code(resp.status_code, slug, event)
 
     buffer.add_request(
         response_code=resp.status_code,
