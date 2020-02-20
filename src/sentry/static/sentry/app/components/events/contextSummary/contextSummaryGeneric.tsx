@@ -47,7 +47,7 @@ const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
       <span className="context-item-icon" />
       <h3>{renderValue('name')}</h3>
       <p>
-        <StyledSubject>{t('Version:')}</StyledSubject>
+        <Subject>{t('Version:')}</Subject>
         {!data.version ? t('Unknown') : renderValue('version')}
       </p>
     </div>
@@ -56,6 +56,6 @@ const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
 
 export default ContextSummaryGeneric;
 
-const StyledSubject = styled('strong')`
+const Subject = styled('strong')`
   margin-right: ${space(0.5)};
 `;

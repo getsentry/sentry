@@ -72,7 +72,7 @@ const ContextSummaryGPU = ({data}: Props) => {
       <span className="context-item-icon" />
       <h3>{renderName()}</h3>
       <p>
-        <StyledSubject>{versionElement.subject}</StyledSubject>
+        <Subject>{versionElement.subject}</Subject>
         {versionElement.meta ? (
           <AnnotatedText
             value={versionElement.value}
@@ -94,6 +94,6 @@ ContextSummaryGPU.propTypes = {
 
 export default ContextSummaryGPU;
 
-const StyledSubject = styled('strong')`
+const Subject = styled('strong')`
   margin-right: ${space(0.5)};
 `;

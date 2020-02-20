@@ -89,7 +89,7 @@ const ContextSummaryDevice = ({data}: Props) => {
       <h3>{renderName()}</h3>
       {subTitle && (
         <p>
-          <StyledSubject>{subTitle.subject}</StyledSubject>
+          <Subject>{subTitle.subject}</Subject>
           {subTitle.meta ? (
             <AnnotatedText
               value={subTitle.value}
@@ -112,6 +112,6 @@ ContextSummaryDevice.propTypes = {
 
 export default ContextSummaryDevice;
 
-const StyledSubject = styled('strong')`
+const Subject = styled('strong')`
   margin-right: ${space(0.5)};
 `;

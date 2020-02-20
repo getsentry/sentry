@@ -18,6 +18,12 @@ type UserTitle = {
   meta?: Meta;
 };
 
+type UserDetails = {
+  subject: string;
+  value: string;
+  meta?: Meta;
+};
+
 const ContextSummaryUser = ({data}: Props) => {
   const user = removeFilterMaskedEntries(data);
 
@@ -26,23 +32,30 @@ const ContextSummaryUser = ({data}: Props) => {
   }
 
   const renderUserDetails = (key: 'id' | 'username') => {
-    const value = user[key];
+    const userDetails: UserDetails = {
+      subject: t('Username:'),
+      value: user.username,
+      meta: getMeta(data, 'username'),
+    };
 
-    const subject = key === 'id' ? t('ID:') : t('username:');
-    const meta = getMeta(data, key);
+    if (key === 'id') {
+      userDetails.subject = t('ID:');
+      userDetails.value = user.id;
+      userDetails.meta = getMeta(data, 'id');
+    }
 
     return (
       <p>
-        <strong>{subject}</strong>
-        {meta ? (
+        <strong>{userDetails.subject}</strong>
+        {userDetails.meta ? (
           <AnnotatedText
-            value={value}
-            chunks={meta.chunks}
-            remarks={meta.rem}
-            errors={meta.err}
+            value={userDetails.value}
+            chunks={userDetails.meta.chunks}
+            remarks={userDetails.meta.rem}
+            errors={userDetails.meta.err}
           />
         ) : (
-          value
+          userDetails.value
         )}
       </p>
     );
