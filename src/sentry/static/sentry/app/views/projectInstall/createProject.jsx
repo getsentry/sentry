@@ -227,7 +227,7 @@ class CreateProject extends React.Component {
         );
         ruleId = ruleData.id;
       }
-      this.trackCreateEvent(
+      this.trackIssueAlertOptionCommittedEvent(
         organization,
         projectData,
         defaultRules,
@@ -261,7 +261,7 @@ class CreateProject extends React.Component {
     }
   };
 
-  trackCreateEvent(
+  trackIssueAlertOptionCommittedEvent(
     organization,
     projectData,
     isDefaultRules,
@@ -280,7 +280,7 @@ class CreateProject extends React.Component {
       data = {...data, custom_rule_id: ruleId};
     }
 
-    trackAnalyticsEvent('new_project.alert_rule_selected', data);
+    trackAnalyticsEvent('new_project.alert_rule_option_committed', data);
   }
 
   setPlatform = platformId =>
