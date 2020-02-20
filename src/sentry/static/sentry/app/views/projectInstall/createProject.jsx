@@ -22,7 +22,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {trackAnalyticsEvent, logExperiment} from 'app/utils/analytics';
 import withConfig from 'app/utils/withConfig';
 
 class CreateProject extends React.Component {
@@ -76,7 +76,7 @@ class CreateProject extends React.Component {
       unitId: parseInt(this.props.organization.id, 10),
       param: 'exposed',
     });
-    trackAnalyticsEvent('new_project.visit',{});
+    trackAnalyticsEvent('new_project.visit', {});
   }
 
   renderProjectForm = (
@@ -272,7 +272,11 @@ class CreateProject extends React.Component {
     let data = {
       org_id: parseInt(organization.id, 10),
       project_id: parseInt(projectData.id, 10),
-      rule_type: isDefaultRules ? 'Default' : shouldCreateCustomRule ? 'Custom' : 'No Rule',
+      rule_type: isDefaultRules
+        ? 'Default'
+        : shouldCreateCustomRule
+        ? 'Custom'
+        : 'No Rule',
       user_id: userId,
     };
 
