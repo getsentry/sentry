@@ -37,11 +37,15 @@ const OrganizationStore = Reflux.createStore({
     this.trigger(this.get());
   },
 
-  onUpdate(updatedOrg) {
+  onUpdate(updatedOrg, {replace = false} = {}) {
     this.loading = false;
     this.error = null;
     this.errorType = null;
-    this.organization = {...this.organization, ...updatedOrg};
+    if (replace) {
+      this.organization = updatedOrg;
+    } else {
+      this.organization = {...this.organization, ...updatedOrg};
+    }
     this.dirty = false;
     this.trigger(this.get());
   },
