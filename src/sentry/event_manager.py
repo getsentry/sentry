@@ -872,6 +872,7 @@ class EventManager(object):
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
                 primary_hash=hashes[0],
+                received_timestamp=received_timestamp,
                 # We are choosing to skip consuming the event back
                 # in the eventstream if it's flagged as raw.
                 # This means that we want to publish the event
