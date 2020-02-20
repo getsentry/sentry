@@ -13,6 +13,14 @@ import space from 'app/styles/space';
 
 import {t} from 'app/locale';
 
+const ExpandButton = styled('button')`
+  display: flex;
+  align-items: center;
+  & > svg {
+    margin-left: ${space(0.5)};
+  }
+`;
+
 class EventCause extends React.Component {
   static propTypes = {
     api: PropTypes.object.isRequired,
@@ -94,7 +102,7 @@ class EventCause extends React.Component {
             {t('Suspect Commits')} ({commits.length})
           </h3>
           {commits.length > 1 && (
-            <button onClick={() => this.setState({expanded: !expanded})}>
+            <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
               {expanded ? (
                 <React.Fragment>
                   {t('Show less')} <IconSubtract circle size="md" />
@@ -104,7 +112,7 @@ class EventCause extends React.Component {
                   {t('Show more')} <IconAdd circle size="md" />
                 </React.Fragment>
               )}
-            </button>
+            </ExpandButton>
           )}
         </CauseHeader>
         <Panel>
