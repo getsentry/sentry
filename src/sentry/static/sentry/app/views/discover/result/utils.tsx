@@ -366,7 +366,11 @@ export function downloadAsCsv(result: SnubaResult) {
     }),
   });
 
-  const encodedDataUrl = encodeURI(`data:text/csv;charset=utf8,${csvContent}`);
+  // Need to also manually replace # since encodeURI skips them
+  const encodedDataUrl = encodeURI(`data:text/csv;charset=utf8,${csvContent}`).replace(
+    /#/g,
+    '%23'
+  );
 
   window.location.assign(encodedDataUrl);
 }
