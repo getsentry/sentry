@@ -14,8 +14,8 @@ type Props = FlexComponentProps & {
   withPadding?: boolean;
 };
 
-const PanelBody: React.FunctionComponent<Props> = (props: Props) => (
-  <FlexBox {...props} />
+const PanelBody: React.FunctionComponent<Props> = ({flexible, ...props}: Props) => (
+  <FlexBox {...props} {...(flexible ? {flexDirection: 'column'} : null)} />
 );
 
 PanelBody.propTypes = {
