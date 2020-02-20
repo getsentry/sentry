@@ -16,16 +16,9 @@ type Props = {
   orgId: string;
   projectId: string;
   location: Location;
-  hideGuide?: boolean;
 };
 
-const EventTags = ({
-  hideGuide = false,
-  event: {tags},
-  orgId,
-  projectId,
-  location,
-}: Props) => {
+const EventTags = ({event: {tags}, orgId, projectId, location}: Props) => {
   if (isEmpty(tags)) {
     return null;
   }
@@ -34,12 +27,7 @@ const EventTags = ({
   const releasesPath = `/organizations/${orgId}/releases/`;
 
   return (
-    <EventDataSection
-      title={t('Tags')}
-      type="tags"
-      className="p-b-1"
-      hideGuide={hideGuide}
-    >
+    <EventDataSection title={t('Tags')} type="tags" className="p-b-1">
       <Pills className="no-margin">
         {tags.map(tag => (
           <EventTagsPill
