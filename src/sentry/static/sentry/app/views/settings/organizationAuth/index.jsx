@@ -13,7 +13,7 @@ class OrganizationAuth extends AsyncView {
     organization: SentryTypes.Organization,
   };
 
-  componentWillUpdate(_nextProps, nextState) {
+  UNSAFE_componentWillUpdate(_nextProps, nextState) {
     const access = this.context.organization.access;
 
     if (nextState.provider && access.includes('org:admin')) {
