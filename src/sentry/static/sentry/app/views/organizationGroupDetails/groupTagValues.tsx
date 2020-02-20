@@ -84,7 +84,7 @@ class GroupTagValues extends AsyncComponent<
                   <span className="m-left">{this.getUserDisplayName(tagValue)}</span>
                 </React.Fragment>
               ) : (
-                <DeviceName>{tagValue.name}</DeviceName>
+                <DeviceName value={tagValue.name} />
               )}
             </GlobalSelectionLink>
             {tagValue.email && (
