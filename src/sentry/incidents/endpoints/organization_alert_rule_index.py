@@ -40,6 +40,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
         serializer = AlertRuleSerializer(
             context={"organization": organization, "access": request.access}, data=request.data
         )
+
         if serializer.is_valid():
             alert_rule = serializer.save()
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)

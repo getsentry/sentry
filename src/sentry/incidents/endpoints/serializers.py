@@ -155,7 +155,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             if getattr(instance, field_name) != value:
                 changed = True
                 break
-
         return validated_data if changed else {}
 
     def update(self, instance, validated_data):
