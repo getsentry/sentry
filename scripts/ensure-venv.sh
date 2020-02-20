@@ -8,10 +8,10 @@ fi
 
 if [ -n "$VIRTUAL_ENV" ]; then
     # we're enforcing that virtualenv be in .venv, since future tooling e.g. venv-update will rely on this.
-    if [ "$VIRTUAL_ENV" != "${PWD}/.venv" ]; then
-        echo "You're in a virtualenv, but it's not in the expected location (${PWD}/.venv)"
-        exit 1
-    fi
+    # if [ "$VIRTUAL_ENV" != "${PWD}/.venv" ]; then
+    #     echo "You're in a virtualenv, but it's not in the expected location (${PWD}/.venv)"
+    #     exit 1
+    # fi
     # TODO: when direnv lands, make the check strictly match .python-version.
     if ! python -c "import sys; sys.exit(sys.version_info[:2] != (2, 7))"; then
         echo "Your virtualenv's python version isn't 2.7. You'll need to recreate it with the correct python version."

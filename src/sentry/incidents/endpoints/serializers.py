@@ -73,6 +73,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         }
 
     def validate_type(self, type):
+        print("validating type", type)
         if type not in string_to_action_type:
             raise serializers.ValidationError(
                 "Invalid type, valid values are [%s]" % ", ".join(string_to_action_type.keys())
@@ -80,6 +81,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return string_to_action_type[type]
 
     def validate_target_type(self, target_type):
+        print("validating target_type", target_type)
         if target_type not in string_to_action_target_type:
             raise serializers.ValidationError(
                 "Invalid targetType, valid values are [%s]"
@@ -112,7 +114,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                         % (type_info.slug, allowed_target_types)
                     }
                 )
-
+        print("validating action...",attrs)
         if attrs.get("type") == AlertRuleTriggerAction.Type.EMAIL:
             if target_type == AlertRuleTriggerAction.TargetType.TEAM:
                 try:
@@ -132,7 +134,10 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
+            print("action type is slack!")
+            print("int attrs:",attrs.get("integration"))
             if not attrs.get("integration"):
+                print("raising integration error!")
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for slack"}
                 )
@@ -143,6 +148,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return create_alert_rule_trigger_action(trigger=self.context["trigger"], **validated_data)
 
     def _remove_unchanged_fields(self, instance, validated_data):
+        print("removing unchanged fields:",self,instance,validated_data)
         changed = False
         if (
             validated_data.get("type", instance.type) == AlertRuleTriggerAction.Type.SLACK.value
@@ -156,9 +162,12 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             if getattr(instance, field_name) != value:
                 changed = True
                 break
+        print("changed?", changed)
+
         return validated_data if changed else {}
 
     def update(self, instance, validated_data):
+        print("updating and removing unchanged")
         validated_data = self._remove_unchanged_fields(instance, validated_data)
         return update_alert_rule_trigger_action(instance, **validated_data)
 
