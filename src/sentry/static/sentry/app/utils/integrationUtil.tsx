@@ -43,7 +43,8 @@ export type SingleIntegrationEvent = {
     | 'integrations.enabled'
     | 'integrations.disabled'
     | 'integrations.config_saved'
-    | 'integrations.integration_tab_clicked';
+    | 'integrations.integration_tab_clicked'
+    | 'integrations.plugin_add_to_project_clicked';
   eventName:
     | 'Integrations: Install Modal Opened'
     | 'Integrations: Installation Start'
@@ -55,7 +56,8 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Enabled'
     | 'Integrations: Disabled'
     | 'Integrations: Integration Tab Clicked'
-    | 'Integrations: Config Saved';
+    | 'Integrations: Config Saved'
+    | 'Integrations: Plugin Add to Project Clicked';
   integration: string; //the slug
   already_installed?: boolean;
   integration_tab?: 'configurations' | 'information';
@@ -76,7 +78,17 @@ type MultipleIntegrationsEvent = {
   integrations_installed: number;
 };
 
-type IntegrationsEventParams = (MultipleIntegrationsEvent | SingleIntegrationEvent) & {
+type IntegrationSearchEvent = {
+  eventKey: 'integrations.directory_item_searched';
+  eventName: 'Integrations: Directory Item Searched';
+  search_term: string;
+};
+
+type IntegrationsEventParams = (
+  | MultipleIntegrationsEvent
+  | SingleIntegrationEvent
+  | IntegrationSearchEvent
+) & {
   view?:
     | 'external_install'
     | 'integrations_page'

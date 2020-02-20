@@ -1,5 +1,6 @@
 import groupBy from 'lodash/groupBy';
 import keyBy from 'lodash/keyBy';
+import debounce from 'lodash/debounce';
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
@@ -63,6 +64,8 @@ function isPlugin(
 ): integration is PluginWithProjectList {
   return integration.hasOwnProperty('shortName');
 }
+
+const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
 
 class OrganizationIntegrations extends AsyncComponent<
   Props & AsyncComponent['props'],
@@ -288,7 +291,21 @@ class OrganizationIntegrations extends AsyncComponent<
     });
   }
 
+  debouncedTrackIntegrationSearch = debounce((search: string) => {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.directory_item_searched',
+        eventName: 'Integrations: Directory Item Searched',
+        view: 'integrations_directory',
+        search_term: search,
+      },
+      this.props.organization
+    );
+  }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
+
   onSearchChange = async ({target}) => {
+    //don't track an empty search
+    target.value && this.debouncedTrackIntegrationSearch(target.value);
     this.setState({searchInput: target.value}, () => {
       if (!target.value) {
         return this.setState({displayedList: this.state.list});

@@ -81,12 +81,6 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   };
 
   handleEnablePlugin = (projectId: string) => {
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.enabled',
-      eventName: 'Integrations: Enabled',
-      project_id: projectId,
-    });
-
     //make a copy of our project list
     const projectList = this.plugin.projectList.slice();
     //find the index of the project
@@ -111,6 +105,10 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   handleAddToProject = () => {
     const plugin = this.plugin;
     const {organization, router} = this.props;
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.plugin_add_to_project_clicked',
+      eventName: 'Integrations: Plugin Add to Project Clicked',
+    });
     openModal(
       ({closeModal, Header, Body}) => (
         <ContextPickerModal
