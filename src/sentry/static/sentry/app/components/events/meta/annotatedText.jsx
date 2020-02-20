@@ -98,17 +98,29 @@ function renderValue(value, chunks, errors, remarks) {
   return element;
 }
 
+function getErrorMessage(error) {
+  const errorMessage = [];
+  if (error[0]) {
+    errorMessage.push(error[0]);
+  }
+  if (error[1] && error[1].reason) {
+    errorMessage.push(error[1].reason);
+  }
+
+  return errorMessage.join(': ');
+}
+
 function renderErrors(errors) {
   if (!errors.length) {
     return null;
   }
 
   const tooltip = (
-    <div style={{'text-align': 'left'}}>
+    <div style={{textAlign: 'left'}}>
       <strong>{tn('Processing Error:', 'Processing Errors:', errors.length)}</strong>
       <ul>
-        {errors.map(e => (
-          <li key={e}>{e}</li>
+        {errors.map((error, index) => (
+          <li key={index}>{getErrorMessage(error)}</li>
         ))}
       </ul>
     </div>
@@ -122,6 +134,7 @@ function renderErrors(errors) {
 }
 
 function AnnotatedText({value, chunks, errors, remarks, props}) {
+  console.log('value', value);
   return (
     <span {...props}>
       {renderValue(value, chunks, errors, remarks)} {renderErrors(errors)}
