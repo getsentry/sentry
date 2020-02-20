@@ -2,12 +2,14 @@ import React from 'react';
 import isEmpty from 'lodash/isEmpty';
 import {Location} from 'history';
 
+import styled from '@emotion/styled';
 import {Event} from 'app/types';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {generateQueryWithTag} from 'app/utils';
 import {t} from 'app/locale';
 import Pills from 'app/components/pills';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import space from 'app/styles/space';
 
 import EventTagsPill from './eventTagsPill';
 
@@ -27,8 +29,8 @@ const EventTags = ({event: {tags}, orgId, projectId, location}: Props) => {
   const releasesPath = `/organizations/${orgId}/releases/`;
 
   return (
-    <EventDataSection title={t('Tags')} type="tags" className="p-b-1">
-      <Pills className="no-margin">
+    <StyledEventDataSection title={t('Tags')} type="tags">
+      <Pills>
         {tags.map(tag => (
           <EventTagsPill
             key={tag.key}
@@ -42,8 +44,12 @@ const EventTags = ({event: {tags}, orgId, projectId, location}: Props) => {
           />
         ))}
       </Pills>
-    </EventDataSection>
+    </StyledEventDataSection>
   );
 };
 
 export default EventTags;
+
+const StyledEventDataSection = styled(EventDataSection)`
+  padding-bottom: ${space(3)};
+`;

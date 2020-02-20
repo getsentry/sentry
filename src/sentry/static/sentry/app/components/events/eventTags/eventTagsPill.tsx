@@ -1,6 +1,7 @@
 import React from 'react';
 import {Link} from 'react-router';
 import queryString from 'query-string';
+import {Query} from 'history';
 
 import {EventTag, Meta} from 'app/types';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
@@ -10,12 +11,13 @@ import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import InlineSvg from 'app/components/inlineSvg';
 import Version from 'app/components/version';
+import {IconOpen} from 'app/icons/iconOpen';
 
 type Props = {
   tag: EventTag;
   streamPath: string;
   releasesPath: string;
-  query: any;
+  query: Query;
   orgId: string;
   projectId: string;
   meta: Meta;
@@ -61,7 +63,7 @@ const EventTagsPill = ({
       </Link>
       {isUrl(tag.value) && (
         <a href={tag.value} className="external-icon">
-          <em className="icon-open" />
+          <IconOpen />
         </a>
       )}
       {isRelease && (
