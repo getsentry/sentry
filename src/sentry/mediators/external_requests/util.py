@@ -5,7 +5,7 @@ from requests.exceptions import RequestException
 
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 from sentry.http import safe_urlopen
-
+from sentry.models.sentryapp import track_response_code
 
 SELECT_OPTIONS_SCHEMA = {
     "type": "array",
@@ -52,14 +52,18 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
 
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
+    slug = sentry_app.slug_for_metrics
+
     try:
         resp = safe_urlopen(url=url, **kwargs)
     except RequestException:
+        track_response_code("timeout", slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
+    track_response_code(resp.status_code, slug, event)
     buffer.add_request(
         response_code=resp.status_code,
         org_id=org_id,
