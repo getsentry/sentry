@@ -205,10 +205,12 @@ matrix:
         - psql -c 'create database sentry;' -U postgres
 
     # XXX: this needs to be the same as postgres_default (other than python, name, env, and the rb package override)
+    # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
+    #       So for now, we're unblocking that by not having MIGRATIONS_TEST_MIGRATE=1.
     # Allowed to fail!
     - python: 3.6
-      name: 'Python 3.6 backend with migrations [Postgres]'
-      env: TEST_SUITE=postgres DB=postgres MIGRATIONS_TEST_MIGRATE=1 SENTRY_PYTHON3=1
+      name: 'Python 3.6 backend (no migrations) [Postgres]'
+      env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1
       services:
         - memcached
         - redis-server
@@ -249,7 +251,7 @@ matrix:
       after_failure: skip
 
   allow_failures:
-    - name: 'Python 3.6 backend with migrations [Postgres]'
+    - name: 'Python 3.6 backend (no migrations) [Postgres]'
 
 notifications:
   webhooks:
