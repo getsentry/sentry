@@ -66,6 +66,11 @@ class CreateProject extends React.Component {
     }
   }
 
+  componentDidMount() {
+    super.componentDidMount();
+    trackAnalyticsEvent('new_project.visit',{});
+  }
+
   renderProjectForm = (
     projectName,
     team,
