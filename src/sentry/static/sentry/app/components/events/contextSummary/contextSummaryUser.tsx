@@ -95,6 +95,10 @@ const ContextSummaryUser = ({data}: Props) => {
 
   const userTitle = getUserTitle();
 
+  if (!userTitle) {
+    return <ContextSummaryNoSummary title={t('Unknown User')} />;
+  }
+
   return (
     <div className="context-item user">
       {userTitle ? (
