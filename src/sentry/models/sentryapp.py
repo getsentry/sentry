@@ -145,14 +145,12 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return self.status == SentryAppStatus.INTERNAL
 
     @property
-    def datadog_name(self):
-        if self.is_published:
-            slug = self.slug
+    def slug_for_metrics(self):
         if self.is_internal:
-            slug = "internal"
+            return "internal"
         if self.is_unpublished:
-            slug = "unpublished"
-        return slug
+            return "unpublished"
+        return self.slug
 
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()

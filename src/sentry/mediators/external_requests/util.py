@@ -52,7 +52,7 @@ def send_and_save_sentry_app_request(url, sentry_app, org_id, event, **kwargs):
 
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
-    slug = sentry_app.datadog_name
+    slug = sentry_app.slug_for_metrics
 
     try:
         resp = safe_urlopen(url=url, **kwargs)

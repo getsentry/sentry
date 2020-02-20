@@ -296,7 +296,7 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
 
     org_id = app_platform_event.install.organization_id
     event = "{}.{}".format(app_platform_event.resource, app_platform_event.action)
-    slug = sentry_app.datadog_name
+    slug = sentry_app.slug_for_metrics
 
     try:
         resp = safe_urlopen(
