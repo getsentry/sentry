@@ -264,7 +264,7 @@ class CreateProject extends React.Component {
   trackCreateEvent(
     organization,
     projectData,
-    defaultRules,
+    isDefaultRules,
     shouldCreateCustomRule,
     userId,
     ruleId
@@ -272,7 +272,7 @@ class CreateProject extends React.Component {
     let data = {
       org_id: parseInt(organization.id, 10),
       project_id: parseInt(projectData.id, 10),
-      rule_type: defaultRules ? 'Default' : shouldCreateCustomRule ? 'Custom' : 'No Rule',
+      rule_type: isDefaultRules ? 'Default' : shouldCreateCustomRule ? 'Custom' : 'No Rule',
       user_id: userId,
     };
 
