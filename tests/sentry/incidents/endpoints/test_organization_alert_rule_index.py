@@ -74,7 +74,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-
         valid_alert_rule = {
             "aggregation": 0,
             "aggregations": [0],

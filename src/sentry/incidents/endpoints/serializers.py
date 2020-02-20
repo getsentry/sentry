@@ -112,6 +112,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                         % (type_info.slug, allowed_target_types)
                     }
                 )
+
         if attrs.get("type") == AlertRuleTriggerAction.Type.EMAIL:
             if target_type == AlertRuleTriggerAction.TargetType.TEAM:
                 try:

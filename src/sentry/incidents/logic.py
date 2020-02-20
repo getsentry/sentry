@@ -332,6 +332,7 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
         }
         snuba_args["conditions"] = resolve_discover_aliases(snuba_args)[0]["conditions"]
         query_args_list.append(snuba_args)
+
     return query_args_list
 
 
