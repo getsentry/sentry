@@ -42,16 +42,29 @@ class DataExportEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
 
         try:
-            # TODO(Leander): Prevent repeated requests for identical queries per organization, if one is in progress
-            data_export = ExportedData.objects.create(
+            existing_data_exports = ExportedData.objects.filter(
                 organization=organization,
-                user=request.user,
                 query_type=data["query_type"],
                 query_info=data["query_info"],
-            )
+                date_finished=None,
+            ).order_by("-date_added")
+            if len(existing_data_exports) > 0:
+                # TODO(Leander): If this organization has requested the same export whilst it's in progress, serve it
+                # This will cause problems since any other user in the org won't get emailed, only the person who FIRST started it.
+                # The user field should be changed to a list or another field
+                # TODO(Leander): Tell the user on the FE that they're job had been started already
+                data_export = existing_data_exports[0]
+                status = 200
+            else:
+                data_export = ExportedData.objects.create(
+                    organization=organization,
+                    user=request.user,
+                    query_type=data["query_type"],
+                    query_info=data["query_info"],
+                )
+                assemble_download.delay(data_export=data_export)
+                status = 201
         except ValidationError as e:
             # This will handle invalid JSON requests
             return Response({"detail": six.text_type(e)}, status=400)
-
-        assemble_download.delay(data_export=data_export)
-        return Response(serialize(data_export, request.user), status=201)
+        return Response(serialize(data_export, request.user), status=status)
