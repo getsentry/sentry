@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import collections
 from copy import deepcopy
+import itertools
+
 import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
@@ -124,10 +126,13 @@ class SnubaTSDB(BaseTSDB):
     }
 
     # ``model_query_settings`` is a translation of TSDB models into required settings for querying snuba
-    model_query_settings = dict()
-    model_query_settings.update(project_filter_model_query_settings)
-    model_query_settings.update(outcomes_partial_query_settings)
-    model_query_settings.update(non_outcomes_query_settings)
+    model_query_settings = dict(
+        itertools.chain(
+            project_filter_model_query_settings.items(),
+            outcomes_partial_query_settings.items(),
+            non_outcomes_query_settings.items(),
+        )
+    )
 
     project_filter_model_query_settings_lower_rollup = {
         model: SnubaModelQuerySettings(
@@ -183,9 +188,12 @@ class SnubaTSDB(BaseTSDB):
         ),
     }
 
-    lower_rollup_query_settings = dict()
-    lower_rollup_query_settings.update(project_filter_model_query_settings_lower_rollup)
-    lower_rollup_query_settings.update(other_lower_rollup_query_settings)
+    lower_rollup_query_settings = dict(
+        itertools.chain(
+            project_filter_model_query_settings_lower_rollup.items(),
+            other_lower_rollup_query_settings.items(),
+        )
+    )
 
     def __init__(self, **options):
         super(SnubaTSDB, self).__init__(**options)
