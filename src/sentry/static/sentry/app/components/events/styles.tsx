@@ -78,6 +78,6 @@ export const CauseHeader = styled('div')`
     background: none;
     border: 0;
     outline: none;
-    padding; 0;
+    padding: 0;
   }
 `;
