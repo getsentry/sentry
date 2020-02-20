@@ -71,7 +71,7 @@ type ConditionOrAction = string;
 type Props = {
   project: Project;
   organization: Organization;
-} & RouteComponentProps<{orgId: string; projectId: string; ruleId: string}, {}>;
+} & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
   rule: UnsavedIssueAlertRule | IssueAlertRule;

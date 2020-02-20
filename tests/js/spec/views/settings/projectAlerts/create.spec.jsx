@@ -124,11 +124,11 @@ describe('ProjectAlertsCreate', function() {
         expect(wrapper.find('IssueEditor')).toHaveLength(0);
         expect(wrapper.find('IncidentRulesCreate')).toHaveLength(0);
 
-        wrapper.find('button[aria-label="Metric Alert"]').simulate('click');
+        wrapper.find('button[aria-label="metric"]').simulate('click');
         expect(wrapper.find('IncidentRulesCreate')).toHaveLength(1);
         await tick();
 
-        wrapper.find('button[aria-label="Issue Alert"]').simulate('click');
+        wrapper.find('button[aria-label="issue"]').simulate('click');
         await tick();
         expect(wrapper.find('IncidentRulesCreate')).toHaveLength(0);
         expect(wrapper.find('SelectControl[name="environment"]').prop('value')).toBe(
