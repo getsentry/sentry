@@ -49,3 +49,35 @@ export const BannerSummary = styled('p')`
     align-self: flex-end;
   }
 `;
+
+export const CauseContainer = styled('div')`
+  border-top: 1px solid ${p => p.theme.borderLight};
+  padding: ${space(3)} ${space(4)} 0 40px;
+`;
+
+export const CauseHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${space(3)};
+
+  & button,
+  & h3 {
+    color: ${p => p.theme.gray2};
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  & h3 {
+    margin-bottom: 0;
+  }
+
+  & button {
+    background: none;
+    border: 0;
+    outline: none;
+    padding; 0;
+  }
+`;
