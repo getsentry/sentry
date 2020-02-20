@@ -22,8 +22,7 @@ steps:
     # TODO(byk): We may also build this part as a builder image everytime
     #            there's a push to onpremise and use that image for
     curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
-    # The following trick is from https://stackoverflow.com/a/52400857/90297 with great gratuity
-    echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
+    cp ../docker/docker-compose.override.yml docker-compose.override.yml
     ./install.sh
     docker-compose run --rm web createuser --superuser --email test@example.com --password test123TEST
     docker-compose up -d

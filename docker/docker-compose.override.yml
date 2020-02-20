@@ -1,0 +1,10 @@
+version: '3.4'
+services:
+    postgres:
+        volumes:
+          - type: tmpfs
+            target: '/var/lib/postgresql/data'
+networks:
+    default:
+        external:
+            name: cloudbuild
