@@ -137,7 +137,10 @@ class Mediator(object):
             cls._prepare_params()
             cls._params_prepared = True
 
-        return super(Mediator, cls).__new__(cls, *args, **kwargs)
+        # XXX(joshuarli): python3 object() doesn't take any parameters.
+        # I don't completely understand the implications of removing args, but this is a particularly noisy py3 failure.
+        # So temporarily unblocking (don't merge).
+        return super(Mediator, cls).__new__(cls)
 
     @classmethod
     def _prepare_params(cls):
