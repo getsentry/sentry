@@ -73,7 +73,11 @@ class CreateProject extends React.Component {
       unitId: parseInt(this.props.organization.id, 10),
       param: 'exposed',
     });
-    trackAnalyticsEvent('new_project.visit', {});
+    trackAnalyticsEvent({
+      eventKey: 'new_project.visit',
+      eventName: 'New Project Page Visited',
+      org_id: parseInt(this.props.organization.id, 10),
+    });
   }
 
   renderProjectForm = (
@@ -264,6 +268,8 @@ class CreateProject extends React.Component {
     ruleId
   ) {
     let data = {
+      eventKey: 'new_project.alert_rule_option_committed',
+      eventName: 'New Project Alert Rule Option Committed',
       org_id: parseInt(organization.id, 10),
       project_id: parseInt(projectData.id, 10),
       rule_type: isDefaultRules
@@ -277,7 +283,7 @@ class CreateProject extends React.Component {
       data = {...data, custom_rule_id: ruleId};
     }
 
-    trackAnalyticsEvent('new_project.alert_rule_option_committed', data);
+    trackAnalyticsEvent(data);
   }
 
   setPlatform = platformId =>
