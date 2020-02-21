@@ -70,7 +70,11 @@ class Map(Attribute):
 class Event(object):
     __slots__ = ["uuid", "attributes", "data", "datetime", "type"]
 
-    def __init__(self, type=None, datetime=None, attributes=(), **items):
+    type = None
+
+    attributes = ()
+
+    def __init__(self, type=None, datetime=None, **items):
         self.uuid = uuid1()
 
         self.datetime = datetime or timezone.now()
