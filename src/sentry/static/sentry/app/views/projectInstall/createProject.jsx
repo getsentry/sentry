@@ -74,7 +74,7 @@ class CreateProject extends React.Component {
       param: 'exposed',
     });
     trackAnalyticsEvent({
-      eventKey: 'new_project.visit',
+      eventKey: 'new_project.visited',
       eventName: 'New Project Page Visited',
       org_id: parseInt(this.props.organization.id, 10),
     });
