@@ -1,6 +1,7 @@
 import isEqual from 'lodash/isEqual';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
+import qs from 'query-string';
 import * as Sentry from '@sentry/browser';
 
 import {defined} from 'app/utils';
@@ -134,7 +135,7 @@ export function updateParamsWithoutHistory(obj, router, options) {
   const newQuery = getNewQueryParams(obj, router.location.query, options);
 
   // Only push new location if query params have changed because this will cause a heavy re-render
-  if (isEqualWithEmptyArrays(newQuery, router.location.query)) {
+  if (qs.stringify(newQuery) === qs.stringify(router.location.query)) {
     return;
   }
 
@@ -195,7 +196,7 @@ function getParams(params = {}) {
     end: coercedPeriod ? null : end,
     ...otherParams,
   })
-    .filter(([key, value]) => defined(value))
+    .filter(([, value]) => defined(value))
     .reduce(
       (acc, [key, value]) => ({
         ...acc,
