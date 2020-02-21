@@ -27,6 +27,7 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, get_json_type
 from six.moves import filter
 from six.moves import map
+from six.moves import zip
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -597,7 +598,9 @@ def convert_search_boolean_to_snuba_query(search_boolean):
             return convert_search_boolean_to_snuba_query(term)
         else:
             raise InvalidSearchQuery(
-                u"Attempted to convert term of unrecognized type {} into a snuba expression".format(term.__class__.__name__)
+                u"Attempted to convert term of unrecognized type {} into a snuba expression".format(
+                    term.__class__.__name__
+                )
             )
 
     if not search_boolean:
@@ -743,7 +746,9 @@ def get_filter(query=None, params=None):
         try:
             parsed_terms = parse_search_query(query)
         except ParseError as e:
-            raise InvalidSearchQuery(u"Parse error: {} (column {:d})".format(e.expr.name, e.column()))
+            raise InvalidSearchQuery(
+                u"Parse error: {} (column {:d})".format(e.expr.name, e.column())
+            )
 
     kwargs = {
         "start": None,
@@ -770,7 +775,9 @@ def get_filter(query=None, params=None):
                     )
                 except Exception:
                     raise InvalidSearchQuery(
-                        u"Invalid query. Project {} does not exist or is not an actively selected project.".format(term.value.value)
+                        u"Invalid query. Project {} does not exist or is not an actively selected project.".format(
+                            term.value.value
+                        )
                     )
 
                 # Create a new search filter with the correct values
@@ -943,7 +950,9 @@ class NumberRange(FunctionArg):
             raise InvalidFunctionArgument(u"{} is not a number".format(value))
 
         if self.start and value < self.start:
-            raise InvalidFunctionArgument(u"{:g} must be greater than or equal to {:g}".format(value, self.start))
+            raise InvalidFunctionArgument(
+                u"{:g} must be greater than or equal to {:g}".format(value, self.start)
+            )
         elif self.end and value >= self.end:
             raise InvalidFunctionArgument(u"{:g} must be less than {:g}".format(value, self.end))
 
@@ -967,10 +976,7 @@ class IntervalDefault(NumberRange):
 FUNCTIONS = {
     "percentile": {
         "name": "percentile",
-        "args": [
-            NumericColumn("column"),
-            NumberRange("percentile", 0, 1),
-        ],
+        "args": [NumericColumn("column"), NumberRange("percentile", 0, 1)],
         "transform": u"quantile({percentile:.2f})({column})",
     },
     "rps": {

@@ -23,6 +23,7 @@ from sentry.models import (
     AuditLogEntryEvent,
 )
 from sentry.testutils import APITestCase
+from six.moves import zip
 
 
 class ProjectDetailsTest(APITestCase):

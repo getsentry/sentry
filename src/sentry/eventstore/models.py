@@ -21,6 +21,7 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
+from six.moves import zip
 
 
 def ref_func(x):
@@ -338,7 +339,11 @@ class Event(object):
             if hashes is not None:
                 return hashes
 
-        return [_f for _f in [x.get_hash() for x in self.get_grouping_variants(force_config).values()] if _f]
+        return [
+            _f
+            for _f in [x.get_hash() for x in self.get_grouping_variants(force_config).values()]
+            if _f
+        ]
 
     def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """

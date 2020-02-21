@@ -10,6 +10,7 @@ from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba, outcomes
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
+from six.moves import zip
 
 
 SnubaModelQuerySettings = collections.namedtuple(
@@ -248,7 +249,7 @@ class SnubaTSDB(BaseTSDB):
             model_aggregate = None
 
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
-        keys_map = dict(zip(columns, self.flatten_keys(keys)))
+        keys_map = dict(list(zip(columns, self.flatten_keys(keys))))
         keys_map = {k: v for k, v in six.iteritems(keys_map) if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids

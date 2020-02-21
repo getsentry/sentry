@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from sentry.utils.cursors import build_cursor, Cursor, CursorResult
 from six.moves import map
+from six.moves import zip
 
 quote_name = connections["default"].ops.quote_name
 
@@ -284,7 +285,7 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
 class SequencePaginator(object):
     def __init__(self, data, reverse=False, max_limit=MAX_LIMIT, on_results=None):
         self.scores, self.values = (
-            list(map(list, zip(*sorted(data, reverse=reverse)))) if data else ([], [])
+            list(map(list, list(zip(*sorted(data, reverse=reverse))))) if data else ([], [])
         )
         self.reverse = reverse
         self.search = functools.partial(

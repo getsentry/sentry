@@ -20,6 +20,7 @@ from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
 from six.moves import reduce
 from six.moves import map
+from six.moves import zip
 
 logger = logging.getLogger(__name__)
 
@@ -506,7 +507,9 @@ class RedisTSDB(BaseTSDB):
             client = cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command(
-                    "PFMERGE", destination, *itertools.chain.from_iterable(list(map(expand_key, keys)))
+                    "PFMERGE",
+                    destination,
+                    *itertools.chain.from_iterable(list(map(expand_key, keys)))
                 )
                 pipeline.get(destination)
                 pipeline.delete(destination)
@@ -759,7 +762,7 @@ class RedisTSDB(BaseTSDB):
         results = {}
         cluster, _ = self.get_cluster(environment_id)
         for key, responses in cluster.execute_commands(commands).items():
-            results[key] = zip(series, list(map(unpack_response, responses)))
+            results[key] = list(zip(series, list(map(unpack_response, responses))))
 
         return results
 
@@ -798,7 +801,7 @@ class RedisTSDB(BaseTSDB):
 
             chunk = results[key] = []
             for timestamp, scores in zip(series, responses[0].value):
-                chunk.append((timestamp, dict(zip(members, list(map(float, scores))))))
+                chunk.append((timestamp, dict(list(zip(members, list(map(float, scores)))))))
 
         return results
 

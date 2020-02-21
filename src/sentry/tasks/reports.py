@@ -33,6 +33,7 @@ from sentry.utils.math import mean
 from six.moves import reduce, zip_longest
 from six.moves import filter
 from six.moves import map
+from six.moves import zip
 
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")
@@ -329,7 +330,7 @@ def prepare_project_calendar_series(interval, project):
 
 
 def build(name, fields):
-    names, prepare_fields, merge_fields = zip(*fields)
+    names, prepare_fields, merge_fields = list(zip(*fields))
 
     cls = namedtuple(name, names)
 
@@ -612,10 +613,12 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     ]
 
     reports = dict(
-        list(filter(
-            lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
-            zip(projects, backend.fetch(timestamp, duration, organization, projects)),
-        ))
+        list(
+            filter(
+                lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
+                list(zip(projects, backend.fetch(timestamp, duration, organization, projects))),
+            )
+        )
     )
 
     if not reports:
@@ -654,34 +657,38 @@ def build_project_breakdown_series(reports):
 
     # Find the reports with the most total events. (The number of reports to
     # keep is the same as the number of colors available to use in the legend.)
-    instances = list(map(
-        operator.itemgetter(0),
-        sorted(
-            reports.items(),
-            key=lambda instance__report: sum(
-                sum(values) for timestamp, values in instance__report[1][0]
+    instances = list(
+        map(
+            operator.itemgetter(0),
+            sorted(
+                reports.items(),
+                key=lambda instance__report: sum(
+                    sum(values) for timestamp, values in instance__report[1][0]
+                ),
+                reverse=True,
             ),
-            reverse=True,
-        ),
-    ))[: len(colors)]
+        )
+    )[: len(colors)]
 
     # Starting building the list of items to include in the report chart. This
     # is a list of [Key, Report] pairs, in *ascending* order of the total sum
     # of values in the series. (This is so when we render the series, the
     # largest color blocks are at the bottom and it feels appropriately
     # weighted.)
-    selections = list(map(
-        lambda instance__color: (
-            Key(
-                instance__color[0].slug,
-                instance__color[0].get_absolute_url(),
-                instance__color[1],
-                get_legend_data(reports[instance__color[0]]),
+    selections = list(
+        map(
+            lambda instance__color: (
+                Key(
+                    instance__color[0].slug,
+                    instance__color[0].get_absolute_url(),
+                    instance__color[1],
+                    get_legend_data(reports[instance__color[0]]),
+                ),
+                reports[instance__color[0]],
             ),
-            reports[instance__color[0]],
-        ),
-        zip(instances, colors),
-    ))[::-1]
+            list(zip(instances, colors)),
+        )
+    )[::-1]
 
     # Collect any reports that weren't in the selection set, merge them
     # together and add it at the top (front) of the stack.

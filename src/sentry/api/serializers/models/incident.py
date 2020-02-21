@@ -15,6 +15,7 @@ from sentry.incidents.models import (
     IncidentSubscription,
 )
 from sentry.utils.db import attach_foreignkey
+from six.moves import zip
 
 
 @register(Incident)

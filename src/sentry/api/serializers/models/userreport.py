@@ -4,6 +4,7 @@ import six
 
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.models import EventUser, UserReport
+from six.moves import zip
 
 
 @register(UserReport)

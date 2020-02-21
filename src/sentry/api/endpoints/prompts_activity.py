@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.models import Organization, PromptsActivity, Project
+from six.moves import zip
 
 PROMPTS = {
     "releases": {"required_fields": ["organization_id", "project_id"]},
@@ -21,7 +22,9 @@ VALID_STATUSES = frozenset(("snoozed", "dismissed"))
 
 class PromptsActivitySerializer(serializers.Serializer):
     feature = serializers.CharField(required=True)
-    status = serializers.ChoiceField(choices=zip(VALID_STATUSES, VALID_STATUSES), required=True)
+    status = serializers.ChoiceField(
+        choices=list(zip(VALID_STATUSES, VALID_STATUSES)), required=True
+    )
 
     def validate_feature(self, value):
         if value is None:
