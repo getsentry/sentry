@@ -80,7 +80,7 @@ class EventStorage(Service):
     minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
 
     def get_events(
-        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_events"  # NOQA
+        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_events"
     ):
         """
         Fetches a list of events given a set of criteria.
@@ -95,7 +95,7 @@ class EventStorage(Service):
         raise NotImplementedError
 
     def get_unfetched_events(
-        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_unfetched_events"  # NOQA
+        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_unfetched_events"
     ):
         """
         Same as get_events but returns events without their node datas loaded.
@@ -125,7 +125,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_next_event_id(self, event, filter):  # NOQA
+    def get_next_event_id(self, event, filter):
         """
         Gets the next event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -136,7 +136,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_prev_event_id(self, event, filter):  # NOQA
+    def get_prev_event_id(self, event, filter):
         """
         Gets the previous event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -147,7 +147,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_earliest_event_id(self, event, filter):  # NOQA
+    def get_earliest_event_id(self, event, filter):
         """
         Gets the earliest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -158,7 +158,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_latest_event_id(self, event, filter):  # NOQA
+    def get_latest_event_id(self, event, filter):
         """
         Gets the latest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)

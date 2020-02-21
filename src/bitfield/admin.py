@@ -22,9 +22,9 @@ class BitFieldListFilter(FieldListFilter):
         )
 
     def queryset(self, request, queryset):
-        _filter = dict((p, bitor(F(p), v)) for p, v in six.iteritems(self.used_parameters))
+        filter = dict((p, bitor(F(p), v)) for p, v in six.iteritems(self.used_parameters))
         try:
-            return queryset.filter(**_filter)
+            return queryset.filter(**filter)
         except ValidationError as e:
             raise IncorrectLookupParameters(e)
 
