@@ -1,13 +1,7 @@
 import {Route} from 'react-router';
 
 import {NavigationSection} from 'app/views/settings/types';
-import {
-  User,
-  Organization,
-  Project,
-  IntegrationProvider,
-  IntegrationFeature,
-} from 'app/types';
+import {User, Organization, Project, IntegrationProvider} from 'app/types';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -311,11 +305,23 @@ type OnboardingInviteMembersHook = () => React.ComponentType<{
   organization: Organization;
 }>;
 
+/**
+ * The DecoratedIntegrationFeature differs from the IntegrationFeature as it is
+ * expected to have been transformed into marked up content.
+ */
+type DecoratedIntegrationFeature = {
+  /**
+   * Marked up description
+   */
+  description: React.ReactNode;
+  featureGate: string;
+};
+
 type IntegrationFeatureGroup = {
   /**
    * The list of features within this group
    */
-  features: IntegrationFeature[];
+  features: DecoratedIntegrationFeature[];
   /**
    * Weather the group has all of the features enabled within this group
    * or not.
@@ -331,7 +337,7 @@ type FeatureGateSharedProps = {
   /**
    * The list of features, typically this is provided by the backend.
    */
-  features: IntegrationFeature[];
+  features: DecoratedIntegrationFeature[];
 };
 
 type IntegrationFeaturesProps = FeatureGateSharedProps & {
@@ -342,7 +348,7 @@ type IntegrationFeaturesProps = FeatureGateSharedProps & {
     /**
      * This is the list of features which have *not* been gated in any way.
      */
-    ungatedFeatures: IntegrationFeature[];
+    ungatedFeatures: DecoratedIntegrationFeature[];
     /**
      * Features grouped based on specific gating criteria (for example, in
      * sentry.io this is features grouped by plans).
