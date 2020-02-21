@@ -741,7 +741,7 @@ class Factories(object):
         organization,
         projects,
         detection_uuid=None,
-        status=1,
+        status=2,
         title=None,
         query="test query",
         date_started=None,

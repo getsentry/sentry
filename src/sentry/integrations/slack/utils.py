@@ -321,7 +321,7 @@ def build_incident_attachment(incident):
 
     ts = incident.date_started
 
-    title = u"{}: {}".format(status, incident.alert_rule.name)
+    title = u"{}: {}".format(status, alert_rule.name)
 
     return {
         "fallback": title,
