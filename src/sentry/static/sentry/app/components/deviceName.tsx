@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {IOSDeviceList} from 'app/types/iOSDeviceList';
-import {defined} from 'app/utils';
 
 export function deviceNameMapper(model: string, iOSDeviceList): string {
   const modelIdentifier = model.split(' ')[0];
@@ -20,7 +19,7 @@ export async function loadDeviceListModule() {
 
 type Props = {
   value: string;
-  children?: (name: string | null) => React.ReactNode;
+  children?: (name: string) => React.ReactNode;
 };
 
 type State = {
@@ -67,15 +66,20 @@ export default class DeviceName extends React.Component<Props, State> {
   }
 
   render() {
-    const {value = null, children} = this.props;
+    const {value, children} = this.props;
     const {iOSDeviceList} = this.state;
+
+    // value can be undefined, need to return null or else react throws
+    if (!value) {
+      return null;
+    }
 
     // If library has not loaded yet, then just render the raw model string, better than empty
     if (!iOSDeviceList) {
       return value;
     }
 
-    const deviceName = defined(value) ? deviceNameMapper(value, iOSDeviceList) : null;
+    const deviceName = deviceNameMapper(value, iOSDeviceList);
 
     return (
       <span data-test-id="loaded-device-name">
