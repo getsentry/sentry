@@ -1,4 +1,3 @@
-import isEqual from 'lodash/isEqual';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import qs from 'query-string';
@@ -7,23 +6,6 @@ import * as Sentry from '@sentry/browser';
 import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
-
-const isEqualWithEmptyArrays = (newQuery, current) => {
-  // We will only get empty arrays from `newQuery`
-  // Can't use isEqualWith because keys are unbalanced (guessing)
-  return isEqual(
-    Object.entries(newQuery)
-      .filter(([, value]) => !Array.isArray(value) || !!value.length)
-      .reduce(
-        (acc, [key, value]) => ({
-          ...acc,
-          [key]: value,
-        }),
-        {}
-      ),
-    current
-  );
-};
 
 // Reset values in global selection store
 export function resetGlobalSelection() {
