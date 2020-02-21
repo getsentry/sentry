@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+from six.moves import zip
 
 from datetime import timedelta
 from rest_framework.response import Response
