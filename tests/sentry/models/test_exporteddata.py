@@ -4,6 +4,7 @@ import tempfile
 from datetime import timedelta
 
 from sentry.models import ExportedData, File
+from sentry.models.exporteddata import DEFAULT_EXPIRATION
 from sentry.testutils import TestCase
 
 
@@ -33,6 +34,9 @@ class DeleteExportedDataTest(TestCase):
         assert isinstance(self.data_export.file, File)
         self.data_export.delete_file()
         assert not File.objects.filter(id=self.file1.id).exists()
+        # The ExportedData should be unaffected
+        assert ExportedData.objects.filter(id=self.data_export.id).exists()
+        assert ExportedData.objects.get(id=self.data_export.id).file is None
 
     def test_delete(self):
         self.data_export.finalize_upload(file=self.file1)
@@ -44,7 +48,6 @@ class DeleteExportedDataTest(TestCase):
 
     def test_finalize_upload(self):
         TEST_STRING = "A bunch of test data..."
-        DEFAULT_EXPIRATION = timedelta(weeks=4)  # Matches src/sentry/models/exporteddata.py
         # With default expiration
         with tempfile.TemporaryFile() as tf:
             tf.write(TEST_STRING)
