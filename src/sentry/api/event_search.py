@@ -856,7 +856,7 @@ FIELD_ALIASES = {
     "error_rate": {
         "result_type": "number",
         "aggregations": [
-            ["divide(countIf(notEquals(transaction_status, 0)), count(*))", None, "error_rate"]
+            ["divide(countIf(notEquals(transaction_status, 0)), count())", None, "error_rate"]
         ],
     },
 }
