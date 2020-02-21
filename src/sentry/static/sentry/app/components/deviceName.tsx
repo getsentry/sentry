@@ -69,6 +69,11 @@ export default class DeviceName extends React.Component<Props, State> {
     const {value, children} = this.props;
     const {iOSDeviceList} = this.state;
 
+    // value can be undefined, need to return null or else react throws
+    if (!value) {
+      return null;
+    }
+
     // If library has not loaded yet, then just render the raw model string, better than empty
     if (!iOSDeviceList) {
       return value;
