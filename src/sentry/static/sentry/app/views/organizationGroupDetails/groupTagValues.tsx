@@ -13,6 +13,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
+import DataExport from 'app/components/dataExport';
 import space from 'app/styles/space';
 import {Group, Tag, TagValue} from 'app/types';
 
@@ -111,10 +112,20 @@ class GroupTagValues extends AsyncComponent<
           {tag.key === 'user' ? t('Affected Users') : tag.name}
           <a
             href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
-            className="btn btn-default btn-sm m-left"
+            className="btn btn-default btn-sm m-left m-right"
           >
-            {t('Export to CSV')}
+            {t('Export Page to CSV')}
           </a>
+          <DataExport
+            payload={{
+              queryType: 2,
+              queryInfo: {
+                project_id: group.project.id,
+                group_id: group.id,
+                key: tagKey,
+              },
+            }}
+          />
         </h3>
         <table className="table table-striped">
           <thead>
@@ -140,6 +151,9 @@ class GroupTagValues extends AsyncComponent<
 const TableWrapper = styled('div')`
   .m-left {
     margin-left: ${space(1.5)};
+  }
+  .m-right {
+    margin-right: ${space(1.5)};
   }
 `;
 
