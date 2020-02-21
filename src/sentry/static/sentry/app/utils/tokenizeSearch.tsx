@@ -19,7 +19,7 @@ export type QueryResults = {
  *     tag: ['value'],
  *   }
  *
- * Should stay in sync with src/sentry/search/utils:tokenize_query
+ * Should stay in sync with src.sentry.search.utils:tokenize_query
  */
 export function tokenizeSearch(query: string) {
   const tokens = splitSearchIntoTokens(query);
@@ -74,7 +74,7 @@ export function stringifyQueryObject(results: QueryResults) {
   const {query, ...tags} = results;
 
   const stringTags = flatMap(Object.entries(tags), ([k, values]) =>
-    values.map(tag => `${k}:${/\s/g.test(tag) ? `"${tag}"` : tag}`)
+    values.map(tag => `${k}:${/[\s\(\)]/g.test(tag) ? `"${tag}"` : tag}`)
   );
 
   return `${query.join(' ')} ${stringTags.join(' ')}`.trim();

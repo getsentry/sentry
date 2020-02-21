@@ -76,6 +76,11 @@ describe('utils/tokenizeSearch', function() {
         object: {query: ['oh me', 'oh my'], browser: ['Chrome 36', 'Firefox 60']},
         string: 'oh me oh my browser:"Chrome 36" browser:"Firefox 60"',
       },
+      {
+        name: 'should quote tags with parens',
+        object: {query: ['bad things'], repository_id: ["UUID('long-value')"]},
+        string: 'bad things repository_id:"UUID(\'long-value\')"',
+      },
     ];
 
     for (const {name, string, object} of cases) {
