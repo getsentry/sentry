@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 import uuid
+import mock
 
 from datetime import timedelta
 
@@ -335,7 +336,9 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     data={
                         "event_id": six.binary_type(uuid.uuid1()),
                         "message": "very bad",
-                        "timestamp": iso_format(self.day_ago + timedelta(minutes=minute, seconds=second)),
+                        "timestamp": iso_format(
+                            self.day_ago + timedelta(minutes=minute, seconds=second)
+                        ),
                         "fingerprint": ["group1"],
                         "tags": {"sentry:user": self.user.email},
                     },
@@ -372,7 +375,9 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     data={
                         "event_id": six.binary_type(uuid.uuid1()),
                         "message": "very bad",
-                        "timestamp": iso_format(self.day_ago + timedelta(minutes=minute, seconds=second)),
+                        "timestamp": iso_format(
+                            self.day_ago + timedelta(minutes=minute, seconds=second)
+                        ),
                         "fingerprint": ["group1"],
                         "tags": {"sentry:user": self.user.email},
                     },
@@ -531,3 +536,44 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200
+
+    def test_simple_multiple_yaxis(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": ["user_count", "event_count"],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["user_count"]["data"]] == [
+            [],
+            [{"count": 1}],
+            [{"count": 1}],
+        ]
+        assert [attrs for time, attrs in response.data["event_count"]["data"]] == [
+            [],
+            [{"count": 1}],
+            [{"count": 2}],
+        ]
+
+    @mock.patch("sentry.snuba.discover.timeseries_query", return_value={})
+    def test_multiple_yaxis_only_one_query(self, mock_query):
+        with self.feature("organizations:discover-basic"):
+            self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": ["user_count", "event_count", "rpm()", "rps()"],
+                },
+                format="json",
+            )
+
+        assert mock_query.call_count == 1
