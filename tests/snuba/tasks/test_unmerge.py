@@ -312,7 +312,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert source.id != destination.id
         assert source.project == destination.project
 
-        destination_event_ids = [event.event_id for event in events.values()[1]]
+        destination_event_ids = [e.event_id for e in events.values()[1]]
 
         assert set(
             UserReport.objects.filter(group_id=source.id).values_list("event_id", flat=True)
