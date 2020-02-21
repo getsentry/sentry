@@ -125,6 +125,8 @@ matrix:
       install:
         - python setup.py install_egg_info
         - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev]"
+        - pip uninstall -y sentry-flake8
+        - pip install -e 'git+https://github.com/getsentry/sentry-flake8.git@35d1274dfddf75ec391ef1b4779eeec540e00a8d#egg=sentry-flake8'
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
         - ./bin/yarn install --pure-lockfile
@@ -132,7 +134,9 @@ matrix:
     # Proactive linting on 3.7 during the porting process
     - python: 3.7
       name: 'Linter (Python 3.7)'
-      install: pip install -e 'git+https://github.com/getsentry/sentry-flake8.git@35d1274dfddf75ec391ef1b4779eeec540e00a8d#egg=sentry-flake8'
+      install:
+        - pip uninstall -y sentry-flake8
+        - pip install -e 'git+https://github.com/getsentry/sentry-flake8.git@35d1274dfddf75ec391ef1b4779eeec540e00a8d#egg=sentry-flake8'
       # configuration for flake8 can be found in setup.cfg
       script: flake8
 
