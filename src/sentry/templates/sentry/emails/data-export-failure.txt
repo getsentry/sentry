@@ -1,4 +1,7 @@
-An error has occured with your data export
+An error has occured with your data export.
 
-We were unable to complete the bulk export of your data.
+While trying to generate your data export, we encountered the following error:
+
+{{error_message}}
+
 Please try again later

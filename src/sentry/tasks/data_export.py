@@ -17,15 +17,22 @@ SNUBA_MAX_RESULTS = 1000
 def assemble_download(data_export):
     # Create a temporary file
     with tempfile.TemporaryFile() as tf:
-        # Process the query based on its type
-        if data_export.query_type == ExportQueryType.DISCOVER_V2:
-            process_discover_v2(data_export, tf)
+        try:
+            # Process the query based on its type
+            if data_export.query_type == ExportQueryType.DISCOVER_V2:
+                process_discover_v2(data_export, tf)
+                return
+            elif data_export.query_type == ExportQueryType.BILLING_REPORT:
+                process_billing_report(data_export, tf)
+                return
+            elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
+                file_name = process_issue_by_tag(data_export, tf)
+        except Exception as err:
+            # TODO(Leander): Implement logging
+            data_export.email_failure(
+                u"[Internal Processing] {}: {}".format(type(err).__name__, err)
+            )
             return
-        elif data_export.query_type == ExportQueryType.BILLING_REPORT:
-            process_billing_report(data_export, tf)
-            return
-        elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
-            file_name = process_issue_by_tag(data_export, tf)
         # Create a new File object and attach it to the ExportedData
         tf.seek(0)
         with transaction.atomic():

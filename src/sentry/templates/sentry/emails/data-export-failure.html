@@ -5,6 +5,7 @@
 
 {% block main %}
     <h3>An error has occured with your data export</h3>
-    <p>We were unable to complete the bulk export of your data.</p>
+    <p>While trying to generate your data export, we encountered the following error:</p>
+    <p>{{error_message}}</p>
     <p>Please try again later</p>
 {% endblock %}

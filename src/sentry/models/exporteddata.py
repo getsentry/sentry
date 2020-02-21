@@ -97,11 +97,13 @@ class ExportedData(Model):
         )
         msg.send_async([self.user.email])
 
-    def email_failure(self):
+    def email_failure(self, message):
         from sentry.utils.email import MessageBuilder
 
         msg = MessageBuilder(
-            subject="[Export] An error has occured",
+            subject="We've encountered an Export Failure",
+            context={"error_message": message},
+            type="user.export-data",
             template="sentry/emails/data-export-failure.txt",
             html_template="sentry/emails/data-export-failure.html",
         )
