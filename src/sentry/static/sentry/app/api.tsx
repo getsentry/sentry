@@ -318,7 +318,7 @@ export class Client {
                   path
                 );
 
-                errorObjectToUse.removeFrames(2);
+                errorObjectToUse.removeFrames(3);
 
                 // Setting this to warning because we are going to capture all failed requests
                 scope.setLevel(Sentry.Severity.Warning);
