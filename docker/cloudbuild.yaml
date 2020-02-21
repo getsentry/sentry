@@ -8,7 +8,7 @@ steps:
   ]
   timeout: 900s
 # Smoke tests
-- name: 'gcr.io/$PROJECT_ID/docker-compose'
+- name: 'docker/compose:debian-1.25.4'
   entrypoint: 'bash'
   env:
   - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
