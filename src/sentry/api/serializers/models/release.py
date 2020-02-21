@@ -9,6 +9,7 @@ from django.db.models import Sum
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
+from sentry.snuba.sessions import check_releases_for_health_data
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -230,11 +231,20 @@ class ReleaseSerializer(Serializer):
 
         release_projects = defaultdict(list)
         project_releases = ReleaseProject.objects.filter(release__in=item_list).values(
-            "release_id", "project__slug", "project__name"
+            "release_id", "release__version", "project__slug", "project__name", "project__id"
         )
+
+        health_data = check_releases_for_health_data(
+            [(pr["project__id"], pr["release__version"]) for pr in project_releases]
+        )
+
         for pr in project_releases:
             release_projects[pr["release_id"]].append(
-                {"slug": pr["project__slug"], "name": pr["project__name"]}
+                {
+                    "slug": pr["project__slug"],
+                    "name": pr["project__name"],
+                    "hasHealthData": (pr["project__id"], pr["release__version"]) in health_data,
+                }
             )
 
         result = {}
