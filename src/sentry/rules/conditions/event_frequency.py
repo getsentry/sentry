@@ -7,6 +7,7 @@ from django import forms
 from django.utils import timezone
 
 from sentry import tsdb
+from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules.conditions.base import EventCondition
 from sentry.utils import metrics
 
@@ -72,7 +73,10 @@ class BaseEventFrequencyCondition(EventCondition):
         query_result = self.query_hook(event, start, end, environment_id)
         metrics.incr(
             "rules.conditions.queried_snuba",
-            tags={"condition": re.sub("(?!^)([A-Z]+)", r"_\1", self.__class__.__name__).lower()},
+            tags={
+                "condition": re.sub("(?!^)([A-Z]+)", r"_\1", self.__class__.__name__).lower(),
+                "is_created_on_project_creation": self.is_guessed_to_be_created_on_project_creation,
+            },
         )
         return query_result
 
@@ -85,6 +89,17 @@ class BaseEventFrequencyCondition(EventCondition):
         _, duration = intervals[interval]
         end = timezone.now()
         return self.query(event, end - duration, end, environment_id=environment_id)
+
+    @property
+    def is_guessed_to_be_created_on_project_creation(self):
+        """
+        Best effort approximation on whether a rule with this condition was created on project creation based on how
+        closely the rule and project are created; and if the label matches the default name used onn project creation.
+        :return:
+            bool: True if rule is approximated to be created on project creation, False otherwise.
+        """
+        delta = abs(self.project.date_added - self.rule.date_added)
+        return delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
