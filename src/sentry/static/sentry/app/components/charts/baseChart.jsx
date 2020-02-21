@@ -346,7 +346,7 @@ const ChartContainer = styled('div')`
     margin-left: -8px;
   }
 
-  .echarts-for-react div:first-child {
+  .echarts-for-react div:first-of-type {
     width: 100% !important;
   }
 `;
