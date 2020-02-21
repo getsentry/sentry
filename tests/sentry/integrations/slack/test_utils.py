@@ -81,7 +81,7 @@ class BuildIncidentAttachmentTest(TestCase):
     def test_simple(self):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
-        incident = self.create_incident(alert_rule=alert_rule)
+        incident = self.create_incident(alert_rule=alert_rule, status=2)
         title = u"{}: {}".format("Resolved", alert_rule.name)
         assert build_incident_attachment(incident) == {
             "fallback": title,
