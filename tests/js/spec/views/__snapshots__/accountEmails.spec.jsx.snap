@@ -14,7 +14,6 @@ exports[`AccountEmails renders with emails 1`] = `
         Emails
       </PanelHeader>
       <PanelBody
-        disablePadding={true}
         flexible={false}
         withPadding={false}
       >

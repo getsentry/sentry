@@ -74,7 +74,6 @@ exports[`ApiTokens renders empty result 1`] = `
         Auth Token
       </PanelHeader>
       <PanelBody
-        disablePadding={true}
         flexible={false}
         withPadding={false}
       >
@@ -161,7 +160,6 @@ exports[`ApiTokens renders with result 1`] = `
         Auth Token
       </PanelHeader>
       <PanelBody
-        disablePadding={true}
         flexible={false}
         withPadding={false}
       >

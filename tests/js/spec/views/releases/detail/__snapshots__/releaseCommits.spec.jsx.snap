@@ -49,12 +49,10 @@ exports[`ReleaseCommits organization release commits 1`] = `
               </div>
             </PanelHeader>
             <PanelBody
-              disablePadding={true}
               flexible={false}
               withPadding={false}
             >
               <FlexBox
-                disablePadding={true}
                 withPadding={false}
               >
                 <div
@@ -421,12 +419,10 @@ exports[`ReleaseCommits project release commits 1`] = `
               </div>
             </PanelHeader>
             <PanelBody
-              disablePadding={true}
               flexible={false}
               withPadding={false}
             >
               <FlexBox
-                disablePadding={true}
                 withPadding={false}
               >
                 <div

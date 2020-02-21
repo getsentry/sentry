@@ -369,13 +369,11 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                 >
                   <PanelBody
                     className="css-1jpon28-OrganizationProjects"
-                    disablePadding={true}
                     flexible={false}
                     withPadding={false}
                   >
                     <FlexBox
                       className="css-1jpon28-OrganizationProjects"
-                      disablePadding={true}
                       withPadding={false}
                     >
                       <div

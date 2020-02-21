@@ -10,7 +10,6 @@ type FlexComponentProps = Omit<React.ComponentPropsWithoutRef<typeof Flex>, 'the
 
 type Props = FlexComponentProps & {
   flexible?: boolean;
-  disablePadding?: boolean; // deprecated
   withPadding?: boolean;
 };
 
@@ -20,20 +19,18 @@ const PanelBody: React.FunctionComponent<Props> = ({flexible, ...props}: Props) 
 
 PanelBody.propTypes = {
   flexible: PropTypes.bool,
-  disablePadding: PropTypes.bool, // deprecated
   withPadding: PropTypes.bool,
 };
 
 PanelBody.defaultProps = {
   flexible: false,
   withPadding: false,
-  disablePadding: true,
 };
 
 const FlexBox = styled(Flex)<Props>`
   ${textStyles};
   ${p => !p.flexible && 'display: block'};
-  ${p => (p.withPadding || !p.disablePadding) && `padding: ${space(2)}`};
+  ${p => p.withPadding && `padding: ${space(2)}`};
 `;
 
 export default PanelBody;

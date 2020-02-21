@@ -298,12 +298,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
           </div>
         </PanelHeader>
         <PanelBody
-          disablePadding={true}
           flexible={false}
           withPadding={false}
         >
           <FlexBox
-            disablePadding={true}
             withPadding={false}
           >
             <div

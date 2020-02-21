@@ -8,7 +8,6 @@ exports[`InactivePlugins renders plugins list 1`] = `
     Inactive Integrations
   </PanelHeader>
   <PanelBody
-    disablePadding={true}
     flexible={false}
     withPadding={false}
   >

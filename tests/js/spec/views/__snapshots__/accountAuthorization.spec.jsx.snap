@@ -42,7 +42,6 @@ exports[`AccountAuthorizations renders empty 1`] = `
         Approved Applications
       </PanelHeader>
       <PanelBody
-        disablePadding={true}
         flexible={false}
         withPadding={false}
       >

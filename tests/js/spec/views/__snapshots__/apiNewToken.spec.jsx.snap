@@ -69,7 +69,6 @@ exports[`ApiNewToken render() renders 1`] = `
         submitLabel="Create Token"
       >
         <PanelBody
-          disablePadding={true}
           flexible={false}
           withPadding={false}
         >

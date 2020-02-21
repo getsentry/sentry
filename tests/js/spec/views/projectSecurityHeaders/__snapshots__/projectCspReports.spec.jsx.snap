@@ -47,7 +47,6 @@ exports[`ProjectCspReports renders 1`] = `
         About
       </PanelHeader>
       <PanelBody
-        disablePadding={true}
         flexible={false}
         withPadding={true}
       >
