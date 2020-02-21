@@ -235,7 +235,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     else:
         queryset = models.ExportedData.objects.filter(date_expired__lt=(timezone.now()))
         for item in queryset:
-            item.file.delete()
+            item.delete_file()
 
     project_id = None
     if project:

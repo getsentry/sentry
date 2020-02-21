@@ -12,6 +12,8 @@ export type IntegrationInstallationStatus =
   | typeof NOT_INSTALLED
   | typeof PENDING;
 
+export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
+
 export type ObjectStatus =
   | 'active'
   | 'disabled'
@@ -543,7 +545,7 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  status: 'unpublished' | 'published' | 'internal';
+  status: SentryAppStatus;
   scopes: Scope[];
   isAlertable: boolean;
   verifyInstall: boolean;

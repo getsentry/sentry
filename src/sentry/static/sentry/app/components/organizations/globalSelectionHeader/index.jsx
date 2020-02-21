@@ -157,6 +157,10 @@ class GlobalSelectionHeader extends React.Component {
 
     const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
 
+    if (organization?.slug && organization?.slug !== params?.orgId) {
+      return;
+    }
+
     const stateFromRouter = getStateFromQuery(location.query);
     // We should update store if there are any relevant URL parameters when component is mounted
     if (Object.values(stateFromRouter).some(i => !!i)) {
@@ -206,6 +210,13 @@ class GlobalSelectionHeader extends React.Component {
       return true;
     }
 
+    if (
+      nextProps.organization?.slug &&
+      nextProps.organization?.slug !== nextProps.params?.orgId
+    ) {
+      return false;
+    }
+
     // Update if `forceProject` changes or loading state changes
     if (
       this.props.forceProject !== nextProps.forceProject ||
@@ -243,6 +254,10 @@ class GlobalSelectionHeader extends React.Component {
 
     // Update if `forceUrlSync` changes
     if (!this.props.forceUrlSync && nextProps.forceUrlSync) {
+      return true;
+    }
+
+    if (this.props.organization !== nextProps.organization) {
       return true;
     }
 
@@ -335,14 +350,13 @@ class GlobalSelectionHeader extends React.Component {
       return;
     }
 
-    const {organization, params} = this.props;
     if (forceProject) {
       // this takes precendence over the other options
       newProject = [getProjectIdFromProject(forceProject)];
     } else if (requestedProjects && requestedProjects.length > 0) {
       // If there is a list of projects from URL params, select first project from that list
       newProject = [requestedProjects[0]];
-    } else if (organization?.slug && organization?.slug === params?.orgId) {
+    } else {
       // When we have finished loading the organization into the props,  i.e. the organization slug is consistent with
       // the URL param--Sentry will get the first project from the organization that the user is a member of.
       newProject = this.getFirstProject();

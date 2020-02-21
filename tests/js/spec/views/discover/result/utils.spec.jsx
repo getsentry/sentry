@@ -432,7 +432,7 @@ describe('Utils', function() {
       downloadAsCsv(result);
       expect(locationSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          encodeURI('message,environment\r\ntest 1,prod\r\ntest 2,test')
+          encodeURIComponent('message,environment\r\ntest 1,prod\r\ntest 2,test')
         )
       );
     });
@@ -449,12 +449,12 @@ describe('Utils', function() {
     it('quotes unsafe strings', function() {
       const result = {
         meta: [{name: 'message'}],
-        data: [{message: '=HYPERLINK(http://some-bad-website)'}],
+        data: [{message: '=HYPERLINK(http://some-bad-website#)'}],
       };
       downloadAsCsv(result);
       expect(locationSpy).toHaveBeenCalledWith(
         expect.stringContaining(
-          encodeURI("message\r\n'=HYPERLINK(http://some-bad-website)")
+          encodeURIComponent("message\r\n'=HYPERLINK(http://some-bad-website#)")
         )
       );
     });

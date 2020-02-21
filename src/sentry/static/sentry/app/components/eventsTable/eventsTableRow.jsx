@@ -90,7 +90,7 @@ class EventsTableRow extends React.Component {
             <td key={tag.key}>
               <div>
                 {tag.key === 'device' ? (
-                  <DeviceName>{tagMap[tag.key]}</DeviceName>
+                  <DeviceName value={tagMap[tag.key]} />
                 ) : (
                   tagMap[tag.key]
                 )}

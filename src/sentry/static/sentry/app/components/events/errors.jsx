@@ -9,6 +9,8 @@ import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 
+import {BannerContainer, BannerSummary} from './styles';
+
 const MAX_ERRORS = 100;
 
 class EventErrors extends React.Component {
@@ -43,10 +45,10 @@ class EventErrors extends React.Component {
     const numErrors = errors.length;
     const isOpen = this.state.isOpen;
     return (
-      <Section>
-        <Summary>
+      <StyledBanner priority="danger">
+        <BannerSummary>
+          <StyledIconWarning />
           <span>
-            <StyledIconWarning />
             {tn(
               'There was %s error encountered while processing this event',
               'There were %s errors encountered while processing this event',
@@ -56,7 +58,7 @@ class EventErrors extends React.Component {
           <a data-test-id="event-error-toggle" onClick={this.toggle}>
             {isOpen ? t('Hide') : t('Show')}
           </a>
-        </Summary>
+        </BannerSummary>
         <ErrorList
           data-test-id="event-error-details"
           style={{display: isOpen ? 'block' : 'none'}}
@@ -65,21 +67,13 @@ class EventErrors extends React.Component {
             return <EventErrorItem key={errorIdx} error={error} />;
           })}
         </ErrorList>
-      </Section>
+      </StyledBanner>
     );
   }
 }
 
-// TODO(theme) don't use a custom pink
-const customPink = '#e7c0bc';
-
-const Section = styled('div')`
-  border-top: 1px solid ${customPink};
-  border-bottom: 1px solid ${customPink};
-  background: ${p => p.theme.redLightest};
+const StyledBanner = styled(BannerContainer)`
   margin-top: -1px;
-  padding: ${space(2)} ${space(4)} 1px 40px;
-  font-size: ${p => p.theme.fontSizeMedium};
 
   a {
     font-weight: bold;
@@ -99,26 +93,16 @@ const Section = styled('div')`
 `;
 
 const StyledIconWarning = styled(IconWarning)`
-  margin-right: ${space(1)};
   color: ${p => p.theme.red};
 `;
 
-const Summary = styled('p')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${space(1.5)};
-
-  & > span {
-    display: flex;
-    align-items: center;
-  }
-`;
+// TODO(theme) don't use a custom pink
+const customPink = '#e7c0bc';
 
 const ErrorList = styled('ul')`
   border-top: 1px solid ${customPink};
-  margin: ${space(1)} 0 0;
-  padding: ${space(1)} 0 ${space(1)} ${space(3)};
+  margin: 0 ${space(3)} 0 ${space(4)};
+  padding: ${space(1)} 0 ${space(0.5)} ${space(4)};
 
   li {
     margin-bottom: ${space(0.75)};
