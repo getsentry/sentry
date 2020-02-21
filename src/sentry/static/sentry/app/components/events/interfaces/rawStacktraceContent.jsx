@@ -1,5 +1,5 @@
 import {defined, trim} from 'app/utils';
-import {trimPackage} from 'app/components/events/interfaces/frame';
+import trimPackage from 'app/components/events/interfaces/frame/trimPackage';
 
 function getJavaScriptFrame(frame) {
   let result = '';

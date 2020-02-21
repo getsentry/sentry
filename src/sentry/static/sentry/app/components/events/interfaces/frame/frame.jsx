@@ -1,15 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import scrollToElement from 'scroll-to-element';
 
-import {defined, objectIsEmpty, isUrl} from 'app/utils';
+import styled from '@emotion/styled';
+import {defined, objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';
 import ContextLine from 'app/components/events/interfaces/contextLine';
-import ExternalLink from 'app/components/links/externalLink';
 import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import TogglableAddress from 'app/components/events/interfaces/togglableAddress';
@@ -17,7 +16,6 @@ import PackageLink from 'app/components/events/interfaces/packageLink';
 import PackageStatus from 'app/components/events/interfaces/packageStatus';
 import StrictClick from 'app/components/strictClick';
 import Tooltip from 'app/components/tooltip';
-import Truncate from 'app/components/truncate';
 import OpenInContextLine from 'app/components/events/interfaces/openInContextLine';
 import space from 'app/styles/space';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -29,45 +27,9 @@ import {combineStatus} from 'app/components/events/interfaces/debugmeta';
 import {Assembly} from 'app/components/events/interfaces/assembly';
 import {parseAssembly} from 'app/components/events/interfaces/utils';
 
-export function trimPackage(pkg) {
-  const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
-  const filename = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
-  return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
-}
-
-export class FunctionName extends React.Component {
-  static propTypes = {
-    frame: PropTypes.object,
-  };
-
-  state = {
-    rawFunction: false,
-  };
-
-  toggle = event => {
-    event.stopPropagation();
-    this.setState(({rawFunction}) => ({rawFunction: !rawFunction}));
-  };
-
-  render() {
-    const {frame, ...props} = this.props;
-    const func = frame.function;
-    const rawFunc = frame.rawFunction;
-    const canToggle = rawFunc && func && func !== rawFunc;
-
-    if (!canToggle) {
-      return <code {...props}>{func || rawFunc || '<unknown>'}</code>;
-    }
-
-    const current = this.state.rawFunction ? rawFunc : func;
-    const title = this.state.rawFunction ? null : rawFunc;
-    return (
-      <code {...props} title={title}>
-        <a onClick={this.toggle}>{current || '<unknown>'}</a>
-      </code>
-    );
-  }
-}
+import FrameDefaultTitle from './frameDefaultTitle';
+import FrameFunctionName from './frameFunctionName';
+import getPlatform from './getPlatform';
 
 export class Frame extends React.Component {
   static propTypes = {
@@ -133,34 +95,10 @@ export class Frame extends React.Component {
     );
   }
 
-  renderOriginalSourceInfo() {
-    const data = this.props.data;
-
-    // mapUrl not always present; e.g. uploaded source maps
-    return (
-      <React.Fragment>
-        <strong>{t('Source Map')}</strong>
-        <br />
-        {data.mapUrl ? data.mapUrl : data.map}
-        <br />
-      </React.Fragment>
-    );
-  }
-
   getPlatform() {
     // prioritize the frame platform but fall back to the platform
     // of the stacktrace / exception
-    return this.props.data.platform || this.props.platform;
-  }
-
-  shouldPrioritizeModuleName() {
-    switch (this.getPlatform()) {
-      case 'java':
-      case 'csharp':
-        return true;
-      default:
-        return false;
-    }
+    return getPlatform(this.props.data.platform, this.props.platform);
   }
 
   isInlineFrame() {
@@ -208,114 +146,6 @@ export class Frame extends React.Component {
 
   getSentryAppComponents() {
     return this.props.components;
-  }
-
-  renderDefaultTitle() {
-    const data = this.props.data;
-    const title = [];
-
-    // TODO(dcramer): this needs to use a formatted string so it can be
-    // localized correctly
-
-    if (defined(data.filename || data.module)) {
-      // prioritize module name for Java as filename is often only basename
-      const shouldPrioritizeModuleName = this.shouldPrioritizeModuleName();
-      const pathName = shouldPrioritizeModuleName
-        ? data.module || data.filename
-        : data.filename || data.module;
-
-      const enablePathTooltip = defined(data.absPath) && data.absPath !== pathName;
-
-      title.push(
-        <Tooltip key={pathName} title={data.absPath} disabled={!enablePathTooltip}>
-          <code key="filename" className="filename">
-            <Truncate value={pathName} maxLength={100} leftTrim />
-          </code>
-        </Tooltip>
-      );
-
-      // in case we prioritized the module name but we also have a filename info
-      // we want to show a litle (?) icon that on hover shows the actual filename
-      if (
-        shouldPrioritizeModuleName &&
-        data.filename &&
-        this.getPlatform() !== 'csharp'
-      ) {
-        title.push(
-          <Tooltip key={data.filename} title={data.filename}>
-            <a className="in-at real-filename">
-              <span className="icon-question" />
-            </a>
-          </Tooltip>
-        );
-      }
-
-      if (isUrl(data.absPath)) {
-        title.push(
-          <ExternalLink
-            href={data.absPath}
-            className="icon-open"
-            key="share"
-            onClick={this.preventCollapse}
-          />
-        );
-      }
-      if (defined(data.function) || defined(data.rawFunction)) {
-        title.push(
-          <span className="in-at" key="in">
-            {' '}
-            in{' '}
-          </span>
-        );
-      }
-    }
-
-    if (defined(data.function) || defined(data.rawFunction)) {
-      title.push(<FunctionName frame={data} key="function" className="function" />);
-    }
-
-    // we don't want to render out zero line numbers which are used to
-    // indicate lack of source information for native setups.  We could
-    // TODO(mitsuhiko): only do this for events from native platforms?
-    if (defined(data.lineNo) && data.lineNo !== 0) {
-      title.push(
-        <span className="in-at in-at-line" key="no">
-          {' '}
-          at line{' '}
-        </span>
-      );
-      title.push(
-        <code key="line" className="lineno">
-          {defined(data.colNo) ? `${data.lineNo}:${data.colNo}` : data.lineNo}
-        </code>
-      );
-    }
-
-    if (defined(data.package) && this.getPlatform() !== 'csharp') {
-      title.push(
-        <span className="within" key="within">
-          {' '}
-          within{' '}
-        </span>
-      );
-      title.push(
-        <code title={data.package} className="package" key="package">
-          {trimPackage(data.package)}
-        </code>
-      );
-    }
-
-    if (defined(data.origAbsPath)) {
-      title.push(
-        <Tooltip key="info-tooltip" title={this.renderOriginalSourceInfo()}>
-          <a className="in-at original-src">
-            <span className="icon-question" />
-          </a>
-        </Tooltip>
-      );
-    }
-
-    return title;
   }
 
   renderContext() {
@@ -515,7 +345,7 @@ export class Frame extends React.Component {
           <VertCenterWrapper>
             <div>
               {this.renderLeadHint()}
-              {this.renderDefaultTitle()}
+              <FrameDefaultTitle data={this.props.data} platform={this.props.platform} />
             </div>
             {this.renderRepeats()}
           </VertCenterWrapper>
@@ -559,7 +389,7 @@ export class Frame extends React.Component {
               maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
             />
             <span className="symbol">
-              <FunctionName frame={data} />{' '}
+              <FrameFunctionName data={data} />{' '}
               {hint !== null ? (
                 <Tooltip title={hint}>
                   <HintStatus

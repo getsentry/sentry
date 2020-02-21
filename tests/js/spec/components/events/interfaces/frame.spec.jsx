@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'sentry-test/enzyme';
 
-import {Frame} from 'app/components/events/interfaces/frame';
+import {Frame} from 'app/components/events/interfaces/frame/frame';
 
 describe('Frame', function() {
   let data;
