@@ -15,7 +15,6 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         Ownership Rules
       </PanelHeader>
       <PanelBody
-        disablePadding={true}
         flexible={false}
         withPadding={true}
       >

@@ -315,12 +315,10 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             </div>
           </PanelHeader>
           <PanelBody
-            disablePadding={true}
             flexible={false}
             withPadding={false}
           >
             <FlexBox
-              disablePadding={true}
               withPadding={false}
             >
               <div
@@ -671,12 +669,10 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             </div>
           </PanelHeader>
           <PanelBody
-            disablePadding={true}
             flexible={false}
             withPadding={false}
           >
             <FlexBox
-              disablePadding={true}
               withPadding={false}
             >
               <div
@@ -1027,12 +1023,10 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             </div>
           </PanelHeader>
           <PanelBody
-            disablePadding={true}
             flexible={false}
             withPadding={false}
           >
             <FlexBox
-              disablePadding={true}
               withPadding={false}
             >
               <div
