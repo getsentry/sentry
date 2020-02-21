@@ -122,7 +122,6 @@ exports[`CrashContent renders with meta data 1`] = `
                   <AnnotatedText
                     chunks={Array []}
                     errors={Array []}
-                    props={Object {}}
                     remarks={
                       Array [
                         Array [
