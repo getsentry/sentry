@@ -356,66 +356,71 @@ exports[`ProjectCard renders 1`] = `
                                       }
                                       size={18}
                                     >
-                                      <PlatformList
-                                        className="css-1neg7x4-StyledAvatar e165dl3i1"
-                                        consistentWidth={false}
-                                        direction="right"
-                                        hasTooltip={false}
-                                        max={1}
-                                        platforms={
-                                          Array [
-                                            "javascript",
-                                          ]
-                                        }
-                                        size={18}
+                                      <Tooltip
+                                        containerDisplayMode="inline-block"
+                                        disabled={true}
+                                        position="top"
                                       >
-                                        <PlatformIcons
+                                        <PlatformList
                                           className="css-1neg7x4-StyledAvatar e165dl3i1"
                                           consistentWidth={false}
                                           direction="right"
                                           max={1}
+                                          platforms={
+                                            Array [
+                                              "javascript",
+                                            ]
+                                          }
                                           size={18}
                                         >
-                                          <div
-                                            className="e165dl3i1 css-corue1-PlatformIcons-StyledAvatar ezvce7z0"
+                                          <PlatformIcons
+                                            className="css-1neg7x4-StyledAvatar e165dl3i1"
+                                            consistentWidth={false}
                                             direction="right"
                                             max={1}
                                             size={18}
                                           >
-                                            <StyledPlatformIcon
-                                              key="javascript"
-                                              platform="javascript"
+                                            <div
+                                              className="e165dl3i1 css-corue1-PlatformIcons-StyledAvatar ezvce7z0"
+                                              direction="right"
+                                              max={1}
                                               size={18}
                                             >
-                                              <Component
-                                                className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                              <StyledPlatformIcon
+                                                key="javascript"
                                                 platform="javascript"
                                                 size={18}
                                               >
-                                                <PlatformIcon
+                                                <Component
                                                   className="css-d510pr-StyledPlatformIcon ezvce7z1"
                                                   platform="javascript"
-                                                  size="18px"
+                                                  size={18}
                                                 >
-                                                  <img
+                                                  <PlatformIcon
                                                     className="css-d510pr-StyledPlatformIcon ezvce7z1"
-                                                    height="18px"
-                                                    src={
-                                                      Object {
-                                                        "default": Object {
-                                                          "id": "test",
-                                                          "viewBox": Object {},
-                                                        },
+                                                    platform="javascript"
+                                                    size="18px"
+                                                  >
+                                                    <img
+                                                      className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                                      height="18px"
+                                                      src={
+                                                        Object {
+                                                          "default": Object {
+                                                            "id": "test",
+                                                            "viewBox": Object {},
+                                                          },
+                                                        }
                                                       }
-                                                    }
-                                                    width="18px"
-                                                  />
-                                                </PlatformIcon>
-                                              </Component>
-                                            </StyledPlatformIcon>
-                                          </div>
-                                        </PlatformIcons>
-                                      </PlatformList>
+                                                      width="18px"
+                                                    />
+                                                  </PlatformIcon>
+                                                </Component>
+                                              </StyledPlatformIcon>
+                                            </div>
+                                          </PlatformIcons>
+                                        </PlatformList>
+                                      </Tooltip>
                                     </ProjectAvatar>
                                   </Avatar>
                                 </StyledAvatar>

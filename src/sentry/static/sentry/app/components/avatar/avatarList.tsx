@@ -82,7 +82,8 @@ export default class AvatarList extends React.Component<Props> {
   }
 }
 
-const AvatarListWrapper = styled('div')`
+// used in releases list page to do some alignment
+export const AvatarListWrapper = styled('div')`
   display: flex;
   flex-direction: row-reverse;
 `;

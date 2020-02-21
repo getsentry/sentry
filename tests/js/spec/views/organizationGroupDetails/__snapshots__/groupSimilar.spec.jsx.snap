@@ -1435,62 +1435,67 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                           }
                                                           size={14}
                                                         >
-                                                          <PlatformList
-                                                            className="css-7c3lwm-StyledAvatar e165dl3i1"
-                                                            consistentWidth={false}
-                                                            direction="right"
-                                                            hasTooltip={false}
-                                                            hideName={true}
-                                                            max={1}
-                                                            platforms={Array []}
-                                                            size={14}
+                                                          <Tooltip
+                                                            containerDisplayMode="inline-block"
+                                                            disabled={true}
+                                                            position="top"
                                                           >
-                                                            <PlatformIcons
+                                                            <PlatformList
                                                               className="css-7c3lwm-StyledAvatar e165dl3i1"
                                                               consistentWidth={false}
                                                               direction="right"
+                                                              hideName={true}
                                                               max={1}
+                                                              platforms={Array []}
                                                               size={14}
                                                             >
-                                                              <div
-                                                                className="e165dl3i1 css-dyodzz-PlatformIcons-StyledAvatar ezvce7z0"
+                                                              <PlatformIcons
+                                                                className="css-7c3lwm-StyledAvatar e165dl3i1"
+                                                                consistentWidth={false}
                                                                 direction="right"
                                                                 max={1}
                                                                 size={14}
                                                               >
-                                                                <StyledPlatformIcon
-                                                                  platform="default"
+                                                                <div
+                                                                  className="e165dl3i1 css-dyodzz-PlatformIcons-StyledAvatar ezvce7z0"
+                                                                  direction="right"
+                                                                  max={1}
                                                                   size={14}
                                                                 >
-                                                                  <Component
-                                                                    className="css-7okses-StyledPlatformIcon ezvce7z1"
+                                                                  <StyledPlatformIcon
                                                                     platform="default"
                                                                     size={14}
                                                                   >
-                                                                    <PlatformIcon
+                                                                    <Component
                                                                       className="css-7okses-StyledPlatformIcon ezvce7z1"
                                                                       platform="default"
-                                                                      size="14px"
+                                                                      size={14}
                                                                     >
-                                                                      <img
+                                                                      <PlatformIcon
                                                                         className="css-7okses-StyledPlatformIcon ezvce7z1"
-                                                                        height="14px"
-                                                                        src={
-                                                                          Object {
-                                                                            "default": Object {
-                                                                              "id": "test",
-                                                                              "viewBox": Object {},
-                                                                            },
+                                                                        platform="default"
+                                                                        size="14px"
+                                                                      >
+                                                                        <img
+                                                                          className="css-7okses-StyledPlatformIcon ezvce7z1"
+                                                                          height="14px"
+                                                                          src={
+                                                                            Object {
+                                                                              "default": Object {
+                                                                                "id": "test",
+                                                                                "viewBox": Object {},
+                                                                              },
+                                                                            }
                                                                           }
-                                                                        }
-                                                                        width="14px"
-                                                                      />
-                                                                    </PlatformIcon>
-                                                                  </Component>
-                                                                </StyledPlatformIcon>
-                                                              </div>
-                                                            </PlatformIcons>
-                                                          </PlatformList>
+                                                                          width="14px"
+                                                                        />
+                                                                      </PlatformIcon>
+                                                                    </Component>
+                                                                  </StyledPlatformIcon>
+                                                                </div>
+                                                              </PlatformIcons>
+                                                            </PlatformList>
+                                                          </Tooltip>
                                                         </ProjectAvatar>
                                                       </Avatar>
                                                     </StyledAvatar>

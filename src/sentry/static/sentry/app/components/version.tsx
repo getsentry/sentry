@@ -73,18 +73,18 @@ const Version = ({
     if (projectId) {
       // if user specifically sets projectId and not preserveGlobalSelection, use that
       releaseDetailProjectId = projectId;
-    } else if (!new Set(organization.features).has('global-views')) {
+    } else if (!new Set(organization?.features).has('global-views')) {
       // we need this for users without global-views, otherwise they might get `This release may not be in your selected project`
-      releaseDetailProjectId = location.query.project;
+      releaseDetailProjectId = location?.query.project;
     }
   }
 
   const renderVersion = () => {
-    if (anchor && organization.slug) {
+    if (anchor && organization?.slug) {
       return (
         <LinkComponent
           to={{
-            pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+            pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
               version
             )}/`,
             query: releaseDetailProjectId ? {project: releaseDetailProjectId} : undefined,

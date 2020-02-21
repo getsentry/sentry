@@ -3,6 +3,7 @@ import React from 'react';
 
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import PlatformList from 'app/components/platformList';
+import Tooltip from 'app/components/tooltip';
 import SentryTypes from 'app/sentryTypes';
 import {AvatarProject} from 'app/types';
 
@@ -31,9 +32,13 @@ class ProjectAvatar extends React.Component<Props> {
   };
 
   render() {
-    const {project, ...props} = this.props;
+    const {project, hasTooltip, tooltip, ...props} = this.props;
 
-    return <PlatformList platforms={this.getPlatforms(project)} {...props} max={1} />;
+    return (
+      <Tooltip disabled={!hasTooltip} title={tooltip}>
+        <PlatformList platforms={this.getPlatforms(project)} {...props} max={1} />
+      </Tooltip>
+    );
   }
 }
 export default ProjectAvatar;
