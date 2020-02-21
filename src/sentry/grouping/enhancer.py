@@ -390,10 +390,11 @@ class Enhancements(object):
         return [self.version, self.bases, [x._to_config_structure() for x in self.rules]]
 
     def dumps(self):
-        # TODO(joshuarli): something funky with _to_config_structure under py3
         return base64.urlsafe_b64encode(
-            zlib.compress(msgpack.dumps(self._to_config_structure()))
-        ).strip("=")
+            zlib.compress(
+                msgpack.dumps(self._to_config_structure())
+            )
+        ).decode("ascii").strip("=")
 
     def iter_rules(self):
         for base in self.bases:
@@ -415,9 +416,7 @@ class Enhancements(object):
 
     @classmethod
     def loads(cls, data):
-        if six.PY2 and isinstance(data, six.text_type):
-            data = data.encode("ascii", "ignore")
-        padded = data + b"=" * (4 - (len(data) % 4))
+        padded = data.encode("ascii") + b"=" * (4 - (len(data) % 4))
         try:
             return cls._from_config_structure(
                 msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)))
