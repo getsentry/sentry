@@ -20,55 +20,81 @@ type Props = {
 };
 
 const ReleaseCard = ({release, projects}: Props) => {
+  // TODO(releases-v2): probably makes sense at this point to split the header and data to different files (move styles to share layout file)
   return (
     <Panel>
       <PanelBody>
-        <PanelItem>
-          <Layout>
-            <Column>
+        <StyledPanelItem>
+          <HeaderLayout>
+            <VersionColumn>
               <ColumnTitle>{t('Release')}</ColumnTitle>
+            </VersionColumn>
+            <ProjectsColumn>
+              <ColumnTitle>
+                {tn('%s project', '%s projects', projects.length)}
+              </ColumnTitle>
+            </ProjectsColumn>
+            <CommitsColumn>
+              {release.commitCount > 0 && (
+                <ColumnTitle>
+                  {[
+                    tn('%s commit', '%s commits', release.commitCount || 0),
+                    t('by'),
+                    tn('%s author', '%s authors', release.authors?.length || 0),
+                  ].join(' ')}
+                </ColumnTitle>
+              )}
+            </CommitsColumn>
+            <CreatedColumn>
+              <ColumnTitle>{t('Created')}</ColumnTitle>
+            </CreatedColumn>
+            <LastEventColumn>
+              <ColumnTitle>{t('Last event')}</ColumnTitle>
+            </LastEventColumn>
+            <NewIssuesColumn>
+              <ColumnTitle>{t('New issues')}</ColumnTitle>
+            </NewIssuesColumn>
+          </HeaderLayout>
+          <Layout>
+            <VersionColumn>
               <Version
                 version={release.version}
                 preserveGlobalSelection
                 tooltipRawVersion
+                truncate
               />
-            </Column>
+              <TimeWithIcon date={release.dateReleased || release.dateCreated} />
+            </VersionColumn>
 
-            <Column>
-              <ColumnTitle>
-                {tn('%s project', '%s projects', projects.length)}
-              </ColumnTitle>
+            <ProjectsColumn>
               <ProjectList projects={projects} />
-            </Column>
+            </ProjectsColumn>
 
-            <Column>
-              <ReleaseStats release={release} />
-            </Column>
+            <CommitsColumn>
+              <ReleaseStats release={release} withHeading={false} />
+            </CommitsColumn>
 
-            <RightAlignedColumn>
-              <ColumnTitle>{t('Created')}</ColumnTitle>
-              {release && (release.dateReleased || release.dateCreated) ? (
+            <CreatedColumn>
+              {release.dateReleased || release.dateCreated ? (
                 <TimeSince date={release.dateReleased || release.dateCreated} />
               ) : (
                 <span>-</span>
               )}
-            </RightAlignedColumn>
+            </CreatedColumn>
 
-            <RightAlignedColumn>
-              <ColumnTitle>{t('Last event')}</ColumnTitle>
+            <LastEventColumn>
               {release.lastEvent ? (
                 <TimeSince date={release.lastEvent} />
               ) : (
                 <span>—</span>
               )}
-            </RightAlignedColumn>
+            </LastEventColumn>
 
-            <RightAlignedColumn>
-              <ColumnTitle>{t('New issues')}</ColumnTitle>
+            <NewIssuesColumn>
               <Count value={release.newGroups || 0} />
-            </RightAlignedColumn>
+            </NewIssuesColumn>
           </Layout>
-        </PanelItem>
+        </StyledPanelItem>
       </PanelBody>
 
       {/*  TODO(releasesv2)if has release health data */}
@@ -77,12 +103,29 @@ const ReleaseCard = ({release, projects}: Props) => {
   );
 };
 
+const StyledPanelItem = styled(PanelItem)`
+  flex-direction: column;
+`;
+
 const Layout = styled('div')`
   display: grid;
+  grid-template-areas: 'version projects commits created last-event new-issues';
   grid-template-columns: 1fr 1fr 1fr 200px 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-areas: 'version projects created last-event new-issues';
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-areas: 'version projects new-issues';
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+`;
+
+const HeaderLayout = styled(Layout)`
+  align-items: flex-start;
 `;
 
 const Column = styled('div')`
@@ -97,6 +140,39 @@ const RightAlignedColumn = styled('div')`
   text-align: right;
 `;
 
+const VersionColumn = styled(Column)`
+  grid-area: version;
+`;
+
+const ProjectsColumn = styled(Column)`
+  grid-area: projects;
+`;
+
+const CommitsColumn = styled(Column)`
+  grid-area: commits;
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    display: none;
+  }
+`;
+
+const CreatedColumn = styled(RightAlignedColumn)`
+  grid-area: created;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
+const LastEventColumn = styled(RightAlignedColumn)`
+  grid-area: last-event;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
+const NewIssuesColumn = styled(RightAlignedColumn)`
+  grid-area: new-issues;
+`;
+
 const ColumnTitle = styled('div')`
   text-transform: uppercase;
   color: ${p => p.theme.gray2};
@@ -104,6 +180,24 @@ const ColumnTitle = styled('div')`
   font-weight: 600;
   margin-bottom: ${space(0.75)};
   line-height: 1.2;
+`;
+
+const TimeWithIcon = styled(({date, ...props}) => (
+  <span {...props}>
+    <ClockIcon className="icon icon-clock" />
+    <TimeSince date={date} />
+  </span>
+))`
+  align-items: center;
+  color: ${p => p.theme.gray2};
+  font-size: ${p => p.theme.fontSizeSmall};
+  display: none;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: inline-flex;
+  }
+`;
+const ClockIcon = styled('span')`
+  margin-right: ${space(0.25)};
 `;
 
 export default ReleaseCard;

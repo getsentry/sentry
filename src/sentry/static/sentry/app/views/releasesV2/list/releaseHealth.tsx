@@ -20,48 +20,48 @@ const ReleaseHealth = ({release}: Props) => {
   return (
     <React.Fragment>
       <StyledPanelHeader>
-        <Layout>
-          <div>{t('Mobile Project')}</div>
-          <div>{t('Crash free users')}</div>
-          <div>{t('Crash free sessions')}</div>
-          <div>{t('Daily active users')}</div>
-          <RightColumn>{t('Mobile crashes')}</RightColumn>
-          <RightColumn>{t('Mobile errors')}</RightColumn>
-        </Layout>
+        <HeaderLayout>
+          <ProjectColumn>{t('Mobile Project')}</ProjectColumn>
+          <CrashFreeUsersColumn>{t('Crash free users')}</CrashFreeUsersColumn>
+          <CrashFreeSessionsColumn>{t('Crash free sessions')}</CrashFreeSessionsColumn>
+          <DailyUsersColumn>{t('Daily active users')}</DailyUsersColumn>
+          <CrashesColumn>{t('Mobile crashes')}</CrashesColumn>
+          <ErrorsColumn>{t('Mobile errors')}</ErrorsColumn>
+        </HeaderLayout>
       </StyledPanelHeader>
 
       <PanelBody>
         {release.projects.map((project, index) => (
           <PanelItem key={project.slug}>
             <Layout>
-              <div>
+              <ProjectColumn>
                 <ProjectBadge project={project} avatarSize={14} />
-              </div>
+              </ProjectColumn>
               {/* TODO(releasesv2): make dynamic once api is finished */}
-              <div>
+              <CrashFreeUsersColumn>
                 <CircleProgress value={mockData[index].crashFreeUsersPercent} />
                 <CircleProgressCaption>
                   {mockData[index].crashFreeUsersPercent}%
                 </CircleProgressCaption>
-              </div>
-              <div>
+              </CrashFreeUsersColumn>
+              <CrashFreeSessionsColumn>
                 <CircleProgress value={mockData[index].crashFreeUsersSessionsPercent} />
                 <CircleProgressCaption>
                   {mockData[index].crashFreeUsersSessionsPercent}%
                 </CircleProgressCaption>
-              </div>
-              <ChartColumn>
+              </CrashFreeSessionsColumn>
+              <DailyUsersColumn>
                 <ChartWrapper>
                   <UsersChart data={mockData[index].graphData} statsPeriod="24h" />
                 </ChartWrapper>
                 {mockData[index].dailyActiveUsers}%
-              </ChartColumn>
-              <RightColumn>
+              </DailyUsersColumn>
+              <CrashesColumn>
                 <ColoredCount value={mockData[index].crashes} />
-              </RightColumn>
-              <RightColumn>
+              </CrashesColumn>
+              <ErrorsColumn>
                 <ColoredCount value={mockData[index].errors} />
-              </RightColumn>
+              </ErrorsColumn>
             </Layout>
           </PanelItem>
         ))}
@@ -80,22 +80,71 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const Layout = styled('div')`
   display: grid;
+  grid-template-areas: 'project crash-free-users crash-free-sessions daily-users crashes errors';
   grid-template-columns: 1fr 1fr 1fr 200px 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-areas: 'project crash-free-users crash-free-sessions crashes errors';
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-areas: 'project crash-free-users crash-free-sessions';
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+`;
+
+const HeaderLayout = styled(Layout)`
+  align-items: flex-end;
+`;
+
+const Column = styled('div')`
+  overflow: hidden;
 `;
 
 const RightColumn = styled('div')`
+  overflow: 'hidden';
   text-align: right;
+`;
+
+const ProjectColumn = styled(Column)`
+  grid-area: project;
+`;
+const CrashFreeUsersColumn = styled(Column)`
+  grid-area: crash-free-users;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: right;
+  }
+`;
+const CrashFreeSessionsColumn = styled(Column)`
+  grid-area: crash-free-sessions;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: right;
+  }
+`;
+const DailyUsersColumn = styled(Column)`
+  grid-area: daily-users;
+  display: flex;
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    display: none;
+  }
+`;
+const CrashesColumn = styled(RightColumn)`
+  grid-area: crashes;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+const ErrorsColumn = styled(RightColumn)`
+  grid-area: errors;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 const CircleProgressCaption = styled('span')`
   margin-left: ${space(1)};
-`;
-
-const ChartColumn = styled('div')`
-  display: flex;
 `;
 
 const ChartWrapper = styled('div')`
