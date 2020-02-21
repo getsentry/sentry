@@ -1,5 +1,5 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import EventCause from 'app/components/events/eventCause';
@@ -64,7 +64,7 @@ describe('EventCause', function() {
   });
 
   it('renders', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCause event={event} orgId={organization.slug} projectId={project.slug} />,
       {
         context,
@@ -80,7 +80,7 @@ describe('EventCause', function() {
   });
 
   it('expands', async function() {
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCause event={event} orgId={organization.slug} projectId={project.slug} />,
       {
         context,
@@ -122,7 +122,7 @@ describe('EventCause', function() {
       },
     });
 
-    const wrapper = mount(
+    const wrapper = mountWithTheme(
       <EventCause event={event} orgId={organization.slug} projectId={project.slug} />,
       {
         context,

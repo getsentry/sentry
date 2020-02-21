@@ -25,15 +25,6 @@
     }
   }
 
-  .event-meta {
-    line-height: 1.2;
-  }
-
-  .event-meta {
-    font-size: 80%;
-    margin-top: 6px;
-  }
-
   .count {
     &.short-id-box {
       min-width: 0;
@@ -54,13 +45,6 @@
       display: inline-block;
       line-height: 1.2;
     }
-  }
-
-  .is-assigned {
-    clear: both;
-    text-align: right;
-    font-size: 14px;
-    padding-top: 7px;
   }
 
   .assigned-to {
@@ -155,80 +139,7 @@
   }
 }
 
-.group-notifications,
-.group-privacy {
-  float: left;
-  margin: 22px 0 0 22px;
-  font-size: 14px;
-
-  a {
-    color: @gray-dark;
-
-    &:hover {
-      color: @gray-darker;
-    }
-  }
-
-  .icon {
-    color: @gray-lighter;
-    font-size: 16px;
-    margin-right: 7px;
-    position: relative;
-    top: 1px;
-  }
-
-  &.on,
-  &.on a:hover {
-    .icon {
-      color: @red;
-
-      &:after {
-        border-color: @red !important;
-      }
-    }
-  }
-}
-
-.group-notifications {
-  .icon {
-    position: relative;
-
-    &:before {
-      content: '\e607';
-    }
-  }
-
-  &.on,
-  a:hover {
-    .icon {
-      color: @red;
-    }
-  }
-}
-
-.group-privacy {
-  .icon {
-    &:before {
-      content: '\e007';
-    }
-  }
-
-  &.on,
-  a:hover {
-    .icon {
-      &:before {
-        content: '\e008';
-      }
-    }
-  }
-}
-
 // Group Overview
-
-.group-stats-column {
-  float: right;
-}
-
 .group-stats {
   font-size: 14px;
 
@@ -423,77 +334,6 @@
     // whatever it pleases (e.g. 4k pixels on my 1280 screen)
     max-width: ~'calc(100% - 365px)';
 
-    // Issue status block shown when an issue is not unresolved
-    .issue-status {
-      background: @white-dark;
-
-      .icon {
-        position: absolute;
-        font-size: 16px;
-        top: 18px;
-      }
-
-      .icon-checkmark {
-        color: @green;
-      }
-
-      .icon-soundoff {
-        color: @red;
-      }
-
-      .box {
-        padding-top: 15px;
-        position: relative;
-        background: transparent;
-        border-top: 1px solid @trim;
-        border-bottom: 1px solid @trim;
-        font-size: 14px;
-
-        p {
-          margin: 0;
-          padding-bottom: 13px;
-          padding-left: 26px;
-        }
-      }
-
-      & + .entries .box:first-child {
-        box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.03);
-        border-top: 0;
-      }
-    }
-
-    .box.alert-block {
-      padding-top: 15px;
-      padding-bottom: 15px;
-
-      .icon-exclamation {
-        font-size: 18px;
-        color: desaturate(darken(@alert-info-border-color, 15), 20%);
-        margin-right: 8px;
-        position: relative;
-        top: 2px;
-      }
-
-      &.alert-info,
-      &.alert-info + .box,
-      &.alert-info + .context-summary {
-        border-top: 1px solid @alert-info-border-color;
-      }
-
-      &.alert-success,
-      &.alert-success + .box,
-      &.alert-success + .context-summary {
-        border-top: 1px solid @alert-success-border-color;
-      }
-
-      &.alert-error,
-      &.alert-error + .box,
-      &.alert-error + .context-summary {
-        border-top: 1px solid @alert-danger-border-color;
-      }
-    }
-
-    .box,
     .user-report {
       border-radius: 0;
       box-shadow: none;
@@ -502,32 +342,6 @@
       border-top: 1px solid lighten(@trim, 4);
       margin: 0;
 
-      .box-header {
-        background: none;
-        border-bottom: none;
-        padding: 0;
-
-        h3 {
-          font-size: 14px;
-          text-transform: uppercase;
-          margin-bottom: 20px;
-          color: @gray-light;
-
-          small,
-          .short-value,
-          .full-value,
-          .host {
-            text-transform: none;
-          }
-        }
-      }
-
-      .box-content.with-padding {
-        padding: 0;
-      }
-    }
-
-    .user-report {
       padding-bottom: 0;
     }
   }
@@ -2451,10 +2265,5 @@ ul.crumbs {
     li {
       width: 800px;
     }
-  }
-
-  .group-notifications,
-  .group-privacy {
-    display: none;
   }
 }

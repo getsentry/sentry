@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {BannerContainer, BannerSummary} from 'app/components/events/styles';
 import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
 import {t} from 'app/locale';
+import theme from 'app/utils/theme';
 
 export default class MutedBox extends React.PureComponent {
   static propTypes = {
@@ -51,15 +53,17 @@ export default class MutedBox extends React.PureComponent {
 
   render = () => {
     return (
-      <div className="box">
-        <span className="icon icon-soundoff" />
-        <p>
-          <span>{this.renderReason()} — </span>
-          {t(
-            'You will not be notified of any changes and it will not show up by default in feeds.'
-          )}
-        </p>
-      </div>
+      <BannerContainer priority="default">
+        <BannerSummary>
+          <span className="icon icon-soundoff" style={{color: theme.red}} />
+          <span>
+            {this.renderReason()}&nbsp;&mdash;&nbsp;
+            {t(
+              'You will not be notified of any changes and it will not show up by default in feeds.'
+            )}
+          </span>
+        </BannerSummary>
+      </BannerContainer>
     );
   };
 }

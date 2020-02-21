@@ -1,30 +1,40 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`MutedBox render() handles default 1`] = `
-<div
-  className="box"
+<BannerContainer
+  priority="default"
 >
-  <span
-    className="icon icon-soundoff"
-  />
-  <p>
+  <BannerSummary>
+    <span
+      className="icon icon-soundoff"
+      style={
+        Object {
+          "color": "#e03e2f",
+        }
+      }
+    />
     <span>
       This issue has been ignored
-       — 
+       — 
+      You will not be notified of any changes and it will not show up by default in feeds.
     </span>
-    You will not be notified of any changes and it will not show up by default in feeds.
-  </p>
-</div>
+  </BannerSummary>
+</BannerContainer>
 `;
 
 exports[`MutedBox render() handles ignoreCount 1`] = `
-<div
-  className="box"
+<BannerContainer
+  priority="default"
 >
-  <span
-    className="icon icon-soundoff"
-  />
-  <p>
+  <BannerSummary>
+    <span
+      className="icon icon-soundoff"
+      style={
+        Object {
+          "color": "#e03e2f",
+        }
+      }
+    />
     <span>
       This issue has been ignored until it affects 
       <strong
@@ -33,21 +43,26 @@ exports[`MutedBox render() handles ignoreCount 1`] = `
         100
       </strong>
        more user(s)
-       — 
+       — 
+      You will not be notified of any changes and it will not show up by default in feeds.
     </span>
-    You will not be notified of any changes and it will not show up by default in feeds.
-  </p>
-</div>
+  </BannerSummary>
+</BannerContainer>
 `;
 
 exports[`MutedBox render() handles ignoreCount with ignoreWindow 1`] = `
-<div
-  className="box"
+<BannerContainer
+  priority="default"
 >
-  <span
-    className="icon icon-soundoff"
-  />
-  <p>
+  <BannerSummary>
+    <span
+      className="icon icon-soundoff"
+      style={
+        Object {
+          "color": "#e03e2f",
+        }
+      }
+    />
     <span>
       This issue has been ignored until it occurs 
       <strong
@@ -63,21 +78,26 @@ exports[`MutedBox render() handles ignoreCount with ignoreWindow 1`] = `
           seconds={60}
         />
       </strong>
-       — 
+       — 
+      You will not be notified of any changes and it will not show up by default in feeds.
     </span>
-    You will not be notified of any changes and it will not show up by default in feeds.
-  </p>
-</div>
+  </BannerSummary>
+</BannerContainer>
 `;
 
 exports[`MutedBox render() handles ignoreUntil 1`] = `
-<div
-  className="box"
+<BannerContainer
+  priority="default"
 >
-  <span
-    className="icon icon-soundoff"
-  />
-  <p>
+  <BannerSummary>
+    <span
+      className="icon icon-soundoff"
+      style={
+        Object {
+          "color": "#e03e2f",
+        }
+      }
+    />
     <span>
       This issue has been ignored until 
       <strong
@@ -88,21 +108,26 @@ exports[`MutedBox render() handles ignoreUntil 1`] = `
           seconds={true}
         />
       </strong>
-       — 
+       — 
+      You will not be notified of any changes and it will not show up by default in feeds.
     </span>
-    You will not be notified of any changes and it will not show up by default in feeds.
-  </p>
-</div>
+  </BannerSummary>
+</BannerContainer>
 `;
 
 exports[`MutedBox render() handles ignoreUserCount 1`] = `
-<div
-  className="box"
+<BannerContainer
+  priority="default"
 >
-  <span
-    className="icon icon-soundoff"
-  />
-  <p>
+  <BannerSummary>
+    <span
+      className="icon icon-soundoff"
+      style={
+        Object {
+          "color": "#e03e2f",
+        }
+      }
+    />
     <span>
       This issue has been ignored until it affects 
       <strong
@@ -111,21 +136,26 @@ exports[`MutedBox render() handles ignoreUserCount 1`] = `
         100
       </strong>
        more user(s)
-       — 
+       — 
+      You will not be notified of any changes and it will not show up by default in feeds.
     </span>
-    You will not be notified of any changes and it will not show up by default in feeds.
-  </p>
-</div>
+  </BannerSummary>
+</BannerContainer>
 `;
 
 exports[`MutedBox render() handles ignoreUserCount with ignoreUserWindow 1`] = `
-<div
-  className="box"
+<BannerContainer
+  priority="default"
 >
-  <span
-    className="icon icon-soundoff"
-  />
-  <p>
+  <BannerSummary>
+    <span
+      className="icon icon-soundoff"
+      style={
+        Object {
+          "color": "#e03e2f",
+        }
+      }
+    />
     <span>
       This issue has been ignored until it affects 
       <strong
@@ -141,9 +171,9 @@ exports[`MutedBox render() handles ignoreUserCount with ignoreUserWindow 1`] = `
           seconds={60}
         />
       </strong>
-       — 
+       — 
+      You will not be notified of any changes and it will not show up by default in feeds.
     </span>
-    You will not be notified of any changes and it will not show up by default in feeds.
-  </p>
-</div>
+  </BannerSummary>
+</BannerContainer>
 `;
