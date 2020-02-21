@@ -29,6 +29,7 @@ sending events from any language, in any application.
   - [Ruby](https://github.com/getsentry/raven-ruby)
   - [PHP](https://github.com/getsentry/sentry-php)
   - [Go](https://github.com/getsentry/sentry-go)
+  - [Rust](https://github.com/getsentry/sentry-rust)
   - [Java](https://github.com/getsentry/sentry-java)
   - [Objective-C/Swift](https://github.com/getsentry/sentry-cocoa)
   - [C\#](https://github.com/getsentry/sentry-dotnet)
