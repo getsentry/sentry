@@ -201,12 +201,10 @@ exports[`ProjectDebugFiles renders 1`] = `
           </div>
         </PanelHeader>
         <PanelBody
-          disablePadding={true}
           flexible={false}
           withPadding={false}
         >
           <FlexBox
-            disablePadding={true}
             withPadding={false}
           >
             <div
@@ -321,7 +319,6 @@ exports[`ProjectDebugFiles renders empty 1`] = `
       </Styled(div)>
     </PanelHeader>
     <PanelBody
-      disablePadding={true}
       flexible={false}
       withPadding={false}
     >
