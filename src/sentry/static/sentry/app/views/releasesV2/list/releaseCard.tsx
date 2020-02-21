@@ -20,7 +20,7 @@ type Props = {
 };
 
 const ReleaseCard = ({release, projects}: Props) => {
-  // TODO(releases-v2): probably makes sense at this point to split the header and data to different files (move styles to share layout file)
+  // TODO(releasesv2): probably makes sense at this point to split the header and data to different files (move styles to share layout file)
   return (
     <Panel>
       <PanelBody>
