@@ -93,7 +93,7 @@ def configure_sdk():
 
     # if this flag is set then the internal transport is disabled.  This is useful
     # for local testing in case the real python SDK behavior should be enforced.
-    if sdk_options.pop("disable_internal_transport", False):
+    if not sdk_options.pop("disable_internal_transport", False):
         internal_transport = InternalTransport()
         upstream_transport = None
         if sdk_options.get("dsn"):
