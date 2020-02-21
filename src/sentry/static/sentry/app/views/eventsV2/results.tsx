@@ -202,7 +202,7 @@ class Results extends React.Component<Props, State> {
   };
 
   render() {
-    const {organization, location, router} = this.props;
+    const {organization, location, router, api} = this.props;
     const {eventView, error, totalValues} = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
@@ -228,6 +228,7 @@ class Results extends React.Component<Props, State> {
                     onSearch={this.handleSearch}
                   />
                   <ResultsChart
+                    api={api}
                     router={router}
                     organization={organization}
                     eventView={eventView}
