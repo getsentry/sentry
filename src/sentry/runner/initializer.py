@@ -128,8 +128,8 @@ options_mapper = {
     "mail.use-tls": "EMAIL_USE_TLS",
     "mail.from": "SERVER_EMAIL",
     "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
-    "github-app.client-id": "GITHUB_APP_ID",
-    "github-app.client-secret": "GITHUB_API_SECRET",
+    "github.client-id": "GITHUB_APP_ID",
+    "github.client-secret": "GITHUB_API_SECRET",
 }
 
 
