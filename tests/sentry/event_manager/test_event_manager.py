@@ -17,11 +17,12 @@ from sentry.app import tsdb
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.eventstore.models import Event
 from sentry.event_manager import EventManager
-from sentry.save_event import HashDiscarded, EventUser
+from sentry.save_event import HashDiscarded
 from sentry.grouping.utils import hash_from_values
 from sentry.models import (
     Activity,
     Environment,
+    EventUser,
     ExternalIssue,
     Group,
     GroupEnvironment,
@@ -777,7 +778,7 @@ class EventManagerTest(TestCase):
             is_new_group_environment=True,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
-            received_timestamp=event.data['received'],
+            received_timestamp=event.data["received"],
         )
 
         event = save_event()
@@ -792,7 +793,7 @@ class EventManagerTest(TestCase):
             is_new_group_environment=False,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
-            received_timestamp=event.data['received'],
+            received_timestamp=event.data["received"],
         )
 
     def test_default_fingerprint(self):

@@ -61,7 +61,6 @@ from sentry.save_event import (
     get_attachments,
     pop_tag,
     save_attachments,
-    save_event,
     set_tag,
 )
 from sentry.signals import event_discarded, first_event_received
@@ -427,7 +426,7 @@ class EventManager(object):
                     event=job["event"], hashes=hashes, release=job["release"], **kwargs
                 )
             except HashDiscarded:
-                event_discarded.send_robust(project=project, sender=save_event)
+                event_discarded.send_robust(project=project, sender=EventManager)
 
                 metrics.incr(
                     "events.discarded",
