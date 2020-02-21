@@ -312,7 +312,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert source.id != destination.id
         assert source.project == destination.project
 
-        destination_event_ids = [event.event_id for event in events.values()[1]]
+        destination_event_ids = [e.event_id for e in events.values()[1]]
 
         assert set(
             UserReport.objects.filter(group_id=source.id).values_list("event_id", flat=True)
@@ -337,7 +337,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             ]
         ) == set([(u"red", 4), (u"green", 3), (u"blue", 3)])
 
-        destination_event_ids = [event.event_id for event in events.values()[0] + events.values()[2]]
+        destination_event_ids = [e.event_id for e in events.values()[0] + events.values()[2]]
 
         assert set(
             UserReport.objects.filter(group_id=destination.id).values_list("event_id", flat=True)
