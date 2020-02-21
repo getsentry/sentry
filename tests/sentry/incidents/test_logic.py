@@ -584,7 +584,7 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
 
 @freeze_time()
 class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
-    def test_meow(self):
+    def test(self):
         closed_incident = create_incident(
             self.organization,
             IncidentType.ALERT_TRIGGERED,
