@@ -62,8 +62,8 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               organization={organization}
               showLegend
               yAxis={yAxisValue}
-              project={globalSelection.project as number[]}
-              environment={globalSelection.environment as string[]}
+              project={globalSelection.project}
+              environment={globalSelection.environment}
               start={start}
               end={end}
               period={globalSelection.statsPeriod}
