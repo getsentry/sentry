@@ -94,7 +94,7 @@ class BaseEventFrequencyCondition(EventCondition):
     def is_guessed_to_be_created_on_project_creation(self):
         """
         Best effort approximation on whether a rule with this condition was created on project creation based on how
-        closely the rule and project are created; and if the label matches the default name used onn project creation.
+        closely the rule and project are created; and if the label matches the default name used on project creation.
         :return:
             bool: True if rule is approximated to be created on project creation, False otherwise.
         """
