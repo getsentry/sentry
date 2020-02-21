@@ -108,6 +108,14 @@ def relay_server(relay_server_setup):
     return {"url": relay_server_setup["url"]}
 
 
+@pytest.fixture
+def get_relay_store_url(relay_server):
+    def relay_store_url(project_id):
+        return "{}/api/{}/store/".format(relay_server["url"], project_id)
+
+    return relay_store_url
+
+
 @pytest.fixture(scope="function")
 def persistent_relay_server(relay_server_setup):
     options = relay_server_setup["options"]

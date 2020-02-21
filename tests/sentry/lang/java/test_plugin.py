@@ -14,8 +14,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
 from sentry.testutils.helpers import get_auth_header
 
-MAX_SECONDS_WAITING_FOR_EVENT = 8
-
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
 PROGUARD_SOURCE = b"""\
 org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
@@ -211,18 +209,15 @@ class BasicResolvingIntegrationTest(TransactionTestCase):
         adjust_settings_for_relay_tests(self.settings)
 
     @pytest.fixture(autouse=True)
-    def setup_fixtures(self, settings, live_server, relay_server, wait_for_ingest_consumer):
+    def setup_fixtures(self, settings, live_server, get_relay_store_url, wait_for_ingest_consumer):
         """
             Used to inject the sentry server (live_server) and
             the relay_server in the test class.
             Called by pytest as an autofixture.
         """
         self.settings = settings
-        self.relay_server = relay_server  # noqa
+        self.get_relay_store_url = get_relay_store_url  # noqa
         self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)  # noqa
-
-    def relay_store_url(self):
-        return "{}/api/{}/store/".format(self.relay_server["url"], self.projectkey.project_id)
 
     def test_basic_resolving(self):
         url = reverse(
@@ -304,7 +299,7 @@ class BasicResolvingIntegrationTest(TransactionTestCase):
         #     self._postWithHeader(event_data)
 
         resp = requests.post(
-            self.relay_store_url(),
+            self.get_relay_store_url(self.project.id),
             headers={"x-sentry-auth": self.auth_header, "content-type": "application/json"},
             json=event_data,
         )
@@ -314,8 +309,7 @@ class BasicResolvingIntegrationTest(TransactionTestCase):
         event_id = resp_body["id"]
 
         event = self.wait_for_ingest_consumer(
-            lambda: eventstore.get_event_by_id(self.project.id, event_id),
-            MAX_SECONDS_WAITING_FOR_EVENT,
+            lambda: eventstore.get_event_by_id(self.project.id, event_id)
         )
 
         # Found the event in snuba
@@ -400,7 +394,7 @@ class BasicResolvingIntegrationTest(TransactionTestCase):
         }
 
         resp = requests.post(
-            self.relay_store_url(),
+            self.get_relay_store_url(self.project.id),
             headers={"x-sentry-auth": self.auth_header, "content-type": "application/json"},
             json=event_data,
         )
@@ -410,8 +404,7 @@ class BasicResolvingIntegrationTest(TransactionTestCase):
         event_id = resp_body["id"]
 
         event = self.wait_for_ingest_consumer(
-            lambda: eventstore.get_event_by_id(self.project.id, event_id),
-            MAX_SECONDS_WAITING_FOR_EVENT,
+            lambda: eventstore.get_event_by_id(self.project.id, event_id)
         )
 
         # Found the event in snuba

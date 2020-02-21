@@ -11,6 +11,8 @@ import logging
 
 _log = logging.getLogger(__name__)
 
+MAX_SECONDS_WAITING_FOR_EVENT = 8
+
 
 @pytest.fixture
 def kafka_producer():
@@ -208,7 +210,7 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
     def factory(settings):
         consumer = session_ingest_consumer(settings)
 
-        def waiter(exit_predicate, max_time):
+        def waiter(exit_predicate, max_time=MAX_SECONDS_WAITING_FOR_EVENT):
             """
             Implements a wait loop for the ingest consumer
             :param exit_predicate:  A Callable[(),Any] that will be called in a loop after each call
