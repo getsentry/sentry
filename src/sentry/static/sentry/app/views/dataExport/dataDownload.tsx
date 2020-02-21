@@ -9,7 +9,7 @@ import {t} from 'app/locale';
 
 import Button from 'app/components/button';
 
-enum DownloadStatus {
+export enum DownloadStatus {
   Early = 'EARLY',
   Valid = 'VALID',
   Expired = 'EXPIRED',
@@ -100,6 +100,7 @@ class DataDownload extends AsyncView<Props, State> {
           size="large"
           borderless
           href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
+          data-test="datadownload-button"
         >
           {t('Download CSV')}
         </Button>
@@ -127,7 +128,9 @@ class DataDownload extends AsyncView<Props, State> {
     return (
       <PageContent>
         <div className="pattern-bg" />
-        <ContentContainer>{this.renderContent()}</ContentContainer>
+        <ContentContainer data-test="datadownload-wrapper">
+          {this.renderContent()}
+        </ContentContainer>
       </PageContent>
     );
   }
