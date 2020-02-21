@@ -107,7 +107,7 @@ export function updateParams(obj, router, options) {
   const newQuery = getNewQueryParams(obj, router.location.query, options);
 
   // Only push new location if query params has changed because this will cause a heavy re-render
-  if (isEqualWithEmptyArrays(newQuery, router.location.query)) {
+  if (qs.stringify(newQuery) === qs.stringify(router.location.query)) {
     return;
   }
 

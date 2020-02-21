@@ -1,5 +1,6 @@
 import {
   updateProjects,
+  updateParams,
   updateParamsWithoutHistory,
 } from 'app/actionCreators/globalSelection';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
@@ -23,6 +24,47 @@ describe('GlobalSelection ActionCreators', function() {
   });
 
   describe('updateEnvironments()', function() {});
+
+  describe('updateParams()', function() {
+    it('updates history when queries are different', function() {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '2'},
+        },
+      });
+      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
+      // however react-router will treat it as a string if there is only one param
+      updateParams(
+        {project: [1]},
+
+        // Mock router
+        router
+      );
+
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/test/',
+        query: {project: [1]},
+      });
+    });
+    it('does not update history when queries are the same', function() {
+      const router = TestStubs.router({
+        location: {
+          pathname: '/test/',
+          query: {project: '1'},
+        },
+      });
+      // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
+      // however react-router will treat it as a string if there is only one param
+      updateParams(
+        {project: [1]},
+        // Mock router
+        router
+      );
+
+      expect(router.push).not.toHaveBeenCalled();
+    });
+  });
 
   describe('updateParamsWithoutHistory()', function() {
     it('updates history when queries are different', function() {
