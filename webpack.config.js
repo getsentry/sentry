@@ -31,6 +31,7 @@ const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const USE_HOT_MODULE_RELOAD =
   !IS_PRODUCTION && SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
 const NO_DEV_SERVER = env.NO_DEV_SERVER;
+const FORCE_WEBPACK_DEV_SERVER = env.FORCE_WEBPACK_DEV_SERVER;
 const IS_CI = !!env.CI || !!env.TRAVIS;
 
 // Deploy previews are built using netlify. We can check if we're in netlifys
@@ -397,7 +398,7 @@ if (!IS_PRODUCTION) {
 }
 
 // Dev only! Hot module reloading
-if (USE_HOT_MODULE_RELOAD && !NO_DEV_SERVER) {
+if (FORCE_WEBPACK_DEV_SERVER || (USE_HOT_MODULE_RELOAD && !NO_DEV_SERVER)) {
   const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
 
   appConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
