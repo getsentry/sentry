@@ -116,7 +116,7 @@ class LinkSharedEventTest(BaseEventTest):
         group2 = self.create_group(project=project2)
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(
-            organization=self.org, projects=[project1], alert_rule=alert_rule
+            status=2, organization=self.org, projects=[project1], alert_rule=alert_rule
         )
         incident.update(identifier=123)
         resp = self.post_webhook(

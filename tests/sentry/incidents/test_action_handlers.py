@@ -213,7 +213,7 @@ class SlackActionHandlerBaseTest(object):
 class SlackActionHandlerFireTest(SlackActionHandlerBaseTest, TestCase):
     def test(self):
         alert_rule = self.create_alert_rule()
-        self.run_test(self.create_incident(alert_rule=alert_rule), "fire")
+        self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
 
 
 class SlackActionHandlerResolveTest(SlackActionHandlerBaseTest, TestCase):
