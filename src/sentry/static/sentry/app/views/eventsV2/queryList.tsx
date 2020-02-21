@@ -191,13 +191,13 @@ class QueryList extends React.Component<Props> {
             return (
               <ContextMenu>
                 <MenuItem
-                  href="#delete-query"
+                  data-test-id="delete-query"
                   onClick={this.handleDeleteQuery(eventView)}
                 >
                   {t('Delete Query')}
                 </MenuItem>
                 <MenuItem
-                  href="#duplicate-query"
+                  data-test-id="duplicate-query"
                   onClick={this.handleDuplicateQuery(eventView)}
                 >
                   {t('Duplicate Query')}
