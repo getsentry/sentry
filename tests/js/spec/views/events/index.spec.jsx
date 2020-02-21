@@ -11,6 +11,10 @@ import ProjectsStore from 'app/stores/projectsStore';
 describe('EventsContainer', function() {
   let wrapper;
   const environments = ['production', 'staging'];
+  const params = {
+    orgId: 'org-slug',
+  };
+
   const {organization, router, routerContext} = initializeOrg({
     projects: [
       {isMember: true, environments, isBookmarked: true},
@@ -24,6 +28,7 @@ describe('EventsContainer', function() {
         pathname: '/organizations/org-slug/events/',
         query: {},
       },
+      params,
     },
   });
 

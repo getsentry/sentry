@@ -40,6 +40,7 @@ describe('EventsErrors', function() {
         pathname: '/organizations/org-slug/events/',
         query: {},
       },
+      params: {orgId: 'org-slug'},
     },
   });
 
@@ -315,6 +316,7 @@ describe('EventsContainer', function() {
         pathname: '/organizations/org-slug/events/',
         query: {},
       },
+      params: {orgId: 'org-slug'},
     },
   });
 
