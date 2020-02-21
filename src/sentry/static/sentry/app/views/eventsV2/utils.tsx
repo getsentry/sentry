@@ -335,7 +335,8 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
     }),
   });
 
-  const encodedDataUrl = encodeURI(`data:text/csv;charset=utf8,${csvContent}`);
+  // Need to also manually replace # since encodeURI skips them
+  const encodedDataUrl = `data:text/csv;charset=utf8,${encodeURIComponent(csvContent)}`;
 
   // Create a download link then click it, this is so we can get a filename
   const link = document.createElement('a');
