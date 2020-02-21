@@ -27,13 +27,13 @@ class ProjectPluginsTest(APITestCase):
         assert response.status_code == 200, (response.status_code, response.content)
         assert len(response.data) >= 9
 
-        auto_tag = filter(lambda p: p["slug"] == "browsers", response.data)[0]
+        auto_tag = [p for p in response.data if p["slug"] == "browsers"][0]
         assert auto_tag["name"] == "Auto Tag: Browsers"
         assert auto_tag["enabled"] is True
         assert auto_tag["isHidden"] is False
         self.assert_plugin_shape(auto_tag)
 
-        issues = filter(lambda p: p["slug"] == "issuetrackingplugin2", response.data)[0]
+        issues = [p for p in response.data if p["slug"] == "issuetrackingplugin2"][0]
         assert issues["name"] == "IssueTrackingPlugin2"
         assert issues["enabled"] is False
         assert issues["isHidden"] is True

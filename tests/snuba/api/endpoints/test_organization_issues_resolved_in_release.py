@@ -7,6 +7,7 @@ import six
 from sentry.models import Commit, GroupLink, GroupResolution, ReleaseCommit, Repository
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from six.moves import map
 
 
 class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase):

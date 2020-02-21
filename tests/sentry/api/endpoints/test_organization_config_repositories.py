@@ -15,6 +15,6 @@ class OrganizationConfigRepositoriesTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        provider = filter(lambda x: x["id"] == "dummy", response.data["providers"])[0]
+        provider = [x for x in response.data["providers"] if x["id"] == "dummy"][0]
         assert provider["name"] == "Example"
         assert provider["config"]

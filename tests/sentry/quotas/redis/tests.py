@@ -13,6 +13,7 @@ from sentry.quotas.redis import is_rate_limited, BasicRedisQuota, RedisQuota
 from sentry.testutils import TestCase
 from sentry.utils.redis import clusters
 from six.moves import xrange
+from six.moves import map
 
 
 def test_is_rate_limited_script():

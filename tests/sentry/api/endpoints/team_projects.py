@@ -22,7 +22,7 @@ class TeamProjectIndexTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
+        assert sorted([x["id"] for x in response.data]) == sorted(
             [six.text_type(project_1.id), six.text_type(project_2.id)]
         )
 

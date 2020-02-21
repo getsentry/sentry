@@ -31,6 +31,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.tasks.merge import merge_groups
 
 from six.moves import xrange
+from six.moves import map
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
@@ -311,7 +312,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert source.id != destination.id
         assert source.project == destination.project
 
-        destination_event_ids = map(lambda event: event.event_id, events.values()[1])
+        destination_event_ids = [event.event_id for event in events.values()[1]]
 
         assert set(
             UserReport.objects.filter(group_id=source.id).values_list("event_id", flat=True)
@@ -336,9 +337,9 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             ]
         ) == set([(u"red", 4), (u"green", 3), (u"blue", 3)])
 
-        destination_event_ids = map(
-            lambda event: event.event_id, events.values()[0] + events.values()[2]
-        )
+        destination_event_ids = [
+            event.event_id for event in events.values()[0] + events.values()[2]
+        ]
 
         assert set(
             UserReport.objects.filter(group_id=destination.id).values_list("event_id", flat=True)
