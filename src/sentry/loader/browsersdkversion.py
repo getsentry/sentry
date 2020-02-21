@@ -12,7 +12,7 @@ from sentry.utils.compat import functools
 import sentry
 
 from django.conf import settings
-from six.moves import map
+from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry")
 

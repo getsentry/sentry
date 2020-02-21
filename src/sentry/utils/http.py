@@ -9,7 +9,7 @@ from functools import partial
 
 from sentry import options
 from sentry.utils import json
-from six.moves import filter
+from sentry.utils.compat import filter
 
 ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
 

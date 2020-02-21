@@ -9,8 +9,8 @@ from sentry.api.serializers import serialize
 from sentry.models import Group
 from sentry.similarity import features
 from sentry.utils.functional import apply_values
-from six.moves import filter
-from six.moves import map
+from sentry.utils.compat import filter
+from sentry.utils.compat import map
 
 
 class GroupSimilarIssuesEndpoint(GroupEndpoint):

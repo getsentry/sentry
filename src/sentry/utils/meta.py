@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import collections
 import six
-from six.moves import map
+from sentry.utils.compat import map
 
 
 class Meta(object):

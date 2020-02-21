@@ -4,7 +4,7 @@ import itertools
 import six
 
 from django.http import HttpResponse
-from six.moves import filter
+from sentry.utils.compat import filter
 
 
 class HealthCheck(object):

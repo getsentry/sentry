@@ -7,7 +7,7 @@ from sentry.utils.numbers import (
     base32_decode,
     format_bytes,
 )
-from six.moves import map
+from sentry.utils.compat import map
 
 
 def test_base36():

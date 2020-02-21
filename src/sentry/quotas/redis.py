@@ -12,8 +12,8 @@ from sentry.utils.redis import (
     load_script,
 )
 from sentry.utils.json import prune_empty_keys
-from six.moves import map
-from six.moves import zip
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 is_rate_limited = load_script("quotas/is_rate_limited.lua")
 

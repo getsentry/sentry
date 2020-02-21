@@ -4,7 +4,7 @@ from collections import Counter
 from unittest import TestCase
 
 from sentry.similarity.signatures import MinHashSignatureBuilder
-from six.moves import zip
+from sentry.utils.compat import zip
 
 
 class MinHashSignatureBuilderTestCase(TestCase):

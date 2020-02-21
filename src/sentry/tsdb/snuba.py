@@ -10,7 +10,7 @@ from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba, outcomes
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
-from six.moves import zip
+from sentry.utils.compat import zip
 
 
 SnubaModelQuerySettings = collections.namedtuple(

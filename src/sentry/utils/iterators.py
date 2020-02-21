@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 import itertools
 
-from six.moves import zip
-from six.moves import map
+from sentry.utils.compat import zip
+from sentry.utils.compat import map
 
 
 def advance(n, iterator):

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import six
-from six.moves import zip
+from sentry.utils.compat import zip
 
 from django.db import connections
 

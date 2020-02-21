@@ -6,7 +6,7 @@ from django.db import models
 
 from sentry.db.models.utils import Creator
 from sentry.utils import json
-from six.moves import map
+from sentry.utils.compat import map
 
 
 # Adapted from django-pgfields

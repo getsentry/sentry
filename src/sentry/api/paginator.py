@@ -10,8 +10,8 @@ from django.db.models.sql.datastructures import EmptyResultSet
 from django.utils import timezone
 
 from sentry.utils.cursors import build_cursor, Cursor, CursorResult
-from six.moves import map
-from six.moves import zip
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 quote_name = connections["default"].ops.quote_name
 

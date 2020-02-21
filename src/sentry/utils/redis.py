@@ -20,7 +20,7 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 from sentry.utils.versioning import Version, check_versions
-from six.moves import map
+from sentry.utils.compat import map
 
 logger = logging.getLogger(__name__)
 

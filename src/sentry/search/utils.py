@@ -11,7 +11,7 @@ from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, KEYWORD_MAP, Release, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
-from six.moves import map
+from sentry.utils.compat import map
 
 
 class InvalidQuery(Exception):

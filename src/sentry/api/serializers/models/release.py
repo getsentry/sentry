@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import six
-from six.moves import zip
+from sentry.utils.compat import zip
 
 from collections import defaultdict
 from django.db.models import Sum

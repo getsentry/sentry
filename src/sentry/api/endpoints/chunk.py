@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import six
-from six.moves import zip
+from sentry.utils.compat import zip
 from io import BytesIO
 from gzip import GzipFile
 from rest_framework import status

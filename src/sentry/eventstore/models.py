@@ -21,7 +21,7 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
-from six.moves import zip
+from sentry.utils.compat import zip
 
 
 def ref_func(x):

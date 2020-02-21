@@ -24,7 +24,7 @@ from sentry.models import (
     SentryApp,
 )
 from sentry.models.sentryapp import VALID_EVENTS, track_response_code
-from six.moves import filter
+from sentry.utils.compat import filter
 
 
 logger = logging.getLogger("sentry.tasks.sentry_apps")

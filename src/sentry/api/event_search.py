@@ -25,9 +25,9 @@ from sentry.search.utils import (
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, get_json_type
-from six.moves import filter
-from six.moves import map
-from six.moves import zip
+from sentry.utils.compat import filter
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 

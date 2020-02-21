@@ -6,7 +6,7 @@ import sys
 import sentry
 import datetime
 from sentry.utils.imports import import_string
-from six.moves import map
+from sentry.utils.compat import map
 
 # We need to run this here because of a concurrency bug in Python's locale
 # with the lazy initialization.

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from six.moves import filter
+from sentry.utils.compat import filter
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase
 from sentry.utils.compat.mock import patch

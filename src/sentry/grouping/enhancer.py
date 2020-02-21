@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import io
 import os
 import six
-from six.moves import zip
+from sentry.utils.compat import zip
 import base64
 import msgpack
 import inspect

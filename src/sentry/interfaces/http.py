@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from six.moves import map
+from sentry.utils.compat import map
 
 __all__ = ("Http",)
 

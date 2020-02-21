@@ -4,7 +4,7 @@ import six
 
 from collections import defaultdict
 from django.db.models import Count
-from six.moves import zip
+from sentry.utils.compat import zip
 
 from sentry import roles
 from sentry.app import env

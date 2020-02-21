@@ -18,7 +18,7 @@ from sentry.models import (
     Rule,
 )
 from sentry.testutils import TestCase
-from six.moves import zip
+from sentry.utils.compat import zip
 
 
 class ProjectTest(TestCase):

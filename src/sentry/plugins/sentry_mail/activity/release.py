@@ -28,7 +28,7 @@ from sentry.models import (
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityEmail
-from six.moves import zip
+from sentry.utils.compat import zip
 
 
 class ReleaseActivityEmail(ActivityEmail):

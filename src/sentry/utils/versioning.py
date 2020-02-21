@@ -4,7 +4,7 @@ import six
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
-from six.moves import map
+from sentry.utils.compat import map
 
 
 class Version(tuple):

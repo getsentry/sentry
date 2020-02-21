@@ -42,7 +42,7 @@ from sentry.snuba.subscriptions import (
     query_aggregation_to_snuba,
 )
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
-from six.moves import zip
+from sentry.utils.compat import zip
 
 
 class AlreadyDeletedError(Exception):

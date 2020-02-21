@@ -5,7 +5,7 @@ import pytest
 from sentry.testutils import TestCase
 from sentry.constants import MAX_CULPRIT_LENGTH
 from django.utils.encoding import force_text
-from six.moves import map
+from sentry.utils.compat import map
 
 
 def psycopg2_version():

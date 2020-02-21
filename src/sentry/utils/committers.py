@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import operator
 import six
-from six.moves import zip
+from sentry.utils.compat import zip
 
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group

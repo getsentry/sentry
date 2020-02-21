@@ -6,7 +6,7 @@ import six
 
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.incidents.models import AlertRuleTrigger, AlertRuleTriggerAction, AlertRuleTriggerExclusion
-from six.moves import zip
+from sentry.utils.compat import zip
 
 
 @register(AlertRuleTrigger)

@@ -10,7 +10,7 @@ from dateutil.parser import parse
 
 from sentry.runner.decorators import configuration
 from sentry.utils.iterators import chunked
-from six.moves import map
+from sentry.utils.compat import map
 
 
 class DateTimeParamType(click.ParamType):

@@ -4,7 +4,7 @@ import logging
 import operator
 from copy import deepcopy
 from datetime import timedelta
-from six.moves import zip
+from sentry.utils.compat import zip
 
 from django.conf import settings
 from django.db import transaction

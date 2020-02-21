@@ -82,7 +82,7 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
-from six.moves import map
+from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.events")
 

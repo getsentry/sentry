@@ -45,7 +45,7 @@ from social_auth.exceptions import (
 )
 
 from sentry.utils import json
-from six.moves import map
+from sentry.utils.compat import map
 
 PIPELINE = setting(
     "SOCIAL_AUTH_PIPELINE",

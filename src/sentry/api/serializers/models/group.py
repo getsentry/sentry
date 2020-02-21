@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
-from six.moves import zip
+from sentry.utils.compat import zip
 
 from django.conf import settings
 from django.db.models import Min, Q

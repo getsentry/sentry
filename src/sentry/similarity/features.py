@@ -5,8 +5,8 @@ import itertools
 import logging
 
 from sentry.utils.dates import to_timestamp
-from six.moves import map
-from six.moves import zip
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 logger = logging.getLogger("sentry.similarity")
 
