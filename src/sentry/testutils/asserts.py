@@ -9,17 +9,10 @@ def assert_mock_called_once_with_partial(mock, *args, **kwargs):
     """
     assert len(mock.mock_calls) == 1
     m_args, m_kwargs = mock.call_args
-    try:
-        for i, arg in enumerate(args):
-            assert m_args[i] == arg
-        for kwarg in kwargs:
-            assert m_kwargs[kwarg] == kwargs[kwarg]
-    except AssertionError:
-        raise AssertionError(
-            "Expected to be called with at least:\n\n"
-            "*{}, **{}\n\n"
-            "but got:\n\n*{}, **{}".format(args, kwargs, m_args, m_kwargs)
-        )
+    for i, arg in enumerate(args):
+        assert m_args[i] == arg
+    for kwarg in kwargs:
+        assert m_kwargs[kwarg] == kwargs[kwarg]
 
 
 commit_file_type_choices = {c[0] for c in CommitFileChange._meta.get_field("type").choices}
