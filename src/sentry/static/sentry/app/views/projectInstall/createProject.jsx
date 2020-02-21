@@ -23,7 +23,6 @@ import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
 import {trackAnalyticsEvent, logExperiment} from 'app/utils/analytics';
-import withConfig from 'app/utils/withConfig';
 
 class CreateProject extends React.Component {
   static propTypes = {
@@ -31,7 +30,6 @@ class CreateProject extends React.Component {
     teams: PropTypes.arrayOf(SentryTypes.Team),
     organization: SentryTypes.Organization,
     hasIssueAlertOptionsEnabled: PropTypes.bool,
-    config: SentryTypes.Config,
   };
 
   static contextTypes = {
@@ -175,10 +173,9 @@ class CreateProject extends React.Component {
 
   createProject = async e => {
     e.preventDefault();
-    const {organization, api, hasIssueAlertOptionsEnabled, config} = this.props;
+    const {organization, api, hasIssueAlertOptionsEnabled} = this.props;
     const {projectName, platform, team, dataFragment} = this.state;
     const {slug} = organization;
-    const {id: userId} = config;
     const {
       shouldCreateCustomRule,
       name,
@@ -232,7 +229,6 @@ class CreateProject extends React.Component {
         defaultRules,
         shouldCreateCustomRule,
         platform,
-        userId,
         ruleId
       );
 
@@ -265,7 +261,6 @@ class CreateProject extends React.Component {
     projectData,
     isDefaultRules,
     shouldCreateCustomRule,
-    userId,
     ruleId
   ) {
     let data = {
@@ -276,7 +271,6 @@ class CreateProject extends React.Component {
         : shouldCreateCustomRule
         ? 'Custom'
         : 'No Rule',
-      user_id: userId,
     };
 
     if (ruleId !== undefined) {
@@ -345,7 +339,7 @@ class CreateProject extends React.Component {
   }
 }
 
-export default withConfig(withApi(withTeams(withOrganization(CreateProject))));
+export default withApi(withTeams(withOrganization(CreateProject)));
 export {CreateProject};
 
 const CreateProjectForm = styled('form')`
