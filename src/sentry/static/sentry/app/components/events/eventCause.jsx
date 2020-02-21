@@ -7,7 +7,7 @@ import styled from '@emotion/styled';
 import CommitRow from 'app/components/commitRow';
 import {IconAdd, IconSubtract} from 'app/icons';
 import {Panel} from 'app/components/panels';
-import {CauseContainer, CauseHeader} from 'app/components/events/styles';
+import {DataSection, CauseHeader} from 'app/components/events/styles';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
 
@@ -96,7 +96,7 @@ class EventCause extends React.Component {
     const commits = this.getUniqueCommitsWithAuthors();
 
     return (
-      <CauseContainer>
+      <DataSection>
         <CauseHeader>
           <h3>
             {t('Suspect Commits')} ({commits.length})
@@ -120,7 +120,7 @@ class EventCause extends React.Component {
             return <CommitRow key={commit.id} commit={commit} />;
           })}
         </Panel>
-      </CauseContainer>
+      </DataSection>
     );
   }
 }

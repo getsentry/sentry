@@ -7,7 +7,7 @@ import Button from 'app/components/button';
 import codesworth from 'app/../images/spot/codesworth.png';
 import CommitRow from 'app/components/commitRow';
 import getDynamicText from 'app/utils/getDynamicText';
-import {CauseContainer} from 'app/components/events/styles';
+import {DataSection} from 'app/components/events/styles';
 import {Panel} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
 import SentryTypes from 'app/sentryTypes';
@@ -120,7 +120,7 @@ class EventCauseEmpty extends React.Component {
     }
 
     return (
-      <CauseContainer data-test-id="loaded-event-cause-empty">
+      <DataSection data-test-id="loaded-event-cause-empty">
         <StyledPanel dashedBorder>
           <BoxHeader>
             <Description>
@@ -180,7 +180,7 @@ class EventCauseEmpty extends React.Component {
             />
           </ExampleCommitPanel>
         </StyledPanel>
-      </CauseContainer>
+      </DataSection>
     );
   }
 }

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import {DataSection} from 'app/components/events/styles';
 import space from 'app/styles/space';
 
 const defaultProps = {
@@ -99,16 +100,6 @@ class EventDataSection extends React.Component<Props> {
     );
   }
 }
-
-// Exported as discover needs to restyle this.
-export const DataSection = styled('div')`
-  padding: ${space(3)} ${space(4)} 0 40px;
-  border-top: 1px solid ${p => p.theme.borderLight};
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    padding: ${space(2)} 0;
-  }
-`;
 
 const Permalink = styled('a')`
   font-size: ${p => p.theme.fontSizeSmall};
