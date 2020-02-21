@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import sys
 import threading
-from Queue import Full, PriorityQueue
+from six.moves.queue import Full, PriorityQueue
 from concurrent.futures import Future
 from concurrent.futures._base import RUNNING, FINISHED
 from time import time

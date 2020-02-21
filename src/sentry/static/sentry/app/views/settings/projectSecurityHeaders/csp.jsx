@@ -21,8 +21,8 @@ export default class ProjectCspReports extends AsyncView {
     setProjectNavSection: PropTypes.func,
   };
 
-  componentWillMount() {
-    super.componentWillMount();
+  UNSAFE_componentWillMount() {
+    super.UNSAFE_componentWillMount();
     this.props.setProjectNavSection('settings');
   }
 
@@ -91,7 +91,7 @@ export default class ProjectCspReports extends AsyncView {
         <Panel>
           <PanelHeader>{t('About')}</PanelHeader>
 
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <p>
               {tct(
                 `[link:Content Security Policy]

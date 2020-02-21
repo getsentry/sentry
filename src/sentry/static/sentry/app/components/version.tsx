@@ -1,7 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {withRouter} from 'react-router';
+import {WithRouterProps} from 'react-router/lib/withRouter';
 
+import {Organization} from 'app/types';
+import SentryTypes from 'app/sentryTypes';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
@@ -10,6 +14,7 @@ import Clipboard from 'app/components/clipboard';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {formatVersion} from 'app/utils/formatters';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   /**
@@ -17,15 +22,15 @@ type Props = {
    */
   version: string;
   /**
+   *  Organization injected by withOrganization HOC
+   */
+  organization: Organization;
+  /**
    * Should the version be a link to the release page
    */
   anchor?: boolean;
   /**
-   * Organization id needed for linking to release page
-   */
-  orgId?: string;
-  /**
-   * Should link to Release preserve user's global selection values
+   * Should link to release page preserve user's global selection values
    */
   preserveGlobalSelection?: boolean;
   /**
@@ -37,7 +42,8 @@ type Props = {
    */
   withPackage?: boolean;
   /**
-   * Will add project project ID to the linked url
+   * Will add project ID to the linked url (can be overriden by preserveGlobalSelection).
+   * If not provided and user does not have global-views enabled, it will try to take it from current url query.
    */
   projectId?: string;
   /**
@@ -49,25 +55,39 @@ type Props = {
 
 const Version = ({
   version,
-  orgId,
+  organization,
   anchor = true,
   preserveGlobalSelection,
   tooltipRawVersion,
   withPackage,
   projectId,
-  className,
   truncate,
-}: Props) => {
+  className,
+  location,
+}: WithRouterProps & Props) => {
   const LinkComponent = preserveGlobalSelection ? GlobalSelectionLink : Link;
   const versionToDisplay = formatVersion(version, withPackage);
 
+  let releaseDetailProjectId: null | undefined | string | string[];
+  if (!preserveGlobalSelection) {
+    if (projectId) {
+      // if user specifically sets projectId and not preserveGlobalSelection, use that
+      releaseDetailProjectId = projectId;
+    } else if (!new Set(organization?.features).has('global-views')) {
+      // we need this for users without global-views, otherwise they might get `This release may not be in your selected project`
+      releaseDetailProjectId = location?.query.project;
+    }
+  }
+
   const renderVersion = () => {
-    if (anchor && orgId) {
+    if (anchor && organization?.slug) {
       return (
         <LinkComponent
           to={{
-            pathname: `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
-            query: projectId ? {project: projectId} : undefined,
+            pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+              version
+            )}/`,
+            query: releaseDetailProjectId ? {project: releaseDetailProjectId} : undefined,
           }}
           className={className}
         >
@@ -115,16 +135,14 @@ const Version = ({
 
 Version.propTypes = {
   version: PropTypes.string.isRequired,
-  orgId: PropTypes.string,
+  organization: SentryTypes.Organization.isRequired,
   anchor: PropTypes.bool,
-  /**
-   * Should link to Release preserve user's global selection values
-   */
   preserveGlobalSelection: PropTypes.bool,
   tooltipRawVersion: PropTypes.bool,
-  className: PropTypes.string,
+  withPackage: PropTypes.bool,
   projectId: PropTypes.string,
   truncate: PropTypes.bool,
+  className: PropTypes.string,
 };
 
 const VersionText = styled('span')<{truncate?: boolean}>`
@@ -156,4 +174,8 @@ const TooltipClipboardIconWrapper = styled('span')`
   }
 `;
 
-export default Version;
+type PropsWithoutOrg = Omit<Props, 'organization'>;
+
+export default withOrganization(withRouter(Version)) as React.ComponentClass<
+  PropsWithoutOrg
+>;

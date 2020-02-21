@@ -116,6 +116,9 @@ base_acceptance: &acceptance_default
 # but custom `services`, `before_install`, `install`, and `before_script` directives
 # may be defined to define and setup individual job environments with more precision.
 matrix:
+  allowed_failures:
+    - name: 'Linter (Python 3.7)'
+
   fast_finish: true
   include:
     # Lint python and javascript together
@@ -204,7 +207,7 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
-    # Deploy 'storybook' (component & style guide) - allowed to fail
+    # Deploy 'storybook' (component & style guide)
     - name: 'Storybook Deploy'
       language: node_js
       env: STORYBOOK_BUILD=1
@@ -225,9 +228,6 @@ matrix:
       script: bash .travis/deploy-storybook.sh
       after_success: skip
       after_failure: skip
-
-  allow_failures:
-    - name: 'Storybook Deploy'
 
 notifications:
   webhooks:

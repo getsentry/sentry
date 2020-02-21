@@ -1,6 +1,18 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
+import {
+  INSTALLED,
+  NOT_INSTALLED,
+  PENDING,
+} from 'app/views/organizationIntegrations/constants';
+
+export type IntegrationInstallationStatus =
+  | typeof INSTALLED
+  | typeof NOT_INSTALLED
+  | typeof PENDING;
+
+export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
 
 export type ObjectStatus =
   | 'active'
@@ -308,10 +320,7 @@ export type PluginNoProject = {
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
   features: string[];
-  featureDescriptions: Array<{
-    description: string;
-    featureGate: string;
-  }>;
+  featureDescriptions: IntegrationFeature[];
 };
 
 export type Plugin = PluginNoProject & {
@@ -386,24 +395,14 @@ export type Config = {
   distPrefix: string;
 };
 
-type Metadata = {
-  value: string;
-  message: string;
-  directive: string;
-  type: string;
-  title: string;
-  uri: string;
-};
-
-type EventOrGroupType = [
-  'error',
-  'csp',
-  'hpkp',
-  'expectct',
-  'expectstaple',
-  'default',
-  'transaction'
-];
+export type EventOrGroupType =
+  | 'error'
+  | 'csp'
+  | 'hpkp'
+  | 'expectct'
+  | 'expectstaple'
+  | 'default'
+  | 'transaction';
 
 // TODO(ts): incomplete
 export type Group = {
@@ -424,7 +423,7 @@ export type Group = {
   lastSeen: string;
   level: string;
   logger: string;
-  metadata: Metadata;
+  metadata: EventMetadata;
   numComments: number;
   participants: any[]; // TODO(ts)
   permalink: string;
@@ -514,7 +513,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
 };
 
 export type IntegrationFeature = {
-  description: React.ReactNode;
+  description: React.ReactNode | string;
   featureGate: string;
 };
 
@@ -546,7 +545,7 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  status: 'unpublished' | 'published' | 'internal';
+  status: SentryAppStatus;
   scopes: Scope[];
   isAlertable: boolean;
   verifyInstall: boolean;
@@ -827,4 +826,32 @@ export type Tag = {
   predefined?: boolean;
 };
 
+export type TagValue = {
+  count: number;
+  name: string;
+  value: string;
+  lastSeen: string;
+  key: string;
+  firstSeen: string;
+  query?: string;
+  email?: string;
+  username?: string;
+  identifier?: string;
+  ipAddress?: string;
+} & AvatarUser;
+
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
+
+export type Meta = {
+  chunks: Array<Chunks>;
+  len: number;
+  rem: Array<Array<string | number>>;
+  err: Array<any>;
+};
+
+export type Chunks = {
+  text: string;
+  type: string;
+  remark?: string;
+  rule_id?: string;
+};

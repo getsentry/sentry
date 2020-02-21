@@ -1150,13 +1150,14 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                   aria-disabled={false}
                   aria-label="Learn more"
                   className="css-12ogwys-StyledButton edwq9my0"
+                  external={true}
                   forwardRef={null}
                   href="https://status.sentry.io"
                   onClick={[Function]}
                   role="button"
                   size="small"
                 >
-                  <a
+                  <ForwardRef
                     aria-disabled={false}
                     aria-label="Learn more"
                     className="css-12ogwys-StyledButton edwq9my0"
@@ -1165,23 +1166,35 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                     role="button"
                     size="small"
                   >
-                    <ButtonLabel
-                      align="center"
+                    <a
+                      aria-disabled={false}
+                      aria-label="Learn more"
+                      className="css-12ogwys-StyledButton edwq9my0"
+                      href="https://status.sentry.io"
+                      onClick={[Function]}
+                      rel="noreferrer noopener"
+                      role="button"
                       size="small"
+                      target="_blank"
                     >
-                      <Component
+                      <ButtonLabel
                         align="center"
-                        className="css-19gcr2f-ButtonLabel edwq9my1"
                         size="small"
                       >
-                        <span
+                        <Component
+                          align="center"
                           className="css-19gcr2f-ButtonLabel edwq9my1"
+                          size="small"
                         >
-                          Learn more
-                        </span>
-                      </Component>
-                    </ButtonLabel>
-                  </a>
+                          <span
+                            className="css-19gcr2f-ButtonLabel edwq9my1"
+                          >
+                            Learn more
+                          </span>
+                        </Component>
+                      </ButtonLabel>
+                    </a>
+                  </ForwardRef>
                 </Component>
               </StyledButton>
             </Button>
@@ -1207,20 +1220,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
     >
       <SidebarPanelHeader>
         <div
-          className="css-svlib3-SidebarPanelHeader e1aybls61"
+          className="css-fgk6wt-SidebarPanelHeader e1aybls61"
         >
-          <PanelClose
-            onClick={[Function]}
-          >
-            <a
-              className="css-f8nv6a-PanelClose e1aybls63"
-              onClick={[Function]}
-            >
-              <span
-                className="icon-close"
-              />
-            </a>
-          </PanelClose>
           <Title>
             <div
               className="css-16z7jx4-Title e1aybls64"
@@ -1228,6 +1229,34 @@ exports[`Sidebar can have onboarding feature 1`] = `
               Getting Started with Sentry
             </div>
           </Title>
+          <PanelClose
+            onClick={[Function]}
+            size="lg"
+          >
+            <IconClose
+              className="css-7jb8pb-PanelClose e1aybls63"
+              onClick={[Function]}
+              size="lg"
+            >
+              <svg
+                className="css-7jb8pb-PanelClose e1aybls63"
+                fill="currentColor"
+                height="24px"
+                onClick={[Function]}
+                viewBox="0 0 16 16"
+                width="24px"
+              >
+                <g>
+                  <path
+                    d="M15.13,15.88a.77.77,0,0,1-.53-.22L.34,1.4A.75.75,0,0,1,1.4.34L15.66,14.6a.75.75,0,0,1,0,1.06A.79.79,0,0,1,15.13,15.88Z"
+                  />
+                  <path
+                    d="M.87,15.88a.79.79,0,0,1-.53-.22.75.75,0,0,1,0-1.06L14.6.34A.75.75,0,0,1,15.66,1.4L1.4,15.66A.77.77,0,0,1,.87,15.88Z"
+                  />
+                </g>
+              </svg>
+            </IconClose>
+          </PanelClose>
         </div>
       </SidebarPanelHeader>
       <SidebarPanelBody>

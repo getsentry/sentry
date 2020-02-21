@@ -24,9 +24,9 @@ exports[`ProjectExpectCtReports renders 1`] = `
         About
       </PanelHeader>
       <PanelBody
-        direction="column"
-        disablePadding={false}
-        flex={false}
+        disablePadding={true}
+        flexible={false}
+        withPadding={true}
       >
         <p>
           <span

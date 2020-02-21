@@ -5,6 +5,7 @@ from json import loads
 import jsonschema
 import pytz
 import sentry_sdk
+from sentry_sdk.tracing import Span
 from confluent_kafka import Consumer, KafkaException, TopicPartition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -92,7 +93,14 @@ class QuerySubscriptionConsumer(object):
 
                 i = i + 1
 
-                self.handle_message(message)
+                with sentry_sdk.start_span(
+                    Span(
+                        op="handle_message",
+                        transaction="query_subscription_consumer_process_message",
+                        sampled=True,
+                    )
+                ):
+                    self.handle_message(message)
 
                 # Track latest completed message here, for use in `shutdown` handler.
                 self.offsets[message.partition()] = message.offset() + 1
@@ -185,9 +193,7 @@ class QuerySubscriptionConsumer(object):
             )
 
             callback = subscriber_registry[subscription.type]
-            with sentry_sdk.start_span(
-                op="process_message", transaction="query_subscription_consumer_process_message"
-            ) as span, metrics.timer(
+            with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
                 "snuba_query_subscriber.callback.duration", instance=subscription.type
             ):
                 span.set_data("payload", contents)

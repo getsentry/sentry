@@ -1,17 +1,17 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment-timezone';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {getUserTimezone} from 'app/utils/dates';
+import {getFormattedDate} from 'app/utils/dates';
 import {t} from 'app/locale';
 import MarkLine from 'app/components/charts/components/markLine';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {escape} from 'app/utils';
 import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
@@ -83,7 +83,7 @@ class ReleaseSeries extends React.Component {
   }
 
   getReleaseSeries = releases => {
-    const {utc, organization, router, tooltip} = this.props;
+    const {organization, router, tooltip} = this.props;
 
     return {
       seriesName: 'Releases',
@@ -98,11 +98,24 @@ class ReleaseSeries extends React.Component {
         },
         tooltip: tooltip || {
           formatter: ({data}) => {
-            return `<div>${moment
-              .tz(data.value, utc ? 'UTC' : getUserTimezone())
-              .format('MMM D, YYYY LT')} <br />
-            Release: ${formatVersion(data.name, true)}<br />
-            </div>`;
+            // XXX using this.props here as this function does not get re-run
+            // unless projects are changed. Using a closure variable would result
+            // in stale values.
+            const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
+              local: !this.props.utc,
+            });
+            const version = escape(formatVersion(data.name, true));
+            return [
+              '<div class="tooltip-series">',
+              `<div><span class="tooltip-label"><strong>${t(
+                'Release'
+              )}</strong></span> ${version}</div>`,
+              '</div>',
+              '<div class="tooltip-date">',
+              time,
+              '</div>',
+              '</div>',
+            ].join('');
           },
         },
         label: {
@@ -113,9 +126,12 @@ class ReleaseSeries extends React.Component {
           name: formatVersion(release.version, true),
           value: formatVersion(release.version, true),
           onClick: () => {
-            router.push(
-              `/organizations/${organization.slug}/releases/${release.version}/`
-            );
+            router.push({
+              pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
+              query: new Set(organization.features).has('global-views')
+                ? undefined
+                : {project: router.location.query.project},
+            });
           },
           label: {
             formatter: () => formatVersion(release.version, true),

@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 import os
 import six
+from six.moves import zip
 import base64
 import msgpack
 import inspect
-from itertools import izip
 
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.exceptions import ParseError
@@ -233,7 +233,7 @@ class FlagAction(Action):
 
         sliced_components = self._slice_to_range(components, idx)
         sliced_frames = self._slice_to_range(frames, idx)
-        for component, frame in izip(sliced_components, sliced_frames):
+        for component, frame in zip(sliced_components, sliced_frames):
             if self.key == "group" and self.flag != component.contributes:
                 component.update(
                     contributes=self.flag,
@@ -317,7 +317,7 @@ class Enhancements(object):
 
         # Apply direct frame actions and update the stack state alongside
         for rule in self.iter_rules():
-            for idx, (component, frame) in enumerate(izip(components, frames)):
+            for idx, (component, frame) in enumerate(zip(components, frames)):
                 actions = rule.get_matching_frame_actions(frame, platform)
                 for action in actions or ():
                     action.update_frame_components_contributions(components, frames, idx, rule=rule)

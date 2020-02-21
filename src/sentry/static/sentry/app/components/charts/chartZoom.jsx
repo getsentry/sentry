@@ -227,22 +227,13 @@ class ChartZoom extends React.Component {
       ...xAxis,
     };
 
-    const tooltip = {
-      formatAxisLabel: (value, isTimestamp, isUtc) => {
-        if (!isTimestamp) {
-          return value;
-        }
-        return getFormattedDate(value, 'lll', {local: !isUtc});
-      },
-    };
-
     const renderProps = {
       // Zooming only works when grouped by date
       isGroupedByDate: true,
       onChartReady: this.handleChartReady,
       utc,
       dataZoom: DataZoom(),
-      tooltip,
+      showTimeInTooltip: true,
       toolBox: ToolBox(
         {},
         {
