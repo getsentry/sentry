@@ -30,6 +30,7 @@ export const AGGREGATE_ALIASES = [
   'p99',
   'last_seen',
   'latest_event',
+  'error_rate',
 ];
 
 // default list of yAxis options
