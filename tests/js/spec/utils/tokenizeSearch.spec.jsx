@@ -39,8 +39,8 @@ describe('utils/tokenizeSearch', function() {
       },
       {
         name: 'should tokenize words with :: in them',
-        string: 'Foo::bar()',
-        object: {query: ['Foo::bar()']},
+        string: 'key:Resque::DirtyExit',
+        object: {query: [], key: ['Resque::DirtyExit']},
       },
     ];
 

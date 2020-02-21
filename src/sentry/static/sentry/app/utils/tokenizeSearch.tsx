@@ -9,7 +9,7 @@ export type QueryResults = {
 };
 
 /**
- * Tokenize a search into a an object
+ * Tokenize a search into an object
  *
  * Example:
  *   tokenizeSearch('is:resolved foo bar tag:value');
@@ -18,6 +18,8 @@ export type QueryResults = {
  *     query: ['foo', 'bar'],
  *     tag: ['value'],
  *   }
+ *
+ * Should stay in sync with src/sentry/search/utils:tokenize_query
  */
 export function tokenizeSearch(query: string) {
   const tokens = splitSearchIntoTokens(query);
@@ -35,21 +37,19 @@ export function tokenizeSearch(query: string) {
     for (let i = 0, len = token.length; i < len; i++) {
       const char = token[i];
 
+      if (i === 0 && char === '"') {
+        break;
+      }
+
       // We may have entered a tag condition
       if (char === ':') {
-        tokenState = 'tags';
         const nextChar = token[i + 1] || '';
-
-        if (nextChar === '"') {
-          break;
-        }
-
-        // If we have a space or colon, we are in a query string,
-        // not a tag and can stop scanning.
-        if ([' ', ':'].includes(nextChar)) {
+        if ([':', ' '].includes(nextChar)) {
           tokenState = 'query';
-          break;
+        } else {
+          tokenState = 'tags';
         }
+        break;
       }
     }
     searchParams[tokenState].push(token);

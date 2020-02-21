@@ -278,6 +278,8 @@ def tokenize_query(query):
         'query': ['foo', 'bar'],
         'tag': ['value'],
     }
+
+    Has a companion implementation in static/app/utils/tokenizeSearch.tsx
     """
     result = defaultdict(list)
     query_params = defaultdict(list)
