@@ -21,7 +21,6 @@ __all__ = (
 )
 
 import base64
-import contextlib
 import os
 import os.path
 import pytest
