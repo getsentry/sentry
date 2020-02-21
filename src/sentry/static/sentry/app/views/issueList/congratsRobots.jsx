@@ -17,7 +17,7 @@ const Message = () => (
 const CongratsRobots = () => (
   <CongratsRobotsWrapper>
     <AnimatedScene>
-      <StyledVideo autoPlay loop muted>
+      <StyledVideo autoPlay loop>
         <source src={video} type="video/mp4" />
         {/* Show message if browser doesn't support video */}
         <Message />
