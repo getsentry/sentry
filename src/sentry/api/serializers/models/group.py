@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
-from six.moves import zip
+from six.moves import zip, map
 
 from django.conf import settings
 from django.db.models import Min, Q
@@ -109,7 +109,7 @@ class GroupSerializerBase(Serializer):
             for subscription in GroupSubscription.objects.filter(
                 group__in=list(
                     itertools.chain.from_iterable(
-                        itertools.imap(
+                        map(
                             lambda project__groups: project__groups[1]
                             if not options.get(project__groups[0].id, options.get(None))
                             == UserOptionValue.no_conversations

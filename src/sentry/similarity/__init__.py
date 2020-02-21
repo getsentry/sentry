@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-import itertools
 import logging
+
+from six.moves import map
 
 from django.conf import settings
 
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def text_shingle(n, value):
-    return itertools.imap(u"".join, shingle(n, value))
+    return map(u"".join, shingle(n, value))
 
 
 class FrameEncodingError(ValueError):
