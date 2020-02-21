@@ -168,9 +168,7 @@ class SlackActionHandler(ActionHandler):
         from sentry.integrations.slack.utils import send_incident_alert_notification
 
         # TODO: We should include more information about the trigger/severity etc.
-        send_incident_alert_notification(
-            self.action.integration, self.incident, self.action.target_identifier
-        )
+        send_incident_alert_notification(self.action, self.incident)
 
 
 def format_duration(minutes):
