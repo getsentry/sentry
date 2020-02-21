@@ -1732,13 +1732,6 @@ function routes() {
             }
             component={errorHandler(LazyLoad)}
           />
-          <Route
-            path="/organizations/:orgId/projects/choose/"
-            componentPromise={() =>
-              import(/* webpackChunkName: "ProjectChooser" */ 'app/views/projectChooser')
-            }
-            component={errorHandler(LazyLoad)}
-          />
         </Route>
         <Route
           path=":projectId/getting-started/"
