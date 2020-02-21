@@ -30,9 +30,9 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
         subject: t('Model'),
         value:
           typeof data.model === 'string' ? (
-            <DeviceName>
-              {`${data.model} ${data.model_id ? `(${data.model_id})` : ''}`}
-            </DeviceName>
+            <DeviceName
+              value={`${data.model} ${data.model_id ? `(${data.model_id})` : ''}`}
+            />
           ) : (
             undefined
           ),

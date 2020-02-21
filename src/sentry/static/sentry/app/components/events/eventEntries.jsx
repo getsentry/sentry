@@ -22,7 +22,7 @@ import EventGroupingInfo from 'app/components/events/groupingInfo';
 import EventPackageData from 'app/components/events/packageData';
 import EventSdk from 'app/components/events/eventSdk';
 import EventSdkUpdates from 'app/components/events/sdkUpdates';
-import EventTags from 'app/components/events/eventTags';
+import EventTags from 'app/components/events/eventTags/eventTags';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import ExceptionInterface from 'app/components/events/interfaces/exception';
 import GenericInterface from 'app/components/events/interfaces/generic';
