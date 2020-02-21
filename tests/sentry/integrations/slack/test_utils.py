@@ -9,7 +9,7 @@ from sentry.integrations.slack.utils import (
     build_incident_attachment,
     CHANNEL_PREFIX,
     get_channel_id,
-    LEVEL_TO_COLOR,
+    RESOLVED_COLOR,
     MEMBER_PREFIX,
 )
 from sentry.models import Integration
@@ -80,9 +80,9 @@ class GetChannelIdTest(TestCase):
 class BuildIncidentAttachmentTest(TestCase):
     def test_simple(self):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-
-        incident = self.create_incident()
-        title = "INCIDENT: {} (#{})".format(incident.title, incident.identifier)
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=2)
+        title = u"{}: {}".format("Resolved", alert_rule.name)
         assert build_incident_attachment(incident) == {
             "fallback": title,
             "title": title,
@@ -95,17 +95,13 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             ),
-            "text": " ",
-            "fields": [
-                {"title": "Status", "value": "Fired", "short": True},
-                {"title": "Events", "value": 0, "short": True},
-                {"title": "Users", "value": 0, "short": True},
-            ],
+            "text": "0 events in the last 10 minutes\\Filter: level:error",
+            "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
             "footer": "Sentry Incident",
             "ts": to_timestamp(incident.date_started),
-            "color": LEVEL_TO_COLOR["error"],
+            "color": RESOLVED_COLOR,
             "actions": [],
         }
 
