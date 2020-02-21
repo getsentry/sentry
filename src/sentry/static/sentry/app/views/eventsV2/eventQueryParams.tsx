@@ -164,4 +164,5 @@ export const TRACING_FIELDS = [
   'p99',
   'p95',
   'p75',
+  'error_rate',
 ];
