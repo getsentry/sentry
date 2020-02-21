@@ -6,6 +6,8 @@ import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils'
 import UserAvatar from 'app/components/avatar/userAvatar';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
+import styled from '@emotion/styled';
+import space from 'app/styles/space';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 
@@ -46,7 +48,7 @@ const ContextSummaryUser = ({data}: Props) => {
 
     return (
       <p>
-        <strong>{userDetails.subject}</strong>
+        <Subject>{userDetails.subject}</Subject>
         {userDetails.meta ? (
           <AnnotatedText
             value={userDetails.value}
@@ -110,7 +112,7 @@ const ContextSummaryUser = ({data}: Props) => {
             gravatar={false}
           />
           <h3 data-test-id="user-title">
-            {userTitle?.meta ? (
+            {userTitle.meta ? (
               <AnnotatedText
                 value={userTitle.value}
                 chunks={userTitle.meta.chunks}
@@ -118,7 +120,7 @@ const ContextSummaryUser = ({data}: Props) => {
                 errors={userTitle.meta.err}
               />
             ) : (
-              userTitle?.value
+              userTitle.value
             )}
           </h3>
         </React.Fragment>
@@ -135,3 +137,7 @@ const ContextSummaryUser = ({data}: Props) => {
 };
 
 export default ContextSummaryUser;
+
+const Subject = styled('strong')`
+  margin-right: ${space(0.5)};
+`;
