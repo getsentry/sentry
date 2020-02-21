@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import ConfigStore from 'app/stores/configStore';
 import Discover from 'app/views/discover/discover';
@@ -8,10 +9,10 @@ import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import createQueryBuilder from 'app/views/discover/queryBuilder';
 
 describe('Discover', function() {
-  let organization, project, queryBuilder;
+  let organization, project, queryBuilder, routerContext;
   beforeEach(function() {
-    project = TestStubs.Project();
-    organization = TestStubs.Organization({projects: [project]});
+    ({organization, project, routerContext} = initializeOrg());
+
     queryBuilder = createQueryBuilder({}, organization);
     GlobalSelectionStore.reset();
     MockApiClient.addMockResponse({
@@ -59,18 +60,19 @@ describe('Discover', function() {
 
     it('auto-runs saved query after tags are loaded', async function() {
       const savedQuery = TestStubs.DiscoverSavedQuery();
+      const params = {savedQueryId: savedQuery.id, orgId: organization.slug};
       wrapper = mountWithTheme(
         <Discover
           location={{query: {}}}
           queryBuilder={queryBuilder}
           organization={organization}
           savedQuery={savedQuery}
-          params={{savedQueryId: savedQuery.id}}
+          params={params}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
           isLoading
         />,
-        TestStubs.routerContext([{organization}])
+        routerContext
       );
       await tick();
       expect(wrapper.state().data.baseQuery.query).toBe(null);
@@ -97,7 +99,7 @@ describe('Discover', function() {
           toggleEditMode={jest.fn()}
           isLoading
         />,
-        TestStubs.routerContext([{organization}])
+        routerContext
       );
       await tick();
       expect(wrapper.state().data.baseQuery.query).toBe(null);
@@ -123,7 +125,7 @@ describe('Discover', function() {
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
-        TestStubs.routerContext([{organization}])
+        routerContext
       );
       await tick();
       expect(wrapper.state().data.baseQuery.query).toBe(null);
@@ -143,7 +145,7 @@ describe('Discover', function() {
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
-        TestStubs.routerContext([{organization}])
+        routerContext
       );
       expect(wrapper.find('NewQuery')).toHaveLength(1);
       expect(wrapper.find('EditSavedQuery')).toHaveLength(0);
@@ -159,17 +161,18 @@ describe('Discover', function() {
     });
 
     it('handles navigating to new date', async function() {
+      const params = {orgId: organization.slug};
       const wrapper = mountWithTheme(
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
           updateSavedQueryData={jest.fn()}
           location={{query: {}, search: ''}}
-          params={{}}
+          params={params}
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
-        TestStubs.routerContext([{organization}])
+        routerContext
       );
 
       expect(wrapper.find('TimeRangeSelector').text()).toEqual('Last 14 days');
@@ -218,7 +221,7 @@ describe('Discover', function() {
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
     });
 
@@ -280,7 +283,7 @@ describe('Discover', function() {
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
     });
 
@@ -352,7 +355,7 @@ describe('Discover', function() {
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
       const createMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/discover/saved/',
@@ -401,7 +404,7 @@ describe('Discover', function() {
             toggleEditMode={jest.fn()}
             isLoading={false}
           />,
-          TestStubs.routerContext()
+          routerContext
         );
 
         wrapper.instance().updateField('fields', ['message']);
@@ -483,7 +486,7 @@ describe('Discover', function() {
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
 
       deleteMock = MockApiClient.addMockResponse({
@@ -567,7 +570,7 @@ describe('Discover', function() {
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
 
       const mockResponse = Promise.resolve({timing: {}, data: [], meta: []});
@@ -622,7 +625,7 @@ describe('Discover', function() {
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
-        TestStubs.routerContext()
+        routerContext
       );
     });
 
@@ -659,8 +662,6 @@ describe('Discover', function() {
         method: 'POST',
         body: {timing: {}, data: [], meta: []},
       });
-
-      const routerContext = TestStubs.routerContext([{organization}]);
 
       wrapper = mountWithTheme(
         <Discover

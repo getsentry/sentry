@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import json
 from uuid import uuid4
-
 import responses
 from datetime import timedelta
 from exam import fixture, patcher
@@ -32,7 +31,6 @@ from sentry.incidents.logic import (
     create_incident,
     create_incident_activity,
     create_incident_snapshot,
-    create_initial_event_stats_snapshot,
     delete_alert_rule,
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
@@ -130,9 +128,7 @@ class CreateIncidentTest(TestCase):
         )
         assert (
             IncidentActivity.objects.filter(
-                incident=incident,
-                type=IncidentActivityType.DETECTED.value,
-                event_stats_snapshot__isnull=False,
+                incident=incident, type=IncidentActivityType.DETECTED.value
             ).count()
             == 1
         )
@@ -173,7 +169,6 @@ class UpdateIncidentStatus(TestCase):
         assert activity.value == six.text_type(status.value)
         assert activity.previous_value == six.text_type(prev_status)
         assert activity.comment == comment
-        assert activity.event_stats_snapshot is None
 
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0]
@@ -265,8 +260,11 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         result = get_incident_event_stats(incident, data_points=20, **kwargs)
         # Duration of 300s / 20 data points
         assert result.rollup == 15
-        assert result.start == start if start else incident.date_started
-        assert result.end == end if end else incident.current_end_date
+        expected_start = start if start else incident.date_started
+        expected_end = end if end else incident.current_end_date
+        expected_start = expected_start - (expected_end - expected_start) / 5
+        assert result.start == expected_start
+        assert result.end == expected_end
         assert [r["count"] for r in result.data["data"]] == expected_results
 
     def test_project(self):
@@ -285,8 +283,11 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
             # Duration of 300s / 20 data points
             assert result.rollup == 15
-            assert result.start == start if start else incident.date_started
-            assert result.end == end if end else incident.current_end_date
+            expected_start = start if start else incident.date_started
+            expected_end = end if end else incident.current_end_date
+            expected_start = expected_start - (expected_end - expected_start) / 5
+            assert result.start == expected_start
+            assert result.end == expected_end
             assert [r["count"] for r in result.data["data"]] == expected_results
 
     def test_project(self):
@@ -425,35 +426,6 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         self.assert_notifications_sent(activity)
         assert not self.record_event.called
 
-    def test_snapshot(self):
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=1))
-        # Define events outside incident range. Should be included in the
-        # snapshot
-        self.create_event(self.now - timedelta(minutes=20))
-        self.create_event(self.now - timedelta(minutes=30))
-
-        # Too far out, should be excluded
-        self.create_event(self.now - timedelta(minutes=100))
-
-        incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
-        )
-        event_stats_snapshot = create_initial_event_stats_snapshot(incident)
-        self.record_event.reset_mock()
-        activity = create_incident_activity(
-            incident, IncidentActivityType.DETECTED, event_stats_snapshot=event_stats_snapshot
-        )
-        assert activity.incident == incident
-        assert activity.type == IncidentActivityType.DETECTED.value
-        assert activity.value is None
-        assert activity.previous_value is None
-
-        assert event_stats_snapshot == activity.event_stats_snapshot
-        self.assert_notifications_sent(activity)
-        assert not self.record_event.called
-
     def test_comment(self):
         incident = self.create_incident()
         comment = "hello"
@@ -527,28 +499,6 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         }
 
 
-class CreateInitialEventStatsSnapshotTest(TestCase, BaseIncidentsTest):
-    def test_snapshot(self):
-        with freeze_time(self.now):
-            self.create_event(self.now - timedelta(minutes=2))
-            self.create_event(self.now - timedelta(minutes=2))
-            self.create_event(self.now - timedelta(minutes=1))
-            # Define events outside incident range. Should be included in the
-            # snapshot
-            self.create_event(self.now - timedelta(minutes=15))
-            self.create_event(self.now - timedelta(minutes=20))
-
-            # Too far out, should be excluded
-            self.create_event(self.now - timedelta(minutes=100))
-
-            incident = self.create_incident(
-                date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
-            )
-            event_stat_snapshot = create_initial_event_stats_snapshot(incident)
-            assert event_stat_snapshot.start == self.now - timedelta(minutes=20)
-            assert [row[1] for row in event_stat_snapshot.values] == [1, 1, 2, 1]
-
-
 class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
     def test_simple(self):
         incident = self.create_incident()
@@ -600,12 +550,17 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
             date_started=timezone.now() - timedelta(days=30),
         )
         incidents = [closed_incident, open_incident]
-
+        changed = False
         for incident, incident_stats in zip(incidents, bulk_get_incident_stats(incidents)):
             event_stats = get_incident_event_stats(incident)
             assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
-            assert incident_stats["event_stats"].start == event_stats.start
-            assert incident_stats["event_stats"].end == event_stats.end
+            expected_start = incident_stats["event_stats"].start
+            expected_end = incident_stats["event_stats"].end
+            if not changed:
+                expected_start = expected_start - (expected_end - expected_start) / 5
+                changed = True
+            assert event_stats.start == expected_start
+            assert event_stats.end == expected_end
             assert incident_stats["event_stats"].rollup == event_stats.rollup
 
             aggregates = get_incident_aggregates(incident)

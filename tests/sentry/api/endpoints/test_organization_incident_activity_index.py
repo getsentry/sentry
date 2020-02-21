@@ -6,7 +6,7 @@ from django.utils import timezone
 from exam import fixture
 
 from sentry.api.serializers import serialize
-from sentry.incidents.logic import create_incident_activity, create_initial_event_stats_snapshot
+from sentry.incidents.logic import create_incident_activity
 from sentry.incidents.models import IncidentActivityType
 from sentry.testutils import APITestCase
 
@@ -46,14 +46,12 @@ class OrganizationIncidentActivityIndexTest(APITestCase):
         incident = self.create_incident(
             date_started=timezone.now() - timedelta(hours=2), projects=[self.project], query=""
         )
-        snapshot = create_initial_event_stats_snapshot(incident)
         activities = [
             create_incident_activity(
                 incident=incident,
                 activity_type=IncidentActivityType.DETECTED,
                 user=self.user,
                 comment="hello",
-                event_stats_snapshot=snapshot,
             ),
             create_incident_activity(
                 incident=incident,

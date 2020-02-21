@@ -264,7 +264,7 @@ let appConfig = {
           {
             loader: 'file-loader',
             options: {
-              name: '[name].[ext]',
+              name: '[name].[hash:6].[ext]',
             },
           },
         ],
