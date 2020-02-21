@@ -182,7 +182,7 @@ export default class DetailsBody extends React.Component<Props> {
                   <StyledSeenByList
                     iconPosition="right"
                     seenBy={incident.seenBy}
-                    iconTooltip={t('People who have viewed this incident')}
+                    iconTooltip={t('People who have viewed this alert')}
                   />
                 )}
               </SeenByTab>

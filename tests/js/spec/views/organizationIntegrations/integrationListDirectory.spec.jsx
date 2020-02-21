@@ -241,7 +241,7 @@ describe('IntegrationListDirectory', function() {
               status: 'unknown',
               description: 'Send alerts to PagerDuty.',
               isTestable: true,
-              isHidden: false,
+              isHidden: true,
               hasConfiguration: true,
               features: [],
               shortName: 'PagerDuty',
@@ -288,9 +288,6 @@ describe('IntegrationListDirectory', function() {
         <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
         routerContext
       );
-    });
-    it('match previous snapshot', async function() {
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('shows installed integrations at the top', async function() {

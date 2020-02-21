@@ -6,11 +6,10 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import Button from 'app/components/button';
 import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin';
-import {openModal} from 'app/actionCreators/modal';
+import * as modal from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
-import {legacyIds} from './constants';
 
 type State = {
   plugins: PluginWithProjectList[];
@@ -27,6 +26,10 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     return [
       ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${integrationSlug}`],
     ];
+  }
+
+  get integrationType() {
+    return 'plugin' as const;
   }
 
   get plugin() {
@@ -50,7 +53,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get integrationName() {
-    const isLegacy = legacyIds.includes(this.plugin.id);
+    const isLegacy = this.plugin.isHidden;
     const displayName = `${this.plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
     return displayName;
   }
@@ -101,7 +104,11 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   handleAddToProject = () => {
     const plugin = this.plugin;
     const {organization, router} = this.props;
-    openModal(
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.plugin_add_to_project_clicked',
+      eventName: 'Integrations: Plugin Add to Project Clicked',
+    });
+    modal.openModal(
       ({closeModal, Header, Body}) => (
         <ContextPickerModal
           Header={Header}
@@ -154,6 +161,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
             projectItem={projectItem}
             onResetConfiguration={this.handleResetConfiguration}
             onEnablePlugin={this.handleEnablePlugin}
+            trackIntegrationEvent={this.trackIntegrationEvent}
           />
         ))}
       </div>

@@ -57,6 +57,11 @@ describe('utils/tokenizeSearch', function() {
         object: {query: ['python', 'exception']},
         string: 'python exception',
       },
+      {
+        name: 'should quote tags with spaces',
+        object: {query: ['oh me', 'oh my'], browser: ['Chrome 36', 'Firefox 60']},
+        string: 'oh me oh my browser:"Chrome 36" browser:"Firefox 60"',
+      },
     ];
 
     for (const {name, string, object} of cases) {

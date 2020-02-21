@@ -212,11 +212,13 @@ class SlackActionHandlerBaseTest(object):
 
 class SlackActionHandlerFireTest(SlackActionHandlerBaseTest, TestCase):
     def test(self):
-        self.run_test(self.create_incident(), "fire")
+        alert_rule = self.create_alert_rule()
+        self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
 
 
 class SlackActionHandlerResolveTest(SlackActionHandlerBaseTest, TestCase):
     def test(self):
-        incident = self.create_incident()
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule)
         update_incident_status(incident, IncidentStatus.CLOSED)
         self.run_test(incident, "resolve")
