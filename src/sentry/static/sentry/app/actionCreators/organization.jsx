@@ -35,7 +35,7 @@ export async function fetchOrganizationDetails(api, slug, detailed, silent) {
       return;
     }
 
-    OrganizationActions.update(org);
+    OrganizationActions.update(org, {replace: true});
     setActiveOrganization(org);
 
     if (detailed) {

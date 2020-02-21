@@ -45,7 +45,7 @@ describe('OrganizationActionCreator', function() {
       `/organizations/${detailedOrg.slug}/`,
       expect.anything()
     );
-    expect(OrganizationActions.update).toHaveBeenCalledWith(detailedOrg);
+    expect(OrganizationActions.update).toHaveBeenCalledWith(detailedOrg, {replace: true});
     expect(OrganizationsActionCreator.setActiveOrganization).toHaveBeenCalled();
 
     expect(TeamStore.loadInitialData).toHaveBeenCalledWith(detailedOrg.teams);
@@ -82,7 +82,7 @@ describe('OrganizationActionCreator', function() {
       `/organizations/${lightOrg.slug}/teams/`,
       expect.anything()
     );
-    expect(OrganizationActions.update).toHaveBeenCalledWith(lightOrg);
+    expect(OrganizationActions.update).toHaveBeenCalledWith(lightOrg, {replace: true});
     expect(OrganizationsActionCreator.setActiveOrganization).toHaveBeenCalled();
 
     expect(TeamStore.loadInitialData).not.toHaveBeenCalled();
@@ -103,7 +103,7 @@ describe('OrganizationActionCreator', function() {
       `/organizations/${detailedOrg.slug}/`,
       expect.anything()
     );
-    expect(OrganizationActions.update).toHaveBeenCalledWith(detailedOrg);
+    expect(OrganizationActions.update).toHaveBeenCalledWith(detailedOrg, {replace: true});
     expect(OrganizationsActionCreator.setActiveOrganization).toHaveBeenCalled();
 
     expect(TeamStore.loadInitialData).toHaveBeenCalledWith(detailedOrg.teams);
