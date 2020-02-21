@@ -238,5 +238,8 @@ def get_ingest_consumer(consumer_type, once=False, concurrency=None, **options):
     """
     topic_name = ConsumerType.get_topic_name(consumer_type)
     return create_batching_kafka_consumer(
-        topic_name=topic_name, worker=IngestConsumerWorker(concurrency=concurrency), **options
+        topic_name=topic_name,
+        worker=IngestConsumerWorker(concurrency=concurrency),
+        pause_gc=True,
+        **options
     )
