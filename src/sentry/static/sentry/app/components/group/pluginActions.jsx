@@ -30,7 +30,7 @@ class PluginActions extends React.Component {
     this.loadPlugin(this.props.plugin);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (this.props.plugin.id !== nextProps.plugin.id) {
       this.loadPlugin(nextProps.plugin);
     }

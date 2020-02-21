@@ -6,10 +6,11 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import Button from 'app/components/button';
 import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin';
-import {openModal} from 'app/actionCreators/modal';
+import * as modal from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
+import {legacyIds} from './constants';
 
 type State = {
   plugins: PluginWithProjectList[];
@@ -49,7 +50,9 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get integrationName() {
-    return this.plugin.name;
+    const isLegacy = legacyIds.includes(this.plugin.id);
+    const displayName = `${this.plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
+    return displayName;
   }
 
   get featureData() {
@@ -98,7 +101,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   handleAddToProject = () => {
     const plugin = this.plugin;
     const {organization, router} = this.props;
-    openModal(
+    modal.openModal(
       ({closeModal, Header, Body}) => (
         <ContextPickerModal
           Header={Header}

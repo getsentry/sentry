@@ -7,3 +7,14 @@ export const colors = {
   [NOT_INSTALLED]: 'gray2',
   [PENDING]: 'yellowOrange',
 };
+
+export const legacyIds = [
+  'jira',
+  'bitbucket',
+  'github',
+  'gitlab',
+  'slack',
+  'pagerduty',
+  'clubhouse',
+  'vsts',
+];

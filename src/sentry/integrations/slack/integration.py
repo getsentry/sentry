@@ -13,6 +13,7 @@ from sentry.integrations import (
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri
+from .utils import track_response_code
 
 DESCRIPTION = """
 Connect your Sentry organization to one or more Slack workspaces, and start
@@ -112,7 +113,9 @@ class SlackIntegrationProvider(IntegrationProvider):
         session = http.build_session()
         resp = session.get("https://slack.com/api/team.info", params=payload)
         resp.raise_for_status()
+        status_code = resp.status_code
         resp = resp.json()
+        track_response_code(status_code, resp.get("ok"))
 
         return resp["team"]
 
@@ -122,7 +125,9 @@ class SlackIntegrationProvider(IntegrationProvider):
         session = http.build_session()
         resp = session.get("https://slack.com/api/auth.test", params=payload)
         resp.raise_for_status()
+        status_code = resp.status_code
         resp = resp.json()
+        track_response_code(status_code, resp.get("ok"))
 
         return resp["user_id"]
 

@@ -91,8 +91,7 @@ class CrashHeader extends React.Component {
     const {title, beforeTitle, hideGuide, stackView, stackType, newestFirst} = this.props;
 
     let titleNode = (
-      <StyledH3
-        className="pull-left"
+      <h3
         style={{
           marginBottom: 0,
           maxWidth: '100%',
@@ -103,13 +102,13 @@ class CrashHeader extends React.Component {
         <small>
           (
           <Tooltip title={t('Toggle stacktrace order')}>
-            <a onClick={this.handleToggleOrder} style={{borderBottom: '1px dotted #aaa'}}>
+            <a onClick={this.handleToggleOrder}>
               {newestFirst ? t('most recent call first') : t('most recent call last')}
             </a>
           </Tooltip>
           )
         </small>
-      </StyledH3>
+      </h3>
     );
 
     if (!hideGuide) {
@@ -189,9 +188,11 @@ export default CrashHeader;
 
 const Wrapper = styled('div')`
   display: flex;
+  justify-content: space-between;
   margin-bottom: ${space(3)};
   flex-direction: column;
   flex-wrap: wrap;
+  width: 100%;
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
     align-items: center;
     flex-direction: row;
@@ -225,16 +226,5 @@ const ButtonGroupWrapper = styled('div')`
   }
   @media (min-width: ${props => props.theme.breakpoints[1]}) {
     flex-direction: row;
-  }
-`;
-
-const StyledH3 = styled('h3')`
-  > small {
-    margin-right: ${space(1)};
-  }
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
-    > small {
-      margin-left: ${space(1)};
-    }
   }
 `;

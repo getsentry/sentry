@@ -245,12 +245,14 @@ class ContextData extends React.Component {
       preserveQuotes: _preserveQuotes,
       withAnnotatedText: _withAnnotatedText,
       meta: _meta,
+      children,
       ...other
     } = this.props;
 
     return (
       <pre className="val-string" {...other}>
         {this.renderValue(data)}
+        {children}
       </pre>
     );
   }
