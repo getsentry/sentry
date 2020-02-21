@@ -98,7 +98,7 @@ class BaseEventFrequencyCondition(EventCondition):
         :return:
             bool: True if rule is approximated to be created on project creation, False otherwise.
         """
-        delta = abs(self.project.date_added - self.rule.date_added)
+        delta = abs(self.rule.date_added - self.project.date_added)
         return delta.total_seconds() < 30 and self.rule.label == DEFAULT_RULE_LABEL
 
 
