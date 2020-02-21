@@ -10,7 +10,6 @@ import * as modal from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
-import {legacyIds} from './constants';
 
 type State = {
   plugins: PluginWithProjectList[];
@@ -50,7 +49,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get integrationName() {
-    const isLegacy = legacyIds.includes(this.plugin.id);
+    const isLegacy = this.plugin.isHidden;
     const displayName = `${this.plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
     return displayName;
   }
