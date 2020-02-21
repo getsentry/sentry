@@ -214,7 +214,6 @@ def _create_in_snuba(
                 "resolution": int(resolution.total_seconds()),
             }
         ),
-        retries=False,
     )
     if response.status != 202:
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
