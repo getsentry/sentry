@@ -109,6 +109,7 @@ class SentryAppInstallationDetail extends React.Component<Props> {
             integration: app.slug,
             integration_type: 'sentry_app',
             integration_status: app.status,
+            view: 'integrations_page',
           },
           this.props.organization
         );
@@ -130,6 +131,7 @@ class SentryAppInstallationDetail extends React.Component<Props> {
         integration: app.slug,
         integration_type: 'sentry_app',
         integration_status: app.status,
+        view: 'integrations_page',
       },
       this.props.organization
     );

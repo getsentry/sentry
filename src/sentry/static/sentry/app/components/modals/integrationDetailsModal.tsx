@@ -67,6 +67,7 @@ class IntegrationDetailsModal extends React.Component<Props> {
         eventName: 'Integrations: Installation Start',
         integration: provider.key,
         integration_type: 'first_party',
+        view: 'integrations_page',
       },
       organization
     );
