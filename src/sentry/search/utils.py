@@ -40,6 +40,28 @@ def parse_status_value(value):
     raise ValueError("Invalid status value")
 
 
+def parse_duration(value, interval, granularity=0.01):
+    value = float(value)
+    if interval == "ms":
+        delta = timedelta(milliseconds=value)
+    elif interval == "s":
+        delta = timedelta(seconds=value)
+    elif interval == "min":
+        delta = timedelta(minutes=value)
+    elif interval == "hr":
+        delta = timedelta(hours=value)
+    elif interval == "day":
+        delta = timedelta(days=value)
+    elif interval == "wk":
+        delta = timedelta(days=value * 7)
+    else:
+        raise InvalidQuery(
+            u"{} is not a valid duration type, must be ms, s, min, hr, day or wk".format(interval)
+        )
+
+    return delta.total_seconds() * 1000.0
+
+
 def parse_datetime_range(value):
     try:
         flag, count, interval = value[0], int(value[1:-1]), value[-1]
