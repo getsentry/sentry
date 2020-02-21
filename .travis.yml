@@ -100,7 +100,7 @@ base_acceptance: &acceptance_default
     - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
   install:
-    - ./bin/yarn install --pure-lockfile
+    - ./bin/yarn install --frozen-lockfile
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
     - |
@@ -130,7 +130,7 @@ matrix:
         - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev]"
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
-        - ./bin/yarn install --pure-lockfile
+        - ./bin/yarn install --frozen-lockfile
 
     # Proactive linting on 3.7 during the porting process
     - python: 3.7
@@ -162,7 +162,7 @@ matrix:
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
       install:
-        - ./bin/yarn install --pure-lockfile
+        - ./bin/yarn install --frozen-lockfile
 
     - python: 2.7
       name: 'Command Line'
@@ -223,7 +223,7 @@ matrix:
         # Use the decrypted service account credentials to authenticate the command line tool
         - gcloud auth activate-service-account --key-file client-secret.json
       install:
-        - ./bin/yarn install --pure-lockfile
+        - ./bin/yarn install --frozen-lockfile
         - gcloud version
       script: bash .travis/deploy-storybook.sh
       after_success: skip
