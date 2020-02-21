@@ -60,6 +60,7 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.functional import extract_lazy_object
+from six.moves import zip
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -235,7 +236,7 @@ class StatusDetailsValidator(serializers.Serializer):
 
 
 class GroupValidator(serializers.Serializer):
-    status = serializers.ChoiceField(choices=zip(STATUS_CHOICES.keys(), STATUS_CHOICES.keys()))
+    status = serializers.ChoiceField(choices=list(zip(STATUS_CHOICES.keys(), STATUS_CHOICES.keys())))
     statusDetails = StatusDetailsValidator()
     hasSeen = serializers.BooleanField()
     isBookmarked = serializers.BooleanField()

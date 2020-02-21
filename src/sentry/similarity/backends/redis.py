@@ -6,6 +6,8 @@ import time
 from sentry.similarity.backends.abstract import AbstractIndexBackend
 from sentry.utils.iterators import chunked
 from sentry.utils.redis import load_script
+from six.moves import map
+from six.moves import zip
 
 
 index = load_script("similarity/index.lua")
@@ -58,13 +60,13 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
             key, scores = result
             return (
                 key,
-                map(lambda score: score_replacements.get(score, score), map(float, scores)),
+                [score_replacements.get(score, score) for score in list(map(float, scores))],
             )
 
         def get_comparison_key(result):
             key, scores = result
 
-            scores = filter(lambda score: score is not None, scores)
+            scores = [score for score in scores if score is not None]
 
             return (
                 sum(scores) / len(scores) * -1,  # average score, descending

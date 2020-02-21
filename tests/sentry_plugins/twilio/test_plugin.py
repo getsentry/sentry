@@ -40,7 +40,7 @@ class TwilioConfigurationFormTest(TestCase):
         # extracting the message from django.forms.ValidationError
         # is the easiest and simplest way I've found to assert as_data
         for e in errors:
-            errors[e] = list(map(lambda x: x.message, errors[e]))
+            errors[e] = list([x.message for x in errors[e]])
 
         self.assertDictEqual(
             errors,

@@ -25,7 +25,7 @@ def tokenize_path(path):
         if sep in path:
             # Exclude empty path segments as some repository integrations
             # start their paths with `/` which we want to ignore.
-            return reversed(filter(lambda x: x != "", path.split(sep)))
+            return reversed([x for x in path.split(sep) if x != ""])
     else:
         return iter([path])
 

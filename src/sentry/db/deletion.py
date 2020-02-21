@@ -6,6 +6,7 @@ from uuid import uuid4
 from datetime import timedelta
 from django.db import connections, router
 from django.utils import timezone
+from six.moves import zip
 
 
 class BulkDeleteQuery(object):
@@ -110,7 +111,7 @@ class BulkDeleteQuery(object):
                         if position is not None:
                             where.append((u"{} >= %s".format(quote_name(order_field)), [position]))
 
-                    conditions, parameters = zip(*where)
+                    conditions, parameters = list(zip(*where))
                     parameters = list(itertools.chain.from_iterable(parameters))
 
                     query = u"""

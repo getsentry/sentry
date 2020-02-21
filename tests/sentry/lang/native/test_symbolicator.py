@@ -38,7 +38,7 @@ def test_sources_builtin(default_project):
         sources = get_sources_for_project(default_project)
 
     # XXX: The order matters here! Project is always first, then builtin sources
-    source_ids = map(lambda s: s["id"], sources)
+    source_ids = [s["id"] for s in sources]
     assert source_ids == ["sentry:project", "sentry:microsoft"]
 
 
@@ -53,7 +53,7 @@ def test_sources_builtin_unknown(default_project):
     with Feature(features):
         sources = get_sources_for_project(default_project)
 
-    source_ids = map(lambda s: s["id"], sources)
+    source_ids = [s["id"] for s in sources]
     assert source_ids == ["sentry:project"]
 
 
@@ -68,7 +68,7 @@ def test_sources_builtin_disabled(default_project):
     with Feature(features):
         sources = get_sources_for_project(default_project)
 
-    source_ids = map(lambda s: s["id"], sources)
+    source_ids = [s["id"] for s in sources]
     assert source_ids == ["sentry:project"]
 
 
@@ -84,7 +84,7 @@ def test_sources_custom(default_project):
         sources = get_sources_for_project(default_project)
 
     # XXX: The order matters here! Project is always first, then custom sources
-    source_ids = map(lambda s: s["id"], sources)
+    source_ids = [s["id"] for s in sources]
     assert source_ids == ["sentry:project", "custom"]
 
 
@@ -100,5 +100,5 @@ def test_sources_custom_disabled(default_project):
     with Feature(features):
         sources = get_sources_for_project(default_project)
 
-    source_ids = map(lambda s: s["id"], sources)
+    source_ids = [s["id"] for s in sources]
     assert source_ids == ["sentry:project"]

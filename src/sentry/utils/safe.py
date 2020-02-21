@@ -10,6 +10,7 @@ from django.utils.encoding import force_text
 
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
+from six.moves import filter
 
 
 def safe_execute(func, *args, **kwargs):

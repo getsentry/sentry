@@ -8,6 +8,7 @@ from operator import itemgetter
 from hashlib import md5
 from django.contrib.staticfiles.management.commands.collectstatic import Command as BaseCommand
 from six.moves import zip
+from six.moves import map
 
 BUFFER_SIZE = 65536
 VERSION_PATH = "version"

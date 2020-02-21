@@ -18,6 +18,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from six.moves.urllib.parse import quote, urlparse
 
 from sentry.utils.retries import TimedRetryPolicy
+from six.moves import map
 
 # if we're not running in a PR, we kill the PERCY_TOKEN because its a push
 # to a branch, and we dont want percy comparing things

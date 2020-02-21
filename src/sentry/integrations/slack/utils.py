@@ -251,7 +251,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
             )
 
     if actions:
-        action_texts = filter(None, [build_action_text(group, identity, a) for a in actions])
+        action_texts = [_f for _f in [build_action_text(group, identity, a) for a in actions] if _f]
         text += "\n" + "\n".join(action_texts)
 
         color = ACTIONED_ISSUE_COLOR

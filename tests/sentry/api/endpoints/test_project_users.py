@@ -44,7 +44,7 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted(
+        assert sorted([x["id"] for x in response.data]) == sorted(
             [six.text_type(self.euser1.id), six.text_type(self.euser2.id)]
         )
 

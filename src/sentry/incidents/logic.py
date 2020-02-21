@@ -42,6 +42,7 @@ from sentry.snuba.subscriptions import (
     query_aggregation_to_snuba,
 )
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
+from six.moves import zip
 
 MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
 

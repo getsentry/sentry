@@ -12,6 +12,7 @@ from sentry.models import (
     WidgetDisplayTypes,
 )
 from sentry.testutils import APITestCase
+from six.moves import zip
 
 
 class OrganizationDashboardDetailsTestCase(APITestCase):

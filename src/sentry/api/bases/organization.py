@@ -22,6 +22,7 @@ from sentry.models import (
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.sdk import bind_organization_context
+from six.moves import map
 
 
 class OrganizationEventsError(Exception):

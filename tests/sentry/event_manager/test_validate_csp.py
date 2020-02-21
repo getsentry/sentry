@@ -4,6 +4,7 @@ import pytest
 
 from sentry.coreapi import APIError
 from sentry.event_manager import EventManager
+from six.moves import map
 
 
 def validate_and_normalize(report, client_ip="198.51.100.0", user_agent="Awesome Browser"):
@@ -61,7 +62,7 @@ def test_csp_validate(effective_directive, violated_directive, culprit_element):
     assert "errors" not in result
     assert "logentry" in result
     assert result["culprit"] == culprit_element + " 'self'"
-    assert map(tuple, result["tags"]) == [
+    assert list(map(tuple, result["tags"])) == [
         ("effective-directive", "img-src"),
         ("blocked-uri", "http://google.com"),
     ]
@@ -133,7 +134,7 @@ def test_csp_tag_value():
         },
     }
     result = validate_and_normalize(report)
-    assert map(tuple, result["tags"]) == [
+    assert list(map(tuple, result["tags"])) == [
         ("effective-directive", "img-src"),
         ("blocked-uri", "http://google.com"),
     ]

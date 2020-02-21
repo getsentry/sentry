@@ -4,6 +4,7 @@ import itertools
 import six
 
 from django.http import HttpResponse
+from six.moves import filter
 
 
 class HealthCheck(object):
@@ -24,7 +25,7 @@ class HealthCheck(object):
         from sentry.utils import json
 
         threshold = Problem.threshold(Problem.SEVERITY_CRITICAL)
-        results = {check: filter(threshold, problems) for check, problems in check_all().items()}
+        results = {check: list(filter(threshold, problems)) for check, problems in check_all().items()}
         problems = list(itertools.chain.from_iterable(results.values()))
 
         return HttpResponse(

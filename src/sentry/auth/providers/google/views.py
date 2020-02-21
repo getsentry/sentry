@@ -7,6 +7,7 @@ from sentry.utils import json
 from sentry.utils.signing import urlsafe_b64decode
 
 from .constants import DOMAIN_BLOCKLIST, ERR_INVALID_DOMAIN, ERR_INVALID_RESPONSE
+from six.moves import map
 
 logger = logging.getLogger("sentry.auth.google")
 
@@ -27,7 +28,7 @@ class FetchUser(AuthView):
             return helper.error(ERR_INVALID_RESPONSE)
 
         try:
-            _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
+            _, payload, _ = list(map(urlsafe_b64decode, id_token.split(".", 2)))
         except Exception as exc:
             logger.error(u"Unable to decode id_token: %s" % exc, exc_info=True)
             return helper.error(ERR_INVALID_RESPONSE)

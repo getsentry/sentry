@@ -28,7 +28,7 @@ class OrganizationPluginsTest(APITestCase):
 
     def test_only_configuable_plugins(self):
         response = self.client.get(self.url)
-        assert filter(lambda x: not x["hasConfiguration"], response.data) == []
+        assert [x for x in response.data if not x["hasConfiguration"]] == []
 
     def test_enabled_not_configured(self):
         plugins.get("webhooks").enable(self.projectA)
@@ -106,7 +106,7 @@ class OrganizationPluginsTest(APITestCase):
         plugins.get("trello").set_option("key", "some_value", another)
         url = self.url + "?plugins=trello"
         response = self.client.get(url)
-        assert map(lambda x: x["projectSlug"], response.data[0]["projectList"]) == [
+        assert [x["projectSlug"] for x in response.data[0]["projectList"]] == [
             "another",
             "proj_a",
             "proj_b",

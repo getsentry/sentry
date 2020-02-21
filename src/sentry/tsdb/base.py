@@ -11,6 +11,7 @@ from enum import Enum
 
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.services import Service
+from six.moves import map
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -267,7 +268,7 @@ class BaseTSDB(Service):
                 end,
                 rollup=rollup,
             )
-            rollups[rollup] = map(to_datetime, series)
+            rollups[rollup] = list(map(to_datetime, series))
         return rollups
 
     def make_series(self, default, start, end=None, rollup=None):

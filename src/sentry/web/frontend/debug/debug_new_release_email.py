@@ -18,6 +18,7 @@ from sentry.models import (
 from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview
+from six.moves import zip
 
 
 class DebugNewReleaseEmailView(View):
@@ -107,7 +108,7 @@ class DebugNewReleaseEmailView(View):
             text_template="sentry/emails/activity/release.txt",
             context={
                 "release": release,
-                "projects": zip(projects, release_links, [6, 1, 0]),
+                "projects": list(zip(projects, release_links, [6, 1, 0])),
                 "repos": repos,
                 "reason": GroupSubscriptionReason.descriptions[GroupSubscriptionReason.committed],
                 "project_count": len(projects),

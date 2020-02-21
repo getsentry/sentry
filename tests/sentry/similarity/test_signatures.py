@@ -4,6 +4,7 @@ from collections import Counter
 from unittest import TestCase
 
 from sentry.similarity.signatures import MinHashSignatureBuilder
+from six.moves import zip
 
 
 class MinHashSignatureBuilderTestCase(TestCase):
@@ -21,7 +22,7 @@ class MinHashSignatureBuilderTestCase(TestCase):
         b = set("the quick brown fox jumps over the lazy dog".split())
 
         results = Counter(
-            map(lambda l__r: l__r[0] == l__r[1], zip(get_signature(a), get_signature(b)))
+            [l__r[0] == l__r[1] for l__r in zip(get_signature(a), get_signature(b))]
         )
 
         similarity = len(a & b) / float(len(a | b))

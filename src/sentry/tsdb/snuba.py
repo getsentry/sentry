@@ -10,6 +10,7 @@ from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba, outcomes
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
+from six.moves import zip
 
 
 SnubaModelQuerySettings = collections.namedtuple(
@@ -222,7 +223,7 @@ class SnubaTSDB(BaseTSDB):
             TSDBModel.key_total_blacklisted,
             TSDBModel.key_total_rejected,
         ]:
-            keys = list(set(map(lambda x: int(x), keys)))
+            keys = list(set([int(x) for x in keys]))
 
         # 10s is the only rollup under an hour that we support
         if rollup and rollup == 10 and model in self.lower_rollup_query_settings.keys():
@@ -248,7 +249,7 @@ class SnubaTSDB(BaseTSDB):
             model_aggregate = None
 
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
-        keys_map = dict(zip(columns, self.flatten_keys(keys)))
+        keys_map = dict(list(zip(columns, self.flatten_keys(keys))))
         keys_map = {k: v for k, v in six.iteritems(keys_map) if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids

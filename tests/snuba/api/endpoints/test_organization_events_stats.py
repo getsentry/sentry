@@ -9,6 +9,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from six.moves import zip
 
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):

@@ -31,6 +31,9 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from six.moves import reduce, zip_longest
+from six.moves import filter
+from six.moves import map
+from six.moves import zip
 
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")
@@ -182,7 +185,7 @@ def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
     return merge_series(
         reduce(
             merge_series,
-            map(clean, tsdb_range.values()),
+            list(map(clean, tsdb_range.values())),
             clean([(timestamp, 0) for timestamp in series]),
         ),
         clean(
@@ -312,7 +315,7 @@ def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
             value = None
         return (timestamp, value)
 
-    return map(remove_invalid_values, clean_series(start, stop, rollup, series))
+    return list(map(remove_invalid_values, clean_series(start, stop, rollup, series)))
 
 
 def prepare_project_calendar_series(interval, project):
@@ -327,7 +330,7 @@ def prepare_project_calendar_series(interval, project):
 
 
 def build(name, fields):
-    names, prepare_fields, merge_fields = zip(*fields)
+    names, prepare_fields, merge_fields = list(zip(*fields))
 
     cls = namedtuple(name, names)
 
@@ -388,7 +391,7 @@ class DummyReportBackend(ReportBackend):
 
     def fetch(self, timestamp, duration, organization, projects):
         assert all(project.organization_id == organization.id for project in projects)
-        return map(functools.partial(self.build, timestamp, duration), projects)
+        return list(map(functools.partial(self.build, timestamp, duration), projects))
 
 
 class RedisReportBackend(ReportBackend):
@@ -610,10 +613,10 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     ]
 
     reports = dict(
-        filter(
+        list(filter(
             lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
-            zip(projects, backend.fetch(timestamp, duration, organization, projects)),
-        )
+            list(zip(projects, backend.fetch(timestamp, duration, organization, projects))),
+        ))
     )
 
     if not reports:
@@ -678,7 +681,7 @@ def build_project_breakdown_series(reports):
             ),
             reports[instance__color[0]],
         ),
-        zip(instances, colors),
+        list(zip(instances, colors)),
     )[::-1]
 
     # Collect any reports that weren't in the selection set, merge them
@@ -820,7 +823,7 @@ def to_calendar(interval, series):
         weeks = []
 
         for week in calendar.monthdatescalendar(year, month):
-            weeks.append(map(get_data_for_date, week))
+            weeks.append(list(map(get_data_for_date, week)))
 
         sheets.append((datetime(year, month, 1, tzinfo=pytz.utc), weeks))
 

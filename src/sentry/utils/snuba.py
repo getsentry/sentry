@@ -33,6 +33,7 @@ from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
+from six.moves import map
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
@@ -316,7 +317,7 @@ def get_query_params_to_update_for_projects(query_params):
                 get_related_project_ids(k, query_params.filter_keys[k])
                 for k in query_params.filter_keys
             ]
-            project_ids = list(set.union(*map(set, ids)))
+            project_ids = list(set.union(*list(map(set, ids))))
     else:
         project_ids = []
 
@@ -520,7 +521,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     if referrer:
         headers["referer"] = referrer
 
-    query_param_list = map(_prepare_query_params, snuba_param_list)
+    query_param_list = list(map(_prepare_query_params, snuba_param_list))
 
     def snuba_query(params):
         query_params, forward, reverse = params
@@ -751,7 +752,7 @@ def aliased_query(
                 derived_columns.append(col[2])
             else:
                 selected_columns[i] = resolve_column(col, dataset)
-        selected_columns = list(filter(None, selected_columns))
+        selected_columns = list([_f for _f in selected_columns if _f])
 
     if aggregations:
         for aggregation in aggregations:
@@ -762,7 +763,7 @@ def aliased_query(
         for (i, condition) in enumerate(conditions):
             replacement = resolve_condition(condition, column_resolver)
             conditions[i] = replacement
-        conditions = list(filter(None, conditions))
+        conditions = list([_f for _f in conditions if _f])
 
     if orderby:
         # Don't mutate in case we have a default order passed.

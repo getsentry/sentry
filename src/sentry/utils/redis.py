@@ -20,6 +20,7 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 from sentry.utils.versioning import Version, check_versions
+from six.moves import map
 
 logger = logging.getLogger(__name__)
 
@@ -238,7 +239,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
         # NOTE: This assumes there is no routing magic going on here, and
         # all requests to this host are being served by the same database.
         key = u"{host}:{port}".format(host=host.host, port=host.port)
-        versions[key] = Version(map(int, info["redis_version"].split(".", 3)))
+        versions[key] = Version(list(map(int, info["redis_version"].split(".", 3))))
 
     check_versions(
         "Redis" if label is None else "Redis (%s)" % (label,), versions, required, recommended

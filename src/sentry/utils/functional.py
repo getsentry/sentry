@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 
 from django.utils.functional import empty
+from six.moves import zip
 
 
 def extract_lazy_object(lo):
@@ -34,8 +35,8 @@ def apply_values(function, mapping):
     if not mapping:
         return {}
 
-    keys, values = zip(*mapping.items())
-    return dict(zip(keys, function(values)))
+    keys, values = list(zip(*mapping.items()))
+    return dict(list(zip(keys, function(values))))
 
 
 def compact(seq):

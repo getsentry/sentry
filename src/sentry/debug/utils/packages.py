@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 import sys
+from six.moves import map
 
 try:
     import pkg_resources

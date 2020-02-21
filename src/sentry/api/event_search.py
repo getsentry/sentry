@@ -25,6 +25,9 @@ from sentry.search.utils import (
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, get_json_type
+from six.moves import filter
+from six.moves import map
+from six.moves import zip
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -290,7 +293,7 @@ class SearchVisitor(NodeVisitor):
             return children
 
         children = [child for group in children for child in _flatten(group)]
-        children = filter(None, _flatten(children))
+        children = [_f for _f in _flatten(children) if _f]
 
         return children
 
@@ -298,13 +301,13 @@ class SearchVisitor(NodeVisitor):
         def is_not_optional(child):
             return not (isinstance(child, Node) and isinstance(child.expr, Optional))
 
-        return filter(is_not_optional, children)
+        return list(filter(is_not_optional, children))
 
     def remove_space(self, children):
         def is_not_space(child):
             return not (isinstance(child, Node) and child.text == " ")
 
-        return filter(is_not_space, children)
+        return list(filter(is_not_space, children))
 
     def visit_search(self, node, children):
         return self.flatten(children)
@@ -1143,7 +1146,7 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
             columns.append("id")
         if not aggregations and "project.id" not in columns:
             columns.append("project.id")
-        if aggregations and "latest_event" not in map(lambda a: a[-1], aggregations):
+        if aggregations and "latest_event" not in [a[-1] for a in aggregations]:
             aggregations.extend(deepcopy(FIELD_ALIASES["latest_event"]["aggregations"]))
         if aggregations and "project.id" not in columns:
             aggregations.append(["argMax", ["project.id", "timestamp"], "projectid"])

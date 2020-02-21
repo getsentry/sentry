@@ -6,6 +6,7 @@ from django.db import models
 
 from sentry.db.models.utils import Creator
 from sentry.utils import json
+from six.moves import map
 
 
 # Adapted from django-pgfields
@@ -44,4 +45,4 @@ class ArrayField(models.Field):
             value = []
         if isinstance(value, six.text_type):
             value = json.loads(value)
-        return map(self.of.to_python, value)
+        return list(map(self.of.to_python, value))
