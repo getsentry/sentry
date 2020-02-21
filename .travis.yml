@@ -129,7 +129,7 @@ matrix:
         - python setup.py install_egg_info
         - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev]"
         - pip uninstall -y sentry-flake8
-        - pip install -e 'git+https://github.com/getsentry/sentry-flake8.git@35d1274dfddf75ec391ef1b4779eeec540e00a8d#egg=sentry-flake8'
+        - pip install -e 'git+https://github.com/getsentry/sentry-flake8.git@37d798d185561bde5ca5b0c5075fff9585608c73#egg=sentry-flake8'
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
         - ./bin/yarn install --pure-lockfile
@@ -139,7 +139,7 @@ matrix:
       name: 'Linter (Python 3.7)'
       install:
         - pip uninstall -y sentry-flake8
-        - pip install -e 'git+https://github.com/getsentry/sentry-flake8.git@35d1274dfddf75ec391ef1b4779eeec540e00a8d#egg=sentry-flake8'
+        - pip install -e 'git+https://github.com/getsentry/sentry-flake8.git@37d798d185561bde5ca5b0c5075fff9585608c73#egg=sentry-flake8'
       # configuration for flake8 can be found in setup.cfg
       script: flake8
 
