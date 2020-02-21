@@ -53,6 +53,9 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
     import os
 
     os.environ["SENTRY_ENVIRONMENT"] = environment
+    # NODE_ENV *must* use production for any prod-like environment as third party libraries look
+    # for this magic constant
+    os.environ["NODE_ENV"] = 'production' if environment.startswith('prod') else environment
 
     from django.conf import settings
     from sentry import options
@@ -122,6 +125,7 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
 
         uwsgi_overrides["protocol"] = "http"
 
+        os.environ["FORCE_WEBPACK_DEV_SERVER"] = "1"
         os.environ["SENTRY_WEBPACK_PROXY_PORT"] = "%s" % proxy_port
         os.environ["SENTRY_BACKEND_PORT"] = "%s" % port
 
