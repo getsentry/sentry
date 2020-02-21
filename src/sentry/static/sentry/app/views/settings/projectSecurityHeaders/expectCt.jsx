@@ -47,7 +47,7 @@ export default class ProjectExpectCtReports extends AsyncView {
 
         <Panel>
           <PanelHeader>{'About'}</PanelHeader>
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <p>
               {tct(
                 `[link:Certificate Transparency]

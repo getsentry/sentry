@@ -126,7 +126,7 @@ class ProjectDocs extends React.Component {
 
     const introduction = (
       <Panel>
-        <PanelBody disablePadding={false}>
+        <PanelBody withPadding>
           <AnimatedPlatformHeading platform={loadedPlatform || platform} />
 
           <Description id={scrollTargetId}>

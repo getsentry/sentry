@@ -71,7 +71,7 @@ export default class ProjectHpkpReports extends AsyncView {
         <Panel>
           <PanelHeader>{t('About')}</PanelHeader>
 
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <p>
               {tct(
                 `[link:HTTP Public Key Pinning]

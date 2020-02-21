@@ -91,7 +91,7 @@ export default class ProjectCspReports extends AsyncView {
         <Panel>
           <PanelHeader>{t('About')}</PanelHeader>
 
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <p>
               {tct(
                 `[link:Content Security Policy]
