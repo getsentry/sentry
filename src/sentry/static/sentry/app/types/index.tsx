@@ -513,7 +513,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
 };
 
 export type IntegrationFeature = {
-  description: React.ReactNode | string;
+  description: string;
   featureGate: string;
 };
 
@@ -784,10 +784,10 @@ export type SelectValue<T> = {
 };
 
 /**
- * The issue config form fields we get are basically the form fields we use in the UI but with some extra information.
- * Some fields marked optional in the form field are guaranteed to exist so we can mark them as required here
+ * The issue config form fields we get are basically the form fields we use in
+ * the UI but with some extra information. Some fields marked optional in the
+ * form field are guaranteed to exist so we can mark them as required here
  */
-
 export type IssueConfigField = Field & {
   name: string;
   default?: string;
