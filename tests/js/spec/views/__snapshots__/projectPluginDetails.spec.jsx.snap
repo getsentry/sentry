@@ -763,19 +763,16 @@ exports[`ProjectPluginDetails renders 1`] = `
                                   </div>
                                 </PanelHeader>
                                 <StyledPanelBody
-                                  disablePadding={true}
                                   flexible={false}
                                   withPadding={false}
                                 >
                                   <PanelBody
                                     className="css-1b3dypq-StyledPanelBody e1ueudyh4"
-                                    disablePadding={true}
                                     flexible={false}
                                     withPadding={false}
                                   >
                                     <FlexBox
                                       className="css-1b3dypq-StyledPanelBody e1ueudyh4"
-                                      disablePadding={true}
                                       withPadding={false}
                                     >
                                       <div

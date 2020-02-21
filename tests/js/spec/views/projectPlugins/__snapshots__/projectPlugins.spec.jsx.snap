@@ -11,7 +11,6 @@ exports[`ProjectPlugins renders 1`] = `
     </div>
   </PanelHeader>
   <PanelBody
-    disablePadding={true}
     flexible={false}
     withPadding={false}
   >
