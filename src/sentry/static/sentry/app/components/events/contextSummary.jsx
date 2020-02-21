@@ -188,9 +188,7 @@ class DeviceSummary extends React.Component {
     return (
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
-        <h3>
-          {data.model ? <DeviceName>{data.model}</DeviceName> : t('Unknown Device')}
-        </h3>
+        <h3>{data.model ? <DeviceName value={data.model} /> : t('Unknown Device')}</h3>
         {subTitle}
       </div>
     );
