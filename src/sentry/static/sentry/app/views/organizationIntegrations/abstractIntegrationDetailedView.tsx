@@ -1,3 +1,4 @@
+import uniq from 'lodash/uniq';
 import React from 'react';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
@@ -198,11 +199,12 @@ class AbstractIntegrationDetailedView<
     return {organization, features};
   }
 
-  cleanTags(featureData) {
-    const tags = featureData.map(feature =>
-      feature.featureGate.replace(/integrations/g, '').replace(/-/g, ' ')
+  cleanTags() {
+    return uniq(
+      this.featureData.map(feature =>
+        feature.featureGate.replace(/integrations/g, '').replace(/-/g, ' ')
+      )
     );
-    return [...new Set(tags)];
   }
 
   //Returns the content shown in the top section of the integration detail
@@ -210,7 +212,7 @@ class AbstractIntegrationDetailedView<
     const {organization} = this.props;
 
     const {IntegrationFeatures} = getIntegrationFeatureGate();
-    const tags = this.cleanTags(this.featureData);
+    const tags = this.cleanTags();
     return (
       <Flex>
         <PluginIcon pluginId={this.integrationSlug} size={50} />
