@@ -89,29 +89,34 @@ def configure_sdk():
 
     assert sentry_sdk.Hub.main.client is None
 
-    sdk_options = settings.SENTRY_SDK_CONFIG
+    sdk_options = dict(settings.SENTRY_SDK_CONFIG)
 
-    internal_transport = InternalTransport()
-    upstream_transport = None
-    if sdk_options.get("dsn"):
-        upstream_transport = make_transport(get_options(sdk_options))
+    # if this flag is set then the internal transport is disabled.  This is useful
+    # for local testing in case the real python SDK behavior should be enforced.
+    if not sdk_options.pop("disable_internal_transport", False):
+        internal_transport = InternalTransport()
+        upstream_transport = None
+        if sdk_options.get("dsn"):
+            upstream_transport = make_transport(get_options(sdk_options))
 
-    def capture_event(event):
-        if event.get("type") == "transaction" and options.get(
-            "transaction-events.force-disable-internal-project"
-        ):
-            return
+        def capture_event(event):
+            if event.get("type") == "transaction" and options.get(
+                "transaction-events.force-disable-internal-project"
+            ):
+                return
 
-        # Make sure we log to upstream when available first
-        if upstream_transport is not None:
-            # TODO(mattrobenolt): Bring this back safely.
-            # from sentry import options
-            # install_id = options.get('sentry:install-id')
-            # if install_id:
-            #     event.setdefault('tags', {})['install-id'] = install_id
-            upstream_transport.capture_event(event)
+            # Make sure we log to upstream when available first
+            if upstream_transport is not None:
+                # TODO(mattrobenolt): Bring this back safely.
+                # from sentry import options
+                # install_id = options.get('sentry:install-id')
+                # if install_id:
+                #     event.setdefault('tags', {})['install-id'] = install_id
+                upstream_transport.capture_event(event)
 
-        internal_transport.capture_event(event)
+            internal_transport.capture_event(event)
+
+        sdk_options["transport"] = capture_event
 
     sentry_sdk.init(
         integrations=[
@@ -120,7 +125,6 @@ def configure_sdk():
             LoggingIntegration(event_level=None),
             RustInfoIntegration(),
         ],
-        transport=capture_event,
         traceparent_v2=True,
         **sdk_options
     )
