@@ -369,15 +369,13 @@ export function getExpandedResults(
 ): EventView {
   let nextView = eventView.clone();
   const fieldsToUpdate: number[] = [];
-
-  // Workaround around readonly typing
-  const aggregateAliases: string[] = [...AGGREGATE_ALIASES];
+  const specialKeys = Object.values(URL_PARAM);
 
   nextView.fields.forEach((field: FieldType, index: number) => {
     const column = explodeField(field);
 
     // Mark aggregated fields to be transformed into its un-aggregated form
-    if (column.aggregation || aggregateAliases.includes(column.field)) {
+    if (column.aggregation || AGGREGATE_ALIASES.includes(column.field)) {
       fieldsToUpdate.push(index);
       return;
     }
@@ -404,7 +402,10 @@ export function getExpandedResults(
       if (dataRow && dataRow.tags && dataRow.tags instanceof Array) {
         const tagIndex = dataRow.tags.findIndex(item => item.key === dataKey);
         if (tagIndex > -1) {
-          additionalConditions[column.field] = dataRow.tags[tagIndex].value;
+          const key = specialKeys.includes(column.field)
+            ? `tags[${column.field}]`
+            : column.field;
+          additionalConditions[key] = dataRow.tags[tagIndex].value;
         }
       }
     }
@@ -413,13 +414,12 @@ export function getExpandedResults(
   const transformedFields = new Set();
   const fieldsToDelete: number[] = [];
 
-  // make a best effort to transform aggregated columns with its non-aggregated form
+  // make a best effort to replace aggregated columns with their non-aggregated form
   fieldsToUpdate.forEach((indexToUpdate: number) => {
     const currentField: FieldType = nextView.fields[indexToUpdate];
     const exploded = explodeField(currentField);
 
     // check if we can use an aggregated transform function
-
     const fieldNameAlias = TRANSFORM_AGGREGATES[exploded.aggregation]
       ? exploded.aggregation
       : TRANSFORM_AGGREGATES[exploded.field]
@@ -450,21 +450,13 @@ export function getExpandedResults(
       return;
     }
 
-    // otherwise just use exploded.field as a column
-
-    if (!exploded.field) {
-      // edge case: transform count() into id
-
-      if (exploded.aggregation !== 'count') {
-        fieldsToDelete.push(indexToUpdate);
-        return;
-      }
-
+    // edge case: transform count() into id
+    if (exploded.aggregation === 'count') {
       exploded.field = 'id';
     }
 
-    if (transformedFields.has(exploded.field)) {
-      // this field is duplicated in another column. we remove this column
+    if (!exploded.field || transformedFields.has(exploded.field)) {
+      // If we don't have a field, or already have it, remove the current column
       fieldsToDelete.push(indexToUpdate);
       return;
     }
@@ -495,7 +487,6 @@ export function getExpandedResults(
       }
 
       const column = explodeFieldString(field);
-
       if (column.aggregation) {
         return acc;
       }
@@ -506,7 +497,6 @@ export function getExpandedResults(
     },
     {query: []}
   );
-
   nextView.query = stringifyQueryObject(queryWithNoAggregates);
 
   // Tokenize conditions and append additional conditions provided + generated.
