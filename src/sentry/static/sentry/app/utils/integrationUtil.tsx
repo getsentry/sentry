@@ -88,6 +88,9 @@ type IntegrationsEventParams = (MultipleIntegrationsEvent | SingleIntegrationEve
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 
+const hasAnalyticsDebug = () =>
+  window.localStorage.getItem('DEBUG_INTEGRATION_ANALYTICS') === '1';
+
 /**
  * Tracks an event for ecosystem analytics
  * Must be tied to an organization
@@ -102,7 +105,7 @@ export const trackIntegrationEvent = (
   let sessionId = startSession ? startAnalyticsSession() : getAnalyticsSessionId();
 
   //we should always have a session id but if we don't, we should generate one
-  if (!sessionId) {
+  if (hasAnalyticsDebug() && !sessionId) {
     // eslint-disable-next-line no-console
     console.warn(`analytics_session_id absent from event ${analyticsParams.eventName}`);
     sessionId = startAnalyticsSession();
@@ -128,16 +131,17 @@ export const trackIntegrationEvent = (
   }
 
   //TODO(steve): remove once we pass in org always
-  if (!org) {
+  if (hasAnalyticsDebug() && !org) {
     // eslint-disable-next-line no-console
     console.warn(`Organization absent from event ${analyticsParams.eventName}`);
   }
 
   //could put this into a debug method or for the main trackAnalyticsEvent event
-  if (window.localStorage.getItem('DEBUG') === '1') {
+  if (hasAnalyticsDebug()) {
     // eslint-disable-next-line no-console
     console.log('trackIntegrationEvent', fullParams);
   }
+
   return trackAnalyticsEvent(fullParams);
 };
 
