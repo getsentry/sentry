@@ -116,6 +116,9 @@ base_acceptance: &acceptance_default
 # but custom `services`, `before_install`, `install`, and `before_script` directives
 # may be defined to define and setup individual job environments with more precision.
 matrix:
+  allowed_failures:
+    - name: 'Linter (Python 3.7)'
+
   fast_finish: true
   include:
     # Lint python and javascript together
