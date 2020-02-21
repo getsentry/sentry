@@ -12,6 +12,8 @@ export type IntegrationInstallationStatus =
   | typeof NOT_INSTALLED
   | typeof PENDING;
 
+export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
+
 export type ObjectStatus =
   | 'active'
   | 'disabled'
@@ -80,13 +82,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   dataScrubberDefaults: boolean;
   dataScrubber: boolean;
   role?: string;
-  onboardingTasks: Array<{
-    status: string;
-    dateCompleted: string;
-    task: number;
-    data: object;
-    user: string | null;
-  }>;
+  onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: string[];
 };
 
@@ -543,7 +539,7 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  status: 'unpublished' | 'published' | 'internal';
+  status: SentryAppStatus;
   scopes: Scope[];
   isAlertable: boolean;
   verifyInstall: boolean;
@@ -804,17 +800,34 @@ export type IntegrationIssueConfig = {
   icon: string[];
 };
 
-export type OnboardingTask = {
+export type OnboardingTaskDescriptor = {
   task: number;
   title: string;
   description: string;
   detailedDescription?: string;
   skippable: boolean;
   prereq: number[];
-  featureLocation: string;
-  location: string | (() => void);
   display: boolean;
+} & (
+  | {
+      actionType: 'app' | 'external';
+      location: string;
+    }
+  | {
+      actionType: 'action';
+      action: () => void;
+    }
+);
+
+export type OnboardingTaskStatus = {
+  task: number;
+  status: 'skipped' | 'pending' | 'complete';
+  user: string | null;
+  dateCompleted: string;
+  data: object;
 };
+
+export type OnboardingTask = OnboardingTaskStatus & OnboardingTaskDescriptor;
 
 export type Tag = {
   name: string;

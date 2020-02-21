@@ -14,7 +14,7 @@ import EventCause from 'app/components/events/eventCause';
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
 import EventContextSummary from 'app/components/events/contextSummary';
 import EventContexts from 'app/components/events/contexts';
-import EventDataSection, {DataSection} from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
 import EventErrors from 'app/components/events/errors';
 import EventExtraData from 'app/components/events/eventExtraData/eventExtraData';
@@ -22,7 +22,7 @@ import EventGroupingInfo from 'app/components/events/groupingInfo';
 import EventPackageData from 'app/components/events/packageData';
 import EventSdk from 'app/components/events/eventSdk';
 import EventSdkUpdates from 'app/components/events/sdkUpdates';
-import EventTags from 'app/components/events/eventTags';
+import EventTags from 'app/components/events/eventTags/eventTags';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import ExceptionInterface from 'app/components/events/interfaces/exception';
 import GenericInterface from 'app/components/events/interfaces/generic';
@@ -34,6 +34,7 @@ import SpansInterface from 'app/components/events/interfaces/spans';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
 import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
+import {DataSection} from 'app/components/events/styles';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -69,6 +70,7 @@ class EventEntries extends React.Component {
     isShare: PropTypes.bool,
     showExampleCommit: PropTypes.bool,
     showTagSummary: PropTypes.bool,
+    eventView: PropTypes.object,
   };
 
   static defaultProps = {
@@ -114,7 +116,7 @@ class EventEntries extends React.Component {
   }
 
   renderEntries() {
-    const {event, project, organization, isShare} = this.props;
+    const {event, project, organization, isShare, eventView} = this.props;
 
     const entries = event && event.entries;
 
@@ -132,6 +134,13 @@ class EventEntries extends React.Component {
             console.error('Unregistered interface: ' + entry.type);
           return null;
         }
+
+        // inject additional props for certain interfaces
+        const extraProps = {};
+        if (entry.type === 'spans' && eventView) {
+          extraProps.eventView = eventView;
+        }
+
         return (
           <Component
             key={'entry-' + entryIdx}
@@ -141,6 +150,7 @@ class EventEntries extends React.Component {
             type={entry.type}
             data={entry.data}
             isShare={isShare}
+            {...extraProps}
           />
         );
       } catch (ex) {
