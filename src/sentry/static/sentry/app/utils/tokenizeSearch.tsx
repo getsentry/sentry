@@ -28,24 +28,30 @@ export function tokenizeSearch(query: string) {
   };
 
   for (const token of tokens) {
-    const tokenChars = Array.from(token);
     let tokenState: 'query' | 'tags' = 'query';
 
-    tokenChars.forEach((char, idx) => {
-      const nextChar = tokenChars.length > idx ? tokenChars[idx + 1] : null;
+    // Traverse the token and determine if it is a tag
+    // condition or bare words.
+    for (let i = 0, len = token.length; i < len; i++) {
+      const char = token[i];
 
-      if (idx === 0 && [':', ' '].includes(char)) {
-        return;
-      }
-
+      // We may have entered a tag condition
       if (char === ':') {
-        tokenState = [':', ' '].includes(nextChar !== null ? nextChar : '')
-          ? 'query'
-          : 'tags';
-        return;
-      }
-    });
+        tokenState = 'tags';
+        const nextChar = token[i + 1] || '';
 
+        if (nextChar === '"') {
+          break;
+        }
+
+        // If we have a space or colon, we are in a query string,
+        // not a tag and can stop scanning.
+        if ([' ', ':'].includes(nextChar)) {
+          tokenState = 'query';
+          break;
+        }
+      }
+    }
     searchParams[tokenState].push(token);
   }
 

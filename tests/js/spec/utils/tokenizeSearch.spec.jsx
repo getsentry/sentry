@@ -28,6 +28,20 @@ describe('utils/tokenizeSearch', function() {
         string: 'python  is:unresolved exception',
         object: {is: ['unresolved'], query: ['python', 'exception']},
       },
+      {
+        name: 'should tokenize the quoted tags',
+        string: 'event.type:error title:"QueryExecutionError: Code: 141."',
+        object: {
+          query: [],
+          title: ['QueryExecutionError: Code: 141.'],
+          'event.type': ['error'],
+        },
+      },
+      {
+        name: 'should tokenize words with :: in them',
+        string: 'Foo::bar()',
+        object: {query: ['Foo::bar()']},
+      },
     ];
 
     for (const {name, string, object} of cases) {

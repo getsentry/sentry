@@ -478,48 +478,35 @@ export function getExpandedResults(
     nextView = nextView.withDeletedColumn(index, undefined);
   });
 
-  // filter out any aggregates from the search conditions.
+  const parsedQuery = tokenizeSearch(nextView.query);
+
+  // Remove any aggregates from the search conditions.
   // otherwise, it'll lead to an invalid query result.
-  const queryWithNoAggregates = Object.entries(tokenizeSearch(nextView.query)).reduce(
-    (acc: QueryResults, [field, value]) => {
-      if (field === 'query') {
-        acc.query = value;
-        return acc;
-      }
+  for (const key in parsedQuery) {
+    const column = explodeFieldString(key);
+    if (column.aggregation) {
+      delete parsedQuery[key];
+    }
+  }
 
-      const column = explodeFieldString(field);
-      if (column.aggregation) {
-        return acc;
-      }
-
-      acc[field] = value;
-
-      return acc;
-    },
-    {query: []}
-  );
-  nextView.query = stringifyQueryObject(queryWithNoAggregates);
-
-  // Tokenize conditions and append additional conditions provided + generated.
-  Object.keys(additionalConditions).forEach(key => {
+  // Add additional conditions provided and generated.
+  for (const key in additionalConditions) {
     if (key === 'project' || key === 'project.id') {
       nextView.project = [...nextView.project, parseInt(additionalConditions[key], 10)];
-      return;
+      continue;
     }
     if (key === 'environment') {
       nextView.environment = [...nextView.environment, additionalConditions[key]];
-      return;
+      continue;
     }
-
-    // filter out any aggregates from provided additional conditions.
-    // otherwise, it'll lead to an invalid query result.
     const column = explodeFieldString(key);
+    // Skip aggregates as they will be invalid.
     if (column.aggregation) {
-      return;
+      continue;
     }
-
-    nextView.query = appendTagCondition(nextView.query, key, additionalConditions[key]);
-  });
+    parsedQuery[key] = [additionalConditions[key]];
+  }
+  nextView.query = stringifyQueryObject(parsedQuery);
 
   return nextView;
 }
