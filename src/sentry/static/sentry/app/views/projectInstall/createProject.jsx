@@ -227,7 +227,7 @@ class CreateProject extends React.Component {
         );
         ruleId = ruleData.id;
       }
-      this.trackIssueAlertOptionCommittedEvent(
+      this.trackIssueAlertOptionSelectedEvent(
         organization,
         projectData,
         defaultRules,
@@ -260,7 +260,7 @@ class CreateProject extends React.Component {
     }
   };
 
-  trackIssueAlertOptionCommittedEvent(
+  trackIssueAlertOptionSelectedEvent(
     organization,
     projectData,
     isDefaultRules,
@@ -268,8 +268,8 @@ class CreateProject extends React.Component {
     ruleId
   ) {
     let data = {
-      eventKey: 'new_project.alert_rule_option_committed',
-      eventName: 'New Project Alert Rule Option Committed',
+      eventKey: 'new_project.alert_rule_option_selected',
+      eventName: 'New Project Alert Rule Option Selected',
       org_id: parseInt(organization.id, 10),
       project_id: parseInt(projectData.id, 10),
       rule_type: isDefaultRules
