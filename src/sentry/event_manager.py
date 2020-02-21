@@ -6,9 +6,23 @@ import time
 import jsonschema
 import six
 
-from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS, MAX_SECS_IN_FUTURE, MAX_SECS_IN_PAST
+
+from sentry import buffer
+from sentry.constants import (
+    DEFAULT_STORE_NORMALIZER_ARGS,
+    LOG_LEVELS_MAP,
+    MAX_SECS_IN_FUTURE,
+    MAX_SECS_IN_PAST,
+)
 from sentry.message_filters import should_filter_event
-from sentry.grouping.api import get_grouping_config_dict_for_project
+from sentry.grouping.api import (
+    get_grouping_config_dict_for_project,
+    get_grouping_config_dict_for_event_data,
+    load_grouping_config,
+    apply_server_fingerprinting,
+    get_fingerprinting_config_for_project,
+    GroupingConfigNotFound,
+)
 from sentry.coreapi import (
     APIError,
     APIForbidden,
@@ -19,9 +33,39 @@ from sentry.coreapi import (
     safely_load_json_string,
 )
 from sentry.interfaces.base import get_interface
-from sentry.models import EventError
-from sentry.save_event import save_event
-from sentry.utils import metrics
+from sentry.models import (
+    EventError,
+    GroupEnvironment,
+    GroupRelease,
+    Project,
+    ReleaseProject,
+    ReleaseProjectEnvironment,
+    UserReport,
+    Organization,
+)
+from sentry.save_event import (
+    HashDiscarded,
+    _derive_interface_tags_many,
+    _derive_plugin_tags_many,
+    _eventstream_insert_many,
+    _get_event_user_many,
+    _get_or_create_environment_many,
+    _get_or_create_release_associated_models,
+    _get_or_create_release_many,
+    _materialize_metadata_many,
+    _nodestore_save_many,
+    _pull_out_data,
+    _save_aggregate,
+    _send_event_saved_signal_many,
+    _tsdb_record_all_metrics,
+    get_attachments,
+    pop_tag,
+    save_attachments,
+    save_event,
+    set_tag,
+)
+from sentry.signals import event_discarded, first_event_received
+from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.data_filters import (
     is_valid_ip,
@@ -30,6 +74,7 @@ from sentry.utils.data_filters import (
     FilterStatKeys,
 )
 from sentry.utils.safe import get_path
+from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 
 logger = logging.getLogger("sentry.events")
 
@@ -257,13 +302,241 @@ class EventManager(object):
     def get_data(self):
         return self._data
 
-    def save(self, project_id, assume_normalized=False, **kwargs):
+    def save(self, project_id, raw=False, cache_key=None, assume_normalized=False, **kwargs):
+        """
+        After normalizing and processing an event, save adjacent models such as
+        releases and environments to postgres and write the event into
+        eventstream. From there it will be picked up by Snuba and
+        post-processing.
+
+        We re-insert events with duplicate IDs into Snuba, which is responsible
+        for deduplicating events. Since deduplication in Snuba is on the primary
+        key (based on event ID, project ID and day), events with same IDs are only
+        deduplicated if their timestamps fall on the same day. The latest event
+        always wins and overwrites the value of events received earlier in that day.
+
+        Since we increment counters and frequencies here before events get inserted
+        to eventstream these numbers may be larger than the total number of
+        events if we receive duplicate event IDs that fall on the same day
+        (that do not hit cache first).
+        """
+
         # Normalize if needed
         if not self._normalized:
             if not assume_normalized:
                 self.normalize()
             self._normalized = True
 
-        event = save_event(self._data, project_id or self._project.id, **kwargs)
-        self._data = event.data.data
-        return event
+        with metrics.timer("event_manager.save.project.get_from_cache"):
+            project = Project.objects.get_from_cache(id=project_id)
+
+        with metrics.timer("event_manager.save.organization.get_from_cache"):
+            project._organization_cache = Organization.objects.get_from_cache(
+                id=project.organization_id
+            )
+
+        job = {"data": self._data, "project_id": project_id, "raw": raw}
+        jobs = [job]
+        projects = {project.id: project}
+
+        _pull_out_data(jobs, projects)
+
+        # Right now the event type is the signal to skip the group. This
+        # is going to change a lot.
+        if job["event"].get_event_type() == "transaction":
+            issueless_event = True
+        else:
+            issueless_event = False
+
+        _get_or_create_release_many(jobs, projects)
+
+        # XXX: remove
+        if job["dist"] and job["release"]:
+            job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
+            # dont allow a conflicting 'dist' tag
+            pop_tag(job["data"], "dist")
+            set_tag(job["data"], "sentry:dist", job["dist"].name)
+        else:
+            job["dist"] = None
+
+        _get_event_user_many(jobs, projects)
+
+        with metrics.timer("event_manager.load_grouping_config"):
+            # At this point we want to normalize the in_app values in case the
+            # clients did not set this appropriately so far.
+            grouping_config = load_grouping_config(
+                get_grouping_config_dict_for_event_data(job["data"], project)
+            )
+
+        with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
+            normalize_stacktraces_for_grouping(job["data"], grouping_config)
+
+        _derive_plugin_tags_many(jobs, projects)
+        _derive_interface_tags_many(jobs)
+
+        with metrics.timer("event_manager.apply_server_fingerprinting"):
+            # The active grouping config was put into the event in the
+            # normalize step before.  We now also make sure that the
+            # fingerprint was set to `'{{ default }}' just in case someone
+            # removed it from the payload.  The call to get_hashes will then
+            # look at `grouping_config` to pick the right parameters.
+            job["data"]["fingerprint"] = job["data"].get("fingerprint") or ["{{ default }}"]
+            apply_server_fingerprinting(job["data"], get_fingerprinting_config_for_project(project))
+
+        with metrics.timer("event_manager.event.get_hashes"):
+            # Here we try to use the grouping config that was requested in the
+            # event.  If that config has since been deleted (because it was an
+            # experimental grouping config) we fall back to the default.
+            try:
+                hashes = job["event"].get_hashes()
+            except GroupingConfigNotFound:
+                job["data"]["grouping_config"] = get_grouping_config_dict_for_project(project)
+                hashes = job["event"].get_hashes()
+
+        job["data"]["hashes"] = hashes
+
+        _materialize_metadata_many(jobs)
+
+        job["received_timestamp"] = received_timestamp = job["event"].data.get("received") or float(
+            job["event"].datetime.strftime("%s")
+        )
+
+        if not issueless_event:
+            # The group gets the same metadata as the event when it's flushed but
+            # additionally the `last_received` key is set.  This key is used by
+            # _save_aggregate.
+            group_metadata = dict(job["materialized_metadata"])
+            group_metadata["last_received"] = received_timestamp
+            kwargs = {
+                "platform": job["platform"],
+                "message": job["event"].search_message,
+                "culprit": job["culprit"],
+                "logger": job["logger_name"],
+                "level": LOG_LEVELS_MAP.get(job["level"]),
+                "last_seen": job["event"].datetime,
+                "first_seen": job["event"].datetime,
+                "active_at": job["event"].datetime,
+                "data": group_metadata,
+            }
+
+            if job["release"]:
+                kwargs["first_release"] = job["release"]
+
+            try:
+                job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
+                    event=job["event"], hashes=hashes, release=job["release"], **kwargs
+                )
+            except HashDiscarded:
+                event_discarded.send_robust(project=project, sender=save_event)
+
+                metrics.incr(
+                    "events.discarded",
+                    skip_internal=True,
+                    tags={"organization_id": project.organization_id, "platform": job["platform"]},
+                )
+                raise
+            job["event"].group = job["group"]
+        else:
+            job["group"] = None
+            job["is_new"] = False
+            job["is_regression"] = False
+
+        _send_event_saved_signal_many(jobs, projects)
+
+        # store a reference to the group id to guarantee validation of isolation
+        # XXX(markus): No clue what this does
+        job["event"].data.bind_ref(job["event"])
+
+        _get_or_create_environment_many(jobs, projects)
+
+        if job["group"]:
+            group_environment, job["is_new_group_environment"] = GroupEnvironment.get_or_create(
+                group_id=job["group"].id,
+                environment_id=job["environment"].id,
+                defaults={"first_release": job["release"] or None},
+            )
+        else:
+            job["is_new_group_environment"] = False
+
+        _get_or_create_release_associated_models(jobs, projects)
+
+        if job["release"] and job["group"]:
+            job["grouprelease"] = GroupRelease.get_or_create(
+                group=job["group"],
+                release=job["release"],
+                environment=job["environment"],
+                datetime=job["event"].datetime,
+            )
+
+        _tsdb_record_all_metrics(jobs)
+
+        if job["group"]:
+            UserReport.objects.filter(project=project, event_id=job["event"].event_id).update(
+                group=job["group"], environment=job["environment"]
+            )
+
+        # Enusre the _metrics key exists. This is usually created during
+        # and prefilled with ingestion sizes.
+        event_metrics = job["event"].data.get("_metrics") or {}
+        job["event"].data["_metrics"] = event_metrics
+
+        # Capture the actual size that goes into node store.
+        event_metrics["bytes.stored.event"] = len(json.dumps(dict(job["event"].data.items())))
+
+        if not issueless_event:
+            # Load attachments first, but persist them at the very last after
+            # posting to eventstream to make sure all counters and eventstream are
+            # incremented for sure.
+            attachments = get_attachments(cache_key, job["event"])
+            for attachment in attachments:
+                key = "bytes.stored.%s" % (attachment.type,)
+                event_metrics[key] = (event_metrics.get(key) or 0) + len(attachment.data)
+
+        _nodestore_save_many(jobs)
+
+        if job["release"] and not issueless_event:
+            if job["is_new"]:
+                buffer.incr(
+                    ReleaseProject,
+                    {"new_groups": 1},
+                    {"release_id": job["release"].id, "project_id": project.id},
+                )
+            if job["is_new_group_environment"]:
+                buffer.incr(
+                    ReleaseProjectEnvironment,
+                    {"new_issues_count": 1},
+                    {
+                        "project_id": project.id,
+                        "release_id": job["release"].id,
+                        "environment_id": job["environment"].id,
+                    },
+                )
+
+        if not raw:
+            if not project.first_event:
+                project.update(first_event=job["event"].datetime)
+                first_event_received.send_robust(
+                    project=project, event=job["event"], sender=Project
+                )
+
+        _eventstream_insert_many(jobs)
+
+        if not issueless_event:
+            # Do this last to ensure signals get emitted even if connection to the
+            # file store breaks temporarily.
+            save_attachments(attachments, job["event"])
+
+        metric_tags = {"from_relay": "_relay_processed" in job["data"]}
+
+        metrics.timing(
+            "events.latency", received_timestamp - job["recorded_timestamp"], tags=metric_tags
+        )
+        metrics.timing("events.size.data.post_save", job["event"].size, tags=metric_tags)
+        metrics.incr(
+            "events.post_save.normalize.errors",
+            amount=len(job["data"].get("errors") or ()),
+            tags=metric_tags,
+        )
+
+        self._data = job["event"].data.data
+        return job["event"]
