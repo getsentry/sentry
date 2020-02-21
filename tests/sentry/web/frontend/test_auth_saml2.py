@@ -194,3 +194,6 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         assert redirect.path == "/slo_url"
         assert "SAMLResponse" in query
+
+        updated = type(self.user).objects.get(pk=self.user.id)
+        assert updated.session_nonce != self.user.session_nonce
