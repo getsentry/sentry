@@ -291,6 +291,8 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
             "start": incident.date_started if start is None else start,
             "end": incident.current_end_date if end is None else end,
         }
+        # Make start about 20% earlier:
+        params["start"] = params["start"] - (params["end"] - params["start"]) / 5
         group_ids = incident_groups[incident.id]
         if group_ids:
             params["group_ids"] = group_ids

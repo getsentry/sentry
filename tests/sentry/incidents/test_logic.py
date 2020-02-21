@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import json
 from uuid import uuid4
-
 import responses
 from datetime import timedelta
 from exam import fixture, patcher
@@ -261,8 +260,11 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         result = get_incident_event_stats(incident, data_points=20, **kwargs)
         # Duration of 300s / 20 data points
         assert result.rollup == 15
-        assert result.start == start if start else incident.date_started
-        assert result.end == end if end else incident.current_end_date
+        expected_start = start if start else incident.date_started
+        expected_end = end if end else incident.current_end_date
+        expected_start = expected_start - (expected_end - expected_start) / 5
+        assert result.start == expected_start
+        assert result.end == expected_end
         assert [r["count"] for r in result.data["data"]] == expected_results
 
     def test_project(self):
@@ -281,8 +283,11 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
             # Duration of 300s / 20 data points
             assert result.rollup == 15
-            assert result.start == start if start else incident.date_started
-            assert result.end == end if end else incident.current_end_date
+            expected_start = start if start else incident.date_started
+            expected_end = end if end else incident.current_end_date
+            expected_start = expected_start - (expected_end - expected_start) / 5
+            assert result.start == expected_start
+            assert result.end == expected_end
             assert [r["count"] for r in result.data["data"]] == expected_results
 
     def test_project(self):
@@ -545,12 +550,17 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
             date_started=timezone.now() - timedelta(days=30),
         )
         incidents = [closed_incident, open_incident]
-
+        changed = False
         for incident, incident_stats in zip(incidents, bulk_get_incident_stats(incidents)):
             event_stats = get_incident_event_stats(incident)
             assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
-            assert incident_stats["event_stats"].start == event_stats.start
-            assert incident_stats["event_stats"].end == event_stats.end
+            expected_start = incident_stats["event_stats"].start
+            expected_end = incident_stats["event_stats"].end
+            if not changed:
+                expected_start = expected_start - (expected_end - expected_start) / 5
+                changed = True
+            assert event_stats.start == expected_start
+            assert event_stats.end == expected_end
             assert incident_stats["event_stats"].rollup == event_stats.rollup
 
             aggregates = get_incident_aggregates(incident)
