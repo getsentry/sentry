@@ -895,6 +895,38 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["transaction"] == event2.transaction
         assert data[1]["percentile_transaction_duration_0_95"] == 3000
 
+    def test_percentile_function_as_condition(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        data = load_data("transaction")
+        data["transaction"] = "/aggregates/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        event1 = self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction")
+        data["transaction"] = "/aggregates/2"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
+        self.store_event(data, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["transaction", "percentile(transaction.duration, 0.95)"],
+                    "query": "event.type:transaction percentile(transaction.duration, 0.95):>4000",
+                    "orderby": ["transaction"],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["transaction"] == event1.transaction
+        assert data[0]["percentile_transaction_duration_0_95"] == 5000
+
     def test_rpm_function(self):
         self.login_as(user=self.user)
         project = self.create_project()
