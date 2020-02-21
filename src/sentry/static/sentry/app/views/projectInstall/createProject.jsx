@@ -67,7 +67,6 @@ class CreateProject extends React.Component {
   }
 
   componentDidMount() {
-    super.componentDidMount();
     // TODO(jeff): Change key to AlertDefaultExperiment on the real experiment run
     logExperiment({
       organization: this.props.organization,
