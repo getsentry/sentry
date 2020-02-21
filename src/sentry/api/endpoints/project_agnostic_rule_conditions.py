@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import experiments
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.rules import rules
 
@@ -20,9 +20,8 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
                 context["formFields"] = rule_cls.form_fields
             return context
 
-        if not features.has(
-            "organizations:new-project-issue-alert-options", organization, actor=request.user
-        ):
+        # TODO(Jeff): Rename to `AlertDefaultsExperiment` on real experiment run
+        if experiments.get(org=organization, experiment_name="AlertDefaultsExperimentTmp") != 1:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         return Response(
