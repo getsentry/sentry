@@ -34,7 +34,7 @@ class DataExport extends React.Component<Props, State> {
     inProgress: false,
   };
 
-  async startDataExport() {
+  startDataExport = async () => {
     const {
       api,
       organization: {slug},
@@ -51,7 +51,7 @@ class DataExport extends React.Component<Props, State> {
       }
     );
     this.setState({inProgress: true, dataExportId});
-  }
+  };
 
   render() {
     const {inProgress, dataExportId} = this.state;
@@ -65,10 +65,7 @@ class DataExport extends React.Component<Props, State> {
           </Tooltip>
         ) : (
           <Tooltip title={TooltipMessages.start}>
-            <button
-              className="btn btn-default btn-sm"
-              onClick={() => this.startDataExport()}
-            >
+            <button className="btn btn-default btn-sm" onClick={this.startDataExport}>
               {t('Export All to CSV')}
             </button>
           </Tooltip>
