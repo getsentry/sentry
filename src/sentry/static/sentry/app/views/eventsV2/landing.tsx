@@ -17,7 +17,6 @@ import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -298,12 +297,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
-          <React.Fragment>
-            <GlobalSelectionHeader organization={organization} />
-            <StyledPageContent>
-              <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
-            </StyledPageContent>
-          </React.Fragment>
+          <StyledPageContent>
+            <NoProjectMessage organization={organization}>{body}</NoProjectMessage>
+          </StyledPageContent>
         </SentryDocumentTitle>
       </Feature>
     );
