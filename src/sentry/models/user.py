@@ -4,8 +4,10 @@ import logging
 import warnings
 
 from bitfield import BitField
+from django.contrib.auth.signals import user_logged_out
 from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.core.urlresolvers import reverse
+from django.dispatch import receiver
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -326,3 +328,12 @@ class User(BaseModel, AbstractBaseUser):
 
 # HACK(dcramer): last_login needs nullable for Django 1.8
 User._meta.get_field("last_login").null = True
+
+# When a user logs out, we want to always log them out of all
+# sessions and refresh their nonce.
+@receiver(user_logged_out, sender=User)
+def refresh_user_nonce(sender, request, user, **kwargs):
+    if user is None:
+        return
+    user.refresh_session_nonce()
+    user.save()

@@ -146,13 +146,8 @@ class AuthIndexEndpoint(Endpoint):
         Logout the Authenticated User
         `````````````````````````````
 
-        Deauthenticate the currently active session. Can also deactivate
-        all sessions for a user if the ``all`` parameter is sent.
+        Deauthenticate all active sessions for this user.
         """
-        if request.data.get("all"):
-            # Rotate the session nonce to invalidate all other sessions.
-            request.user.refresh_session_nonce()
-            request.user.save()
         logout(request._request)
         request.user = AnonymousUser()
         return Response(status=status.HTTP_204_NO_CONTENT)
