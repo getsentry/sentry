@@ -1479,9 +1479,6 @@ EMAIL_USE_TLS = DEAD
 SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
 
-GITHUB_APP_ID = DEAD
-GITHUB_API_SECRET = DEAD
-
 SUDO_URL = "sentry-sudo"
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
