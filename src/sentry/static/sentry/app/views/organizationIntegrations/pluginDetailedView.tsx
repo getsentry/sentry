@@ -28,6 +28,10 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     ];
   }
 
+  get integrationType() {
+    return 'plugin' as const;
+  }
+
   get plugin() {
     return this.state.plugins[0];
   }
@@ -100,6 +104,10 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   handleAddToProject = () => {
     const plugin = this.plugin;
     const {organization, router} = this.props;
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.plugin_add_to_project_clicked',
+      eventName: 'Integrations: Plugin Add to Project Clicked',
+    });
     modal.openModal(
       ({closeModal, Header, Body}) => (
         <ContextPickerModal
@@ -153,6 +161,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
             projectItem={projectItem}
             onResetConfiguration={this.handleResetConfiguration}
             onEnablePlugin={this.handleEnablePlugin}
+            trackIntegrationEvent={this.trackIntegrationEvent}
           />
         ))}
       </div>
