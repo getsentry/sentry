@@ -22,6 +22,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
+import {trackAnalyticsEvent, logExperiment} from 'app/utils/analytics';
 
 class CreateProject extends React.Component {
   static propTypes = {
@@ -61,6 +62,22 @@ class CreateProject extends React.Component {
         },
       };
     }
+  }
+
+  componentDidMount() {
+    // TODO(jeff): Change key to AlertDefaultExperiment on the real experiment run
+    logExperiment({
+      organization: this.props.organization,
+      key: 'AlertDefaultExperimentTmp',
+      unitName: 'org_id',
+      unitId: parseInt(this.props.organization.id, 10),
+      param: 'exposed',
+    });
+    trackAnalyticsEvent({
+      eventKey: 'new_project.visited',
+      eventName: 'New Project Page Visited',
+      org_id: parseInt(this.props.organization.id, 10),
+    });
   }
 
   renderProjectForm = (
@@ -193,8 +210,9 @@ class CreateProject extends React.Component {
         },
       });
 
+      let ruleId;
       if (shouldCreateCustomRule) {
-        await api.requestPromise(
+        const ruleData = await api.requestPromise(
           `/projects/${organization.slug}/${projectData.slug}/rules/`,
           {
             method: 'POST',
@@ -207,7 +225,17 @@ class CreateProject extends React.Component {
             },
           }
         );
+        ruleId = ruleData.id;
       }
+      this.trackIssueAlertOptionSelectedEvent(
+        organization,
+        projectData,
+        defaultRules,
+        shouldCreateCustomRule,
+        platform,
+        ruleId
+      );
+
       ProjectActions.createSuccess(projectData);
       const platformKey = platform || 'other';
       const nextUrl = `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`;
@@ -231,6 +259,32 @@ class CreateProject extends React.Component {
       }
     }
   };
+
+  trackIssueAlertOptionSelectedEvent(
+    organization,
+    projectData,
+    isDefaultRules,
+    shouldCreateCustomRule,
+    ruleId
+  ) {
+    let data = {
+      eventKey: 'new_project.alert_rule_option_selected',
+      eventName: 'New Project Alert Rule Option Selected',
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(projectData.id, 10),
+      rule_type: isDefaultRules
+        ? 'Default'
+        : shouldCreateCustomRule
+        ? 'Custom'
+        : 'No Rule',
+    };
+
+    if (ruleId !== undefined) {
+      data = {...data, custom_rule_id: ruleId};
+    }
+
+    trackAnalyticsEvent(data);
+  }
 
   setPlatform = platformId =>
     this.setState(({projectName, platform}) => ({
