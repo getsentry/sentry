@@ -16,6 +16,7 @@ import sentry_sdk
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
+from six.moves.urllib.parse import urlparse
 
 from sentry import quotas
 from sentry.models import (
@@ -204,6 +205,10 @@ class RetrySkipTimeout(urllib3.Retry):
         if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
             raise six.reraise(type(error), error, _stacktrace)
 
+        metrics.incr(
+            "snuba.client.retry",
+            tags={"method": method, "path": urlparse(url).path if url else None},
+        )
         return super(RetrySkipTimeout, self).increment(
             method=method,
             url=url,
