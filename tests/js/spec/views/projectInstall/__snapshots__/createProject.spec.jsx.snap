@@ -1302,17 +1302,22 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                       placeholder="Select a Team"
                       value={0}
                     >
-                      <ForwardRef(RefForwardedSelectControl)
+                      <SelectControlLegacy
                         clearable={false}
                         forwardedRef={null}
+                        height={36}
+                        multiple={false}
                         name="select-team"
                         onChange={[Function]}
                         options={Array []}
                         placeholder="Select a Team"
                         value={0}
                       >
-                        <SelectControlLegacy
+                        <StyledSelect
+                          arrowRenderer={[Function]}
+                          backspaceRemoves={false}
                           clearable={false}
+                          deleteRemoves={false}
                           forwardedRef={null}
                           height={36}
                           multiple={false}
@@ -1322,9 +1327,10 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                           placeholder="Select a Team"
                           value={0}
                         >
-                          <StyledSelect
+                          <SelectPicker
                             arrowRenderer={[Function]}
                             backspaceRemoves={false}
+                            className="css-140v9or-StyledSelect e1ynsgsr0"
                             clearable={false}
                             deleteRemoves={false}
                             forwardedRef={null}
@@ -1336,165 +1342,149 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                             placeholder="Select a Team"
                             value={0}
                           >
-                            <SelectPicker
+                            <Select
                               arrowRenderer={[Function]}
+                              autosize={true}
                               backspaceRemoves={false}
+                              backspaceToRemoveMessage="Press backspace to remove {label}"
                               className="css-140v9or-StyledSelect e1ynsgsr0"
+                              clearAllText="Clear all"
+                              clearRenderer={[Function]}
+                              clearValueText="Clear value"
                               clearable={false}
+                              closeOnSelect={true}
                               deleteRemoves={false}
-                              forwardedRef={null}
+                              delimiter=","
+                              disabled={false}
+                              escapeClearsValue={true}
+                              filterOptions={[Function]}
                               height={36}
+                              ignoreAccents={true}
+                              ignoreCase={true}
+                              inputProps={Object {}}
+                              isLoading={false}
+                              joinValues={false}
+                              labelKey="label"
+                              matchPos="any"
+                              matchProp="any"
+                              menuBuffer={0}
+                              menuRenderer={[Function]}
+                              multi={false}
                               multiple={false}
                               name="select-team"
+                              noResultsText="No results found"
+                              onBlurResetsInput={true}
                               onChange={[Function]}
+                              onCloseResetsInput={true}
+                              onSelectResetsInput={true}
+                              openOnClick={true}
+                              optionComponent={[Function]}
                               options={Array []}
+                              pageSize={5}
                               placeholder="Select a Team"
+                              removeSelected={true}
+                              required={false}
+                              rtl={false}
+                              scrollMenuIntoView={true}
+                              searchable={true}
+                              simpleValue={false}
+                              tabSelectsValue={true}
+                              trimFilter={true}
                               value={0}
+                              valueComponent={[Function]}
+                              valueKey="value"
                             >
-                              <Select
-                                arrowRenderer={[Function]}
-                                autosize={true}
-                                backspaceRemoves={false}
-                                backspaceToRemoveMessage="Press backspace to remove {label}"
-                                className="css-140v9or-StyledSelect e1ynsgsr0"
-                                clearAllText="Clear all"
-                                clearRenderer={[Function]}
-                                clearValueText="Clear value"
-                                clearable={false}
-                                closeOnSelect={true}
-                                deleteRemoves={false}
-                                delimiter=","
-                                disabled={false}
-                                escapeClearsValue={true}
-                                filterOptions={[Function]}
-                                height={36}
-                                ignoreAccents={true}
-                                ignoreCase={true}
-                                inputProps={Object {}}
-                                isLoading={false}
-                                joinValues={false}
-                                labelKey="label"
-                                matchPos="any"
-                                matchProp="any"
-                                menuBuffer={0}
-                                menuRenderer={[Function]}
-                                multi={false}
-                                multiple={false}
-                                name="select-team"
-                                noResultsText="No results found"
-                                onBlurResetsInput={true}
-                                onChange={[Function]}
-                                onCloseResetsInput={true}
-                                onSelectResetsInput={true}
-                                openOnClick={true}
-                                optionComponent={[Function]}
-                                options={Array []}
-                                pageSize={5}
-                                placeholder="Select a Team"
-                                removeSelected={true}
-                                required={false}
-                                rtl={false}
-                                scrollMenuIntoView={true}
-                                searchable={true}
-                                simpleValue={false}
-                                tabSelectsValue={true}
-                                trimFilter={true}
-                                value={0}
-                                valueComponent={[Function]}
-                                valueKey="value"
+                              <div
+                                className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
                               >
                                 <div
-                                  className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                                  className="Select-control"
+                                  onKeyDown={[Function]}
+                                  onMouseDown={[Function]}
+                                  onTouchEnd={[Function]}
+                                  onTouchMove={[Function]}
+                                  onTouchStart={[Function]}
                                 >
                                   <div
-                                    className="Select-control"
-                                    onKeyDown={[Function]}
-                                    onMouseDown={[Function]}
-                                    onTouchEnd={[Function]}
-                                    onTouchMove={[Function]}
-                                    onTouchStart={[Function]}
+                                    className="Select-multi-value-wrapper"
+                                    id="react-select-5--value"
                                   >
                                     <div
-                                      className="Select-multi-value-wrapper"
-                                      id="react-select-5--value"
+                                      className="Select-placeholder"
+                                    >
+                                      Select a Team
+                                    </div>
+                                    <AutosizeInput
+                                      aria-activedescendant="react-select-5--value"
+                                      aria-expanded="false"
+                                      aria-haspopup="false"
+                                      aria-owns=""
+                                      className="Select-input"
+                                      injectStyles={true}
+                                      minWidth="5"
+                                      onBlur={[Function]}
+                                      onChange={[Function]}
+                                      onFocus={[Function]}
+                                      required={false}
+                                      role="combobox"
+                                      value=""
                                     >
                                       <div
-                                        className="Select-placeholder"
-                                      >
-                                        Select a Team
-                                      </div>
-                                      <AutosizeInput
-                                        aria-activedescendant="react-select-5--value"
-                                        aria-expanded="false"
-                                        aria-haspopup="false"
-                                        aria-owns=""
                                         className="Select-input"
-                                        injectStyles={true}
-                                        minWidth="5"
-                                        onBlur={[Function]}
-                                        onChange={[Function]}
-                                        onFocus={[Function]}
-                                        required={false}
-                                        role="combobox"
-                                        value=""
+                                        style={
+                                          Object {
+                                            "display": "inline-block",
+                                          }
+                                        }
                                       >
-                                        <div
-                                          className="Select-input"
+                                        <input
+                                          aria-activedescendant="react-select-5--value"
+                                          aria-expanded="false"
+                                          aria-haspopup="false"
+                                          aria-owns=""
+                                          onBlur={[Function]}
+                                          onChange={[Function]}
+                                          onFocus={[Function]}
+                                          required={false}
+                                          role="combobox"
                                           style={
                                             Object {
-                                              "display": "inline-block",
+                                              "boxSizing": "content-box",
+                                              "width": "5px",
                                             }
                                           }
-                                        >
-                                          <input
-                                            aria-activedescendant="react-select-5--value"
-                                            aria-expanded="false"
-                                            aria-haspopup="false"
-                                            aria-owns=""
-                                            onBlur={[Function]}
-                                            onChange={[Function]}
-                                            onFocus={[Function]}
-                                            required={false}
-                                            role="combobox"
-                                            style={
-                                              Object {
-                                                "boxSizing": "content-box",
-                                                "width": "5px",
-                                              }
+                                          value=""
+                                        />
+                                        <div
+                                          style={
+                                            Object {
+                                              "height": 0,
+                                              "left": 0,
+                                              "overflow": "scroll",
+                                              "position": "absolute",
+                                              "top": 0,
+                                              "visibility": "hidden",
+                                              "whiteSpace": "pre",
                                             }
-                                            value=""
-                                          />
-                                          <div
-                                            style={
-                                              Object {
-                                                "height": 0,
-                                                "left": 0,
-                                                "overflow": "scroll",
-                                                "position": "absolute",
-                                                "top": 0,
-                                                "visibility": "hidden",
-                                                "whiteSpace": "pre",
-                                              }
-                                            }
-                                          />
-                                        </div>
-                                      </AutosizeInput>
-                                    </div>
-                                    <span
-                                      className="Select-arrow-zone"
-                                      onMouseDown={[Function]}
-                                    >
-                                      <span
-                                        className="icon-arrow-down"
-                                      />
-                                    </span>
+                                          }
+                                        />
+                                      </div>
+                                    </AutosizeInput>
                                   </div>
+                                  <span
+                                    className="Select-arrow-zone"
+                                    onMouseDown={[Function]}
+                                  >
+                                    <span
+                                      className="icon-arrow-down"
+                                    />
+                                  </span>
                                 </div>
-                              </Select>
-                            </SelectPicker>
-                          </StyledSelect>
-                        </SelectControlLegacy>
-                      </ForwardRef(RefForwardedSelectControl)>
+                              </div>
+                            </Select>
+                          </SelectPicker>
+                        </StyledSelect>
+                      </SelectControlLegacy>
                     </SelectControl>
                   </ForwardRef(RefForwardedSelectControl)>
                   <Tooltip
@@ -2326,17 +2316,22 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       placeholder="Select a Team"
                       value={0}
                     >
-                      <ForwardRef(RefForwardedSelectControl)
+                      <SelectControlLegacy
                         clearable={false}
                         forwardedRef={null}
+                        height={36}
+                        multiple={false}
                         name="select-team"
                         onChange={[Function]}
                         options={Array []}
                         placeholder="Select a Team"
                         value={0}
                       >
-                        <SelectControlLegacy
+                        <StyledSelect
+                          arrowRenderer={[Function]}
+                          backspaceRemoves={false}
                           clearable={false}
+                          deleteRemoves={false}
                           forwardedRef={null}
                           height={36}
                           multiple={false}
@@ -2346,9 +2341,10 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                           placeholder="Select a Team"
                           value={0}
                         >
-                          <StyledSelect
+                          <SelectPicker
                             arrowRenderer={[Function]}
                             backspaceRemoves={false}
+                            className="css-140v9or-StyledSelect e1ynsgsr0"
                             clearable={false}
                             deleteRemoves={false}
                             forwardedRef={null}
@@ -2360,165 +2356,149 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                             placeholder="Select a Team"
                             value={0}
                           >
-                            <SelectPicker
+                            <Select
                               arrowRenderer={[Function]}
+                              autosize={true}
                               backspaceRemoves={false}
+                              backspaceToRemoveMessage="Press backspace to remove {label}"
                               className="css-140v9or-StyledSelect e1ynsgsr0"
+                              clearAllText="Clear all"
+                              clearRenderer={[Function]}
+                              clearValueText="Clear value"
                               clearable={false}
+                              closeOnSelect={true}
                               deleteRemoves={false}
-                              forwardedRef={null}
+                              delimiter=","
+                              disabled={false}
+                              escapeClearsValue={true}
+                              filterOptions={[Function]}
                               height={36}
+                              ignoreAccents={true}
+                              ignoreCase={true}
+                              inputProps={Object {}}
+                              isLoading={false}
+                              joinValues={false}
+                              labelKey="label"
+                              matchPos="any"
+                              matchProp="any"
+                              menuBuffer={0}
+                              menuRenderer={[Function]}
+                              multi={false}
                               multiple={false}
                               name="select-team"
+                              noResultsText="No results found"
+                              onBlurResetsInput={true}
                               onChange={[Function]}
+                              onCloseResetsInput={true}
+                              onSelectResetsInput={true}
+                              openOnClick={true}
+                              optionComponent={[Function]}
                               options={Array []}
+                              pageSize={5}
                               placeholder="Select a Team"
+                              removeSelected={true}
+                              required={false}
+                              rtl={false}
+                              scrollMenuIntoView={true}
+                              searchable={true}
+                              simpleValue={false}
+                              tabSelectsValue={true}
+                              trimFilter={true}
                               value={0}
+                              valueComponent={[Function]}
+                              valueKey="value"
                             >
-                              <Select
-                                arrowRenderer={[Function]}
-                                autosize={true}
-                                backspaceRemoves={false}
-                                backspaceToRemoveMessage="Press backspace to remove {label}"
-                                className="css-140v9or-StyledSelect e1ynsgsr0"
-                                clearAllText="Clear all"
-                                clearRenderer={[Function]}
-                                clearValueText="Clear value"
-                                clearable={false}
-                                closeOnSelect={true}
-                                deleteRemoves={false}
-                                delimiter=","
-                                disabled={false}
-                                escapeClearsValue={true}
-                                filterOptions={[Function]}
-                                height={36}
-                                ignoreAccents={true}
-                                ignoreCase={true}
-                                inputProps={Object {}}
-                                isLoading={false}
-                                joinValues={false}
-                                labelKey="label"
-                                matchPos="any"
-                                matchProp="any"
-                                menuBuffer={0}
-                                menuRenderer={[Function]}
-                                multi={false}
-                                multiple={false}
-                                name="select-team"
-                                noResultsText="No results found"
-                                onBlurResetsInput={true}
-                                onChange={[Function]}
-                                onCloseResetsInput={true}
-                                onSelectResetsInput={true}
-                                openOnClick={true}
-                                optionComponent={[Function]}
-                                options={Array []}
-                                pageSize={5}
-                                placeholder="Select a Team"
-                                removeSelected={true}
-                                required={false}
-                                rtl={false}
-                                scrollMenuIntoView={true}
-                                searchable={true}
-                                simpleValue={false}
-                                tabSelectsValue={true}
-                                trimFilter={true}
-                                value={0}
-                                valueComponent={[Function]}
-                                valueKey="value"
+                              <div
+                                className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
                               >
                                 <div
-                                  className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                                  className="Select-control"
+                                  onKeyDown={[Function]}
+                                  onMouseDown={[Function]}
+                                  onTouchEnd={[Function]}
+                                  onTouchMove={[Function]}
+                                  onTouchStart={[Function]}
                                 >
                                   <div
-                                    className="Select-control"
-                                    onKeyDown={[Function]}
-                                    onMouseDown={[Function]}
-                                    onTouchEnd={[Function]}
-                                    onTouchMove={[Function]}
-                                    onTouchStart={[Function]}
+                                    className="Select-multi-value-wrapper"
+                                    id="react-select-4--value"
                                   >
                                     <div
-                                      className="Select-multi-value-wrapper"
-                                      id="react-select-4--value"
+                                      className="Select-placeholder"
+                                    >
+                                      Select a Team
+                                    </div>
+                                    <AutosizeInput
+                                      aria-activedescendant="react-select-4--value"
+                                      aria-expanded="false"
+                                      aria-haspopup="false"
+                                      aria-owns=""
+                                      className="Select-input"
+                                      injectStyles={true}
+                                      minWidth="5"
+                                      onBlur={[Function]}
+                                      onChange={[Function]}
+                                      onFocus={[Function]}
+                                      required={false}
+                                      role="combobox"
+                                      value=""
                                     >
                                       <div
-                                        className="Select-placeholder"
-                                      >
-                                        Select a Team
-                                      </div>
-                                      <AutosizeInput
-                                        aria-activedescendant="react-select-4--value"
-                                        aria-expanded="false"
-                                        aria-haspopup="false"
-                                        aria-owns=""
                                         className="Select-input"
-                                        injectStyles={true}
-                                        minWidth="5"
-                                        onBlur={[Function]}
-                                        onChange={[Function]}
-                                        onFocus={[Function]}
-                                        required={false}
-                                        role="combobox"
-                                        value=""
+                                        style={
+                                          Object {
+                                            "display": "inline-block",
+                                          }
+                                        }
                                       >
-                                        <div
-                                          className="Select-input"
+                                        <input
+                                          aria-activedescendant="react-select-4--value"
+                                          aria-expanded="false"
+                                          aria-haspopup="false"
+                                          aria-owns=""
+                                          onBlur={[Function]}
+                                          onChange={[Function]}
+                                          onFocus={[Function]}
+                                          required={false}
+                                          role="combobox"
                                           style={
                                             Object {
-                                              "display": "inline-block",
+                                              "boxSizing": "content-box",
+                                              "width": "5px",
                                             }
                                           }
-                                        >
-                                          <input
-                                            aria-activedescendant="react-select-4--value"
-                                            aria-expanded="false"
-                                            aria-haspopup="false"
-                                            aria-owns=""
-                                            onBlur={[Function]}
-                                            onChange={[Function]}
-                                            onFocus={[Function]}
-                                            required={false}
-                                            role="combobox"
-                                            style={
-                                              Object {
-                                                "boxSizing": "content-box",
-                                                "width": "5px",
-                                              }
+                                          value=""
+                                        />
+                                        <div
+                                          style={
+                                            Object {
+                                              "height": 0,
+                                              "left": 0,
+                                              "overflow": "scroll",
+                                              "position": "absolute",
+                                              "top": 0,
+                                              "visibility": "hidden",
+                                              "whiteSpace": "pre",
                                             }
-                                            value=""
-                                          />
-                                          <div
-                                            style={
-                                              Object {
-                                                "height": 0,
-                                                "left": 0,
-                                                "overflow": "scroll",
-                                                "position": "absolute",
-                                                "top": 0,
-                                                "visibility": "hidden",
-                                                "whiteSpace": "pre",
-                                              }
-                                            }
-                                          />
-                                        </div>
-                                      </AutosizeInput>
-                                    </div>
-                                    <span
-                                      className="Select-arrow-zone"
-                                      onMouseDown={[Function]}
-                                    >
-                                      <span
-                                        className="icon-arrow-down"
-                                      />
-                                    </span>
+                                          }
+                                        />
+                                      </div>
+                                    </AutosizeInput>
                                   </div>
+                                  <span
+                                    className="Select-arrow-zone"
+                                    onMouseDown={[Function]}
+                                  >
+                                    <span
+                                      className="icon-arrow-down"
+                                    />
+                                  </span>
                                 </div>
-                              </Select>
-                            </SelectPicker>
-                          </StyledSelect>
-                        </SelectControlLegacy>
-                      </ForwardRef(RefForwardedSelectControl)>
+                              </div>
+                            </Select>
+                          </SelectPicker>
+                        </StyledSelect>
+                      </SelectControlLegacy>
                     </SelectControl>
                   </ForwardRef(RefForwardedSelectControl)>
                   <Tooltip
@@ -4050,17 +4030,22 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       placeholder="Select a Team"
                       value={0}
                     >
-                      <ForwardRef(RefForwardedSelectControl)
+                      <SelectControlLegacy
                         clearable={false}
                         forwardedRef={null}
+                        height={36}
+                        multiple={false}
                         name="select-team"
                         onChange={[Function]}
                         options={Array []}
                         placeholder="Select a Team"
                         value={0}
                       >
-                        <SelectControlLegacy
+                        <StyledSelect
+                          arrowRenderer={[Function]}
+                          backspaceRemoves={false}
                           clearable={false}
+                          deleteRemoves={false}
                           forwardedRef={null}
                           height={36}
                           multiple={false}
@@ -4070,9 +4055,10 @@ exports[`CreateProject should fill in project name if its empty when platform is
                           placeholder="Select a Team"
                           value={0}
                         >
-                          <StyledSelect
+                          <SelectPicker
                             arrowRenderer={[Function]}
                             backspaceRemoves={false}
+                            className="css-140v9or-StyledSelect e1ynsgsr0"
                             clearable={false}
                             deleteRemoves={false}
                             forwardedRef={null}
@@ -4084,165 +4070,149 @@ exports[`CreateProject should fill in project name if its empty when platform is
                             placeholder="Select a Team"
                             value={0}
                           >
-                            <SelectPicker
+                            <Select
                               arrowRenderer={[Function]}
+                              autosize={true}
                               backspaceRemoves={false}
+                              backspaceToRemoveMessage="Press backspace to remove {label}"
                               className="css-140v9or-StyledSelect e1ynsgsr0"
+                              clearAllText="Clear all"
+                              clearRenderer={[Function]}
+                              clearValueText="Clear value"
                               clearable={false}
+                              closeOnSelect={true}
                               deleteRemoves={false}
-                              forwardedRef={null}
+                              delimiter=","
+                              disabled={false}
+                              escapeClearsValue={true}
+                              filterOptions={[Function]}
                               height={36}
+                              ignoreAccents={true}
+                              ignoreCase={true}
+                              inputProps={Object {}}
+                              isLoading={false}
+                              joinValues={false}
+                              labelKey="label"
+                              matchPos="any"
+                              matchProp="any"
+                              menuBuffer={0}
+                              menuRenderer={[Function]}
+                              multi={false}
                               multiple={false}
                               name="select-team"
+                              noResultsText="No results found"
+                              onBlurResetsInput={true}
                               onChange={[Function]}
+                              onCloseResetsInput={true}
+                              onSelectResetsInput={true}
+                              openOnClick={true}
+                              optionComponent={[Function]}
                               options={Array []}
+                              pageSize={5}
                               placeholder="Select a Team"
+                              removeSelected={true}
+                              required={false}
+                              rtl={false}
+                              scrollMenuIntoView={true}
+                              searchable={true}
+                              simpleValue={false}
+                              tabSelectsValue={true}
+                              trimFilter={true}
                               value={0}
+                              valueComponent={[Function]}
+                              valueKey="value"
                             >
-                              <Select
-                                arrowRenderer={[Function]}
-                                autosize={true}
-                                backspaceRemoves={false}
-                                backspaceToRemoveMessage="Press backspace to remove {label}"
-                                className="css-140v9or-StyledSelect e1ynsgsr0"
-                                clearAllText="Clear all"
-                                clearRenderer={[Function]}
-                                clearValueText="Clear value"
-                                clearable={false}
-                                closeOnSelect={true}
-                                deleteRemoves={false}
-                                delimiter=","
-                                disabled={false}
-                                escapeClearsValue={true}
-                                filterOptions={[Function]}
-                                height={36}
-                                ignoreAccents={true}
-                                ignoreCase={true}
-                                inputProps={Object {}}
-                                isLoading={false}
-                                joinValues={false}
-                                labelKey="label"
-                                matchPos="any"
-                                matchProp="any"
-                                menuBuffer={0}
-                                menuRenderer={[Function]}
-                                multi={false}
-                                multiple={false}
-                                name="select-team"
-                                noResultsText="No results found"
-                                onBlurResetsInput={true}
-                                onChange={[Function]}
-                                onCloseResetsInput={true}
-                                onSelectResetsInput={true}
-                                openOnClick={true}
-                                optionComponent={[Function]}
-                                options={Array []}
-                                pageSize={5}
-                                placeholder="Select a Team"
-                                removeSelected={true}
-                                required={false}
-                                rtl={false}
-                                scrollMenuIntoView={true}
-                                searchable={true}
-                                simpleValue={false}
-                                tabSelectsValue={true}
-                                trimFilter={true}
-                                value={0}
-                                valueComponent={[Function]}
-                                valueKey="value"
+                              <div
+                                className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
                               >
                                 <div
-                                  className="Select css-140v9or-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                                  className="Select-control"
+                                  onKeyDown={[Function]}
+                                  onMouseDown={[Function]}
+                                  onTouchEnd={[Function]}
+                                  onTouchMove={[Function]}
+                                  onTouchStart={[Function]}
                                 >
                                   <div
-                                    className="Select-control"
-                                    onKeyDown={[Function]}
-                                    onMouseDown={[Function]}
-                                    onTouchEnd={[Function]}
-                                    onTouchMove={[Function]}
-                                    onTouchStart={[Function]}
+                                    className="Select-multi-value-wrapper"
+                                    id="react-select-3--value"
                                   >
                                     <div
-                                      className="Select-multi-value-wrapper"
-                                      id="react-select-3--value"
+                                      className="Select-placeholder"
+                                    >
+                                      Select a Team
+                                    </div>
+                                    <AutosizeInput
+                                      aria-activedescendant="react-select-3--value"
+                                      aria-expanded="false"
+                                      aria-haspopup="false"
+                                      aria-owns=""
+                                      className="Select-input"
+                                      injectStyles={true}
+                                      minWidth="5"
+                                      onBlur={[Function]}
+                                      onChange={[Function]}
+                                      onFocus={[Function]}
+                                      required={false}
+                                      role="combobox"
+                                      value=""
                                     >
                                       <div
-                                        className="Select-placeholder"
-                                      >
-                                        Select a Team
-                                      </div>
-                                      <AutosizeInput
-                                        aria-activedescendant="react-select-3--value"
-                                        aria-expanded="false"
-                                        aria-haspopup="false"
-                                        aria-owns=""
                                         className="Select-input"
-                                        injectStyles={true}
-                                        minWidth="5"
-                                        onBlur={[Function]}
-                                        onChange={[Function]}
-                                        onFocus={[Function]}
-                                        required={false}
-                                        role="combobox"
-                                        value=""
+                                        style={
+                                          Object {
+                                            "display": "inline-block",
+                                          }
+                                        }
                                       >
-                                        <div
-                                          className="Select-input"
+                                        <input
+                                          aria-activedescendant="react-select-3--value"
+                                          aria-expanded="false"
+                                          aria-haspopup="false"
+                                          aria-owns=""
+                                          onBlur={[Function]}
+                                          onChange={[Function]}
+                                          onFocus={[Function]}
+                                          required={false}
+                                          role="combobox"
                                           style={
                                             Object {
-                                              "display": "inline-block",
+                                              "boxSizing": "content-box",
+                                              "width": "5px",
                                             }
                                           }
-                                        >
-                                          <input
-                                            aria-activedescendant="react-select-3--value"
-                                            aria-expanded="false"
-                                            aria-haspopup="false"
-                                            aria-owns=""
-                                            onBlur={[Function]}
-                                            onChange={[Function]}
-                                            onFocus={[Function]}
-                                            required={false}
-                                            role="combobox"
-                                            style={
-                                              Object {
-                                                "boxSizing": "content-box",
-                                                "width": "5px",
-                                              }
+                                          value=""
+                                        />
+                                        <div
+                                          style={
+                                            Object {
+                                              "height": 0,
+                                              "left": 0,
+                                              "overflow": "scroll",
+                                              "position": "absolute",
+                                              "top": 0,
+                                              "visibility": "hidden",
+                                              "whiteSpace": "pre",
                                             }
-                                            value=""
-                                          />
-                                          <div
-                                            style={
-                                              Object {
-                                                "height": 0,
-                                                "left": 0,
-                                                "overflow": "scroll",
-                                                "position": "absolute",
-                                                "top": 0,
-                                                "visibility": "hidden",
-                                                "whiteSpace": "pre",
-                                              }
-                                            }
-                                          />
-                                        </div>
-                                      </AutosizeInput>
-                                    </div>
-                                    <span
-                                      className="Select-arrow-zone"
-                                      onMouseDown={[Function]}
-                                    >
-                                      <span
-                                        className="icon-arrow-down"
-                                      />
-                                    </span>
+                                          }
+                                        />
+                                      </div>
+                                    </AutosizeInput>
                                   </div>
+                                  <span
+                                    className="Select-arrow-zone"
+                                    onMouseDown={[Function]}
+                                  >
+                                    <span
+                                      className="icon-arrow-down"
+                                    />
+                                  </span>
                                 </div>
-                              </Select>
-                            </SelectPicker>
-                          </StyledSelect>
-                        </SelectControlLegacy>
-                      </ForwardRef(RefForwardedSelectControl)>
+                              </div>
+                            </Select>
+                          </SelectPicker>
+                        </StyledSelect>
+                      </SelectControlLegacy>
                     </SelectControl>
                   </ForwardRef(RefForwardedSelectControl)>
                   <Tooltip
