@@ -31,7 +31,7 @@ SENTRY_USE_BIG_INTS = True
 SENTRY_CACHE = "sentry.cache.redis.RedisCache"
 
 CELERY_ALWAYS_EAGER = True
-BROKER_URL = "redis://localhost:%s" % SENTRY_APIDOCS_REDIS_PORT
+BROKER_URL = "redis://127.0.0.1:%s" % SENTRY_APIDOCS_REDIS_PORT
 
 SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
 SENTRY_BUFFER = "sentry.buffer.redis.RedisBuffer"
@@ -57,7 +57,7 @@ SENTRY_OPTIONS.update(
         "system.admin-email": "admin@sentry.io",
         "system.url-prefix": SENTRY_URL_PREFIX,
         "mail.backend": "django.core.mail.backends.smtp.EmailBackend",
-        "mail.host": "localhost",
+        "mail.host": "127.0.0.1",
         "mail.password": "",
         "mail.username": "",
         "mail.port": 25,

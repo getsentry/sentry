@@ -56,7 +56,7 @@ register("releasefile.cache-limit", type=Int, default=10 * 1024 * 1024, flags=FL
 
 # Mail
 register("mail.backend", default="smtp", flags=FLAG_NOSTORE)
-register("mail.host", default="localhost", flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
+register("mail.host", default="127.0.0.1", flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.port", default=25, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.username", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("mail.password", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
