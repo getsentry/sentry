@@ -15,9 +15,8 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
         Ownership Rules
       </PanelHeader>
       <PanelBody
-        direction="column"
-        disablePadding={false}
-        flex={false}
+        flexible={false}
+        withPadding={true}
       >
         <Block>
           Define rules here to configure automated ownership for new issues and direct email alerts

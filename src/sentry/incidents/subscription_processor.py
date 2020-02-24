@@ -4,7 +4,7 @@ import logging
 import operator
 from copy import deepcopy
 from datetime import timedelta
-from itertools import izip
+from six.moves import zip
 
 from django.conf import settings
 from django.db import transaction
@@ -53,7 +53,7 @@ class SubscriptionProcessor(object):
     def __init__(self, subscription):
         self.subscription = subscription
         try:
-            self.alert_rule = AlertRule.objects.get(query_subscriptions=subscription)
+            self.alert_rule = AlertRule.objects.get_for_subscription(subscription)
         except AlertRule.DoesNotExist:
             return
 
@@ -346,7 +346,7 @@ def partition(iterable, n):
     """
     assert len(iterable) % n == 0
     args = [iter(iterable)] * n
-    return izip(*args)
+    return zip(*args)
 
 
 def get_alert_rule_stats(alert_rule, subscription, triggers):

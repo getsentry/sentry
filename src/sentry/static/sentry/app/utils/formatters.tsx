@@ -26,7 +26,7 @@ export const formatVersion = (rawVersion: string, withPackage: boolean | undefin
     return `${parsedVersion.describe()}${
       withPackage && parsedVersion.package ? `, ${parsedVersion.package}` : ''
     }`;
-  } catch (error) {
+  } catch {
     return rawVersion;
   }
 };

@@ -375,7 +375,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = SearchValue(int(search_value.text))
             except ValueError:
-                raise InvalidSearchQuery("Invalid numeric query: %s" % (search_key,))
+                raise InvalidSearchQuery(u"Invalid numeric query: {}".format(search_key))
             return SearchFilter(search_key, operator, search_value)
         else:
             search_value = SearchValue(
@@ -386,10 +386,11 @@ class SearchVisitor(NodeVisitor):
     def visit_aggregate_filter(self, node, children):
         (search_key, _, operator, search_value) = children
         operator = operator[0] if not isinstance(operator, Node) else "="
+
         try:
             search_value = SearchValue(int(search_value.text))
         except ValueError:
-            raise InvalidSearchQuery("Invalid aggregate query condition: %s" % (search_key,))
+            raise InvalidSearchQuery(u"Invalid aggregate query condition: {}".format(search_key))
         return AggregateFilter(search_key, operator, search_value)
 
     def visit_aggregate_date_filter(self, node, children):
@@ -485,7 +486,7 @@ class SearchVisitor(NodeVisitor):
         (negation, search_key, _, search_value) = children
         operator = "!=" if self.is_negated(negation) else "="
         if not search_value.raw_value:
-            raise InvalidSearchQuery("Empty string after '%s:'" % search_key.name)
+            raise InvalidSearchQuery(u"Empty string after '{}:'".format(search_key.name))
 
         return self._handle_basic_filter(search_key, operator, search_value)
 
@@ -506,7 +507,7 @@ class SearchVisitor(NodeVisitor):
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):
             raise InvalidSearchQuery(
-                'Invalid format for "has" search: %s' % (search_key.raw_value,)
+                u'Invalid format for "has" search: {}'.format(search_key.raw_value)
             )
 
         operator = "=" if self.is_negated(negation) else "!="
@@ -515,7 +516,7 @@ class SearchVisitor(NodeVisitor):
     def visit_tag_filter(self, node, children):
         (negation, _, search_key, _, sep, search_value) = children
         operator = "!=" if self.is_negated(negation) else "="
-        return SearchFilter(SearchKey(u"tags[%s]" % (search_key.name)), operator, search_value)
+        return SearchFilter(SearchKey(u"tags[{}]".format(search_key.name)), operator, search_value)
 
     def visit_is_filter(self, node, children):
         raise InvalidSearchQuery('"is:" queries are only supported in issue search.')
@@ -576,9 +577,8 @@ def parse_search_query(query):
         tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
         raise InvalidSearchQuery(
-            "%s %s"
-            % (
-                u"Parse error: %r (column %d)." % (e.expr.name, e.column()),
+            u"{} {}".format(
+                u"Parse error: '{}' (column {:d}).".format(e.expr.name, e.column()),
                 "This is commonly caused by unmatched-parentheses. Enclose any text in double quotes.",
             )
         )
@@ -595,8 +595,7 @@ def convert_search_boolean_to_snuba_query(search_boolean):
             return convert_search_boolean_to_snuba_query(term)
         else:
             raise InvalidSearchQuery(
-                "Attempted to convert term of unrecognized type %s into a snuba expression"
-                % term.__class__.__name__
+                u"Attempted to convert term of unrecognized type {} into a snuba expression".format(term.__class__.__name__)
             )
 
     if not search_boolean:
@@ -661,14 +660,14 @@ def convert_search_filter_to_snuba_query(search_filter):
             # the regex since we want to find the pattern anywhere in the
             # message. Strip off here
             value = search_filter.value.value[1:-1]
-            return [["match", ["message", "'(?i)%s'" % (value,)]], search_filter.operator, 1]
+            return [["match", ["message", u"'(?i){}'".format(value)]], search_filter.operator, 1]
         else:
             # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
             # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
             # so we should flip the operator here
             operator = "=" if search_filter.operator == "!=" else "!="
             # make message search case insensitive
-            return [["positionCaseInsensitive", ["message", "'%s'" % (value,)]], operator, 0]
+            return [["positionCaseInsensitive", ["message", u"'{}'".format(value)]], operator, 0]
     elif (
         name.startswith("stack.") or name.startswith("error.")
     ) and search_filter.value.is_wildcard():
@@ -681,7 +680,7 @@ def convert_search_filter_to_snuba_query(search_filter):
         internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
         if internal_value is None:
             raise InvalidSearchQuery(
-                "Invalid value for transaction.status condition. Accepted values are {}".format(
+                u"Invalid value for transaction.status condition. Accepted values are {}".format(
                     ", ".join(SPAN_STATUS_NAME_TO_CODE.keys())
                 )
             )
@@ -717,7 +716,7 @@ def convert_search_filter_to_snuba_query(search_filter):
             is_null_condition = [["isNull", [name]], "=", 1]
 
         if search_filter.value.is_wildcard():
-            condition = [["match", [name, "'(?i)%s'" % (value,)]], search_filter.operator, 1]
+            condition = [["match", [name, u"'(?i){}'".format(value)]], search_filter.operator, 1]
         else:
             condition = [name, search_filter.operator, value]
 
@@ -742,7 +741,7 @@ def get_filter(query=None, params=None):
         try:
             parsed_terms = parse_search_query(query)
         except ParseError as e:
-            raise InvalidSearchQuery(u"Parse error: %r (column %d)" % (e.expr.name, e.column()))
+            raise InvalidSearchQuery(u"Parse error: {} (column {:d})".format(e.expr.name, e.column()))
 
     kwargs = {
         "start": None,
@@ -769,8 +768,7 @@ def get_filter(query=None, params=None):
                     )
                 except Exception:
                     raise InvalidSearchQuery(
-                        "Invalid query. Project %s does not exist or is not an actively selected project."
-                        % term.value.value
+                        u"Invalid query. Project {} does not exist or is not an actively selected project.".format(term.value.value)
                     )
 
                 # Create a new search filter with the correct values
@@ -858,7 +856,7 @@ FIELD_ALIASES = {
     "error_rate": {
         "result_type": "number",
         "aggregations": [
-            ["divide(countIf(notEquals(transaction_status, 0)), count(*))", None, "error_rate"]
+            ["divide(countIf(notEquals(transaction_status, 0)), count())", None, "error_rate"]
         ],
     },
 }
@@ -892,20 +890,74 @@ def get_json_meta_type(field, snuba_type):
 def validate_aggregate(field, match):
     function_name = match.group("function")
     if function_name not in VALID_AGGREGATES:
-        raise InvalidSearchQuery("Unknown aggregate function '%s'" % field)
+        raise InvalidSearchQuery(u"Unknown aggregate function '{}'".format(field))
 
     function_data = VALID_AGGREGATES[function_name]
     column = match.group("column")
     if column not in function_data["fields"] and function_data["fields"] != "*":
         raise InvalidSearchQuery(
-            "Invalid column '%s' in aggregate function '%s'" % (column, function_name)
+            u"Invalid column '{}' in aggregate function '{}'".format(column, function_name)
         )
 
 
 FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
 
-NUMERIC_COLUMN = "numeric_column"
-NUMBER = "number"
+
+class InvalidFunctionArgument(Exception):
+    pass
+
+
+class FunctionArg(object):
+    def __init__(self, name):
+        self.name = name
+
+    def normalize(self, value):
+        return value
+
+    def has_default(self, params):
+        return False
+
+
+class NumericColumn(FunctionArg):
+    def normalize(self, value):
+        snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column:
+            raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
+        elif snuba_column != "duration":
+            raise InvalidFunctionArgument(u"{} is not a numeric column".format(value))
+        return snuba_column
+
+
+class NumberRange(FunctionArg):
+    def __init__(self, name, start, end):
+        super(NumberRange, self).__init__(name)
+        self.start = start
+        self.end = end
+
+    def normalize(self, value):
+        try:
+            value = float(value)
+        except ValueError:
+            raise InvalidFunctionArgument(u"{} is not a number".format(value))
+
+        if self.start and value < self.start:
+            raise InvalidFunctionArgument(u"{:g} must be greater than or equal to {:g}".format(value, self.start))
+        elif self.end and value >= self.end:
+            raise InvalidFunctionArgument(u"{:g} must be less than {:g}".format(value, self.end))
+
+        return value
+
+
+class IntervalDefault(NumberRange):
+    def has_default(self, params):
+        if not params or not params.get("start") or not params.get("end"):
+            raise InvalidFunctionArgument("function called without default")
+        elif not isinstance(params["start"], datetime) or not isinstance(params["end"], datetime):
+            raise InvalidFunctionArgument("function called with invalid default")
+
+        interval = (params["end"] - params["start"]).total_seconds()
+        return int(interval)
+
 
 # When adding functions to this list please also update
 # static/app/views/eventsV2/eventQueryParams.tsx so that
@@ -914,28 +966,20 @@ FUNCTIONS = {
     "percentile": {
         "name": "percentile",
         "args": [
-            {"name": "column", "type": NUMERIC_COLUMN},
-            {
-                "name": "percentile",
-                "type": NUMBER,
-                "validator": lambda v: (v > 0 and v < 1, "not between 0 and 1"),
-            },
+            NumericColumn("column"),
+            NumberRange("percentile", 0, 1),
         ],
-        "transform": "quantile(%(percentile).2f)(%(column)s)",
+        "transform": u"quantile({percentile:.2f})({column})",
     },
     "rps": {
         "name": "rps",
-        "args": [
-            {"name": "interval", "type": NUMBER, "validator": lambda v: (v > 0, "must be positive integer")},
-        ],
-        "transform": "divide(count(), %(interval)d)",
+        "args": [IntervalDefault("interval", 1, None)],
+        "transform": u"divide(count(), {interval:g})",
     },
     "rpm": {
         "name": "rpm",
-        "args": [
-            {"name": "interval", "type": NUMBER, "validator": lambda v: (v >= 60, "must be greater than 60 seconds")},
-        ],
-        "transform": "divide(count(), divide(%(interval)d, 60))",
+        "args": [IntervalDefault("interval", 60, None)],
+        "transform": u"divide(count(), divide({interval:g}, 60))",
     },
 }
 
@@ -948,47 +992,43 @@ def is_function(field):
 
 def get_function_alias(function_name, columns):
     columns = "_".join(columns).replace(".", "_")
-    return ("%s_%s" % (function_name, columns)).rstrip("_")
+    return u"{}_{}".format(function_name, columns).rstrip("_")
 
 
-def resolve_function(field, match=None):
+def resolve_function(field, match=None, params=None):
     if not match:
         match = FUNCTION_PATTERN.search(field)
         if not match or match.group("function") not in FUNCTIONS:
-            raise InvalidSearchQuery("%s is not a valid function" % field)
+            raise InvalidSearchQuery(u"{} is not a valid function".format(field))
 
     function = FUNCTIONS[match.group("function")]
-    columns = [c.strip() for c in match.group("columns").split(",")]
+    columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
+
+    # Some functions can optionally take no parameters (rpm(), rps()). In that case use the
+    # passed in params to create a default argument if necessary.
+    if len(columns) == 0 and len(function["args"]) == 1:
+        try:
+            default = function["args"][0].has_default(params)
+        except InvalidFunctionArgument as e:
+            raise InvalidSearchQuery(u"{}: invalid arguments: {}".format(field, e))
+
+        if default:
+            # Hacky, but we expect column arguments to be strings so easiest to convert it back
+            columns = [six.text_type(default)]
 
     if len(columns) != len(function["args"]):
-        raise InvalidSearchQuery("%s: expected %d arguments" % (field, len(function["args"])))
+        raise InvalidSearchQuery(u"{}: expected {} arguments".format(field, len(function["args"])))
 
     arguments = {}
     for column_value, argument in zip(columns, function["args"]):
-        if argument["type"] == NUMBER:
-            try:
-                column_value = float(column_value)
-            except ValueError:
-                raise InvalidSearchQuery("%s: %s is not a number" % (field, column_value))
-        elif argument["type"] == NUMERIC_COLUMN:
-            # TODO evanh/wmak Do proper column validation here
-            snuba_column = SEARCH_MAP.get(column_value)
-            if not snuba_column:
-                raise InvalidSearchQuery("%s: %s is not a valid column" % (field, column_value))
-            elif snuba_column != "duration":
-                raise InvalidSearchQuery("%s: %s is not a numeric column" % (field, column_value))
-            column_value = snuba_column
+        try:
+            normalized_value = argument.normalize(column_value)
+            arguments[argument.name] = normalized_value
+        except InvalidFunctionArgument as e:
+            raise InvalidSearchQuery(u"{}: {} argument invalid: {}".format(field, argument.name, e))
 
-        if "validator" in argument:
-            valid, message = argument["validator"](column_value)
-            if not valid:
-                raise InvalidSearchQuery(
-                    "%s: %s argument invalid: %s" % (field, column_value, message)
-                )
+    snuba_string = function["transform"].format(**arguments)
 
-        arguments[argument["name"]] = column_value
-
-    snuba_string = function["transform"] % arguments
     return [], [[snuba_string, None, get_function_alias(function["name"], columns)]]
 
 
@@ -1028,13 +1068,13 @@ def get_aggregate_alias(match):
     return u"{}_{}".format(match.group("function"), column).rstrip("_")
 
 
-def resolve_field(field):
+def resolve_field(field, params=None):
     if not isinstance(field, six.string_types):
         raise InvalidSearchQuery("Field names must be strings")
 
     match = is_function(field)
     if match:
-        return resolve_function(field, match)
+        return resolve_function(field, match, params)
 
     sans_parens = field.strip("()")
     if sans_parens in FIELD_ALIASES:
@@ -1065,7 +1105,7 @@ def resolve_field(field):
     )
 
 
-def resolve_field_list(fields, snuba_args, auto_fields=True):
+def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
     """
     Expand a list of fields based on aliases and aggregate functions.
 
@@ -1084,7 +1124,7 @@ def resolve_field_list(fields, snuba_args, auto_fields=True):
     columns = []
     groupby = []
     for field in fields:
-        column_additions, agg_additions = resolve_field(field)
+        column_additions, agg_additions = resolve_field(field, params)
         if column_additions:
             columns.extend(column_additions)
 

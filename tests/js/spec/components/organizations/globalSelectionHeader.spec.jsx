@@ -6,6 +6,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ConfigStore from 'app/stores/configStore';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
+import OrganizationActions from 'app/actions/organizationActions';
 import ProjectsStore from 'app/stores/projectsStore';
 import * as globalActions from 'app/actionCreators/globalSelection';
 
@@ -44,6 +45,7 @@ describe('GlobalSelectionHeader', function() {
     ],
     router: {
       location: {query: {}},
+      params: {orgId: 'org-slug'},
     },
   });
 
@@ -67,6 +69,7 @@ describe('GlobalSelectionHeader', function() {
       router.push,
       router.replace,
     ].forEach(mock => mock.mockClear());
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -103,7 +106,10 @@ describe('GlobalSelectionHeader', function() {
 
   it('only updates GlobalSelection store when mounted with query params', async function() {
     mountWithTheme(
-      <GlobalSelectionHeader organization={organization} />,
+      <GlobalSelectionHeader
+        organization={organization}
+        params={{orgId: organization.slug}}
+      />,
       changeQuery(routerContext, {
         statsPeriod: '7d',
       })
@@ -270,6 +276,7 @@ describe('GlobalSelectionHeader', function() {
       ],
       router: {
         location: {query: {project: [1]}},
+        params: {orgId: 'org-slug'},
       },
     });
     jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
@@ -476,7 +483,81 @@ describe('GlobalSelectionHeader', function() {
     });
   });
 
+  /**
+   * GSH: (no global-views)
+   * - mounts with no state from router
+   *   - params org id === org.slug
+   * - updateProjects should not be called (enforceSingleProject should not be called)
+   * - componentDidUpdate with loadingProjects === true, and pass in list of projects (via projects store)
+   * - enforceProject should be called and updateProjects() called with the new project
+   *   - variation:
+   *     - params.orgId !== org.slug (e.g. just switched orgs)
+   *
+   * When switching orgs when not in Issues view, the issues view gets rendered
+   * with params.orgId !== org.slug
+   * Global selection header gets unmounted and mounted, and in this case nothing should be done
+   * until it gets updated and params.orgId === org.slug
+   *
+   * Separate issue:
+   * IssuesList ("child view") renders before a single project is enforced, will require refactoring
+   * views so that they depend on GSH enforcing a single project first IF they don't have required feature
+   * (and no project id in URL).
+   */
   describe('Single project selection mode', function() {
+    it('does not do anything while organization is switching in single project', async function() {
+      const initialData = initializeOrg({
+        organization: {slug: 'old-org-slug'},
+        router: {
+          params: {orgId: 'org-slug'}, // we need this to be set to make sure org in context is same as current org in URL
+          location: {query: {project: [1]}},
+        },
+      });
+      ProjectsStore.getState.mockRestore();
+      ProjectsStore.getAll.mockRestore();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/old-org-slug/projects/',
+        body: [],
+      });
+
+      // This can happen when you switch organization so params.orgId !== the current org in context
+      // In this case params.orgId = 'org-slug'
+      const wrapper = mountWithTheme(
+        <GlobalSelectionHeader organization={initialData.organization} />,
+        initialData.routerContext
+      );
+      expect(globalActions.updateProjects).not.toHaveBeenCalled();
+
+      const updatedOrganization = {
+        ...organization,
+        slug: 'org-slug',
+        features: [],
+        projects: [TestStubs.Project({id: '123', slug: 'org-slug-project1'})],
+      };
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/',
+        body: updatedOrganization,
+      });
+
+      // Eventually OrganizationContext will fetch org details for `org-slug` and update `organization` prop
+      // emulate fetchOrganizationDetails
+      OrganizationActions.update(updatedOrganization);
+      wrapper.setContext({
+        organization: updatedOrganization,
+        location: {query: {}},
+        router: {
+          ...initialData.router,
+          location: {query: {}},
+        },
+      });
+      wrapper.setProps({organization: updatedOrganization});
+
+      ProjectsStore.loadInitialData(updatedOrganization.projects);
+
+      expect(globalActions.updateProjects).toHaveBeenLastCalledWith([123]);
+    });
+
     it('selects first project if more than one is requested', function() {
       const initializationObj = initializeOrg({
         router: {
@@ -863,17 +944,22 @@ describe('GlobalSelectionHeader', function() {
     beforeEach(function() {
       memberProject = TestStubs.Project({id: '3', isMember: true});
       nonMemberProject = TestStubs.Project({id: '4', isMember: false});
-      const org = TestStubs.Organization({projects: [memberProject, nonMemberProject]});
-      jest
-        .spyOn(ProjectsStore, 'getState')
-        .mockImplementation(() => ({projects: org.projects, loading: false}));
-
       initialData = initializeOrg({
-        organization: org,
+        organization: {
+          projects: [memberProject, nonMemberProject],
+        },
         router: {
           location: {query: {}},
+          params: {
+            orgId: 'org-slug',
+          },
         },
       });
+
+      jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
+        projects: initialData.organization.projects,
+        loading: false,
+      }));
 
       wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,

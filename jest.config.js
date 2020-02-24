@@ -17,6 +17,7 @@ module.exports = {
   },
   modulePaths: ['<rootDir>/src/sentry/static/sentry'],
   setupFiles: [
+    '<rootDir>/src/sentry/static/sentry/app/utils/silence-react-unsafe-warnings.js',
     '<rootDir>/tests/js/throw-on-react-error.js',
     '<rootDir>/tests/js/setup.js',
     'jest-canvas-mock',
