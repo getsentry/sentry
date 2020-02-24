@@ -6,6 +6,7 @@ from __future__ import absolute_import
 from mistune import markdown
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.utils.http import absolute_uri
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .mixins import VisualStudioMixin
 from .repository_provider import VisualStudioRepositoryProvider
@@ -17,6 +18,16 @@ class VstsPlugin(VisualStudioMixin, IssueTrackingPlugin2):
     conf_key = slug
     auth_provider = "visualstudio"
     required_field = "instance"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Create and link Sentry issue groups directly to a Azure DevOps work item in any of
+            your projects, providing a quick way to jump from Sentry bug to tracked
+            work item!
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        )
+    ]
 
     issue_fields = frozenset(["id", "title", "url"])
 
