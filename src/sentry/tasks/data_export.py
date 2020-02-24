@@ -33,13 +33,16 @@ def assemble_download(data_export):
                 file_name = process_issue_by_tag(data_export, tf)
             # Create a new File object and attach it to the ExportedData
             tf.seek(0)
-            with transaction.atomic():
-                raise IntegrityError
-                file = File.objects.create(
-                    name=file_name, type="export.csv", headers={"Content-Type": "text/csv"}
-                )
-                file.putfile(tf)
-                data_export.finalize_upload(file=file)
+            try:
+                with transaction.atomic():
+                    raise IntegrityError
+                    file = File.objects.create(
+                        name=file_name, type="export.csv", headers={"Content-Type": "text/csv"}
+                    )
+                    file.putfile(tf)
+                    data_export.finalize_upload(file=file)
+            except IntegrityError:
+                raise DataExportError("Failed to save the assembled file")
     except DataExportError as err:
         # TODO(Leander): Implement logging
         return data_export.email_failure(message=err)

@@ -49,10 +49,6 @@ class DataExportEndpoint(OrganizationEndpoint):
                 date_finished=None,
             ).order_by("-date_added")
             if len(existing_data_exports) > 0:
-                # TODO(Leander): If this organization has requested the same export whilst it's in progress, serve it
-                # This will cause problems since any other user in the org won't get emailed, only the person who FIRST started it.
-                # The user field should be changed to a list or another field
-                # TODO(Leander): Tell the user on the FE that they're job had been started already
                 data_export = existing_data_exports[0]
                 status = 200
             else:
