@@ -30,18 +30,11 @@ def assemble_download(data_export):
                 process_billing_report(data_export, tf)
                 return
             elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
-                try:
-                    file_name = process_issue_by_tag(data_export, tf)
-                except BaseException:
-                    raise DataExportError("failed to process ")
-
-        except BaseException:
+                file_name = process_issue_by_tag(data_export, tf)
+        except DataExportError as err:
             # TODO(Leander): Implement logging
-            data_export.email_failure(
-                u"{}: {}".format(
-                    ExportQueryType.as_str(data_export.query_type), "Internal processing error."
-                )
-            )
+            return data_export.email_failure(message=err)
+
         # Create a new File object and attach it to the ExportedData
         tf.seek(0)
         with transaction.atomic():
@@ -69,17 +62,23 @@ def process_issue_by_tag(data_export, file):
     (Adapted from 'src/sentry/web/frontend/group_tag_export.py')
     """
     # Get the pertaining project
-    payload = data_export.query_info
-    project = Project.objects.get(id=payload["project_id"])
+    try:
+        payload = data_export.query_info
+        project = Project.objects.get(id=payload["project_id"])
+    except Project.DoesNotExist:
+        raise DataExportError("Requested project does not exist")
 
     # Get the pertaining issue
-    group, _ = get_group_with_redirect(
-        payload["group_id"], queryset=Group.objects.filter(project=project)
-    )
+    try:
+        group, _ = get_group_with_redirect(
+            payload["group_id"], queryset=Group.objects.filter(project=project)
+        )
+    except Group.DoesNotExist:
+        raise DataExportError("Requested issue does not exist")
 
     # Get the pertaining key
     key = payload["key"]
-    lookup_key = u"sentry:{0}".format(key) if tagstore.is_reserved_key(key) else key
+    lookup_key = u"sentry:{}".format(key) if tagstore.is_reserved_key(key) else key
 
     # If the key is the 'user' tag, attach the event user
     def attach_eventuser(items):

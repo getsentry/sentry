@@ -101,7 +101,7 @@ class ExportedData(Model):
         from sentry.utils.email import MessageBuilder
 
         msg = MessageBuilder(
-            subject="An error occured while processing your download",
+            subject="Unable to Export Data",
             context={"error_message": message},
             type="organization.export-data",
             template="sentry/emails/data-export-failure.txt",
