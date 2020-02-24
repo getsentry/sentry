@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import io
 import os
 import six
 from six.moves import zip
@@ -575,11 +576,11 @@ def _load_configs():
     base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for fn in os.listdir(base):
         if fn.endswith(".txt"):
-            with open(os.path.join(base, fn)) as f:
+            with io.open(os.path.join(base, fn), "rt", encoding="utf-8") as f:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 fn = fn.replace("@", ":")
-                rv[fn[:-4]] = Enhancements.from_config_string(f.read().decode("utf-8"), id=fn[:-4])
+                rv[fn[:-4]] = Enhancements.from_config_string(f.read(), id=fn[:-4])
     return rv
 
 

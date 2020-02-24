@@ -22,7 +22,7 @@ from sentry.utils.http import absolute_uri
 DEFAULT_EXPIRATION = timedelta(weeks=4)
 
 
-class ExportStatus(six.binary_type, Enum):
+class ExportStatus(six.text_type, Enum):
     Early = "EARLY"  # The download is being prepared
     Valid = "VALID"  # The download is ready for the user
     Expired = "EXPIRED"  # The download has been deleted
