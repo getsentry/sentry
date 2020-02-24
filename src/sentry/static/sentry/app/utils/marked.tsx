@@ -47,6 +47,17 @@ class NoParagraphRenderer extends SafeRenderer {
 marked.setOptions({
   renderer: new SafeRenderer(),
   sanitize: true,
+
+  // Silence sanitize deprecation warning in test / travs (Travis sets NODE_NV
+  // to production, but specifies IS_PERCY).
+  //
+  // [!!] This has the side effect of causing failed markdown content to render
+  //      as a html error, instead of throwing an exception, however none of
+  //      our tests are rendering failed markdown so this is likely a safe
+  //      tradeoff to turn off off the deprecation warning.
+  //
+  // eslint-disable-next-line no-undef
+  silent: !!process.env.IS_PERCY || process.env.NODE_ENV === 'test',
 });
 
 const sanitizedMarked = (...args: Parameters<typeof marked>) =>
