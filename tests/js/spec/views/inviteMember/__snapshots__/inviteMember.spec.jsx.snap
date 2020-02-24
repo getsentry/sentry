@@ -198,12 +198,10 @@ exports[`InviteMember should render roles when available and allowed, and handle
                 </div>
               </PanelHeader>
               <PanelBody
-                disablePadding={true}
                 flexible={false}
                 withPadding={false}
               >
                 <FlexBox
-                  disablePadding={true}
                   withPadding={false}
                 >
                   <div
@@ -728,12 +726,10 @@ exports[`InviteMember should render roles when available and allowed, and handle
                   </div>
                 </PanelHeader>
                 <PanelBody
-                  disablePadding={true}
                   flexible={false}
                   withPadding={false}
                 >
                   <FlexBox
-                    disablePadding={true}
                     withPadding={false}
                   >
                     <div

@@ -20,7 +20,6 @@ exports[`AccountIdentities renders empty 1`] = `
         </Styled(div)>
       </PanelHeader>
       <PanelBody
-        disablePadding={true}
         flexible={false}
         withPadding={false}
       >
@@ -53,7 +52,6 @@ exports[`AccountIdentities renders list 1`] = `
         </Styled(div)>
       </PanelHeader>
       <PanelBody
-        disablePadding={true}
         flexible={false}
         withPadding={false}
       >

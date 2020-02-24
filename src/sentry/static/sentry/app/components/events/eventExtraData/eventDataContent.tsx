@@ -6,7 +6,7 @@ import ContextBlock from 'app/components/events/contexts/contextBlockV2';
 import getEventExtraDataKnownData from './getEventExtraDataKnownData';
 
 type Props = {
-  data?: any;
+  data?: {[key: string]: any};
   raw: boolean;
 };
 

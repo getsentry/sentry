@@ -9,7 +9,7 @@ export type QueryResults = {
 };
 
 /**
- * Tokenize a search into a an object
+ * Tokenize a search into an object
  *
  * Example:
  *   tokenizeSearch('is:resolved foo bar tag:value');
@@ -18,6 +18,8 @@ export type QueryResults = {
  *     query: ['foo', 'bar'],
  *     tag: ['value'],
  *   }
+ *
+ * Should stay in sync with src.sentry.search.utils:tokenize_query
  */
 export function tokenizeSearch(query: string) {
   const tokens = splitSearchIntoTokens(query);
@@ -28,24 +30,28 @@ export function tokenizeSearch(query: string) {
   };
 
   for (const token of tokens) {
-    const tokenChars = Array.from(token);
     let tokenState: 'query' | 'tags' = 'query';
 
-    tokenChars.forEach((char, idx) => {
-      const nextChar = tokenChars.length > idx ? tokenChars[idx + 1] : null;
+    // Traverse the token and determine if it is a tag
+    // condition or bare words.
+    for (let i = 0, len = token.length; i < len; i++) {
+      const char = token[i];
 
-      if (idx === 0 && [':', ' '].includes(char)) {
-        return;
+      if (i === 0 && (char === '"' || char === ':')) {
+        break;
       }
 
+      // We may have entered a tag condition
       if (char === ':') {
-        tokenState = [':', ' '].includes(nextChar !== null ? nextChar : '')
-          ? 'query'
-          : 'tags';
-        return;
+        const nextChar = token[i + 1] || '';
+        if ([':', ' '].includes(nextChar)) {
+          tokenState = 'query';
+        } else {
+          tokenState = 'tags';
+        }
+        break;
       }
-    });
-
+    }
     searchParams[tokenState].push(token);
   }
 
@@ -68,7 +74,7 @@ export function stringifyQueryObject(results: QueryResults) {
   const {query, ...tags} = results;
 
   const stringTags = flatMap(Object.entries(tags), ([k, values]) =>
-    values.map(tag => `${k}:${/\s/g.test(tag) ? `"${tag}"` : tag}`)
+    values.map(tag => `${k}:${/[\s\(\)]/g.test(tag) ? `"${tag}"` : tag}`)
   );
 
   return `${query.join(' ')} ${stringTags.join(' ')}`.trim();

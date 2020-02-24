@@ -23,7 +23,6 @@ exports[`ProjectSecurityHeaders renders 1`] = `
         Additional Configuration
       </PanelHeader>
       <PanelBody
-        disablePadding={true}
         flexible={false}
         withPadding={true}
       >
@@ -113,7 +112,6 @@ exports[`ProjectSecurityHeaders renders 1`] = `
         Supported Formats
       </PanelHeader>
       <PanelBody
-        disablePadding={true}
         flexible={false}
         withPadding={false}
       >
