@@ -32,7 +32,7 @@ const RichHttpContentClippedBoxBodySection = ({
     if (meta && typeof value === 'string') {
       return (
         <AnnotatedText
-          value={value}
+          value={<pre>{value}</pre>}
           chunks={meta.chunks}
           remarks={meta.rem}
           errors={meta.err}
