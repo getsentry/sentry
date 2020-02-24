@@ -44,6 +44,7 @@ class DataExportEndpoint(OrganizationEndpoint):
         try:
             existing_data_exports = ExportedData.objects.filter(
                 organization=organization,
+                user=request.user,
                 query_type=data["query_type"],
                 query_info=data["query_info"],
                 date_finished=None,
