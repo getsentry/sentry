@@ -390,7 +390,7 @@ describe('getExpandedResults()', function() {
 
     // appends to existing conditions
     result = getExpandedResults(view, {'event.type': 'csp'}, {});
-    expect(result.query).toEqual('event.type:error event.type:csp');
+    expect(result.query).toEqual('event.type:csp');
   });
 
   it('removes any aggregates in either search conditions or extra conditions', () => {
@@ -469,6 +469,18 @@ describe('getExpandedResults()', function() {
     };
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('event.type:error timestamp:2020-02-13T17:05:46');
+  });
+
+  it('does not duplicate conditions', () => {
+    const view = new EventView({
+      ...state,
+      query: 'event.type:error title:bogus',
+    });
+    const event = {
+      title: 'bogus',
+    };
+    const result = getExpandedResults(view, {trace: 'abc123'}, event);
+    expect(result.query).toEqual('event.type:error title:bogus trace:abc123');
   });
 });
 
