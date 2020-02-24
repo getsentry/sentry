@@ -19,11 +19,7 @@ export async function loadDeviceListModule() {
 
 type Props = {
   value: string;
-<<<<<<< HEAD
-  children?: (value: string) => React.ReactNode;
-=======
   children?: (name: string) => React.ReactNode;
->>>>>>> master
 };
 
 type State = {
@@ -35,11 +31,7 @@ type State = {
  */
 export default class DeviceName extends React.Component<Props, State> {
   static propTypes = {
-<<<<<<< HEAD
-    value: PropTypes.string.isRequired,
-=======
     value: PropTypes.string,
->>>>>>> master
     children: PropTypes.func,
   };
 
