@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import csv
 import tempfile
 
-from django.db import transaction
+from django.db import transaction, IntegrityError
 
 from sentry import tagstore
 from sentry.constants import ExportQueryType
@@ -20,8 +20,8 @@ class DataExportError(Exception):
 @instrumented_task(name="sentry.tasks.data_export.assemble_download", queue="data_export")
 def assemble_download(data_export):
     # Create a temporary file
-    with tempfile.TemporaryFile() as tf:
-        try:
+    try:
+        with tempfile.TemporaryFile() as tf:
             # Process the query based on its type
             if data_export.query_type == ExportQueryType.DISCOVER_V2:
                 process_discover_v2(data_export, tf)
@@ -31,18 +31,18 @@ def assemble_download(data_export):
                 return
             elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
                 file_name = process_issue_by_tag(data_export, tf)
-        except DataExportError as err:
-            # TODO(Leander): Implement logging
-            return data_export.email_failure(message=err)
-
-        # Create a new File object and attach it to the ExportedData
-        tf.seek(0)
-        with transaction.atomic():
-            file = File.objects.create(
-                name=file_name, type="export.csv", headers={"Content-Type": "text/csv"}
-            )
-            file.putfile(tf)
-            data_export.finalize_upload(file=file)
+            # Create a new File object and attach it to the ExportedData
+            tf.seek(0)
+            with transaction.atomic():
+                raise IntegrityError
+                file = File.objects.create(
+                    name=file_name, type="export.csv", headers={"Content-Type": "text/csv"}
+                )
+                file.putfile(tf)
+                data_export.finalize_upload(file=file)
+    except DataExportError as err:
+        # TODO(Leander): Implement logging
+        return data_export.email_failure(message=err)
 
 
 def process_discover_v2(data_export, file):
