@@ -12,16 +12,15 @@ import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   organization: Organization;
+  canEditRule: boolean;
 } & Pick<RouteComponentProps<{projectId: string}, {}>, 'params'>;
 
 class ProjectAlertHeader extends React.Component<Props> {
   render() {
-    const {params, organization} = this.props;
+    const {canEditRule, params, organization} = this.props;
     const {projectId} = params;
 
-    const canEditRule = organization.access.includes('project:write');
-
-    const basePath = `/settings/${organization.slug}/projects/${projectId}/alerts-v2/`;
+    const basePath = `/settings/${organization.slug}/projects/${projectId}/alerts/`;
 
     return (
       <SettingsPageHeader
