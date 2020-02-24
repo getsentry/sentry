@@ -1,28 +1,11 @@
-import isEqual from 'lodash/isEqual';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
+import qs from 'query-string';
 import * as Sentry from '@sentry/browser';
 
 import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
-
-const isEqualWithEmptyArrays = (newQuery, current) => {
-  // We will only get empty arrays from `newQuery`
-  // Can't use isEqualWith because keys are unbalanced (guessing)
-  return isEqual(
-    Object.entries(newQuery)
-      .filter(([, value]) => !Array.isArray(value) || !!value.length)
-      .reduce(
-        (acc, [key, value]) => ({
-          ...acc,
-          [key]: value,
-        }),
-        {}
-      ),
-    current
-  );
-};
 
 // Reset values in global selection store
 export function resetGlobalSelection() {
@@ -106,7 +89,7 @@ export function updateParams(obj, router, options) {
   const newQuery = getNewQueryParams(obj, router.location.query, options);
 
   // Only push new location if query params has changed because this will cause a heavy re-render
-  if (isEqualWithEmptyArrays(newQuery, router.location.query)) {
+  if (qs.stringify(newQuery) === qs.stringify(router.location.query)) {
     return;
   }
 
@@ -134,7 +117,7 @@ export function updateParamsWithoutHistory(obj, router, options) {
   const newQuery = getNewQueryParams(obj, router.location.query, options);
 
   // Only push new location if query params have changed because this will cause a heavy re-render
-  if (isEqualWithEmptyArrays(newQuery, router.location.query)) {
+  if (qs.stringify(newQuery) === qs.stringify(router.location.query)) {
     return;
   }
 
@@ -195,7 +178,7 @@ function getParams(params = {}) {
     end: coercedPeriod ? null : end,
     ...otherParams,
   })
-    .filter(([key, value]) => defined(value))
+    .filter(([, value]) => defined(value))
     .reduce(
       (acc, [key, value]) => ({
         ...acc,
