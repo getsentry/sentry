@@ -5,7 +5,7 @@
  */
 export default function replaceRouterParams(
   route: string,
-  params: {[key: string]: string}
+  params: {[key: string]: string | undefined}
 ): string {
   // parse route params from route
   const matches = route.match(/:\w+/g);
@@ -21,7 +21,7 @@ export default function replaceRouterParams(
       return;
     }
 
-    route = route.replace(param, params[paramName]);
+    route = route.replace(param, params[paramName] as string);
   });
 
   return route;

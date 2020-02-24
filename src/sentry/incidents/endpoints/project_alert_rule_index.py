@@ -26,9 +26,6 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         """
         Fetches alert rules and legacy rules for an organization
         """
-        if not features.has("organizations:incidents", project.organization, actor=request.user):
-            raise ResourceDoesNotExist
-
         cursor_string = request.GET.get(
             "cursor", six.binary_type(int(time.time() * 1000000)) + ":0:0"
         )

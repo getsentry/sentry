@@ -14,7 +14,6 @@ type RouteParams = {
   orgId: string;
   projectId: string;
   incidentRuleId: string;
-  ruleId: string; //TODO(ts): Make ruleId optional
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
@@ -25,7 +24,7 @@ type State = {
   alertType: string | null;
 } & AsyncView['state'];
 
-class RuleDetails extends AsyncView<Props, State> {
+class Create extends AsyncView<Props, State> {
   getDefaultState() {
     const {pathname} = this.props.location;
 
@@ -97,14 +96,14 @@ class RuleDetails extends AsyncView<Props, State> {
           </Panel>
         )}
 
-        {alertType === 'issue' ? (
-          <IssueEditor {...this.props} />
-        ) : alertType === 'metric' ? (
+        {(!hasMetricAlerts || alertType === 'issue') && <IssueEditor {...this.props} />}
+
+        {hasMetricAlerts && alertType === 'metric' && (
           <IncidentRulesCreate {...this.props} />
-        ) : null}
+        )}
       </React.Fragment>
     );
   }
 }
 
-export default RuleDetails;
+export default Create;

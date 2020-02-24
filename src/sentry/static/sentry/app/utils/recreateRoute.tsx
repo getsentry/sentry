@@ -10,7 +10,7 @@ type Options = {
 
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,
   // params should have `{orgId: slug}`
-  params: {[key: string]: string};
+  params: {[key: string]: string | undefined};
 
   /**
    * The number of routes to to pop off of `routes
