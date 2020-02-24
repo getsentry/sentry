@@ -141,7 +141,7 @@ class BaseBuildCommand(Command):
 
         if node_version[2] is not None:
             log.info(u"using node ({0})".format(node_version))
-            self._run_yarn_command(["install", "--production", "--pure-lockfile", "--quiet"])
+            self._run_yarn_command(["install", "--production", "--frozen-lockfile", "--quiet"])
 
     def _run_command(self, cmd, env=None):
         log.debug("running [%s]" % (" ".join(cmd),))

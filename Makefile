@@ -73,7 +73,7 @@ node-version-check:
 install-yarn-pkgs: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
-	NODE_ENV=development $(YARN) install --pure-lockfile
+	NODE_ENV=development $(YARN) install --frozen-lockfile
 	# A common problem is with node packages not existing in `node_modules` even though `yarn install`
 	# says everything is up to date. Even though `yarn install` is run already, it doesn't take into
 	# account the state of the current filesystem (it only checks .yarn-integrity).
