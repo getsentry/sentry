@@ -1119,7 +1119,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_function_with_default_arguments(self):
         result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
-        assert result.having == [["rpm_300", ">", 100]]
+        assert result.having == [["rpm", ">", 100]]
 
     def test_function_with_alias(self):
         result = get_filter("p95():>100")
