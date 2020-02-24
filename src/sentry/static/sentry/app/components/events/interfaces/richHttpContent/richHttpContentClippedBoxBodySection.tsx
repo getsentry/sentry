@@ -36,6 +36,7 @@ const RichHttpContentClippedBoxBodySection = ({
           chunks={meta.chunks}
           remarks={meta.rem}
           errors={meta.err}
+          data-test-id="rich-http-content-body-context-data"
         />
       );
     }
