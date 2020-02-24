@@ -72,7 +72,7 @@ const ContextSummaryOS = ({data}: Props) => {
   };
 
   const versionElement = getVersionElement();
-  const className = generateClassName(data.name);
+  const className = data.name ? generateClassName(data.name) : '';
 
   return (
     <div className={`context-item ${className}`}>
