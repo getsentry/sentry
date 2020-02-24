@@ -1,8 +1,9 @@
 import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import debounce from 'lodash/debounce';
 
-import {MetricAction} from 'app/types/alerts';
+import { MetricAction } from 'app/types/alerts';
 import {Organization, Project, Config} from 'app/types';
 import {
   addErrorMessage,
@@ -409,7 +410,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             onSubmit={this.handleSubmit}
             onSubmitSuccess={onSubmitSuccess}
             onCancel={this.handleCancel}
-            onFieldChange={this.handleFieldChange}
+            onFieldChange={debounce(this.handleFieldChange,200)}
             extraButton={
               !!rule.id ? (
                 <Confirm
