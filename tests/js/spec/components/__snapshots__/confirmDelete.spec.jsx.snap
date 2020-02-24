@@ -91,7 +91,9 @@ exports[`ConfirmDelete renders 1`] = `
                       >
                         <div>
                           Please enter 
-                          <code>
+                          <code
+                            key="1"
+                          >
                             CoolOrg
                           </code>
                            to confirm the deletion
