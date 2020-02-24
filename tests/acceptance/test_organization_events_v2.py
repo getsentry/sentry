@@ -319,12 +319,13 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_errors_view(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        event_source = (("a", 1), ("b", 39), ("c", 69))
+        event_source = (("a", 14, 1), ("b", 13, 29), ("c", 12, 49))
         event_ids = []
         event_data = load_data("javascript")
         event_data["fingerprint"] = ["group-1"]
-        for id_prefix, offset in event_source:
-            event_time = iso_format(before_now(minutes=offset))
+        for id_prefix, hour, minute in event_source:
+            event_time = before_now().replace(hour=hour, minute=minute, second=0, microsecond=0)
+            event_time = iso_format(event_time)
             event_data.update(
                 {
                     "timestamp": event_time,
