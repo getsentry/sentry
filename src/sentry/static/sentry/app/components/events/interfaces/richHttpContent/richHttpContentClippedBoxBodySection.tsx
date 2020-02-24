@@ -31,13 +31,15 @@ const RichHttpContentClippedBoxBodySection = ({
 
     if (meta && typeof value === 'string') {
       return (
-        <AnnotatedText
-          value={<pre>{value}</pre>}
-          chunks={meta.chunks}
-          remarks={meta.rem}
-          errors={meta.err}
-          data-test-id="rich-http-content-body-context-data"
-        />
+        <pre>
+          <AnnotatedText
+            value={value}
+            chunks={meta.chunks}
+            remarks={meta.rem}
+            errors={meta.err}
+            data-test-id="rich-http-content-body-context-data"
+          />
+        </pre>
       );
     }
 
