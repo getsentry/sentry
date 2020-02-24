@@ -40,7 +40,7 @@ const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
     );
   };
 
-  const className = data.name ? generateClassName(data.name) : '';
+  const className = generateClassName(data.name);
 
   return (
     <div className={`context-item ${className}`}>

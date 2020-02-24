@@ -47,7 +47,7 @@ const ContextSummaryGPU = ({data}: Props) => {
     );
   };
 
-  let className = data.name ? generateClassName(data.name) : '';
+  let className = generateClassName(data.name);
 
   const getVersionElement = (): VersionElement => {
     if (data.vendor_name) {
