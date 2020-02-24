@@ -320,7 +320,11 @@ exports[`SharedGroupDetails renders 1`] = `
                         }
                       }
                       isShare={true}
-                      orgId="test-org"
+                      organization={
+                        Object {
+                          "slug": "test-org",
+                        }
+                      }
                       project={
                         Object {
                           "environments": Array [],
@@ -457,7 +461,11 @@ exports[`SharedGroupDetails renders 1`] = `
                           }
                         }
                         isShare={true}
-                        orgId="test-org"
+                        organization={
+                          Object {
+                            "slug": "test-org",
+                          }
+                        }
                         project={
                           Object {
                             "environments": Array [],
@@ -533,7 +541,7 @@ exports[`SharedGroupDetails renders 1`] = `
                             }
                             isShare={true}
                             key="entry-0"
-                            orgId={null}
+                            orgId="test-org"
                             projectId="project-slug"
                             type="message"
                           >

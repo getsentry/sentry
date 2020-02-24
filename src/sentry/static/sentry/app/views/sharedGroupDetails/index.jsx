@@ -121,9 +121,9 @@ const SharedGroupDetails = createReactClass({
                 <SharedGroupHeader group={group} />
                 <Container className="group-overview event-details-container">
                   <BorderlessEventEntries
+                    organization={group.project.organization}
                     group={group}
                     event={evt}
-                    orgId={group.project.organization.slug}
                     project={group.project}
                     isShare
                   />

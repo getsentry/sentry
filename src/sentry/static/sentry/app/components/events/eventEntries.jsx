@@ -57,13 +57,16 @@ export const INTERFACES = {
 
 class EventEntries extends React.Component {
   static propTypes = {
-    // organization is not provided in the shared issue view
-    organization: SentryTypes.Organization,
+    // Custom shape because shared view doesn't get id.
+    organization: PropTypes.shape({
+      id: PropTypes.string,
+      slug: PropTypes.string.isRequired,
+      features: PropTypes.arrayOf(PropTypes.string),
+    }),
     // event is not guaranteed in shared issue view
     event: SentryTypes.Event,
 
     group: SentryTypes.Group,
-    orgId: PropTypes.string.isRequired,
     project: PropTypes.object.isRequired,
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
@@ -177,13 +180,13 @@ class EventEntries extends React.Component {
       isShare,
       project,
       event,
-      orgId,
       showExampleCommit,
       showTagSummary,
       location,
     } = this.props;
 
-    const features = organization ? new Set(organization.features) : new Set();
+    const features =
+      organization && organization.features ? new Set(organization.features) : new Set();
 
     if (!event) {
       return (
@@ -202,12 +205,16 @@ class EventEntries extends React.Component {
           (showExampleCommit ? (
             <EventCauseEmpty organization={organization} project={project} />
           ) : (
-            <EventCause event={event} orgId={orgId} projectId={project.slug} />
+            <EventCause
+              event={event}
+              orgId={organization.slug}
+              projectId={project.slug}
+            />
           ))}
         {event.userReport && group && (
           <StyledEventUserFeedback
             report={event.userReport}
-            orgId={orgId}
+            orgId={organization.slug}
             issueId={group.id}
             includeBorder={!hasErrors}
           />
@@ -216,13 +223,17 @@ class EventEntries extends React.Component {
         {showTagSummary && (
           <EventTags
             event={event}
-            orgId={orgId}
+            orgId={organization.slug}
             projectId={project.slug}
             location={location}
           />
         )}
         {!isShare && features.has('event-attachments') && (
-          <RRWebIntegration event={event} orgId={orgId} projectId={project.slug} />
+          <RRWebIntegration
+            event={event}
+            orgId={organization.slug}
+            projectId={project.slug}
+          />
         )}
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
@@ -230,7 +241,11 @@ class EventEntries extends React.Component {
         {!objectIsEmpty(event.packages) && <EventPackageData event={event} />}
         {!objectIsEmpty(event.device) && <EventDevice event={event} />}
         {!isShare && features.has('event-attachments') && (
-          <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
+          <EventAttachments
+            event={event}
+            orgId={organization.slug}
+            projectId={project.slug}
+          />
         )}
         {!objectIsEmpty(event.sdk) && <EventSdk event={event} />}
         {!isShare && event.sdkUpdates && event.sdkUpdates.length > 0 && (

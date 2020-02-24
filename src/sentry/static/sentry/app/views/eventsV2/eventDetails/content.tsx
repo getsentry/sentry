@@ -170,7 +170,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               {({projects}) => (
                 <StyledEventEntries
                   organization={organization}
-                  orgId={organization.slug}
                   event={event}
                   project={projects[0]}
                   location={location}
