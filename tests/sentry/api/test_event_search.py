@@ -837,7 +837,7 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             parse_search_query("(user.email:foo@example.com OR user.email:bar@example.com")
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 1). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at '(user.' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query(
@@ -845,13 +845,13 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             )
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 1). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at '((user' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query("user.email:foo@example.com OR user.email:bar@example.com)")
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 57). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at '.com)' (column 57). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query(
@@ -859,7 +859,7 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             )
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 91). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at 'com))' (column 91). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
     def test_grouping_without_boolean_terms(self):
@@ -875,7 +875,7 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             ]
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 28). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at 'ect (evalu' (column 28). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
 

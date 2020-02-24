@@ -576,10 +576,13 @@ def parse_search_query(query):
     try:
         tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
+        idx = e.column()
+        prefix = query[max(0, idx - 5):idx]
+        suffix = query[idx:(idx + 5)]
         raise InvalidSearchQuery(
             u"{} {}".format(
-                u"Parse error: '{}' (column {:d}).".format(e.expr.name, e.column()),
-                "This is commonly caused by unmatched-parentheses. Enclose any text in double quotes.",
+                u"Parse error at '{}{}' (column {:d}).".format(prefix, suffix, e.column()),
+                "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
     return SearchVisitor().visit(tree)
