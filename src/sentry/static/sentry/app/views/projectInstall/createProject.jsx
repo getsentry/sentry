@@ -75,7 +75,6 @@ class CreateProject extends React.Component {
     });
     trackAdhocEvent({
       eventKey: 'new_project.visited',
-      eventName: 'New Project Page Visited',
       org_id: parseInt(this.props.organization.id, 10),
     });
   }
