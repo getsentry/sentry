@@ -2409,6 +2409,13 @@
   dependencies:
     "@types/react" "*"
 
+"@types/dompurify@^2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@types/dompurify/-/dompurify-2.0.1.tgz#0bf3a9f8ee21d81adb20b8c374ab034d6a74dbf7"
+  integrity sha512-OQ16dECrRv/I//woKkVUxyVGYR94W3qp3Wy//B63awHVe3h/1/URFqP5a/V2m4k01DEvWs1+z7FWW3xfM1lH3Q==
+  dependencies:
+    "@types/trusted-types" "*"
+
 "@types/echarts@^4.1.11":
   version "4.4.2"
   resolved "https://registry.yarnpkg.com/@types/echarts/-/echarts-4.4.2.tgz#88be60b9b87bc65414f22d4150834538d62ac602"
@@ -2506,6 +2513,11 @@
   version "4.14.149"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.149.tgz#1342d63d948c6062838fbf961012f74d4e638440"
   integrity sha512-ijGqzZt/b7BfzcK9vTrS6MFljQRPn5BFWOx8oE0GYxribu6uV+aA9zZuXI1zc/etK9E8nrgdoF2+LgUw7+9tJQ==
+
+"@types/marked@^0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@types/marked/-/marked-0.7.2.tgz#1393f076773b55cc7078c0fbeb86a497c69db97e"
+  integrity sha512-A3EDyNaq6OCcpaOia2HQ/tu2QYt8DKuj4ExP21VU3cU3HTo2FLslvbqa2T1vux910RHvuSVqpwKnnykSFcRWOA==
 
 "@types/minimatch@*":
   version "3.0.3"
@@ -2677,6 +2689,11 @@
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/@types/tapable/-/tapable-1.0.5.tgz#9adbc12950582aa65ead76bffdf39fe0c27a3c02"
   integrity sha512-/gG2M/Imw7cQFp8PGvz/SwocNrmKFjFsm5Pb8HdbHkZ1K8pmuPzOX4VeVoiEecFCVf4CsN1r3/BRvx+6sNqwtQ==
+
+"@types/trusted-types@*":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@types/trusted-types/-/trusted-types-1.0.4.tgz#922d092c84a776a59acb0bd6785fd82b59b9bad5"
+  integrity sha512-6jtHrHpmiXOXoJ31Cg9R+iEVwuEKPf0XHwFUI93eEPXx492/J2JHyafkleKE2EYzZprayk9FSjTyK1GDqcwDng==
 
 "@types/uglify-js@*":
   version "3.0.4"
