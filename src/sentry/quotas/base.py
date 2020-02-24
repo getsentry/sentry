@@ -34,18 +34,18 @@ class QuotaConfig(object):
     rate limiter (e.g. implemented via Redis caches).
     """
 
-    __slots__ = ["id", "subscope", "limit", "window", "reason_code"]
+    __slots__ = ["id", "scope_id", "limit", "window", "reason_code"]
 
-    def __init__(self, id=None, subscope=None, limit=None, window=None, reason_code=None):
+    def __init__(self, id=None, scope_id=None, limit=None, window=None, reason_code=None):
         if limit == 0:
-            assert id is None and subscope is None, "zero-sized quotas are not tracked in redis"
+            assert id is None and scope_id is None, "zero-sized quotas are not tracked in redis"
             assert window is None, "zero-sized quotas cannot have a window"
         else:
             assert id, "measured quotas need a id to run in redis"
             assert window and window > 0, "window cannot be zero"
 
         self.id = id
-        self.subscope = subscope
+        self.scope_id = scope_id
         # maximum number of events in the given window
         #
         # None indicates "unlimited amount"
@@ -67,21 +67,21 @@ class QuotaConfig(object):
         return cls(limit=0, reason_code=reason_code)
 
     @classmethod
-    def limited(cls, id, limit, window, reason_code, subscope=None):
+    def limited(cls, id, limit, window, reason_code, scope_id=None):
         """
         A regular quota with limit.
         """
 
         assert limit and limit > 0
-        return cls(id=id, limit=limit, window=window, reason_code=reason_code, subscope=subscope)
+        return cls(id=id, limit=limit, window=window, reason_code=reason_code, scope_id=scope_id)
 
     @classmethod
-    def unlimited(cls, id, window, subscope=None):
+    def unlimited(cls, id, window, scope_id=None):
         """
         Unlimited quota that is still being counted.
         """
 
-        return cls(id=id, window=window, subscope=subscope)
+        return cls(id=id, window=window, scope_id=scope_id)
 
     @property
     def should_track(self):
@@ -95,7 +95,7 @@ class QuotaConfig(object):
         return prune_empty_keys(
             {
                 "prefix": six.text_type(self.id) if self.id is not None else None,
-                "subscope": six.text_type(self.subscope) if self.subscope is not None else None,
+                "subscope": six.text_type(self.scope_id) if self.scope_id is not None else None,
                 "limit": self.limit,
                 "window": self.window,
                 "reasonCode": self.reason_code,
@@ -106,7 +106,7 @@ class QuotaConfig(object):
         return prune_empty_keys(
             {
                 "id": six.text_type(self.id) if self.id is not None else None,
-                "subscope": six.text_type(self.subscope) if self.subscope is not None else None,
+                "scope_id": six.text_type(self.scope_id) if self.scope_id is not None else None,
                 "limit": self.limit,
                 "window": self.window,
                 "reasonCode": self.reason_code,

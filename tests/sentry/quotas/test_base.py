@@ -92,7 +92,7 @@ class QuotaTest(TestCase):
     "obj,json",
     [
         (
-            QuotaConfig(id="p", subscope=1, limit=None, window=1, reason_code="go_away"),
+            QuotaConfig(id="p", scope_id=1, limit=None, window=1, reason_code="go_away"),
             {"prefix": "p", "subscope": "1", "window": 1, "reasonCode": "go_away"},
         ),
         (QuotaConfig(limit=0, reason_code="go_away"), {"limit": 0, "reasonCode": "go_away"}),
@@ -100,3 +100,17 @@ class QuotaTest(TestCase):
 )
 def test_quotas_to_json_legacy(obj, json):
     assert obj.to_json_legacy() == json
+
+
+@pytest.mark.parametrize(
+    "obj,json",
+    [
+        (
+            QuotaConfig(id="p", scope_id=1, limit=None, window=1, reason_code="go_away"),
+            {"id": "p", "scope_id": "1", "window": 1, "reasonCode": "go_away"},
+        ),
+        (QuotaConfig(limit=0, reason_code="go_away"), {"limit": 0, "reasonCode": "go_away"}),
+    ],
+)
+def test_quotas_to_json(obj, json):
+    assert obj.to_json() == json
