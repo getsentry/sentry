@@ -13,6 +13,10 @@ from sentry.tasks.base import instrumented_task
 SNUBA_MAX_RESULTS = 1000
 
 
+class DataExportError(Exception):
+    pass
+
+
 @instrumented_task(name="sentry.tasks.data_export.assemble_download", queue="data_export")
 def assemble_download(data_export):
     # Create a temporary file
@@ -26,13 +30,18 @@ def assemble_download(data_export):
                 process_billing_report(data_export, tf)
                 return
             elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
-                file_name = process_issue_by_tag(data_export, tf)
-        except Exception as err:
+                try:
+                    file_name = process_issue_by_tag(data_export, tf)
+                except BaseException:
+                    raise DataExportError("failed to process ")
+
+        except BaseException:
             # TODO(Leander): Implement logging
             data_export.email_failure(
-                u"[Internal Processing] {}: {}".format(type(err).__name__, err)
+                u"{}: {}".format(
+                    ExportQueryType.as_str(data_export.query_type), "Internal processing error."
+                )
             )
-            return
         # Create a new File object and attach it to the ExportedData
         tf.seek(0)
         with transaction.atomic():
