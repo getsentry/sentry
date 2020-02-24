@@ -157,7 +157,7 @@ type EntryType = {
 
 export type EventTag = {key: string; value: string};
 
-type EventUser = {
+export type EventUser = {
   username?: string;
   name?: string;
   ip_address?: string;
