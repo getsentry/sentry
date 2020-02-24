@@ -176,12 +176,4 @@ const StyledSelect = styled(SelectPicker)`
     `}
 `;
 
-const forwardRef = (props, ref) => <SelectControlLegacy forwardedRef={ref} {...props} />;
-forwardRef.displayName = 'RefForwardedSelectControl';
-
-const RefForwardedSelectControl = React.forwardRef(forwardRef);
-
-// TODO(ts): Needed because <SelectField> uses this
-RefForwardedSelectControl.propTypes = SelectControlLegacy.propTypes;
-
-export default RefForwardedSelectControl;
+export default SelectControlLegacy;
