@@ -170,7 +170,21 @@ const defaultFeatureGateComponents = {
       ungatedFeatures: p.features,
       gatedFeatureGroups: [],
     }),
+  IntegrationDirectoryFeatures: p =>
+    p.children({
+      disabled: false,
+      disabledReason: null,
+      ungatedFeatures: p.features,
+      gatedFeatureGroups: [],
+    }),
   FeatureList: p => (
+    <ul>
+      {p.features.map((f, i) => (
+        <li key={i}>{f.description}</li>
+      ))}
+    </ul>
+  ),
+  IntegrationDirectoryFeatureList: p => (
     <ul>
       {p.features.map((f, i) => (
         <li key={i}>{f.description}</li>
