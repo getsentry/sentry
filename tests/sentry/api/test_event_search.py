@@ -1117,6 +1117,18 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    def test_function_with_default_arguments(self):
+        result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
+        assert result.having == [["rpm_300", ">", 100]]
+
+    def test_function_with_alias(self):
+        result = get_filter("p95():>100")
+        assert result.having == [["p95", ">", 100]]
+
+    def test_function_arguments(self):
+        result = get_filter("percentile(transaction.duration, 0.75):>100")
+        assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
+
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
         result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))

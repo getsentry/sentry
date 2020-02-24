@@ -800,7 +800,7 @@ class QueryTransformTest(TestCase):
 
         discover.query(
             selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
-            query="http.method:GET max(time):>5",
+            query="http.method:GET max(time):>2019-12-01",
             params={"project_id": [self.project.id], "start": start_time, "end": end_time},
             use_aggregate_conditions=True,
         )
@@ -814,7 +814,7 @@ class QueryTransformTest(TestCase):
                 ["avg", "duration", "avg_transaction_duration"],
                 ["max", "time", "max_time"],
             ],
-            having=[["max_time", ">", 5]],
+            having=[["max_time", ">", 1575158400000]],
             end=end_time,
             start=start_time,
             orderby=None,
@@ -839,6 +839,41 @@ class QueryTransformTest(TestCase):
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_function_conditions(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "percentile_transaction_duration_0_75"}],
+            "data": [
+                {"transaction": "api.do_things", "percentile_transaction_duration_0_75": 1123}
+            ],
+        }
+        discover.query(
+            selected_columns=["transaction", "percentile(transaction.duration, 0.75)"],
+            query="percentile(transaction.duration, 0.75):>100",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+            use_aggregate_conditions=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
+                ["argMax", ["event_id", "timestamp"], "latest_event"],
+                ["argMax", ["project_id", "timestamp"], "projectid"],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[["percentile_transaction_duration_0_75", ">", 100]],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
 
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):
