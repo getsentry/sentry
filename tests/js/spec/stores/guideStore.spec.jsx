@@ -83,4 +83,78 @@ describe('GuideStore', function() {
     expect(spy).toHaveBeenCalledTimes(1);
     spy.mockRestore();
   });
+
+  describe('discover sidebar guide', function() {
+    const anchor3 = <GuideAnchor target="discover_sidebar" />;
+
+    beforeEach(function() {
+      data = {
+        discover_sidebar: {
+          id: 4,
+          required_targets: ['discover_sidebar'],
+          steps: [
+            {
+              title: 'Title 4',
+              message: 'Message 4',
+              target: 'discover_sidebar',
+            },
+          ],
+          seen: false,
+        },
+      };
+
+      GuideStore.onRegisterAnchor(anchor3);
+    });
+
+    it('does not render without user', function() {
+      ConfigStore.config = {};
+      GuideStore.onFetchSucceeded(data);
+      expect(GuideStore.state.currentGuide).toBe(null);
+    });
+
+    it('shows discover sidebar guide to superusers', function() {
+      ConfigStore.config = {
+        user: {
+          isSuperuser: true,
+        },
+      };
+      GuideStore.onFetchSucceeded(data);
+      expect(GuideStore.state.currentGuide.id).toBe(data.discover_sidebar.id);
+    });
+
+    it('shows discover sidebar guide to previously existing users', function() {
+      ConfigStore.config = {
+        user: {
+          isSuperuser: false,
+          dateJoined: new Date(2020, 0, 1),
+        },
+      };
+      GuideStore.onFetchSucceeded(data);
+      expect(GuideStore.state.currentGuide.id).toBe(data.discover_sidebar.id);
+    });
+
+    it('does not show discover sidebar guide to new users', function() {
+      ConfigStore.config = {
+        user: {
+          isSuperuser: false,
+          dateJoined: new Date(2020, 1, 22),
+        },
+      };
+      GuideStore.onFetchSucceeded(data);
+      expect(GuideStore.state.currentGuide).toBe(null);
+    });
+
+    it('hides discover sidebar guide once seen', function() {
+      data.discover_sidebar.seen = true;
+      // previous user
+      ConfigStore.config = {
+        user: {
+          isSuperuser: false,
+          dateJoined: new Date(2020, 0, 1),
+        },
+      };
+      GuideStore.onFetchSucceeded(data);
+      expect(GuideStore.state.currentGuide).toBe(null);
+    });
+  });
 });
