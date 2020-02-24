@@ -3,11 +3,11 @@ export type RichHttpContentData = {
 };
 
 export type Data = {
-  headers: Array<Array<string>>;
-  query: string;
+  headers: Array<[string, string]>;
+  query: Array<[string, string]>;
   env: {[key: string]: any} | null;
   fragment: string | null;
-  cookies: Array<any>;
+  cookies: Array<[string, string]>;
   data: SubData;
   inferredContentType: InferredContentType;
 };
