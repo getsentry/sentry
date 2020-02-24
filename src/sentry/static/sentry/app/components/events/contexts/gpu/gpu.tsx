@@ -9,7 +9,7 @@ type Props = {
   data?: GPUData;
 };
 
-const KNOWN_DATA = [
+const gpuKnownDataValues = [
   GPUKnownDataType.NAME,
   GPUKnownDataType.VERSION,
   GPUKnownDataType.VENDOR_NAME,
@@ -25,13 +25,15 @@ const GPU = ({data}: Props) => {
   }
 
   if (data.vendor_id > 0) {
-    KNOWN_DATA.unshift[GPUKnownDataType.VENDOR_ID];
+    gpuKnownDataValues.unshift[GPUKnownDataType.VENDOR_ID];
   }
   if (data.id > 0) {
-    KNOWN_DATA.unshift[GPUKnownDataType.ID];
+    gpuKnownDataValues.unshift[GPUKnownDataType.ID];
   }
 
-  return <ContextBlock knownData={getOperatingSystemKnownData(data, KNOWN_DATA)} />;
+  return (
+    <ContextBlock knownData={getOperatingSystemKnownData(data, gpuKnownDataValues)} />
+  );
 };
 
 GPU.getTitle = () => 'GPU';
