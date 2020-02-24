@@ -1,15 +1,28 @@
-import $ from 'jquery';
-import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
+import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 
 import {SelectAsyncField} from 'app/components/forms';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
+import {Release} from 'app/types';
+import space from 'app/styles/space';
 
-export default class CustomResolutionModal extends React.Component {
+type Props = {
+  onSelected: ({inRelease: string}) => void;
+  onCanceled: () => void;
+  orgId: string;
+  projectId?: string;
+  show?: boolean;
+};
+
+type State = {
+  version: string;
+};
+
+class CustomResolutionModal extends React.Component<Props, State> {
   static propTypes = {
     onSelected: PropTypes.func.isRequired,
     onCanceled: PropTypes.func.isRequired,
@@ -18,17 +31,9 @@ export default class CustomResolutionModal extends React.Component {
     show: PropTypes.bool,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {version: ''};
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    if (!prevProps.show && this.props.show) {
-      // XXX(cramer): this is incorrect but idgaf
-      $('.modal').attr('tabindex', null);
-    }
-  }
+  state = {
+    version: '',
+  };
 
   onSubmit = () => {
     this.props.onSelected({
@@ -36,18 +41,34 @@ export default class CustomResolutionModal extends React.Component {
     });
   };
 
-  onChange = value => {
+  onChange = (value: string) => {
     this.setState({version: value});
   };
 
+  onAsyncFieldResults = (results: Release[]) =>
+    results.map(release => ({
+      value: release.version,
+      label: (
+        <div>
+          <strong>
+            <Version version={release.version} anchor={false} />
+          </strong>
+          <br />
+          <small>
+            {t('Created')} <TimeSince date={release.dateCreated} />
+          </small>
+        </div>
+      ),
+    }));
+
   render() {
-    const {orgId, projectId} = this.props;
+    const {orgId, projectId, show, onCanceled} = this.props;
     const url = projectId
       ? `/projects/${orgId}/${projectId}/releases/`
       : `/organizations/${orgId}/releases/`;
 
     return (
-      <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
+      <Modal show={show} animation={false} onHide={onCanceled}>
         <form onSubmit={this.onSubmit}>
           <Header>{t('Resolved In')}</Header>
           <Body>
@@ -59,27 +80,12 @@ export default class CustomResolutionModal extends React.Component {
               onChange={this.onChange}
               placeholder={t('e.g. 1.0.4')}
               url={url}
-              onResults={results => {
-                return results.map(release => ({
-                  value: release.version,
-                  label: (
-                    <div>
-                      <strong>
-                        <Version version={release.version} anchor={false} />
-                      </strong>
-                      <br />
-                      <small>
-                        Created <TimeSince date={release.dateCreated} />
-                      </small>
-                    </div>
-                  ),
-                }));
-              }}
+              onResults={this.onAsyncFieldResults}
               onQuery={query => ({query})}
             />
           </Body>
           <Footer>
-            <Button type="button" css={{marginRight: 10}} onClick={this.props.onCanceled}>
+            <Button type="button" css={{marginRight: space(1.5)}} onClick={onCanceled}>
               {t('Cancel')}
             </Button>
             <Button type="submit" priority="primary">
@@ -91,3 +97,5 @@ export default class CustomResolutionModal extends React.Component {
     );
   }
 }
+
+export default CustomResolutionModal;
