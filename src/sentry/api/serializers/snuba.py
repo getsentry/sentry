@@ -290,7 +290,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
     Serializer for time-series Snuba data.
     """
 
-    def serialize(self, result):
+    def serialize(self, result, column="count"):
         data = [
             (key, list(group))
             for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
@@ -303,7 +303,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
         for k, v in data:
             row = []
             for r in v:
-                item = {"count": r.get("count", 0)}
+                item = {"count": r.get(column, 0)}
                 if self.lookup:
                     value = value_from_row(r, self.lookup.columns)
                     item[self.lookup.name] = (attrs.get(value),)
@@ -313,6 +313,6 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
         res = {"data": zerofill(rv, result.start, result.end, result.rollup)}
 
         if result.data.get("totals"):
-            res["totals"] = {"count": result.data["totals"]["count"]}
+            res["totals"] = {"count": result.data["totals"][column]}
 
         return res

@@ -290,7 +290,7 @@ class RuleEditor extends React.Component {
         <SentryDocumentTitle title={title} objSlug={projectId} />
         <Panel className="rule-detail">
           <PanelHeader>{title}</PanelHeader>
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             {error && (
               <div className="alert alert-block alert-error">
                 <p>

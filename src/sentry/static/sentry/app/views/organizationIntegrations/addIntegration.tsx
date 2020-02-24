@@ -17,6 +17,10 @@ type Props = {
   reinstallId?: string;
   account?: string;
   organization?: Organization; //for analytics
+  analyticsParams?: {
+    view: 'integrations_directory_integration_detail' | 'integrations_directory';
+    already_installed: boolean;
+  };
 };
 
 export default class AddIntegration extends React.Component<Props> {
@@ -72,6 +76,7 @@ export default class AddIntegration extends React.Component<Props> {
         eventName: 'Integrations: Installation Start',
         integration: this.props.provider.key,
         integration_type: 'first_party',
+        ...this.props.analyticsParams,
       },
       this.props.organization
     );
@@ -123,6 +128,7 @@ export default class AddIntegration extends React.Component<Props> {
         eventName: 'Integrations: Installation Complete',
         integration: this.props.provider.key,
         integration_type: 'first_party',
+        ...this.props.analyticsParams,
       },
       this.props.organization
     );

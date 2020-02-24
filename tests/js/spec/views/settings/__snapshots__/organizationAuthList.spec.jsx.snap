@@ -14,9 +14,8 @@ exports[`OrganizationAuthList renders 1`] = `
       Choose a provider
     </PanelHeader>
     <PanelBody
-      direction="column"
-      disablePadding={true}
-      flex={false}
+      flexible={false}
+      withPadding={false}
     >
       <PanelAlert
         type="info"
@@ -102,9 +101,8 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
       Choose a provider
     </PanelHeader>
     <PanelBody
-      direction="column"
-      disablePadding={true}
-      flex={false}
+      flexible={false}
+      withPadding={false}
     >
       <PanelAlert
         type="info"

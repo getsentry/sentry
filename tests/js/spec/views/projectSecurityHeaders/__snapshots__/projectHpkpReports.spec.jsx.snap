@@ -24,9 +24,8 @@ exports[`ProjectHpkpReports renders 1`] = `
         About
       </PanelHeader>
       <PanelBody
-        direction="column"
-        disablePadding={false}
-        flex={false}
+        flexible={false}
+        withPadding={true}
       >
         <p>
           <span

@@ -15,6 +15,7 @@ import {
   addLoadingMessage,
 } from 'app/actionCreators/indicator';
 import {PluginNoProject, PluginProjectItem, Organization, AvatarProject} from 'app/types';
+import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
 
 export type Props = {
   api: Client;
@@ -23,10 +24,16 @@ export type Props = {
   organization: Organization;
   onResetConfiguration: (projectId: string) => void;
   onEnablePlugin: (projectId: string) => void;
+  trackIntegrationEvent: (
+    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'> & {project_id: string}
+  ) => void; //analytics callback
   className?: string;
 };
 
 export class InstalledPlugin extends React.Component<Props> {
+  get projectId() {
+    return this.props.projectItem.projectId;
+  }
   getConfirmMessage() {
     return (
       <React.Fragment>
@@ -56,14 +63,23 @@ export class InstalledPlugin extends React.Component<Props> {
       addLoadingMessage(t('Removing...'));
       await this.pluginUpdate({reset: true});
       addSuccessMessage(t('Configuration was removed'));
-      this.props.onResetConfiguration(this.props.projectItem.projectId);
+      this.props.onResetConfiguration(this.projectId);
+      this.props.trackIntegrationEvent({
+        eventKey: 'integrations.uninstall_completed',
+        eventName: 'Integrations: Uninstall Completed',
+        project_id: this.projectId,
+      });
     } catch (_err) {
       addErrorMessage(t('Unable to remove configuration'));
     }
   };
 
   handleUninstallClick = () => {
-    //TODO: Analytics
+    this.props.trackIntegrationEvent({
+      eventKey: 'integrations.uninstall_clicked',
+      eventName: 'Integrations: Uninstall Clicked',
+      project_id: this.projectId,
+    });
   };
 
   enablePlugin = async () => {
@@ -71,7 +87,12 @@ export class InstalledPlugin extends React.Component<Props> {
       addLoadingMessage(t('Enabling...'));
       await this.pluginUpdate({enabled: true});
       addSuccessMessage(t('Configuration was enabled'));
-      this.props.onEnablePlugin(this.props.projectItem.projectId);
+      this.props.onEnablePlugin(this.projectId);
+      this.props.trackIntegrationEvent({
+        eventKey: 'integrations.enabled',
+        eventName: 'Integrations: Enabled',
+        project_id: this.projectId,
+      });
     } catch (_err) {
       addErrorMessage(t('Unable to enable configuration'));
     }

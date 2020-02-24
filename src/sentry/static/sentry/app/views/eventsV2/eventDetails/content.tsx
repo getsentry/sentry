@@ -23,8 +23,8 @@ import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import EventEntries from 'app/components/events/eventEntries';
+import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
-import {DataSection} from 'app/components/events/eventDataSection';
 
 import EventView from '../eventView';
 import {hasAggregateField, EventQuery, generateTitle} from '../utils';
@@ -176,6 +176,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                   location={location}
                   showExampleCommit={false}
                   showTagSummary={false}
+                  eventView={eventView}
                 />
               )}
             </Projects>
