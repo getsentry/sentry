@@ -37,6 +37,7 @@ env:
     - NODE_OPTIONS=--max-old-space-size=4096
     - PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
     - SENTRY_KAFKA_HOSTS=localhost:9092
+    - SENTRY_ZOOKEEPER_HOSTS=localhost:2181
 
 before_install:
   - &base_install pip install --no-cache-dir "pip>=20.0.2"
@@ -188,7 +189,7 @@ matrix:
 
     - python: 2.7
       name: 'Snuba Integration with migrations'
-      env: TEST_SUITE=snuba USE_SNUBA=1 SENTRY_ZOOKEEPER_HOSTS=localhost:2181 MIGRATIONS_TEST_MIGRATE=1
+      env: TEST_SUITE=snuba USE_SNUBA=1 MIGRATIONS_TEST_MIGRATE=1
       services:
         - docker
         - memcached
