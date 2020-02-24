@@ -23,7 +23,7 @@ module.exports = {
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.js'],
-  testMatch: ['<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)'],
+  testMatch: ['<rootDir>/tests/js/**/*(*.)@(spec|test).js?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',
