@@ -1,4 +1,10 @@
-function generateClassname(name: string) {
+import {defined} from 'app/utils';
+
+function generateClassname(name?: string): string {
+  if (!defined(name)) {
+    return '';
+  }
+
   return name
     .split(/\d/)[0]
     .toLowerCase()
