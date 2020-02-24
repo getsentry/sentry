@@ -36,6 +36,7 @@ env:
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - NODE_OPTIONS=--max-old-space-size=4096
     - PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
+    - PYTEST_ADDOPTS="--reruns 5"
 
 before_install:
   - &pip_install pip install --no-cache-dir "pip>=20.0.2"
