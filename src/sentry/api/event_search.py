@@ -1007,6 +1007,7 @@ def resolve_function(field, match=None, params=None):
 
     # Some functions can optionally take no parameters (rpm(), rps()). In that case use the
     # passed in params to create a default argument if necessary.
+    used_default = False
     if len(columns) == 0 and len(function["args"]) == 1:
         try:
             default = function["args"][0].has_default(params)
@@ -1016,6 +1017,7 @@ def resolve_function(field, match=None, params=None):
         if default:
             # Hacky, but we expect column arguments to be strings so easiest to convert it back
             columns = [six.text_type(default)]
+            used_default = True
 
     if len(columns) != len(function["args"]):
         raise InvalidSearchQuery(u"{}: expected {} arguments".format(field, len(function["args"])))
@@ -1030,7 +1032,7 @@ def resolve_function(field, match=None, params=None):
 
     snuba_string = function["transform"].format(**arguments)
 
-    return [], [[snuba_string, None, get_function_alias(function["name"], columns)]]
+    return [], [[snuba_string, None, get_function_alias(function["name"], columns if not used_default else [])]]
 
 
 def resolve_orderby(orderby, fields, aggregations):

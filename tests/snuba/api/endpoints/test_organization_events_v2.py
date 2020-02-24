@@ -959,9 +959,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 2
         data = response.data["data"]
         assert data[0]["transaction"] == event1.transaction
-        assert data[0]["rpm_120"] == 0.5
+        assert data[0]["rpm"] == 0.5
         assert data[1]["transaction"] == event2.transaction
-        assert data[1]["rpm_120"] == 0.5
+        assert data[1]["rpm"] == 0.5
 
     def test_nonexistent_fields(self):
         self.login_as(user=self.user)
