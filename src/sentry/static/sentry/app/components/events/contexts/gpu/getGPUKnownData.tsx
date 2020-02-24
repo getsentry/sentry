@@ -6,15 +6,15 @@ import {GPUData, GPUKnownDataType} from './types';
 
 function getGPUKnownData(
   data: GPUData,
-  dataToBeFiltered: Array<GPUKnownDataType>
+  gpuKnownDataValues: Array<GPUKnownDataType>
 ): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
-  const filteredDataKeys = Object.keys(data).filter(key =>
-    dataToBeFiltered.includes(key as GPUKnownDataType)
+  const dataKeys = gpuKnownDataValues.filter(
+    gpuKnownDataValue => data[gpuKnownDataValue]
   );
 
-  for (const key of filteredDataKeys) {
+  for (const key of dataKeys) {
     const knownDataDetails = getGpuKnownDataDetails(data, key as GPUKnownDataType);
 
     knownData.push({
