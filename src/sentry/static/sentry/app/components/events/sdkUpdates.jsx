@@ -7,6 +7,7 @@ import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import EventDataSection from 'app/components/events/eventDataSection';
 
 const AlertUl = styled('ul')`
   margin-top: ${space(1)};
@@ -118,7 +119,7 @@ class EventSdkUpdates extends React.Component {
     const data = event.sdkUpdates;
 
     return (
-      <div className="box">
+      <EventDataSection title={null} type="sdk-updates">
         {data.map(suggestion => {
           return (
             <Alert
@@ -131,7 +132,7 @@ class EventSdkUpdates extends React.Component {
             </Alert>
           );
         })}
-      </div>
+      </EventDataSection>
     );
   }
 }
