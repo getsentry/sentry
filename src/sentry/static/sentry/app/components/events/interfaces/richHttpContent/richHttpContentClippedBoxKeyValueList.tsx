@@ -29,7 +29,12 @@ const RichHttpContentClippedBoxKeyValueList = ({
     try {
       return (
         <KeyValueList
-          data={transformedData.map(([key, value]) => ({key, subject: key, value, meta}))}
+          data={transformedData.map(([key, value]) => ({
+            key,
+            subject: key,
+            value,
+            meta,
+          }))}
           isContextData={isContextData}
         />
       );

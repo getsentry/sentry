@@ -59,5 +59,4 @@ const RichHttpContent = ({data}: RichHttpContentData) => (
     )}
   </React.Fragment>
 );
-
 export default RichHttpContent;

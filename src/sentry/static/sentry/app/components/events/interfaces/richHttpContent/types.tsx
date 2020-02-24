@@ -4,7 +4,7 @@ export type RichHttpContentData = {
 
 export type Data = {
   headers: Array<[string, string]>;
-  query: Array<[string, string]>;
+  query: Array<[string, string] | null> | {[key: string]: any};
   env: {[key: string]: any} | null;
   fragment: string | null;
   cookies: Array<[string, string]>;

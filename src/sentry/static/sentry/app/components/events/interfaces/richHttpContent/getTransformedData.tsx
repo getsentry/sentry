@@ -1,6 +1,8 @@
+import {defined} from 'app/utils';
+
 function getTransformedData(data: any) {
   if (Array.isArray(data)) {
-    return data;
+    return data.filter(dataValue => defined(dataValue));
   }
 
   if (typeof data === 'object') {
