@@ -1,0 +1,5 @@
+We've finished assembling your download, check it out by clicking the link below:
+
+{{url|safe}}
+
+The download file will expire at {{expiration}}

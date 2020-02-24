@@ -29,7 +29,9 @@ def assemble_download(data_export):
         # Create a new File object and attach it to the ExportedData
         tf.seek(0)
         with transaction.atomic():
-            file = File.objects.create(name=file_name, type="export.csv")
+            file = File.objects.create(
+                name=file_name, type="export.csv", headers={"Content-Type": "text/csv"}
+            )
             file.putfile(tf)
             data_export.finalize_upload(file=file)
 
