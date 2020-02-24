@@ -5,11 +5,7 @@ import isString from 'lodash/isString';
 import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
 
-import {
-  tokenizeSearch,
-  stringifyQueryObject,
-  QueryResults,
-} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
 import {Event, Organization, OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
@@ -18,7 +14,6 @@ import {getUtcDateString} from 'app/utils/dates';
 import {TagSegment} from 'app/components/tagDistributionMeter';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {disableMacros} from 'app/views/discover/result/utils';
-import {appendTagCondition} from 'app/utils/queryString';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
 import {
