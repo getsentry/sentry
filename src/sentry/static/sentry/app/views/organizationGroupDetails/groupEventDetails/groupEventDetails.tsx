@@ -168,6 +168,7 @@ class GroupEventDetails extends React.Component<Props, State> {
     const {releasesCompletion} = this.state;
     return (
       project?.isMember &&
+      project?.firstEvent &&
       releasesCompletion?.some(({step, complete}) => step === 'commit' && !complete)
     );
   }
