@@ -490,6 +490,11 @@ urlpatterns += [
                     name="sentry-organization-event-detail",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/data-export/(?P<data_export_id>\d+)/$",
+                    react_page_view,
+                    name="sentry-data-export-details",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/json/$",
                     GroupEventJsonView.as_view(),
                     name="sentry-group-event-json",
