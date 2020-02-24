@@ -48,10 +48,10 @@ class RedisQuota(Quota):
     def __get_redis_key(self, quota, timestamp, shift, organization_id):
         if self.is_redis_cluster:
             # new style redis cluster format which always has the organization id in
-            local_key = "%s{%s}%s" % (quota.prefix, organization_id, quota.subscope or "")
+            local_key = "%s{%s}%s" % (quota.id, organization_id, quota.subscope or "")
         else:
             # legacy key format
-            local_key = "%s:%s" % (quota.prefix, quota.subscope or organization_id)
+            local_key = "%s:%s" % (quota.id, quota.subscope or organization_id)
 
         interval = quota.window
         return u"{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
@@ -66,7 +66,7 @@ class RedisQuota(Quota):
         if pquota[0] is not None:
             results.append(
                 QuotaConfig.limited(
-                    prefix="p",
+                    id="p",
                     subscope=project.id,
                     limit=pquota[0],
                     window=pquota[1],
@@ -78,7 +78,7 @@ class RedisQuota(Quota):
         if oquota[0] is not None:
             results.append(
                 QuotaConfig.limited(
-                    prefix="o", limit=oquota[0], window=oquota[1], reason_code="org_quota"
+                    id="o", limit=oquota[0], window=oquota[1], reason_code="org_quota"
                 )
             )
 
@@ -87,7 +87,7 @@ class RedisQuota(Quota):
             if kquota[0] is not None:
                 results.append(
                     QuotaConfig.limited(
-                        prefix="k",
+                        id="k",
                         subscope=key.id,
                         limit=kquota[0],
                         window=kquota[1],

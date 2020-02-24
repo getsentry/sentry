@@ -34,17 +34,17 @@ class QuotaConfig(object):
     rate limiter (e.g. implemented via Redis caches).
     """
 
-    __slots__ = ["prefix", "subscope", "limit", "window", "reason_code"]
+    __slots__ = ["id", "subscope", "limit", "window", "reason_code"]
 
-    def __init__(self, prefix=None, subscope=None, limit=None, window=None, reason_code=None):
+    def __init__(self, id=None, subscope=None, limit=None, window=None, reason_code=None):
         if limit == 0:
-            assert prefix is None and subscope is None, "zero-sized quotas are not tracked in redis"
+            assert id is None and subscope is None, "zero-sized quotas are not tracked in redis"
             assert window is None, "zero-sized quotas cannot have a window"
         else:
-            assert prefix, "measured quotas need a prefix to run in redis"
+            assert id, "measured quotas need a id to run in redis"
             assert window and window > 0, "window cannot be zero"
 
-        self.prefix = prefix
+        self.id = id
         self.subscope = subscope
         # maximum number of events in the given window
         #
@@ -67,23 +67,21 @@ class QuotaConfig(object):
         return cls(limit=0, reason_code=reason_code)
 
     @classmethod
-    def limited(cls, prefix, limit, window, reason_code, subscope=None):
+    def limited(cls, id, limit, window, reason_code, subscope=None):
         """
         A regular quota with limit.
         """
 
         assert limit and limit > 0
-        return cls(
-            prefix=prefix, limit=limit, window=window, reason_code=reason_code, subscope=subscope
-        )
+        return cls(id=id, limit=limit, window=window, reason_code=reason_code, subscope=subscope)
 
     @classmethod
-    def unlimited(cls, prefix, window, subscope=None):
+    def unlimited(cls, id, window, subscope=None):
         """
         Unlimited quota that is still being counted.
         """
 
-        return cls(prefix=prefix, window=window, subscope=subscope)
+        return cls(id=id, window=window, subscope=subscope)
 
     @property
     def should_track(self):
@@ -91,12 +89,23 @@ class QuotaConfig(object):
         Whether the quotas service should track this quota at all.
         """
 
-        return self.prefix is not None
+        return self.id is not None
 
     def to_json_legacy(self):
         return prune_empty_keys(
             {
-                "prefix": six.text_type(self.prefix) if self.prefix is not None else None,
+                "prefix": six.text_type(self.id) if self.id is not None else None,
+                "subscope": six.text_type(self.subscope) if self.subscope is not None else None,
+                "limit": self.limit,
+                "window": self.window,
+                "reasonCode": self.reason_code,
+            }
+        )
+
+    def to_json(self):
+        return prune_empty_keys(
+            {
+                "id": six.text_type(self.id) if self.id is not None else None,
                 "subscope": six.text_type(self.subscope) if self.subscope is not None else None,
                 "limit": self.limit,
                 "window": self.window,

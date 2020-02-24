@@ -92,7 +92,7 @@ class QuotaTest(TestCase):
     "obj,json",
     [
         (
-            QuotaConfig(prefix="p", subscope=1, limit=None, window=1, reason_code="go_away"),
+            QuotaConfig(id="p", subscope=1, limit=None, window=1, reason_code="go_away"),
             {"prefix": "p", "subscope": "1", "window": 1, "reasonCode": "go_away"},
         ),
         (QuotaConfig(limit=0, reason_code="go_away"), {"limit": 0, "reasonCode": "go_away"}),
