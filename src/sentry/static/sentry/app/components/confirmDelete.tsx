@@ -56,11 +56,10 @@ class ConfirmDelete extends React.PureComponent<Props, State> {
           p={0}
           flexibleControlStateSize
           inline={false}
-          label={
-            <div>
-              {t('Please enter %s to confirm the deletion', <code>{confirmInput}</code>)}
-            </div>
-          }
+          label={t(
+            'Please enter %s to confirm the deletion',
+            <code>{confirmInput}</code>
+          )}
         >
           <Input
             type="text"
