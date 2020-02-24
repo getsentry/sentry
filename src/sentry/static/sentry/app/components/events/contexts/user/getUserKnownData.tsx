@@ -6,17 +6,21 @@ import {defined} from 'app/utils';
 import getUserKnownDataDetails from './getUserKnownDataDetails';
 import {UserKnownDataType} from './types';
 
-function getUserKnownData(data: UserType): Array<KeyValueListData> {
+function getUserKnownData(
+  data: UserType,
+  userKnownDataValues: Array<UserKnownDataType>
+): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
-  const dataKeys = Object.keys(data);
+  const dataKeys = userKnownDataValues.filter(
+    userKnownDataValue => data[userKnownDataValue]
+  );
+
   for (const key of dataKeys) {
     const knownDataDetails = getUserKnownDataDetails(data, key as UserKnownDataType);
-
     if ((knownDataDetails && !defined(knownDataDetails.value)) || !knownDataDetails) {
       continue;
     }
-
     knownData.push({
       key,
       ...knownDataDetails,
