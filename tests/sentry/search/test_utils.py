@@ -468,6 +468,17 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('"release:foo"')
         assert result == {"tags": {}, "query": "release:foo"}
 
+    def test_quoted_tag_value(self):
+        result = self.parse_query('event.type:error title:"QueryExecutionError: Code: 141."')
+        assert result["query"] == ""
+        assert result["tags"]["title"] == "QueryExecutionError: Code: 141."
+        assert result["tags"]["event.type"] == "error"
+
+    def test_leading_colon(self):
+        result = self.parse_query('country:canada :unresolved')
+        assert result["query"] == ":unresolved"
+        assert result["tags"]["country"] == "canada"
+
 
 class GetLatestReleaseTest(TestCase):
     def test(self):
