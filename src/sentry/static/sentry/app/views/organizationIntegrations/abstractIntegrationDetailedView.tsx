@@ -264,7 +264,7 @@ class AbstractIntegrationDetailedView<
             className={this.state.tab === tabName ? 'active' : ''}
             onClick={() => this.onTabChange(tabName)}
           >
-            <a style={{textTransform: 'capitalize'}}>{t(this.getTabDiplay(tabName))}</a>
+            <CapitalizedLink>{t(this.getTabDiplay(tabName))}</CapitalizedLink>
           </li>
         ))}
       </ul>
@@ -277,8 +277,8 @@ class AbstractIntegrationDetailedView<
 
     return (
       <React.Fragment>
-        <div style={{display: 'flex'}}>
-          <div style={{flex: 1}}>
+        <Flex>
+          <FlexContainer>
             <Description dangerouslySetInnerHTML={{__html: marked(this.description)}} />
             <IntegrationDirectoryFeatureList
               {...this.featureProps}
@@ -292,11 +292,11 @@ class AbstractIntegrationDetailedView<
                 />
               </Alert>
             ))}
-          </div>
+          </FlexContainer>
           <Metadata>
             {!!this.author && (
               <div>
-                <CreatedContainer>Created By</CreatedContainer>
+                <CreatedContainer>{t('Created By')}</CreatedContainer>
                 <AuthorName>{t(this.author)}</AuthorName>
               </div>
             )}
@@ -306,7 +306,7 @@ class AbstractIntegrationDetailedView<
               </ExternalLink>
             ))}
           </Metadata>
-        </div>
+        </Flex>
       </React.Fragment>
     );
   }
@@ -326,6 +326,14 @@ class AbstractIntegrationDetailedView<
 
 const Flex = styled('div')`
   display: flex;
+`;
+
+const FlexContainer = styled('div')`
+  flex: 1;
+`;
+
+const CapitalizedLink = styled('a')`
+  text-transform: 'capitalize';
 `;
 
 const StyledTag = styled(Tag)`

@@ -179,10 +179,10 @@ const generateIntegrationFeatures = p =>
   });
 
 const defaultFeatureGateComponents = {
-  IntegrationFeatures: p => generateIntegrationFeatures(p),
-  IntegrationDirectoryFeatures: p => generateIntegrationFeatures(p),
-  FeatureList: p => generateFeaturesList(p),
-  IntegrationDirectoryFeatureList: p => generateFeaturesList(p),
+  IntegrationFeatures: generateIntegrationFeatures,
+  IntegrationDirectoryFeatures: generateIntegrationFeatures,
+  FeatureList: generateFeaturesList,
+  IntegrationDirectoryFeatureList: generateFeaturesList,
 } as ReturnType<Hooks['integrations:feature-gates']>;
 
 export const getIntegrationFeatureGate = () => {
