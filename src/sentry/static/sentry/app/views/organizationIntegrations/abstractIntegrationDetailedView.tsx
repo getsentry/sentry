@@ -104,7 +104,8 @@ class AbstractIntegrationDetailedView<
     throw new Error('Not implemented');
   }
 
-  //Returns an array of IntegrationFeatures which is used in feature gating and displaying what the integraiton does
+  // Returns an array of RawIntegrationFeatures which is used in feature gating
+  // and displaying what the integraiton does
   get featureData(): IntegrationFeature[] {
     // Allow children to implement this
     throw new Error('Not implemented');
