@@ -31,6 +31,7 @@ const RichHttpContentClippedBoxBodySection = ({
 
     if (meta && typeof value === 'string') {
       return (
+        // <pre> is wrapping AnnotatedText to avoid breaking certain tooltips (untested, yolo)
         <pre>
           <AnnotatedText
             value={value}
