@@ -80,7 +80,7 @@ const ContextSummaryDevice = ({data}: Props) => {
   };
 
   // TODO(dcramer): we need a better way to parse it
-  const className = data.model && generateClassName(data.model);
+  const className = generateClassName(data.model);
   const subTitle = getSubTitle();
 
   return (
