@@ -3,8 +3,10 @@
 from __future__ import absolute_import
 
 from sentry.models import OrganizationOption, ProjectKey
-from sentry.quotas.base import Quota
+from sentry.quotas.base import Quota, QuotaConfig
 from sentry.testutils import TestCase
+
+import pytest
 
 
 class QuotaTest(TestCase):
@@ -84,3 +86,17 @@ class QuotaTest(TestCase):
             SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE="50%", SENTRY_SINGLE_ORGANIZATION=True
         ), self.options({"system.rate-limit": 10}):
             assert self.backend.get_organization_quota(org) == (10, 60)
+
+
+@pytest.mark.parametrize(
+    "obj,json",
+    [
+        (
+            QuotaConfig(prefix="p", subscope=1, limit=None, window=1, reason_code="go_away"),
+            {"prefix": "p", "subscope": "1", "window": 1, "reasonCode": "go_away"},
+        ),
+        (QuotaConfig(limit=0, reason_code="go_away"), {"limit": 0, "reasonCode": "go_away"}),
+    ],
+)
+def test_quotas_to_json_legacy(obj, json):
+    assert obj.to_json_legacy() == json

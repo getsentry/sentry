@@ -2,14 +2,14 @@
 
 from __future__ import absolute_import
 
-import pytest
 from sentry.utils.compat import mock
 import six
 import time
 
 from exam import fixture, patcher
 
-from sentry.quotas.redis import is_rate_limited, BasicRedisQuota, RedisQuota
+from sentry.quotas.base import QuotaConfig
+from sentry.quotas.redis import is_rate_limited, RedisQuota
 from sentry.testutils import TestCase
 from sentry.utils.redis import clusters
 from six.moves import xrange
@@ -119,10 +119,8 @@ class RedisQuotaTest(TestCase):
     @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, False))
     def test_not_limited_with_unlimited_quota(self, mock_is_rate_limited, mock_get_quotas):
         mock_get_quotas.return_value = (
-            BasicRedisQuota(
-                prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"
-            ),
-            BasicRedisQuota(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
+            QuotaConfig(prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"),
+            QuotaConfig(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
         )
 
         assert not self.quota.is_rate_limited(self.project).is_limited
@@ -131,10 +129,8 @@ class RedisQuotaTest(TestCase):
     @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, True))
     def test_limited_with_unlimited_quota(self, mock_is_rate_limited, mock_get_quotas):
         mock_get_quotas.return_value = (
-            BasicRedisQuota(
-                prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"
-            ),
-            BasicRedisQuota(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
+            QuotaConfig(prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"),
+            QuotaConfig(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
         )
 
         assert self.quota.is_rate_limited(self.project).is_limited
@@ -155,8 +151,8 @@ class RedisQuotaTest(TestCase):
             self.project.organization_id,
             quotas
             + [
-                BasicRedisQuota(prefix="unlimited", limit=None, window=60, reason_code="unlimited"),
-                BasicRedisQuota(prefix="dummy", limit=10, window=60, reason_code="dummy"),
+                QuotaConfig(prefix="unlimited", limit=None, window=60, reason_code="unlimited"),
+                QuotaConfig(prefix="dummy", limit=10, window=60, reason_code="dummy"),
             ],
             timestamp=timestamp,
         ) == [n for _ in quotas] + [0, 0]
@@ -166,10 +162,8 @@ class RedisQuotaTest(TestCase):
         timestamp = time.time()
 
         mock_get_quotas.return_value = (
-            BasicRedisQuota(
-                prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"
-            ),
-            BasicRedisQuota(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
+            QuotaConfig(prefix="p", subscope=1, limit=None, window=1, reason_code="project_quota"),
+            QuotaConfig(prefix="p", subscope=2, limit=1, window=1, reason_code="project_quota"),
         )
 
         self.quota.refund(self.project, timestamp=timestamp)
@@ -202,23 +196,9 @@ class RedisQuotaTest(TestCase):
             self.project.organization_id,
             quotas
             + [
-                BasicRedisQuota(prefix="unlimited", limit=None, window=60, reason_code="unlimited"),
-                BasicRedisQuota(prefix="dummy", limit=10, window=60, reason_code="dummy"),
+                QuotaConfig(prefix="unlimited", limit=None, window=60, reason_code="unlimited"),
+                QuotaConfig(prefix="dummy", limit=10, window=60, reason_code="dummy"),
             ],
             timestamp=timestamp,
             # the - 1 is because we refunded once
         ) == [n - 1 for _ in quotas] + [0, 0]
-
-
-@pytest.mark.parametrize(
-    "obj,json",
-    [
-        (
-            BasicRedisQuota(prefix="p", subscope=1, limit=None, window=1, reason_code="go_away"),
-            {"prefix": "p", "subscope": "1", "window": 1, "reasonCode": "go_away"},
-        ),
-        (BasicRedisQuota(limit=0, reason_code="go_away"), {"limit": 0, "reasonCode": "go_away"}),
-    ],
-)
-def test_quotas_to_json(obj, json):
-    assert obj.to_json() == json

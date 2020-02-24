@@ -6,7 +6,103 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry import options
+from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
+
+
+class QuotaConfig(object):
+    """
+    Abstract configuration for a quota.
+
+    Sentry applies multiple quotas to an event before accepting it, some of
+    which can be configured by the user depending on plan. An event will be
+    counted against all quotas that it matches with based on the ``category``.
+    For example:
+
+    * If Sentry is told to apply two quotas "one event per minute" and "9999999
+      events per hour", it will practically accept only one event per minute
+    * If Sentry is told to apply "one event per minute" and "30 events per
+      hour", we will be able to get one event accepted every minute. However, if
+      we do that for 30 minutes (ingesting 30 events), we will not be able to
+      get an event through for the rest of the hour. (This example assumes that
+      we start sending events exactly at the start of the time window)
+
+    The `QuotaConfig` object is not persisted, but is the contract between
+    Sentry and Relay. Most importantly, a `QuotaConfig` instance does not
+    contain information about how many events can still be accepted, it only
+    represents settings that should be applied. The actual counts are in the
+    rate limiter (e.g. implemented via Redis caches).
+    """
+
+    __slots__ = ["prefix", "subscope", "limit", "window", "reason_code"]
+
+    def __init__(self, prefix=None, subscope=None, limit=None, window=None, reason_code=None):
+        if limit == 0:
+            assert prefix is None and subscope is None, "zero-sized quotas are not tracked in redis"
+            assert window is None, "zero-sized quotas cannot have a window"
+        else:
+            assert prefix, "measured quotas need a prefix to run in redis"
+            assert window and window > 0, "window cannot be zero"
+
+        self.prefix = prefix
+        self.subscope = subscope
+        # maximum number of events in the given window
+        #
+        # None indicates "unlimited amount"
+        # 0 indicates "reject all"
+        # NOTE: Use `quotas.base._limit_from_settings` to map from settings
+        self.limit = limit
+        # time in seconds that this quota reflects
+        self.window = window
+        # a machine readable string
+        self.reason_code = reason_code
+
+    @classmethod
+    def reject_all(cls, reason_code):
+        """
+        A zero-sized quota, which is never counted in Redis. Unconditionally
+        reject the event.
+        """
+
+        return cls(limit=0, reason_code=reason_code)
+
+    @classmethod
+    def limited(cls, prefix, limit, window, reason_code, subscope=None):
+        """
+        A regular quota with limit.
+        """
+
+        assert limit and limit > 0
+        return cls(
+            prefix=prefix, limit=limit, window=window, reason_code=reason_code, subscope=subscope
+        )
+
+    @classmethod
+    def unlimited(cls, prefix, window, subscope=None):
+        """
+        Unlimited quota that is still being counted.
+        """
+
+        return cls(prefix=prefix, window=window, subscope=subscope)
+
+    @property
+    def should_track(self):
+        """
+        Whether the quotas service should track this quota at all.
+        """
+
+        return self.prefix is not None
+
+    def to_json_legacy(self):
+        return prune_empty_keys(
+            {
+                "prefix": six.text_type(self.prefix) if self.prefix is not None else None,
+                "subscope": six.text_type(self.subscope) if self.subscope is not None else None,
+                "limit": self.limit,
+                "window": self.window,
+                "reasonCode": self.reason_code,
+            }
+        )
 
 
 class RateLimit(object):
