@@ -30,7 +30,7 @@ describe('PluginDetailedView', function() {
             status: 'unknown',
             description: 'Send alerts to PagerDuty.',
             isTestable: true,
-            isHidden: false,
+            isHidden: true,
             hasConfiguration: true,
             features: [],
             shortName: 'PagerDuty',

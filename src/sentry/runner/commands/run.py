@@ -404,6 +404,13 @@ def batching_kafka_options(group):
             help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
         )(f)
 
+        f = click.option(
+            "--pause-gc/--no-pause-gc",
+            "pause_gc",
+            default=False,
+            help="Disable GC, and run it manually after each batch flush.",
+        )(f)
+
         return f
 
     return inner
@@ -434,6 +441,7 @@ def ingest_consumer(consumer_type, **options):
     process event celery tasks for them
     """
     from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
+    from sentry.utils import metrics
 
     if consumer_type == "events":
         consumer_type = ConsumerType.Events
@@ -442,7 +450,8 @@ def ingest_consumer(consumer_type, **options):
     elif consumer_type == "attachments":
         consumer_type = ConsumerType.Attachments
 
-    get_ingest_consumer(consumer_type=consumer_type, **options).run()
+    with metrics.global_tags(ingest_consumer_type=consumer_type, _all_threads=True):
+        get_ingest_consumer(consumer_type=consumer_type, **options).run()
 
 
 @run.command("outcomes-consumer")

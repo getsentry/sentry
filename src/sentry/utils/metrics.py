@@ -16,15 +16,19 @@ from six.moves.queue import Queue
 metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
 
-_GLOBAL_TAGS = local()
+_THREAD_LOCAL_TAGS = local()
+_GLOBAL_TAGS = []
 
 
 @contextmanager
-def global_tags(**tags):
-    if not hasattr(_GLOBAL_TAGS, "stack"):
-        stack = _GLOBAL_TAGS.stack = []
+def global_tags(_all_threads=False, **tags):
+    if _all_threads:
+        stack = _GLOBAL_TAGS
     else:
-        stack = _GLOBAL_TAGS.stack
+        if not hasattr(_GLOBAL_TAGS, "stack"):
+            stack = _THREAD_LOCAL_TAGS.stack = []
+        else:
+            stack = _THREAD_LOCAL_TAGS.stack
 
     stack.append(tags)
     try:
@@ -35,7 +39,11 @@ def global_tags(**tags):
 
 def _get_current_global_tags():
     rv = {}
-    for tags in getattr(_GLOBAL_TAGS, "stack", None) or ():
+
+    for tags in _GLOBAL_TAGS:
+        rv.update(tags)
+
+    for tags in getattr(_THREAD_LOCAL_TAGS, "stack", None) or ():
         rv.update(tags)
 
     return rv

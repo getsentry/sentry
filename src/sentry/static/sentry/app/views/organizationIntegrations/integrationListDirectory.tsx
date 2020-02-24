@@ -1,4 +1,5 @@
 import groupBy from 'lodash/groupBy';
+import debounce from 'lodash/debounce';
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
@@ -25,7 +26,6 @@ import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import IntegrationRow from './integrationRow';
-import {legacyIds} from './constants';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
@@ -57,6 +57,8 @@ function isPlugin(
 ): integration is PluginWithProjectList {
   return integration.hasOwnProperty('shortName');
 }
+
+const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
 
 export class OrganizationIntegrations extends AsyncComponent<
   Props & AsyncComponent['props'],
@@ -115,7 +117,7 @@ export class OrganizationIntegrations extends AsyncComponent<
   trackPageViewed() {
     //count the number of installed apps
 
-    const {integrations, publishedApps} = this.state;
+    const {integrations, publishedApps, plugins} = this.state;
     const integrationsInstalled = new Set();
     //add installed integrations
     integrations.forEach((integration: Integration) => {
@@ -125,12 +127,18 @@ export class OrganizationIntegrations extends AsyncComponent<
     publishedApps.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
       integrationsInstalled.add(sentryApp.slug);
     });
+    //add plugins
+    plugins.forEach((plugin: PluginWithProjectList) => {
+      if (plugin.projectList.length) {
+        integrationsInstalled.add(plugin.slug);
+      }
+    });
     trackIntegrationEvent(
       {
         eventKey: 'integrations.index_viewed',
         eventName: 'Integrations: Index Page Viewed',
         integrations_installed: integrationsInstalled.size,
-        view: 'integrations_page',
+        view: 'integrations_directory',
       },
       this.props.organization,
       {startSession: true}
@@ -214,12 +222,26 @@ export class OrganizationIntegrations extends AsyncComponent<
     });
   }
 
+  debouncedTrackIntegrationSearch = debounce((search: string, numResults: number) => {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.directory_item_searched',
+        eventName: 'Integrations: Directory Item Searched',
+        view: 'integrations_directory',
+        search_term: search,
+        num_results: numResults,
+      },
+      this.props.organization
+    );
+  }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
+
   onSearchChange = async ({target}) => {
     this.setState({searchInput: target.value}, () => {
       if (!target.value) {
         return this.setState({displayedList: this.state.list});
       }
       const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
+      this.debouncedTrackIntegrationSearch(target.value, result.length);
       return this.setState({
         displayedList: this.sortIntegrations(result.map(i => i.item)),
       });
@@ -252,7 +274,7 @@ export class OrganizationIntegrations extends AsyncComponent<
   renderPlugin = (plugin: PluginWithProjectList) => {
     const {organization} = this.props;
 
-    const isLegacy = legacyIds.includes(plugin.id);
+    const isLegacy = plugin.isHidden;
     const displayName = `${plugin.name} ${!!isLegacy ? '(Legacy)' : ''}`;
     //hide legacy integrations if we don't have any projects with them
     if (isLegacy && !plugin.projectList.length) {

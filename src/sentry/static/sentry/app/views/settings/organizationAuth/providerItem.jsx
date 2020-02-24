@@ -69,7 +69,11 @@ export default class ProviderItem extends React.PureComponent {
         {({hasFeature, features, renderDisabled, renderInstallButton}) => (
           <PanelItem alignItems="center">
             <ProviderInfo>
-              <ProviderLogo className={`provider-logo ${provider.name.toLowerCase()}`} />
+              <ProviderLogo
+                className={`provider-logo ${provider.name
+                  .replace(/\s/g, '')
+                  .toLowerCase()}`}
+              />
               <div>
                 <ProviderName>{provider.name}</ProviderName>
                 <ProviderDescription>

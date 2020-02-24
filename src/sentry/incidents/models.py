@@ -3,7 +3,9 @@ from __future__ import absolute_import
 from collections import namedtuple
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import IntegrityError, models, transaction
+from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from enum import Enum
 
@@ -11,7 +13,7 @@ from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCasca
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
-from sentry.snuba.models import QueryAggregations
+from sentry.snuba.models import QueryAggregations, QuerySubscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -230,6 +232,8 @@ class AlertRuleManager(BaseManager):
     A manager that excludes all rows that are pending deletion.
     """
 
+    CACHE_SUBSCRIPTION_KEY = "alert_rule:subscription:%s"
+
     def get_queryset(self):
         return (
             super(AlertRuleManager, self)
@@ -247,6 +251,37 @@ class AlertRuleManager(BaseManager):
 
     def fetch_for_project(self, project):
         return self.filter(query_subscriptions__project=project)
+
+    @classmethod
+    def __build_subscription_cache_key(self, subscription_id):
+        return self.CACHE_SUBSCRIPTION_KEY % subscription_id
+
+    def get_for_subscription(self, subscription):
+        """
+        Fetches the AlertRule associated with a Subscription. Attempts to fetch from
+        cache then hits the database
+        """
+        cache_key = self.__build_subscription_cache_key(subscription.id)
+        alert_rule = cache.get(cache_key)
+        if alert_rule is None:
+            alert_rule = AlertRule.objects.get(query_subscriptions=subscription)
+            cache.set(cache_key, alert_rule, 3600)
+
+        return alert_rule
+
+    @classmethod
+    def clear_subscription_cache(cls, instance, **kwargs):
+        cache.delete(cls.__build_subscription_cache_key(instance.id))
+
+    @classmethod
+    def clear_alert_rule_subscription_caches(cls, instance, **kwargs):
+        subscription_ids = AlertRuleQuerySubscription.objects.filter(
+            alert_rule=instance
+        ).values_list("query_subscription_id", flat=True)
+        if subscription_ids:
+            cache.delete_many(
+                cls.__build_subscription_cache_key(sub_id) for sub_id in subscription_ids
+            )
 
 
 class AlertRuleEnvironment(Model):
@@ -482,3 +517,9 @@ class AlertRuleTriggerAction(Model):
     @classmethod
     def get_registered_types(cls):
         return cls._type_registrations.values()
+
+
+post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
+post_save.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
+post_save.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
+post_delete.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
