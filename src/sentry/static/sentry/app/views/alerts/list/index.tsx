@@ -143,7 +143,7 @@ class IncidentsListContainer extends React.Component<Props> {
     const {router, params} = this.props;
     e.preventDefault();
 
-    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts-v2/`, router);
+    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/`, router);
   };
 
   render() {
