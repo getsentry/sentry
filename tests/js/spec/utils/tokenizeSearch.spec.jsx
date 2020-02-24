@@ -42,6 +42,11 @@ describe('utils/tokenizeSearch', function() {
         string: 'key:Resque::DirtyExit',
         object: {query: [], key: ['Resque::DirtyExit']},
       },
+      {
+        name: 'tokens that begin with a colon are still queries',
+        string: 'country:canada :unresolved',
+        object: {query: [':unresolved'], country: ['canada']},
+      },
     ];
 
     for (const {name, string, object} of cases) {

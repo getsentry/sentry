@@ -37,7 +37,7 @@ export function tokenizeSearch(query: string) {
     for (let i = 0, len = token.length; i < len; i++) {
       const char = token[i];
 
-      if (i === 0 && char === '"') {
+      if (i === 0 && (char === '"' || char === ':')) {
         break;
       }
 

@@ -288,7 +288,7 @@ def tokenize_query(query):
         state = "query"
         for idx, char in enumerate(token):
             next_char = token[idx + 1] if idx < len(token) - 1 else None
-            if idx == 0 and char in ('"', "'"):
+            if idx == 0 and char in ('"', "'", ":"):
                 break
             if char == ":":
                 if next_char in (":", " "):

@@ -474,6 +474,11 @@ class ParseQueryTest(TestCase):
         assert result["tags"]["title"] == "QueryExecutionError: Code: 141."
         assert result["tags"]["event.type"] == "error"
 
+    def test_leading_colon(self):
+        result = self.parse_query('country:canada :unresolved')
+        assert result["query"] == ":unresolved"
+        assert result["tags"]["country"] == "canada"
+
 
 class GetLatestReleaseTest(TestCase):
     def test(self):
