@@ -27,16 +27,21 @@ class UserAuthenticatorEnrollTest(APITestCase):
         assert "mail.queued" in email_log.info.call_args[0]
         assert email_log.info.call_args[1]["extra"]["message_type"] == email_type
 
+    @mock.patch("sentry.utils.otp.generate_secret_key", return_value="Z" * 32)
     @mock.patch("sentry.utils.email.logger")
     @mock.patch("sentry.models.TotpInterface.validate_otp", return_value=True)
-    def test_totp_can_enroll(self, validate_otp, email_log):
+    def test_totp_can_enroll(self, validate_otp, email_log, mock_generate_secret_key):
         url = reverse(
             "sentry-api-0-user-authenticator-enroll",
             kwargs={"user_id": "me", "interface_id": "totp"},
         )
 
         resp = self.client.get(url)
+        # why isn't this being called???
+        mock_generate_secret_key.method.assert_called_once()
+
         assert resp.status_code == 200
+        # TODO: assert against a fixture for encoded Z*32 url.
         assert len(resp.data["qrcode"])
         assert resp.data["form"]
         assert resp.data["secret"]
