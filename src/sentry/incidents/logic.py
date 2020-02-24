@@ -291,8 +291,8 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
             "start": incident.date_started if start is None else start,
             "end": incident.current_end_date if end is None else end,
         }
-        # Make start about 20% earlier:
-        params["start"] = params["start"] - (params["end"] - params["start"]) / 5
+        prewindow_time_range = calculate_incident_prewindow(params["start"], params["end"])
+        params["start"] = params["start"] - prewindow_time_range
         group_ids = incident_groups[incident.id]
         if group_ids:
             params["group_ids"] = group_ids
@@ -312,6 +312,15 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
         query_args_list.append(snuba_args)
 
     return query_args_list
+
+
+def calculate_incident_prewindow(start, end, incident=None):
+    # Make the a bit earlier to show more relevant data from before the incident started:
+    prewindow = (end - start) / 5
+    if incident and incident.alert_rule is not None:
+        alert_rule_time_window = incident.alert_rule.time_window
+        prewindow = max(alert_rule_time_window, prewindow)
+    return prewindow
 
 
 def get_incident_event_stats(incident, start=None, end=None, data_points=50):
