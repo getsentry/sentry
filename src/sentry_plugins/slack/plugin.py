@@ -4,6 +4,7 @@ from sentry import http, tagstore
 from sentry.plugins.bases import notify
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from sentry_plugins.base import CorePluginMixin
 
@@ -22,6 +23,16 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
     description = "Post notifications to a Slack channel."
     conf_key = "slack"
     required_field = "webhook"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Configure rule based Slack notifications to automatically be posted into a
+            specific channel. Want any error that's happening more than 100 times a
+            minute to be posted in `#critical-errors`? Setup a rule for it!
+            """,
+            IntegrationFeatures.ALERT_RULE,
+        )
+    ]
 
     def is_configured(self, project):
         return bool(self.get_option("webhook", project))
