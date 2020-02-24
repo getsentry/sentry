@@ -162,35 +162,27 @@ export const trackIntegrationEvent = (
  * is not registered for rendering the features list like this simply show the
  * features as a normal list.
  */
+const generateFeaturesList = p => (
+  <ul>
+    {p.features.map((f, i) => (
+      <li key={i}>{f.description}</li>
+    ))}
+  </ul>
+);
+
+const generateIntegrationFeatures = p =>
+  p.children({
+    disabled: false,
+    disabledReason: null,
+    ungatedFeatures: p.features,
+    gatedFeatureGroups: [],
+  });
+
 const defaultFeatureGateComponents = {
-  IntegrationFeatures: p =>
-    p.children({
-      disabled: false,
-      disabledReason: null,
-      ungatedFeatures: p.features,
-      gatedFeatureGroups: [],
-    }),
-  IntegrationDirectoryFeatures: p =>
-    p.children({
-      disabled: false,
-      disabledReason: null,
-      ungatedFeatures: p.features,
-      gatedFeatureGroups: [],
-    }),
-  FeatureList: p => (
-    <ul>
-      {p.features.map((f, i) => (
-        <li key={i}>{f.description}</li>
-      ))}
-    </ul>
-  ),
-  IntegrationDirectoryFeatureList: p => (
-    <ul>
-      {p.features.map((f, i) => (
-        <li key={i}>{f.description}</li>
-      ))}
-    </ul>
-  ),
+  IntegrationFeatures: p => generateIntegrationFeatures(p),
+  IntegrationDirectoryFeatures: p => generateIntegrationFeatures(p),
+  FeatureList: p => generateFeaturesList(p),
+  IntegrationDirectoryFeatureList: p => generateFeaturesList(p),
 } as ReturnType<Hooks['integrations:feature-gates']>;
 
 export const getIntegrationFeatureGate = () => {
