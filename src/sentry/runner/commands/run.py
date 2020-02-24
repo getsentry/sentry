@@ -441,6 +441,7 @@ def ingest_consumer(consumer_type, **options):
     process event celery tasks for them
     """
     from sentry.ingest.ingest_consumer import ConsumerType, get_ingest_consumer
+    from sentry.utils import metrics
 
     if consumer_type == "events":
         consumer_type = ConsumerType.Events
@@ -449,7 +450,8 @@ def ingest_consumer(consumer_type, **options):
     elif consumer_type == "attachments":
         consumer_type = ConsumerType.Attachments
 
-    get_ingest_consumer(consumer_type=consumer_type, **options).run()
+    with metrics.global_tags(ingest_consumer_type=consumer_type, _all_threads=True):
+        get_ingest_consumer(consumer_type=consumer_type, **options).run()
 
 
 @run.command("outcomes-consumer")
