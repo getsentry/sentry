@@ -53,6 +53,22 @@ class CustomResolutionModal extends React.Component<Props, State> {
     this.setState({version: value});
   };
 
+  onAsyncFieldResults = (results: Release[]) =>
+    results.map(release => ({
+      value: release.version,
+      label: (
+        <div>
+          <strong>
+            <Version version={release.version} anchor={false} />
+          </strong>
+          <br />
+          <small>
+            {t('Created')} <TimeSince date={release.dateCreated} />
+          </small>
+        </div>
+      ),
+    }));
+
   render() {
     const {orgId, projectId, show, onCanceled} = this.props;
     const url = projectId
@@ -72,31 +88,12 @@ class CustomResolutionModal extends React.Component<Props, State> {
               onChange={this.onChange}
               placeholder={t('e.g. 1.0.4')}
               url={url}
-              onResults={(results: Release[]) => {
-                return results.map(release => ({
-                  value: release.version,
-                  label: (
-                    <div>
-                      <strong>
-                        <Version version={release.version} anchor={false} />
-                      </strong>
-                      <br />
-                      <small>
-                        {t('Created')} <TimeSince date={release.dateCreated} />
-                      </small>
-                    </div>
-                  ),
-                }));
-              }}
+              onResults={this.onAsyncFieldResults}
               onQuery={query => ({query})}
             />
           </Body>
           <Footer>
-            <Button
-              type="button"
-              css={{marginRight: space(1.5)}}
-              onClick={this.props.onCanceled}
-            >
+            <Button type="button" css={{marginRight: space(1.5)}} onClick={onCanceled}>
               {t('Cancel')}
             </Button>
             <Button type="submit" priority="primary">
