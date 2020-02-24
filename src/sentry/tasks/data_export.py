@@ -35,7 +35,6 @@ def assemble_download(data_export):
             tf.seek(0)
             try:
                 with transaction.atomic():
-                    raise IntegrityError
                     file = File.objects.create(
                         name=file_name, type="export.csv", headers={"Content-Type": "text/csv"}
                     )
