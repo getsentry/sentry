@@ -4,8 +4,14 @@
 {% load i18n %}
 
 {% block main %}
-    <h3>An error has occured with your data export</h3>
-    <p>While trying to generate your data export, we encountered the following error:</p>
-    <p>{{error_message}}</p>
-    <p>Please try again later</p>
+    <h3>Unable to Export Data</h3>
+    <p>We were unable to generate your data export due to an internal processing error:</p>
+    <p><code>{{error_message}}</code></p>
+    <p>Please try again later.</p>
+    <br/>
+    <p><strong>Troubleshooting &amp; References</strong></p>
+    <ul>
+        <li><a href="https://docs.sentry.io/">Documentation</a></li>
+        <li><a href="https://help.sentry.io/">FAQs</a></li>
+    </ul>
 {% endblock %}

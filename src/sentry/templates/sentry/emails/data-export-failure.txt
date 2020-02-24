@@ -1,7 +1,12 @@
-An error has occured with your data export.
+Unable to Export Data
+---------------------
 
-While trying to generate your data export, we encountered the following error:
+We were unable to generate your data export due to an internal processing error:
 
-{{error_message}}
+    {{error_message}}
 
-Please try again later
+Please try again later.
+
+Troubleshooting & References:
+ - https://docs.sentry.io/ (Documentation)
+ - https://help.sentry.io/ (FAQs)
