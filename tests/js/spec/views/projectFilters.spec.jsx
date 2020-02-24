@@ -11,12 +11,11 @@ describe('ProjectFilters', function() {
 
   const getFilterEndpoint = filter => `${PROJECT_URL}filters/${filter}/`;
 
-  const createFilterMock = filter => {
-    return MockApiClient.addMockResponse({
+  const createFilterMock = filter =>
+    MockApiClient.addMockResponse({
       url: getFilterEndpoint(filter),
       method: 'PUT',
     });
-  };
 
   const creator = custom => {
     if (custom) {
@@ -214,8 +213,8 @@ describe('ProjectFilters', function() {
   });
 
   it('has custom inbound filters with flag + can change', function() {
-    wrapper = creator(() => {
-      return mountWithTheme(
+    wrapper = creator(() =>
+      mountWithTheme(
         <ProjectFilters
           params={{projectId: project.slug, orgId: org.slug}}
           location={{}}
@@ -230,8 +229,8 @@ describe('ProjectFilters', function() {
           },
           childContextTypes: TestStubs.routerContext().childContextTypes,
         }
-      );
-    });
+      )
+    );
 
     expect(wrapper.find('TextArea[name="filters:releases"]')).toHaveLength(1);
     expect(wrapper.find('TextArea[name="filters:error_messages"]')).toHaveLength(1);

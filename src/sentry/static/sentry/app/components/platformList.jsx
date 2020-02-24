@@ -36,12 +36,11 @@ class PlatformList extends React.Component {
     return <StyledPlatformIcon key={platform} platform={platform} size={size} />;
   };
 
-  getIcons = platforms => {
-    return platforms
+  getIcons = platforms =>
+    platforms
       .slice()
       .reverse()
       .map(this.getIcon);
-  };
 
   render() {
     const {platforms, max, size, direction, consistentWidth, className} = this.props;

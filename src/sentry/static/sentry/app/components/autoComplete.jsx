@@ -275,12 +275,10 @@ class AutoComplete extends React.Component {
       return;
     }
 
-    this.setState(state => {
-      return {
-        isOpen: false,
-        inputValue: resetInputOnClose ? '' : state.inputValue,
-      };
-    });
+    this.setState(state => ({
+      isOpen: false,
+      inputValue: resetInputOnClose ? '' : state.inputValue,
+    }));
   };
 
   getInputProps = inputProps => ({

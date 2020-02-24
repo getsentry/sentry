@@ -14,9 +14,7 @@ function getIncidentsFromIncidentResponse(incidents) {
     }
     log.push({
       name: item.name,
-      updates: item.incident_updates.map(update => {
-        return update.body;
-      }),
+      updates: item.incident_updates.map(update => update.body),
       url: item.shortlink,
       status: item.status,
     });

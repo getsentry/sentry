@@ -117,13 +117,11 @@ class OpsBreakdown extends React.Component<Props> {
       {}
     );
 
-    const ops = Object.keys(aggregateByOp).map(opName => {
-      return {
-        name: opName,
-        percentage: aggregateByOp[opName].totalDuration / cumulativeDuration,
-        totalDuration: aggregateByOp[opName].totalDuration,
-      };
-    });
+    const ops = Object.keys(aggregateByOp).map(opName => ({
+      name: opName,
+      percentage: aggregateByOp[opName].totalDuration / cumulativeDuration,
+      totalDuration: aggregateByOp[opName].totalDuration,
+    }));
 
     ops.sort((firstOp, secondOp) => {
       // sort in descending order based on total duration

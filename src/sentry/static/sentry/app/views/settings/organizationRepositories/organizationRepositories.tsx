@@ -58,18 +58,16 @@ const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: P
           </PanelHeader>
           <PanelBody>
             <Box>
-              {itemList.map(repo => {
-                return (
-                  <RepositoryRow
-                    key={repo.id}
-                    repository={repo}
-                    api={api}
-                    showProvider
-                    orgId={orgId}
-                    onRepositoryChange={onRepositoryChange}
-                  />
-                );
-              })}
+              {itemList.map(repo => (
+                <RepositoryRow
+                  key={repo.id}
+                  repository={repo}
+                  api={api}
+                  showProvider
+                  orgId={orgId}
+                  onRepositoryChange={onRepositoryChange}
+                />
+              ))}
             </Box>
           </PanelBody>
         </Panel>

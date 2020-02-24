@@ -180,51 +180,47 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     const {size} = this.props;
     const members = putSessionUserFirst(this.memberList());
 
-    return members.map(member => {
-      return {
-        value: {type: 'member', assignee: member},
-        searchKey: `${member.email} ${member.name}`,
-        label: ({inputValue}) => (
-          <MenuItemWrapper
-            data-test-id="assignee-option"
-            key={buildUserId(member.id)}
-            onSelect={this.assignToUser.bind(this, member)}
-          >
-            <IconContainer>
-              <UserAvatar user={member} size={size} />
-            </IconContainer>
-            <Label>
-              <Highlight text={inputValue}>{member.name || member.email}</Highlight>
-            </Label>
-          </MenuItemWrapper>
-        ),
-      };
-    });
+    return members.map(member => ({
+      value: {type: 'member', assignee: member},
+      searchKey: `${member.email} ${member.name}`,
+      label: ({inputValue}) => (
+        <MenuItemWrapper
+          data-test-id="assignee-option"
+          key={buildUserId(member.id)}
+          onSelect={this.assignToUser.bind(this, member)}
+        >
+          <IconContainer>
+            <UserAvatar user={member} size={size} />
+          </IconContainer>
+          <Label>
+            <Highlight text={inputValue}>{member.name || member.email}</Highlight>
+          </Label>
+        </MenuItemWrapper>
+      ),
+    }));
   },
 
   renderNewTeamNodes() {
     const {size} = this.props;
 
-    return this.assignableTeams().map(({id, display, team}) => {
-      return {
-        value: {type: 'team', assignee: team},
-        searchKey: team.slug,
-        label: ({inputValue}) => (
-          <MenuItemWrapper
-            data-test-id="assignee-option"
-            key={id}
-            onSelect={this.assignToTeam.bind(this, team)}
-          >
-            <IconContainer>
-              <TeamAvatar team={team} size={size} />
-            </IconContainer>
-            <Label>
-              <Highlight text={inputValue}>{display}</Highlight>
-            </Label>
-          </MenuItemWrapper>
-        ),
-      };
-    });
+    return this.assignableTeams().map(({id, display, team}) => ({
+      value: {type: 'team', assignee: team},
+      searchKey: team.slug,
+      label: ({inputValue}) => (
+        <MenuItemWrapper
+          data-test-id="assignee-option"
+          key={id}
+          onSelect={this.assignToTeam.bind(this, team)}
+        >
+          <IconContainer>
+            <TeamAvatar team={team} size={size} />
+          </IconContainer>
+          <Label>
+            <Highlight text={inputValue}>{display}</Highlight>
+          </Label>
+        </MenuItemWrapper>
+      ),
+    }));
   },
 
   renderNewDropdownItems() {
@@ -295,18 +291,16 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               </InviteMemberLink>
             }
           >
-            {({getActorProps}) => {
-              return (
-                <DropdownButton {...getActorProps({})}>
-                  {assignedTo ? (
-                    <ActorAvatar actor={assignedTo} className="avatar" size={24} />
-                  ) : (
-                    <IconUser src="icon-user" />
-                  )}
-                  <StyledChevron src="icon-chevron-down" />
-                </DropdownButton>
-              );
-            }}
+            {({getActorProps}) => (
+              <DropdownButton {...getActorProps({})}>
+                {assignedTo ? (
+                  <ActorAvatar actor={assignedTo} className="avatar" size={24} />
+                ) : (
+                  <IconUser src="icon-user" />
+                )}
+                <StyledChevron src="icon-chevron-down" />
+              </DropdownButton>
+            )}
           </DropdownAutoComplete>
         )}
       </div>

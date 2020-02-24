@@ -87,25 +87,26 @@ const GroupingStore = Reflux.createStore({
     this.init();
     this.triggerFetchState();
 
-    const promises = requests.map(({endpoint, queryParams, dataKey}) => {
-      return new Promise((resolve, reject) => {
-        api.request(endpoint, {
-          method: 'GET',
-          data: queryParams,
-          success: (data, _, jqXHR) => {
-            resolve({
-              dataKey,
-              data,
-              links: jqXHR.getResponseHeader('Link'),
-            });
-          },
-          error: err => {
-            const error = (err.responseJSON && err.responseJSON.detail) || true;
-            reject(error);
-          },
-        });
-      });
-    });
+    const promises = requests.map(
+      ({endpoint, queryParams, dataKey}) =>
+        new Promise((resolve, reject) => {
+          api.request(endpoint, {
+            method: 'GET',
+            data: queryParams,
+            success: (data, _, jqXHR) => {
+              resolve({
+                dataKey,
+                data,
+                links: jqXHR.getResponseHeader('Link'),
+              });
+            },
+            error: err => {
+              const error = (err.responseJSON && err.responseJSON.detail) || true;
+              reject(error);
+            },
+          });
+        })
+    );
 
     const responseProcessors = {
       merged: item => {

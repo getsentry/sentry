@@ -423,42 +423,40 @@ class TableView extends React.Component<TableViewProps> {
           startColumnDrag,
           draggingColumnIndex,
           destinationColumnIndex,
-        }) => {
-          return (
-            <GridEditable
-              editFeatures={['organizations:discover-query']}
-              noEditMessage={t('Requires discover query feature.')}
-              onToggleEdit={this.onToggleEdit}
-              isColumnDragging={isColumnDragging}
-              gridHeadCellButtonProps={{className: DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER}}
-              isLoading={isLoading}
-              error={error}
-              data={tableData ? tableData.data : []}
-              columnOrder={this.generateColumnOrder({
-                initialColumnIndex: draggingColumnIndex,
-                destinationColumnIndex,
-              })}
-              columnSortBy={columnSortBy}
-              grid={{
-                renderHeadCell: this._renderGridHeaderCell as any,
-                renderBodyCell: this._renderGridBodyCell as any,
-                onResizeColumn: this._updateColumn as any,
-                renderPrependColumns: this._renderPrependColumns as any,
-                prependColumnWidths: ['40px'],
-              }}
-              modalEditColumn={{
-                renderBodyWithForm: renderModalBodyWithForm as any,
-                renderFooter: renderModalFooter,
-              }}
-              actions={{
-                deleteColumn: this._deleteColumn,
-                moveColumnCommit: this._moveColumnCommit,
-                onDragStart: startColumnDrag,
-                downloadAsCsv: () => downloadAsCsv(tableData, columnOrder, title),
-              }}
-            />
-          );
-        }}
+        }) => (
+          <GridEditable
+            editFeatures={['organizations:discover-query']}
+            noEditMessage={t('Requires discover query feature.')}
+            onToggleEdit={this.onToggleEdit}
+            isColumnDragging={isColumnDragging}
+            gridHeadCellButtonProps={{className: DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER}}
+            isLoading={isLoading}
+            error={error}
+            data={tableData ? tableData.data : []}
+            columnOrder={this.generateColumnOrder({
+              initialColumnIndex: draggingColumnIndex,
+              destinationColumnIndex,
+            })}
+            columnSortBy={columnSortBy}
+            grid={{
+              renderHeadCell: this._renderGridHeaderCell as any,
+              renderBodyCell: this._renderGridBodyCell as any,
+              onResizeColumn: this._updateColumn as any,
+              renderPrependColumns: this._renderPrependColumns as any,
+              prependColumnWidths: ['40px'],
+            }}
+            modalEditColumn={{
+              renderBodyWithForm: renderModalBodyWithForm as any,
+              renderFooter: renderModalFooter,
+            }}
+            actions={{
+              deleteColumn: this._deleteColumn,
+              moveColumnCommit: this._moveColumnCommit,
+              onDragStart: startColumnDrag,
+              downloadAsCsv: () => downloadAsCsv(tableData, columnOrder, title),
+            }}
+          />
+        )}
       </DraggableColumns>
     );
   }
