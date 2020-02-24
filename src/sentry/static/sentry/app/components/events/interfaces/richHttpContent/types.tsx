@@ -2,7 +2,7 @@ export type RichHttpContentData = {
   data: Data;
 };
 
-type Data = {
+export type Data = {
   headers: Array<Array<string>>;
   query: string;
   env: {[key: string]: any} | null;

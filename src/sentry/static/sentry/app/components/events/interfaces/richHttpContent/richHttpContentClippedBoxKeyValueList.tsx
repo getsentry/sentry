@@ -6,10 +6,11 @@ import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValue
 import {Meta} from 'app/types';
 
 import getTransformedData from './getTransformedData';
+import {Data} from './types';
 
 type Props = {
   title: string;
-  data: any;
+  data: Data[keyof Data];
   defaultCollapsed?: boolean;
   isContextData?: boolean;
   meta?: Meta;
