@@ -1,7 +1,6 @@
-import $ from 'jquery';
-import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
+import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 
 import {SelectAsyncField} from 'app/components/forms';
 import {t} from 'app/locale';
@@ -35,13 +34,6 @@ class CustomResolutionModal extends React.Component<Props, State> {
   state = {
     version: '',
   };
-
-  componentDidUpdate(prevProps) {
-    if (!prevProps.show && this.props.show) {
-      // XXX(cramer): this is incorrect but idgaf
-      $('.modal').attr('tabindex', null);
-    }
-  }
 
   onSubmit = () => {
     this.props.onSelected({
