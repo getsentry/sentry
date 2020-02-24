@@ -1119,7 +1119,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_function_with_default_arguments(self):
         result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
-        assert result.having == [["rpm_300", ">", 100]]
+        assert result.having == [["rpm", ">", 100]]
 
     def test_function_with_alias(self):
         result = get_filter("p95():>100")
@@ -1378,7 +1378,7 @@ class ResolveFieldListTest(unittest.TestCase):
         )
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["divide(count(), divide(3600, 60))", None, "rpm_3600"],
+            ["divide(count(), divide(3600, 60))", None, "rpm"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
         ]
