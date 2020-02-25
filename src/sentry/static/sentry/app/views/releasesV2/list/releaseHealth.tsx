@@ -8,6 +8,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import CircleProgress from 'app/components/circularProgressbar';
 import Count from 'app/components/count';
+import {defined} from 'app/utils';
 
 import UsersChart from './usersChart';
 import {mockData} from './mock';
@@ -31,40 +32,61 @@ const ReleaseHealth = ({release}: Props) => {
       </StyledPanelHeader>
 
       <PanelBody>
-        {release.projects.map((project, index) => (
-          <PanelItem key={project.slug}>
-            <Layout>
-              <ProjectColumn>
-                <ProjectBadge project={project} avatarSize={14} />
-              </ProjectColumn>
-              {/* TODO(releasesv2): make dynamic once api is finished */}
-              <CrashFreeUsersColumn>
-                <CircleProgress value={mockData[index].crashFreeUsersPercent} />
-                <CircleProgressCaption>
-                  {mockData[index].crashFreeUsersPercent}%
-                </CircleProgressCaption>
-              </CrashFreeUsersColumn>
-              <CrashFreeSessionsColumn>
-                <CircleProgress value={mockData[index].crashFreeUsersSessionsPercent} />
-                <CircleProgressCaption>
-                  {mockData[index].crashFreeUsersSessionsPercent}%
-                </CircleProgressCaption>
-              </CrashFreeSessionsColumn>
-              <DailyUsersColumn>
-                <ChartWrapper>
-                  <UsersChart data={mockData[index].graphData} statsPeriod="24h" />
-                </ChartWrapper>
-                {mockData[index].dailyActiveUsers}%
-              </DailyUsersColumn>
-              <CrashesColumn>
-                <ColoredCount value={mockData[index].crashes} />
-              </CrashesColumn>
-              <ErrorsColumn>
-                <ColoredCount value={mockData[index].errors} />
-              </ErrorsColumn>
-            </Layout>
-          </PanelItem>
-        ))}
+        {release.projects
+          .filter(project => defined(project.healthData))
+          .map((project, index) => {
+            const {
+              // stats,
+              // total_sessions,
+              crash_free_users,
+              total_users,
+              crash_free_sessions,
+            } = project.healthData!;
+            return (
+              <PanelItem key={project.slug}>
+                <Layout>
+                  <ProjectColumn>
+                    <ProjectBadge project={project} avatarSize={14} />
+                  </ProjectColumn>
+                  <CrashFreeUsersColumn>
+                    {defined(crash_free_users) ? (
+                      <React.Fragment>
+                        <CircleProgress value={crash_free_users} />
+                        <CircleProgressCaption>{crash_free_users}%</CircleProgressCaption>
+                      </React.Fragment>
+                    ) : (
+                      '-'
+                    )}
+                  </CrashFreeUsersColumn>
+                  <CrashFreeSessionsColumn>
+                    {defined(crash_free_sessions) ? (
+                      <React.Fragment>
+                        <CircleProgress value={crash_free_sessions} />
+                        <CircleProgressCaption>
+                          {crash_free_sessions}%
+                        </CircleProgressCaption>
+                      </React.Fragment>
+                    ) : (
+                      '-'
+                    )}
+                  </CrashFreeSessionsColumn>
+                  {/* TODO(releasesv2): make dynamic once api is finished */}
+                  <DailyUsersColumn>
+                    <ChartWrapper>
+                      <UsersChart data={mockData[index].graphData} statsPeriod="24h" />
+                    </ChartWrapper>
+                    {total_users}%
+                  </DailyUsersColumn>
+                  <CrashesColumn>
+                    <ColoredCount value={mockData[index].crashes} />
+                  </CrashesColumn>
+                  <ErrorsColumn>
+                    <ColoredCount value={mockData[index].errors} />
+                  </ErrorsColumn>
+                </Layout>
+              </PanelItem>
+            );
+          })}
       </PanelBody>
     </React.Fragment>
   );

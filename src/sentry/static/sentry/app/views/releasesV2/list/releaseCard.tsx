@@ -97,8 +97,9 @@ const ReleaseCard = ({release, projects}: Props) => {
         </StyledPanelItem>
       </PanelBody>
 
-      {/*  TODO(releasesv2)if has release health data */}
-      {Math.random() > 0.6 && <ReleaseHealth release={release} />}
+      {release.projects.some(project => project.healthData) && (
+        <ReleaseHealth release={release} />
+      )}
     </Panel>
   );
 };
@@ -125,7 +126,7 @@ const Layout = styled('div')`
 `;
 
 const HeaderLayout = styled(Layout)`
-  align-items: flex-start;
+  align-items: flex-end;
 `;
 
 const Column = styled('div')`
