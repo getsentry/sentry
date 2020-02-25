@@ -1,11 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import isString from 'lodash/isString';
 import isNumber from 'lodash/isNumber';
 import isArray from 'lodash/isArray';
-import AnnotatedText from 'app/components/events/meta/annotatedText';
 
+import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {isUrl} from 'app/utils';
 
 function looksLikeObjectRepr(value) {

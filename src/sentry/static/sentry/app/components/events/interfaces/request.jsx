@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
-import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
+import RichHttpContent from 'app/components/events/interfaces/richHttpContent/richHttpContent';
 import {getFullUrl, getCurlCommand} from 'app/components/events/interfaces/utils';
 import {isUrl} from 'app/utils';
 import {t} from 'app/locale';

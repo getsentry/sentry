@@ -1,63 +1,57 @@
 import React from 'react';
-import {mount, shallow} from 'sentry-test/enzyme';
 
-import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
+import {mount, shallow} from 'sentry-test/enzyme';
+import RichHttpContent from 'app/components/events/interfaces/richHttpContent/richHttpContent';
 
 describe('RichHttpContent', function() {
   let data;
-  let elem;
-
-  beforeEach(function() {
-    data = {
-      query: '',
-      data: '',
-      headers: [],
-      cookies: [],
-      env: {},
-    };
-    elem = shallow(<RichHttpContent data={data} />).instance();
-  });
 
   afterEach(function() {});
 
   describe('getBodySection', function() {
     it('should return plain-text when given unrecognized inferred Content-Type', function() {
-      const out = elem.getBodySection(
-        {inferredContentType: null}, // no inferred content type
-        'helloworld',
-        null
-      );
-
-      expect(out.type).toEqual('pre');
+      data = {
+        query: '',
+        data: 'helloworld',
+        headers: [],
+        cookies: [],
+        env: {},
+        inferredContentType: null,
+      };
+      const wrapper = mount(<RichHttpContent data={data} />);
+      expect(
+        wrapper.find('[data-test-id="rich-http-content-body-section-pre"]')
+      ).toBeTruthy();
     });
 
     it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function() {
-      const out = elem.getBodySection(
-        {inferredContentType: 'application/x-www-form-urlencoded'},
-        {foo: ['bar'], bar: ['baz']},
-        null
-      );
-
-      // NOTE: displayName is set manually in this class
-      expect(out.type.displayName).toEqual('KeyValueList');
-      expect(out.props.data).toEqual([
-        ['bar', 'baz'],
-        ['foo', 'bar'],
-      ]);
+      data = {
+        query: '',
+        data: {foo: ['bar'], bar: ['baz']},
+        headers: [],
+        cookies: [],
+        env: {},
+        inferredContentType: 'application/x-www-form-urlencoded',
+      };
+      const wrapper = mount(<RichHttpContent data={data} />);
+      expect(
+        wrapper.find('[data-test-id="rich-http-content-body-key-value-list"]')
+      ).toBeTruthy();
     });
 
     it('should return a ContextData element when inferred Content-Type is application/json', function() {
-      const out = elem.getBodySection(
-        {inferredContentType: 'application/json'},
-        {foo: 'bar'},
-        null
-      );
-
-      // NOTE: displayName is set manually in this class
-      expect(out.type.displayName).toEqual('ContextData');
-      expect(out.props.data).toEqual({
-        foo: 'bar',
-      });
+      data = {
+        query: '',
+        data: {foo: 'bar'},
+        headers: [],
+        cookies: [],
+        env: {},
+        inferredContentType: 'application/json',
+      };
+      const wrapper = mount(<RichHttpContent data={data} />);
+      expect(
+        wrapper.find('[data-test-id="rich-http-content-body-context-data"]')
+      ).toBeTruthy();
     });
 
     it('should not blow up in a malformed uri', function() {

@@ -13,7 +13,7 @@ interface Props {
   version: string;
   culture: string;
   publicKeyToken: string;
-  filePath: string;
+  filePath: string | null;
 }
 
 const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => {
@@ -53,7 +53,7 @@ Assembly.propTypes = {
   version: PropTypes.string.isRequired,
   culture: PropTypes.string.isRequired,
   publicKeyToken: PropTypes.string.isRequired,
-  filePath: PropTypes.string.isRequired,
+  filePath: PropTypes.string,
 };
 
 const AssemblyWrapper = styled('div')`
