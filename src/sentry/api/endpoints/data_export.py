@@ -49,6 +49,8 @@ class DataExportEndpoint(OrganizationEndpoint):
                 query_info=data["query_info"],
                 date_finished=None,
             ).order_by("-date_added")
+            # If this user has sent a sent a request with the same payload and organization,
+            # we return them the latest one that is NOT complete (i.e. don't start another)
             if len(existing_data_exports) > 0:
                 data_export = existing_data_exports[0]
                 status = 200
