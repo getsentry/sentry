@@ -15,8 +15,6 @@ type State = {
   plugins: PluginWithProjectList[];
 };
 
-type Tab = AbstractIntegrationDetailedView['state']['tab'];
-
 class PluginDetailedView extends AbstractIntegrationDetailedView<
   AbstractIntegrationDetailedView['props'],
   State & AbstractIntegrationDetailedView['state']
@@ -126,14 +124,6 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     );
   };
 
-  getTabDiplay(tab: Tab) {
-    //we want to show project configurations to make it more clear
-    if (tab === 'configurations') {
-      return 'project configurations';
-    }
-    return tab;
-  }
-
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     return (
       <AddButton
@@ -151,21 +141,24 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   renderConfigurations() {
     const plugin = this.plugin;
     const {organization} = this.props;
-    return (
-      <div>
-        {plugin.projectList.map((projectItem: PluginProjectItem) => (
-          <InstalledPlugin
-            key={projectItem.projectId}
-            organization={organization}
-            plugin={plugin}
-            projectItem={projectItem}
-            onResetConfiguration={this.handleResetConfiguration}
-            onEnablePlugin={this.handleEnablePlugin}
-            trackIntegrationEvent={this.trackIntegrationEvent}
-          />
-        ))}
-      </div>
-    );
+    if (plugin.projectList.length) {
+      return (
+        <div>
+          {plugin.projectList.map((projectItem: PluginProjectItem) => (
+            <InstalledPlugin
+              key={projectItem.projectId}
+              organization={organization}
+              plugin={plugin}
+              projectItem={projectItem}
+              onResetConfiguration={this.handleResetConfiguration}
+              onEnablePlugin={this.handleEnablePlugin}
+              trackIntegrationEvent={this.trackIntegrationEvent}
+            />
+          ))}
+        </div>
+      );
+    }
+    return this.renderEmptyConfigurations();
   }
 }
 

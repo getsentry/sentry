@@ -124,7 +124,7 @@ class AbstractIntegrationDetailedView<
   //Returns the string that is shown as the title of a tab
   getTabDiplay(tab: Tab): string {
     //default is return the tab
-    return tab;
+    return tab === 'information' ? 'overview' : 'configurations';
   }
 
   //Render the button at the top which is usually just an installation button
@@ -140,6 +140,46 @@ class AbstractIntegrationDetailedView<
   renderPermissions(): React.ReactElement | null {
     //default is don't render permissions
     return null;
+  }
+
+  renderEmptyConfigurations() {
+    const {organization} = this.props;
+    const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
+
+    return (
+      <EmptyConfigurationContainer>
+        <EmptyConfigurationTitle>You haven't set anything up yet</EmptyConfigurationTitle>
+        <EmptyConfigurationBody>
+          But that doesn’t have to be the case for long! Add an installation to get
+          started.
+        </EmptyConfigurationBody>
+        <div>
+          <IntegrationDirectoryFeatures {...this.featureProps}>
+            {({disabled, disabledReason}) =>
+              disabled ? (
+                <div />
+              ) : (
+                <DisableWrapper>
+                  <Access organization={organization} access={['org:integrations']}>
+                    {({hasAccess}) => (
+                      <Tooltip
+                        title={t(
+                          'You must be an organization owner, manager or admin to install this.'
+                        )}
+                        disabled={hasAccess}
+                      >
+                        {this.renderTopButton(disabled, hasAccess)}
+                      </Tooltip>
+                    )}
+                  </Access>
+                  {disabled && <DisabledNotice reason={disabledReason} />}
+                </DisableWrapper>
+              )
+            }
+          </IntegrationDirectoryFeatures>
+        </div>
+      </EmptyConfigurationContainer>
+    );
   }
 
   //Returns the list of configurations for the integration
@@ -208,12 +248,37 @@ class AbstractIntegrationDetailedView<
     );
   }
 
+  renderAddInstallButton() {
+    const {organization} = this.props;
+    const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
+
+    return (
+      <IntegrationDirectoryFeatures {...this.featureProps}>
+        {({disabled, disabledReason}) => (
+          <DisableWrapper>
+            <Access organization={organization} access={['org:integrations']}>
+              {({hasAccess}) => (
+                <Tooltip
+                  title={t(
+                    'You must be an organization owner, manager or admin to install this.'
+                  )}
+                  disabled={hasAccess}
+                >
+                  {this.renderTopButton(disabled, hasAccess)}
+                </Tooltip>
+              )}
+            </Access>
+            {disabled && <DisabledNotice reason={disabledReason} />}
+          </DisableWrapper>
+        )}
+      </IntegrationDirectoryFeatures>
+    );
+  }
+
   //Returns the content shown in the top section of the integration detail
   renderTopSection() {
-    const {organization} = this.props;
-
-    const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
     const tags = this.cleanTags();
+
     return (
       <Flex>
         <PluginIcon pluginId={this.integrationSlug} size={50} />
@@ -230,25 +295,7 @@ class AbstractIntegrationDetailedView<
             ))}
           </Flex>
         </NameContainer>
-        <IntegrationDirectoryFeatures {...this.featureProps}>
-          {({disabled, disabledReason}) => (
-            <DisableWrapper>
-              <Access organization={organization} access={['org:integrations']}>
-                {({hasAccess}) => (
-                  <Tooltip
-                    title={t(
-                      'You must be an organization owner, manager or admin to install this.'
-                    )}
-                    disabled={hasAccess}
-                  >
-                    {this.renderTopButton(disabled, hasAccess)}
-                  </Tooltip>
-                )}
-              </Access>
-              {disabled && <DisabledNotice reason={disabledReason} />}
-            </DisableWrapper>
-          )}
-        </IntegrationDirectoryFeatures>
+        {this.renderAddInstallButton()}
       </Flex>
     );
   }
@@ -333,7 +380,7 @@ const FlexContainer = styled('div')`
 `;
 
 const CapitalizedLink = styled('a')`
-  text-transform: 'capitalize';
+  text-transform: capitalize;
 `;
 
 const StyledTag = styled(Tag)`
@@ -427,5 +474,31 @@ const CreatedContainer = styled('div')`
   color: ${p => p.theme.gray2};
   font-weight: 600;
   font-size: 12px;
+`;
+
+const EmptyConfigurationContainer = styled('div')`
+  height: 200px;
+  background: #ffffff;
+  border: 1px solid #c6becf;
+  box-sizing: border-box;
+  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
+
+const EmptyConfigurationTitle = styled('div')`
+  font-size: 22px;
+  line-height: 31px;
+  padding-bottom: ${space(2)};
+`;
+
+const EmptyConfigurationBody = styled('div')`
+  font-size: 16px;
+  line-height: 28px;
+  color: ${p => p.theme.gray2};
+  padding-bottom: ${space(2)};
 `;
 export default AbstractIntegrationDetailedView;
