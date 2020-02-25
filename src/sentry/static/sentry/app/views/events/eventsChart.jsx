@@ -167,6 +167,12 @@ class TransitionChart extends React.Component {
   }
 
   render() {
+    const {loading, reloading} = this.props;
+
+    if (loading && !reloading) {
+      return <LoadingPanel data-test-id="events-request-loading" />;
+    }
+
     // We make use of the key prop to explicitly remount the children
     // https://reactjs.org/docs/lists-and-keys.html#keys
     return (
@@ -242,9 +248,6 @@ class EventsChart extends React.Component {
                           <IconWarning color={theme.gray2} size="lg" />
                         </ErrorPanel>
                       );
-                    }
-                    if (loading && !reloading) {
-                      return <LoadingPanel data-test-id="events-request-loading" />;
                     }
 
                     return (
