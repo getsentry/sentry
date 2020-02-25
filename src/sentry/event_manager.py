@@ -796,7 +796,7 @@ def _materialize_metadata_many(jobs):
 @metrics.wraps("save_event.send_event_saved_signal_many")
 def _send_event_saved_signal_many(jobs, projects):
     for job in jobs:
-        mark_signal_sent(project_id=job["project_id"], event_id=job["event"].id)
+        mark_signal_sent(project_id=job["project_id"], event_id=job["event"].event_id)
         event_saved.send_robust(
             project=projects[job["project_id"]], event_size=job["event"].size, sender=EventManager
         )
