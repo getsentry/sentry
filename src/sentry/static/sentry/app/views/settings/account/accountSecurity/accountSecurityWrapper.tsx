@@ -1,4 +1,8 @@
+import {OrganizationSummary} from 'app/types';
+
 import {withRouter} from 'react-router';
+import * as ReactRouter from 'react-router';
+import {Params} from 'react-router/lib/Router';
 import React from 'react';
 import AsyncComponent from 'app/components/asyncComponent';
 
@@ -6,6 +10,18 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 
 const ENDPOINT = '/users/me/authenticators/';
+
+type Props = {
+  params: Params;
+  location: Location;
+  organization: Organization;
+  router: ReactRouter.InjectedRouter;
+} & AsyncComponent['props'];
+
+type State = {
+  authenticators: Authenticator[];
+  organizations: OrganizationSummary[];
+} & AsyncView['state'];
 
 class AccountSecurityWrapper extends AsyncComponent {
   getEndpoints() {
