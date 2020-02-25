@@ -438,6 +438,9 @@ export type Group = {
   userReportCount: number;
 };
 
+/**
+ * Returned from /organizations/org/users/
+ */
 export type Member = {
   dateCreated: string;
   email: string;
@@ -453,9 +456,10 @@ export type Member = {
   isOnlyOwner: boolean;
   name: string;
   pending: boolean | undefined;
+  projects: string[];
   role: string;
   roleName: string;
-  roles: MemberRole[];
+  roles: MemberRole[]; // TODO(ts): This is not present from API call
   teams: string[];
   user: User;
 };
