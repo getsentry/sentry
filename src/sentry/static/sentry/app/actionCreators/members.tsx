@@ -1,32 +1,55 @@
+import * as Sentry from '@sentry/browser';
+
+import {Client} from 'app/api';
+import {Member} from 'app/types';
 import MemberActions from 'app/actions/memberActions';
 import MemberListStore from 'app/stores/memberListStore';
 
-function getMemberUser(member) {
+function getMemberUser(member: Member) {
   const user = member.user;
   user.role = member.role;
   return user;
 }
 
-export function fetchOrgMembers(api, orgId, projectIds = null) {
+export async function fetchOrgMembers(
+  api: Client,
+  orgId: string,
+  projectIds: number[] | null = null
+) {
   const endpoint = `/organizations/${orgId}/users/`;
   const query = projectIds ? {project: projectIds} : null;
 
-  const promise = api.requestPromise(endpoint, {method: 'GET', query});
-  return promise.then(members => {
-    members = members.filter(m => m.user);
+  try {
+    const members = await api.requestPromise(endpoint, {method: 'GET', query});
+    const memberUsers = members?.filter(({user}: Member) => user);
+
+    if (!memberUsers) {
+      return [];
+    }
 
     // Update the store with just the users, as avatars rely on them.
-    MemberListStore.loadInitialData(members.map(getMemberUser));
+    MemberListStore.loadInitialData(memberUsers.map(getMemberUser));
 
     return members;
-  });
+  } catch (err) {
+    Sentry.setExtras({
+      resp: err,
+    });
+    Sentry.captureException(err);
+  }
+
+  return [];
 }
+
+type IndexedMembersByProject = {
+  [key: string]: Member['user'][];
+};
 
 /**
  * Convert a list of members with user & project data
  * into a object that maps project slugs : users in that project.
  */
-export function indexMembersByProject(members) {
+export function indexMembersByProject(members: Member[]): IndexedMembersByProject {
   return members.reduce((acc, member) => {
     for (const project of member.projects) {
       if (!acc.hasOwnProperty(project)) {
@@ -38,49 +61,61 @@ export function indexMembersByProject(members) {
   }, {});
 }
 
-export function updateMember(api, params) {
-  MemberActions.update(params.memberId, params.data);
+type UpdateMemberOptions = {
+  orgId: string;
+  memberId: string;
+  data?: object;
+};
 
-  const endpoint = `/organizations/${params.orgId}/members/${params.memberId}/`;
-  return new Promise((resolve, reject) =>
-    api.request(endpoint, {
+export async function updateMember(
+  api: Client,
+  {orgId, memberId, data}: UpdateMemberOptions
+) {
+  MemberActions.update(memberId, data);
+
+  const endpoint = `/organizations/${orgId}/members/${memberId}/`;
+  try {
+    const resp = await api.requestPromise(endpoint, {
       method: 'PUT',
-      data: params.data,
-      success: data => {
-        MemberActions.updateSuccess(data);
-        resolve(data);
-      },
-      error: data => {
-        MemberActions.updateError(data);
-        reject(data);
-      },
-    })
-  );
+      data,
+    });
+    MemberActions.updateSuccess(resp);
+    return resp;
+  } catch (err) {
+    MemberActions.updateError(err);
+    throw err;
+  }
 }
 
-export function resendMemberInvite(api, params) {
-  MemberActions.resendMemberInvite(params.orgId, params.data);
+type ResendMemberInviteOptions = {
+  orgId: string;
+  memberId: string;
+  regenerate?: boolean;
+  data?: object;
+};
 
-  const endpoint = `/organizations/${params.orgId}/members/${params.memberId}/`;
-  return new Promise((resolve, reject) =>
-    api.request(endpoint, {
+export async function resendMemberInvite(
+  api: Client,
+  {orgId, memberId, regenerate, data}: ResendMemberInviteOptions
+) {
+  MemberActions.resendMemberInvite(orgId, data);
+
+  const endpoint = `/organizations/${orgId}/members/${memberId}/`;
+  try {
+    const resp = await api.requestPromise(endpoint, {
       method: 'PUT',
       data: {
-        regenerate: params.regenerate,
+        regenerate,
         reinvite: true,
       },
-      success: data => {
-        MemberActions.resendMemberInviteSuccess(data);
-        resolve(data);
-      },
-      error: data => {
-        MemberActions.resendMemberInviteError(data);
-        reject(data);
-      },
-    })
-  );
+    });
+    MemberActions.resendMemberInviteSuccess(resp);
+  } catch (err) {
+    MemberActions.resendMemberInviteError(err);
+    throw err;
+  }
 }
 
-export function getCurrentMember(api, orgId) {
+export function getCurrentMember(api: Client, orgId: string) {
   return api.requestPromise(`/organizations/${orgId}/members/me/`);
 }
