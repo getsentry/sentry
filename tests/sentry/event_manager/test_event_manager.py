@@ -776,7 +776,7 @@ class EventManagerTest(TestCase):
             is_new_group_environment=True,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
-            received_timestamp=event.data['received'],
+            received_timestamp=event.data["received"],
         )
 
         event = save_event()
@@ -791,7 +791,7 @@ class EventManagerTest(TestCase):
             is_new_group_environment=False,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
-            received_timestamp=event.data['received'],
+            received_timestamp=event.data["received"],
         )
 
     def test_default_fingerprint(self):

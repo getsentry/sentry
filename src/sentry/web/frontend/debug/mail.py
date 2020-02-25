@@ -34,7 +34,7 @@ from sentry.models import (
     Rule,
     Team,
 )
-from sentry.event_manager import EventManager
+from sentry.event_manager import EventManager, get_event_type
 from sentry.plugins.sentry_mail.activity import emails
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -190,7 +190,7 @@ class ActivityMailDebugView(View):
         event_manager = EventManager(data)
         event_manager.normalize()
         data = event_manager.get_data()
-        event_type = event_manager.get_event_type()
+        event_type = get_event_type(data)
 
         event = eventstore.create_event(
             event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
@@ -237,7 +237,7 @@ def alert(request):
     event = event_manager.save(project.id)
     # Prevent Percy screenshot from constantly changing
     event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
-    event_type = event_manager.get_event_type()
+    event_type = get_event_type(event.data)
 
     group.message = event.search_message
     group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}

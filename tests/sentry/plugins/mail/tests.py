@@ -34,6 +34,7 @@ from sentry.ownership.grammar import Owner, Matcher, dump_schema
 from sentry.plugins.base import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
+from sentry.event_manager import get_event_type
 from sentry.testutils import TestCase
 from sentry.utils.email import MessageBuilder
 from sentry.event_manager import EventManager
@@ -97,7 +98,7 @@ class MailPluginTest(TestCase):
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
         event_data = event_manager.get_data()
-        event_type = event_manager.get_event_type()
+        event_type = get_event_type(event_data)
         event_data["type"] = event_type.key
         event_data["metadata"] = event_type.get_metadata(event_data)
 
@@ -120,7 +121,7 @@ class MailPluginTest(TestCase):
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
         event_data = event_manager.get_data()
-        event_type = event_manager.get_event_type()
+        event_type = get_event_type(event_data)
         event_data["type"] = event_type.key
         event_data["metadata"] = event_type.get_metadata(event_data)
 
@@ -587,7 +588,7 @@ class MailPluginOwnersTest(TestCase):
         )
         mgr.normalize()
         data = mgr.get_data()
-        event_type = mgr.get_event_type()
+        event_type = get_event_type(data)
         data["type"] = event_type.key
         data["metadata"] = event_type.get_metadata(data)
 
