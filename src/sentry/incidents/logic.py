@@ -443,8 +443,8 @@ def create_alert_rule(
     environment=None,
     include_all_projects=False,
     excluded_projects=None,
-    triggers=None,
 ):
+    print("logic.py create_alert_rule")
     """
     Creates an alert rule for an organization.
 
@@ -500,9 +500,9 @@ def create_alert_rule(
             for e in environment:
                 AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=e)
 
-        if triggers:
-            for trigger_data in triggers:
-                create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+        # if triggers:
+        #     for trigger_data in triggers:
+        #         create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
 
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
@@ -520,7 +520,6 @@ def update_alert_rule(
     threshold_period=None,
     include_all_projects=None,
     excluded_projects=None,
-    triggers=None,
 ):
     """
     Updates an alert rule.
@@ -644,27 +643,27 @@ def update_alert_rule(
         else:
             AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).delete()
 
-        if triggers is not None:
-            # Delete triggers we don't have present in the updated data.
-            trigger_ids = [x["id"] for x in triggers if "id" in x]
-            AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
-                id__in=trigger_ids
-            ).delete()
+        # if triggers is not None:
+        #     # Delete triggers we don't have present in the updated data.
+        #     trigger_ids = [x["id"] for x in triggers if "id" in x]
+        #     AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
+        #         id__in=trigger_ids
+        #     ).delete()
 
-            for trigger_data in triggers:
-                try:
-                    if "id" in trigger_data:
-                        trigger_instance = AlertRuleTrigger.objects.get(
-                            alert_rule=alert_rule, id=trigger_data["id"]
-                        )
-                        trigger_data.pop("id")
-                        update_alert_rule_trigger(trigger_instance, **trigger_data)
-                    else:
-                        create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
-                except AlertRuleTriggerLabelAlreadyUsedError:
-                    raise serializers.ValidationError(
-                        "This trigger label is already in use for this alert rule"
-                    )
+        #     for trigger_data in triggers:
+        #         try:
+        #             if "id" in trigger_data:
+        #                 trigger_instance = AlertRuleTrigger.objects.get(
+        #                     alert_rule=alert_rule, id=trigger_data["id"]
+        #                 )
+        #                 trigger_data.pop("id")
+        #                 update_alert_rule_trigger(trigger_instance, **trigger_data)
+        #             else:
+        #                 create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+        #         except AlertRuleTriggerLabelAlreadyUsedError:
+        #             raise serializers.ValidationError(
+        #                 "This trigger label is already in use for this alert rule"
+        #             )
 
         if existing_subs and (
             query is not None or aggregation is not None or time_window is not None
@@ -771,6 +770,7 @@ def create_alert_rule_trigger(
     :param actions: A list of alert rule trigger actions for this trigger
     :return: The created AlertRuleTrigger
     """
+    print("logic.py create_alert_rule_trigger")
     if AlertRuleTrigger.objects.filter(alert_rule=alert_rule, label=label).exists():
         raise AlertRuleTriggerLabelAlreadyUsedError()
 
@@ -782,7 +782,7 @@ def create_alert_rule_trigger(
         trigger = AlertRuleTrigger.objects.create(
             alert_rule=alert_rule,
             label=label,
-            threshold_type=threshold_type.value,
+            threshold_type=threshold_type,
             alert_threshold=alert_threshold,
             resolve_threshold=resolve_threshold,
         )
@@ -834,7 +834,7 @@ def update_alert_rule_trigger(
     if label is not None:
         updated_fields["label"] = label
     if threshold_type is not None:
-        updated_fields["threshold_type"] = threshold_type.value
+        updated_fields["threshold_type"] = threshold_type
     if alert_threshold is not None:
         updated_fields["alert_threshold"] = alert_threshold
     # We set resolve_threshold to None as a 'reset', in case it was previously a value and we're removing it here.
@@ -932,6 +932,7 @@ def create_alert_rule_trigger_action(
     :return: The created action
     """
     target_display = None
+    print("type:",type)
     if type == AlertRuleTriggerAction.Type.SLACK:
         from sentry.integrations.slack.utils import get_channel_id
 
@@ -950,7 +951,9 @@ def create_alert_rule_trigger_action(
         # Use the channel name for display
         target_display = target_identifier
         target_identifier = channel_id
+        print("target_identifier", channel_id)
 
+    print("integration", integration)
     return AlertRuleTriggerAction.objects.create(
         alert_rule_trigger=trigger,
         type=type.value,

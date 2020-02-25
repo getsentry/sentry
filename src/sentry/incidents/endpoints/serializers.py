@@ -90,6 +90,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return string_to_action_target_type[target_type]
 
     def validate(self, attrs):
+        print("AlertRuleTriggerActionSerializer validate")
         if ("type" in attrs) != ("target_type" in attrs) != ("target_identifier" in attrs):
             raise serializers.ValidationError(
                 "type, targetType and targetIdentifier must be passed together"
@@ -254,8 +255,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     # individually. If we find this to be a problem then we can look into batching.
     projects = serializers.ListField(child=ProjectField(), required=False)
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
-    # triggers = serializers.ListField(required=True)
-    triggers = AlertRuleTriggerSerializer(many=True, required=True)
+    triggers = serializers.ListField(required=True)
+    # triggers = AlertRuleTriggerSerializer(many=True, required=True)
 
     class Meta:
         model = AlertRule
@@ -298,6 +299,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         This includes ensuring there is either 1 or 2 triggers, which each have actions, and have proper thresholds set.
         The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
         """
+        print("AlertRuleSerializer validate")
         triggers = data.get("triggers", [])
         if triggers:
             if len(triggers) == 1:
@@ -306,12 +308,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     raise serializers.ValidationError(
                         'First trigger must be labeled "%s"' % (CRITICAL_TRIGGER_LABEL)
                     )
-                if critical["threshold_type"] == AlertRuleThresholdType.ABOVE:
+                if critical["threshold_type"] == AlertRuleThresholdType.ABOVE.value:
                     alert_op, trigger_error = (
                         operator.lt,
                         "alert threshold must be above resolution threshold",
                     )
-                elif critical["threshold_type"] == AlertRuleThresholdType.BELOW:
+                elif critical["threshold_type"] == AlertRuleThresholdType.BELOW.value:
                     alert_op, trigger_error = (
                         operator.gt,
                         "alert threshold must be below resolution threshold",
@@ -336,14 +338,14 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                             "Must have matching threshold types (i.e. critical and warning triggers must both be an upper or lower bound)"
                         )
 
-                    if critical["threshold_type"] == AlertRuleThresholdType.ABOVE:
+                    if critical["threshold_type"] == AlertRuleThresholdType.ABOVE.value:
                         alert_op, resolve_op = operator.lt, operator.lt
                         alert_error = (
                             "Critical trigger must have an alert threshold above warning trigger"
                         )
                         resolve_error = "Critical trigger must have a resolution threshold above (or equal to) warning trigger"
                         trigger_error = "alert threshold must be above resolution threshold"
-                    elif critical["threshold_type"] == AlertRuleThresholdType.BELOW:
+                    elif critical["threshold_type"] == AlertRuleThresholdType.BELOW.value:
                         alert_op, resolve_op = operator.gt, operator.gt
                         alert_error = (
                             "Critical trigger must have an alert threshold below warning trigger"
@@ -416,16 +418,42 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             if "aggregation" not in validated_data:
                 raise serializers.ValidationError("aggregation is required")
 
-            # triggers = validated_data.pop("triggers")
+            triggers = validated_data.pop("triggers")
             alert_rule = create_alert_rule(
                 organization=self.context["organization"], **validated_data
             )
+
+            if triggers:
+                for trigger_data in triggers:
+                    create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+
             return alert_rule
         except AlertRuleNameAlreadyUsedError:
             raise serializers.ValidationError("This name is already in use for this project")
 
     def update(self, instance, validated_data):
         validated_data = self._remove_unchanged_fields(instance, validated_data)
-        # triggers = validated_data.pop("triggers")
+        triggers = validated_data.pop("triggers")
         alert_rule = update_alert_rule(instance, **validated_data)
+        if triggers is not None:
+            # Delete triggers we don't have present in the updated data.
+            trigger_ids = [x["id"] for x in triggers if "id" in x]
+            AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
+                id__in=trigger_ids
+            ).delete()
+
+            for trigger_data in triggers:
+                try:
+                    if "id" in trigger_data:
+                        trigger_instance = AlertRuleTrigger.objects.get(
+                            alert_rule=alert_rule, id=trigger_data["id"]
+                        )
+                        trigger_data.pop("id")
+                        update_alert_rule_trigger(trigger_instance, **trigger_data)
+                    else:
+                        create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+                except AlertRuleTriggerLabelAlreadyUsedError:
+                    raise serializers.ValidationError(
+                        "This trigger label is already in use for this alert rule"
+                    )
         return alert_rule

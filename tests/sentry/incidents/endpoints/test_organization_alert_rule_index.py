@@ -87,7 +87,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                     "resolveThreshold": 100,
                     "thresholdType": 0,
                     "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
+                        # {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {
                             "alertRuleTriggerId": "42",
                             "targetIdentifier": "#spam-alerts-dev",
