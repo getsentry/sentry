@@ -408,7 +408,8 @@ def __model_unpickle_compat(model_id, attrs=None, factory=None):
         metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat", sample_rate=1)
         logger.error(
             "django.compat.model-unpickle-compat",
-            extra={"model_id": model_id, "attrs": attrs, "factory": factory, "stack": True},
+            extra={"model_id": model_id, "attrs": attrs, "factory": factory},
+            exc_info=True,
         )
 
     if VERSION[:2] in [(1, 10), (1, 11)]:
