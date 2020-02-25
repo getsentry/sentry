@@ -14,6 +14,8 @@ from sentry.utils.compat.mock import patch
 
 
 class ExportedDataTest(TestCase):
+    TEST_STRING = "A bunch of test data..."
+
     def setUp(self):
         super(ExportedDataTest, self).setUp()
         self.user = self.create_user()
@@ -70,24 +72,23 @@ class ExportedDataTest(TestCase):
         assert not File.objects.filter(id=self.file1.id).exists()
 
     def test_finalize_upload(self):
-        TEST_STRING = "A bunch of test data..."
         # With default expiration
         with tempfile.TemporaryFile() as tf:
-            tf.write(TEST_STRING)
+            tf.write(self.TEST_STRING)
             tf.seek(0)
             self.file1.putfile(tf)
         self.data_export.finalize_upload(file=self.file1)
-        assert self.data_export.file.getfile().read() == TEST_STRING
+        assert self.data_export.file.getfile().read() == self.TEST_STRING
         assert self.data_export.date_finished is not None
         assert self.data_export.date_expired is not None
         assert self.data_export.date_expired == self.data_export.date_finished + DEFAULT_EXPIRATION
         # With custom expiration
         with tempfile.TemporaryFile() as tf:
-            tf.write(TEST_STRING + TEST_STRING)
+            tf.write(self.TEST_STRING + self.TEST_STRING)
             tf.seek(0)
             self.file2.putfile(tf)
         self.data_export.finalize_upload(file=self.file2, expiration=timedelta(weeks=2))
-        assert self.data_export.file.getfile().read() == TEST_STRING + TEST_STRING
+        assert self.data_export.file.getfile().read() == self.TEST_STRING + self.TEST_STRING
         # Ensure the first file is deleted
         assert not File.objects.filter(id=self.file1.id).exists()
         assert self.data_export.date_expired == self.data_export.date_finished + timedelta(weeks=2)
@@ -118,5 +119,24 @@ class ExportedDataTest(TestCase):
             "context": {"url": expected_url, "expiration": self.data_export.date_expired_string},
             "template": "sentry/emails/data-export-success.txt",
             "html_template": "sentry/emails/data-export-success.html",
+        }
+        assert builder.call_args[1] == expected_email_args
+
+    def test_email_failure(self):
+        with self.tasks():
+            self.data_export.email_failure(self.TEST_STRING)
+        assert len(mail.outbox) == 1
+        assert not ExportedData.objects.filter(id=self.data_export.id).exists()
+
+    @patch("sentry.utils.email.MessageBuilder")
+    def test_email_failure_content(self, builder):
+        with self.tasks():
+            self.data_export.email_failure(self.TEST_STRING)
+        expected_email_args = {
+            "subject": "Unable to Export Data",
+            "context": {"error_message": self.TEST_STRING},
+            "type": "organization.export-data",
+            "template": "sentry/emails/data-export-failure.txt",
+            "html_template": "sentry/emails/data-export-failure.html",
         }
         assert builder.call_args[1] == expected_email_args
