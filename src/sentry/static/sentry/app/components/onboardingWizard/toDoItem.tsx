@@ -12,12 +12,12 @@ import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
 import ExternalLink from 'app/components/links/externalLink';
-import {OnboardingTask, Organization} from 'app/types';
+import {OnboardingTask, Organization, OnboardingTaskKey} from 'app/types';
 import {navigateTo} from 'app/actionCreators/navigation';
 
 type Props = ReactRouter.WithRouterProps & {
   task: OnboardingTask;
-  onSkip: (taskKey: number) => void;
+  onSkip: (taskKey: OnboardingTaskKey) => void;
   organization: Organization;
 };
 
@@ -51,7 +51,7 @@ class TodoItem extends React.Component<Props, State> {
     });
   }
 
-  handleSkip = (taskKey: number) => {
+  handleSkip = (taskKey: OnboardingTaskKey) => {
     this.recordAnalytics('skipped');
     this.props.onSkip(taskKey);
     this.setState({showConfirmation: false});

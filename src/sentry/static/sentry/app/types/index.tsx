@@ -861,8 +861,21 @@ export type IntegrationIssueConfig = {
   icon: string[];
 };
 
+export enum OnboardingTaskKey {
+  FIRST_PROJECT = 'create_project',
+  FIRST_EVENT = 'send_first_event',
+  INVITE_MEMBER = 'invite_member',
+  SECOND_PLATFORM = 'setup_second_platform',
+  USER_CONTEXT = 'setup_user_context',
+  RELEASE_TRACKING = 'setup_release_tracking',
+  SOURCEMAPS = 'setup_sourcemaps',
+  USER_REPORTS = 'setup_user_reports',
+  ISSUE_TRACKER = 'setup_issue_tracker',
+  ALERT_RULE = 'setup_alert_rules',
+}
+
 export type OnboardingTaskDescriptor = {
-  task: number;
+  task: OnboardingTaskKey;
   title: string;
   description: string;
   detailedDescription?: string;
@@ -881,7 +894,7 @@ export type OnboardingTaskDescriptor = {
 );
 
 export type OnboardingTaskStatus = {
-  task: number;
+  task: OnboardingTaskKey;
   status: 'skipped' | 'pending' | 'complete';
   user: string | null;
   dateCompleted: string;
