@@ -6,7 +6,7 @@ import sentry
 
 from django.utils.encoding import force_text
 
-from sentry.mail.adapter import MailAdapter
+from sentry.mail.adapter import MailAdapter, ActionTargetType
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -29,7 +29,9 @@ class MailPlugin(NotificationPlugin):
     mail_adapter = MailAdapter()
 
     def rule_notify(self, event, futures):
-        return self.mail_adapter.rule_notify(event, futures)
+        return self.mail_adapter.rule_notify(
+            event, futures, target_type=ActionTargetType.ISSUE_OWNERS
+        )
 
     def get_project_url(self, project):
         return absolute_uri(u"/{}/{}/".format(project.organization.slug, project.slug))
@@ -42,10 +44,14 @@ class MailPlugin(NotificationPlugin):
         return self.mail_adapter.should_notify(group)
 
     def notify(self, notification, **kwargs):
-        return self.mail_adapter.notify(notification, **kwargs)
+        return self.mail_adapter.notify(
+            notification, target_type=ActionTargetType.ISSUE_OWNERS, **kwargs
+        )
 
     def notify_digest(self, project, digest):
-        return self.mail_adapter.notify_digest(project, digest)
+        return self.mail_adapter.notify_digest(
+            project, digest, target_type=ActionTargetType.ISSUE_OWNERS
+        )
 
     def notify_about_activity(self, activity):
         email_cls = emails.get(activity.type)
