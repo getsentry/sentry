@@ -377,6 +377,34 @@ class IncidentTrigger(Model):
         unique_together = (("incident", "alert_rule_trigger"),)
 
 
+class AlertRuleTriggerManager(BaseManager):
+    CACHE_KEY = "alert_rule_triggers:alert_rule:%s"
+
+    @classmethod
+    def _build_trigger_cache_key(self, alert_rule_id):
+        return self.CACHE_KEY % alert_rule_id
+
+    def get_for_alert_rule(self, alert_rule):
+        """
+        Fetches the AlertRuleTriggers associated with an AlertRule. Attempts to fetch
+        from cache then hits the database
+        """
+        cache_key = self._build_trigger_cache_key(alert_rule.id)
+        triggers = cache.get(cache_key)
+        if triggers is None:
+            triggers = list(AlertRuleTrigger.objects.filter(alert_rule=alert_rule))
+            cache.set(cache_key, triggers, 3600)
+        return triggers
+
+    @classmethod
+    def clear_trigger_cache(cls, instance, **kwargs):
+        cache.delete(cls._build_trigger_cache_key(instance.alert_rule_id))
+
+    @classmethod
+    def clear_alert_rule_trigger_cache(cls, instance, **kwargs):
+        cache.delete(cls._build_trigger_cache_key(instance.id))
+
+
 class AlertRuleTrigger(Model):
     __core__ = True
 
@@ -389,6 +417,8 @@ class AlertRuleTrigger(Model):
         "sentry.Incident", related_name="triggers", through=IncidentTrigger
     )
     date_added = models.DateTimeField(default=timezone.now)
+
+    objects = AlertRuleTriggerManager()
 
     class Meta:
         app_label = "sentry"
@@ -523,3 +553,8 @@ post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubsc
 post_save.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
 post_save.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
 post_delete.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
+
+post_delete.connect(AlertRuleTriggerManager.clear_alert_rule_trigger_cache, sender=AlertRule)
+post_save.connect(AlertRuleTriggerManager.clear_alert_rule_trigger_cache, sender=AlertRule)
+post_save.connect(AlertRuleTriggerManager.clear_trigger_cache, sender=AlertRuleTrigger)
+post_delete.connect(AlertRuleTriggerManager.clear_trigger_cache, sender=AlertRuleTrigger)

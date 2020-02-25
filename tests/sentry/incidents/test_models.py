@@ -14,6 +14,7 @@ from sentry.utils.compat.mock import Mock, patch
 from sentry.db.models.manager import BaseManager
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleTrigger,
     AlertRuleTriggerAction,
     Incident,
     IncidentStatus,
@@ -108,6 +109,51 @@ class IncidentClearSubscriptionCacheTest(TestCase):
         delete_alert_rule(self.alert_rule)
         with self.assertRaises(AlertRule.DoesNotExist):
             AlertRule.objects.get_for_subscription(self.subscription)
+
+
+class AlertRuleTriggerClearCacheTest(TestCase):
+    def setUp(self):
+        self.alert_rule = self.create_alert_rule()
+        self.trigger = self.create_alert_rule_trigger(self.alert_rule)
+
+    def test_updated_alert_rule(self):
+        AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
+        assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
+            self.trigger
+        ]
+        self.alert_rule.save()
+        assert (
+            cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id))
+        ) is None
+
+    def test_deleted_alert_rule(self):
+        AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
+        assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
+            self.trigger
+        ]
+        alert_rule_id = self.alert_rule.id
+        self.alert_rule.delete()
+        assert (cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(alert_rule_id))) is None
+
+    def test_updated_alert_rule_trigger(self):
+        AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
+        assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
+            self.trigger
+        ]
+        self.trigger.save()
+        assert (
+            cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id))
+        ) is None
+
+    def test_deleted_alert_rule_trigger(self):
+        AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
+        assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
+            self.trigger
+        ]
+        self.trigger.delete()
+        assert (
+            cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id))
+        ) is None
 
 
 class IncidentCreationTest(TestCase):

@@ -15,6 +15,7 @@ from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
+    AlertRuleTrigger,
     Incident,
     IncidentStatus,
     IncidentTrigger,
@@ -58,7 +59,8 @@ class SubscriptionProcessor(object):
         except AlertRule.DoesNotExist:
             return
 
-        self.triggers = list(self.alert_rule.alertruletrigger_set.all().order_by("alert_threshold"))
+        self.triggers = AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
+        self.triggers.sort(key=lambda trigger: trigger.alert_threshold)
 
         self.last_update, self.trigger_alert_counts, self.trigger_resolve_counts = get_alert_rule_stats(
             self.alert_rule, self.subscription, self.triggers
