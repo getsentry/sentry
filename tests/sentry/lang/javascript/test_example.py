@@ -5,12 +5,8 @@ from __future__ import absolute_import
 import os
 import json
 import responses
-import pytest
-import requests
 
-from sentry import eventstore
-from sentry.testutils import TransactionTestCase, adjust_settings_for_relay_tests
-from sentry.testutils.helpers import get_auth_header
+from sentry.testutils import TransactionTestCase, SentryStoreHelper, RelayStoreHelper
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
@@ -23,9 +19,9 @@ def load_fixture(name):
         return f.read()
 
 
-class ExampleTestCase:
+class ExampleTestCase(object):
     def post_and_retrieve_event(self, data):
-        raise NotImplemented("post and retrieve event should be implemented in dervied test class")
+        raise NotImplemented("post_and_retrieve_event should be implemented in dervied test class")
 
     @responses.activate
     def test_sourcemap_expansion(self):
@@ -95,46 +91,9 @@ class ExampleTestCase:
         assert frame_list[3].filename == "test.js"
 
 
-class ExampleTestCaseLegacy(ExampleTestCase, TransactionTestCase):
-    def post_and_retrieve_event(self, data):
-        resp = self._postWithHeader(data)
-        assert resp.status_code == 200
-        event_id = json.loads(resp.content)["id"]
-
-        event = eventstore.get_event_by_id(self.project.id, event_id)
-        assert event is not None
-        return event
+class ExampleTestCaseLegacy(SentryStoreHelper, TransactionTestCase, ExampleTestCase):
+    pass
 
 
-class ExampleTestCaseRelay(ExampleTestCase, TransactionTestCase):
-    def post_and_retrieve_event(self, data):
-        url = self.get_relay_store_url(self.project.id)
-        responses.add_passthru(url)
-        resp = requests.post(
-            url,
-            headers={"x-sentry-auth": self.auth_header, "content-type": "application/json"},
-            json=data,
-        )
-
-        assert resp.ok
-        resp_body = resp.json()
-        event_id = resp_body["id"]
-
-        event = self.wait_for_ingest_consumer(
-            lambda: eventstore.get_event_by_id(self.project.id, event_id)
-        )
-        # check that we found it in Snuba
-        assert event is not None
-        return event
-
-    def setUp(self):  # NOQA
-        self.auth_header = get_auth_header(
-            "TEST_USER_AGENT/0.0.0", self.projectkey.public_key, self.projectkey.secret_key, "7"
-        )
-        adjust_settings_for_relay_tests(self.settings)
-
-    @pytest.fixture(autouse=True)
-    def setup_fixtures(self, settings, live_server, get_relay_store_url, wait_for_ingest_consumer):
-        self.settings = settings
-        self.get_relay_store_url = get_relay_store_url  # noqa
-        self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)  # noqa
+class ExampleTestCaseRelay(RelayStoreHelper, TransactionTestCase, ExampleTestCase):
+    pass
