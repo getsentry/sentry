@@ -9,7 +9,7 @@ import {t} from 'app/locale';
 
 import Button from 'app/components/button';
 
-enum DownloadStatus {
+export enum DownloadStatus {
   Early = 'EARLY',
   Valid = 'VALID',
   Expired = 'EXPIRED',
