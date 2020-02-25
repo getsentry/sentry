@@ -18,6 +18,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from six.moves.urllib.parse import quote, urlparse
 
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.compat import map
 
 # if we're not running in a PR, we kill the PERCY_TOKEN because its a push
 # to a branch, and we dont want percy comparing things
@@ -322,7 +323,7 @@ def start_chrome(**chrome_args):
 @pytest.fixture(scope="function")
 def browser(request, percy, live_server):
     window_size = request.config.getoption("window_size")
-    window_width, window_height = list(map(int, window_size.split("x", 1)))
+    window_width, window_height = map(int, window_size.split("x", 1))
 
     driver_type = request.config.getoption("selenium_driver")
     headless = not request.config.getoption("no_headless")

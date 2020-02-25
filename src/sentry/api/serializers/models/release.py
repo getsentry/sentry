@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import six
-from six.moves import zip
+
 
 from collections import defaultdict
 from django.db.models import Sum
@@ -19,6 +19,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
+from sentry.utils.compat import zip
 
 
 def get_users_for_authors(organization_id, authors, user=None):

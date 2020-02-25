@@ -21,6 +21,7 @@ from sentry.models import (
 )
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
+from sentry.utils.compat import map
 
 
 dummy_provider_config = {
