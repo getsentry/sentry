@@ -21,6 +21,19 @@ export async function fetchOrgMembers(
 
   try {
     const members = await api.requestPromise(endpoint, {method: 'GET', query});
+
+    if (!members) {
+      // This shouldn't happen if the request was successful
+      // It should at least be an empty list
+      Sentry.withScope(scope => {
+        scope.setExtras({
+          orgId,
+          projectIds,
+        });
+        Sentry.captureException(new Error('Members is undefined'));
+      });
+    }
+
     const memberUsers = members?.filter(({user}: Member) => user);
 
     if (!memberUsers) {
