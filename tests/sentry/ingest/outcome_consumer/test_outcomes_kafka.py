@@ -5,7 +5,7 @@ import pytest
 import six.moves
 
 from sentry.ingest.outcomes_consumer import get_outcomes_consumer, mark_signal_sent, is_signal_sent
-from sentry.signals import event_filtered, event_dropped
+from sentry.signals import event_filtered, event_dropped, event_saved
 from sentry.testutils.factories import Factories
 from sentry.utils.outcomes import Outcome, _get_tsdb_cache_key, mark_tsdb_incremented_many
 from django.core.cache import cache
@@ -104,6 +104,7 @@ def test_outcome_consumer_ignores_outcomes_already_handled(
     # setup django signals for event_filtered and event_dropped
     event_filtered_sink = []
     event_dropped_sink = []
+    event_saved_sink = []
 
     def event_filtered_receiver(**kwargs):
         event_filtered_sink.append(kwargs.get("ip"))
@@ -111,8 +112,12 @@ def test_outcome_consumer_ignores_outcomes_already_handled(
     def event_dropped_receiver(**kwargs):
         event_dropped_sink.append("something")
 
+    def event_saved_receiver(**kwargs):
+        event_saved_sink.append("saved event")
+
     event_filtered.connect(event_filtered_receiver)
     event_dropped.connect(event_dropped_receiver)
+    event_saved.connect(event_saved_receiver)
 
     consumer = get_outcomes_consumer(
         max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
@@ -133,6 +138,7 @@ def test_outcome_consumer_ignores_outcomes_already_handled(
     # verify that no signal was called (since the events have been previously processed)
     assert event_filtered_sink == ["127.33.44.2", "127.33.44.3"]
     assert len(event_dropped_sink) == 0
+    assert len(event_saved_sink) == 0
 
 
 @pytest.mark.django_db
@@ -159,6 +165,7 @@ def test_outcome_consumer_ignores_invalid_outcomes(
     # setup django signals for event_filtered and event_dropped
     event_filtered_sink = []
     event_dropped_sink = []
+    event_saved_sink = []
 
     def event_filtered_receiver(**kwargs):
         event_filtered_sink.append(kwargs.get("ip"))
@@ -166,8 +173,12 @@ def test_outcome_consumer_ignores_invalid_outcomes(
     def event_dropped_receiver(**kwargs):
         event_dropped_sink.append("something")
 
+    def event_saved_receiver(**kwargs):
+        event_saved_sink.append("saved event")
+
     event_filtered.connect(event_filtered_receiver)
     event_dropped.connect(event_dropped_receiver)
+    event_saved.connect(event_saved_receiver)
 
     consumer = get_outcomes_consumer(
         max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
@@ -183,6 +194,7 @@ def test_outcome_consumer_ignores_invalid_outcomes(
     # verify that the appropriate filters were called
     assert event_filtered_sink == ["127.33.44.2", "127.33.44.3"]
     assert len(event_dropped_sink) == 0
+    assert len(event_saved_sink) == 0
 
 
 @pytest.mark.django_db
@@ -210,6 +222,7 @@ def test_outcome_consumer_remembers_handled_outcomes(
     # setup django signals for event_filtered and event_dropped
     event_filtered_sink = []
     event_dropped_sink = []
+    event_saved_sink = []
 
     def event_filtered_receiver(**kwargs):
         event_filtered_sink.append(kwargs.get("ip"))
@@ -217,8 +230,12 @@ def test_outcome_consumer_remembers_handled_outcomes(
     def event_dropped_receiver(**kwargs):
         event_dropped_sink.append("something")
 
+    def event_saved_receiver(**kwargs):
+        event_saved_sink.append("saved event")
+
     event_filtered.connect(event_filtered_receiver)
     event_dropped.connect(event_dropped_receiver)
+    event_saved.connect(event_saved_receiver)
 
     consumer = get_outcomes_consumer(
         max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
@@ -235,6 +252,63 @@ def test_outcome_consumer_remembers_handled_outcomes(
     assert len(event_filtered_sink) == 1
     assert event_filtered_sink == ["127.33.44.1"]
     assert len(event_dropped_sink) == 0
+    assert len(event_saved_sink) == 0
+
+
+@pytest.mark.django_db
+def test_outcome_consumer_handles_accepted_outcomes(
+    kafka_producer, task_runner, kafka_admin, requires_kafka
+):
+    producer, project_id, topic_name = _setup_outcome_test(kafka_producer, kafka_admin)
+
+    group_id = "test-outcome-consumer-4"
+
+    # put a few outcome messages on the kafka topic
+    for i in six.moves.range(1, 3):
+        msg = _get_outcome(
+            event_id=i,
+            project_id=project_id,
+            outcome=Outcome.ACCEPTED,
+            reason="some_reason",
+            remote_addr="127.33.44.{}".format(i),
+        )
+
+        producer.produce(topic_name, msg)
+
+    # setup django signals for event_filtered and event_dropped
+    event_filtered_sink = []
+    event_dropped_sink = []
+    event_saved_sink = []
+
+    def event_filtered_receiver(**kwargs):
+        event_filtered_sink.append(kwargs.get("ip"))
+
+    def event_dropped_receiver(**kwargs):
+        event_dropped_sink.append("something")
+
+    def event_saved_receiver(**kwargs):
+        event_saved_sink.append("saved event")
+
+    event_filtered.connect(event_filtered_receiver)
+    event_dropped.connect(event_dropped_receiver)
+    event_saved.connect(event_saved_receiver)
+
+    consumer = get_outcomes_consumer(
+        max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
+    )
+
+    # run the outcome consumer
+    with task_runner():
+        i = 0
+        while len(event_filtered_sink) < 2 and i < MAX_POLL_ITERATIONS:
+            consumer._run_once()
+            i += 1
+
+    # verify that the appropriate filters were called
+    assert len(event_saved_sink) == 2
+    assert set(event_saved_sink) == set(["127.33.44.1", "127.33.44.2"])
+    assert len(event_dropped_sink) == 0
+    assert len(event_filtered_sink) == 0
 
 
 @pytest.mark.django_db
@@ -243,7 +317,7 @@ def test_outcome_consumer_handles_filtered_outcomes(
 ):
     producer, project_id, topic_name = _setup_outcome_test(kafka_producer, kafka_admin)
 
-    group_id = "test-outcome-consumer-4"
+    group_id = "test-outcome-consumer-5"
 
     # put a few outcome messages on the kafka topic
     for i in six.moves.range(1, 3):
@@ -260,6 +334,7 @@ def test_outcome_consumer_handles_filtered_outcomes(
     # setup django signals for event_filtered and event_dropped
     event_filtered_sink = []
     event_dropped_sink = []
+    event_saved_sink = []
 
     def event_filtered_receiver(**kwargs):
         event_filtered_sink.append(kwargs.get("ip"))
@@ -267,8 +342,12 @@ def test_outcome_consumer_handles_filtered_outcomes(
     def event_dropped_receiver(**kwargs):
         event_dropped_sink.append("something")
 
+    def event_saved_receiver(**kwargs):
+        event_saved_sink.append("saved event")
+
     event_filtered.connect(event_filtered_receiver)
     event_dropped.connect(event_dropped_receiver)
+    event_saved.connect(event_saved_receiver)
 
     consumer = get_outcomes_consumer(
         max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
@@ -285,6 +364,7 @@ def test_outcome_consumer_handles_filtered_outcomes(
     assert len(event_filtered_sink) == 2
     assert set(event_filtered_sink) == set(["127.33.44.1", "127.33.44.2"])
     assert len(event_dropped_sink) == 0
+    assert len(event_saved_sink) == 0
 
 
 @pytest.mark.django_db
@@ -293,7 +373,7 @@ def test_outcome_consumer_handles_rate_limited_outcomes(
 ):
     producer, project_id, topic_name = _setup_outcome_test(kafka_producer, kafka_admin)
 
-    group_id = "test-outcome-consumer-5"
+    group_id = "test-outcome-consumer-6"
 
     # put a few outcome messages on the kafka topic
     for i in six.moves.range(1, 3):
@@ -310,6 +390,7 @@ def test_outcome_consumer_handles_rate_limited_outcomes(
     # setup django signals for event_filtered and event_dropped
     event_filtered_sink = []
     event_dropped_sink = []
+    event_saved_sink = []
 
     def event_filtered_receiver(**kwargs):
         event_filtered_sink.append("something")
@@ -317,8 +398,12 @@ def test_outcome_consumer_handles_rate_limited_outcomes(
     def event_dropped_receiver(**kwargs):
         event_dropped_sink.append((kwargs.get("ip"), kwargs.get("reason_code")))
 
+    def event_saved_receiver(**kwargs):
+        event_saved_sink.append("saved event")
+
     event_filtered.connect(event_filtered_receiver)
     event_dropped.connect(event_dropped_receiver)
+    event_saved.connect(event_saved_receiver)
 
     consumer = get_outcomes_consumer(
         max_batch_size=1, max_batch_time=100, group_id=group_id, auto_offset_reset="earliest"
@@ -337,6 +422,7 @@ def test_outcome_consumer_handles_rate_limited_outcomes(
     assert set(event_dropped_sink) == set(
         [("127.33.44.1", "reason_1"), ("127.33.44.2", "reason_2")]
     )
+    assert len(event_saved_sink) == 0
 
 
 @pytest.mark.django_db
