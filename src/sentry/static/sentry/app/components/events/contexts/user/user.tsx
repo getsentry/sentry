@@ -9,6 +9,7 @@ import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValue
 import {defined} from 'app/utils';
 
 import getUserKnownData from './getUserKnownData';
+import {UserKnownDataType} from './types';
 
 type Props = {
   data: Data;
@@ -17,6 +18,14 @@ type Props = {
 type Data = {
   data?: null | {[key: string]: string};
 } & UserType;
+
+const userKnownDataValues = [
+  UserKnownDataType.ID,
+  UserKnownDataType.EMAIL,
+  UserKnownDataType.USERNAME,
+  UserKnownDataType.IP_ADDRESS,
+  UserKnownDataType.NAME,
+];
 
 const User = ({data}: Props) => {
   if (!defined(data)) {
@@ -32,7 +41,7 @@ const User = ({data}: Props) => {
       <div className="pull-left">
         <UserAvatar user={removeFilterMaskedEntries(data)} size={48} gravatar={false} />
       </div>
-      <ContextBlock knownData={getUserKnownData(data)} />
+      <ContextBlock knownData={getUserKnownData(data, userKnownDataValues)} />
       {defined(data?.data) && (
         <ErrorBoundary mini>
           <KeyValueList data={getKeyValueData(data.data)} isContextData />

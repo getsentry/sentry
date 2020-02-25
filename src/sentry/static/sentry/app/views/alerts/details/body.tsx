@@ -182,7 +182,7 @@ export default class DetailsBody extends React.Component<Props> {
                   <StyledSeenByList
                     iconPosition="right"
                     seenBy={incident.seenBy}
-                    iconTooltip={t('People who have viewed this incident')}
+                    iconTooltip={t('People who have viewed this alert')}
                   />
                 )}
               </SeenByTab>
@@ -201,7 +201,7 @@ export default class DetailsBody extends React.Component<Props> {
 
                     <SideHeaderLink
                       to={{
-                        pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts-v2/metric-rules/${incident?.alertRule.id}/`,
+                        pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule.id}/`,
                       }}
                     >
                       <IconEdit />

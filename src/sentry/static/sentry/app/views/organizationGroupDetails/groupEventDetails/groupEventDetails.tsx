@@ -213,7 +213,7 @@ class GroupEventDetails extends React.Component<Props, State> {
               <EventEntries
                 group={group}
                 event={evt}
-                orgId={organization.slug}
+                organization={organization}
                 project={project}
                 location={location}
                 showExampleCommit={this.showExampleCommit}

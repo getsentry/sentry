@@ -1,11 +1,10 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment-timezone';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {getUserTimezone} from 'app/utils/dates';
+import {getFormattedDate} from 'app/utils/dates';
 import {t} from 'app/locale';
 import MarkLine from 'app/components/charts/components/markLine';
 import SentryTypes from 'app/sentryTypes';
@@ -84,7 +83,7 @@ class ReleaseSeries extends React.Component {
   }
 
   getReleaseSeries = releases => {
-    const {utc, organization, router, tooltip} = this.props;
+    const {organization, router, tooltip} = this.props;
 
     return {
       seriesName: 'Releases',
@@ -99,9 +98,12 @@ class ReleaseSeries extends React.Component {
         },
         tooltip: tooltip || {
           formatter: ({data}) => {
-            const time = moment
-              .tz(data.value, utc ? 'UTC' : getUserTimezone())
-              .format('MMM D, YYYY LT');
+            // XXX using this.props here as this function does not get re-run
+            // unless projects are changed. Using a closure variable would result
+            // in stale values.
+            const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
+              local: !this.props.utc,
+            });
             const version = escape(formatVersion(data.name, true));
             return [
               '<div class="tooltip-series">',

@@ -7,6 +7,7 @@ import Button from 'app/components/button';
 import codesworth from 'app/../images/spot/codesworth.png';
 import CommitRow from 'app/components/commitRow';
 import getDynamicText from 'app/utils/getDynamicText';
+import {DataSection} from 'app/components/events/styles';
 import {Panel} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
 import SentryTypes from 'app/sentryTypes';
@@ -119,7 +120,7 @@ class EventCauseEmpty extends React.Component {
     }
 
     return (
-      <div className="box" data-test-id="loaded-event-cause-empty">
+      <DataSection data-test-id="loaded-event-cause-empty">
         <StyledPanel dashedBorder>
           <BoxHeader>
             <Description>
@@ -179,7 +180,7 @@ class EventCauseEmpty extends React.Component {
             />
           </ExampleCommitPanel>
         </StyledPanel>
-      </div>
+      </DataSection>
     );
   }
 }
@@ -188,12 +189,6 @@ const StyledPanel = styled(Panel)`
   padding: ${space(3)};
   padding-bottom: 0;
   background: none;
-`;
-
-const BoxHeader = styled('div')`
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
 `;
 
 const Description = styled('div')`
@@ -264,6 +259,12 @@ const CustomAvatar = styled('img')`
   height: 48px;
   padding-right: 12px;
   margin: -6px 0px -6px -2px;
+`;
+
+const BoxHeader = styled('div')`
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
 `;
 
 export default withApi(EventCauseEmpty);
