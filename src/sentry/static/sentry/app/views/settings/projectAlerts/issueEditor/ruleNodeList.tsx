@@ -29,7 +29,7 @@ type Props = {
   onDeleteRow: (ruleIndex: number) => void;
 };
 
-class RuleNodeList extends React.PureComponent<Props> {
+class RuleNodeList extends React.Component<Props> {
   getNode = (
     id: string
   ):

@@ -28,7 +28,7 @@ type Props = {
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
-class RuleNode extends React.PureComponent<Props> {
+class RuleNode extends React.Component<Props> {
   handleDelete = () => {
     const {index, onDelete} = this.props;
     onDelete(index);
