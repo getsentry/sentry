@@ -1317,4 +1317,3 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             data = response.data["data"]
             assert len(data) == 1
             assert data[0]["count"] == 0
-            assert False
