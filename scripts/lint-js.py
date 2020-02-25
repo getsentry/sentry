@@ -1,14 +1,4 @@
-"""
-Our linter engine needs to run in 3 different scenarios:
- * Linting all files (python, js, less)
- * Linting only python files (--python) [NOTICE: moved to pre-commit]
- * Linting only js files (--js)
-
-For the js only path, we should not depend on any packages outside the
-python stdlib to prevent the need to install the world just to run eslint.
-"""
 from __future__ import absolute_import, print_function
-
 
 import os
 import sys
@@ -17,12 +7,16 @@ import json
 
 from subprocess import check_output, Popen
 
-os.environ['PYFLAKES_NODOCTEST'] = '1'
+# TODO: decide between using get_modified_files in pre-commit, or using pre-commit to pass files to it
+#       also, make lint-js needs to run this against all files.
+
+# TODO: need to also separately run tests on modified js files in pre-commit, looks like this was previous hook behavior
+
 os.environ['SENTRY_PRECOMMIT'] = '1'
 
 
 def get_project_root():
-    return os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
+    return os.path.join(os.path.dirname(__file__), os.pardir)
 
 
 def get_sentry_bin(name):
@@ -305,14 +299,13 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
     return has_errors
 
 
-def run(file_list=None, format=True, lint=True, js=True, py=True,
+def run(file_list=None, format=True, lint=True, js=True,
         less=True, yarn=True, test=False, parseable=False):
     old_sysargv = sys.argv
 
     try:
         sys.argv = [
-            os.path.join(os.path.dirname(__file__),
-                         os.pardir, os.pardir, os.pardir)
+            os.path.join(os.path.dirname(__file__), os.pardir)
         ]
         results = []
 
@@ -325,9 +318,6 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
             return 1
 
         if format:
-            if py:
-                # python autoformatting is now done via pre-commit (black)
-                pass
             if js:
                 # run eslint with --fix and skip these linters down below
                 results.append(js_lint_format(file_list))
@@ -339,8 +329,6 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
             return 1
 
         if lint:
-            if py:
-                pass  # flake8 linting was moved to pre-commit
             if js:
                 # stylelint `--fix` doesn't work well
                 results.append(js_stylelint(file_list, parseable=parseable, format=format))
