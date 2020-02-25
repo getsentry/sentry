@@ -268,8 +268,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     }
   };
 
-  handleSearchBarBlur = () => {
-    this.setState({ 'query': this.state.query });
+  handleSearchBarBlur = (query) => {
+    this.setState({ 'query': query });
   };
 
   handleSubmit = async (

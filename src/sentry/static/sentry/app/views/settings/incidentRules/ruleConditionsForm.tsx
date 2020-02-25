@@ -33,7 +33,7 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
-  onSearchBarBlur?:() => void;
+  onSearchBarBlur?:(query: string) => void;
 };
 
 type State = {
@@ -128,7 +128,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 organization={organization}
                 onChange={onChange}
                 onKeyDown={onKeyDown}
-                onBlur={onBlur}
+                onBlur={query => onBlur(query)}
                 onSearch={query => onChange(query, {})}
               />
             )}
