@@ -8,6 +8,8 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ErrorRobot from 'app/components/errorRobot';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
+import NoUnresolvedIssues from './noUnresolvedIssues';
+
 type Props = {
   api: Client;
   organization: LightWeightOrganization;
@@ -18,13 +20,9 @@ type Props = {
 
 type State = {
   fetchingSentFirstEvent: boolean;
-  firstEventProjects?: Project[];
+  firstEventProjects?: Project[] | null;
   sentFirstEvent?: boolean;
 };
-
-const CongratsRobots = React.lazy(() =>
-  import(/* webpackChunkName: "CongratsRobots" */ 'app/views/issueList/congratsRobots')
-);
 
 /**
  * Component which is rendered when no groups/issues were found. This could
@@ -33,12 +31,11 @@ const CongratsRobots = React.lazy(() =>
  * render one of those states.
  */
 class NoGroupsHandler extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      fetchingSentFirstEvent: true,
-    };
-  }
+  state = {
+    fetchingSentFirstEvent: true,
+    sentFirstEvent: false,
+    firstEventProjects: null,
+  };
 
   componentDidMount() {
     this.fetchSentFirstEvent();
@@ -87,9 +84,9 @@ class NoGroupsHandler extends React.Component<Props, State> {
     return <LoadingIndicator />;
   }
 
-  renderAwaitingEvents(projects) {
+  renderAwaitingEvents(projects: State['firstEventProjects']) {
     const {organization} = this.props;
-    const project = projects.length > 0 ? projects[0] : null;
+    const project = projects && projects.length > 0 ? projects[0] : null;
 
     const sampleIssueId = this.props.groupIds.length > 0 ? this.props.groupIds[0] : '';
     return (
@@ -99,14 +96,6 @@ class NoGroupsHandler extends React.Component<Props, State> {
         sampleIssueId={sampleIssueId}
         gradient
       />
-    );
-  }
-
-  renderNoUnresolvedIssues() {
-    return (
-      <React.Suspense fallback={this.renderLoading()}>
-        <CongratsRobots data-test-id="congrats-robots" />
-      </React.Suspense>
     );
   }
 
@@ -127,7 +116,7 @@ class NoGroupsHandler extends React.Component<Props, State> {
     } else if (!sentFirstEvent) {
       return this.renderAwaitingEvents(firstEventProjects);
     } else if (query === DEFAULT_QUERY) {
-      return this.renderNoUnresolvedIssues();
+      return <NoUnresolvedIssues />;
     } else {
       return this.renderEmpty();
     }
