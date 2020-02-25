@@ -175,6 +175,10 @@ class InstallationForm(forms.Form):
 
 class InstallationConfigView(PipelineView):
     def dispatch(self, request, pipeline):
+        if "goback" in request.GET:
+            pipeline.state.step_index = 0
+            return pipeline.current_step()
+
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
