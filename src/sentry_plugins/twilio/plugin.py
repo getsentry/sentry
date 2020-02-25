@@ -13,6 +13,7 @@ from .client import TwilioApiClient
 from sentry_plugins.base import CorePluginMixin
 
 import sentry
+from sentry.utils.compat import map
 
 DEFAULT_REGION = "US"
 MAX_SMS_LENGTH = 160

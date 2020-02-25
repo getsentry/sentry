@@ -11,6 +11,7 @@ from django.utils.http import is_safe_url
 from time import time
 
 from sentry.models import User, Authenticator
+from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.auth")
 

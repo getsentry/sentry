@@ -25,6 +25,8 @@ from sentry.search.utils import (
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, get_json_type
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -575,8 +577,8 @@ def parse_search_query(query):
         tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
         idx = e.column()
-        prefix = query[max(0, idx - 5):idx]
-        suffix = query[idx:(idx + 5)]
+        prefix = query[max(0, idx - 5) : idx]
+        suffix = query[idx : (idx + 5)]
         raise InvalidSearchQuery(
             u"{} {}".format(
                 u"Parse error at '{}{}' (column {:d}).".format(prefix, suffix, e.column()),
@@ -596,7 +598,9 @@ def convert_search_boolean_to_snuba_query(search_boolean):
             return convert_search_boolean_to_snuba_query(term)
         else:
             raise InvalidSearchQuery(
-                u"Attempted to convert term of unrecognized type {} into a snuba expression".format(term.__class__.__name__)
+                u"Attempted to convert term of unrecognized type {} into a snuba expression".format(
+                    term.__class__.__name__
+                )
             )
 
     if not search_boolean:
@@ -742,7 +746,9 @@ def get_filter(query=None, params=None):
         try:
             parsed_terms = parse_search_query(query)
         except ParseError as e:
-            raise InvalidSearchQuery(u"Parse error: {} (column {:d})".format(e.expr.name, e.column()))
+            raise InvalidSearchQuery(
+                u"Parse error: {} (column {:d})".format(e.expr.name, e.column())
+            )
 
     kwargs = {
         "start": None,
@@ -769,7 +775,9 @@ def get_filter(query=None, params=None):
                     )
                 except Exception:
                     raise InvalidSearchQuery(
-                        u"Invalid query. Project {} does not exist or is not an actively selected project.".format(term.value.value)
+                        u"Invalid query. Project {} does not exist or is not an actively selected project.".format(
+                            term.value.value
+                        )
                     )
 
                 # Create a new search filter with the correct values
@@ -942,7 +950,9 @@ class NumberRange(FunctionArg):
             raise InvalidFunctionArgument(u"{} is not a number".format(value))
 
         if self.start and value < self.start:
-            raise InvalidFunctionArgument(u"{:g} must be greater than or equal to {:g}".format(value, self.start))
+            raise InvalidFunctionArgument(
+                u"{:g} must be greater than or equal to {:g}".format(value, self.start)
+            )
         elif self.end and value >= self.end:
             raise InvalidFunctionArgument(u"{:g} must be less than {:g}".format(value, self.end))
 
@@ -966,10 +976,7 @@ class IntervalDefault(NumberRange):
 FUNCTIONS = {
     "percentile": {
         "name": "percentile",
-        "args": [
-            NumericColumn("column"),
-            NumberRange("percentile", 0, 1),
-        ],
+        "args": [NumericColumn("column"), NumberRange("percentile", 0, 1)],
         "transform": u"quantile({percentile:.2f})({column})",
     },
     "rps": {
@@ -1032,7 +1039,16 @@ def resolve_function(field, match=None, params=None):
 
     snuba_string = function["transform"].format(**arguments)
 
-    return [], [[snuba_string, None, get_function_alias(function["name"], columns if not used_default else [])]]
+    return (
+        [],
+        [
+            [
+                snuba_string,
+                None,
+                get_function_alias(function["name"], columns if not used_default else []),
+            ]
+        ],
+    )
 
 
 def resolve_orderby(orderby, fields, aggregations):

@@ -31,6 +31,8 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from six.moves import reduce, zip_longest
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")

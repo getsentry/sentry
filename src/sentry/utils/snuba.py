@@ -34,6 +34,7 @@ from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
+from sentry.utils.compat import map
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500

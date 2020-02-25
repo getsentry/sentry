@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import io
 import os
 import six
-from six.moves import zip
+
 import base64
 import msgpack
 import inspect
@@ -19,6 +19,7 @@ from sentry.grouping.utils import get_rule_bool
 from sentry.utils.compat import implements_to_string
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
+from sentry.utils.compat import zip
 
 
 # Grammar is defined in EBNF syntax.

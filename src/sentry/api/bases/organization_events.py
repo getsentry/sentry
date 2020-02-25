@@ -7,6 +7,7 @@ from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.snuba.discover import ReferenceEvent
+from sentry.utils.compat import map
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):

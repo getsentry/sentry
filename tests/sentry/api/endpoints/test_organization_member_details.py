@@ -18,6 +18,7 @@ from sentry.models import (
     TotpInterface,
 )
 from sentry.testutils import APITestCase
+from sentry.utils.compat import map
 
 
 class UpdateOrganizationMemberTest(APITestCase):
