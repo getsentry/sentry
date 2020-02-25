@@ -103,7 +103,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                   ])
                 : []
             }
-            isDisabled={this.state.environments === null}
+            isDisabled={disabled || this.state.environments === null}
             multiple
             isClearable
           />
