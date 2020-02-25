@@ -24,8 +24,8 @@ import {
 import Alert, {Props as AlertProps} from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-import IntegrationStatus from './integrationStatus';
 import {IconClose} from 'app/icons';
+import IntegrationStatus from './integrationStatus';
 
 type Tab = 'information' | 'configurations';
 
