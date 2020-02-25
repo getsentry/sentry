@@ -9,7 +9,7 @@ import {
   IntegrationInstallationStatus,
   SentryAppStatus,
 } from 'app/types';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import space from 'app/styles/space';
 import Tag from 'app/views/settings/components/tag';
@@ -297,7 +297,11 @@ class AbstractIntegrationDetailedView<
             {!!this.author && (
               <div>
                 <CreatedContainer>{t('Created By')}</CreatedContainer>
-                <AuthorName>{t(this.author)}</AuthorName>
+                <AuthorName>
+                  {tct('[author]', {
+                    author: this.author,
+                  })}
+                </AuthorName>
               </div>
             )}
             {this.resourceLinks.map(({title, url}) => (
