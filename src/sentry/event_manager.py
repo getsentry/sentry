@@ -349,19 +349,25 @@ class EventManager(object):
 
         self._data = data
 
-    def normalize(self):
+    def normalize(self, project_id=None):
         with metrics.timer("events.store.normalize.duration"):
-            self._normalize_impl()
+            self._normalize_impl(project_id=project_id)
 
-    def _normalize_impl(self):
+    def _normalize_impl(self, project_id=None):
+        if self._project and project_id and project_id != self._project.id:
+            raise RuntimeError(
+                "Initialized EventManager with one project ID and called save() with another one"
+            )
+
         if self._normalized:
             raise RuntimeError("Already normalized")
+
         self._normalized = True
 
         from sentry_relay.processing import StoreNormalizer
 
         rust_normalizer = StoreNormalizer(
-            project_id=self._project.id if self._project else None,
+            project_id=self._project.id if self._project else project_id,
             client_ip=self._client_ip,
             client=self._auth.client if self._auth else None,
             key_id=six.text_type(self._key.id) if self._key else None,
@@ -437,11 +443,18 @@ class EventManager(object):
         # Normalize if needed
         if not self._normalized:
             if not assume_normalized:
-                self.normalize()
+                self.normalize(project_id=project_id)
             self._normalized = True
 
         with metrics.timer("event_manager.save.project.get_from_cache"):
             project = Project.objects.get_from_cache(id=project_id)
+
+        projects = {project.id: project}
+
+        if self._data.get("type") == "transaction":
+            self._data["project"] = int(project_id)
+            jobs = save_transaction_events([self._data], projects)
+            return jobs[0]["event"]
 
         with metrics.timer("event_manager.save.organization.get_from_cache"):
             project._organization_cache = Organization.objects.get_from_cache(
@@ -450,19 +463,9 @@ class EventManager(object):
 
         job = {"data": self._data, "project_id": project_id, "raw": raw}
         jobs = [job]
-        projects = {project.id: project}
 
         _pull_out_data(jobs, projects)
-
-        # Right now the event type is the signal to skip the group. This
-        # is going to change a lot.
-        if job["event"].get_event_type() == "transaction":
-            issueless_event = True
-        else:
-            issueless_event = False
-
         _get_or_create_release_many(jobs, projects)
-
         _get_event_user_many(jobs, projects)
 
         with metrics.timer("event_manager.load_grouping_config"):
@@ -501,45 +504,40 @@ class EventManager(object):
 
         _materialize_metadata_many(jobs)
 
-        if not issueless_event:
-            # The group gets the same metadata as the event when it's flushed but
-            # additionally the `last_received` key is set.  This key is used by
-            # _save_aggregate.
-            group_metadata = dict(job["materialized_metadata"])
-            group_metadata["last_received"] = job["received_timestamp"]
-            kwargs = {
-                "platform": job["platform"],
-                "message": job["event"].search_message,
-                "culprit": job["culprit"],
-                "logger": job["logger_name"],
-                "level": LOG_LEVELS_MAP.get(job["level"]),
-                "last_seen": job["event"].datetime,
-                "first_seen": job["event"].datetime,
-                "active_at": job["event"].datetime,
-                "data": group_metadata,
-            }
+        # The group gets the same metadata as the event when it's flushed but
+        # additionally the `last_received` key is set.  This key is used by
+        # _save_aggregate.
+        group_metadata = dict(job["materialized_metadata"])
+        group_metadata["last_received"] = job["received_timestamp"]
+        kwargs = {
+            "platform": job["platform"],
+            "message": job["event"].search_message,
+            "culprit": job["culprit"],
+            "logger": job["logger_name"],
+            "level": LOG_LEVELS_MAP.get(job["level"]),
+            "last_seen": job["event"].datetime,
+            "first_seen": job["event"].datetime,
+            "active_at": job["event"].datetime,
+            "data": group_metadata,
+        }
 
-            if job["release"]:
-                kwargs["first_release"] = job["release"]
+        if job["release"]:
+            kwargs["first_release"] = job["release"]
 
-            try:
-                job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
-                    event=job["event"], hashes=hashes, release=job["release"], **kwargs
-                )
-            except HashDiscarded:
-                event_discarded.send_robust(project=project, sender=EventManager)
+        try:
+            job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
+                event=job["event"], hashes=hashes, release=job["release"], **kwargs
+            )
+        except HashDiscarded:
+            event_discarded.send_robust(project=project, sender=EventManager)
 
-                metrics.incr(
-                    "events.discarded",
-                    skip_internal=True,
-                    tags={"organization_id": project.organization_id, "platform": job["platform"]},
-                )
-                raise
-            job["event"].group = job["group"]
-        else:
-            job["group"] = None
-            job["is_new"] = False
-            job["is_regression"] = False
+            metrics.incr(
+                "events.discarded",
+                skip_internal=True,
+                tags={"organization_id": project.organization_id, "platform": job["platform"]},
+            )
+            raise
+        job["event"].group = job["group"]
 
         _send_event_saved_signal_many(jobs, projects)
 
@@ -577,20 +575,17 @@ class EventManager(object):
 
         _materialize_event_metrics(jobs)
 
-        if not issueless_event:
-            # Load attachments first, but persist them at the very last after
-            # posting to eventstream to make sure all counters and eventstream are
-            # incremented for sure.
-            attachments = get_attachments(cache_key, job["event"])
-            for attachment in attachments:
-                key = "bytes.stored.%s" % (attachment.type,)
-                job["event_metrics"][key] = (job["event_metrics"].get(key) or 0) + len(
-                    attachment.data
-                )
+        # Load attachments first, but persist them at the very last after
+        # posting to eventstream to make sure all counters and eventstream are
+        # incremented for sure.
+        attachments = get_attachments(cache_key, job["event"])
+        for attachment in attachments:
+            key = "bytes.stored.%s" % (attachment.type,)
+            job["event_metrics"][key] = (job["event_metrics"].get(key) or 0) + len(attachment.data)
 
         _nodestore_save_many(jobs)
 
-        if job["release"] and not issueless_event:
+        if job["release"]:
             if job["is_new"]:
                 buffer.incr(
                     ReleaseProject,
@@ -617,10 +612,9 @@ class EventManager(object):
 
         _eventstream_insert_many(jobs)
 
-        if not issueless_event:
-            # Do this last to ensure signals get emitted even if connection to the
-            # file store breaks temporarily.
-            save_attachments(attachments, job["event"])
+        # Do this last to ensure signals get emitted even if connection to the
+        # file store breaks temporarily.
+        save_attachments(attachments, job["event"])
 
         metric_tags = {"from_relay": "_relay_processed" in job["data"]}
 
@@ -1349,3 +1343,4 @@ def save_transaction_events(events, projects):
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
+    return jobs
