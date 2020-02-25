@@ -6,9 +6,10 @@ import MemberActions from 'app/actions/memberActions';
 import MemberListStore from 'app/stores/memberListStore';
 
 function getMemberUser(member: Member) {
-  const user = member.user;
-  user.role = member.role;
-  return user;
+  return {
+    ...member.user,
+    role: member.role,
+  };
 }
 
 export async function fetchOrgMembers(
@@ -17,7 +18,7 @@ export async function fetchOrgMembers(
   projectIds: number[] | null = null
 ) {
   const endpoint = `/organizations/${orgId}/users/`;
-  const query = projectIds ? {project: projectIds} : null;
+  const query = projectIds ? {project: projectIds} : {};
 
   try {
     const members = await api.requestPromise(endpoint, {method: 'GET', query});
@@ -77,7 +78,7 @@ export function indexMembersByProject(members: Member[]): IndexedMembersByProjec
 type UpdateMemberOptions = {
   orgId: string;
   memberId: string;
-  data?: object;
+  data: Member | null;
 };
 
 export async function updateMember(
@@ -123,6 +124,7 @@ export async function resendMemberInvite(
       },
     });
     MemberActions.resendMemberInviteSuccess(resp);
+    return resp;
   } catch (err) {
     MemberActions.resendMemberInviteError(err);
     throw err;
