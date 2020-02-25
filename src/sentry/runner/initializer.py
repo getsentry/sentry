@@ -406,7 +406,7 @@ def __model_unpickle_compat(model_id, attrs=None, factory=None):
 
     if attrs is not None or factory is not None:
         metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat", sample_rate=1)
-        logger.warning(
+        logger.error(
             "django.compat.model-unpickle-compat",
             extra={"model_id": model_id, "attrs": attrs, "factory": factory, "stack": True},
         )
