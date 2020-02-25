@@ -5,7 +5,14 @@ import six
 
 from time import time
 
-from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
+from sentry.quotas.base import (
+    DataCategory,
+    NotRateLimited,
+    Quota,
+    QuotaConfig,
+    QuotaScope,
+    RateLimited,
+)
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     validate_dynamic_cluster,
@@ -172,10 +179,23 @@ class RedisQuota(Quota):
         return (((timestamp - shift) // interval) + 1) * interval + shift
 
     def is_rate_limited(self, project, key=None, timestamp=None):
+        # XXX: This is effectively deprecated and scheduled for removal. Event
+        # ingestion quotas are now enforced in Relay. This function will be
+        # deleted once the Python store endpoints are removed.
+
         if timestamp is None:
             timestamp = time()
 
-        quotas = self.get_quotas(project, key=key)
+        # Relay supports separate rate limiting per data category and and can
+        # handle scopes explicitly. This function implements a simplified logic
+        # that treats all events the same and ignores transaction rate limits.
+        # Thus, we filter for (1) no categories, which implies this quota
+        # affects all data, and (2) quotas that specify `error` events.
+        quotas = [
+            q
+            for q in self.get_quotas(project, key=key)
+            if not q.categores or DataCategory.ERROR in q.categories
+        ]
 
         # If there are no quotas to actually check, skip the trip to the database.
         if not quotas:
