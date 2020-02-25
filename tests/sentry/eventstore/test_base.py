@@ -75,17 +75,17 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
 
         with mock.patch.object(logger, "info") as mock_logger:
             # No differences to log
-            filter = eventstore.Filter(project_ids=[self.project.id])
-            eventstore.get_events(filter=filter)
+            _filter = eventstore.Filter(project_ids=[self.project.id])
+            eventstore.get_events(filter=_filter)
             eventstore.get_event_by_id(self.project.id, "a" * 32)
             assert mock_logger.call_count == 0
 
             # Here we expect a difference since the original implementation handles type as a tag
             event = eventstore.get_event_by_id(self.project.id, "a" * 32)
-            filter = eventstore.Filter(
+            _filter = eventstore.Filter(
                 project_ids=[self.project.id], conditions=[["type", "=", "transaction"]]
             )
-            eventstore.get_next_event_id(event, filter)
+            eventstore.get_next_event_id(event, _filter)
             assert mock_logger.call_count == 1
             mock_logger.assert_called_with(
                 "discover.result-mismatch",
@@ -94,7 +94,7 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
                     "snuba_discover_result": (six.text_type(self.project.id), "b" * 32),
                     "method": "get_next_event_id",
                     "event_id": event.event_id,
-                    "filter_keys": filter.filter_keys,
-                    "conditions": filter.conditions,
+                    "filter_keys": _filter.filter_keys,
+                    "conditions": _filter.conditions,
                 },
             )

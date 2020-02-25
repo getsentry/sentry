@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import operator
 import six
-from six.moves import zip
+
 
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
@@ -16,6 +16,7 @@ from django.core.cache import cache
 
 from collections import defaultdict
 from functools import reduce
+from sentry.utils.compat import zip
 
 PATH_SEPERATORS = frozenset(["/", "\\"])
 
@@ -25,7 +26,7 @@ def tokenize_path(path):
         if sep in path:
             # Exclude empty path segments as some repository integrations
             # start their paths with `/` which we want to ignore.
-            return reversed(filter(lambda x: x != "", path.split(sep)))
+            return reversed([x for x in path.split(sep) if x != ""])
     else:
         return iter([path])
 

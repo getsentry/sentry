@@ -10,6 +10,7 @@ from django.conf import settings
 from sentry.utils import metrics, warnings
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
+from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.runner.initializer")
 
@@ -405,7 +406,7 @@ def __model_unpickle_compat(model_id, attrs=None, factory=None):
 
     if attrs is not None or factory is not None:
         metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat", sample_rate=1)
-        logger.warning(
+        logger.error(
             "django.compat.model-unpickle-compat",
             extra={"model_id": model_id, "attrs": attrs, "factory": factory, "stack": True},
         )

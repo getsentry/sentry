@@ -11,6 +11,7 @@ from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, KEYWORD_MAP, Release, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
+from sentry.utils.compat import map
 
 
 class InvalidQuery(Exception):
@@ -278,6 +279,8 @@ def tokenize_query(query):
         'query': ['foo', 'bar'],
         'tag': ['value'],
     }
+
+    Has a companion implementation in static/app/utils/tokenizeSearch.tsx
     """
     result = defaultdict(list)
     query_params = defaultdict(list)
@@ -286,7 +289,7 @@ def tokenize_query(query):
         state = "query"
         for idx, char in enumerate(token):
             next_char = token[idx + 1] if idx < len(token) - 1 else None
-            if idx == 0 and char in ('"', "'"):
+            if idx == 0 and char in ('"', "'", ":"):
                 break
             if char == ":":
                 if next_char in (":", " "):

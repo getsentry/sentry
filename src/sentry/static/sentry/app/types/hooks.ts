@@ -380,10 +380,12 @@ type IntegrationsFeatureGatesHook = () => {
    * features.
    */
   IntegrationFeatures: React.ComponentType<IntegrationFeaturesProps>;
+  IntegrationDirectoryFeatures: React.ComponentType<IntegrationFeaturesProps>;
   /**
    * This component renders the list of integration features.
    */
   FeatureList: React.ComponentType<IntegrationFeatureListProps>;
+  IntegrationDirectoryFeatureList: React.ComponentType<IntegrationFeatureListProps>;
 };
 
 /**

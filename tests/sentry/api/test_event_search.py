@@ -881,7 +881,7 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
 
 class GetSnubaQueryArgsTest(TestCase):
     def test_simple(self):
-        filter = get_filter(
+        _filter = get_filter(
             "user.email:foo@example.com release:1.2.1 fruit:apple hello",
             {
                 "project_id": [1, 2, 3],
@@ -890,25 +890,25 @@ class GetSnubaQueryArgsTest(TestCase):
             },
         )
 
-        assert filter.conditions == [
+        assert _filter.conditions == [
             ["user.email", "=", "foo@example.com"],
             ["release", "=", "1.2.1"],
             [["ifNull", ["fruit", "''"]], "=", "apple"],
             [["positionCaseInsensitive", ["message", "'hello'"]], "!=", 0],
         ]
-        assert filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        assert filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
-        assert filter.filter_keys == {"project_id": [1, 2, 3]}
-        assert filter.project_ids == [1, 2, 3]
-        assert not filter.group_ids
-        assert not filter.event_ids
+        assert _filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        assert _filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        assert _filter.filter_keys == {"project_id": [1, 2, 3]}
+        assert _filter.project_ids == [1, 2, 3]
+        assert not _filter.group_ids
+        assert not _filter.event_ids
 
     def test_negation(self):
-        filter = get_filter("!user.email:foo@example.com")
-        assert filter.conditions == [
+        _filter = get_filter("!user.email:foo@example.com")
+        assert _filter.conditions == [
             [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "foo@example.com"]]
         ]
-        assert filter.filter_keys == {}
+        assert _filter.filter_keys == {}
 
     def test_implicit_and_explicit_tags(self):
         assert get_filter("tags[fruit]:apple").conditions == [
@@ -922,40 +922,40 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
 
     def test_no_search(self):
-        filter = get_filter(
+        _filter = get_filter(
             params={
                 "project_id": [1, 2, 3],
                 "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
                 "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
             }
         )
-        assert not filter.conditions
-        assert filter.filter_keys == {"project_id": [1, 2, 3]}
-        assert filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        assert filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        assert not _filter.conditions
+        assert _filter.filter_keys == {"project_id": [1, 2, 3]}
+        assert _filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        assert _filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
 
     def test_wildcard(self):
-        filter = get_filter("release:3.1.* user.email:*@example.com")
-        assert filter.conditions == [
+        _filter = get_filter("release:3.1.* user.email:*@example.com")
+        assert _filter.conditions == [
             [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "=", 1],
             [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
         ]
-        assert filter.filter_keys == {}
+        assert _filter.filter_keys == {}
 
     def test_wildcard_event_id(self):
         with self.assertRaises(InvalidSearchQuery):
             get_filter("id:deadbeef*")
 
     def test_negated_wildcard(self):
-        filter = get_filter("!release:3.1.* user.email:*@example.com")
-        assert filter.conditions == [
+        _filter = get_filter("!release:3.1.* user.email:*@example.com")
+        assert _filter.conditions == [
             [
                 [["isNull", ["release"]], "=", 1],
                 [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "!=", 1],
             ],
             [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
         ]
-        assert filter.filter_keys == {}
+        assert _filter.filter_keys == {}
 
     def test_escaped_wildcard(self):
         assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
@@ -970,15 +970,15 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
 
     def test_wildcard_array_field(self):
-        filter = get_filter(
+        _filter = get_filter(
             "error.value:Deadlock* stack.filename:*.py stack.abs_path:%APP_DIR%/th_ing*"
         )
-        assert filter.conditions == [
+        assert _filter.conditions == [
             ["error.value", "LIKE", "Deadlock%"],
             ["stack.filename", "LIKE", "%.py"],
             ["stack.abs_path", "LIKE", "\\%APP\\_DIR\\%/th\\_ing%"],
         ]
-        assert filter.filter_keys == {}
+        assert _filter.filter_keys == {}
 
     def test_has(self):
         assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
@@ -1013,20 +1013,20 @@ class GetSnubaQueryArgsTest(TestCase):
             get_filter("(user.email:foo@example.com OR user.email:bar@example.com")
 
     def test_issue_id_filter(self):
-        filter = get_filter("issue.id:1")
-        assert not filter.conditions
-        assert filter.filter_keys == {"group_id": [1]}
-        assert filter.group_ids == [1]
+        _filter = get_filter("issue.id:1")
+        assert not _filter.conditions
+        assert _filter.filter_keys == {"group_id": [1]}
+        assert _filter.group_ids == [1]
 
-        filter = get_filter("issue.id:1 issue.id:2 issue.id:3")
-        assert not filter.conditions
-        assert filter.filter_keys == {"group_id": [1, 2, 3]}
-        assert filter.group_ids == [1, 2, 3]
+        _filter = get_filter("issue.id:1 issue.id:2 issue.id:3")
+        assert not _filter.conditions
+        assert _filter.filter_keys == {"group_id": [1, 2, 3]}
+        assert _filter.group_ids == [1, 2, 3]
 
-        filter = get_filter("issue.id:1 user.email:foo@example.com")
-        assert filter.conditions == [["user.email", "=", "foo@example.com"]]
-        assert filter.filter_keys == {"group_id": [1]}
-        assert filter.group_ids == [1]
+        _filter = get_filter("issue.id:1 user.email:foo@example.com")
+        assert _filter.conditions == [["user.email", "=", "foo@example.com"]]
+        assert _filter.filter_keys == {"group_id": [1]}
+        assert _filter.group_ids == [1]
 
     def test_issue_filter(self):
         with pytest.raises(InvalidSearchQuery) as err:
@@ -1036,60 +1036,60 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_environment_param(self):
         params = {"environment": ["", "prod"]}
-        filter = get_filter("", params)
+        _filter = get_filter("", params)
         # Should generate OR conditions
-        assert filter.conditions == [
+        assert _filter.conditions == [
             [["environment", "IS NULL", None], ["environment", "=", "prod"]]
         ]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
         params = {"environment": ["dev", "prod"]}
-        filter = get_filter("", params)
-        assert filter.conditions == [[["environment", "IN", {"dev", "prod"}]]]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        _filter = get_filter("", params)
+        assert _filter.conditions == [[["environment", "IN", {"dev", "prod"}]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
     def test_environment_condition_string(self):
-        filter = get_filter("environment:dev")
-        assert filter.conditions == [[["environment", "=", "dev"]]]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        _filter = get_filter("environment:dev")
+        assert _filter.conditions == [[["environment", "=", "dev"]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
-        filter = get_filter("!environment:dev")
-        assert filter.conditions == [[["environment", "!=", "dev"]]]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        _filter = get_filter("!environment:dev")
+        assert _filter.conditions == [[["environment", "!=", "dev"]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
-        filter = get_filter("environment:dev environment:prod")
+        _filter = get_filter("environment:dev environment:prod")
         # Will generate conditions that will never find anything
-        assert filter.conditions == [[["environment", "=", "dev"]], [["environment", "=", "prod"]]]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        assert _filter.conditions == [[["environment", "=", "dev"]], [["environment", "=", "prod"]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
-        filter = get_filter('environment:""')
+        _filter = get_filter('environment:""')
         # The '' environment is Null in snuba
-        assert filter.conditions == [[["environment", "IS NULL", None]]]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        assert _filter.conditions == [[["environment", "IS NULL", None]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
     def test_project_name(self):
         p1 = self.create_project(organization=self.organization)
         p2 = self.create_project(organization=self.organization)
 
         params = {"project_id": [p1.id, p2.id]}
-        filter = get_filter("project.name:{}".format(p1.slug), params)
-        assert filter.conditions == [["project_id", "=", p1.id]]
-        assert filter.filter_keys == {"project_id": [p1.id, p2.id]}
-        assert filter.project_ids == [p1.id, p2.id]
+        _filter = get_filter("project.name:{}".format(p1.slug), params)
+        assert _filter.conditions == [["project_id", "=", p1.id]]
+        assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
+        assert _filter.project_ids == [p1.id, p2.id]
 
         params = {"project_id": [p1.id, p2.id]}
-        filter = get_filter("!project.name:{}".format(p1.slug), params)
-        assert filter.conditions == [
+        _filter = get_filter("!project.name:{}".format(p1.slug), params)
+        assert _filter.conditions == [
             [[["isNull", ["project_id"]], "=", 1], ["project_id", "!=", p1.id]]
         ]
-        assert filter.filter_keys == {"project_id": [p1.id, p2.id]}
-        assert filter.project_ids == [p1.id, p2.id]
+        assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
+        assert _filter.project_ids == [p1.id, p2.id]
 
         with pytest.raises(InvalidSearchQuery) as err:
             params = {"project_id": []}
@@ -1119,7 +1119,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_function_with_default_arguments(self):
         result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
-        assert result.having == [["rpm_300", ">", 100]]
+        assert result.having == [["rpm", ">", 100]]
 
     def test_function_with_alias(self):
         result = get_filter("p95():>100")
@@ -1378,7 +1378,7 @@ class ResolveFieldListTest(unittest.TestCase):
         )
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["divide(count(), divide(3600, 60))", None, "rpm_3600"],
+            ["divide(count(), divide(3600, 60))", None, "rpm"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
         ]

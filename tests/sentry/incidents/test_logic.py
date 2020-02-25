@@ -70,6 +70,7 @@ from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscript
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils.compat import zip
 
 
 class CreateIncidentTest(TestCase):

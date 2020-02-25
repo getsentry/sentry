@@ -28,6 +28,25 @@ describe('utils/tokenizeSearch', function() {
         string: 'python  is:unresolved exception',
         object: {is: ['unresolved'], query: ['python', 'exception']},
       },
+      {
+        name: 'should tokenize the quoted tags',
+        string: 'event.type:error title:"QueryExecutionError: Code: 141."',
+        object: {
+          query: [],
+          title: ['QueryExecutionError: Code: 141.'],
+          'event.type': ['error'],
+        },
+      },
+      {
+        name: 'should tokenize words with :: in them',
+        string: 'key:Resque::DirtyExit',
+        object: {query: [], key: ['Resque::DirtyExit']},
+      },
+      {
+        name: 'tokens that begin with a colon are still queries',
+        string: 'country:canada :unresolved',
+        object: {query: [':unresolved'], country: ['canada']},
+      },
     ];
 
     for (const {name, string, object} of cases) {
@@ -61,6 +80,11 @@ describe('utils/tokenizeSearch', function() {
         name: 'should quote tags with spaces',
         object: {query: ['oh me', 'oh my'], browser: ['Chrome 36', 'Firefox 60']},
         string: 'oh me oh my browser:"Chrome 36" browser:"Firefox 60"',
+      },
+      {
+        name: 'should quote tags with parens',
+        object: {query: ['bad things'], repository_id: ["UUID('long-value')"]},
+        string: 'bad things repository_id:"UUID(\'long-value\')"',
       },
     ];
 

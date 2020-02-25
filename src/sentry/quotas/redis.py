@@ -18,6 +18,8 @@ from sentry.utils.redis import (
     validate_dynamic_cluster,
     load_script,
 )
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 is_rate_limited = load_script("quotas/is_rate_limited.lua")
 
