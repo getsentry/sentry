@@ -5,8 +5,6 @@ We were unable to generate your data export due to an internal processing error:
 
     {{error_message}}
 
-Please try again later.
-
 Troubleshooting & References:
  - https://docs.sentry.io/ (Documentation)
  - https://help.sentry.io/ (FAQs)
