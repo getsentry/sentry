@@ -254,6 +254,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     # individually. If we find this to be a problem then we can look into batching.
     projects = serializers.ListField(child=ProjectField(), required=False)
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
+    # triggers = serializers.ListField(required=True)
     triggers = AlertRuleTriggerSerializer(many=True, required=True)
 
     class Meta:
@@ -415,6 +416,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             if "aggregation" not in validated_data:
                 raise serializers.ValidationError("aggregation is required")
 
+            # triggers = validated_data.pop("triggers")
             alert_rule = create_alert_rule(
                 organization=self.context["organization"], **validated_data
             )
@@ -424,5 +426,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def update(self, instance, validated_data):
         validated_data = self._remove_unchanged_fields(instance, validated_data)
+        # triggers = validated_data.pop("triggers")
         alert_rule = update_alert_rule(instance, **validated_data)
         return alert_rule

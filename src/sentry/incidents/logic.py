@@ -43,8 +43,6 @@ from sentry.snuba.subscriptions import (
 )
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
 
-MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
-
 
 class AlreadyDeletedError(Exception):
     pass
@@ -100,13 +98,7 @@ def create_incident(
                 [IncidentGroup(incident=incident, group=group) for group in groups]
             )
 
-        event_stats_snapshot = create_initial_event_stats_snapshot(incident)
-        create_incident_activity(
-            incident,
-            IncidentActivityType.DETECTED,
-            event_stats_snapshot=event_stats_snapshot,
-            user=user,
-        )
+        create_incident_activity(incident, IncidentActivityType.DETECTED, user=user)
         analytics.record(
             "incident.created",
             incident_id=incident.id,
@@ -178,18 +170,6 @@ def set_incident_seen(incident, user=None):
     return incident_seen
 
 
-def create_initial_event_stats_snapshot(incident):
-    """
-    Creates an event snapshot representing the state at the beginning of
-    an incident. It's intended to capture the history of the events involved in
-    the incident, the spike and a short period of time after that.
-    """
-    initial_period_length = min(timezone.now() - incident.date_started, MAX_INITIAL_INCIDENT_PERIOD)
-    end = incident.date_started + initial_period_length
-    start = end - (initial_period_length * 4)
-    return create_event_stat_snapshot(incident, start, end)
-
-
 @transaction.atomic
 def create_incident_activity(
     incident,
@@ -198,7 +178,6 @@ def create_incident_activity(
     value=None,
     previous_value=None,
     comment=None,
-    event_stats_snapshot=None,
     mentioned_user_ids=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
@@ -212,7 +191,6 @@ def create_incident_activity(
         value=value,
         previous_value=previous_value,
         comment=comment,
-        event_stats_snapshot=event_stats_snapshot,
     )
 
     if mentioned_user_ids:
@@ -313,6 +291,8 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
             "start": incident.date_started if start is None else start,
             "end": incident.current_end_date if end is None else end,
         }
+        # Make start about 20% earlier:
+        params["start"] = params["start"] - (params["end"] - params["start"]) / 5
         group_ids = incident_groups[incident.id]
         if group_ids:
             params["group_ids"] = group_ids
@@ -441,9 +421,7 @@ def get_incident_subscribers(incident):
 
 
 def get_incident_activity(incident):
-    return IncidentActivity.objects.filter(incident=incident).select_related(
-        "user", "event_stats_snapshot", "incident"
-    )
+    return IncidentActivity.objects.filter(incident=incident).select_related("user", "incident")
 
 
 class AlertRuleNameAlreadyUsedError(Exception):
@@ -466,7 +444,6 @@ def create_alert_rule(
     excluded_projects=None,
     triggers=None,
 ):
-    print("creating alert rule")
     """
     Creates an alert rule for an organization.
 
@@ -523,7 +500,6 @@ def create_alert_rule(
                 AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=e)
 
         if triggers:
-            print("we has triggers")
             for trigger_data in triggers:
                 create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
 
@@ -780,7 +756,6 @@ def create_alert_rule_trigger(
     excluded_projects=None,
     actions=None,
 ):
-    print("creating alert rule trigger")
     """
     Creates a new AlertRuleTrigger
     :param alert_rule: The alert rule to create the trigger for
@@ -955,12 +930,6 @@ def create_alert_rule_trigger_action(
     :param integration: (Optional) The Integration related to this action.
     :return: The created action
     """
-    print("creating alert rule trigger action")
-    print("trigger:",trigger)
-    print("type:",type)
-    print("target_type:",target_type)
-    print("target_identifier:",target_identifier)
-    print("integration:",integration)
     target_display = None
     if type == AlertRuleTriggerAction.Type.SLACK:
         from sentry.integrations.slack.utils import get_channel_id
