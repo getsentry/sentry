@@ -2,7 +2,15 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
+import congratsRobotsPlaceholder from 'app/../images/spot/congrats-robots-placeholder.jpg';
 import space from 'app/styles/space';
+
+const Placeholder = () => (
+  <PlaceholderImage
+    alt={t('Congrats, you have no unresolved issues')}
+    src={congratsRobotsPlaceholder}
+  />
+);
 
 const Message = () => (
   <React.Fragment>
@@ -40,7 +48,7 @@ class ErrorBoundary extends React.Component<
 
   render() {
     if (this.state.hasError) {
-      return null;
+      return <Placeholder />;
     }
 
     return this.props.children;
@@ -50,7 +58,7 @@ class ErrorBoundary extends React.Component<
 const NoUnresolvedIssues = () => (
   <Wrapper>
     <ErrorBoundary>
-      <React.Suspense fallback={null}>
+      <React.Suspense fallback={<Placeholder />}>
         <CongratsRobotsVideo />
       </React.Suspense>
     </ErrorBoundary>
@@ -77,6 +85,10 @@ const EmptyMessage = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     font-size: ${p => p.theme.fontSizeExtraLarge};
   }
+`;
+
+const PlaceholderImage = styled('img')`
+  max-height: 320px; /* This should be same height as video in CongratsRobots */
 `;
 
 export default NoUnresolvedIssues;
