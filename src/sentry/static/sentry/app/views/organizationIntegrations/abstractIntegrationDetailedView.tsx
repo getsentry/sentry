@@ -14,7 +14,6 @@ import AsyncComponent from 'app/components/asyncComponent';
 import space from 'app/styles/space';
 import Tag from 'app/views/settings/components/tag';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import InlineSvg from 'app/components/inlineSvg';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
 import {
@@ -25,6 +24,7 @@ import {
 import Alert, {Props as AlertProps} from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import marked, {singleLineRenderer} from 'app/utils/marked';
+import {IconClose} from 'app/icons';
 import IntegrationStatus from './integrationStatus';
 
 type Tab = 'information' | 'configurations';
@@ -212,7 +212,7 @@ class AbstractIntegrationDetailedView<
   renderTopSection() {
     const {organization} = this.props;
 
-    const {IntegrationFeatures} = getIntegrationFeatureGate();
+    const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
     const tags = this.cleanTags();
     return (
       <Flex>
@@ -230,11 +230,9 @@ class AbstractIntegrationDetailedView<
             ))}
           </Flex>
         </NameContainer>
-        <IntegrationFeatures {...this.featureProps}>
+        <IntegrationDirectoryFeatures {...this.featureProps}>
           {({disabled, disabledReason}) => (
             <DisableWrapper>
-              {disabled && <DisabledNotice reason={disabledReason} />}
-
               <Access organization={organization} access={['org:integrations']}>
                 {({hasAccess}) => (
                   <Tooltip
@@ -247,9 +245,10 @@ class AbstractIntegrationDetailedView<
                   </Tooltip>
                 )}
               </Access>
+              {disabled && <DisabledNotice reason={disabledReason} />}
             </DisableWrapper>
           )}
-        </IntegrationFeatures>
+        </IntegrationDirectoryFeatures>
       </Flex>
     );
   }
@@ -265,7 +264,7 @@ class AbstractIntegrationDetailedView<
             className={this.state.tab === tabName ? 'active' : ''}
             onClick={() => this.onTabChange(tabName)}
           >
-            <a style={{textTransform: 'capitalize'}}>{t(this.getTabDiplay(tabName))}</a>
+            <CapitalizedLink>{t(this.getTabDiplay(tabName))}</CapitalizedLink>
           </li>
         ))}
       </ul>
@@ -274,29 +273,40 @@ class AbstractIntegrationDetailedView<
 
   //Returns the information about the integration description and features
   renderInformationCard() {
-    const {FeatureList} = getIntegrationFeatureGate();
+    const {IntegrationDirectoryFeatureList} = getIntegrationFeatureGate();
 
     return (
       <React.Fragment>
-        <Description dangerouslySetInnerHTML={{__html: marked(this.description)}} />
-        <FeatureList {...this.featureProps} provider={{key: this.integrationSlug}} />
-        {this.renderPermissions()}
-        <Metadata>
-          {!!this.author && <AuthorName>{t('By %s', this.author)}</AuthorName>}
-          <div>
+        <Flex>
+          <FlexContainer>
+            <Description dangerouslySetInnerHTML={{__html: marked(this.description)}} />
+            <IntegrationDirectoryFeatureList
+              {...this.featureProps}
+              provider={{key: this.props.params.integrationSlug}}
+            />
+            {this.renderPermissions()}
+            {this.alerts.map((alert, i) => (
+              <Alert key={i} type={alert.type} icon={alert.icon}>
+                <span
+                  dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}}
+                />
+              </Alert>
+            ))}
+          </FlexContainer>
+          <Metadata>
+            {!!this.author && (
+              <div>
+                <CreatedContainer>{t('Created By')}</CreatedContainer>
+                <AuthorName>{this.author}</AuthorName>
+              </div>
+            )}
             {this.resourceLinks.map(({title, url}) => (
               <ExternalLink key={url} href={url}>
                 {t(title)}
               </ExternalLink>
             ))}
-          </div>
-        </Metadata>
-
-        {this.alerts.map((alert, i) => (
-          <Alert key={i} type={alert.type} icon={alert.icon}>
-            <span dangerouslySetInnerHTML={{__html: singleLineRenderer(alert.text)}} />
-          </Alert>
-        ))}
+          </Metadata>
+        </Flex>
       </React.Fragment>
     );
   }
@@ -316,6 +326,14 @@ class AbstractIntegrationDetailedView<
 
 const Flex = styled('div')`
   display: flex;
+`;
+
+const FlexContainer = styled('div')`
+  flex: 1;
+`;
+
+const CapitalizedLink = styled('a')`
+  text-transform: 'capitalize';
 `;
 
 const StyledTag = styled(Tag)`
@@ -338,19 +356,24 @@ const Name = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
+const IconCloseCircle = styled(IconClose)`
+  color: ${p => p.theme.red};
+  margin-right: ${space(1)};
+`;
+
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div
     style={{
-      flex: 1,
+      display: 'flex',
       alignItems: 'center',
     }}
     {...p}
   >
-    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
-    <div style={{marginLeft: `${space(1)}`}}>{reason}</div>
+    <IconCloseCircle circle />
+    <span>{reason}</span>
   </div>
 ))`
-  color: ${p => p.theme.red};
+  padding-top: ${space(0.5)};
   font-size: 0.9em;
 `;
 
@@ -369,17 +392,19 @@ const Description = styled('div')`
 `;
 
 const Metadata = styled(Flex)`
+  display: flex;
+  flex-direction: column;
   font-size: 0.9em;
-  margin-bottom: ${space(2)};
+  margin-left: ${space(4)};
+  margin-right: 100px;
 
   a {
-    margin-left: ${space(1)};
+    margin-bottom: ${space(2)};
   }
 `;
 
 const AuthorName = styled('div')`
-  color: ${p => p.theme.gray2};
-  flex: 1;
+  margin-bottom: ${space(4)};
 `;
 
 const StatusWrapper = styled('div')`
@@ -391,6 +416,16 @@ const StatusWrapper = styled('div')`
 const DisableWrapper = styled('div')`
   margin-left: auto;
   align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 `;
 
+const CreatedContainer = styled('div')`
+  text-transform: uppercase;
+  padding-bottom: ${space(1)};
+  color: ${p => p.theme.gray2};
+  font-weight: 600;
+  font-size: 12px;
+`;
 export default AbstractIntegrationDetailedView;
