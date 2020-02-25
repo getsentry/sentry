@@ -414,140 +414,14 @@ class EventManager(object):
     def get_data(self):
         return self._data
 
-    @metrics.wraps("event_manager.get_event_instance")
-    def _get_event_instance(self, project_id=None):
-        data = self._data
-        event_id = data.get("event_id")
-
-        return eventstore.create_event(
-            project_id=project_id or self._project.id,
-            event_id=event_id,
-            group_id=None,
-            data=EventDict(data, skip_renormalization=True),
-        )
-
-    def get_culprit(self):
-        """Helper to calculate the default culprit"""
-        return force_text(
-            self._data.get("culprit")
-            or self._data.get("transaction")
-            or generate_culprit(self._data)
-            or ""
-        )
-
-    def get_event_type(self):
-        """Returns the event type."""
-        return eventtypes.get(self._data.get("type", "default"))()
-
-    def materialize_metadata(self):
-        """Returns the materialized metadata to be merged with group or
-        event data.  This currently produces the keys `type`, `metadata`,
-        `title` and `location`.  This should most likely also produce
-        `culprit` here.
-        """
-        event_type = self.get_event_type()
-        event_metadata = event_type.get_metadata(self._data)
-        return {
-            "type": event_type.key,
-            "metadata": event_metadata,
-            "title": event_type.get_title(event_metadata),
-            "location": event_type.get_location(event_metadata),
-        }
-
-    def get_attachments(self, cache_key, event):
-        """
-        Computes a list of attachments that should be stored.
-
-        This method checks whether event attachments are available and sends them to
-        the blob store. There is special handling for crash reports which may
-        contain unstripped PII. If the project or organization is configured to
-        limit the amount of crash reports per group, the number of stored crashes is
-        limited.
-
-        :param cache_key: The cache key at which the event payload is stored in the
-                        cache. This is used to retrieve attachments.
-        :param event:     The event model instance.
-        """
-        filtered = []
-
-        if cache_key is None:
-            return filtered
-
-        project = event.project
-        if not features.has("organizations:event-attachments", project.organization, actor=None):
-            return filtered
-
-        attachments = list(attachment_cache.get(cache_key))
-        if not attachments:
-            return filtered
-
-        # The setting is both an organization and project setting. The project
-        # setting strictly overrides the organization setting, unless set to the
-        # default.
-        max_crashreports = get_max_crashreports(project)
-        if not max_crashreports:
-            max_crashreports = get_max_crashreports(project.organization)
-
-        # The number of crash reports is cached per group
-        crashreports_key = get_crashreport_key(event.group_id)
-
-        # Only fetch the number of stored crash reports if there is a crash report
-        # in the list of attachments. Otherwise, we won't require this number.
-        if any(attachment.type in CRASH_REPORT_TYPES for attachment in attachments):
-            cached_reports = get_stored_crashreports(crashreports_key, event, max_crashreports)
-        else:
-            cached_reports = 0
-        stored_reports = cached_reports
-
-        for attachment in attachments:
-            # If the attachment is a crash report (e.g. minidump), we need to honor
-            # the store_crash_reports setting. Otherwise, we assume that the client
-            # has already verified PII and just store the attachment.
-            if attachment.type in CRASH_REPORT_TYPES:
-                if crashreports_exceeded(stored_reports, max_crashreports):
-                    continue
-                stored_reports += 1
-
-            filtered.append(attachment)
-
-        # Check if we have exceeded the stored crash reports count. If so, we
-        # persist the current maximum (not the actual number!) into the cache. Next
-        # time when loading from the cache, we will validate that this number has
-        # not changed, or otherwise re-fetch from the database.
-        if (
-            crashreports_exceeded(stored_reports, max_crashreports)
-            and stored_reports > cached_reports
-        ):
-            cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
-
-        return filtered
-
-    def save_attachments(self, attachments, event):
-        """
-        Persists cached event attachments into the file store.
-
-        :param attachments: A filtered list of attachments to save.
-        :param event:       The event model instance.
-        """
-        for attachment in attachments:
-            file = File.objects.create(
-                name=attachment.name,
-                type=attachment.type,
-                headers={"Content-Type": attachment.content_type},
-            )
-            file.putfile(six.BytesIO(attachment.data))
-
-            EventAttachment.objects.create(
-                event_id=event.event_id,
-                project_id=event.project_id,
-                group_id=event.group_id,
-                name=attachment.name,
-                file=file,
-            )
-
     @metrics.wraps("event_manager.save")
     def save(self, project_id, raw=False, assume_normalized=False, cache_key=None):
         """
+        After normalizing and processing an event, save adjacent models such as
+        releases and environments to postgres and write the event into
+        eventstream. From there it will be picked up by Snuba and
+        post-processing.
+
         We re-insert events with duplicate IDs into Snuba, which is responsible
         for deduplicating events. Since deduplication in Snuba is on the primary
         key (based on event ID, project ID and day), events with same IDs are only
@@ -566,8 +440,6 @@ class EventManager(object):
                 self.normalize()
             self._normalized = True
 
-        data = self._data
-
         with metrics.timer("event_manager.save.project.get_from_cache"):
             project = Project.objects.get_from_cache(id=project_id)
 
@@ -576,39 +448,242 @@ class EventManager(object):
                 id=project.organization_id
             )
 
-        # Pull out the culprit
-        culprit = self.get_culprit()
+        job = {"data": self._data, "project_id": project_id, "raw": raw}
+        jobs = [job]
+        projects = {project.id: project}
 
-        # Pull the toplevel data we're interested in
-        level = data.get("level")
-
-        transaction_name = data.get("transaction")
-        logger_name = data.get("logger")
-        release = data.get("release")
-        dist = data.get("dist")
-        environment = data.get("environment")
-        recorded_timestamp = data.get("timestamp")
-
-        # We need to swap out the data with the one internal to the newly
-        # created event object
-        event = self._get_event_instance(project_id=project_id)
-        self._data = data = event.data.data
-
-        event._project_cache = project
-
-        date = event.datetime
-        platform = event.platform
-        event_id = event.event_id
-
-        if transaction_name:
-            transaction_name = force_text(transaction_name)
+        _pull_out_data(jobs, projects)
 
         # Right now the event type is the signal to skip the group. This
         # is going to change a lot.
-        if event.get_event_type() == "transaction":
+        if job["event"].get_event_type() == "transaction":
             issueless_event = True
         else:
             issueless_event = False
+
+        _get_or_create_release_many(jobs, projects)
+
+        # XXX: remove
+        if job["dist"] and job["release"]:
+            job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
+            # dont allow a conflicting 'dist' tag
+            pop_tag(job["data"], "dist")
+            set_tag(job["data"], "sentry:dist", job["dist"].name)
+        else:
+            job["dist"] = None
+
+        _get_event_user_many(jobs, projects)
+
+        with metrics.timer("event_manager.load_grouping_config"):
+            # At this point we want to normalize the in_app values in case the
+            # clients did not set this appropriately so far.
+            grouping_config = load_grouping_config(
+                get_grouping_config_dict_for_event_data(job["data"], project)
+            )
+
+        with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
+            normalize_stacktraces_for_grouping(job["data"], grouping_config)
+
+        _derive_plugin_tags_many(jobs, projects)
+        _derive_interface_tags_many(jobs)
+
+        with metrics.timer("event_manager.apply_server_fingerprinting"):
+            # The active grouping config was put into the event in the
+            # normalize step before.  We now also make sure that the
+            # fingerprint was set to `'{{ default }}' just in case someone
+            # removed it from the payload.  The call to get_hashes will then
+            # look at `grouping_config` to pick the right parameters.
+            job["data"]["fingerprint"] = job["data"].get("fingerprint") or ["{{ default }}"]
+            apply_server_fingerprinting(job["data"], get_fingerprinting_config_for_project(project))
+
+        with metrics.timer("event_manager.event.get_hashes"):
+            # Here we try to use the grouping config that was requested in the
+            # event.  If that config has since been deleted (because it was an
+            # experimental grouping config) we fall back to the default.
+            try:
+                hashes = job["event"].get_hashes()
+            except GroupingConfigNotFound:
+                job["data"]["grouping_config"] = get_grouping_config_dict_for_project(project)
+                hashes = job["event"].get_hashes()
+
+        job["data"]["hashes"] = hashes
+
+        _materialize_metadata_many(jobs)
+
+        job["received_timestamp"] = received_timestamp = job["event"].data.get("received") or float(
+            job["event"].datetime.strftime("%s")
+        )
+
+        if not issueless_event:
+            # The group gets the same metadata as the event when it's flushed but
+            # additionally the `last_received` key is set.  This key is used by
+            # _save_aggregate.
+            group_metadata = dict(job["materialized_metadata"])
+            group_metadata["last_received"] = received_timestamp
+            kwargs = {
+                "platform": job["platform"],
+                "message": job["event"].search_message,
+                "culprit": job["culprit"],
+                "logger": job["logger_name"],
+                "level": LOG_LEVELS_MAP.get(job["level"]),
+                "last_seen": job["event"].datetime,
+                "first_seen": job["event"].datetime,
+                "active_at": job["event"].datetime,
+                "data": group_metadata,
+            }
+
+            if job["release"]:
+                kwargs["first_release"] = job["release"]
+
+            try:
+                job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
+                    event=job["event"], hashes=hashes, release=job["release"], **kwargs
+                )
+            except HashDiscarded:
+                event_discarded.send_robust(project=project, sender=EventManager)
+
+                metrics.incr(
+                    "events.discarded",
+                    skip_internal=True,
+                    tags={"organization_id": project.organization_id, "platform": job["platform"]},
+                )
+                raise
+            job["event"].group = job["group"]
+        else:
+            job["group"] = None
+            job["is_new"] = False
+            job["is_regression"] = False
+
+        _send_event_saved_signal_many(jobs, projects)
+
+        # store a reference to the group id to guarantee validation of isolation
+        # XXX(markus): No clue what this does
+        job["event"].data.bind_ref(job["event"])
+
+        _get_or_create_environment_many(jobs, projects)
+
+        if job["group"]:
+            group_environment, job["is_new_group_environment"] = GroupEnvironment.get_or_create(
+                group_id=job["group"].id,
+                environment_id=job["environment"].id,
+                defaults={"first_release": job["release"] or None},
+            )
+        else:
+            job["is_new_group_environment"] = False
+
+        _get_or_create_release_associated_models(jobs, projects)
+
+        if job["release"] and job["group"]:
+            job["grouprelease"] = GroupRelease.get_or_create(
+                group=job["group"],
+                release=job["release"],
+                environment=job["environment"],
+                datetime=job["event"].datetime,
+            )
+
+        _tsdb_record_all_metrics(jobs)
+
+        if job["group"]:
+            UserReport.objects.filter(project=project, event_id=job["event"].event_id).update(
+                group=job["group"], environment=job["environment"]
+            )
+
+        # Enusre the _metrics key exists. This is usually created during
+        # and prefilled with ingestion sizes.
+        event_metrics = job["event"].data.get("_metrics") or {}
+        job["event"].data["_metrics"] = event_metrics
+
+        # Capture the actual size that goes into node store.
+        event_metrics["bytes.stored.event"] = len(json.dumps(dict(job["event"].data.items())))
+
+        if not issueless_event:
+            # Load attachments first, but persist them at the very last after
+            # posting to eventstream to make sure all counters and eventstream are
+            # incremented for sure.
+            attachments = get_attachments(cache_key, job["event"])
+            for attachment in attachments:
+                key = "bytes.stored.%s" % (attachment.type,)
+                event_metrics[key] = (event_metrics.get(key) or 0) + len(attachment.data)
+
+        _nodestore_save_many(jobs)
+
+        if job["release"] and not issueless_event:
+            if job["is_new"]:
+                buffer.incr(
+                    ReleaseProject,
+                    {"new_groups": 1},
+                    {"release_id": job["release"].id, "project_id": project.id},
+                )
+            if job["is_new_group_environment"]:
+                buffer.incr(
+                    ReleaseProjectEnvironment,
+                    {"new_issues_count": 1},
+                    {
+                        "project_id": project.id,
+                        "release_id": job["release"].id,
+                        "environment_id": job["environment"].id,
+                    },
+                )
+
+        if not raw:
+            if not project.first_event:
+                project.update(first_event=job["event"].datetime)
+                first_event_received.send_robust(
+                    project=project, event=job["event"], sender=Project
+                )
+
+        _eventstream_insert_many(jobs)
+
+        if not issueless_event:
+            # Do this last to ensure signals get emitted even if connection to the
+            # file store breaks temporarily.
+            save_attachments(attachments, job["event"])
+
+        metric_tags = {"from_relay": "_relay_processed" in job["data"]}
+
+        metrics.timing(
+            "events.latency", received_timestamp - job["recorded_timestamp"], tags=metric_tags
+        )
+        metrics.timing("events.size.data.post_save", job["event"].size, tags=metric_tags)
+        metrics.incr(
+            "events.post_save.normalize.errors",
+            amount=len(job["data"].get("errors") or ()),
+            tags=metric_tags,
+        )
+
+        self._data = job["event"].data.data
+        return job["event"]
+
+
+@metrics.wraps("save_event.pull_out_data")
+def _pull_out_data(jobs, projects):
+    """
+    A bunch of (probably) CPU bound stuff.
+    """
+
+    for job in jobs:
+        job["project_id"] = int(job["project_id"])
+
+        data = job["data"]
+
+        # Pull the toplevel data we're interested in
+        job["culprit"] = get_culprit(data)
+
+        transaction_name = data.get("transaction")
+        if transaction_name:
+            transaction_name = force_text(transaction_name)
+        job["transaction"] = transaction_name
+
+        job["logger_name"] = logger_name = data.get("logger")
+        job["level"] = level = data.get("level")
+        job["release"] = data.get("release")
+        job["dist"] = data.get("dist")
+        job["environment"] = environment = data.get("environment")
+        job["recorded_timestamp"] = data.get("timestamp")
+        job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
+        job["data"] = data = event.data.data
+        job["platform"] = event.platform
+        event._project_cache = projects[job["project_id"]]
 
         # Some of the data that are toplevel attributes are duplicated
         # into tags (logger, level, environment, transaction).  These are
@@ -623,525 +698,599 @@ class EventManager(object):
         if transaction_name:
             set_tag(data, "transaction", transaction_name)
 
-        if release:
+
+@metrics.wraps("save_event.get_or_create_release_many")
+def _get_or_create_release_many(jobs, projects):
+    jobs_with_releases = {}
+    release_date_added = {}
+
+    for job in jobs:
+        if not job["release"]:
+            continue
+
+        release_key = (job["project_id"], job["release"])
+        jobs_with_releases.setdefault(release_key, []).append(job)
+        new_datetime = job["event"].datetime
+        old_datetime = release_date_added.get(release_key)
+        if old_datetime is None or new_datetime > old_datetime:
+            release_date_added[release_key] = new_datetime
+
+    for (project_id, version), jobs_to_update in six.iteritems(jobs_with_releases):
+        release = Release.get_or_create(
+            project=projects[project_id],
+            version=version,
+            date_added=release_date_added[(project_id, version)],
+        )
+
+        for job in jobs_to_update:
             # dont allow a conflicting 'release' tag
+            data = job["data"]
             pop_tag(data, "release")
-            release = Release.get_or_create(project=project, version=release, date_added=date)
             set_tag(data, "sentry:release", release.version)
 
-        if dist and release:
-            dist = release.add_dist(dist, date)
-            # dont allow a conflicting 'dist' tag
-            pop_tag(data, "dist")
-            set_tag(data, "sentry:dist", dist.name)
-        else:
-            dist = None
+            job["release"] = release
 
-        event_user = self._get_event_user(project, data)
-        if event_user:
-            # dont allow a conflicting 'user' tag
+
+@metrics.wraps("save_event.get_event_user_many")
+def _get_event_user_many(jobs, projects):
+    for job in jobs:
+        data = job["data"]
+        user = _get_event_user(projects[job["project_id"]], data)
+
+        if user:
             pop_tag(data, "user")
-            set_tag(data, "sentry:user", event_user.tag_value)
+            set_tag(data, "sentry:user", user.tag_value)
 
-        with metrics.timer("event_manager.load_grouping_config"):
-            # At this point we want to normalize the in_app values in case the
-            # clients did not set this appropriately so far.
-            grouping_config = load_grouping_config(
-                get_grouping_config_dict_for_event_data(data, project)
-            )
+        job["user"] = user
 
-        with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
-            normalize_stacktraces_for_grouping(data, grouping_config)
 
-        with metrics.timer("event_manager.plugins"):
-            for plugin in plugins.for_project(project, version=None):
-                added_tags = safe_execute(plugin.get_tags, event, _with_transaction=False)
-                if added_tags:
-                    # plugins should not override user provided tags
-                    for key, value in added_tags:
-                        if get_tag(data, key) is None:
-                            set_tag(data, key, value)
+@metrics.wraps("save_event.derive_plugin_tags_many")
+def _derive_plugin_tags_many(jobs, projects):
+    # XXX: We ought to inline or remove this one for sure
+    plugins_for_projects = {
+        p.id: plugins.for_project(p, version=None) for p in six.itervalues(projects)
+    }
 
-        with metrics.timer("event_manager.set_tags"):
-            for path, iface in six.iteritems(event.interfaces):
-                for k, v in iface.iter_tags():
-                    set_tag(data, k, v)
-                # Get rid of ephemeral interface data
-                if iface.ephemeral:
-                    data.pop(iface.path, None)
+    for job in jobs:
+        for plugin in plugins_for_projects[job["project_id"]]:
+            added_tags = safe_execute(plugin.get_tags, job["event"], _with_transaction=False)
+            if added_tags:
+                data = job["data"]
+                # plugins should not override user provided tags
+                for key, value in added_tags:
+                    if get_tag(data, key) is None:
+                        set_tag(data, key, value)
 
-        with metrics.timer("event_manager.apply_server_fingerprinting"):
-            # The active grouping config was put into the event in the
-            # normalize step before.  We now also make sure that the
-            # fingerprint was set to `'{{ default }}' just in case someone
-            # removed it from the payload.  The call to get_hashes will then
-            # look at `grouping_config` to pick the right parameters.
-            data["fingerprint"] = data.get("fingerprint") or ["{{ default }}"]
-            apply_server_fingerprinting(data, get_fingerprinting_config_for_project(project))
 
-        with metrics.timer("event_manager.event.get_hashes"):
-            # Here we try to use the grouping config that was requested in the
-            # event.  If that config has since been deleted (because it was an
-            # experimental grouping config) we fall back to the default.
-            try:
-                hashes = event.get_hashes()
-            except GroupingConfigNotFound:
-                data["grouping_config"] = get_grouping_config_dict_for_project(project)
-                hashes = event.get_hashes()
+@metrics.wraps("save_event.derive_interface_tags_many")
+def _derive_interface_tags_many(jobs):
+    # XXX: We ought to inline or remove this one for sure
+    for job in jobs:
+        data = job["data"]
+        for path, iface in six.iteritems(job["event"].interfaces):
+            for k, v in iface.iter_tags():
+                set_tag(data, k, v)
 
-        data["hashes"] = hashes
+            # Get rid of ephemeral interface data
+            if iface.ephemeral:
+                data.pop(iface.path, None)
 
-        with metrics.timer("event_manager.materialize_metadata"):
-            # we want to freeze not just the metadata and type in but also the
-            # derived attributes.  The reason for this is that we push this
-            # data into kafka for snuba processing and our postprocessing
-            # picks up the data right from the snuba topic.  For most usage
-            # however the data is dynamically overridden by Event.title and
-            # Event.location (See Event.as_dict)
-            materialized_metadata = self.materialize_metadata()
-            data.update(materialized_metadata)
-            data["culprit"] = culprit
 
-        received_timestamp = event.data.get("received") or float(event.datetime.strftime("%s"))
+@metrics.wraps("save_event.materialize_metadata_many")
+def _materialize_metadata_many(jobs):
+    for job in jobs:
+        # we want to freeze not just the metadata and type in but also the
+        # derived attributes.  The reason for this is that we push this
+        # data into kafka for snuba processing and our postprocessing
+        # picks up the data right from the snuba topic.  For most usage
+        # however the data is dynamically overridden by Event.title and
+        # Event.location (See Event.as_dict)
+        data = job["data"]
+        job["materialized_metadata"] = metadata = materialize_metadata(data)
+        data.update(metadata)
+        data["culprit"] = job["culprit"]
 
-        if not issueless_event:
-            # The group gets the same metadata as the event when it's flushed but
-            # additionally the `last_received` key is set.  This key is used by
-            # _save_aggregate.
-            group_metadata = dict(materialized_metadata)
-            group_metadata["last_received"] = received_timestamp
-            kwargs = {
-                "platform": platform,
-                "message": event.search_message,
-                "culprit": culprit,
-                "logger": logger_name,
-                "level": LOG_LEVELS_MAP.get(level),
-                "last_seen": date,
-                "first_seen": date,
-                "active_at": date,
-                "data": group_metadata,
-            }
 
-            if release:
-                kwargs["first_release"] = release
+@metrics.wraps("save_event.send_event_saved_signal_many")
+def _send_event_saved_signal_many(jobs, projects):
+    for job in jobs:
+        event_saved.send_robust(
+            project=projects[job["project_id"]], event_size=job["event"].size, sender=EventManager
+        )
 
-            try:
-                group, is_new, is_regression = self._save_aggregate(
-                    event=event, hashes=hashes, release=release, **kwargs
-                )
-            except HashDiscarded:
-                event_discarded.send_robust(project=project, sender=EventManager)
 
-                metrics.incr(
-                    "events.discarded",
-                    skip_internal=True,
-                    tags={"organization_id": project.organization_id, "platform": platform},
-                )
-                raise
-            event.group = group
-        else:
-            group = None
-            is_new = False
-            is_regression = False
+@metrics.wraps("save_event.get_or_create_environment_many")
+def _get_or_create_environment_many(jobs, projects):
+    for job in jobs:
+        job["environment"] = Environment.get_or_create(
+            project=projects[job["project_id"]], name=job["environment"]
+        )
 
-        with metrics.timer("event_manager.event_saved_signal"):
-            event_saved.send_robust(project=project, event_size=event.size, sender=EventManager)
 
-        # store a reference to the group id to guarantee validation of isolation
-        event.data.bind_ref(event)
+@metrics.wraps("save_event.get_or_create_release_associated_models")
+def _get_or_create_release_associated_models(jobs, projects):
+    # XXX: This is possibly unnecessarily detached from
+    # _get_or_create_release_many, but we do not want to destroy order of
+    # execution right now
+    for job in jobs:
+        release = job["release"]
+        if not release:
+            continue
 
-        environment = Environment.get_or_create(project=project, name=environment)
+        project = projects[job["project_id"]]
+        environment = job["environment"]
+        date = job["event"].datetime
 
-        if group:
-            group_environment, is_new_group_environment = GroupEnvironment.get_or_create(
-                group_id=group.id,
-                environment_id=environment.id,
-                defaults={"first_release": release if release else None},
-            )
-        else:
-            is_new_group_environment = False
+        ReleaseEnvironment.get_or_create(
+            project=project, release=release, environment=environment, datetime=date
+        )
 
-        if release:
-            ReleaseEnvironment.get_or_create(
-                project=project, release=release, environment=environment, datetime=date
-            )
+        ReleaseProjectEnvironment.get_or_create(
+            project=project, release=release, environment=environment, datetime=date
+        )
 
-            ReleaseProjectEnvironment.get_or_create(
-                project=project, release=release, environment=environment, datetime=date
-            )
 
-            if group:
-                grouprelease = GroupRelease.get_or_create(
-                    group=group, release=release, environment=environment, datetime=date
-                )
+@metrics.wraps("save_event.tsdb_record_all_metrics")
+def _tsdb_record_all_metrics(jobs):
+    """
+    Do all tsdb-related things for save_event in here s.t. we can potentially
+    put everything in a single redis pipeline someday.
+    """
 
-        counters = [(tsdb.models.project, project.id)]
+    # XXX: validate whether anybody actually uses those metrics
 
-        if group:
-            counters.append((tsdb.models.group, group.id))
-
-        if release:
-            counters.append((tsdb.models.release, release.id))
-
-        with metrics.timer("event_manager.tsdb_incr_group_and_release_counters") as metrics_tags:
-            metrics_tags["has_group"] = "true" if group else "false"
-            tsdb.incr_multi(counters, timestamp=event.datetime, environment_id=environment.id)
-
+    for job in jobs:
+        incrs = []
         frequencies = []
+        records = []
+
+        incrs.append((tsdb.models.project, job["project_id"]))
+        event = job["event"]
+        group = job["group"]
+        release = job["release"]
+        environment = job["environment"]
 
         if group:
+            incrs.append((tsdb.models.group, group.id))
             frequencies.append(
                 (tsdb.models.frequent_environments_by_group, {group.id: {environment.id: 1}})
             )
 
             if release:
                 frequencies.append(
-                    (tsdb.models.frequent_releases_by_group, {group.id: {grouprelease.id: 1}})
+                    (
+                        tsdb.models.frequent_releases_by_group,
+                        {group.id: {job["grouprelease"].id: 1}},
+                    )
                 )
+
+        if release:
+            incrs.append((tsdb.models.release, release.id))
+
+        user = job["user"]
+
+        if user:
+            project_id = job["project_id"]
+            records.append((tsdb.models.users_affected_by_project, project_id, (user.tag_value,)))
+
+            if group:
+                records.append((tsdb.models.users_affected_by_group, group.id, (user.tag_value,)))
+
+        if incrs:
+            tsdb.incr_multi(incrs, timestamp=event.datetime, environment_id=environment.id)
+
+        if records:
+            tsdb.record_multi(records, timestamp=event.datetime, environment_id=environment.id)
+
         if frequencies:
             tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
 
-        if group:
-            UserReport.objects.filter(project=project, event_id=event_id).update(
-                group=group, environment=environment
-            )
 
-        # Enusre the _metrics key exists. This is usually created during
-        # and prefilled with ingestion sizes.
-        event_metrics = event.data.get("_metrics") or {}
-        event.data["_metrics"] = event_metrics
+@metrics.wraps("save_event.nodestore_save_many")
+def _nodestore_save_many(jobs):
+    for job in jobs:
+        # Write the event to Nodestore
+        job["event"].data.save()
 
-        # Capture the actual size that goes into node store.
-        event_metrics["bytes.stored.event"] = len(json.dumps(dict(event.data.items())))
 
-        if not issueless_event:
-            # Load attachments first, but persist them at the very last after
-            # posting to eventstream to make sure all counters and eventstream are
-            # incremented for sure.
-            attachments = self.get_attachments(cache_key, event)
-            for attachment in attachments:
-                key = "bytes.stored.%s" % (attachment.type,)
-                event_metrics[key] = (event_metrics.get(key) or 0) + len(attachment.data)
-
-        with metrics.timer("event_manager.nodestore.save"):
-            # Write the event to Nodestore
-            event.data.save()
-
-        if event_user:
-            counters = [
-                (tsdb.models.users_affected_by_project, project.id, (event_user.tag_value,))
-            ]
-
-            if group:
-                counters.append(
-                    (tsdb.models.users_affected_by_group, group.id, (event_user.tag_value,))
-                )
-
-            with metrics.timer("event_manager.tsdb_record_users_affected") as metrics_tags:
-                metrics_tags["has_group"] = "true" if group else "false"
-                tsdb.record_multi(counters, timestamp=event.datetime, environment_id=environment.id)
-
-        if release:
-            if is_new:
-                buffer.incr(
-                    ReleaseProject,
-                    {"new_groups": 1},
-                    {"release_id": release.id, "project_id": project.id},
-                )
-            if is_new_group_environment:
-                buffer.incr(
-                    ReleaseProjectEnvironment,
-                    {"new_issues_count": 1},
-                    {
-                        "project_id": project.id,
-                        "release_id": release.id,
-                        "environment_id": environment.id,
-                    },
-                )
-
-        if not raw:
-            if not project.first_event:
-                project.update(first_event=date)
-                first_event_received.send_robust(project=project, event=event, sender=Project)
-
-        with metrics.timer("event_manager.eventstream.insert"):
-            eventstream.insert(
-                group=group,
-                event=event,
-                is_new=is_new,
-                is_regression=is_regression,
-                is_new_group_environment=is_new_group_environment,
-                primary_hash=hashes[0],
-                received_timestamp=received_timestamp,
-                # We are choosing to skip consuming the event back
-                # in the eventstream if it's flagged as raw.
-                # This means that we want to publish the event
-                # through the event stream, but we don't care
-                # about post processing and handling the commit.
-                skip_consume=raw,
-            )
-
-        if not issueless_event:
-            # Do this last to ensure signals get emitted even if connection to the
-            # file store breaks temporarily.
-            self.save_attachments(attachments, event)
-
-        metric_tags = {"from_relay": "_relay_processed" in self._data}
-
-        metrics.timing("events.latency", received_timestamp - recorded_timestamp, tags=metric_tags)
-        metrics.timing("events.size.data.post_save", event.size, tags=metric_tags)
-        metrics.incr(
-            "events.post_save.normalize.errors",
-            amount=len(self._data.get("errors") or ()),
-            tags=metric_tags,
+@metrics.wraps("save_event.eventstream_insert_many")
+def _eventstream_insert_many(jobs):
+    for job in jobs:
+        eventstream.insert(
+            group=job["group"],
+            event=job["event"],
+            is_new=job["is_new"],
+            is_regression=job["is_regression"],
+            is_new_group_environment=job["is_new_group_environment"],
+            primary_hash=job["data"]["hashes"][0],
+            received_timestamp=job["received_timestamp"],
+            # We are choosing to skip consuming the event back
+            # in the eventstream if it's flagged as raw.
+            # This means that we want to publish the event
+            # through the event stream, but we don't care
+            # about post processing and handling the commit.
+            skip_consume=job.get("raw", False),
         )
 
-        return event
 
-    def _get_event_user(self, project, data):
-        with metrics.timer("event_manager.get_event_user") as metrics_tags:
-            return self._get_event_user_impl(project, data, metrics_tags)
+@metrics.wraps("event_manager.get_event_instance")
+def _get_event_instance(data, project_id):
+    event_id = data.get("event_id")
 
-    def _get_event_user_impl(self, project, data, metrics_tags):
-        user_data = data.get("user")
-        if not user_data:
-            metrics_tags["event_has_user"] = "false"
-            return
+    return eventstore.create_event(
+        project_id=project_id,
+        event_id=event_id,
+        group_id=None,
+        data=EventDict(data, skip_renormalization=True),
+    )
 
-        metrics_tags["event_has_user"] = "true"
 
-        ip_address = user_data.get("ip_address")
+def _get_event_user(project, data):
+    with metrics.timer("event_manager.get_event_user") as metrics_tags:
+        return _get_event_user_impl(project, data, metrics_tags)
 
-        if ip_address:
+
+def _get_event_user_impl(project, data, metrics_tags):
+    user_data = data.get("user")
+    if not user_data:
+        metrics_tags["event_has_user"] = "false"
+        return
+
+    metrics_tags["event_has_user"] = "true"
+
+    ip_address = user_data.get("ip_address")
+
+    if ip_address:
+        try:
+            ipaddress.ip_address(six.text_type(ip_address))
+        except ValueError:
+            ip_address = None
+
+    euser = EventUser(
+        project_id=project.id,
+        ident=user_data.get("id"),
+        email=user_data.get("email"),
+        username=user_data.get("username"),
+        ip_address=ip_address,
+        name=user_data.get("name"),
+    )
+    euser.set_hash()
+    if not euser.hash:
+        return
+
+    cache_key = u"euserid:1:{}:{}".format(project.id, euser.hash)
+    euser_id = cache.get(cache_key)
+    if euser_id is None:
+        metrics_tags["cache_hit"] = "false"
+        try:
+            with transaction.atomic(using=router.db_for_write(EventUser)):
+                euser.save()
+            metrics_tags["created"] = "true"
+        except IntegrityError:
+            metrics_tags["created"] = "false"
             try:
-                ipaddress.ip_address(six.text_type(ip_address))
-            except ValueError:
-                ip_address = None
-
-        euser = EventUser(
-            project_id=project.id,
-            ident=user_data.get("id"),
-            email=user_data.get("email"),
-            username=user_data.get("username"),
-            ip_address=ip_address,
-            name=user_data.get("name"),
-        )
-        euser.set_hash()
-        if not euser.hash:
-            return
-
-        cache_key = u"euserid:1:{}:{}".format(project.id, euser.hash)
-        euser_id = cache.get(cache_key)
-        if euser_id is None:
-            metrics_tags["cache_hit"] = "false"
-            try:
-                with transaction.atomic(using=router.db_for_write(EventUser)):
-                    euser.save()
-                metrics_tags["created"] = "true"
-            except IntegrityError:
-                metrics_tags["created"] = "false"
-                try:
-                    euser = EventUser.objects.get(project_id=project.id, hash=euser.hash)
-                except EventUser.DoesNotExist:
-                    metrics_tags["created"] = "lol"
-                    # why???
-                    e_userid = -1
-                else:
-                    if euser.name != (user_data.get("name") or euser.name):
-                        euser.update(name=user_data["name"])
-                    e_userid = euser.id
-                cache.set(cache_key, e_userid, 3600)
-        else:
-            metrics_tags["cache_hit"] = "true"
-
-        return euser
-
-    def _find_hashes(self, project, hash_list):
-        return map(
-            lambda hash: GroupHash.objects.get_or_create(project=project, hash=hash)[0], hash_list
-        )
-
-    def _save_aggregate(self, event, hashes, release, **kwargs):
-        project = event.project
-
-        # attempt to find a matching hash
-        all_hashes = self._find_hashes(project, hashes)
-
-        existing_group_id = None
-        for h in all_hashes:
-            if h.group_id is not None:
-                existing_group_id = h.group_id
-                break
-            if h.group_tombstone_id is not None:
-                raise HashDiscarded("Matches group tombstone %s" % h.group_tombstone_id)
-
-        # XXX(dcramer): this has the opportunity to create duplicate groups
-        # it should be resolved by the hash merging function later but this
-        # should be better tested/reviewed
-        if existing_group_id is None:
-            # it's possible the release was deleted between
-            # when we queried for the release and now, so
-            # make sure it still exists
-            first_release = kwargs.pop("first_release", None)
-
-            with transaction.atomic():
-                short_id = project.next_short_id()
-                group, group_is_new = (
-                    Group.objects.create(
-                        project=project,
-                        short_id=short_id,
-                        first_release_id=Release.objects.filter(id=first_release.id)
-                        .values_list("id", flat=True)
-                        .first()
-                        if first_release
-                        else None,
-                        **kwargs
-                    ),
-                    True,
-                )
-
-            metrics.incr(
-                "group.created", skip_internal=True, tags={"platform": event.platform or "unknown"}
-            )
-
-        else:
-            group = Group.objects.get(id=existing_group_id)
-
-            group_is_new = False
-
-        group._project_cache = project
-
-        # If all hashes are brand new we treat this event as new
-        is_new = False
-        new_hashes = [h for h in all_hashes if h.group_id is None]
-        if new_hashes:
-            # XXX: There is a race condition here wherein another process could
-            # create a new group that is associated with one of the new hashes,
-            # add some event(s) to it, and then subsequently have the hash
-            # "stolen" by this process. This then "orphans" those events from
-            # their "siblings" in the group we've created here. We don't have a
-            # way to fix this, since we can't update the group on those hashes
-            # without filtering on `group_id` (which we can't do due to query
-            # planner weirdness.) For more context, see 84c6f75a and d0e22787,
-            # as well as GH-5085.
-            GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
-                state=GroupHash.State.LOCKED_IN_MIGRATION
-            ).update(group=group)
-
-            if group_is_new and len(new_hashes) == len(all_hashes):
-                is_new = True
-
-        if not is_new:
-            is_regression = self._process_existing_aggregate(
-                group=group, event=event, data=kwargs, release=release
-            )
-        else:
-            is_regression = False
-
-        return group, is_new, is_regression
-
-    def _handle_regression(self, group, event, release):
-        if not group.is_resolved():
-            return
-
-        # we only mark it as a regression if the event's release is newer than
-        # the release which we originally marked this as resolved
-        elif GroupResolution.has_resolution(group, release):
-            return
-
-        elif has_pending_commit_resolution(group):
-            return
-
-        if not plugin_is_regression(group, event):
-            return
-
-        # we now think its a regression, rely on the database to validate that
-        # no one beat us to this
-        date = max(event.datetime, group.last_seen)
-        is_regression = bool(
-            Group.objects.filter(
-                id=group.id,
-                # ensure we cant update things if the status has been set to
-                # ignored
-                status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
-            )
-            .exclude(
-                # add to the regression window to account for races here
-                active_at__gte=date
-                - timedelta(seconds=5)
-            )
-            .update(
-                active_at=date,
-                # explicitly set last_seen here as ``is_resolved()`` looks
-                # at the value
-                last_seen=date,
-                status=GroupStatus.UNRESOLVED,
-            )
-        )
-
-        group.active_at = date
-        group.status = GroupStatus.UNRESOLVED
-
-        if is_regression and release:
-            # resolutions are only valid if the state of the group is still
-            # resolved -- if it were to change the resolution should get removed
-            try:
-                resolution = GroupResolution.objects.get(group=group)
-            except GroupResolution.DoesNotExist:
-                affected = False
+                euser = EventUser.objects.get(project_id=project.id, hash=euser.hash)
+            except EventUser.DoesNotExist:
+                metrics_tags["created"] = "lol"
+                # why???
+                e_userid = -1
             else:
-                cursor = connection.cursor()
-                # delete() API does not return affected rows
-                cursor.execute("DELETE FROM sentry_groupresolution WHERE id = %s", [resolution.id])
-                affected = cursor.rowcount > 0
+                if euser.name != (user_data.get("name") or euser.name):
+                    euser.update(name=user_data["name"])
+                e_userid = euser.id
+            cache.set(cache_key, e_userid, 3600)
+    else:
+        metrics_tags["cache_hit"] = "true"
 
-            if affected:
-                # if we had to remove the GroupResolution (i.e. we beat the
-                # the queue to handling this) then we need to also record
-                # the corresponding event
-                try:
-                    activity = Activity.objects.filter(
-                        group=group, type=Activity.SET_RESOLVED_IN_RELEASE, ident=resolution.id
-                    ).order_by("-datetime")[0]
-                except IndexError:
-                    # XXX: handle missing data, as its not overly important
-                    pass
-                else:
-                    activity.update(data={"version": release.version})
+    return euser
 
-        if is_regression:
-            activity = Activity.objects.create(
-                project_id=group.project_id,
-                group=group,
-                type=Activity.SET_REGRESSION,
-                data={"version": release.version if release else ""},
+
+def get_event_type(data):
+    return eventtypes.get(data.get("type", "default"))()
+
+
+def materialize_metadata(data):
+    """Returns the materialized metadata to be merged with group or
+    event data.  This currently produces the keys `type`, `metadata`,
+    `title` and `location`.  This should most likely also produce
+    `culprit` here.
+    """
+    event_type = get_event_type(data)
+    event_metadata = event_type.get_metadata(data)
+    return {
+        "type": event_type.key,
+        "metadata": event_metadata,
+        "title": event_type.get_title(event_metadata),
+        "location": event_type.get_location(event_metadata),
+    }
+
+
+def get_culprit(data):
+    """Helper to calculate the default culprit"""
+    return force_text(
+        data.get("culprit") or data.get("transaction") or generate_culprit(data) or ""
+    )
+
+
+def _save_aggregate(event, hashes, release, **kwargs):
+    project = event.project
+
+    # attempt to find a matching hash
+    all_hashes = _find_hashes(project, hashes)
+
+    existing_group_id = None
+    for h in all_hashes:
+        if h.group_id is not None:
+            existing_group_id = h.group_id
+            break
+        if h.group_tombstone_id is not None:
+            raise HashDiscarded("Matches group tombstone %s" % h.group_tombstone_id)
+
+    # XXX(dcramer): this has the opportunity to create duplicate groups
+    # it should be resolved by the hash merging function later but this
+    # should be better tested/reviewed
+    if existing_group_id is None:
+        # it's possible the release was deleted between
+        # when we queried for the release and now, so
+        # make sure it still exists
+        first_release = kwargs.pop("first_release", None)
+
+        with transaction.atomic():
+            short_id = project.next_short_id()
+            group, group_is_new = (
+                Group.objects.create(
+                    project=project,
+                    short_id=short_id,
+                    first_release_id=Release.objects.filter(id=first_release.id)
+                    .values_list("id", flat=True)
+                    .first()
+                    if first_release
+                    else None,
+                    **kwargs
+                ),
+                True,
             )
-            activity.send_notification()
 
-            kick_off_status_syncs.apply_async(
-                kwargs={"project_id": group.project_id, "group_id": group.id}
-            )
+        metrics.incr(
+            "group.created", skip_internal=True, tags={"platform": event.platform or "unknown"}
+        )
 
-        return is_regression
+    else:
+        group = Group.objects.get(id=existing_group_id)
 
-    def _process_existing_aggregate(self, group, event, data, release):
-        date = max(event.datetime, group.last_seen)
-        extra = {"last_seen": date, "score": ScoreClause(group), "data": data["data"]}
-        if event.search_message and event.search_message != group.message:
-            extra["message"] = event.search_message
-        if group.level != data["level"]:
-            extra["level"] = data["level"]
-        if group.culprit != data["culprit"]:
-            extra["culprit"] = data["culprit"]
-        if group.first_seen > event.datetime:
-            extra["first_seen"] = event.datetime
+        group_is_new = False
 
-        is_regression = self._handle_regression(group, event, release)
+    group._project_cache = project
 
-        group.last_seen = extra["last_seen"]
+    # If all hashes are brand new we treat this event as new
+    is_new = False
+    new_hashes = [h for h in all_hashes if h.group_id is None]
+    if new_hashes:
+        # XXX: There is a race condition here wherein another process could
+        # create a new group that is associated with one of the new hashes,
+        # add some event(s) to it, and then subsequently have the hash
+        # "stolen" by this process. This then "orphans" those events from
+        # their "siblings" in the group we've created here. We don't have a
+        # way to fix this, since we can't update the group on those hashes
+        # without filtering on `group_id` (which we can't do due to query
+        # planner weirdness.) For more context, see 84c6f75a and d0e22787,
+        # as well as GH-5085.
+        GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
+            state=GroupHash.State.LOCKED_IN_MIGRATION
+        ).update(group=group)
 
-        update_kwargs = {"times_seen": 1}
+        if group_is_new and len(new_hashes) == len(all_hashes):
+            is_new = True
 
-        buffer.incr(Group, update_kwargs, {"id": group.id}, extra)
+    if not is_new:
+        is_regression = _process_existing_aggregate(
+            group=group, event=event, data=kwargs, release=release
+        )
+    else:
+        is_regression = False
 
-        return is_regression
+    return group, is_new, is_regression
+
+
+def _handle_regression(group, event, release):
+    if not group.is_resolved():
+        return
+
+    # we only mark it as a regression if the event's release is newer than
+    # the release which we originally marked this as resolved
+    elif GroupResolution.has_resolution(group, release):
+        return
+
+    elif has_pending_commit_resolution(group):
+        return
+
+    if not plugin_is_regression(group, event):
+        return
+
+    # we now think its a regression, rely on the database to validate that
+    # no one beat us to this
+    date = max(event.datetime, group.last_seen)
+    is_regression = bool(
+        Group.objects.filter(
+            id=group.id,
+            # ensure we cant update things if the status has been set to
+            # ignored
+            status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
+        )
+        .exclude(
+            # add to the regression window to account for races here
+            active_at__gte=date
+            - timedelta(seconds=5)
+        )
+        .update(
+            active_at=date,
+            # explicitly set last_seen here as ``is_resolved()`` looks
+            # at the value
+            last_seen=date,
+            status=GroupStatus.UNRESOLVED,
+        )
+    )
+
+    group.active_at = date
+    group.status = GroupStatus.UNRESOLVED
+
+    if is_regression and release:
+        # resolutions are only valid if the state of the group is still
+        # resolved -- if it were to change the resolution should get removed
+        try:
+            resolution = GroupResolution.objects.get(group=group)
+        except GroupResolution.DoesNotExist:
+            affected = False
+        else:
+            cursor = connection.cursor()
+            # delete() API does not return affected rows
+            cursor.execute("DELETE FROM sentry_groupresolution WHERE id = %s", [resolution.id])
+            affected = cursor.rowcount > 0
+
+        if affected:
+            # if we had to remove the GroupResolution (i.e. we beat the
+            # the queue to handling this) then we need to also record
+            # the corresponding event
+            try:
+                activity = Activity.objects.filter(
+                    group=group, type=Activity.SET_RESOLVED_IN_RELEASE, ident=resolution.id
+                ).order_by("-datetime")[0]
+            except IndexError:
+                # XXX: handle missing data, as its not overly important
+                pass
+            else:
+                activity.update(data={"version": release.version})
+
+    if is_regression:
+        activity = Activity.objects.create(
+            project_id=group.project_id,
+            group=group,
+            type=Activity.SET_REGRESSION,
+            data={"version": release.version if release else ""},
+        )
+        activity.send_notification()
+
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
+
+    return is_regression
+
+
+def _process_existing_aggregate(group, event, data, release):
+    date = max(event.datetime, group.last_seen)
+    extra = {"last_seen": date, "score": ScoreClause(group), "data": data["data"]}
+    if event.search_message and event.search_message != group.message:
+        extra["message"] = event.search_message
+    if group.level != data["level"]:
+        extra["level"] = data["level"]
+    if group.culprit != data["culprit"]:
+        extra["culprit"] = data["culprit"]
+    if group.first_seen > event.datetime:
+        extra["first_seen"] = event.datetime
+
+    is_regression = _handle_regression(group, event, release)
+
+    group.last_seen = extra["last_seen"]
+
+    update_kwargs = {"times_seen": 1}
+
+    buffer.incr(Group, update_kwargs, {"id": group.id}, extra)
+
+    return is_regression
+
+
+def get_attachments(cache_key, event):
+    """
+    Computes a list of attachments that should be stored.
+
+    This method checks whether event attachments are available and sends them to
+    the blob store. There is special handling for crash reports which may
+    contain unstripped PII. If the project or organization is configured to
+    limit the amount of crash reports per group, the number of stored crashes is
+    limited.
+
+    :param cache_key: The cache key at which the event payload is stored in the
+                    cache. This is used to retrieve attachments.
+    :param event:     The event model instance.
+    """
+    filtered = []
+
+    if cache_key is None:
+        return filtered
+
+    project = event.project
+    if not features.has("organizations:event-attachments", project.organization, actor=None):
+        return filtered
+
+    attachments = list(attachment_cache.get(cache_key))
+    if not attachments:
+        return filtered
+
+    # The setting is both an organization and project setting. The project
+    # setting strictly overrides the organization setting, unless set to the
+    # default.
+    max_crashreports = get_max_crashreports(project)
+    if not max_crashreports:
+        max_crashreports = get_max_crashreports(project.organization)
+
+    # The number of crash reports is cached per group
+    crashreports_key = get_crashreport_key(event.group_id)
+
+    # Only fetch the number of stored crash reports if there is a crash report
+    # in the list of attachments. Otherwise, we won't require this number.
+    if any(attachment.type in CRASH_REPORT_TYPES for attachment in attachments):
+        cached_reports = get_stored_crashreports(crashreports_key, event, max_crashreports)
+    else:
+        cached_reports = 0
+    stored_reports = cached_reports
+
+    for attachment in attachments:
+        # If the attachment is a crash report (e.g. minidump), we need to honor
+        # the store_crash_reports setting. Otherwise, we assume that the client
+        # has already verified PII and just store the attachment.
+        if attachment.type in CRASH_REPORT_TYPES:
+            if crashreports_exceeded(stored_reports, max_crashreports):
+                continue
+            stored_reports += 1
+
+        filtered.append(attachment)
+
+    # Check if we have exceeded the stored crash reports count. If so, we
+    # persist the current maximum (not the actual number!) into the cache. Next
+    # time when loading from the cache, we will validate that this number has
+    # not changed, or otherwise re-fetch from the database.
+    if crashreports_exceeded(stored_reports, max_crashreports) and stored_reports > cached_reports:
+        cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
+
+    return filtered
+
+
+def save_attachments(attachments, event):
+    """
+    Persists cached event attachments into the file store.
+
+    :param attachments: A filtered list of attachments to save.
+    :param event:       The event model instance.
+    """
+    for attachment in attachments:
+        file = File.objects.create(
+            name=attachment.name,
+            type=attachment.type,
+            headers={"Content-Type": attachment.content_type},
+        )
+        file.putfile(six.BytesIO(attachment.data))
+
+        EventAttachment.objects.create(
+            event_id=event.event_id,
+            project_id=event.project_id,
+            group_id=event.group_id,
+            name=attachment.name,
+            file=file,
+        )
+
+
+def _find_hashes(project, hash_list):
+    return map(
+        lambda hash: GroupHash.objects.get_or_create(project=project, hash=hash)[0], hash_list
+    )
