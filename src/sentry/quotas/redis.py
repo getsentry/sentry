@@ -5,7 +5,7 @@ import six
 
 from time import time
 
-from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, RateLimited
+from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     validate_dynamic_cluster,
@@ -47,8 +47,9 @@ class RedisQuota(Quota):
 
     def __get_redis_key(self, quota, timestamp, shift, organization_id):
         if self.is_redis_cluster:
+            scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
             # new style redis cluster format which always has the organization id in
-            local_key = "%s{%s}%s" % (quota.id, organization_id, quota.scope_id or "")
+            local_key = "%s{%s}%s" % (quota.id, organization_id, scope_id)
         else:
             # legacy key format
             local_key = "%s:%s" % (quota.id, quota.scope_id or organization_id)
@@ -65,8 +66,9 @@ class RedisQuota(Quota):
         pquota = self.get_project_quota(project)
         if pquota[0] is not None:
             results.append(
-                QuotaConfig.limited(
+                QuotaConfig(
                     id="p",
+                    scope=QuotaScope.PROJECT,
                     scope_id=project.id,
                     limit=pquota[0],
                     window=pquota[1],
@@ -77,8 +79,13 @@ class RedisQuota(Quota):
         oquota = self.get_organization_quota(project.organization)
         if oquota[0] is not None:
             results.append(
-                QuotaConfig.limited(
-                    id="o", limit=oquota[0], window=oquota[1], reason_code="org_quota"
+                QuotaConfig(
+                    id="o",
+                    scope=QuotaScope.ORGANIZATION,
+                    scope_id=project.organization.id,
+                    limit=oquota[0],
+                    window=oquota[1],
+                    reason_code="org_quota",
                 )
             )
 
@@ -86,8 +93,9 @@ class RedisQuota(Quota):
             kquota = self.get_key_quota(key)
             if kquota[0] is not None:
                 results.append(
-                    QuotaConfig.limited(
+                    QuotaConfig(
                         id="k",
+                        scope=QuotaScope.KEY,
                         scope_id=key.id,
                         limit=kquota[0],
                         window=kquota[1],

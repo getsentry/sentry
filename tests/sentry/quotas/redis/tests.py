@@ -8,7 +8,7 @@ import time
 
 from exam import fixture, patcher
 
-from sentry.quotas.base import QuotaConfig
+from sentry.quotas.base import QuotaConfig, QuotaScope
 from sentry.quotas.redis import is_rate_limited, RedisQuota
 from sentry.testutils import TestCase
 from sentry.utils.redis import clusters
@@ -88,11 +88,11 @@ class RedisQuotaTest(TestCase):
         self.get_organization_quota.return_value = (300, 60)
         quotas = self.quota.get_quotas(self.project)
         assert quotas[0].id == u"p"
-        assert quotas[0].scope_id == self.project.id
+        assert quotas[0].scope_id == six.text_type(self.project.id)
         assert quotas[0].limit == 200
         assert quotas[0].window == 60
         assert quotas[1].id == u"o"
-        assert quotas[1].scope_id is None
+        assert quotas[1].scope_id == six.text_type(self.organization.id)
         assert quotas[1].limit == 300
         assert quotas[1].window == 60
 
@@ -119,8 +119,22 @@ class RedisQuotaTest(TestCase):
     @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, False))
     def test_not_limited_with_unlimited_quota(self, mock_is_rate_limited, mock_get_quotas):
         mock_get_quotas.return_value = (
-            QuotaConfig(id="p", scope_id=1, limit=None, window=1, reason_code="project_quota"),
-            QuotaConfig(id="p", scope_id=2, limit=1, window=1, reason_code="project_quota"),
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=1,
+                limit=None,
+                window=1,
+                reason_code="project_quota",
+            ),
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=2,
+                limit=1,
+                window=1,
+                reason_code="project_quota",
+            ),
         )
 
         assert not self.quota.is_rate_limited(self.project).is_limited
@@ -129,8 +143,22 @@ class RedisQuotaTest(TestCase):
     @mock.patch("sentry.quotas.redis.is_rate_limited", return_value=(False, True))
     def test_limited_with_unlimited_quota(self, mock_is_rate_limited, mock_get_quotas):
         mock_get_quotas.return_value = (
-            QuotaConfig(id="p", scope_id=1, limit=None, window=1, reason_code="project_quota"),
-            QuotaConfig(id="p", scope_id=2, limit=1, window=1, reason_code="project_quota"),
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=1,
+                limit=None,
+                window=1,
+                reason_code="project_quota",
+            ),
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=2,
+                limit=1,
+                window=1,
+                reason_code="project_quota",
+            ),
         )
 
         assert self.quota.is_rate_limited(self.project).is_limited
@@ -162,8 +190,22 @@ class RedisQuotaTest(TestCase):
         timestamp = time.time()
 
         mock_get_quotas.return_value = (
-            QuotaConfig(id="p", scope_id=1, limit=None, window=1, reason_code="project_quota"),
-            QuotaConfig(id="p", scope_id=2, limit=1, window=1, reason_code="project_quota"),
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=1,
+                limit=None,
+                window=1,
+                reason_code="project_quota",
+            ),
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=2,
+                limit=1,
+                window=1,
+                reason_code="project_quota",
+            ),
         )
 
         self.quota.refund(self.project, timestamp=timestamp)

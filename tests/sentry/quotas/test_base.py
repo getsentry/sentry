@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from sentry.models import OrganizationOption, ProjectKey
-from sentry.quotas.base import Quota, QuotaConfig
+from sentry.quotas.base import Quota, QuotaConfig, QuotaScope, DataCategory
 from sentry.testutils import TestCase
 
 import pytest
@@ -92,10 +92,25 @@ class QuotaTest(TestCase):
     "obj,json",
     [
         (
-            QuotaConfig(id="p", scope_id=1, limit=None, window=1, reason_code="go_away"),
+            QuotaConfig(id="o", limit=4711, window=42, reason_code="not_so_fast"),
+            {"prefix": "o", "limit": 4711, "window": 42, "reasonCode": "not_so_fast"},
+        ),
+        (
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=1,
+                limit=None,
+                window=1,
+                reason_code="go_away",
+            ),
             {"prefix": "p", "subscope": "1", "window": 1, "reasonCode": "go_away"},
         ),
         (QuotaConfig(limit=0, reason_code="go_away"), {"limit": 0, "reasonCode": "go_away"}),
+        (
+            QuotaConfig(limit=0, categories=[DataCategory.TRANSACTION], reason_code="not_yet"),
+            {"limit": 0, "reasonCode": "not_yet"},
+        ),
     ],
 )
 def test_quotas_to_json_legacy(obj, json):
@@ -106,10 +121,39 @@ def test_quotas_to_json_legacy(obj, json):
     "obj,json",
     [
         (
-            QuotaConfig(id="p", scope_id=1, limit=None, window=1, reason_code="go_away"),
-            {"id": "p", "scope_id": "1", "window": 1, "reasonCode": "go_away"},
+            QuotaConfig(id="o", limit=4711, window=42, reason_code="not_so_fast"),
+            {
+                "id": "o",
+                "scope": "organization",
+                "limit": 4711,
+                "window": 42,
+                "reasonCode": "not_so_fast",
+            },
         ),
-        (QuotaConfig(limit=0, reason_code="go_away"), {"limit": 0, "reasonCode": "go_away"}),
+        (
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=1,
+                limit=None,
+                window=1,
+                reason_code="go_away",
+            ),
+            {"id": "p", "scope": "project", "scope_id": "1", "window": 1, "reasonCode": "go_away"},
+        ),
+        (
+            QuotaConfig(limit=0, reason_code="go_away"),
+            {"limit": 0, "scope": "organization", "reasonCode": "go_away"},
+        ),
+        (
+            QuotaConfig(limit=0, categories=[DataCategory.TRANSACTION], reason_code="go_away"),
+            {
+                "limit": 0,
+                "scope": "organization",
+                "categories": ["transaction"],
+                "reasonCode": "go_away",
+            },
+        ),
     ],
 )
 def test_quotas_to_json(obj, json):
