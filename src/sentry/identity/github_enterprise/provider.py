@@ -8,8 +8,10 @@ def get_user_info(url, access_token):
     session = http.build_session()
     resp = session.get(
         u"https://{}/api/v3/user".format(url),
-        params={"access_token": access_token},
-        headers={"Accept": "application/vnd.github.machine-man-preview+json"},
+        headers={
+            "Accept": "application/vnd.github.machine-man-preview+json",
+            "Authorization": "token %s" % access_token,
+        },
         verify=False,
     )
     resp.raise_for_status()
