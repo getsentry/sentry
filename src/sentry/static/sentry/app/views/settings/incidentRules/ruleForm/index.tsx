@@ -2,7 +2,7 @@ import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import { MetricAction } from 'app/types/alerts';
+import {MetricAction} from 'app/types/alerts';
 import {Organization, Project, Config} from 'app/types';
 import {
   addErrorMessage,
@@ -260,7 +260,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     }
 
     return triggerErrors;
-  };
+  }
 
   handleFieldChange = (name: string, value: unknown) => {
     if (['timeWindow', 'aggregation'].includes(name)) {
@@ -268,8 +268,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     }
   };
 
-  handleSearchBarBlur = (query) => {
-    this.setState({ 'query': query });
+  handleFilterUpdate = query => {
+    this.setState({query});
   };
 
   handleSubmit = async (
@@ -448,7 +448,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               projectSlug={params.projectId}
               organization={organization}
               disabled={!hasAccess}
-              onSearchBarBlur={this.handleSearchBarBlur}
+              onFilterUpdate={this.handleFilterUpdate}
             />
 
             <Triggers

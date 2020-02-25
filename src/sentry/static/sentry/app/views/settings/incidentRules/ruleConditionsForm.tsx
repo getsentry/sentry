@@ -33,7 +33,7 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
-  onSearchBarBlur?:(query: string) => void;
+  onFilterUpdate: (query: string) => void;
 };
 
 type State = {
@@ -44,9 +44,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   state: State = {
     environments: null,
   };
-  blurFuncTest(...args){
-    console.log("blur test called",...args)
-  }
+
   componentDidMount() {
     this.fetchData();
   }
@@ -111,7 +109,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             isClearable
           />
           <FormField
-            onBlur={this.props.onSearchBarBlur}
             name="query"
             label={t('Filter')}
             defaultValue=""
@@ -128,8 +125,14 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 organization={organization}
                 onChange={onChange}
                 onKeyDown={onKeyDown}
-                onBlur={query => onBlur(query)}
-                onSearch={query => onChange(query, {})}
+                onBlur={query => {
+                  onBlur(query);
+                  this.props.onFilterUpdate(query);
+                }}
+                onSearch={query => {
+                  this.props.onFilterUpdate(query);
+                  onChange(query, {});
+                }}
               />
             )}
           </FormField>
