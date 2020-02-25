@@ -4,13 +4,15 @@ import json
 import unittest
 from copy import deepcopy
 
+import mock
 import six
 import pytz
 from dateutil.parser import parse as parse_date
+from django.conf import settings
 from exam import fixture, patcher
 
 from sentry.utils.compat.mock import Mock
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
     InvalidSchemaError,
@@ -38,9 +40,11 @@ class BaseQuerySubscriptionTest(object):
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
-    def build_mock_message(self, data):
+    def build_mock_message(self, data, topic=None):
         message = Mock()
         message.value.return_value = json.dumps(data)
+        if topic:
+            message.topic.return_value = topic
         return message
 
 
@@ -48,7 +52,19 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
     metrics = patcher("sentry.snuba.query_subscription_consumer.metrics")
 
     def test_no_subscription(self):
-        self.consumer.handle_message(self.build_mock_message(self.valid_wrapper))
+        with mock.patch("sentry.snuba.subscriptions._snuba_pool") as pool:
+            pool.urlopen.return_value.status = 202
+            self.consumer.handle_message(
+                self.build_mock_message(
+                    self.valid_wrapper, topic=settings.KAFKA_SNUBA_QUERY_SUBSCRIPTIONS
+                )
+            )
+            pool.urlopen.assert_called_once_with(
+                "DELETE",
+                "/{}/subscriptions/{}".format(
+                    QueryDatasets.EVENTS.value, self.valid_payload["subscription_id"]
+                ),
+            )
         self.metrics.incr.assert_called_once_with(
             "snuba_query_subscriber.subscription_doesnt_exist"
         )
