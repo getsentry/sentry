@@ -16,6 +16,7 @@ import sentry_sdk
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
+from six.moves.urllib.parse import urlparse
 
 from sentry import quotas
 from sentry.models import (
@@ -204,6 +205,10 @@ class RetrySkipTimeout(urllib3.Retry):
         if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
             raise six.reraise(type(error), error, _stacktrace)
 
+        metrics.incr(
+            "snuba.client.retry",
+            tags={"method": method, "path": urlparse(url).path if url else None},
+        )
         return super(RetrySkipTimeout, self).increment(
             method=method,
             url=url,
@@ -218,11 +223,11 @@ _snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
     retries=RetrySkipTimeout(
         total=5,
-        # Expand our retries to POST since all of
-        # our requests are POST and they don't mutate, so they
-        # are safe to retry. Without this, we aren't
-        # actually retrying at all.
-        method_whitelist={"GET", "POST"},
+        # Our calls to snuba frequently fail due to network issues. We want to
+        # automatically retry most requests. Some of our POSTs and all of our DELETEs
+        # do cause mutations, but we have other things in place to handle duplicate
+        # mutations.
+        method_whitelist={"GET", "POST", "DELETE"},
     ),
     timeout=30,
     maxsize=10,

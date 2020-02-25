@@ -99,6 +99,8 @@ class Button extends React.Component<ButtonProps, {}> {
 
     // Don't allow clicks when disabled or busy
     if (disabled || busy) {
+      e.preventDefault();
+      e.stopPropagation();
       return;
     }
 

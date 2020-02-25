@@ -7,6 +7,7 @@ from collections import namedtuple
 from datetime import timedelta
 from django.core.cache import cache
 from django.utils import timezone
+from random import randrange
 
 from sentry import analytics
 from sentry.models import GroupRuleStatus, Rule
@@ -110,13 +111,14 @@ class RuleProcessor(object):
         if not passed:
             return
 
-        analytics.record(
-            "issue_alert.fired",
-            issue_id=self.group.id,
-            project_id=rule.project.id,
-            organization_id=rule.project.organization.id,
-            rule_id=rule.id,
-        )
+        if randrange(10) == 0:
+            analytics.record(
+                "issue_alert.fired",
+                issue_id=self.group.id,
+                project_id=rule.project.id,
+                organization_id=rule.project.organization.id,
+                rule_id=rule.id,
+            )
 
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])

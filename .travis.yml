@@ -36,6 +36,7 @@ env:
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - NODE_OPTIONS=--max-old-space-size=4096
     - PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
+    - PYTEST_ADDOPTS="--reruns 5"
 
 before_install:
   - &pip_install pip install --no-cache-dir "pip>=20.0.2"
@@ -100,7 +101,7 @@ base_acceptance: &acceptance_default
     - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
     - docker ps -a
   install:
-    - ./bin/yarn install --pure-lockfile
+    - ./bin/yarn install --frozen-lockfile
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
     - |
@@ -127,7 +128,7 @@ matrix:
         - SENTRY_LIGHT_BUILD=1 pip install -U -e ".[dev]"
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
-        - ./bin/yarn install --pure-lockfile
+        - ./bin/yarn install --frozen-lockfile
 
     # Proactive linting on 3.7 during the porting process
     - python: 3.7
@@ -159,7 +160,7 @@ matrix:
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
       install:
-        - ./bin/yarn install --pure-lockfile
+        - ./bin/yarn install --frozen-lockfile
 
     - python: 2.7
       name: 'Command Line'
@@ -204,6 +205,30 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
+    # XXX: this needs to be the same as postgres_default (other than python, name, env, and the rb package override)
+    # NOTE: Migrations need to also be ported to py3.6, but the errors just clog up everything.
+    #       So for now, we're unblocking that by not having MIGRATIONS_TEST_MIGRATE=1.
+    # Allowed to fail!
+    - python: 3.6
+      name: 'Python 3.6 backend (no migrations) [Postgres]'
+      env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+      before_install:
+        - *pip_install
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
+        - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
+        - docker ps -a
+      install:
+        - python setup.py install_egg_info
+        - pip install -U -e ".[dev]"
+        - pip uninstall -y rb
+        - pip install -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
     # Deploy 'storybook' (component & style guide)
     - name: 'Storybook Deploy'
       language: node_js
@@ -220,11 +245,14 @@ matrix:
         # Use the decrypted service account credentials to authenticate the command line tool
         - gcloud auth activate-service-account --key-file client-secret.json
       install:
-        - ./bin/yarn install --pure-lockfile
+        - ./bin/yarn install --frozen-lockfile
         - gcloud version
       script: bash .travis/deploy-storybook.sh
       after_success: skip
       after_failure: skip
+
+  allow_failures:
+    - name: 'Python 3.6 backend (no migrations) [Postgres]'
 
 notifications:
   webhooks:

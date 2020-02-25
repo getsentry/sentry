@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
+import os
 import sys
 
-if sys.version_info[:2] != (2, 7):
+if not os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (2, 7):
     sys.exit("Error: Sentry requires Python 2.7.")
-
-import os
-import os.path
 
 from distutils.command.build import build as BuildCommand
 from setuptools import setup, find_packages

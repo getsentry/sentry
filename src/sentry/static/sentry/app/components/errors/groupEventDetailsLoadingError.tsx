@@ -1,18 +1,22 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
-import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import {Environment} from 'app/types';
 import DetailedError from 'app/components/errors/detailedError';
 
-const GroupEventDetailsLoadingError = ({onRetry, environments}) => {
+type Props = {
+  environments: Environment[];
+  onRetry?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+};
+
+const GroupEventDetailsLoadingError = ({onRetry, environments}: Props) => {
   const reasons = [
     t('The events are still processing and are on their way'),
     t('The events have been deleted'),
     t('There is an internal systems error or active issue'),
   ];
 
-  let message;
+  let message: React.ReactNode;
 
   if (environments.length === 0) {
     // All Environments case
@@ -35,16 +39,11 @@ const GroupEventDetailsLoadingError = ({onRetry, environments}) => {
   return (
     <DetailedError
       className="group-event-details-error"
-      onRetry={environments.length === 0 ? onRetry : null}
+      onRetry={environments.length === 0 ? onRetry : undefined}
       heading={t('Sorry, the events for this issue could not be found.')}
       message={message}
     />
   );
-};
-
-GroupEventDetailsLoadingError.propTypes = {
-  onRetry: PropTypes.func,
-  environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
 };
 
 export default GroupEventDetailsLoadingError;

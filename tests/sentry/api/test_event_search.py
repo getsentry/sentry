@@ -837,7 +837,7 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             parse_search_query("(user.email:foo@example.com OR user.email:bar@example.com")
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 1). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at '(user.' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query(
@@ -845,13 +845,13 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             )
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 1). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at '((user' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query("user.email:foo@example.com OR user.email:bar@example.com)")
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 57). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at '.com)' (column 57). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query(
@@ -859,7 +859,7 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             )
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 91). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at 'com))' (column 91). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
     def test_grouping_without_boolean_terms(self):
@@ -875,7 +875,7 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             ]
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 28). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at 'ect (evalu' (column 28). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
 
@@ -1116,6 +1116,18 @@ class GetSnubaQueryArgsTest(TestCase):
             get_filter("transaction.status:lol")
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
+
+    def test_function_with_default_arguments(self):
+        result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
+        assert result.having == [["rpm", ">", 100]]
+
+    def test_function_with_alias(self):
+        result = get_filter("p95():>100")
+        assert result.having == [["p95", ">", 100]]
+
+    def test_function_arguments(self):
+        result = get_filter("percentile(transaction.duration, 0.75):>100")
+        assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
@@ -1366,7 +1378,7 @@ class ResolveFieldListTest(unittest.TestCase):
         )
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["divide(count(), divide(3600, 60))", None, "rpm_3600"],
+            ["divide(count(), divide(3600, 60))", None, "rpm"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
         ]

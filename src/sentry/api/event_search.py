@@ -111,7 +111,7 @@ rel_time_filter      = search_key sep rel_date_format
 # exact time filter for dates
 specific_time_filter = search_key sep date_format
 # Numeric comparison filter
-numeric_filter       = (function_key / search_key) sep operator? numeric_value
+numeric_filter       = search_key sep operator? numeric_value
 # Aggregate numeric filter
 aggregate_filter        = aggregate_key sep operator? numeric_value
 aggregate_date_filter   = aggregate_key sep operator? (date_format / rel_date_format)
@@ -121,7 +121,7 @@ has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
 tag_filter           = negation? "tags[" search_key "]" sep search_value
 
-aggregate_key        = key space? open_paren space? key space? closed_paren
+aggregate_key        = key space? open_paren space? function_arg* space? closed_paren
 function_key         = key space? open_paren space? closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
@@ -129,6 +129,7 @@ value                = ~r"[^()\s]*"
 numeric_value        = ~r"[0-9]+(?=\s|$)"
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
+function_arg         = space? key? comma? space?
 # only allow colons in quoted keys
 quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
@@ -145,6 +146,7 @@ closed_paren         = ")"
 sep                  = ":"
 space                = " "
 negation             = "!"
+comma                = ","
 spaces               = ~r"\ *"
 """
 )
@@ -368,7 +370,6 @@ class SearchVisitor(NodeVisitor):
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
-        search_key = search_key[0] if not isinstance(search_key, Node) else search_key
         operator = operator[0] if not isinstance(operator, Node) else "="
 
         if search_key.name in self.numeric_keys:
@@ -395,7 +396,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_aggregate_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
-
+        search_value = search_value[0]
         operator = operator[0] if not isinstance(operator, Node) else "="
         is_date_aggregate = any(key in search_key.name for key in self.date_keys)
 
@@ -529,20 +530,17 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
+        (function_name, open_paren, args, close_paren) = children
+        if isinstance(args, Node):
+            args = ""
+        elif isinstance(args, list):
+            args = "".join(args)
 
-        key = "".join(children)
+        key = "".join([function_name, open_paren, args, close_paren])
         return AggregateKey(self.key_mappings_lookup.get(key, key))
 
-    def visit_function_key(self, node, children):
-        children = self.flatten(children)
-        children = self.remove_optional_nodes(children)
-        children = self.remove_space(children)
-
-        key = "".join(children)
-        if key.strip("()") in FIELD_ALIASES:
-            key = key.strip("()")
-
-        return SearchKey(self.key_mappings_lookup.get(key, key))
+    def visit_function_arg(self, node, children):
+        return node.text
 
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
@@ -576,10 +574,13 @@ def parse_search_query(query):
     try:
         tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
+        idx = e.column()
+        prefix = query[max(0, idx - 5):idx]
+        suffix = query[idx:(idx + 5)]
         raise InvalidSearchQuery(
             u"{} {}".format(
-                u"Parse error: '{}' (column {:d}).".format(e.expr.name, e.column()),
-                "This is commonly caused by unmatched-parentheses. Enclose any text in double quotes.",
+                u"Parse error at '{}{}' (column {:d}).".format(prefix, suffix, e.column()),
+                "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
     return SearchVisitor().visit(tree)
@@ -608,7 +609,7 @@ def convert_search_boolean_to_snuba_query(search_boolean):
     return [operator, [left, right]]
 
 
-def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias):
+def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias, params=None):
     name = aggregate_filter.key.name
     value = aggregate_filter.value.value
 
@@ -621,7 +622,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, is_alias):
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
         return [["isNull", [name]], aggregate_filter.operator, 1]
 
-    _, agg_additions = resolve_field(name)
+    _, agg_additions = resolve_field(name, params)
     if len(agg_additions) > 0:
         name = agg_additions[0][-1]
 
@@ -799,7 +800,7 @@ def get_filter(query=None, params=None):
                 if converted_filter:
                     kwargs["conditions"].append(converted_filter)
         elif isinstance(term, AggregateFilter):
-            converted_filter = convert_aggregate_filter_to_snuba_query(term, False)
+            converted_filter = convert_aggregate_filter_to_snuba_query(term, False, params)
             if converted_filter:
                 kwargs["having"].append(converted_filter)
 
@@ -1006,6 +1007,7 @@ def resolve_function(field, match=None, params=None):
 
     # Some functions can optionally take no parameters (rpm(), rps()). In that case use the
     # passed in params to create a default argument if necessary.
+    used_default = False
     if len(columns) == 0 and len(function["args"]) == 1:
         try:
             default = function["args"][0].has_default(params)
@@ -1015,6 +1017,7 @@ def resolve_function(field, match=None, params=None):
         if default:
             # Hacky, but we expect column arguments to be strings so easiest to convert it back
             columns = [six.text_type(default)]
+            used_default = True
 
     if len(columns) != len(function["args"]):
         raise InvalidSearchQuery(u"{}: expected {} arguments".format(field, len(function["args"])))
@@ -1029,7 +1032,7 @@ def resolve_function(field, match=None, params=None):
 
     snuba_string = function["transform"].format(**arguments)
 
-    return [], [[snuba_string, None, get_function_alias(function["name"], columns)]]
+    return [], [[snuba_string, None, get_function_alias(function["name"], columns if not used_default else [])]]
 
 
 def resolve_orderby(orderby, fields, aggregations):

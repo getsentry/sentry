@@ -14,6 +14,7 @@ exports[`RadioGroup can select a different item 1`] = `
     role="radio"
   >
     <RadioLineButton
+      aria-label="choice_one"
       type="button"
     />
     <RadioLineText>
@@ -28,6 +29,7 @@ exports[`RadioGroup can select a different item 1`] = `
     role="radio"
   >
     <RadioLineButton
+      aria-label="choice_two"
       type="button"
     />
     <RadioLineText>
@@ -42,6 +44,7 @@ exports[`RadioGroup can select a different item 1`] = `
     role="radio"
   >
     <RadioLineButton
+      aria-label="choice_three"
       type="button"
     >
       <RadioLineButtonFill
@@ -69,6 +72,7 @@ exports[`RadioGroup renders 1`] = `
     role="radio"
   >
     <RadioLineButton
+      aria-label="choice_one"
       type="button"
     >
       <RadioLineButtonFill
@@ -87,6 +91,7 @@ exports[`RadioGroup renders 1`] = `
     role="radio"
   >
     <RadioLineButton
+      aria-label="choice_two"
       type="button"
     />
     <RadioLineText>
@@ -101,6 +106,7 @@ exports[`RadioGroup renders 1`] = `
     role="radio"
   >
     <RadioLineButton
+      aria-label="choice_three"
       type="button"
     />
     <RadioLineText>
@@ -146,10 +152,12 @@ exports[`RadioGroup renders disabled 1`] = `
         role="radio"
       >
         <RadioLineButton
+          aria-label="choice_one"
           disabled={true}
           type="button"
         >
           <button
+            aria-label="choice_one"
             className="css-2gvt33-RadioLineButton e1r42lk40"
             disabled={true}
             type="button"
