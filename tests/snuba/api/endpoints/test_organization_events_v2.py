@@ -1290,3 +1290,31 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     assert data[0]["issue"] == event1.group.qualified_short_id
                 else:
                     assert data[0].get("issue", None) is None
+
+    def test_search_for_nonexistent_issue(self):
+        self.login_as(user=self.user)
+
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "fingerprint": ["group_1"],
+            },
+            project_id=project1.id,
+        )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url, format="json", data={"field": ["count()"], "query": "issue.id:112358"}
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["count"] == 0
+            assert False
