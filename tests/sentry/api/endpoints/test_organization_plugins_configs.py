@@ -29,7 +29,7 @@ class OrganizationPluginsTest(APITestCase):
 
     def test_only_configuable_plugins(self):
         response = self.client.get(self.url)
-        assert filter(lambda x: not x["hasConfiguration"], response.data) == []
+        assert [x for x in response.data if not x["hasConfiguration"]] == []
 
     def test_enabled_not_configured(self):
         plugins.get("webhooks").enable(self.projectA)

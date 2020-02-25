@@ -394,7 +394,7 @@ class ServiceDelegator(Service):
             )
 
             if self.__callback_func is not None:
-                FutureSet(filter(None, results)).add_done_callback(
+                FutureSet([_f for _f in results if _f]).add_done_callback(
                     lambda *a, **k: self.__callback_func(
                         context, attribute_name, callargs, selected_backend_names, results
                     )

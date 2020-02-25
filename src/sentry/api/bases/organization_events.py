@@ -45,7 +45,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             # Instead of using this parameter clients should use `issue.id`
             # in their query string.
             try:
-                group_ids = set(map(int, filter(None, group_ids)))
+                group_ids = set(map(int, [_f for _f in group_ids if _f]))
             except ValueError:
                 raise OrganizationEventsError("Invalid group parameter. Values must be numbers")
 

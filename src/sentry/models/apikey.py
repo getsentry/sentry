@@ -16,6 +16,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     sane_repr,
 )
+from sentry.utils.compat import filter
 
 
 # TODO(dcramer): pull in enum library
@@ -86,7 +87,7 @@ class ApiKey(Model):
     def get_allowed_origins(self):
         if not self.allowed_origins:
             return []
-        return filter(bool, self.allowed_origins.split("\n"))
+        return list(filter(bool, self.allowed_origins.split("\n")))
 
     def get_audit_log_data(self):
         return {

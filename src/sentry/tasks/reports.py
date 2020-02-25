@@ -33,6 +33,7 @@ from sentry.utils.math import mean
 from six.moves import reduce, zip_longest
 from sentry.utils.compat import map
 from sentry.utils.compat import zip
+from sentry.utils.compat import filter
 
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")
@@ -612,9 +613,11 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     ]
 
     reports = dict(
-        filter(
-            lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
-            zip(projects, backend.fetch(timestamp, duration, organization, projects)),
+        list(
+            filter(
+                lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
+                zip(projects, backend.fetch(timestamp, duration, organization, projects)),
+            )
         )
     )
 

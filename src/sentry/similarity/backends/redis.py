@@ -66,7 +66,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
         def get_comparison_key(result):
             key, scores = result
 
-            scores = filter(lambda score: score is not None, scores)
+            scores = [score for score in scores if score is not None]
 
             return (
                 sum(scores) / len(scores) * -1,  # average score, descending

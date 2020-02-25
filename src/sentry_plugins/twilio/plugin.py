@@ -14,6 +14,7 @@ from sentry_plugins.base import CorePluginMixin
 
 import sentry
 from sentry.utils.compat import map
+from sentry.utils.compat import filter
 
 DEFAULT_REGION = "US"
 MAX_SMS_LENGTH = 160

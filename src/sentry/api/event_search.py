@@ -27,6 +27,7 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, get_json_type
 from sentry.utils.compat import map
 from sentry.utils.compat import zip
+from sentry.utils.compat import filter
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 
@@ -294,7 +295,7 @@ class SearchVisitor(NodeVisitor):
             return children
 
         children = [child for group in children for child in _flatten(group)]
-        children = filter(None, _flatten(children))
+        children = [_f for _f in _flatten(children) if _f]
 
         return children
 
@@ -302,13 +303,13 @@ class SearchVisitor(NodeVisitor):
         def is_not_optional(child):
             return not (isinstance(child, Node) and isinstance(child.expr, Optional))
 
-        return filter(is_not_optional, children)
+        return list(filter(is_not_optional, children))
 
     def remove_space(self, children):
         def is_not_space(child):
             return not (isinstance(child, Node) and child.text == " ")
 
-        return filter(is_not_space, children)
+        return list(filter(is_not_space, children))
 
     def visit_search(self, node, children):
         return self.flatten(children)

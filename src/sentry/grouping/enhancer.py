@@ -149,7 +149,7 @@ class Match(object):
 
     def _to_config_structure(self):
         if self.key == "family":
-            arg = "".join(filter(None, [FAMILIES.get(x) for x in self.pattern.split(",")]))
+            arg = "".join([_f for _f in [FAMILIES.get(x) for x in self.pattern.split(",")] if _f])
         elif self.key == "app":
             arg = {True: "1", False: "0"}.get(get_rule_bool(self.pattern), "")
         else:
@@ -160,7 +160,7 @@ class Match(object):
     def _from_config_structure(cls, obj):
         key = SHORT_MATCH_KEYS[obj[0]]
         if key == "family":
-            arg = ",".join(filter(None, [REVERSE_FAMILIES.get(x) for x in obj[1:]]))
+            arg = ",".join([_f for _f in [REVERSE_FAMILIES.get(x) for x in obj[1:]] if _f])
         else:
             arg = obj[1:]
         return cls(key, arg)
