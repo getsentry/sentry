@@ -1,74 +1,78 @@
-import {OrganizationSummary} from 'app/types';
-
-import {withRouter} from 'react-router';
-import * as ReactRouter from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import AsyncComponent from 'app/components/asyncComponent';
 
+import {Authenticator, OrganizationSummary} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {defined} from 'app/utils';
 import {t} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
 
 const ENDPOINT = '/users/me/authenticators/';
 
 type Props = {
-  params: Params;
-  location: Location;
-  organization: Organization;
-  router: ReactRouter.InjectedRouter;
-} & AsyncComponent['props'];
+  children: React.ReactElement;
+} & RouteComponentProps<{authId: string}, {}> &
+  AsyncComponent['props'];
 
 type State = {
-  authenticators: Authenticator[];
-  organizations: OrganizationSummary[];
-} & AsyncView['state'];
+  authenticators?: Authenticator[];
+  organizations?: OrganizationSummary[];
+} & AsyncComponent['state'];
 
-class AccountSecurityWrapper extends AsyncComponent {
-  getEndpoints() {
+class AccountSecurityWrapper extends AsyncComponent<Props, State> {
+  getEndpoints(): [string, string][] {
     return [
       ['authenticators', ENDPOINT],
       ['organizations', '/organizations/'],
     ];
   }
 
-  handleDisable = auth => {
+  handleDisable = async (auth: Authenticator) => {
     if (!auth || !auth.authId) {
       return;
     }
 
     this.setState({loading: true});
 
-    this.api
-      .requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'})
-      .then(this.remountComponent, () => {
-        this.setState({loading: false});
-        addErrorMessage(t('Error disabling', auth.name));
-      });
+    try {
+      await this.api.requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'});
+      this.remountComponent();
+    } catch (_err) {
+      addErrorMessage(t('Error disabling %s', auth.name));
+    }
+
+    this.setState({loading: false});
   };
 
-  handleRegenerateBackupCodes = () => {
+  handleRegenerateBackupCodes = async () => {
     this.setState({loading: true});
 
-    this.api
-      .requestPromise(`${ENDPOINT}${this.props.params.authId}/`, {method: 'PUT'})
-      .then(this.remountComponent, () =>
-        this.addError(t('Error regenerating backup codes'))
-      );
+    try {
+      await this.api.requestPromise(`${ENDPOINT}${this.props.params.authId}/`, {
+        method: 'PUT',
+      });
+      this.remountComponent();
+    } catch (_err) {
+      addErrorMessage(t('Error regenerating backup codes'));
+    }
+
+    this.setState({loading: false});
   };
 
   renderBody() {
+    const {children} = this.props;
     const {authenticators, organizations} = this.state;
 
-    const countEnrolled = authenticators.filter(
-      auth => auth.isEnrolled && !auth.isBackupInterface
-    ).length;
-    const orgsRequire2fa = organizations.filter(org => org.require2FA);
+    const enrolled =
+      authenticators?.filter(auth => auth.isEnrolled && !auth.isBackupInterface) || [];
+    const countEnrolled = enrolled.length;
+    const orgsRequire2fa = organizations?.filter(org => org.require2FA) || [];
     const deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
 
     // This happens when you switch between children views and the next child
     // view is lazy loaded, it can potentially be `null` while the code split
     // package is being fetched
-    if (this.props.children === null) {
+    if (!defined(children)) {
       return null;
     }
 
@@ -83,4 +87,4 @@ class AccountSecurityWrapper extends AsyncComponent {
   }
 }
 
-export default withRouter(AccountSecurityWrapper);
+export default AccountSecurityWrapper;
