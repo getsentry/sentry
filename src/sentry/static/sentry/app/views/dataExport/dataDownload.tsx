@@ -100,7 +100,6 @@ class DataDownload extends AsyncView<Props, State> {
           size="large"
           borderless
           href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
-          data-test="datadownload-button"
         >
           {t('Download CSV')}
         </Button>
@@ -128,9 +127,7 @@ class DataDownload extends AsyncView<Props, State> {
     return (
       <PageContent>
         <div className="pattern-bg" />
-        <ContentContainer data-test="datadownload-wrapper">
-          {this.renderContent()}
-        </ContentContainer>
+        <ContentContainer>{this.renderContent()}</ContentContainer>
       </PageContent>
     );
   }

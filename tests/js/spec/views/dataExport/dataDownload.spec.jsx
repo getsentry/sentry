@@ -1,13 +1,14 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
 import DataDownload, {DownloadStatus} from 'app/views/dataExport/dataDownload';
 
 describe('DataDownload', function() {
   beforeEach(MockApiClient.clearMockResponses);
   const dateExpired = new Date();
+  const organization = TestStubs.Organization();
   const mockRouteParams = {
-    orgId: 'acme',
+    orgId: organization.slug,
     dataExportId: 721,
   };
   const getDataExportDetails = body =>
@@ -25,10 +26,10 @@ describe('DataDownload', function() {
   it("should render the 'Early' view when appropriate", function() {
     const status = DownloadStatus.Early;
     getDataExportDetails({status});
-    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
+    const wrapper = shallow(<DataDownload params={mockRouteParams} />);
     expect(wrapper.state('download')).toEqual({status});
     expect(wrapper.state('download').dateExpired).toBeUndefined();
-    const contentWrapper = wrapper.find('div[data-test="datadownload-wrapper"]');
+    const contentWrapper = wrapper.find('ContentContainer');
     expect(contentWrapper.children()).toHaveLength(3);
     expect(contentWrapper.find('h3').text()).toBe("You're Early!");
   });
@@ -36,10 +37,10 @@ describe('DataDownload', function() {
   it("should render the 'Expired' view when appropriate", function() {
     const status = DownloadStatus.Expired;
     getDataExportDetails({status});
-    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
+    const wrapper = shallow(<DataDownload params={mockRouteParams} />);
     expect(wrapper.state('download')).toEqual({status});
     expect(wrapper.state('download').dateExpired).toBeUndefined();
-    const contentWrapper = wrapper.find('div[data-test="datadownload-wrapper"]');
+    const contentWrapper = wrapper.find('ContentContainer');
     expect(contentWrapper.children()).toHaveLength(3);
     expect(contentWrapper.find('h3').text()).toBe('Sorry!');
   });
@@ -49,10 +50,10 @@ describe('DataDownload', function() {
     getDataExportDetails({status, dateExpired});
     const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
     expect(wrapper.state('download')).toEqual({dateExpired, status});
-    const contentWrapper = wrapper.find('div[data-test="datadownload-wrapper"]');
+    const contentWrapper = wrapper.find('ContentContainer').childAt(0);
     expect(contentWrapper.children()).toHaveLength(5);
     expect(contentWrapper.find('h3').text()).toBe('Finally!');
-    const buttonWrapper = contentWrapper.find('a[data-test="datadownload-button"]');
+    const buttonWrapper = contentWrapper.find('a[aria-label="Download CSV"]');
     expect(buttonWrapper.text()).toBe('Download CSV');
     expect(buttonWrapper.props().href).toBe(
       `/api/0/organizations/${mockRouteParams.orgId}/data-export/${mockRouteParams.dataExportId}/?download=true`
