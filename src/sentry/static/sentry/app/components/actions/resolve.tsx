@@ -9,17 +9,12 @@ import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import {formatVersion} from 'app/utils/formatters';
-import {Release} from 'app/types';
-
-type StatusDetails = {
-  inRelease?: string;
-  inNextRelease?: boolean;
-};
-
-enum ResolveStatus {
-  RESOLVED = 'resolved',
-  UNRESOLVED = 'unresolved',
-}
+import {
+  Release,
+  ResolvementStatus,
+  ResolvementStatusDetails,
+  UpdateResolvementStatus,
+} from 'app/types';
 
 const defaultProps = {
   isResolved: false,
@@ -29,7 +24,7 @@ const defaultProps = {
 
 type Props = {
   hasRelease: boolean;
-  onUpdate: (params: {status: ResolveStatus; statusDetails?: StatusDetails}) => void;
+  onUpdate: (data: UpdateResolvementStatus) => void;
   orgId: string;
   latestRelease?: Release;
   projectId?: string;
@@ -65,13 +60,13 @@ class ResolveActions extends React.Component<Props, State> {
 
   state = {modal: false};
 
-  onCustomResolution(statusDetails: StatusDetails) {
+  onCustomResolution(statusDetails: ResolvementStatusDetails) {
     this.setState({
       modal: false,
     });
 
     this.props.onUpdate({
-      status: ResolveStatus.RESOLVED,
+      status: ResolvementStatus.RESOLVED,
       statusDetails,
     });
   }
@@ -104,7 +99,7 @@ class ResolveActions extends React.Component<Props, State> {
             <a
               data-test-id="button-unresolve"
               className={this.getButtonClass('active')}
-              onClick={() => onUpdate({status: ResolveStatus.UNRESOLVED})}
+              onClick={() => onUpdate({status: ResolvementStatus.UNRESOLVED})}
             >
               <span className="icon-checkmark" />
             </a>
@@ -151,7 +146,7 @@ class ResolveActions extends React.Component<Props, State> {
       <div style={{display: 'inline-block'}}>
         <CustomResolutionModal
           show={this.state.modal}
-          onSelected={(statusDetails: StatusDetails) =>
+          onSelected={(statusDetails: ResolvementStatusDetails) =>
             this.onCustomResolution(statusDetails)
           }
           onCanceled={() => this.setState({modal: false})}
@@ -165,7 +160,7 @@ class ResolveActions extends React.Component<Props, State> {
                 {...actionLinkProps}
                 title={t('Resolve')}
                 className={buttonClass}
-                onAction={() => onUpdate({status: ResolveStatus.RESOLVED})}
+                onAction={() => onUpdate({status: ResolvementStatus.RESOLVED})}
               >
                 <span className="icon-checkmark hidden-xs" style={{marginRight: 5}} />
                 {t('Resolve')}
@@ -189,7 +184,7 @@ class ResolveActions extends React.Component<Props, State> {
                         return (
                           hasRelease &&
                           onUpdate({
-                            status: ResolveStatus.RESOLVED,
+                            status: ResolvementStatus.RESOLVED,
                             statusDetails: {
                               inNextRelease: true,
                             },
@@ -208,7 +203,7 @@ class ResolveActions extends React.Component<Props, State> {
                         return (
                           hasRelease &&
                           onUpdate({
-                            status: ResolveStatus.RESOLVED,
+                            status: ResolvementStatus.RESOLVED,
                             statusDetails: {
                               inRelease: latestRelease ? latestRelease.version : 'latest',
                             },

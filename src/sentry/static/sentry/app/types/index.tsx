@@ -866,3 +866,16 @@ export type Chunks = {
   remark?: string;
   rule_id?: string;
 };
+
+export enum ResolvementStatus {
+  RESOLVED = 'resolved',
+  UNRESOLVED = 'unresolved',
+}
+export type ResolvementStatusDetails = {
+  inRelease?: string;
+  inNextRelease?: boolean;
+};
+export type UpdateResolvementStatus = {
+  status: ResolvementStatus;
+  statusDetails?: ResolvementStatusDetails;
+};
