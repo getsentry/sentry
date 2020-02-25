@@ -194,7 +194,7 @@ class RedisQuota(Quota):
         quotas = [
             q
             for q in self.get_quotas(project, key=key)
-            if not q.categores or DataCategory.ERROR in q.categories
+            if not q.categories or DataCategory.ERROR in q.categories
         ]
 
         # If there are no quotas to actually check, skip the trip to the database.
