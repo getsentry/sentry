@@ -1,9 +1,13 @@
 import React from 'react';
+
 import space from 'app/styles/space';
 import styled from '@emotion/styled';
-
 import video from 'app/../images/spot/congrats-robots.mp4';
 
+/**
+ * Note, video needs `muted` for `autoplay` to work on Chrome
+ * See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video
+ */
 const CongratsRobots = () => (
   <AnimatedScene>
     <StyledVideo autoPlay loop muted>

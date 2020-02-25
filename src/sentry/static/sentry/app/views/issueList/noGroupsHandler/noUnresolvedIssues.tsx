@@ -47,10 +47,6 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-/**
- * Note, video needs `muted` for `autoplay` to work on Chrome
- * See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video
- */
 const NoUnresolvedIssues = () => (
   <Wrapper>
     <ErrorBoundary>
