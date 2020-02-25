@@ -242,6 +242,8 @@ class ReleaseSerializer(Serializer):
             health_data = get_release_health_data_overview(
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases]
             )
+        else:
+            health_data = None
 
         for pr in project_releases:
             pr_rv = {"slug": pr["project__slug"], "name": pr["project__name"]}
