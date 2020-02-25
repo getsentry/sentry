@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import json
+import logging
 
 from django.db import transaction
 
@@ -13,6 +14,7 @@ query_aggregation_to_snuba = {
     QueryAggregations.TOTAL: ("count()", "", "count"),
     QueryAggregations.UNIQUE_USERS: ("uniq", "tags[sentry:user]", "unique_users"),
 }
+logger = logging.getLogger(__name__)
 
 
 def bulk_create_snuba_subscriptions(
@@ -145,10 +147,11 @@ def update_snuba_subscription(
     # TODO: Move this call to snuba into a task. This lets us successfully update a
     # subscription in postgres and rollback as needed without having to create/delete
     # from snuba
-    _delete_from_snuba(subscription)
+    dataset = QueryDatasets(subscription.dataset)
+    _delete_from_snuba(dataset, subscription.subscription_id)
     subscription_id = _create_in_snuba(
         subscription.project,
-        QueryDatasets(subscription.dataset),
+        dataset,
         query,
         aggregation,
         time_window,
@@ -187,7 +190,7 @@ def delete_snuba_subscription(subscription):
         # TODO: Move this call to snuba into a task. This lets us successfully delete a
         # subscription in postgres and rollback as needed without having to create/delete
         # from snuba
-        _delete_from_snuba(subscription)
+        _delete_from_snuba(QueryDatasets(subscription.dataset), subscription.subscription_id)
 
 
 def _create_in_snuba(
@@ -220,11 +223,9 @@ def _create_in_snuba(
     return json.loads(response.data)["subscription_id"]
 
 
-def _delete_from_snuba(subscription):
+def _delete_from_snuba(dataset, subscription_id):
     response = _snuba_pool.urlopen(
-        "DELETE",
-        "/%s/subscriptions/%s" % (subscription.dataset, subscription.subscription_id),
-        retries=False,
+        "DELETE", "/%s/subscriptions/%s" % (dataset.value, subscription_id)
     )
     if response.status != 202:
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
