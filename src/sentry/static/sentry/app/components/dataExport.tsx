@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Feature from 'app/components/acl/feature';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -40,17 +41,22 @@ class DataExport extends React.Component<Props, State> {
       organization: {slug},
       payload: {queryType, queryInfo},
     } = this.props;
-    const {id: dataExportId} = await api.requestPromise(
-      `/organizations/${slug}/data-export/`,
-      {
-        method: 'POST',
-        data: {
-          query_type: queryType,
-          query_info: queryInfo,
-        },
-      }
-    );
-    this.setState({inProgress: true, dataExportId});
+    try {
+      const {id: dataExportId} = await api.requestPromise(
+        `/organizations/${slug}/data-export/`,
+        {
+          method: 'POST',
+          data: {
+            query_type: queryType,
+            query_info: queryInfo,
+          },
+        }
+      );
+      addSuccessMessage(t("We'll email you when it's ready for download"));
+      this.setState({inProgress: true, dataExportId});
+    } catch (_err) {
+      addErrorMessage(t('Unable to begin bulk data export. Please try again.'));
+    }
   };
 
   render() {
