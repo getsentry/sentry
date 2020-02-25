@@ -216,6 +216,8 @@ class Pipeline(object):
             return self.finish_pipeline()
 
         step = self.pipeline_views[step_index]
+        import logging
+        logging.info('current step %s', step_index)
 
         # support late binding steps
         if isinstance(step, LambdaType):
