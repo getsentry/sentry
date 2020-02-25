@@ -33,6 +33,7 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
+  onSearchBarBlur?:() => void;
 };
 
 type State = {
@@ -43,7 +44,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   state: State = {
     environments: null,
   };
-
+  blurFuncTest(...args){
+    console.log("blur test called",...args)
+  }
   componentDidMount() {
     this.fetchData();
   }
@@ -108,6 +111,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             isClearable
           />
           <FormField
+            onBlur={this.props.onSearchBarBlur}
             name="query"
             label={t('Filter')}
             defaultValue=""
@@ -116,12 +120,14 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               'You can apply standard Sentry filter syntax to filter by status, user, etc.'
             )}
           >
-            {({onChange, onBlur, value}) => (
+            {({onChange, onBlur, onKeyDown, value}) => (
               <SearchBar
                 defaultQuery={value}
                 disabled={disabled}
                 useFormWrapper={false}
                 organization={organization}
+                onChange={onChange}
+                onKeyDown={onKeyDown}
                 onBlur={onBlur}
                 onSearch={query => onChange(query, {})}
               />

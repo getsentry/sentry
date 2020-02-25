@@ -1,7 +1,6 @@
 import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import debounce from 'lodash/debounce';
 
 import { MetricAction } from 'app/types/alerts';
 import {Organization, Project, Config} from 'app/types';
@@ -261,12 +260,16 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     }
 
     return triggerErrors;
-  }
+  };
 
   handleFieldChange = (name: string, value: unknown) => {
-    if (['query', 'timeWindow', 'aggregation'].includes(name)) {
+    if (['timeWindow', 'aggregation'].includes(name)) {
       this.setState({[name]: value});
     }
+  };
+
+  handleSearchBarBlur = () => {
+    this.setState({ 'query': this.state.query });
   };
 
   handleSubmit = async (
@@ -410,7 +413,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             onSubmit={this.handleSubmit}
             onSubmitSuccess={onSubmitSuccess}
             onCancel={this.handleCancel}
-            onFieldChange={debounce(this.handleFieldChange,200)}
+            onFieldChange={this.handleFieldChange}
             extraButton={
               !!rule.id ? (
                 <Confirm
@@ -445,6 +448,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               projectSlug={params.projectId}
               organization={organization}
               disabled={!hasAccess}
+              onSearchBarBlur={this.handleSearchBarBlur}
             />
 
             <Triggers
