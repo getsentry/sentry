@@ -410,6 +410,21 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                     <span
                       className="css-19gcr2f-ButtonLabel edwq9my1"
                     >
+                      <Icon
+                        hasChildren={true}
+                        size="small"
+                      >
+                        <Component
+                          className="css-1299qb2-Icon edwq9my2"
+                          hasChildren={true}
+                          size="small"
+                        >
+                          <span
+                            className="css-1299qb2-Icon edwq9my2"
+                            size="small"
+                          />
+                        </Component>
+                      </Icon>
                       Cancel
                     </span>
                   </Component>
@@ -820,6 +835,21 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                                     <span
                                       className="css-19gcr2f-ButtonLabel edwq9my1"
                                     >
+                                      <Icon
+                                        hasChildren={true}
+                                        size="small"
+                                      >
+                                        <Component
+                                          className="css-1299qb2-Icon edwq9my2"
+                                          hasChildren={true}
+                                          size="small"
+                                        >
+                                          <span
+                                            className="css-1299qb2-Icon edwq9my2"
+                                            size="small"
+                                          />
+                                        </Component>
+                                      </Icon>
                                       Add Installation
                                     </span>
                                   </Component>

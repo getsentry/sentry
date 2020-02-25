@@ -504,6 +504,18 @@ exports[`TableField renders renders with form context 1`] = `
                             <span
                               className="css-zmpclt-ButtonLabel edwq9my1"
                             >
+                              <Icon
+                                hasChildren={true}
+                              >
+                                <Component
+                                  className="css-474vvz-Icon edwq9my2"
+                                  hasChildren={true}
+                                >
+                                  <span
+                                    className="css-474vvz-Icon edwq9my2"
+                                  />
+                                </Component>
+                              </Icon>
                               Save Changes
                             </span>
                           </Component>

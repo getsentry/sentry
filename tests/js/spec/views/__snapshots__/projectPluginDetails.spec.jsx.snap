@@ -515,6 +515,21 @@ exports[`ProjectPluginDetails renders 1`] = `
                                                 <span
                                                   className="css-19gcr2f-ButtonLabel edwq9my1"
                                                 >
+                                                  <Icon
+                                                    hasChildren={true}
+                                                    size="small"
+                                                  >
+                                                    <Component
+                                                      className="css-1299qb2-Icon edwq9my2"
+                                                      hasChildren={true}
+                                                      size="small"
+                                                    >
+                                                      <span
+                                                        className="css-1299qb2-Icon edwq9my2"
+                                                        size="small"
+                                                      />
+                                                    </Component>
+                                                  </Icon>
                                                   Enable Plugin
                                                 </span>
                                               </Component>
@@ -573,6 +588,21 @@ exports[`ProjectPluginDetails renders 1`] = `
                                                 <span
                                                   className="css-19gcr2f-ButtonLabel edwq9my1"
                                                 >
+                                                  <Icon
+                                                    hasChildren={true}
+                                                    size="small"
+                                                  >
+                                                    <Component
+                                                      className="css-1299qb2-Icon edwq9my2"
+                                                      hasChildren={true}
+                                                      size="small"
+                                                    >
+                                                      <span
+                                                        className="css-1299qb2-Icon edwq9my2"
+                                                        size="small"
+                                                      />
+                                                    </Component>
+                                                  </Icon>
                                                   Reset Configuration
                                                 </span>
                                               </Component>

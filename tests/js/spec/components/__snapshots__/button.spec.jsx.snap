@@ -53,6 +53,21 @@ exports[`Button renders 1`] = `
               <span
                 className="css-ym5hp1-ButtonLabel edwq9my1"
               >
+                <Icon
+                  hasChildren={true}
+                  size="large"
+                >
+                  <Component
+                    className="css-474vvz-Icon edwq9my2"
+                    hasChildren={true}
+                    size="large"
+                  >
+                    <span
+                      className="css-474vvz-Icon edwq9my2"
+                      size="large"
+                    />
+                  </Component>
+                </Icon>
                 Button
               </span>
             </Component>
@@ -110,6 +125,18 @@ exports[`Button renders disabled normal link 1`] = `
               <span
                 className="css-zmpclt-ButtonLabel edwq9my1"
               >
+                <Icon
+                  hasChildren={true}
+                >
+                  <Component
+                    className="css-474vvz-Icon edwq9my2"
+                    hasChildren={true}
+                  >
+                    <span
+                      className="css-474vvz-Icon edwq9my2"
+                    />
+                  </Component>
+                </Icon>
                 Normal Link
               </span>
             </Component>
@@ -167,6 +194,18 @@ exports[`Button renders normal link 1`] = `
               <span
                 className="css-zmpclt-ButtonLabel edwq9my1"
               >
+                <Icon
+                  hasChildren={true}
+                >
+                  <Component
+                    className="css-474vvz-Icon edwq9my2"
+                    hasChildren={true}
+                  >
+                    <span
+                      className="css-474vvz-Icon edwq9my2"
+                    />
+                  </Component>
+                </Icon>
                 Normal Link
               </span>
             </Component>
@@ -234,6 +273,18 @@ exports[`Button renders react-router link 1`] = `
                 <span
                   className="css-zmpclt-ButtonLabel edwq9my1"
                 >
+                  <Icon
+                    hasChildren={true}
+                  >
+                    <Component
+                      className="css-474vvz-Icon edwq9my2"
+                      hasChildren={true}
+                    >
+                      <span
+                        className="css-474vvz-Icon edwq9my2"
+                      />
+                    </Component>
+                  </Icon>
                   Router Link
                 </span>
               </Component>

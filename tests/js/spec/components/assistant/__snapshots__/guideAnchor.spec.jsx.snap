@@ -121,6 +121,9 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                             <span
                               class="css-19gcr2f-ButtonLabel edwq9my1"
                             >
+                              <span
+                                class="css-1299qb2-Icon edwq9my2"
+                              />
                               Next
                                →
                             </span>
@@ -334,6 +337,21 @@ exports[`GuideAnchor renders, advances, and finishes 1`] = `
                                                   <span
                                                     className="css-19gcr2f-ButtonLabel edwq9my1"
                                                   >
+                                                    <Icon
+                                                      hasChildren={true}
+                                                      size="small"
+                                                    >
+                                                      <Component
+                                                        className="css-1299qb2-Icon edwq9my2"
+                                                        hasChildren={true}
+                                                        size="small"
+                                                      >
+                                                        <span
+                                                          className="css-1299qb2-Icon edwq9my2"
+                                                          size="small"
+                                                        />
+                                                      </Component>
+                                                    </Icon>
                                                     Next
                                                      →
                                                   </span>
@@ -470,6 +488,9 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                             <span
                               class="css-19gcr2f-ButtonLabel edwq9my1"
                             >
+                              <span
+                                class="css-1299qb2-Icon edwq9my2"
+                              />
                               Done
                             </span>
                           </button>
@@ -645,6 +666,21 @@ exports[`GuideAnchor renders, advances, and finishes 2`] = `
                                                   <span
                                                     className="css-19gcr2f-ButtonLabel edwq9my1"
                                                   >
+                                                    <Icon
+                                                      hasChildren={true}
+                                                      size="small"
+                                                    >
+                                                      <Component
+                                                        className="css-1299qb2-Icon edwq9my2"
+                                                        hasChildren={true}
+                                                        size="small"
+                                                      >
+                                                        <span
+                                                          className="css-1299qb2-Icon edwq9my2"
+                                                          size="small"
+                                                        />
+                                                      </Component>
+                                                    </Icon>
                                                     Done
                                                   </span>
                                                 </Component>

@@ -1189,6 +1189,21 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                           <span
                             className="css-19gcr2f-ButtonLabel edwq9my1"
                           >
+                            <Icon
+                              hasChildren={true}
+                              size="small"
+                            >
+                              <Component
+                                className="css-1299qb2-Icon edwq9my2"
+                                hasChildren={true}
+                                size="small"
+                              >
+                                <span
+                                  className="css-1299qb2-Icon edwq9my2"
+                                  size="small"
+                                />
+                              </Component>
+                            </Icon>
                             Learn more
                           </span>
                         </Component>
@@ -1889,6 +1904,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                         <span
                                                           className="css-1igyjbb-ButtonLabel edwq9my1"
                                                         >
+                                                          <Icon
+                                                            hasChildren={true}
+                                                          >
+                                                            <Component
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                              hasChildren={true}
+                                                            >
+                                                              <span
+                                                                className="css-474vvz-Icon edwq9my2"
+                                                              />
+                                                            </Component>
+                                                          </Icon>
                                                           <span
                                                             key="0"
                                                           >
@@ -1953,6 +1980,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                       <span
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
+                                                        <Icon
+                                                          hasChildren={true}
+                                                        >
+                                                          <Component
+                                                            className="css-474vvz-Icon edwq9my2"
+                                                            hasChildren={true}
+                                                          >
+                                                            <span
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                            />
+                                                          </Component>
+                                                        </Icon>
                                                         <span
                                                           key="3"
                                                         >
@@ -2553,6 +2592,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                         <span
                                                           className="css-1igyjbb-ButtonLabel edwq9my1"
                                                         >
+                                                          <Icon
+                                                            hasChildren={true}
+                                                          >
+                                                            <Component
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                              hasChildren={true}
+                                                            >
+                                                              <span
+                                                                className="css-474vvz-Icon edwq9my2"
+                                                              />
+                                                            </Component>
+                                                          </Icon>
                                                           <span
                                                             key="0"
                                                           >
@@ -2617,6 +2668,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                       <span
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
+                                                        <Icon
+                                                          hasChildren={true}
+                                                        >
+                                                          <Component
+                                                            className="css-474vvz-Icon edwq9my2"
+                                                            hasChildren={true}
+                                                          >
+                                                            <span
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                            />
+                                                          </Component>
+                                                        </Icon>
                                                         <span
                                                           key="3"
                                                         >
@@ -3184,6 +3247,21 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   <span
                                                     className="css-cmi7y3-ButtonLabel edwq9my1"
                                                   >
+                                                    <Icon
+                                                      hasChildren={true}
+                                                      size="xsmall"
+                                                    >
+                                                      <Component
+                                                        className="css-1299qb2-Icon edwq9my2"
+                                                        hasChildren={true}
+                                                        size="xsmall"
+                                                      >
+                                                        <span
+                                                          className="css-1299qb2-Icon edwq9my2"
+                                                          size="xsmall"
+                                                        />
+                                                      </Component>
+                                                    </Icon>
                                                     Skip task
                                                   </span>
                                                 </Component>
@@ -3281,6 +3359,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                         <span
                                                           className="css-1igyjbb-ButtonLabel edwq9my1"
                                                         >
+                                                          <Icon
+                                                            hasChildren={true}
+                                                          >
+                                                            <Component
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                              hasChildren={true}
+                                                            >
+                                                              <span
+                                                                className="css-474vvz-Icon edwq9my2"
+                                                              />
+                                                            </Component>
+                                                          </Icon>
                                                           <span
                                                             key="0"
                                                           >
@@ -3345,6 +3435,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                       <span
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
+                                                        <Icon
+                                                          hasChildren={true}
+                                                        >
+                                                          <Component
+                                                            className="css-474vvz-Icon edwq9my2"
+                                                            hasChildren={true}
+                                                          >
+                                                            <span
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                            />
+                                                          </Component>
+                                                        </Icon>
                                                         <span
                                                           key="3"
                                                         >
@@ -3917,6 +4019,21 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   <span
                                                     className="css-cmi7y3-ButtonLabel edwq9my1"
                                                   >
+                                                    <Icon
+                                                      hasChildren={true}
+                                                      size="xsmall"
+                                                    >
+                                                      <Component
+                                                        className="css-1299qb2-Icon edwq9my2"
+                                                        hasChildren={true}
+                                                        size="xsmall"
+                                                      >
+                                                        <span
+                                                          className="css-1299qb2-Icon edwq9my2"
+                                                          size="xsmall"
+                                                        />
+                                                      </Component>
+                                                    </Icon>
                                                     Skip task
                                                   </span>
                                                 </Component>
@@ -4014,6 +4131,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                         <span
                                                           className="css-1igyjbb-ButtonLabel edwq9my1"
                                                         >
+                                                          <Icon
+                                                            hasChildren={true}
+                                                          >
+                                                            <Component
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                              hasChildren={true}
+                                                            >
+                                                              <span
+                                                                className="css-474vvz-Icon edwq9my2"
+                                                              />
+                                                            </Component>
+                                                          </Icon>
                                                           <span
                                                             key="0"
                                                           >
@@ -4078,6 +4207,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                       <span
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
+                                                        <Icon
+                                                          hasChildren={true}
+                                                        >
+                                                          <Component
+                                                            className="css-474vvz-Icon edwq9my2"
+                                                            hasChildren={true}
+                                                          >
+                                                            <span
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                            />
+                                                          </Component>
+                                                        </Icon>
                                                         <span
                                                           key="3"
                                                         >
@@ -4665,6 +4806,21 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   <span
                                                     className="css-cmi7y3-ButtonLabel edwq9my1"
                                                   >
+                                                    <Icon
+                                                      hasChildren={true}
+                                                      size="xsmall"
+                                                    >
+                                                      <Component
+                                                        className="css-1299qb2-Icon edwq9my2"
+                                                        hasChildren={true}
+                                                        size="xsmall"
+                                                      >
+                                                        <span
+                                                          className="css-1299qb2-Icon edwq9my2"
+                                                          size="xsmall"
+                                                        />
+                                                      </Component>
+                                                    </Icon>
                                                     Skip task
                                                   </span>
                                                 </Component>
@@ -4762,6 +4918,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                         <span
                                                           className="css-1igyjbb-ButtonLabel edwq9my1"
                                                         >
+                                                          <Icon
+                                                            hasChildren={true}
+                                                          >
+                                                            <Component
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                              hasChildren={true}
+                                                            >
+                                                              <span
+                                                                className="css-474vvz-Icon edwq9my2"
+                                                              />
+                                                            </Component>
+                                                          </Icon>
                                                           <span
                                                             key="0"
                                                           >
@@ -4826,6 +4994,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                       <span
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
+                                                        <Icon
+                                                          hasChildren={true}
+                                                        >
+                                                          <Component
+                                                            className="css-474vvz-Icon edwq9my2"
+                                                            hasChildren={true}
+                                                          >
+                                                            <span
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                            />
+                                                          </Component>
+                                                        </Icon>
                                                         <span
                                                           key="3"
                                                         >
@@ -5402,6 +5582,21 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   <span
                                                     className="css-cmi7y3-ButtonLabel edwq9my1"
                                                   >
+                                                    <Icon
+                                                      hasChildren={true}
+                                                      size="xsmall"
+                                                    >
+                                                      <Component
+                                                        className="css-1299qb2-Icon edwq9my2"
+                                                        hasChildren={true}
+                                                        size="xsmall"
+                                                      >
+                                                        <span
+                                                          className="css-1299qb2-Icon edwq9my2"
+                                                          size="xsmall"
+                                                        />
+                                                      </Component>
+                                                    </Icon>
                                                     Skip task
                                                   </span>
                                                 </Component>
@@ -5499,6 +5694,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                         <span
                                                           className="css-1igyjbb-ButtonLabel edwq9my1"
                                                         >
+                                                          <Icon
+                                                            hasChildren={true}
+                                                          >
+                                                            <Component
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                              hasChildren={true}
+                                                            >
+                                                              <span
+                                                                className="css-474vvz-Icon edwq9my2"
+                                                              />
+                                                            </Component>
+                                                          </Icon>
                                                           <span
                                                             key="0"
                                                           >
@@ -5563,6 +5770,18 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                       <span
                                                         className="css-1igyjbb-ButtonLabel edwq9my1"
                                                       >
+                                                        <Icon
+                                                          hasChildren={true}
+                                                        >
+                                                          <Component
+                                                            className="css-474vvz-Icon edwq9my2"
+                                                            hasChildren={true}
+                                                          >
+                                                            <span
+                                                              className="css-474vvz-Icon edwq9my2"
+                                                            />
+                                                          </Component>
+                                                        </Icon>
                                                         <span
                                                           key="3"
                                                         >

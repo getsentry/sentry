@@ -246,6 +246,21 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                     <span
                                                       className="css-cmi7y3-ButtonLabel edwq9my1"
                                                     >
+                                                      <Icon
+                                                        hasChildren={true}
+                                                        size="xsmall"
+                                                      >
+                                                        <Component
+                                                          className="css-1299qb2-Icon edwq9my2"
+                                                          hasChildren={true}
+                                                          size="xsmall"
+                                                        >
+                                                          <span
+                                                            className="css-1299qb2-Icon edwq9my2"
+                                                            size="xsmall"
+                                                          />
+                                                        </Component>
+                                                      </Icon>
                                                       Add Project
                                                       <StyledChevronDown>
                                                         <Component
@@ -639,6 +654,21 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   <span
                                     className="css-19gcr2f-ButtonLabel edwq9my1"
                                   >
+                                    <Icon
+                                      hasChildren={true}
+                                      size="small"
+                                    >
+                                      <Component
+                                        className="css-1299qb2-Icon edwq9my2"
+                                        hasChildren={true}
+                                        size="small"
+                                      >
+                                        <span
+                                          className="css-1299qb2-Icon edwq9my2"
+                                          size="small"
+                                        />
+                                      </Component>
+                                    </Icon>
                                     <RemoveIcon>
                                       <Component
                                         className="css-1d2szfl-RemoveIcon eqsa6vb0"
@@ -1001,6 +1031,21 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                   <span
                                     className="css-19gcr2f-ButtonLabel edwq9my1"
                                   >
+                                    <Icon
+                                      hasChildren={true}
+                                      size="small"
+                                    >
+                                      <Component
+                                        className="css-1299qb2-Icon edwq9my2"
+                                        hasChildren={true}
+                                        size="small"
+                                      >
+                                        <span
+                                          className="css-1299qb2-Icon edwq9my2"
+                                          size="small"
+                                        />
+                                      </Component>
+                                    </Icon>
                                     <RemoveIcon>
                                       <Component
                                         className="css-1d2szfl-RemoveIcon eqsa6vb0"

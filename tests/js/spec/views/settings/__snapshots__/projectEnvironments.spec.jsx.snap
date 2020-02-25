@@ -1224,6 +1224,21 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                               <span
                                                 className="css-cmi7y3-ButtonLabel edwq9my1"
                                               >
+                                                <Icon
+                                                  hasChildren={true}
+                                                  size="xsmall"
+                                                >
+                                                  <Component
+                                                    className="css-1299qb2-Icon edwq9my2"
+                                                    hasChildren={true}
+                                                    size="xsmall"
+                                                  >
+                                                    <span
+                                                      className="css-1299qb2-Icon edwq9my2"
+                                                      size="xsmall"
+                                                    />
+                                                  </Component>
+                                                </Icon>
                                                 Show
                                               </span>
                                             </Component>
