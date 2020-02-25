@@ -20,6 +20,11 @@ from sentry.snuba import discover
 from sentry.utils import snuba
 from sentry.utils.dates import parse_stats_period
 
+# Maximum number of results we are willing to fetch.
+# Clients should adapt the interval width based on their
+# display width.
+MAX_POINTS = 4500
+
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
@@ -28,7 +33,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
 
         try:
             columns = request.GET.getlist("yAxis", ["count()"])
-            rollup = self.get_rollup(request)
+            params = self.get_filter_params(request, organization)
+            rollup = self.get_rollup(request, params)
             # Backwards compatibility for incidents which uses the old
             # column aliases as it straddles both versions of events/discover.
             # We will need these aliases until discover2 flags are enabled for all
@@ -41,7 +47,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             }
             query_columns = [column_map.get(column, column) for column in columns]
 
-            params = self.get_filter_params(request, organization)
             result = discover.timeseries_query(
                 selected_columns=query_columns,
                 query=request.GET.get("query"),
@@ -67,10 +72,18 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             data = serializer.serialize(result)
         return Response(data, status=200)
 
-    def get_rollup(self, request):
+    def get_rollup(self, request, params):
         interval = parse_stats_period(request.GET.get("interval", "1h"))
         if interval is None:
             interval = timedelta(hours=1)
+
+        date_range = params['end'] - params['start']
+        if date_range.total_seconds() / interval.total_seconds() > MAX_POINTS:
+            raise InvalidSearchQuery(
+                'Your interval and date range would create too many results. '
+                'Use a larger interval, or a smaller date range.'
+            )
+
         return int(interval.total_seconds())
 
     def get_v1_results(self, request, organization):
@@ -81,8 +94,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({"data": []})
 
-        rollup = self.get_rollup(request)
         snuba_args = self.get_field(request, snuba_args)
+        rollup = self.get_rollup(request, snuba_args)
 
         result = transform_aliases_and_query(
             aggregations=snuba_args.get("aggregations"),

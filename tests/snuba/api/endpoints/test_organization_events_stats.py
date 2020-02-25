@@ -577,3 +577,18 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
 
         assert mock_query.call_count == 1
+
+    def test_invalid_interval(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=24)),
+                    "query": "",
+                    "interval": "1s",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 400
