@@ -9,7 +9,7 @@
   </p>
 </p>
 
-# What's Sentry?
+# What's Sentry? 
 
 Sentry fundamentally is a service that helps you monitor and fix crashes
 in realtime. The server is in Python, but it contains a full API for
