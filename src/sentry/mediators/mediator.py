@@ -137,7 +137,7 @@ class Mediator(object):
             cls._prepare_params()
             cls._params_prepared = True
 
-        return super(Mediator, cls).__new__(cls, *args, **kwargs)
+        return super(Mediator, cls).__new__(cls)
 
     @classmethod
     def _prepare_params(cls):
