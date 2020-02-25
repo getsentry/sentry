@@ -156,11 +156,9 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             id=Project.objects.get_from_cache(id=instance.project_id).organization_id
         )
 
-    installations = list(
-        filter(
-            lambda i: event in i.sentry_app.events,
-            org.sentry_app_installations.select_related("sentry_app"),
-        )
+    installations = filter(
+        lambda i: event in i.sentry_app.events,
+        org.sentry_app_installations.select_related("sentry_app"),
     )
 
     for installation in installations:

@@ -19,11 +19,9 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
         if limit is not None:
             limit = int(limit) + 1  # the target group will always be included
 
-        results = list(
-            filter(
-                lambda group_id__scores: group_id__scores[0] != group.id,
-                features.compare(group, limit=limit),
-            )
+        results = filter(
+            lambda group_id__scores: group_id__scores[0] != group.id,
+            features.compare(group, limit=limit),
         )
 
         serialized_groups = apply_values(
@@ -35,16 +33,14 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
         # unable to be retrieved from the database. (This will soon be
         # unexpected behavior, but still possible.)
         return Response(
-            list(
-                filter(
-                    lambda group_id__scores: group_id__scores[0] is not None,
-                    map(
-                        lambda group_id__scores: (
-                            serialized_groups.get(group_id__scores[0]),
-                            group_id__scores[1],
-                        ),
-                        results,
+            filter(
+                lambda group_id__scores: group_id__scores[0] is not None,
+                map(
+                    lambda group_id__scores: (
+                        serialized_groups.get(group_id__scores[0]),
+                        group_id__scores[1],
                     ),
-                )
+                    results,
+                ),
             )
         )

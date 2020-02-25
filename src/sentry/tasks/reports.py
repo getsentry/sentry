@@ -613,11 +613,9 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     ]
 
     reports = dict(
-        list(
-            filter(
-                lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
-                zip(projects, backend.fetch(timestamp, duration, organization, projects)),
-            )
+        filter(
+            lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
+            zip(projects, backend.fetch(timestamp, duration, organization, projects)),
         )
     )
 
