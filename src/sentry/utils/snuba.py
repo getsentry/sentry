@@ -78,6 +78,11 @@ DATASET_FIELDS = {
 }
 
 
+def parse_snuba_datetime(value):
+    """Parses a datetime value from snuba."""
+    return naiveify_datetime(parse_datetime(value))
+
+
 class SnubaError(Exception):
     pass
 

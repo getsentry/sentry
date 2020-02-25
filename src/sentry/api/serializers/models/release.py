@@ -9,7 +9,7 @@ from django.db.models import Sum
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
-from sentry.snuba.sessions import check_releases_for_health_data
+from sentry.snuba.sessions import get_release_health_data_overview
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -71,6 +71,10 @@ def get_users_for_authors(organization_id, authors, user=None):
 
 @register(Release)
 class ReleaseSerializer(Serializer):
+    def __init__(self, *args, **kwargs):
+        self.with_health_data = kwargs.pop("with_health_data", False)
+        Serializer.__init__(self, *args, **kwargs)
+
     def _get_commit_metadata(self, item_list, user):
         """
         Returns a dictionary of release_id => commit metadata,
@@ -234,18 +238,16 @@ class ReleaseSerializer(Serializer):
             "release_id", "release__version", "project__slug", "project__name", "project__id"
         )
 
-        health_data = check_releases_for_health_data(
-            [(pr["project__id"], pr["release__version"]) for pr in project_releases]
-        )
+        if self.with_health_data:
+            health_data = get_release_health_data_overview(
+                [(pr["project__id"], pr["release__version"]) for pr in project_releases]
+            )
 
         for pr in project_releases:
-            release_projects[pr["release_id"]].append(
-                {
-                    "slug": pr["project__slug"],
-                    "name": pr["project__name"],
-                    "hasHealthData": (pr["project__id"], pr["release__version"]) in health_data,
-                }
-            )
+            pr_rv = {"slug": pr["project__slug"], "name": pr["project__name"]}
+            if health_data is not None:
+                pr_rv["healthData"] = health_data.get((pr["project__id"], pr["release__version"]))
+            release_projects[pr["release_id"]].append(pr_rv)
 
         result = {}
         for item in item_list:

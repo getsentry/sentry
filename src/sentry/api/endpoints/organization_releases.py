@@ -10,6 +10,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.release import ReleaseSerializer
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
@@ -89,6 +90,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                               "starts with" filter for the version.
         """
         query = request.GET.get("query")
+        with_health = request.GET.get("health") == "1"
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -122,12 +124,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 params=[filter_params["start"], filter_params["end"]],
             )
 
+        serializer = ReleaseSerializer(with_health_data=with_health)
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-sort",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: [serialize(r, request.user, serializer=serializer) for r in x],
         )
 
     @attach_scenarios([create_new_org_release_ref_scenario, create_new_org_release_commit_scenario])
