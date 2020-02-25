@@ -757,7 +757,7 @@ def aliased_query(
                 derived_columns.append(col[2])
             else:
                 selected_columns[i] = resolve_column(col, dataset)
-        selected_columns = list([_f for _f in selected_columns if _f])
+        selected_columns = [c for c in selected_columns if c]
 
     if aggregations:
         for aggregation in aggregations:
@@ -768,7 +768,7 @@ def aliased_query(
         for (i, condition) in enumerate(conditions):
             replacement = resolve_condition(condition, column_resolver)
             conditions[i] = replacement
-        conditions = list([_f for _f in conditions if _f])
+        conditions = [c for c in conditions if c]
 
     if orderby:
         # Don't mutate in case we have a default order passed.

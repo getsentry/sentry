@@ -303,13 +303,13 @@ class SearchVisitor(NodeVisitor):
         def is_not_optional(child):
             return not (isinstance(child, Node) and isinstance(child.expr, Optional))
 
-        return list(filter(is_not_optional, children))
+        return filter(is_not_optional, children)
 
     def remove_space(self, children):
         def is_not_space(child):
             return not (isinstance(child, Node) and child.text == " ")
 
-        return list(filter(is_not_space, children))
+        return filter(is_not_space, children)
 
     def visit_search(self, node, children):
         return self.flatten(children)

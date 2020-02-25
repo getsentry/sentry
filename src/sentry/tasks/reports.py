@@ -439,7 +439,7 @@ class RedisReportBackend(ReportBackend):
                 [project.id for project in projects],
             )
 
-        return list(map(self.__decode, result.value))
+        return map(self.__decode, result.value)
 
 
 backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)

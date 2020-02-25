@@ -149,7 +149,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return data
 
     def validate_allowedDomains(self, value):
-        value = list(filter(bool, value))
+        value = filter(bool, value)
         if len(value) == 0:
             raise serializers.ValidationError(
                 "Empty value will block all requests, use * to accept from all domains"
