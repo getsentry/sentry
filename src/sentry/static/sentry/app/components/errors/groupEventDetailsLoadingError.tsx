@@ -6,7 +6,7 @@ import DetailedError from 'app/components/errors/detailedError';
 
 type Props = {
   environments: Environment[];
-  onRetry?: (e: React.MouseEvent) => void;
+  onRetry?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 };
 
 const GroupEventDetailsLoadingError = ({onRetry, environments}: Props) => {
