@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 import json
 import requests
+import six
 
 from collections import OrderedDict
 from time import time
@@ -119,6 +120,26 @@ def track_response_code(integration, code):
     )
 
 
+def log_request_failure(integration, error, code, context=None):
+    logger = logging.getLogger("sentry.integrations")
+
+    if context is None:
+        logger.info(
+            "integrations.http_response",
+            extra={"integration": integration, "status": code, "error": six.text_type(error[:128])},
+        )
+    else:
+        logger.info(
+            "integrations.http_response",
+            extra={
+                "integration": integration,
+                "status": code,
+                "error": six.text_type(error[:128]),
+                "context": context,
+            },
+        )
+
+
 class ApiClient(object):
     base_url = None
 
@@ -131,8 +152,9 @@ class ApiClient(object):
     # Used in metrics and logging.
     integration_name = "undefined"
 
-    def __init__(self, verify_ssl=True):
+    def __init__(self, verify_ssl=True, logging_context=None):
         self.verify_ssl = verify_ssl
+        self.logging_context = logging_context
 
     def build_url(self, path):
         if path.startswith("/"):
@@ -194,6 +216,7 @@ class ApiClient(object):
                 sample_rate=1.0,
                 tags={"integration": self.integration_name, "status": "connection_error"},
             )
+            log_request_failure(self.integration_name, e, "connection_error", self.logging_context)
             raise ApiHostError.from_exception(e)
         except Timeout as e:
             metrics.incr(
@@ -201,19 +224,23 @@ class ApiClient(object):
                 sample_rate=1.0,
                 tags={"integration": self.integration_name, "status": "timeout"},
             )
+            log_request_failure(self.integration_name, e, "timeout", self.logging_context)
             raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
                 track_response_code(self.integration_name, "unknown")
+                log_request_failure(self.integration_name, e, "unknown", self.logging_context)
                 self.logger.exception(
                     "request.error", extra={"integration": self.integration_name, "url": full_url}
                 )
                 raise ApiError("Internal Error")
             track_response_code(self.integration_name, resp.status_code)
+            log_request_failure(self.integration_name, e, resp.status_code, self.logging_context)
             raise ApiError.from_response(resp)
 
         track_response_code(self.integration_name, resp.status_code)
+        log_request_failure(self.integration_name, e, resp.status_code, self.logging_context)
         if resp.status_code == 204:
             return {}
 

@@ -158,7 +158,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             },
         ]
 
-        client = self.get_client()
+        client = self.get_client(context=None)
 
         try:
             statuses = [(c["id"], c["name"]) for c in client.get_valid_statuses()]
@@ -231,7 +231,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return config
 
     def sync_metadata(self):
-        client = self.get_client()
+        client = self.get_client(context=None)
 
         try:
             server_info = client.get_server_info()
@@ -278,15 +278,17 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
 
-    def get_client(self):
+    def get_client(self, context):
         return JiraApiClient(
             self.model.metadata["base_url"],
             JiraCloud(self.model.metadata["shared_secret"]),
             verify_ssl=True,
+            logging_context=context,
         )
 
     def get_issue(self, issue_id, **kwargs):
-        client = self.get_client()
+        context = {"issue_id": issue_id}
+        client = self.get_client(context)
         issue = client.get_issue(issue_id)
         return {
             "key": issue_id,
@@ -298,7 +300,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return self.get_client().create_comment(issue_id, quoted_comment)
+        context = {"issue_id": issue_id, "user_id": user_id, "comment": comment}
+        return self.get_client(context).create_comment(issue_id, quoted_comment)
 
     def create_comment_attribution(self, user_id, comment_text):
         user = User.objects.get(id=user_id)
@@ -307,13 +310,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def update_comment(self, issue_id, user_id, group_note):
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
-        return self.get_client().update_comment(
+        context = {"issue_id": issue_id, "user_id": user_id, "quoted_comment": quoted_comment}
+        return self.get_client(context).update_comment(
             issue_id, group_note.data["external_id"], quoted_comment
         )
 
     def search_issues(self, query):
+        context = {"query": query}
         try:
-            return self.get_client().search_issues(query)
+            return self.get_client(context).search_issues(query)
         except ApiError as e:
             self.raise_error(e)
 
@@ -498,8 +503,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         defaults = self.get_project_defaults(group.project_id)
         project_id = params.get("project", defaults.get("project"))
-
-        client = self.get_client()
+        context = {"project_id": project_id}
+        client = self.get_client(context)
         try:
             jira_projects = client.get_projects_list()
         except ApiError as e:
@@ -601,7 +606,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return fields
 
     def create_issue(self, data, **kwargs):
-        client = self.get_client()
+        client = self.get_client(context=None)
         cleaned_data = {}
         # protect against mis-configured integration submitting a form without an
         # issuetype assigned.
@@ -705,7 +710,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         """
         Propagate a sentry issue's assignee to a jira issue's assignee
         """
-        client = self.get_client()
+        client = self.get_client(context=None)
 
         jira_user = None
         if assign:
@@ -756,7 +761,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         """
         Propagate a sentry issue's status to a linked issue's status.
         """
-        client = self.get_client()
+        client = self.get_client(context=None)
         jira_issue = client.get_issue(external_issue.key)
         jira_project = jira_issue["fields"]["project"]
 
@@ -798,7 +803,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         client.transition_issue(external_issue.key, transition["id"])
 
     def _get_done_statuses(self):
-        client = self.get_client()
+        client = self.get_client(context=None)
         statuses = client.get_valid_statuses()
         return {s["id"] for s in statuses if s["statusCategory"]["key"] == "done"}
 
