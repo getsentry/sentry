@@ -4,6 +4,7 @@ import pytest
 
 from sentry.coreapi import APIError
 from sentry.event_manager import EventManager
+from sentry.utils.compat import map
 
 
 def validate_and_normalize(report, client_ip="198.51.100.0", user_agent="Awesome Browser"):

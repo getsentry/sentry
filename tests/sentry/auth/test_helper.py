@@ -28,7 +28,7 @@ class HandleNewUserTest(TestCase):
         assert user.email == identity["email"]
         assert OrganizationMember.objects.filter(organization=self.organization, user=user).exists()
 
-        signup_record = filter(lambda r: r[0][0] == "user.signup", mock_record.call_args_list)
+        signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
         assert signup_record == [
             mock.call(
                 "user.signup", user_id=user.id, source="sso", provider=provider, referrer="in-app"

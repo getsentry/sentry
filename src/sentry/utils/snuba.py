@@ -34,6 +34,7 @@ from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
+from sentry.utils.compat import map
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
@@ -756,7 +757,7 @@ def aliased_query(
                 derived_columns.append(col[2])
             else:
                 selected_columns[i] = resolve_column(col, dataset)
-        selected_columns = list(filter(None, selected_columns))
+        selected_columns = [c for c in selected_columns if c]
 
     if aggregations:
         for aggregation in aggregations:
@@ -767,7 +768,7 @@ def aliased_query(
         for (i, condition) in enumerate(conditions):
             replacement = resolve_condition(condition, column_resolver)
             conditions[i] = replacement
-        conditions = list(filter(None, conditions))
+        conditions = [c for c in conditions if c]
 
     if orderby:
         # Don't mutate in case we have a default order passed.

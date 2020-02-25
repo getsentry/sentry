@@ -10,6 +10,7 @@ from django.utils.encoding import force_text
 
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
+from sentry.utils.compat import filter
 
 
 def safe_execute(func, *args, **kwargs):
@@ -149,7 +150,7 @@ def get_path(data, *path, **kwargs):
             return default
 
     if f and data and isinstance(data, (list, tuple)):
-        data = list(filter((lambda x: x is not None) if f is True else f, data))
+        data = filter((lambda x: x is not None) if f is True else f, data)
 
     return data if data is not None else default
 

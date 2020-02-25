@@ -42,6 +42,7 @@ from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerpri
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils import json
+from sentry.utils.compat import filter
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 

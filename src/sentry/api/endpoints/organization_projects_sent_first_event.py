@@ -6,6 +6,7 @@ from sentry.models import Project
 from sentry.api.base import DocSection
 from sentry.api.serializers import serialize
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.utils.compat import map
 
 
 class OrganizationProjectsSentFirstEventEndpoint(OrganizationEndpoint):

@@ -4,7 +4,7 @@ import six
 
 from collections import defaultdict
 from django.db.models import Count
-from six.moves import zip
+
 
 from sentry import roles
 from sentry.app import env
@@ -20,6 +20,7 @@ from sentry.models import (
     Team,
     TeamAvatar,
 )
+from sentry.utils.compat import zip
 
 
 def get_team_memberships(team_list, user):

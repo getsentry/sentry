@@ -9,6 +9,7 @@ from sentry.utils.compat import implements_to_string
 from sentry.utils.safe import get_path
 
 from symbolic import parse_addr
+from sentry.utils.compat import map
 
 REPORT_VERSION = "104"
 

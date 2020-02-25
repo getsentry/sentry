@@ -22,10 +22,10 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.utils.avatar import get_gravatar_url
 
 
-def manytoone_to_dict(queryset, key, filter=None):
+def manytoone_to_dict(queryset, key, filter_func=None):
     result = defaultdict(list)
     for row in queryset:
-        if filter and not filter(row):
+        if filter_func and not filter_func(row):
             continue
         result[getattr(row, key)].append(row)
     return result

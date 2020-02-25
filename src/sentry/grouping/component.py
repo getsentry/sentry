@@ -57,7 +57,7 @@ class GroupingComponent(object):
             for value in c.values:
                 if isinstance(value, GroupingComponent) and value.contributes:
                     _walk_components(value, stack)
-            parts = filter(None, stack)
+            parts = [_f for _f in stack if _f]
             items.append(parts)
             stack.pop()
 

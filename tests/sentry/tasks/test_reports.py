@@ -40,6 +40,7 @@ from sentry.utils.dates import to_datetime, to_timestamp, floor_to_utc_day
 from sentry.testutils.helpers.datetime import iso_format
 
 from six.moves import xrange
+from sentry.utils.compat import map
 
 
 @pytest.yield_fixture(scope="module")

@@ -133,7 +133,8 @@ matrix:
     # Proactive linting on 3.7 during the porting process
     - python: 3.7
       name: 'Linter (Python 3.7)'
-      install: pip install 'sentry-flake8>=0.2.0,<0.3.0'
+      # XXX: this must be synced with requirements-dev.txt
+      install: pip install 'sentry-flake8==0.3.0'
       # configuration for flake8 can be found in setup.cfg
       script: flake8
 

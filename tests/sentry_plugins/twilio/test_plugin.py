@@ -8,6 +8,7 @@ from sentry.plugins.base import Notification
 from sentry.testutils import TestCase, PluginTestCase
 from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin
 from six.moves.urllib.parse import parse_qs
+from sentry.utils.compat import map
 
 
 class TwilioConfigurationFormTest(TestCase):
@@ -40,7 +41,7 @@ class TwilioConfigurationFormTest(TestCase):
         # extracting the message from django.forms.ValidationError
         # is the easiest and simplest way I've found to assert as_data
         for e in errors:
-            errors[e] = list(map(lambda x: x.message, errors[e]))
+            errors[e] = map(lambda x: x.message, errors[e])
 
         self.assertDictEqual(
             errors,

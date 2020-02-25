@@ -268,7 +268,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
         now = timezone.now()
         end = None
-        end_params = filter(None, [date_to, get_search_filter(search_filters, "date", "<")])
+        end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
         if end_params:
             end = min(end_params)
 
@@ -300,9 +300,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # retention date, which may be closer than 90 days in the past, but
         # apparently `retention_window_start` can be None(?), so we need a
         # fallback.
-        retention_date = max(filter(None, [retention_window_start, now - timedelta(days=90)]))
+        retention_date = max(
+            [_f for _f in [retention_window_start, now - timedelta(days=90)] if _f]
+        )
         start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
-        start = max(filter(None, start_params))
+        start = max([_f for _f in start_params if _f])
         end = max([retention_date, end])
 
         if start == retention_date and end == retention_date:

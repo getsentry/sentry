@@ -199,7 +199,7 @@ def resolve_discover_aliases(snuba_args):
         for (i, condition) in enumerate(conditions):
             replacement = resolve_condition(condition, resolve_column)
             conditions[i] = replacement
-        resolved["conditions"] = list(filter(None, conditions))
+        resolved["conditions"] = [c for c in conditions if c]
 
     # TODO add support for extracting having conditions.
 

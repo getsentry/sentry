@@ -13,6 +13,7 @@ from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_script
 from sentry.utils.versioning import Version
+from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.digests")
 
@@ -218,7 +219,7 @@ class RedisBackend(Backend):
             # If the record value is `None`, this means the record data was
             # missing (it was presumably evicted by Redis) so we don't need to
             # return it here.
-            yield filter(lambda record: record.value is not None, records)
+            yield [record for record in records if record.value is not None]
 
             script(
                 connection,

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase
+from sentry.utils.compat import map
 
 
 class OrganizationPluginsTest(APITestCase):
@@ -28,7 +29,7 @@ class OrganizationPluginsTest(APITestCase):
 
     def test_only_configuable_plugins(self):
         response = self.client.get(self.url)
-        assert filter(lambda x: not x["hasConfiguration"], response.data) == []
+        assert [x for x in response.data if not x["hasConfiguration"]] == []
 
     def test_enabled_not_configured(self):
         plugins.get("webhooks").enable(self.projectA)

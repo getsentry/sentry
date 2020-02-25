@@ -12,6 +12,7 @@ from sentry.incidents.models import (
     AlertRuleEnvironment,
 )
 from sentry.models import Rule
+from sentry.utils.compat import zip
 
 
 @register(AlertRule)

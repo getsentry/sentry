@@ -88,7 +88,7 @@ class AuthLoginTest(TestCase):
         assert user.name == "Foo Bar"
         assert not OrganizationMember.objects.filter(user=user).exists()
 
-        signup_record = filter(lambda r: r[0][0] == "user.signup", mock_record.call_args_list)
+        signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
         assert signup_record == [
             mock.call(
                 "user.signup",

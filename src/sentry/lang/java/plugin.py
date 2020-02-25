@@ -8,6 +8,7 @@ from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.models import ProjectDebugFile, EventError
 from sentry.reprocessing import report_processing_issue
 from sentry.utils.safe import get_path
+from sentry.utils.compat import map
 
 FRAME_CACHE_VERSION = 2
 

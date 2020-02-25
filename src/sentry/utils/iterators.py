@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 import itertools
 
-from six.moves import zip
+
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 
 def advance(n, iterator):

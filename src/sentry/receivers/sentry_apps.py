@@ -56,4 +56,4 @@ def send_workflow_webhooks(organization, issue, user, event, data=None):
 def installations_to_notify(organization, event):
     installations = organization.sentry_app_installations.select_related("sentry_app")
 
-    return filter(lambda i: event in i.sentry_app.events, installations)
+    return [i for i in installations if event in i.sentry_app.events]

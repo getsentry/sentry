@@ -19,6 +19,8 @@ from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
 from six.moves import reduce
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 logger = logging.getLogger(__name__)
 

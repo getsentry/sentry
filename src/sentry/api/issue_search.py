@@ -18,6 +18,7 @@ from sentry.search.utils import (
     parse_release,
     parse_status_value,
 )
+from sentry.utils.compat import map
 
 
 class IssueSearchVisitor(SearchVisitor):

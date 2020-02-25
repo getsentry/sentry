@@ -19,6 +19,7 @@ from sentry.discover.utils import transform_aliases_and_query
 from sentry.snuba import discover
 from sentry.utils import snuba
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.compat import zip
 
 
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):

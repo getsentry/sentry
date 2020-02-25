@@ -32,7 +32,7 @@ class OrganizationPluginsTest(APITestCase):
         # issuetrackingplugin2, webhooks, mail
         # none of the plugins should have an 'enabled' key since these
         # plugins are not bound by a project
-        plugins = [p for p in filter(lambda p: "enabled" in p, response.data)]
+        plugins = [p for p in [p for p in response.data if "enabled" in p]]
         assert len(plugins) == 0
         assert len(response.data) > 0
 
@@ -49,7 +49,7 @@ class OrganizationPluginsTest(APITestCase):
         assert response.status_code == 200, (response.status_code, response.content)
 
         enabled_plugins = [
-            (p["project"]["id"], p["slug"]) for p in filter(lambda p: p["enabled"], response.data)
+            (p["project"]["id"], p["slug"]) for p in [p for p in response.data if p["enabled"]]
         ]
 
         assert (self.projectA.id, "webhooks") in enabled_plugins
@@ -67,7 +67,7 @@ class OrganizationPluginsTest(APITestCase):
         assert response.status_code == 200, (response.status_code, response.content)
 
         enabled_plugins = [
-            (p["project"]["id"], p["slug"]) for p in filter(lambda p: p["enabled"], response.data)
+            (p["project"]["id"], p["slug"]) for p in [p for p in response.data if p["enabled"]]
         ]
 
         assert (self.projectA.id, "webhooks") not in enabled_plugins
@@ -85,7 +85,7 @@ class OrganizationPluginsTest(APITestCase):
         assert response.status_code == 200, (response.status_code, response.content)
 
         enabled_plugins = [
-            (p["project"]["id"], p["slug"]) for p in filter(lambda p: p["enabled"], response.data)
+            (p["project"]["id"], p["slug"]) for p in [p for p in response.data if p["enabled"]]
         ]
 
         assert enabled_plugins == [(self.projectB.id, "mail")]

@@ -4,6 +4,7 @@ import os
 import click
 from six import text_type
 from itertools import chain
+from sentry.utils.compat import map
 
 
 def get_docker_client():

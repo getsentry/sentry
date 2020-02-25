@@ -36,7 +36,7 @@ class Migrator(Mediator):
                 pass
 
     def repos_for_provider(self, provider):
-        return filter(lambda r: r.provider == provider, self.repositories)
+        return [r for r in self.repositories if r.provider == provider]
 
     @property
     def repositories(self):

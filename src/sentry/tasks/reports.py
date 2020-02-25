@@ -31,6 +31,9 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from six.moves import reduce, zip_longest
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
+from sentry.utils.compat import filter
 
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")
@@ -436,7 +439,7 @@ class RedisReportBackend(ReportBackend):
                 [project.id for project in projects],
             )
 
-        return list(map(self.__decode, result.value))
+        return map(self.__decode, result.value)
 
 
 backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)

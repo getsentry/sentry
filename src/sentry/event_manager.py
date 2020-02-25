@@ -82,6 +82,7 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.culprit import generate_culprit
+from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.events")
 
@@ -322,7 +323,7 @@ class EventManager(object):
             raise APIError("Invalid security report: %s" % str(e).splitlines()[0])
 
         def clean(d):
-            return dict(filter(lambda x: x[1], d.items()))
+            return dict([x for x in d.items() if x[1]])
 
         data.update(
             {
@@ -405,7 +406,7 @@ class EventManager(object):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
         for exc in get_path(self._data, "exception", "values", filter=True, default=[]):
-            message = u": ".join(filter(None, map(exc.get, ["type", "value"])))
+            message = u": ".join([_f for _f in map(exc.get, ["type", "value"]) if _f])
             if message and not is_valid_error_message(self.project_config, message):
                 return (True, FilterStatKeys.ERROR_MESSAGE)
 

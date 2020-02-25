@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.models import Organization, PromptsActivity, Project
+from sentry.utils.compat import zip
 
 PROMPTS = {
     "releases": {"required_fields": ["organization_id", "project_id"]},
