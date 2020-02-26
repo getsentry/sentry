@@ -180,13 +180,13 @@ class ActionsPanel extends React.PureComponent<Props> {
             })}
           <PanelItem>
             <StyledSelectControl
-              deprecatedSelectControl
               name="add-action"
               aria-label={t('Add an Action')}
-              disabled={disabled || loading}
+              isDisabled={disabled || loading}
               placeholder={t('Add an Action')}
               onChange={this.handleAddAction}
-              options={items}
+              value={null}
+              options={items ?? []}
             />
           </PanelItem>
         </React.Fragment>
