@@ -303,7 +303,7 @@ def test_outcome_consumer_handles_accepted_outcomes(
 
     # verify that the appropriate filters were called
     assert len(event_saved_sink) == 2
-    assert set(event_saved_sink) == {"saved_event"}
+    assert set(event_saved_sink) == {"saved event"}
     assert len(event_dropped_sink) == 0
     assert len(event_filtered_sink) == 0
 
