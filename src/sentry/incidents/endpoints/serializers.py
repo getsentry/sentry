@@ -2,10 +2,8 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 
-import six
 import operator
 
-from enum import Enum
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -17,7 +15,6 @@ from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
-    get_excluded_projects_for_alert_rule,
     update_alert_rule,
     update_alert_rule_trigger,
     update_alert_rule_trigger_action,
@@ -30,7 +27,6 @@ from sentry.incidents.models import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.models.project import Project
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -144,24 +140,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     def create(self, validated_data):
         return create_alert_rule_trigger_action(trigger=self.context["trigger"], **validated_data)
 
-    def _remove_unchanged_fields(self, instance, validated_data):
-        changed = False
-        if (
-            validated_data.get("type", instance.type) == AlertRuleTriggerAction.Type.SLACK.value
-            and validated_data["target_identifier"] != instance.target_display
-        ):
-            changed = True
-        for field_name, value in list(six.iteritems(validated_data)):
-            # Remove any fields that haven't actually changed
-            if isinstance(value, Enum):
-                value = value.value
-            if getattr(instance, field_name) != value:
-                changed = True
-                break
-        return validated_data if changed else {}
-
     def update(self, instance, validated_data):
-        # validated_data = self._remove_unchanged_fields(instance, validated_data)
         if "id" in validated_data:
             validated_data.pop("id")
         return update_alert_rule_trigger_action(instance, **validated_data)
@@ -216,27 +195,10 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
-    def _remove_unchanged_fields(self, instance, validated_data):
-        for field_name, value in list(six.iteritems(validated_data)):
-            # Remove any fields that haven't actually changed
-            if field_name == "excluded_projects":
-                excluded_slugs = [
-                    e.query_subscription.project.slug for e in instance.exclusions.all()
-                ]
-                if set(excluded_slugs) == set(project.slug for project in value):
-                    validated_data.pop(field_name)
-                continue
-            if isinstance(value, Enum):
-                value = value.value
-            if getattr(instance, field_name) == value:
-                validated_data.pop(field_name)
-        return validated_data
-
     def update(self, instance, validated_data):
         actions = validated_data.pop("actions")
         if "id" in validated_data:
             validated_data.pop("id")
-        # validated_data = self._remove_unchanged_fields(instance, validated_data)
         try:
             alert_rule_trigger = update_alert_rule_trigger(instance, **validated_data)
             self._handle_action_updates(alert_rule_trigger, actions)
@@ -424,31 +386,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         return data
 
-    def _remove_unchanged_fields(self, instance, validated_data):
-        for field_name, value in list(six.iteritems(validated_data)):
-            # Remove any fields that haven't actually changed
-            if field_name == "triggers" or field_name == "environment":
-                continue  # No removal for triggers or environment
-            if field_name == "projects":
-                project_slugs = Project.objects.filter(
-                    querysubscription__alert_rules=instance
-                ).values_list("slug", flat=True)
-                if set(project_slugs) == set([project.slug for project in value]):
-                    validated_data.pop(field_name)
-                continue
-            if field_name == "excluded_projects":
-                excluded_slugs = [
-                    p.project.slug for p in get_excluded_projects_for_alert_rule(instance)
-                ]
-                if set(excluded_slugs) == set(project.slug for project in value):
-                    validated_data.pop(field_name)
-                continue
-            if isinstance(value, Enum):
-                value = value.value
-            if getattr(instance, field_name) == value:
-                validated_data.pop(field_name)
-        return validated_data
-
     def create(self, validated_data):
         try:
             triggers = validated_data.pop("triggers")
@@ -464,7 +401,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         triggers = validated_data.pop("triggers")
         if "id" in validated_data:
             validated_data.pop("id")
-        # validated_data = self._remove_unchanged_fields(instance, validated_data)
         try:
             alert_rule = update_alert_rule(instance, **validated_data)
             self._handle_trigger_updates(alert_rule, triggers)
