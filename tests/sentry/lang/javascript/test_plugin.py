@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import os.path
+import pytest
 import responses
 
 from base64 import b64encode
@@ -1342,12 +1343,14 @@ class JavascriptIntegrationTest(SnubaTestCase):
             assert not frame_list[x].in_app
 
 
+@pytest.mark.uses_sentry_store
 class JavascriptIntegrationTestLegacy(SentryStoreHelper, TestCase, JavascriptIntegrationTest):
     def setUp(self):
         super(JavascriptIntegrationTestLegacy, self).setUp()
         self.min_ago = iso_format(before_now(minutes=1))
 
 
+@pytest.mark.uses_relay_store
 class JavascriptIntegrationTestRelay(
     RelayStoreHelper, TransactionTestCase, JavascriptIntegrationTest
 ):

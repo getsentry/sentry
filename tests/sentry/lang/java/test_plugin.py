@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import zipfile
+import pytest
 from six import BytesIO
 
 from django.core.urlresolvers import reverse
@@ -194,12 +195,14 @@ class BasicResolvingIntegrationTest(object):
         }
 
 
+@pytest.mark.uses_sentry_store
 class BasicResolvingIntegrationTestLegacy(
     SentryStoreHelper, TestCase, BasicResolvingIntegrationTest
 ):
     pass
 
 
+@pytest.mark.uses_relay_store
 class BasicResolvingIntegrationTestRelay(
     RelayStoreHelper, TransactionTestCase, BasicResolvingIntegrationTest
 ):
