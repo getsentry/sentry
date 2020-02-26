@@ -416,7 +416,9 @@ class Enhancements(object):
 
     @classmethod
     def loads(cls, data):
-        padded = data.encode("ascii") + b"=" * (4 - (len(data) % 4))
+        if isinstance(data, six.text_type):
+            data = data.encode("ascii", "ignore")
+        padded = data + b"=" * (4 - (len(data) % 4))
         try:
             return cls._from_config_structure(
                 msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)))
