@@ -1,50 +1,38 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
+import {Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
-import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
+import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
 import PanelItem from 'app/components/panels/panelItem';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-import routeTitleGen from 'app/utils/routeTitle';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 type RouteParams = {
   orgId: string;
   projectId: string;
-  incidentRuleId: string;
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
+  organization: Organization;
   hasMetricAlerts: boolean;
 };
 
 type State = {
   alertType: string | null;
-} & AsyncView['state'];
+};
 
-class Create extends AsyncView<Props, State> {
-  getDefaultState() {
-    const {pathname} = this.props.location;
-
-    return {
-      ...super.getDefaultState(),
-      alertType: pathname.includes('/alerts/rules/')
-        ? 'issue'
-        : pathname.includes('/alerts/metric-rules/')
-        ? 'metric'
-        : null,
-    };
-  }
-
-  getTitle() {
-    return routeTitleGen(t('New Alert'), this.props.params.projectId, false);
-  }
-
-  getEndpoints(): [string, string][] {
-    return [];
-  }
+class ProjectAlertsEditor extends React.Component<Props, State> {
+  state = {
+    alertType: this.props.location.pathname.includes('/alerts/rules/')
+      ? 'issue'
+      : this.props.location.pathname.includes('/alerts/metric-rules/')
+      ? 'metric'
+      : null,
+  };
 
   handleChangeAlertType = (alertType: string) => {
     // alertType should be `issue` or `metric`
@@ -53,18 +41,19 @@ class Create extends AsyncView<Props, State> {
     });
   };
 
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderBody() {
+  render() {
     const {hasMetricAlerts} = this.props;
+    const {projectId} = this.props.params;
     const {alertType} = this.state;
 
     const shouldShowAlertTypeChooser = hasMetricAlerts;
+    const title = t('New Alert');
 
     return (
       <React.Fragment>
+        <SentryDocumentTitle title={title} objSlug={projectId} />
+        <SettingsPageHeader title={title} />
+
         {shouldShowAlertTypeChooser && (
           <Panel>
             <PanelHeader>{t('Choose an Alert Type')}</PanelHeader>
@@ -72,7 +61,7 @@ class Create extends AsyncView<Props, State> {
               <PanelItem>
                 <RadioGroup
                   label={t('Select an Alert Type')}
-                  value={this.state.alertType}
+                  value={alertType}
                   choices={[
                     [
                       'metric',
@@ -106,4 +95,4 @@ class Create extends AsyncView<Props, State> {
   }
 }
 
-export default Create;
+export default ProjectAlertsEditor;
