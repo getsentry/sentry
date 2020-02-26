@@ -730,7 +730,7 @@ def delete_alert_rule(alert_rule):
         alert_rule.update(
             # Randomize the name here so that we don't get unique constraint issues
             # while waiting for the deletion to process
-            name=uuid4().get_hex(),
+            name=uuid4().hex,
             status=AlertRuleStatus.PENDING_DELETION.value,
         )
         bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
