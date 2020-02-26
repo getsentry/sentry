@@ -109,10 +109,10 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
       eventName: 'Integrations: Plugin Add to Project Clicked',
     });
     modal.openModal(
-      ({closeModal, Modal, Body}) => (
+      ({closeModal, Header, Body}) => (
         <ContextPickerModal
+          Header={Header}
           Body={Body}
-          Modal={Modal}
           nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/${plugin.id}/`}
           needProject
           needOrg={false}
