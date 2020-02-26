@@ -63,7 +63,7 @@ class TogglableAddress extends React.Component<Props> {
     const formattedAddress = !relativeAddress || isAbsolute ? address : relativeAddress;
 
     return (
-      <Address display={!!formattedAddress}>
+      <Address>
         {canBeConverted && (
           <Tooltip title={isAbsolute ? t('Absolute') : t('Relative')}>
             <Toggle className="icon-filter" onClick={onToggle} />
@@ -113,7 +113,7 @@ const AddressText = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
   padding-left: ${p => (p.canBeConverted ? null : '18px')};
 `;
 
-const Address = styled('span')<{display?: boolean}>`
+const Address = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.foreground};
@@ -121,16 +121,11 @@ const Address = styled('span')<{display?: boolean}>`
   width: 117px;
   flex-grow: 0;
   flex-shrink: 0;
-  height: ${props => (props.display ? 'auto' : '0px')};
   display: block;
   padding: 0 ${space(0.5)};
 
   &:hover ${Toggle} {
     visibility: visible;
-  }
-
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
-    height: auto;
   }
 `;
 

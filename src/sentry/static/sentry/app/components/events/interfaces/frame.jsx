@@ -558,7 +558,7 @@ export class Frame extends React.Component {
               onToggle={onAddressToggle}
               maxLengthOfRelativeAddress={maxLengthOfRelativeAddress}
             />
-            <span className="symbol">
+            <Symbol className="symbol">
               <FunctionName frame={data} />{' '}
               {hint !== null ? (
                 <Tooltip title={hint}>
@@ -577,7 +577,7 @@ export class Frame extends React.Component {
                   </span>
                 </Tooltip>
               )}
-            </span>
+            </Symbol>
           </NativeLineContent>
           {this.renderExpander()}
         </DefaultLine>
@@ -638,15 +638,15 @@ const RepeatedFrames = styled('div')`
 
 const VertCenterWrapper = styled('div')`
   display: flex;
-  flex-direction: column;
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
-    flex-direction: row;
-    align-items: center;
-  }
+  align-items: center;
 `;
 
 const RepeatedContent = styled(VertCenterWrapper)`
   justify-content: center;
+  flex-direction: column;
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    flex-direction: row;
+  }
 `;
 
 const NativeLineContent = styled(RepeatedContent)`
@@ -667,6 +667,13 @@ const HintStatus = styled(InlineSvg)`
   margin: 0 ${space(0.75)} 0 -${space(0.25)};
   color: ${p => (p.danger ? p.theme.alert.error.iconColor : '#2c58a8')};
   transform: translateY(-1px);
+`;
+
+const Symbol = styled('span')`
+  text-align: center;
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    text-align: left;
+  }
 `;
 
 export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});

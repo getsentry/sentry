@@ -54,26 +54,22 @@ const Package = styled('a')<Partial<Props>>`
   max-width: 100%;
   display: flex;
   align-items: center;
-  flex-basis: auto;
   flex-grow: 0;
   flex-shrink: 0;
   padding: 0 0 0 ${space(0.5)};
   color: ${p => p.theme.foreground};
   cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
-
   &:hover {
     color: ${p => p.theme.foreground};
-
     ${LinkChevron} {
       opacity: 1;
       transform: translateX(${space(0.5)});
     }
-
     &:hover ${PackageStatusIcon} {
       opacity: 1;
     }
   }
-
+  flex-basis: auto;
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
     flex-basis: 137px;
   }
@@ -84,11 +80,7 @@ const PackageName = styled('span')`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  max-width: 100%;
-
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
-    max-width: 104px;
-  }
+  max-width: 104px;
 `;
 
 export default PackageLink;
