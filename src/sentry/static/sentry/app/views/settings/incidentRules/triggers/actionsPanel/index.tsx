@@ -50,7 +50,33 @@ type Props = {
   onChange: (actions: Action[]) => void;
 };
 
+/**
+ * Lists saved actions as well as control to add a new action
+ */
 class ActionsPanel extends React.PureComponent<Props> {
+  /**
+   * Actions have a type (e.g. email, slack, etc), but only some have
+   * an integrationId (e.g. email is null). This helper creates a unique
+   * id based on the type and integrationId so that we know what action
+   * a user's saved action corresponds to.
+   */
+  getActionUniqueKey({type, integrationId}: Pick<Action, 'type' | 'integrationId'>) {
+    return `${type}-${integrationId}`;
+  }
+
+  /**
+   * Creates a human-friendly display name for the integration based on type and
+   * server provided `integrationName`
+   *
+   * e.g. for slack we show that it is slack and the `integrationName` is the workspace name
+   */
+  getFullActionTitle({
+    type,
+    integrationName,
+  }: Pick<MetricActionTemplate, 'type' | 'integrationName'>) {
+    return `${ActionLabel[type]}${integrationName ? ` - ${integrationName}` : ''}`;
+  }
+
   doChangeTargetIdentifier(index: number, value: string) {
     const {actions, onChange} = this.props;
     const newAction = {
@@ -59,17 +85,6 @@ class ActionsPanel extends React.PureComponent<Props> {
     };
 
     onChange(replaceAtArrayIndex(actions, index, newAction));
-  }
-
-  getActionUniqueKey({type, integrationId}: Pick<Action, 'type' | 'integrationId'>) {
-    return `${type}-${integrationId}`;
-  }
-
-  getFullActionTitle({
-    type,
-    integrationName,
-  }: Pick<MetricActionTemplate, 'type' | 'integrationName'>) {
-    return `${ActionLabel[type]}${integrationName ? ` - ${integrationName}` : ''}`;
   }
 
   handleAddAction = (value: {label: string; value: string}) => {
