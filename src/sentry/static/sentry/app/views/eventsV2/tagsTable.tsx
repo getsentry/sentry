@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
@@ -28,7 +29,7 @@ const TagsTable = (props: Props) => {
       <StyledTable>
         <tbody>
           {tags.map(tag => {
-            let target;
+            let target: LocationDescriptor | undefined;
             const tagInQuery = eventView.query.includes(`${tag.key}:`);
             const renderTagValue = () => {
               switch (tag.key) {

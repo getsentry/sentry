@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import bisect
 import functools
-import itertools
 import logging
 import math
 import operator
@@ -31,7 +30,10 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
-from six.moves import reduce
+from six.moves import reduce, zip_longest
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
+from sentry.utils.compat import filter
 
 
 date_format = functools.partial(dateformat.format, format_string="F jS, Y")
@@ -153,7 +155,7 @@ def merge_series(target, other, function=operator.add):
     """
     missing = object()
     results = []
-    for x, y in itertools.izip_longest(target, other, fillvalue=missing):
+    for x, y in zip_longest(target, other, fillvalue=missing):
         assert x is not missing and y is not missing, "series must be same length"
         assert x[0] == y[0], "series timestamps must match"
         results.append((x[0], function(x[1], y[1])))
@@ -437,7 +439,7 @@ class RedisReportBackend(ReportBackend):
                 [project.id for project in projects],
             )
 
-        return list(map(self.__decode, result.value))
+        return map(self.__decode, result.value)
 
 
 backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)

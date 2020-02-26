@@ -1,9 +1,8 @@
-import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
+import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
@@ -95,6 +94,93 @@ class EventsAreaChart extends React.Component {
   }
 }
 
+class TransitionChart extends React.Component {
+  static propTypes = {
+    reloading: PropTypes.bool,
+    loading: PropTypes.bool,
+  };
+
+  state = {
+    prevReloading: this.props.reloading,
+    prevLoading: this.props.loading,
+    key: 1,
+  };
+
+  static getDerivedStateFromProps(props, state) {
+    // Transitions are controlled using variables called:
+    // - loading and,
+    // - reloading (also called pending in other apps)
+    //
+    // This component remounts the chart to ensure the stable transition
+    // from one data set to the next.
+
+    const prevReloading = state.prevReloading;
+    const nextReloading = props.reloading;
+
+    const prevLoading = state.prevLoading;
+    const nextLoading = props.loading;
+
+    // whenever loading changes, we explicitly remount the children by updating
+    // the key prop; regardless of what state reloading is in
+    if (prevLoading !== nextLoading) {
+      return {
+        prevReloading: nextReloading,
+        prevLoading: nextLoading,
+        key: state.key + 1,
+      };
+    }
+
+    // invariant: prevLoading === nextLoading
+
+    // if loading is true, and hasn't changed from the previous re-render,
+    // do not remount the children.
+    if (nextLoading) {
+      return {
+        prevReloading: nextReloading,
+        prevLoading: nextLoading,
+        key: state.key,
+      };
+    }
+
+    // invariant: loading is false
+
+    // whenever the chart is transitioning from the reloading (pending) state to a non-loading state,
+    // remount the children
+    if (prevReloading && !nextReloading) {
+      return {
+        prevReloading: nextReloading,
+        prevLoading: nextLoading,
+        key: state.key + 1,
+      };
+    }
+
+    // do not remount the children in these remaining cases:
+    // !prevReloading && !nextReloading (re-render with no prop change)
+    // prevReloading && nextReloading (re-render with no prop change)
+    // !prevReloading && nextReloading (from loaded to pending state)
+
+    return {
+      prevReloading: nextReloading,
+      prevLoading: nextLoading,
+      key: state.key,
+    };
+  }
+
+  render() {
+    const {loading, reloading} = this.props;
+
+    if (loading && !reloading) {
+      return <LoadingPanel data-test-id="events-request-loading" />;
+    }
+
+    // We make use of the key prop to explicitly remount the children
+    // https://reactjs.org/docs/lists-and-keys.html#keys
+    return (
+      <React.Fragment key={String(this.state.key)}>{this.props.children}</React.Fragment>
+    );
+  }
+}
+
 class EventsChart extends React.Component {
   static propTypes = {
     api: PropTypes.object,
@@ -108,7 +194,6 @@ class EventsChart extends React.Component {
     router: PropTypes.object,
     showLegend: PropTypes.bool,
     yAxis: PropTypes.string,
-    onTooltipUpdate: PropTypes.func,
   };
 
   render() {
@@ -124,34 +209,10 @@ class EventsChart extends React.Component {
       environments,
       showLegend,
       yAxis,
-      onTooltipUpdate,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !start && !end;
-
-    let tooltip = undefined;
-    if (onTooltipUpdate) {
-      tooltip = {
-        formatter(seriesData) {
-          // Releases are the only markline we use right now.
-          if (seriesData.componentType === 'markLine') {
-            onTooltipUpdate({
-              values: [{name: t('Release'), value: seriesData.data.name}],
-              timestamp: seriesData.data.coord[0],
-            });
-
-            return null;
-          }
-          const series = Array.isArray(seriesData) ? seriesData : [seriesData];
-          onTooltipUpdate({
-            values: series.map(item => ({name: item.seriesName, value: item.data[1]})),
-            timestamp: series[0].data[0],
-          });
-          return null;
-        },
-      };
-    }
 
     return (
       <ChartZoom
@@ -171,7 +232,7 @@ class EventsChart extends React.Component {
             environment={environments}
             start={start}
             end={end}
-            interval={getInterval(this.props, true)}
+            interval={router?.location?.query?.interval || getInterval(this.props, true)}
             showLoading={false}
             query={query}
             includePrevious={includePrevious}
@@ -179,7 +240,7 @@ class EventsChart extends React.Component {
           >
             {({loading, reloading, errored, timeseriesData, previousTimeseriesData}) => {
               return (
-                <ReleaseSeries tooltip={tooltip} utc={utc} api={api} projects={projects}>
+                <ReleaseSeries utc={utc} api={api} projects={projects}>
                   {({releaseSeries}) => {
                     if (errored) {
                       return (
@@ -188,25 +249,23 @@ class EventsChart extends React.Component {
                         </ErrorPanel>
                       );
                     }
-                    if (loading && !reloading) {
-                      return <LoadingPanel data-test-id="events-request-loading" />;
-                    }
 
                     return (
-                      <React.Fragment>
-                        <TransparentLoadingMask visible={reloading} />
-                        <EventsAreaChart
-                          {...zoomRenderProps}
-                          loading={loading}
-                          reloading={reloading}
-                          utc={utc}
-                          showLegend={showLegend}
-                          releaseSeries={releaseSeries}
-                          timeseriesData={timeseriesData}
-                          previousTimeseriesData={previousTimeseriesData}
-                          tooltip={tooltip}
-                        />
-                      </React.Fragment>
+                      <TransitionChart loading={loading} reloading={reloading}>
+                        <React.Fragment>
+                          <TransparentLoadingMask visible={reloading} />
+                          <EventsAreaChart
+                            {...zoomRenderProps}
+                            loading={loading}
+                            reloading={reloading}
+                            utc={utc}
+                            showLegend={showLegend}
+                            releaseSeries={releaseSeries}
+                            timeseriesData={timeseriesData}
+                            previousTimeseriesData={previousTimeseriesData}
+                          />
+                        </React.Fragment>
+                      </TransitionChart>
                     );
                   }}
                 </ReleaseSeries>

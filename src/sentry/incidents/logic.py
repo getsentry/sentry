@@ -5,9 +5,7 @@ from datetime import timedelta
 from rest_framework import serializers
 from uuid import uuid4
 
-import pytz
 import six
-from dateutil.parser import parse as parse_date
 from django.db import transaction
 from django.utils import timezone
 
@@ -32,10 +30,8 @@ from sentry.incidents.models import (
     IncidentSeen,
     IncidentStatus,
     IncidentSubscription,
-    IncidentType,
     TimeSeriesSnapshot,
 )
-from sentry.snuba.discover import zerofill
 from sentry.models import Integration, Project
 from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import QueryAggregations, QueryDatasets
@@ -45,9 +41,8 @@ from sentry.snuba.subscriptions import (
     bulk_update_snuba_subscriptions,
     query_aggregation_to_snuba,
 )
-from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult
-
-MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
+from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
+from sentry.utils.compat import zip
 
 
 class AlreadyDeletedError(Exception):
@@ -64,7 +59,7 @@ def create_incident(
     title,
     query,
     aggregation,
-    date_started=None,
+    date_started,
     date_detected=None,
     # TODO: Probably remove detection_uuid?
     detection_uuid=None,
@@ -78,9 +73,6 @@ def create_incident(
         if projects is None:
             projects = []
         projects = list(set(projects + group_projects))
-
-    if date_started is None:
-        date_started = calculate_incident_start(query, projects, groups)
 
     if date_detected is None:
         date_detected = date_started
@@ -107,15 +99,7 @@ def create_incident(
                 [IncidentGroup(incident=incident, group=group) for group in groups]
             )
 
-        if type == IncidentType.CREATED:
-            activity_status = IncidentActivityType.CREATED
-        else:
-            activity_status = IncidentActivityType.DETECTED
-
-        event_stats_snapshot = create_initial_event_stats_snapshot(incident)
-        create_incident_activity(
-            incident, activity_status, event_stats_snapshot=event_stats_snapshot, user=user
-        )
+        create_incident_activity(incident, IncidentActivityType.DETECTED, user=user)
         analytics.record(
             "incident.created",
             incident_id=incident.id,
@@ -124,110 +108,6 @@ def create_incident(
         )
 
     return incident
-
-
-INCIDENT_START_PERIOD = timedelta(days=14)
-INCIDENT_START_ROLLUP = timedelta(minutes=15)
-
-
-def calculate_incident_start(query, projects, groups):
-    """
-    Attempts to automatically calculate the date that an incident began at based
-    on the events related to the incident.
-    """
-    params = {}
-    if groups:
-        params["group_ids"] = [g.id for g in groups]
-        end = max(g.last_seen for g in groups) + timedelta(seconds=1)
-    else:
-        end = timezone.now()
-
-    params["start"] = end - INCIDENT_START_PERIOD
-    params["end"] = end
-
-    if projects:
-        params["project_id"] = [p.id for p in projects]
-
-    filter = get_filter(query, params)
-    rollup = int(INCIDENT_START_ROLLUP.total_seconds())
-
-    result = raw_query(
-        aggregations=[("count()", "", "count"), ("min", "timestamp", "first_seen")],
-        orderby="time",
-        groupby=["time"],
-        rollup=rollup,
-        referrer="incidents.calculate_incident_start",
-        limit=10000,
-        start=filter.start,
-        end=filter.end,
-        conditions=filter.conditions,
-        filter_keys=filter.filter_keys,
-    )["data"]
-    # TODO: Start could be the period before the first period we find
-    result = zerofill(result, params["start"], params["end"], rollup, "time")
-
-    # We want to linearly scale scores from 100% value at the most recent to
-    # 50% at the oldest. This gives a bias towards newer results.
-    negative_weight = (1.0 / len(result)) / 2
-    multiplier = 1.0
-    cur_spike_max_count = -1
-    cur_spike_start = None
-    cur_spike_end = None
-    max_height = 0
-    incident_start = None
-    cur_height = 0
-    prev_count = 0
-
-    def get_row_first_seen(row, default=None):
-        first_seen = default
-        if "first_seen" in row:
-            first_seen = parse_date(row["first_seen"]).replace(tzinfo=pytz.utc)
-        return first_seen
-
-    def calculate_start(spike_start, spike_end):
-        """
-        We arbitrarily choose a date about 1/3 into the incident period. We
-        could potentially improve this if we want by analyzing the period in
-        more detail and choosing a date that most closely fits with being 1/3
-        up the spike.
-        """
-        spike_length = spike_end - spike_start
-        return spike_start + (spike_length / 3)
-
-    for row in reversed(result):
-        cur_count = row.get("count", 0)
-        if cur_count < prev_count or cur_count > 0 and cur_count == prev_count:
-            cur_height = cur_spike_max_count - cur_count
-        elif cur_count > 0 or prev_count > 0 or cur_height > 0:
-            # Now we've got the height of the current spike, compare it to the
-            # current max. We decrease the value by `multiplier` so that we
-            # favour newer results
-            cur_height *= multiplier
-            if cur_height > max_height:
-                # If we detect that we have a new highest peak, then set a new
-                # incident start date
-                incident_start = calculate_start(cur_spike_start, cur_spike_end)
-                max_height = cur_height
-
-            cur_height = 0
-            cur_spike_max_count = cur_count
-            cur_spike_end = get_row_first_seen(row)
-
-        # We attempt to get the first_seen value from the row here. If the row
-        # doesn't have it (because it's a zerofilled row), then just use the
-        # previous value. This allows us to have the start of a spike always be
-        # a bucket that contains at least one element.
-        cur_spike_start = get_row_first_seen(row, cur_spike_start)
-        prev_count = cur_count
-        multiplier -= negative_weight
-
-    if (cur_height > max_height or not incident_start) and cur_spike_start:
-        incident_start = calculate_start(cur_spike_start, cur_spike_end)
-
-    if not incident_start:
-        incident_start = timezone.now()
-
-    return incident_start
 
 
 def update_incident_status(incident, status, user=None, comment=None):
@@ -291,18 +171,6 @@ def set_incident_seen(incident, user=None):
     return incident_seen
 
 
-def create_initial_event_stats_snapshot(incident):
-    """
-    Creates an event snapshot representing the state at the beginning of
-    an incident. It's intended to capture the history of the events involved in
-    the incident, the spike and a short period of time after that.
-    """
-    initial_period_length = min(timezone.now() - incident.date_started, MAX_INITIAL_INCIDENT_PERIOD)
-    end = incident.date_started + initial_period_length
-    start = end - (initial_period_length * 4)
-    return create_event_stat_snapshot(incident, start, end)
-
-
 @transaction.atomic
 def create_incident_activity(
     incident,
@@ -311,7 +179,6 @@ def create_incident_activity(
     value=None,
     previous_value=None,
     comment=None,
-    event_stats_snapshot=None,
     mentioned_user_ids=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
@@ -325,7 +192,6 @@ def create_incident_activity(
         value=value,
         previous_value=previous_value,
         comment=comment,
-        event_stats_snapshot=event_stats_snapshot,
     )
 
     if mentioned_user_ids:
@@ -426,6 +292,8 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
             "start": incident.date_started if start is None else start,
             "end": incident.current_end_date if end is None else end,
         }
+        # Make start about 20% earlier:
+        params["start"] = params["start"] - (params["end"] - params["start"]) / 5
         group_ids = incident_groups[incident.id]
         if group_ids:
             params["group_ids"] = group_ids
@@ -554,9 +422,7 @@ def get_incident_subscribers(incident):
 
 
 def get_incident_activity(incident):
-    return IncidentActivity.objects.filter(incident=incident).select_related(
-        "user", "event_stats_snapshot", "incident"
-    )
+    return IncidentActivity.objects.filter(incident=incident).select_related("user", "incident")
 
 
 class AlertRuleNameAlreadyUsedError(Exception):

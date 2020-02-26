@@ -10,7 +10,7 @@ type Props = {
   value: string | number | null;
 
   // An array of [id, name, description]
-  choices: [string, string, string?][];
+  choices: [string, React.ReactNode, React.ReactNode?][];
   disabled?: boolean;
   label: string;
   onChange: (id: string, e: React.MouseEvent) => void;
@@ -31,7 +31,7 @@ const RadioGroup = ({value, disabled, choices, label, onChange, ...props}: Props
             aria-checked={isSelected}
             disabled={disabled}
           >
-            <RadioLineButton type="button" disabled={disabled}>
+            <RadioLineButton aria-label={id} type="button" disabled={disabled}>
               {isSelected && (
                 <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
               )}

@@ -3,11 +3,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
+import {BannerContainer, BannerSummary} from 'app/components/events/styles';
 import CommitLink from 'app/components/commitLink';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
+import {IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.gray2};
@@ -18,11 +21,10 @@ const StyledTimeSince = styled(TimeSince)`
 export default class ResolutionBox extends React.Component {
   static propTypes = {
     statusDetails: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
   };
 
   renderReason = () => {
-    const {orgId, statusDetails} = this.props;
+    const {statusDetails} = this.props;
     const actor = statusDetails.actor ? (
       <strong>
         <UserAvatar user={statusDetails.actor} size={20} className="avatar" />
@@ -39,15 +41,11 @@ export default class ResolutionBox extends React.Component {
     } else if (statusDetails.inRelease && statusDetails.actor) {
       return tct('[actor] marked this issue as resolved in version [version].', {
         actor,
-        version: (
-          <Version version={statusDetails.inRelease} orgId={orgId} tooltipRawVersion />
-        ),
+        version: <Version version={statusDetails.inRelease} tooltipRawVersion />,
       });
     } else if (statusDetails.inRelease) {
       return tct('This issue has been marked as resolved in version [version].', {
-        version: (
-          <Version version={statusDetails.inRelease} orgId={orgId} tooltipRawVersion />
-        ),
+        version: <Version version={statusDetails.inRelease} tooltipRawVersion />,
       });
     } else if (!!statusDetails.inCommit) {
       return tct('This issue has been marked as resolved by [commit]', {
@@ -67,15 +65,12 @@ export default class ResolutionBox extends React.Component {
 
   render = () => {
     return (
-      <div
-        className="box"
-        style={{display: 'flex', alignItems: 'center', flex: 1, paddingBottom: 15}}
-      >
-        <span className="icon icon-checkmark" style={{position: 'static', top: 0}} />
-        <p className="truncate break-all" style={{paddingBottom: 0, paddingLeft: 16}}>
-          {this.renderReason()}
-        </p>
-      </div>
+      <BannerContainer priority="default">
+        <BannerSummary>
+          <IconCheckmark color={theme.green} />
+          <span>{this.renderReason()}</span>
+        </BannerSummary>
+      </BannerContainer>
     );
   };
 }

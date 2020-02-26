@@ -482,7 +482,7 @@ SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 # Queue configuration
 from kombu import Exchange, Queue
 
-BROKER_URL = "redis://localhost:6379"
+BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS = {}
 
 # Ensure workers run async by default
@@ -934,12 +934,12 @@ SENTRY_CELERYBEAT_MONITORS = {
 }
 
 # Web Service
-SENTRY_WEB_HOST = "localhost"
+SENTRY_WEB_HOST = "127.0.0.1"
 SENTRY_WEB_PORT = 9000
 SENTRY_WEB_OPTIONS = {}
 
 # SMTP Service
-SENTRY_SMTP_HOST = "localhost"
+SENTRY_SMTP_HOST = "127.0.0.1"
 SENTRY_SMTP_PORT = 1025
 
 SENTRY_INTERFACES = {
@@ -1049,7 +1049,7 @@ SENTRY_RATELIMITER_OPTIONS = {}
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 
 # Snuba configuration
-SENTRY_SNUBA = os.environ.get("SNUBA", "http://localhost:1218")
+SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
 
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
@@ -1065,7 +1065,7 @@ SENTRY_SEARCH = os.environ.get(
 )
 SENTRY_SEARCH_OPTIONS = {}
 # SENTRY_SEARCH_OPTIONS = {
-#     'urls': ['http://localhost:9200/'],
+#     'urls': ['http://127.0.0.1:9200/'],
 #     'timeout': 5,
 # }
 
@@ -1348,7 +1348,7 @@ SENTRY_DEVSERVICES = {
     "postgres": {
         "image": "postgres:9.6-alpine",
         "ports": {"5432/tcp": 5432},
-        "environment": {"POSTGRES_DB": "sentry"},
+        "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
     },
     "zookeeper": {
@@ -1480,9 +1480,6 @@ EMAIL_HOST_PASSWORD = DEAD
 EMAIL_USE_TLS = DEAD
 SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
-
-GITHUB_APP_ID = DEAD
-GITHUB_API_SECRET = DEAD
 
 SUDO_URL = "sentry-sudo"
 
@@ -1640,7 +1637,12 @@ SENTRY_BUILTIN_SOURCES = {
 # Relay
 # List of PKs whitelisted by Sentry.  All relays here are always
 # registered as internal relays.
-SENTRY_RELAY_WHITELIST_PK = []
+SENTRY_RELAY_WHITELIST_PK = [
+    # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
+    # This should NOT be part of any production environment.
+    # This key should match the key in /sentry/config/relay/credentials.json
+    "SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"
+]
 
 # When open registration is not permitted then only relays in the
 # whitelist can register.
@@ -1671,7 +1673,7 @@ SENTRY_USER_PERMISSIONS = ("broadcasts.admin",)
 
 KAFKA_CLUSTERS = {
     "default": {
-        "bootstrap.servers": "localhost:9092",
+        "bootstrap.servers": "127.0.0.1:9092",
         "compression.type": "lz4",
         "message.max.bytes": 50000000,  # 50MB, default is 1MB
     }

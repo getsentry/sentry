@@ -122,6 +122,19 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         }
         assert expected == handler.generate_email_context(status)
 
+    def test_environment(self):
+        status = TriggerStatus.ACTIVE
+        environments = [
+            self.create_environment(project=self.project, name="prod"),
+            self.create_environment(project=self.project, name="dev"),
+        ]
+        alert_rule = self.create_alert_rule(environment=environments)
+        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        action = self.create_alert_rule_trigger_action(alert_rule_trigger=alert_rule_trigger)
+        incident = self.create_incident()
+        handler = EmailActionHandler(action, incident, self.project)
+        assert "dev, prod" == handler.generate_email_context(status).get("environment")
+
 
 @freeze_time()
 class EmailActionHandlerFireTest(TestCase):
@@ -199,11 +212,13 @@ class SlackActionHandlerBaseTest(object):
 
 class SlackActionHandlerFireTest(SlackActionHandlerBaseTest, TestCase):
     def test(self):
-        self.run_test(self.create_incident(), "fire")
+        alert_rule = self.create_alert_rule()
+        self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
 
 
 class SlackActionHandlerResolveTest(SlackActionHandlerBaseTest, TestCase):
     def test(self):
-        incident = self.create_incident()
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule)
         update_incident_status(incident, IncidentStatus.CLOSED)
         self.run_test(incident, "resolve")

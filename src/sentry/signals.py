@@ -106,3 +106,4 @@ monitor_failed = BetterSignal(providing_args=["monitor"])
 # experiments
 join_request_created = BetterSignal(providing_args=["member"])
 join_request_link_viewed = BetterSignal(providing_args=["organization"])
+user_signup = BetterSignal(providing_args=["user", "source"])

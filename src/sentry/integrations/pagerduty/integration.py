@@ -137,7 +137,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         account = config["account"]
         # PagerDuty gives us integration keys for various things, some of which
         # are not services. For now we only care about services.
-        services = filter(lambda x: x["type"] == "service", config["integration_keys"])
+        services = [x for x in config["integration_keys"] if x["type"] == "service"]
 
         return {
             "name": account["name"],

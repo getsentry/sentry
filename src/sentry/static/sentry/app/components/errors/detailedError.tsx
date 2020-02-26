@@ -27,7 +27,7 @@ type Props = DefaultProps & {
   /**
    * Retry callback
    */
-  onRetry?: (e: React.MouseEvent) => void;
+  onRetry?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 };
 
 function openFeedback(e: React.MouseEvent) {

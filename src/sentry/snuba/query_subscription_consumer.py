@@ -5,12 +5,14 @@ from json import loads
 import jsonschema
 import pytz
 import sentry_sdk
+from sentry_sdk.tracing import Span
 from confluent_kafka import Consumer, KafkaException, TopicPartition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.subscriptions import _delete_from_snuba
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,8 @@ class QuerySubscriptionConsumer(object):
     a related subscription id and the latest values related to the subscribed query.
     These values are passed along to a callback associated with the subscription.
     """
+
+    topic_to_dataset = {settings.KAFKA_SNUBA_QUERY_SUBSCRIPTIONS: QueryDatasets.EVENTS}
 
     def __init__(
         self, group_id, topic=None, commit_batch_size=100, initial_offset_reset="earliest"
@@ -92,7 +96,14 @@ class QuerySubscriptionConsumer(object):
 
                 i = i + 1
 
-                self.handle_message(message)
+                with sentry_sdk.start_span(
+                    Span(
+                        op="handle_message",
+                        transaction="query_subscription_consumer_process_message",
+                        sampled=True,
+                    )
+                ):
+                    self.handle_message(message)
 
                 # Track latest completed message here, for use in `shutdown` handler.
                 self.offsets[message.partition()] = message.offset() + 1
@@ -158,6 +169,13 @@ class QuerySubscriptionConsumer(object):
                         "value": message.value(),
                     },
                 )
+                try:
+                    _delete_from_snuba(
+                        self.topic_to_dataset[message.topic()], contents["subscription_id"]
+                    )
+                except Exception:
+                    logger.exception("Failed to delete unused subscription from snuba.")
+
                 return
 
             if subscription.type not in subscriber_registry:
@@ -185,9 +203,7 @@ class QuerySubscriptionConsumer(object):
             )
 
             callback = subscriber_registry[subscription.type]
-            with sentry_sdk.start_span(
-                op="process_message", transaction="query_subscription_consumer_process_message"
-            ) as span, metrics.timer(
+            with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
                 "snuba_query_subscriber.callback.duration", instance=subscription.type
             ):
                 span.set_data("payload", contents)

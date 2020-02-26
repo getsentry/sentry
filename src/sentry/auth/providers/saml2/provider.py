@@ -170,8 +170,6 @@ class SAML2SLSView(BaseView):
         should_logout = request.user.is_authenticated()
 
         def force_logout():
-            request.user.refresh_session_nonce()
-            request.user.save()
             logout(request)
 
         redirect_to = auth.process_slo(
@@ -307,7 +305,7 @@ class SAML2Provider(Provider):
             )
 
         name = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
-        name = " ".join(filter(None, name))
+        name = " ".join([_f for _f in name if _f])
 
         return {
             "id": attributes[Attributes.IDENTIFIER],

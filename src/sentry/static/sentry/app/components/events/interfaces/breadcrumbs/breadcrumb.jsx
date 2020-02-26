@@ -8,11 +8,7 @@ import ErrorRenderer from 'app/components/events/interfaces/breadcrumbs/errorRen
 import DefaultRenderer from 'app/components/events/interfaces/breadcrumbs/defaultRenderer';
 import ErrorBoundary from 'app/components/errorBoundary';
 import Tooltip from 'app/components/tooltip';
-
-const CUSTOM_RENDERERS = {
-  http: HttpRenderer,
-  error: ErrorRenderer,
-};
+import getDynamicText from 'app/utils/getDynamicText';
 
 class Breadcrumb extends React.Component {
   static propTypes = {
@@ -51,8 +47,14 @@ class Breadcrumb extends React.Component {
 
   renderType = () => {
     const {crumb} = this.props;
-    const Renderer = CUSTOM_RENDERERS[crumb.type] || DefaultRenderer;
-    return <Renderer crumb={crumb} />;
+    switch (crumb.type) {
+      case 'error':
+        return <ErrorRenderer crumb={crumb} />;
+      case 'http':
+        return <HttpRenderer crumb={crumb} />;
+      default:
+        return <DefaultRenderer crumb={crumb} />;
+    }
   };
 
   render() {
@@ -65,7 +67,12 @@ class Breadcrumb extends React.Component {
           </span>
           {defined(crumb.timestamp) ? (
             <Tooltip title={this.getTooltipTitle()}>
-              <span className="dt">{moment(crumb.timestamp).format('HH:mm:ss')}</span>
+              <span className="dt">
+                {getDynamicText({
+                  value: moment(crumb.timestamp).format('HH:mm:ss'),
+                  fixed: '00:00:00',
+                })}
+              </span>
             </Tooltip>
           ) : (
             <span className="dt" />

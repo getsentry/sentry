@@ -3,6 +3,7 @@
 .gitignore
 .gitattributes
 .dockerignore
+**/cloudbuild.yaml
 .gitignore
 Gemfile.lock
 .idea/
@@ -17,6 +18,8 @@ Gemfile.lock
 .travis.yml
 .pre-commit-config.yaml
 .eslint*
+.env
+.envrc
 coverage.xml
 conftest.py
 netlify.toml

@@ -24,6 +24,7 @@ from sentry.models import Group, GroupStatus
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.snuba import discover
 from sentry.utils.validators import normalize_event_id
+from sentry.utils.compat import map
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"

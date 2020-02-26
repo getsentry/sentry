@@ -1,5 +1,6 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
+import omit from 'lodash/omit';
 import React from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
@@ -142,7 +143,7 @@ class IncidentsListContainer extends React.Component<Props> {
     const {router, params} = this.props;
     e.preventDefault();
 
-    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts-v2/`, router);
+    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/`, router);
   };
 
   render() {
@@ -150,9 +151,9 @@ class IncidentsListContainer extends React.Component<Props> {
     const {pathname, query} = location;
     const {orgId} = params;
 
-    const openIncidentsQuery = {...query, status: 'open'};
-    const closedIncidentsQuery = {...query, status: 'closed'};
-    const allIncidentsQuery = {...query, status: 'all'};
+    const openIncidentsQuery = omit({...query, status: 'open'}, 'cursor');
+    const closedIncidentsQuery = omit({...query, status: 'closed'}, 'cursor');
+    const allIncidentsQuery = omit({...query, status: 'all'}, 'cursor');
 
     const status = getQueryStatus(query.status);
     return (

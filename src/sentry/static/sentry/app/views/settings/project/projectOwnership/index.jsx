@@ -46,7 +46,7 @@ class ProjectOwnership extends AsyncView {
         <PermissionAlert />
         <Panel>
           <PanelHeader>{t('Ownership Rules')}</PanelHeader>
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <Block>
               {t(
                 'Define rules here to configure automated ownership for new issues and direct email alerts'

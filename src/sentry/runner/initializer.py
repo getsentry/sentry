@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import click
+import logging
 import os
 import six
 
@@ -9,6 +10,9 @@ from django.conf import settings
 from sentry.utils import metrics, warnings
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
+from sentry.utils.compat import map
+
+logger = logging.getLogger("sentry.runner.initializer")
 
 
 def register_plugins(settings, raise_on_plugin_load_failure=False):
@@ -128,8 +132,6 @@ options_mapper = {
     "mail.use-tls": "EMAIL_USE_TLS",
     "mail.from": "SERVER_EMAIL",
     "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
-    "github-app.client-id": "GITHUB_APP_ID",
-    "github-app.client-secret": "GITHUB_API_SECRET",
 }
 
 
@@ -403,7 +405,12 @@ def __model_unpickle_compat(model_id, attrs=None, factory=None):
     from django import VERSION
 
     if attrs is not None or factory is not None:
-        metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat")
+        metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat", sample_rate=1)
+        logger.error(
+            "django.compat.model-unpickle-compat",
+            extra={"model_id": model_id, "attrs": attrs, "factory": factory},
+            exc_info=True,
+        )
 
     if VERSION[:2] in [(1, 10), (1, 11)]:
         return model_unpickle(model_id)

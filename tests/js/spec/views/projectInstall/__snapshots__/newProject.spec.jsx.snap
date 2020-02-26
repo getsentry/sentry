@@ -1,16 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`NewProjectPlatform render() should render 1`] = `
-<Container>
-  <div
-    className="container"
-  >
-    <Content>
-      <SideEffect(DocumentTitle)
-        title="Sentry"
-      />
-      <withApi(withTeams(WithOrganizationMockWrapper)) />
-    </Content>
-  </div>
-</Container>
+<NewProject
+  organization={
+    Object {
+      "id": "1337",
+      "slug": "testOrg",
+      "teams": Array [
+        Array [
+          "testProject",
+        ],
+      ],
+    }
+  }
+/>
 `;

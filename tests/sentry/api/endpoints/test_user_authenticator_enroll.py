@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
+import io
+import os
+import json
 
 from six.moves.urllib.parse import parse_qsl
 from django.core.urlresolvers import reverse
@@ -14,7 +16,16 @@ from sentry.models import (
     Organization,
     OrganizationMember,
 )
+from sentry.utils.compat import mock
 from sentry.testutils import APITestCase
+
+
+# TODO(joshuarli): move all fixtures to a standard path relative to gitroot,
+#                  and implement this in testutils
+def get_fixture_path(name):
+    return os.path.join(
+        os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, "fixtures", name
+    )
 
 
 class UserAuthenticatorEnrollTest(APITestCase):
@@ -35,9 +46,13 @@ class UserAuthenticatorEnrollTest(APITestCase):
             kwargs={"user_id": "me", "interface_id": "totp"},
         )
 
-        resp = self.client.get(url)
+        with mock.patch("sentry.models.authenticator.generate_secret_key", return_value="Z" * 32):
+            resp = self.client.get(url)
+
         assert resp.status_code == 200
-        assert len(resp.data["qrcode"])
+        assert resp.data["secret"] == "Z" * 32
+        with io.open(get_fixture_path("totp_qrcode.json")) as f:
+            assert resp.data["qrcode"] == json.loads(f.read())
         assert resp.data["form"]
         assert resp.data["secret"]
 

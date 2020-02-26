@@ -5,7 +5,7 @@ import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
-import {Organization, SentryApp} from 'app/types';
+import {Organization, SentryApp, IntegrationInstallationStatus} from 'app/types';
 import {t} from 'app/locale';
 
 import IntegrationStatus from './integrationStatus';
@@ -15,7 +15,7 @@ type Props = {
   type: 'plugin' | 'firstParty' | 'sentryApp';
   slug: string;
   displayName: string;
-  status: 'Installed' | 'Not Installed' | 'Pending';
+  status: IntegrationInstallationStatus;
   publishStatus: 'unpublished' | 'published' | 'internal';
   configurations: number;
 };
@@ -79,7 +79,7 @@ const Container = styled('div')`
 
 const IntegrationName = styled(Link)`
   font-weight: bold;
-  color: ${props => props.theme.textColor};
+  color: ${p => p.theme.blue};
 `;
 
 const IntegrationDetails = styled('div')`
