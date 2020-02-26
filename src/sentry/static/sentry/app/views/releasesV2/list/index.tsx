@@ -2,28 +2,27 @@ import React from 'react';
 import {Location} from 'history';
 import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
+import uniq from 'lodash/uniq';
+import flatten from 'lodash/flatten';
 
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, Release} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import BetaTag from 'app/components/betaTag';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
-import {mockData} from 'app/views/releasesV2/list/mock'; // TODO(releasesv2): temporary until api is finished
 import PageHeading from 'app/components/pageHeading';
 import {getQuery} from 'app/views/releases/list/utils';
 import withOrganization from 'app/utils/withOrganization';
-import {ReleasesV2RowData} from 'app/views/releasesV2/list/types';
-import IntroBanner from 'app/views/releasesV2/list/introBanner';
-import NoProjectMessage from 'app/components/noProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NoProjectMessage from 'app/components/noProjectMessage';
+import IntroBanner from 'app/views/releasesV2/list/introBanner';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import ReleasesV2TableRow from 'app/views/releasesV2/list/releasesV2TableRow';
-import ReleasesV2TableHead from 'app/views/releasesV2/list/releasesV2TableHead';
-import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
+import ReleaseCard from 'app/views/releasesV2/list/releaseCard';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import Projects from 'app/utils/projects';
 
 type Props = {
   params: Params;
@@ -32,11 +31,9 @@ type Props = {
   router: ReactRouter.InjectedRouter;
 } & AsyncView['props'];
 
-type State = {
-  dummyReleasesV2List: ReleasesV2RowData[];
-} & AsyncView['state'];
+type State = AsyncView['state'];
 
-class ReleasesV2List extends AsyncView<Props, State> {
+class ReleasesList extends AsyncView<Props, State> {
   getTitle() {
     return routeTitleGen(t('Releases v2'), this.props.organization.slug, false);
   }
@@ -44,16 +41,14 @@ class ReleasesV2List extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      dummyReleasesV2List: mockData,
     };
   }
 
   getEndpoints(): [string, string, {}][] {
     const {organization, location} = this.props;
-    // TODO(releasesv2): different url once api is finished
     return [
       [
-        'releasesV2List',
+        'releases',
         `/organizations/${organization.slug}/releases/`,
         {query: getQuery(location.query)},
       ],
@@ -75,29 +70,35 @@ class ReleasesV2List extends AsyncView<Props, State> {
 
   renderInnerBody() {
     const {organization} = this.props;
-    const {loading, dummyReleasesV2List} = this.state;
+    const {loading, releases} = this.state;
 
     if (loading) {
       return <LoadingIndicator />;
     }
 
-    if (!dummyReleasesV2List.length) {
+    if (!releases.length) {
       return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
     }
 
-    return dummyReleasesV2List.map(h => (
-      <ReleasesV2TableRow
-        errors={h.errors}
-        crashes={h.crashes}
-        release={h.release}
-        key={h.release.name}
-        graphData={h.graphData}
-        activeUsers={h.activeUsers}
-        organizationId={organization.slug}
-        crashFreeUsersPercent={h.crashFreeUsersPercent}
-        releaseAdoptionPercent={h.releaseAdoptionPercent}
-      />
-    ));
+    const projectSlugs: string[] = uniq(
+      flatten(releases.map((r: Release) => r.projects.map(p => p.slug)))
+    );
+
+    return (
+      <Projects orgId={organization.slug} slugs={projectSlugs}>
+        {({projects}) =>
+          releases.map((release: Release) => (
+            <ReleaseCard
+              key={release.version}
+              release={release}
+              projects={projects.filter(project =>
+                release.projects.map(p => p.slug).includes(project.slug)
+              )}
+            />
+          ))
+        }
+      </Projects>
+    );
   }
 
   renderBody() {
@@ -124,15 +125,9 @@ class ReleasesV2List extends AsyncView<Props, State> {
 
             <IntroBanner />
 
-            <div>
-              <Panel>
-                <PanelHeader>
-                  <ReleasesV2TableHead />
-                </PanelHeader>
-                <PanelBody>{this.renderInnerBody()}</PanelBody>
-              </Panel>
-              <Pagination pageLinks={this.state.releasesV2ListPageLinks} />
-            </div>
+            {this.renderInnerBody()}
+
+            <Pagination pageLinks={this.state.releasesPageLinks} />
           </PageContent>
         </NoProjectMessage>
       </React.Fragment>
@@ -140,5 +135,5 @@ class ReleasesV2List extends AsyncView<Props, State> {
   }
 }
 
-export default withOrganization(ReleasesV2List);
-export {ReleasesV2List};
+export default withOrganization(ReleasesList);
+export {ReleasesList};

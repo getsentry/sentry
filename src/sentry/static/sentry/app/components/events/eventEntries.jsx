@@ -12,9 +12,9 @@ import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
 import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
-import EventContextSummary from 'app/components/events/contextSummary';
+import EventContextSummary from 'app/components/events/contextSummary/contextSummary';
 import EventContexts from 'app/components/events/contexts';
-import EventDataSection, {DataSection} from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import EventDevice from 'app/components/events/device';
 import EventErrors from 'app/components/events/errors';
 import EventExtraData from 'app/components/events/eventExtraData/eventExtraData';
@@ -22,7 +22,7 @@ import EventGroupingInfo from 'app/components/events/groupingInfo';
 import EventPackageData from 'app/components/events/packageData';
 import EventSdk from 'app/components/events/eventSdk';
 import EventSdkUpdates from 'app/components/events/sdkUpdates';
-import EventTags from 'app/components/events/eventTags';
+import EventTags from 'app/components/events/eventTags/eventTags';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import ExceptionInterface from 'app/components/events/interfaces/exception';
 import GenericInterface from 'app/components/events/interfaces/generic';
@@ -34,6 +34,7 @@ import SpansInterface from 'app/components/events/interfaces/spans';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
 import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
+import {DataSection} from 'app/components/events/styles';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -56,19 +57,23 @@ export const INTERFACES = {
 
 class EventEntries extends React.Component {
   static propTypes = {
-    // organization is not provided in the shared issue view
-    organization: SentryTypes.Organization,
+    // Custom shape because shared view doesn't get id.
+    organization: PropTypes.shape({
+      id: PropTypes.string,
+      slug: PropTypes.string.isRequired,
+      features: PropTypes.arrayOf(PropTypes.string),
+    }),
     // event is not guaranteed in shared issue view
     event: SentryTypes.Event,
 
     group: SentryTypes.Group,
-    orgId: PropTypes.string.isRequired,
     project: PropTypes.object.isRequired,
     // TODO(dcramer): ideally isShare would be replaced with simple permission
     // checks
     isShare: PropTypes.bool,
     showExampleCommit: PropTypes.bool,
     showTagSummary: PropTypes.bool,
+    eventView: PropTypes.object,
   };
 
   static defaultProps = {
@@ -114,7 +119,7 @@ class EventEntries extends React.Component {
   }
 
   renderEntries() {
-    const {event, project, organization, isShare} = this.props;
+    const {event, project, organization, isShare, eventView} = this.props;
 
     const entries = event && event.entries;
 
@@ -132,6 +137,13 @@ class EventEntries extends React.Component {
             console.error('Unregistered interface: ' + entry.type);
           return null;
         }
+
+        // inject additional props for certain interfaces
+        const extraProps = {};
+        if (entry.type === 'spans' && eventView) {
+          extraProps.eventView = eventView;
+        }
+
         return (
           <Component
             key={'entry-' + entryIdx}
@@ -141,6 +153,7 @@ class EventEntries extends React.Component {
             type={entry.type}
             data={entry.data}
             isShare={isShare}
+            {...extraProps}
           />
         );
       } catch (ex) {
@@ -167,13 +180,13 @@ class EventEntries extends React.Component {
       isShare,
       project,
       event,
-      orgId,
       showExampleCommit,
       showTagSummary,
       location,
     } = this.props;
 
-    const features = organization ? new Set(organization.features) : new Set();
+    const features =
+      organization && organization.features ? new Set(organization.features) : new Set();
 
     if (!event) {
       return (
@@ -192,12 +205,16 @@ class EventEntries extends React.Component {
           (showExampleCommit ? (
             <EventCauseEmpty organization={organization} project={project} />
           ) : (
-            <EventCause event={event} orgId={orgId} projectId={project.slug} />
+            <EventCause
+              event={event}
+              orgId={organization.slug}
+              projectId={project.slug}
+            />
           ))}
         {event.userReport && group && (
           <StyledEventUserFeedback
             report={event.userReport}
-            orgId={orgId}
+            orgId={organization.slug}
             issueId={group.id}
             includeBorder={!hasErrors}
           />
@@ -206,13 +223,17 @@ class EventEntries extends React.Component {
         {showTagSummary && (
           <EventTags
             event={event}
-            orgId={orgId}
+            orgId={organization.slug}
             projectId={project.slug}
             location={location}
           />
         )}
         {!isShare && features.has('event-attachments') && (
-          <RRWebIntegration event={event} orgId={orgId} projectId={project.slug} />
+          <RRWebIntegration
+            event={event}
+            orgId={organization.slug}
+            projectId={project.slug}
+          />
         )}
         {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
@@ -220,7 +241,11 @@ class EventEntries extends React.Component {
         {!objectIsEmpty(event.packages) && <EventPackageData event={event} />}
         {!objectIsEmpty(event.device) && <EventDevice event={event} />}
         {!isShare && features.has('event-attachments') && (
-          <EventAttachments event={event} orgId={orgId} projectId={project.slug} />
+          <EventAttachments
+            event={event}
+            orgId={organization.slug}
+            projectId={project.slug}
+          />
         )}
         {!objectIsEmpty(event.sdk) && <EventSdk event={event} />}
         {!isShare && event.sdkUpdates && event.sdkUpdates.length > 0 && (

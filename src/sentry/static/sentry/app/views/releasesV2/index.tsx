@@ -12,7 +12,7 @@ type Props = {
   organization: Organization;
 };
 
-class ReleasesV2Container extends React.Component<Props> {
+class ReleasesContainer extends React.Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
   };
@@ -40,4 +40,4 @@ class ReleasesV2Container extends React.Component<Props> {
   }
 }
 
-export default withOrganization(ReleasesV2Container);
+export default withOrganization(ReleasesContainer);

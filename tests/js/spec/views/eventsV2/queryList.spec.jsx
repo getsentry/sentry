@@ -5,7 +5,7 @@ import {browserHistory} from 'react-router';
 import QueryList from 'app/views/eventsV2/queryList';
 
 function openContextMenu(card) {
-  card.find('DropdownMenu MoreOptions IconEllipsis').simulate('click');
+  card.find('DropdownMenu MoreOptions svg').simulate('click');
 }
 
 function clickMenuItem(card, selector) {

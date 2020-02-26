@@ -54,6 +54,7 @@ class MiniGraph extends React.Component<Props> {
       period,
       project: eventView.project,
       environment: eventView.environment,
+      yAxis: eventView.getYAxis(),
     };
   }
 
@@ -67,6 +68,7 @@ class MiniGraph extends React.Component<Props> {
       organization,
       project,
       environment,
+      yAxis,
     } = this.getRefreshProps(this.props);
 
     return (
@@ -81,6 +83,7 @@ class MiniGraph extends React.Component<Props> {
         project={project as number[]}
         environment={environment as string[]}
         includePrevious={false}
+        yAxis={yAxis}
       >
         {({loading, timeseriesData, errored}) => {
           if (errored) {

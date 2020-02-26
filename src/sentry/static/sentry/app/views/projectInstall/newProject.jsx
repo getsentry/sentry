@@ -13,9 +13,10 @@ const NewProject = ({organization}) => (
       <Content>
         <DocumentTitle title="Sentry" />
         <CreateProject
-          hasIssueAlertOptionsEnabled={organization.features.includes(
-            'new-project-issue-alert-options'
-          )}
+          hasIssueAlertOptionsEnabled={
+            // TODO(Jeff): Rename to `AlertDefaultsExperiment` on real experiment run
+            organization.experiments?.AlertDefaultsExperimentTmp === 1
+          }
         />
       </Content>
     </div>

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from collections import Mapping, Set, Sequence
 
 import six
+from sentry.utils.compat import map
 
 
 class Encoder(object):

@@ -480,13 +480,19 @@ class EventView {
     return newQuery;
   }
 
-  getGlobalSelection() {
+  getGlobalSelection(): {
+    start: string | undefined;
+    end: string | undefined;
+    statsPeriod: string | undefined;
+    environment: string[];
+    project: number[];
+  } {
     return {
       start: this.start,
       end: this.end,
       statsPeriod: this.statsPeriod,
-      project: this.project,
-      environment: this.environment,
+      project: this.project as number[],
+      environment: this.environment as string[],
     };
   }
 

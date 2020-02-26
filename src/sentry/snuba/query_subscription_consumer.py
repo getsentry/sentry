@@ -11,7 +11,8 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.subscriptions import _delete_from_snuba
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,8 @@ class QuerySubscriptionConsumer(object):
     a related subscription id and the latest values related to the subscribed query.
     These values are passed along to a callback associated with the subscription.
     """
+
+    topic_to_dataset = {settings.KAFKA_SNUBA_QUERY_SUBSCRIPTIONS: QueryDatasets.EVENTS}
 
     def __init__(
         self, group_id, topic=None, commit_batch_size=100, initial_offset_reset="earliest"
@@ -166,6 +169,13 @@ class QuerySubscriptionConsumer(object):
                         "value": message.value(),
                     },
                 )
+                try:
+                    _delete_from_snuba(
+                        self.topic_to_dataset[message.topic()], contents["subscription_id"]
+                    )
+                except Exception:
+                    logger.exception("Failed to delete unused subscription from snuba.")
+
                 return
 
             if subscription.type not in subscriber_registry:

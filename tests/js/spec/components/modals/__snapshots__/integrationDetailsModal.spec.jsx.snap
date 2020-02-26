@@ -143,7 +143,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       }
     />
   </Description>
-  <FeatureList
+  <generateFeaturesList
     features={
       Array [
         Object {
@@ -236,7 +236,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         />
       </li>
     </ul>
-  </FeatureList>
+  </generateFeaturesList>
   <Metadata>
     <div
       className="css-17nk6hv-Metadata exuwfuv3"
@@ -309,7 +309,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       </div>
     </Component>
   </Alert>
-  <IntegrationFeatures
+  <generateIntegrationFeatures
     features={
       Array [
         Object {
@@ -838,6 +838,6 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
         </withConfig(Access)>
       </WithOrganizationMockWrapper>
     </div>
-  </IntegrationFeatures>
+  </generateIntegrationFeatures>
 </IntegrationDetailsModal>
 `;

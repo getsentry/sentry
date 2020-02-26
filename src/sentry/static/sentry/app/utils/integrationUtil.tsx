@@ -5,6 +5,7 @@ import {
   Organization,
   SentryAppInstallation,
   IntegrationInstallationStatus,
+  SentryAppStatus,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import HookStore from 'app/stores/hookStore';
@@ -30,47 +31,46 @@ export const getAnalyticsSessionId = () => {
 export const isIntegrationDirectoryActive = () =>
   localStorage.getItem(USE_INTEGRATION_DIRECTORY) === '1';
 
-type ModalOpenEvent = {
-  eventKey: 'integrations.install_modal_opened';
-  eventName: 'Integrations: Install Modal Opened';
-  already_installed: boolean; //need this field for the modal open event but not other events
-};
-
-type OtherSingleIntegrationEvents = {
+export type SingleIntegrationEvent = {
   eventKey:
+    | 'integrations.install_modal_opened'
     | 'integrations.installation_start'
     | 'integrations.installation_complete'
-    | 'integrations.details_viewed'
+    | 'integrations.integration_viewed' //for the integration overview
+    | 'integrations.details_viewed' //for an individual configuration
     | 'integrations.uninstall_clicked'
     | 'integrations.uninstall_completed'
     | 'integrations.enabled'
     | 'integrations.disabled'
-    | 'integrations.config_saved';
+    | 'integrations.config_saved'
+    | 'integrations.integration_tab_clicked'
+    | 'integrations.plugin_add_to_project_clicked';
   eventName:
+    | 'Integrations: Install Modal Opened'
     | 'Integrations: Installation Start'
     | 'Integrations: Installation Complete'
+    | 'Integrations: Integration Viewed'
     | 'Integrations: Details Viewed'
     | 'Integrations: Uninstall Clicked'
     | 'Integrations: Uninstall Completed'
     | 'Integrations: Enabled'
     | 'Integrations: Disabled'
-    | 'Integrations: Config Saved';
-};
+    | 'Integrations: Integration Tab Clicked'
+    | 'Integrations: Config Saved'
+    | 'Integrations: Plugin Add to Project Clicked';
+  integration: string; //the slug
+  already_installed?: boolean;
+  integration_tab?: 'configurations' | 'information';
+} & (SentryAppEvent | NonSentryAppEvent);
 
 type SentryAppEvent = {
   integration_type: 'sentry_app';
   //include the status since people might do weird things testing unpublished integrations
-  integration_status: 'published' | 'unpublished' | 'internal';
+  integration_status: SentryAppStatus;
 };
-
 type NonSentryAppEvent = {
   integration_type: 'plugin' | 'first_party';
 };
-
-type SingleIntegrationEvent = (ModalOpenEvent | OtherSingleIntegrationEvents) &
-  (SentryAppEvent | NonSentryAppEvent) & {
-    integration: string; //the slug
-  };
 
 type MultipleIntegrationsEvent = {
   eventKey: 'integrations.index_viewed';
@@ -78,15 +78,30 @@ type MultipleIntegrationsEvent = {
   integrations_installed: number;
 };
 
-type IntegrationsEventParams = (MultipleIntegrationsEvent | SingleIntegrationEvent) & {
+type IntegrationSearchEvent = {
+  eventKey: 'integrations.directory_item_searched';
+  eventName: 'Integrations: Directory Item Searched';
+  search_term: string;
+  num_results: number;
+};
+
+type IntegrationsEventParams = (
+  | MultipleIntegrationsEvent
+  | SingleIntegrationEvent
+  | IntegrationSearchEvent
+) & {
   view?:
     | 'external_install'
     | 'integrations_page'
     | 'legacy_integrations'
     | 'plugin_details'
-    | 'integrations_directory';
+    | 'integrations_directory'
+    | 'integrations_directory_integration_detail';
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
+
+const hasAnalyticsDebug = () =>
+  window.localStorage.getItem('DEBUG_INTEGRATION_ANALYTICS') === '1';
 
 /**
  * Tracks an event for ecosystem analytics
@@ -102,7 +117,7 @@ export const trackIntegrationEvent = (
   let sessionId = startSession ? startAnalyticsSession() : getAnalyticsSessionId();
 
   //we should always have a session id but if we don't, we should generate one
-  if (!sessionId) {
+  if (hasAnalyticsDebug() && !sessionId) {
     // eslint-disable-next-line no-console
     console.warn(`analytics_session_id absent from event ${analyticsParams.eventName}`);
     sessionId = startAnalyticsSession();
@@ -118,7 +133,7 @@ export const trackIntegrationEvent = (
 
   //add the integration_status to the type of params so TS doesn't complain about what we do below
   const fullParams: typeof params & {
-    integration_status?: string;
+    integration_status?: SentryAppStatus;
   } = params;
 
   //Reload expects integration_status even though it's not relevant for non-sentry apps
@@ -128,16 +143,17 @@ export const trackIntegrationEvent = (
   }
 
   //TODO(steve): remove once we pass in org always
-  if (!org) {
+  if (hasAnalyticsDebug() && !org) {
     // eslint-disable-next-line no-console
     console.warn(`Organization absent from event ${analyticsParams.eventName}`);
   }
 
   //could put this into a debug method or for the main trackAnalyticsEvent event
-  if (window.localStorage.getItem('DEBUG') === '1') {
+  if (hasAnalyticsDebug()) {
     // eslint-disable-next-line no-console
     console.log('trackIntegrationEvent', fullParams);
   }
+
   return trackAnalyticsEvent(fullParams);
 };
 
@@ -146,21 +162,27 @@ export const trackIntegrationEvent = (
  * is not registered for rendering the features list like this simply show the
  * features as a normal list.
  */
+const generateFeaturesList = p => (
+  <ul>
+    {p.features.map((f, i) => (
+      <li key={i}>{f.description}</li>
+    ))}
+  </ul>
+);
+
+const generateIntegrationFeatures = p =>
+  p.children({
+    disabled: false,
+    disabledReason: null,
+    ungatedFeatures: p.features,
+    gatedFeatureGroups: [],
+  });
+
 const defaultFeatureGateComponents = {
-  IntegrationFeatures: p =>
-    p.children({
-      disabled: false,
-      disabledReason: null,
-      ungatedFeatures: p.features,
-      gatedFeatureGroups: [],
-    }),
-  FeatureList: p => (
-    <ul>
-      {p.features.map((f, i) => (
-        <li key={i}>{f.description}</li>
-      ))}
-    </ul>
-  ),
+  IntegrationFeatures: generateIntegrationFeatures,
+  IntegrationDirectoryFeatures: generateIntegrationFeatures,
+  FeatureList: generateFeaturesList,
+  IntegrationDirectoryFeatureList: generateFeaturesList,
 } as ReturnType<Hooks['integrations:feature-gates']>;
 
 export const getIntegrationFeatureGate = () => {

@@ -69,7 +69,7 @@ class Result extends React.Component<ResultProps, ResultState> {
     window.addEventListener('resize', this.throttledUpdateDimensions);
   }
 
-  componentWillReceiveProps(nextProps: ResultProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: ResultProps) {
     const {data, location} = nextProps;
     const visualization = getVisualization(data, location.query.visualization);
 

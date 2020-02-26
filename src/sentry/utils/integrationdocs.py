@@ -2,6 +2,7 @@
 # process.  Thus we do not want to import non stdlib things here.
 from __future__ import absolute_import
 
+import io
 import os
 import sys
 import json
@@ -20,6 +21,7 @@ DOC_FOLDER = os.environ.get("INTEGRATION_DOC_FOLDER") or os.path.abspath(
 # We cannot leverage six here, so we need to vendor
 # bits that we need.
 if sys.version_info[0] == 3:
+    unicode = str  # NOQA
 
     def iteritems(d, **kw):
         return iter(d.items(**kw))
@@ -60,9 +62,10 @@ def dump_doc(path, data):
         os.makedirs(directory)
     except OSError:
         pass
-    with open(fn, "wb") as f:
-        json.dump(data, f, indent=2)
-        f.write("\n")
+    with io.open(fn, "wt", encoding="utf-8") as f:
+        # XXX: ideally, we use six.text_type here, but we can't use six.
+        f.write(unicode(json.dumps(data, indent=2)))  # NOQA
+        f.write(u"\n")
 
 
 def load_doc(path):
@@ -70,7 +73,7 @@ def load_doc(path):
         return None
     fn = os.path.join(DOC_FOLDER, path + ".json")
     try:
-        with open(fn, "rb") as f:
+        with io.open(fn, "rt", encoding="utf-8") as f:
             return json.load(f)
     except IOError:
         return None

@@ -12,6 +12,8 @@ export type IntegrationInstallationStatus =
   | typeof NOT_INSTALLED
   | typeof PENDING;
 
+export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
+
 export type ObjectStatus =
   | 'active'
   | 'disabled'
@@ -80,13 +82,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   dataScrubberDefaults: boolean;
   dataScrubber: boolean;
   role?: string;
-  onboardingTasks: Array<{
-    status: string;
-    dateCompleted: string;
-    task: number;
-    data: object;
-    user: string | null;
-  }>;
+  onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: string[];
 };
 
@@ -161,7 +157,7 @@ type EntryType = {
 
 export type EventTag = {key: string; value: string};
 
-type EventUser = {
+export type EventUser = {
   username?: string;
   name?: string;
   ip_address?: string;
@@ -255,6 +251,16 @@ export type AvatarUser = {
   lastSeen?: string;
 };
 
+/**
+ * This is an authenticator that a user is enrolled in
+ */
+type UserEnrolledAuthenticator = {
+  dateUsed: EnrolledAuthenticator['lastUsedAt'];
+  dateCreated: EnrolledAuthenticator['createdAt'];
+  type: Authenticator['id'];
+  id: EnrolledAuthenticator['authId'];
+};
+
 export type User = AvatarUser & {
   lastLogin: string;
   isSuperuser: boolean;
@@ -270,7 +276,7 @@ export type User = AvatarUser & {
   isActive: boolean;
   has2fa: boolean;
   canReset2fa: boolean;
-  authenticators: Authenticator[];
+  authenticators: UserEnrolledAuthenticator[];
   dateJoined: string;
   options: {
     timezone: string;
@@ -350,12 +356,59 @@ export type GlobalSelection = {
   };
 };
 
-type Authenticator = {
-  dateUsed: string | null;
-  dateCreated: string;
-  type: string; // i.e. 'u2f'
-  id: string;
+export type Authenticator = {
+  /**
+   * String used to display on button for user as CTA to enroll
+   */
+  enrollButton: string;
+
+  /**
+   * Display name for the authenticator
+   */
   name: string;
+
+  /**
+   * Allows multiple enrollments to authenticator
+   */
+  allowMultiEnrollment: boolean;
+
+  /**
+   * String to display on button for user to remove authenticator
+   */
+  removeButton: string | null;
+
+  canValidateOtp: boolean;
+
+  /**
+   * Is user enrolled to this authenticator
+   */
+  isEnrolled: boolean;
+
+  /**
+   * String to display on button for additional information about authenticator
+   */
+  configureButton: string;
+
+  /**
+   * Type of authenticator
+   */
+  id: string;
+
+  /**
+   * Is this used as a backup interface?
+   */
+  isBackupInterface: boolean;
+
+  /**
+   * Description of the authenticator
+   */
+  description: string;
+} & Partial<EnrolledAuthenticator>;
+
+export type EnrolledAuthenticator = {
+  lastUsedAt: string | null;
+  createdAt: string;
+  authId: string;
 };
 
 export type Config = {
@@ -442,6 +495,9 @@ export type Group = {
   userReportCount: number;
 };
 
+/**
+ * Returned from /organizations/org/users/
+ */
 export type Member = {
   dateCreated: string;
   email: string;
@@ -457,9 +513,10 @@ export type Member = {
   isOnlyOwner: boolean;
   name: string;
   pending: boolean | undefined;
+  projects: string[];
   role: string;
   roleName: string;
-  roles: MemberRole[];
+  roles: MemberRole[]; // TODO(ts): This is not present from API call
   teams: string[];
   user: User;
 };
@@ -511,7 +568,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
 };
 
 export type IntegrationFeature = {
-  description: React.ReactNode | string;
+  description: string;
   featureGate: string;
 };
 
@@ -543,7 +600,7 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  status: 'unpublished' | 'published' | 'internal';
+  status: SentryAppStatus;
   scopes: Scope[];
   isAlertable: boolean;
   verifyInstall: boolean;
@@ -782,10 +839,10 @@ export type SelectValue<T> = {
 };
 
 /**
- * The issue config form fields we get are basically the form fields we use in the UI but with some extra information.
- * Some fields marked optional in the form field are guaranteed to exist so we can mark them as required here
+ * The issue config form fields we get are basically the form fields we use in
+ * the UI but with some extra information. Some fields marked optional in the
+ * form field are guaranteed to exist so we can mark them as required here
  */
-
 export type IssueConfigField = Field & {
   name: string;
   default?: string;
@@ -804,17 +861,34 @@ export type IntegrationIssueConfig = {
   icon: string[];
 };
 
-export type OnboardingTask = {
+export type OnboardingTaskDescriptor = {
   task: number;
   title: string;
   description: string;
   detailedDescription?: string;
   skippable: boolean;
   prereq: number[];
-  featureLocation: string;
-  location: string | (() => void);
   display: boolean;
+} & (
+  | {
+      actionType: 'app' | 'external';
+      location: string;
+    }
+  | {
+      actionType: 'action';
+      action: () => void;
+    }
+);
+
+export type OnboardingTaskStatus = {
+  task: number;
+  status: 'skipped' | 'pending' | 'complete';
+  user: string | null;
+  dateCompleted: string;
+  data: object;
 };
+
+export type OnboardingTask = OnboardingTaskStatus & OnboardingTaskDescriptor;
 
 export type Tag = {
   name: string;
@@ -852,4 +926,17 @@ export type Chunks = {
   type: string;
   remark?: string;
   rule_id?: string;
+};
+
+export enum ResolutionStatus {
+  RESOLVED = 'resolved',
+  UNRESOLVED = 'unresolved',
+}
+export type ResolutionStatusDetails = {
+  inRelease?: string;
+  inNextRelease?: boolean;
+};
+export type UpdateResolutionStatus = {
+  status: ResolutionStatus;
+  statusDetails?: ResolutionStatusDetails;
 };
