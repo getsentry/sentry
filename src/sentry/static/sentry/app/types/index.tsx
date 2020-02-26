@@ -867,15 +867,15 @@ export type Chunks = {
   rule_id?: string;
 };
 
-export enum ResolvementStatus {
+export enum ResolutionStatus {
   RESOLVED = 'resolved',
   UNRESOLVED = 'unresolved',
 }
-export type ResolvementStatusDetails = {
+export type ResolutionStatusDetails = {
   inRelease?: string;
   inNextRelease?: boolean;
 };
-export type UpdateResolvementStatus = {
-  status: ResolvementStatus;
-  statusDetails?: ResolvementStatusDetails;
+export type UpdateResolutionStatus = {
+  status: ResolutionStatus;
+  statusDetails?: ResolutionStatusDetails;
 };
