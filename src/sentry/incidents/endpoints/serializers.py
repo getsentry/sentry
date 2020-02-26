@@ -21,6 +21,8 @@ from sentry.incidents.logic import (
     update_alert_rule,
     update_alert_rule_trigger,
     update_alert_rule_trigger_action,
+    delete_alert_rule_trigger_action,
+    delete_alert_rule_trigger,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -159,7 +161,9 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return validated_data if changed else {}
 
     def update(self, instance, validated_data):
-        validated_data = self._remove_unchanged_fields(instance, validated_data)
+        # validated_data = self._remove_unchanged_fields(instance, validated_data)
+        if "id" in validated_data:
+            validated_data.pop("id")
         return update_alert_rule_trigger_action(instance, **validated_data)
 
 
@@ -230,7 +234,9 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
 
     def update(self, instance, validated_data):
         actions = validated_data.pop("actions")
-        validated_data = self._remove_unchanged_fields(instance, validated_data)
+        if "id" in validated_data:
+            validated_data.pop("id")
+        # validated_data = self._remove_unchanged_fields(instance, validated_data)
         try:
             alert_rule_trigger = update_alert_rule_trigger(instance, **validated_data)
             self._handle_action_updates(alert_rule_trigger, actions)
@@ -242,15 +248,15 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
         if actions is not None:
             # Delete actions we don't have present in the updated data.
             action_ids = [x["id"] for x in actions if "id" in x]
-            AlertRuleTriggerAction.objects.filter(alert_rule_trigger=alert_rule_trigger).exclude(
-                id__in=action_ids
-            ).delete()
+            actions_to_delete = AlertRuleTriggerAction.objects.filter(
+                alert_rule_trigger=alert_rule_trigger
+            ).exclude(id__in=action_ids)
+            for action in actions_to_delete:
+                delete_alert_rule_trigger_action(action)
 
             for action_data in actions:
-                # TODO: This feels like a hack and shouldn't be needed?
                 if "integration_id" in action_data:
-                    action_data["integration"] = action_data["integration_id"]
-                    del action_data["integration_id"]
+                    action_data["integration"] = action_data.pop("integration_id")
 
                 if "id" in action_data:
                     action_instance = AlertRuleTriggerAction.objects.get(
@@ -456,7 +462,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def update(self, instance, validated_data):
         triggers = validated_data.pop("triggers")
-        validated_data = self._remove_unchanged_fields(instance, validated_data)
+        if "id" in validated_data:
+            validated_data.pop("id")
+        # validated_data = self._remove_unchanged_fields(instance, validated_data)
         try:
             alert_rule = update_alert_rule(instance, **validated_data)
             self._handle_trigger_updates(alert_rule, triggers)
@@ -468,9 +476,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         if triggers is not None:
             # Delete triggers we don't have present in the incoming data
             trigger_ids = [x["id"] for x in triggers if "id" in x]
-            AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
+            triggers_to_delete = AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
                 id__in=trigger_ids
-            ).delete()
+            )
+            for trigger in triggers_to_delete:
+                delete_alert_rule_trigger(trigger)
 
             for trigger_data in triggers:
                 if "id" in trigger_data:
