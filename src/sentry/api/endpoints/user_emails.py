@@ -171,6 +171,16 @@ class UserEmailsEndpoint(UserEndpoint):
         if has_new_username and not User.objects.filter(username__iexact=new_email).exists():
             update_kwargs["username"] = new_email
 
+        # NOTE(mattrobenolt): When changing your primary email address,
+        # we explicitly want to invalidate existing lost password hashes,
+        # so that in the event of a compromised inbox, an outstanding
+        # password hash can't be used to gain access. We also feel this
+        # is a large enough of a security concern to force logging
+        # out other current sessions.
+        user.clear_lost_passwords()
+        user.refresh_session_nonce(request._request)
+        update_kwargs["session_nonce"] = user.session_nonce
+
         user.update(**update_kwargs)
 
         logger.info(
