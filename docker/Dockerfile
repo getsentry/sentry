@@ -188,12 +188,13 @@ RUN set -x \
 COPY --from=sdist /dist/*.whl /tmp/dist/
 RUN pip install /tmp/dist/*.whl
 
-COPY ./docker/docker-entrypoint.sh ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
+COPY ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
+COPY ./docker/docker-entrypoint.sh /
 
 EXPOSE 9000
 VOLUME /data
 
-ENTRYPOINT exec $SENTRY_CONF/docker-entrypoint.sh $0 $@
+ENTRYPOINT exec /docker-entrypoint.sh $0 $@
 CMD ["run", "web"]
 
 ARG SOURCE_COMMIT
