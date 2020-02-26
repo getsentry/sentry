@@ -1,5 +1,5 @@
 ---
-created: '2019-04-17T20:07:50.196282Z'
+created: '2020-02-26T00:57:18.027839Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,40 +11,40 @@ app:
         stacktrace
           frame (non app frame)
             module*
-              u'app/components/modals/createTeamModal'
+              app/components/modals/createTeamModal
             filename (module takes precedence)
-              u'createteammodal.jsx'
+              createteammodal.jsx
           frame (non app frame)
             module*
-              u'app/views/settings/components/forms/form'
+              app/views/settings/components/forms/form
             filename (module takes precedence)
-              u'form.jsx'
+              form.jsx
             function*
-              u'onError'
+              onError
         type*
-          u'TypeError'
+          TypeError
         value*
-          u"Cannot read property 'submitError' of null"
+          Cannot read property 'submitError' of null
 --------------------------------------------------------------------------
 system:
-  hash: '8717a0fb8a1ddcabdd21bc2b7ca9ebee'
+  hash: 8717a0fb8a1ddcabdd21bc2b7ca9ebee
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'app/components/modals/createTeamModal'
+              app/components/modals/createTeamModal
             filename (module takes precedence)
-              u'createteammodal.jsx'
+              createteammodal.jsx
           frame*
             module*
-              u'app/views/settings/components/forms/form'
+              app/views/settings/components/forms/form
             filename (module takes precedence)
-              u'form.jsx'
+              form.jsx
             function*
-              u'onError'
+              onError
         type*
-          u'TypeError'
+          TypeError
         value (ignored because stacktrace takes precedence)
-          u"Cannot read property 'submitError' of null"
+          Cannot read property 'submitError' of null

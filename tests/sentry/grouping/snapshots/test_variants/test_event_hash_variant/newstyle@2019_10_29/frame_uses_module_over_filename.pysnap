@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T07:29:42.357628Z'
+created: '2020-02-26T00:57:25.772279Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,17 +10,17 @@ app:
       stacktrace
         frame (non app frame)
           module*
-            u'foo'
+            foo
           filename (module takes precedence)
-            u'foo.py'
+            foo.py
 --------------------------------------------------------------------------
 system:
-  hash: 'acbd18db4cc2f85cedef654fccc4a4d8'
+  hash: acbd18db4cc2f85cedef654fccc4a4d8
   component:
     system*
       stacktrace*
         frame*
           module*
-            u'foo'
+            foo
           filename (module takes precedence)
-            u'foo.py'
+            foo.py

@@ -1,5 +1,5 @@
 ---
-created: '2019-04-07T10:03:31.186754Z'
+created: '2020-02-26T00:57:09.714219Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,18 +11,18 @@ app:
         frame* (frame considered in-app because no frame is in-app)
           module* (ignored module)
             salt* (normalized generated module name)
-              '<module>'
+              <module>
           function*
-            u'call'
+            call
 --------------------------------------------------------------------------
 system:
-  hash: '5fd1358271b3a3dba3287e135029688d'
+  hash: 5fd1358271b3a3dba3287e135029688d
   component:
     system*
       stacktrace*
         frame*
           module* (ignored module)
             salt* (normalized generated module name)
-              '<module>'
+              <module>
           function*
-            u'call'
+            call

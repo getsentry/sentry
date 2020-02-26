@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T07:33:30.841461Z'
+created: '2020-02-26T00:57:18.320712Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,21 +10,21 @@ app:
       stacktrace
         frame (non app frame)
           module (ignored bad javascript module)
-            u'foo/bar/baz'
+            foo/bar/baz
           filename (ignored because frame points to a URL)
-            u'foo.py'
+            foo.py
           function*
-            u'a'
+            a
 --------------------------------------------------------------------------
 system:
-  hash: '0cc175b9c0f1b6a831c399e269772661'
+  hash: 0cc175b9c0f1b6a831c399e269772661
   component:
     system*
       stacktrace*
         frame*
           module (ignored bad javascript module)
-            u'foo/bar/baz'
+            foo/bar/baz
           filename (ignored because frame points to a URL)
-            u'foo.py'
+            foo.py
           function*
-            u'a'
+            a

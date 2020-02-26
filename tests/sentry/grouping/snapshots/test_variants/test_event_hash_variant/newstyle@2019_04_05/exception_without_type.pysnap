@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:32.812943Z'
+created: '2020-02-26T00:57:14.728010Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
       exception
 --------------------------------------------------------------------------
 fallback:
-  hash: 'd41d8cd98f00b204e9800998ecf8427e'
+  hash: d41d8cd98f00b204e9800998ecf8427e
 --------------------------------------------------------------------------
 system:
   hash: None

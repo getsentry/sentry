@@ -1,5 +1,5 @@
 ---
-created: '2019-09-03T07:26:08.106341Z'
+created: '2020-02-26T00:57:13.765185Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,13 +10,13 @@ app:
       stacktrace (ignored single frame stack)
         frame (non app frame)
           filename (ignored because filename is a URL)
-            u'/index.js'
+            /index.js
           context-line (discarded because from URL origin)
           lineno (line number is not used if module or filename are available)
             20
 --------------------------------------------------------------------------
 fallback:
-  hash: 'd41d8cd98f00b204e9800998ecf8427e'
+  hash: d41d8cd98f00b204e9800998ecf8427e
 --------------------------------------------------------------------------
 system:
   hash: None
@@ -25,7 +25,7 @@ system:
       stacktrace (ignored single frame stack)
         frame
           filename (ignored because filename is a URL)
-            u'/index.js'
+            /index.js
           context-line (discarded because from URL origin)
           lineno (line number is not used if module or filename are available)
             20

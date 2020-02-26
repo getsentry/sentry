@@ -1,5 +1,5 @@
 ---
-created: '2019-04-07T10:03:31.649772Z'
+created: '2020-02-26T00:57:11.254839Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,15 +10,15 @@ app:
       stacktrace (ignored single frame stack)
         frame (non app frame)
           module*
-            u'<unknown module>'
+            <unknown module>
           filename (module takes precedence)
-            u'/bar/'
+            /bar/
           context-line (discarded because from URL origin)
           lineno*
             107
 --------------------------------------------------------------------------
 fallback:
-  hash: 'd41d8cd98f00b204e9800998ecf8427e'
+  hash: d41d8cd98f00b204e9800998ecf8427e
 --------------------------------------------------------------------------
 system:
   hash: None
@@ -27,9 +27,9 @@ system:
       stacktrace (ignored single frame stack)
         frame*
           module*
-            u'<unknown module>'
+            <unknown module>
           filename (module takes precedence)
-            u'/bar/'
+            /bar/
           context-line (discarded because from URL origin)
           lineno*
             107

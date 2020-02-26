@@ -1,5 +1,5 @@
 ---
-created: '2019-11-01T10:16:15.758523Z'
+created: '2020-02-26T00:57:25.282775Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,45 +10,45 @@ app:
       stacktrace
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            foo.js
           function*
-            u'test'
+            test
           context-line*
-            u'hello world'
+            hello world
         frame (non app frame)
           filename*
-            u'foo.js'
+            foo.js
           function*
-            u'test'
+            test
           context-line*
-            u'hello world'
+            hello world
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            foo.js
           context-line (discarded because from URL origin and no function)
-            u'hello world'
+            hello world
 --------------------------------------------------------------------------
 system:
-  hash: 'e04dce7550635e05dbd7f656102cf304'
+  hash: e04dce7550635e05dbd7f656102cf304
   component:
     system*
       stacktrace*
         frame*
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            foo.js
           function*
-            u'test'
+            test
           context-line*
-            u'hello world'
+            hello world
         frame*
           filename*
-            u'foo.js'
+            foo.js
           function*
-            u'test'
+            test
           context-line*
-            u'hello world'
+            hello world
         frame
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            foo.js
           context-line (discarded because from URL origin and no function)
-            u'hello world'
+            hello world
