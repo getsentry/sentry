@@ -24,7 +24,7 @@ PROGUARD_BUG_SOURCE = b"x"
 
 class BasicResolvingIntegrationTest(object):
     def post_and_retrieve_event(self, data):
-        raise NotImplemented(
+        raise NotImplementedError(
             "post_and_retrieve_event should be implemented in a dervied test class"
         )
 

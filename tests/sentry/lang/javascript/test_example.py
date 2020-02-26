@@ -22,7 +22,9 @@ def load_fixture(name):
 
 class ExampleTestCase(object):
     def post_and_retrieve_event(self, data):
-        raise NotImplemented("post_and_retrieve_event should be implemented in dervied test class")
+        raise NotImplementedError(
+            "post_and_retrieve_event should be implemented in dervied test class"
+        )
 
     @responses.activate
     def test_sourcemap_expansion(self):
