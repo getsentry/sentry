@@ -1323,7 +1323,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["project", "count(id)", "count_unique(issue.id)", "count_unique(issue)"],
+                    "field": [
+                        "project",
+                        "count(id)",
+                        "count_unique(issue.id)",
+                        "count_unique(issue)",
+                    ],
                     "sort": "-count(id)",
                     "statsPeriod": "24h",
                 },
@@ -1369,7 +1374,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "count(id)", "count_unique(project.id)", "count_unique(project)"],
+                    "field": [
+                        "event.type",
+                        "count(id)",
+                        "count_unique(project.id)",
+                        "count_unique(project)",
+                    ],
                     "sort": "-count(id)",
                     "statsPeriod": "24h",
                 },
