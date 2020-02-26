@@ -103,7 +103,7 @@ describe('Incident Rules Details', function() {
       .simulate('change', {target: {value: 12}});
 
     // Add an action
-    selectByValue(wrapper, 'email', {
+    selectByValue(wrapper, 'email-null', {
       control: true,
       name: 'add-action',
     });
@@ -127,6 +127,7 @@ describe('Incident Rules Details', function() {
             expect.objectContaining({
               actions: [
                 {
+                  integrationId: null,
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',
@@ -195,6 +196,7 @@ describe('Incident Rules Details', function() {
             expect.objectContaining({
               actions: [
                 {
+                  integrationId: null,
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',

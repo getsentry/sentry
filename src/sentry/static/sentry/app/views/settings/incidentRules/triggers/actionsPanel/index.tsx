@@ -1,10 +1,16 @@
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 import styled from '@emotion/styled';
 
-import {Action, ActionType, TargetType} from 'app/views/settings/incidentRules/types';
-import {MetricAction} from 'app/types/alerts';
+import {
+  Action,
+  ActionType,
+  MetricActionTemplate,
+  TargetType,
+} from 'app/views/settings/incidentRules/types';
 import {Organization, Project, SelectValue} from 'app/types';
 import {PanelItem} from 'app/components/panels';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import {t} from 'app/locale';
@@ -29,7 +35,7 @@ const TargetLabel = {
 };
 
 type Props = {
-  availableActions: MetricAction[] | null;
+  availableActions: MetricActionTemplate[] | null;
   currentProject: string;
   organization: Organization;
   projects: Project[];
@@ -40,7 +46,7 @@ type Props = {
   actions: Action[];
   className?: string;
   triggerIndex: number;
-  onAdd: (type: Action['type']) => void;
+  onAdd: (action: Action) => void;
   onChange: (actions: Action[]) => void;
 };
 
@@ -55,17 +61,48 @@ class ActionsPanel extends React.PureComponent<Props> {
     onChange(replaceAtArrayIndex(actions, index, newAction));
   }
 
+  getActionUniqueKey({type, integrationId}: Pick<Action, 'type' | 'integrationId'>) {
+    return `${type}-${integrationId}`;
+  }
+
   getFullActionTitle({
     type,
     integrationName,
-  }: Pick<MetricAction, 'type'> & {
-    integrationName?: MetricAction['integrationName'] | null;
-  }) {
+  }: Pick<MetricActionTemplate, 'type' | 'integrationName'>) {
     return `${ActionLabel[type]}${integrationName ? ` - ${integrationName}` : ''}`;
   }
 
-  handleAddAction = (value: {label: string; value: Action['type']}) => {
-    this.props.onAdd(value.value);
+  handleAddAction = (value: {label: string; value: string}) => {
+    const {availableActions} = this.props;
+
+    const actionConfig =
+      availableActions &&
+      availableActions.find(
+        availableAction => this.getActionUniqueKey(availableAction) === value.value
+      );
+
+    if (!actionConfig) {
+      addErrorMessage(t('There was a problem adding an action'));
+      Sentry.setExtras({
+        integrationId: value,
+      });
+      Sentry.captureException(new Error('Unable to add an action'));
+      return;
+    }
+
+    const action: Action = {
+      type: actionConfig.type,
+      targetType:
+        actionConfig &&
+        actionConfig.allowedTargetTypes &&
+        actionConfig.allowedTargetTypes.length > 0
+          ? actionConfig.allowedTargetTypes[0]
+          : null,
+      targetIdentifier: '',
+      integrationId: actionConfig.integrationId,
+    };
+
+    this.props.onAdd(action);
   };
   handleDeleteAction = (index: number) => {
     const {actions, onChange} = this.props;
@@ -108,9 +145,9 @@ class ActionsPanel extends React.PureComponent<Props> {
 
     const items =
       availableActions &&
-      availableActions.map(({type: value, integrationName}) => ({
-        value,
-        label: this.getFullActionTitle({type: value, integrationName}),
+      availableActions.map(availableAction => ({
+        value: this.getActionUniqueKey(availableAction),
+        label: this.getFullActionTitle(availableAction),
       }));
 
     return (
@@ -122,15 +159,15 @@ class ActionsPanel extends React.PureComponent<Props> {
             actions.map((action: Action, i: number) => {
               const isUser = action.targetType === TargetType.USER;
               const isTeam = action.targetType === TargetType.TEAM;
-              const availableAction =
-                availableActions &&
-                availableActions.find(({type}) => type === action.type);
+              const availableAction = availableActions?.find(
+                a => this.getActionUniqueKey(a) === this.getActionUniqueKey(action)
+              );
 
               return (
                 <PanelItemGrid key={i}>
                   {this.getFullActionTitle({
                     type: action.type,
-                    integrationName: availableAction && availableAction.integrationName,
+                    integrationName: availableAction?.integrationName ?? '',
                   })}
 
                   {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
@@ -138,13 +175,10 @@ class ActionsPanel extends React.PureComponent<Props> {
                       deprecatedSelectControl
                       disabled={disabled || loading}
                       value={action.targetType}
-                      options={
-                        availableAction &&
-                        availableAction.allowedTargetTypes.map(allowedType => ({
-                          value: allowedType,
-                          label: TargetLabel[allowedType],
-                        }))
-                      }
+                      options={availableAction?.allowedTargetTypes?.map(allowedType => ({
+                        value: allowedType,
+                        label: TargetLabel[allowedType],
+                      }))}
                       onChange={this.handleChangeTarget.bind(this, i)}
                     />
                   ) : (

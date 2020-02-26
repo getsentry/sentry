@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {MetricAction} from 'app/types/alerts';
 import {Organization, Project} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
@@ -13,7 +12,7 @@ import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
 
-import {Trigger} from '../types';
+import {MetricActionTemplate, Trigger} from '../types';
 
 type DeleteButtonProps = {
   triggerIndex: number;
@@ -43,7 +42,7 @@ type Props = {
   incidentRuleId?: string;
   triggers: Trigger[];
   currentProject: string;
-  availableActions: MetricAction[] | null;
+  availableActions: MetricActionTemplate[] | null;
   disabled: boolean;
 
   errors: Map<number, {[fieldName: string]: string}>;
