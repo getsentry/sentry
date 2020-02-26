@@ -1113,12 +1113,18 @@ def resolve_field(field, params=None):
         # count() is a special function that ignores its column arguments.
         return (None, [["count", None, get_aggregate_alias(match)]])
 
+    # If we use an alias inside an aggregate, resolve it here
+    column = match.group("column")
+    if column in FIELD_ALIASES:
+        fields = FIELD_ALIASES[column].get("fields", [])
+        column = fields[0] if len(fields) > 0 else column
+
     return (
         None,
         [
             [
                 VALID_AGGREGATES[match.group("function")]["snuba_name"],
-                match.group("column"),
+                column,
                 get_aggregate_alias(match),
             ]
         ],
