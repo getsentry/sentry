@@ -54,7 +54,7 @@ describe('Sentry App Installations', function() {
         <SentryAppInstallationDetail {...props} install={install} />,
         routerContext
       );
-      expect(wrapper.find('[icon="icon-trash"]').exists()).toBe(true);
+      expect(wrapper.find('UninstallButton').exists()).toBe(true);
     });
 
     it('install button opens permissions modal', () => {

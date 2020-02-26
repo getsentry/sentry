@@ -6,6 +6,8 @@ import Confirm from 'app/components/confirm';
 
 import {t} from 'app/locale';
 import {SentryApp, SentryAppInstallation} from 'app/types';
+import {IconSubtract} from 'app/icons';
+import space from 'app/styles/space';
 
 type UninstallButtonProps = {
   install: SentryAppInstallation;
@@ -31,7 +33,8 @@ export const UninstallButton = ({
       onConfirming={onUninstallModalOpen} //called when the confirm modal opens
       disabled={disabled}
     >
-      <StyledButton borderless icon="icon-trash" data-test-id="sentry-app-uninstall">
+      <StyledButton size="small" data-test-id="sentry-app-uninstall">
+        <IconSubtract circle style={{marginRight: space(0.75)}} />
         {t('Uninstall')}
       </StyledButton>
     </Confirm>
@@ -56,4 +59,10 @@ export const InstallButton = ({onClickInstall}: InstallButtonProps) => {
 
 const StyledButton = styled(Button)`
   color: ${p => p.theme.gray2};
+  background: #ffffff;
+
+  border: ${p => `1px solid ${p.theme.gray2}`};
+  box-sizing: border-box;
+  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
 `;
