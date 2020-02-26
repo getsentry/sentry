@@ -101,7 +101,7 @@ class ExportedData(Model):
     def email_failure(self, message):
         from sentry.utils.email import MessageBuilder
 
-        payload = self.query_info
+        payload = self.query_info.copy()
         payload["export_type"] = ExportQueryType.as_str(self.query_type)
         msg = MessageBuilder(
             subject="Unable to Export Data",

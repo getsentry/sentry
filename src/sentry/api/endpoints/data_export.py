@@ -42,25 +42,17 @@ class DataExportEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
 
         try:
-            existing_data_exports = ExportedData.objects.filter(
+            # If this user has sent a sent a request with the same payload and organization,
+            # we return them the latest one that is NOT complete (i.e. don't start another)
+            data_export, created = ExportedData.objects.get_or_create(
                 organization=organization,
                 user=request.user,
                 query_type=data["query_type"],
                 query_info=data["query_info"],
                 date_finished=None,
-            ).order_by("-date_added")
-            # If this user has sent a sent a request with the same payload and organization,
-            # we return them the latest one that is NOT complete (i.e. don't start another)
-            if len(existing_data_exports) > 0:
-                data_export = existing_data_exports[0]
-                status = 200
-            else:
-                data_export = ExportedData.objects.create(
-                    organization=organization,
-                    user=request.user,
-                    query_type=data["query_type"],
-                    query_info=data["query_info"],
-                )
+            )
+            status = 200
+            if created:
                 assemble_download.delay(data_export=data_export)
                 status = 201
         except ValidationError as e:
