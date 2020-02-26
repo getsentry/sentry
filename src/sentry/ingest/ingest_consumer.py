@@ -122,8 +122,9 @@ def process_transactions_batch(messages, projects):
         if project_id not in projects:
             continue
 
-        data = json.loads(payload)
-        events.append(data)
+        with metrics.timer("ingest_consumer.decode_transaction_json"):
+            data = json.loads(payload)
+            events.append(data)
 
     save_transaction_events(events, projects)
 
