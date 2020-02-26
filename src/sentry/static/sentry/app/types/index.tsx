@@ -251,6 +251,16 @@ export type AvatarUser = {
   lastSeen?: string;
 };
 
+/**
+ * This is an authenticator that a user is enrolled in
+ */
+type UserEnrolledAuthenticator = {
+  dateUsed: EnrolledAuthenticator['lastUsedAt'];
+  dateCreated: EnrolledAuthenticator['createdAt'];
+  type: Authenticator['id'];
+  id: EnrolledAuthenticator['authId'];
+};
+
 export type User = AvatarUser & {
   lastLogin: string;
   isSuperuser: boolean;
@@ -266,7 +276,7 @@ export type User = AvatarUser & {
   isActive: boolean;
   has2fa: boolean;
   canReset2fa: boolean;
-  authenticators: Authenticator[];
+  authenticators: UserEnrolledAuthenticator[];
   dateJoined: string;
   options: {
     timezone: string;
@@ -346,12 +356,59 @@ export type GlobalSelection = {
   };
 };
 
-type Authenticator = {
-  dateUsed: string | null;
-  dateCreated: string;
-  type: string; // i.e. 'u2f'
-  id: string;
+export type Authenticator = {
+  /**
+   * String used to display on button for user as CTA to enroll
+   */
+  enrollButton: string;
+
+  /**
+   * Display name for the authenticator
+   */
   name: string;
+
+  /**
+   * Allows multiple enrollments to authenticator
+   */
+  allowMultiEnrollment: boolean;
+
+  /**
+   * String to display on button for user to remove authenticator
+   */
+  removeButton: string | null;
+
+  canValidateOtp: boolean;
+
+  /**
+   * Is user enrolled to this authenticator
+   */
+  isEnrolled: boolean;
+
+  /**
+   * String to display on button for additional information about authenticator
+   */
+  configureButton: string;
+
+  /**
+   * Type of authenticator
+   */
+  id: string;
+
+  /**
+   * Is this used as a backup interface?
+   */
+  isBackupInterface: boolean;
+
+  /**
+   * Description of the authenticator
+   */
+  description: string;
+} & Partial<EnrolledAuthenticator>;
+
+export type EnrolledAuthenticator = {
+  lastUsedAt: string | null;
+  createdAt: string;
+  authId: string;
 };
 
 export type Config = {

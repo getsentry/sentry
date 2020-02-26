@@ -41,7 +41,7 @@ describe('AccountSecurityDetails', function() {
         body: TestStubs.Authenticators().Totp(),
       });
       wrapper = mountWithTheme(
-        <AccountSecurityWrapper>
+        <AccountSecurityWrapper router={router} params={params}>
           <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,
         routerContext
@@ -82,7 +82,7 @@ describe('AccountSecurityDetails', function() {
       });
 
       wrapper = mountWithTheme(
-        <AccountSecurityWrapper>
+        <AccountSecurityWrapper router={router} params={params}>
           <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,
         routerContext
@@ -112,7 +112,7 @@ describe('AccountSecurityDetails', function() {
       });
 
       wrapper = mountWithTheme(
-        <AccountSecurityWrapper>
+        <AccountSecurityWrapper router={router} params={params}>
           <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,
         routerContext
@@ -148,7 +148,7 @@ describe('AccountSecurityDetails', function() {
       });
 
       wrapper = mountWithTheme(
-        <AccountSecurityWrapper>
+        <AccountSecurityWrapper router={router} params={params}>
           <AccountSecurityDetails router={router} params={params} />
         </AccountSecurityWrapper>,
         routerContext
