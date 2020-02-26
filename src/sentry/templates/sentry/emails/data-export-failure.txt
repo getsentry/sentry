@@ -1,9 +1,13 @@
 Unable to Export Data
 ---------------------
 
-We were unable to generate your data export due to an internal processing error:
+We were unable to generate your data export due to an error:
 
     {{error_message}}
+
+We received the following payload:
+
+    {{payload}}
 
 Troubleshooting & References:
  - https://docs.sentry.io/ (Documentation)

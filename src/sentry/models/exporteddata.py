@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import json
 import six
 from enum import Enum
 from datetime import timedelta
@@ -100,9 +101,14 @@ class ExportedData(Model):
     def email_failure(self, message):
         from sentry.utils.email import MessageBuilder
 
+        payload = self.query_info
+        payload["export_type"] = ExportQueryType.as_str(self.query_type)
         msg = MessageBuilder(
             subject="Unable to Export Data",
-            context={"error_message": message},
+            context={
+                "error_message": message,
+                "payload": json.dumps(payload, indent=2, sort_keys=True),
+            },
             type="organization.export-data",
             template="sentry/emails/data-export-failure.txt",
             html_template="sentry/emails/data-export-failure.html",
