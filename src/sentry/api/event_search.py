@@ -321,7 +321,6 @@ class SearchVisitor(NodeVisitor):
 
     def visit_raw_search(self, node, children):
         value = node.text.strip(" ")
-
         if not value:
             return None
 
@@ -558,7 +557,18 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_value(self, node, children):
-        return node.text
+        # A properly quoted value will match the quoted value regex, so any unescaped
+        # quotes are errors.
+        for (idx, c) in enumerate(node.text):
+            if c == '"':
+                if idx == 0 or (idx > 0 and node.text[idx - 1] != "\\"):
+                    raise InvalidSearchQuery(
+                        u"Invalid quote at '{}': quotes must enclose text or be escaped.".format(
+                            node.text
+                        )
+                    )
+
+        return node.text.replace('\\"', '"')
 
     def visit_key(self, node, children):
         return node.text
