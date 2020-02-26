@@ -786,7 +786,11 @@ def _materialize_metadata_many(jobs):
 def _send_event_saved_signal_many(jobs, projects):
     for job in jobs:
         event_saved.send_robust(
-            project=projects[job["project_id"]], event_size=job["event"].size, sender=EventManager
+            project=projects[job["project_id"]],
+            event_size=job["event"].size,
+            category=job["category"],
+            quantity=1,
+            sender=EventManager,
         )
 
 
