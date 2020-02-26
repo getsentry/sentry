@@ -10,7 +10,7 @@ import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import RuleRow from 'app/views/settings/projectAlerts/ruleRowNew';
+import RuleRow from 'app/views/settings/projectAlerts/ruleRow';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
 import routeTitle from 'app/utils/routeTitle';
