@@ -3,22 +3,23 @@ import styled from '@emotion/styled';
 import space, {ValidSize} from 'app/styles/space';
 
 type ButtonBarProps = {
+  className?: string;
   gap?: ValidSize;
   merged?: boolean;
   children: React.ReactNode;
 };
 
-function ButtonBar({children, merged = false, gap = 0}: ButtonBarProps) {
+function ButtonBar({children, className, merged = false, gap = 0}: ButtonBarProps) {
   return (
-    <ButtonGrid merged={merged} gap={gap} childCount={React.Children.count(children)}>
+    <ButtonGrid merged={merged} gap={gap} className={className}>
       {children}
     </ButtonGrid>
   );
 }
 
-const ButtonGrid = styled('div')<{gap: ValidSize; childCount: number; merged: boolean}>`
+const ButtonGrid = styled('div')<{gap: ValidSize; merged: boolean}>`
   display: grid;
-  grid-template-columns: repeat(${p => p.childCount}, minmax(10px, auto));
+  grid-auto-flow: column;
   grid-column-gap: ${p => space(p.gap)};
   align-items: center;
 
