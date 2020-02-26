@@ -927,3 +927,16 @@ export type Chunks = {
   remark?: string;
   rule_id?: string;
 };
+
+export enum ResolutionStatus {
+  RESOLVED = 'resolved',
+  UNRESOLVED = 'unresolved',
+}
+export type ResolutionStatusDetails = {
+  inRelease?: string;
+  inNextRelease?: boolean;
+};
+export type UpdateResolutionStatus = {
+  status: ResolutionStatus;
+  statusDetails?: ResolutionStatusDetails;
+};
