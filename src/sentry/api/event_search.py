@@ -840,8 +840,8 @@ def get_filter(query=None, params=None):
 FIELD_ALIASES = {
     "last_seen": {"aggregations": [["max", "timestamp", "last_seen"]]},
     "latest_event": {"aggregations": [["argMax", ["id", "timestamp"], "latest_event"]]},
-    "project": {"fields": ["project.id"]},
-    "issue": {"fields": ["issue.id"]},
+    "project": {"fields": ["project.id"], "column_alias": "project.id"},
+    "issue": {"fields": ["issue.id"], "column_alias": "issue.id"},
     "user": {"fields": ["user.id", "user.username", "user.email", "user.ip"]},
     # Long term these will become more complex functions but these are
     # field aliases.
@@ -1116,8 +1116,7 @@ def resolve_field(field, params=None):
     # If we use an alias inside an aggregate, resolve it here
     column = match.group("column")
     if column in FIELD_ALIASES:
-        fields = FIELD_ALIASES[column].get("fields", [])
-        column = fields[0] if len(fields) > 0 else column
+        column = FIELD_ALIASES[column].get("column_alias", column)
 
     return (
         None,
