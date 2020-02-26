@@ -128,7 +128,7 @@ class Mediator(object):
     # class.
     _params_prepared = False
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls):
         """
         When the Mediator type is created, we turn all of it's Param
         declarations into actual properties.
