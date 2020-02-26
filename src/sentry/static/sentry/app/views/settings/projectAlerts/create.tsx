@@ -25,7 +25,7 @@ type State = {
   alertType: string | null;
 };
 
-class ProjectAlertsEditor extends React.Component<Props, State> {
+class Create extends React.Component<Props, State> {
   state = {
     alertType: this.props.location.pathname.includes('/alerts/rules/')
       ? 'issue'
@@ -95,4 +95,4 @@ class ProjectAlertsEditor extends React.Component<Props, State> {
   }
 }
 
-export default ProjectAlertsEditor;
+export default Create;
