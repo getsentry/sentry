@@ -79,7 +79,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     });
   };
 
-  handleEnablePlugin = (projectId: string) => {
+  handlePluginEnableStatus = (projectId: string, enable: boolean = true) => {
     //make a copy of our project list
     const projectList = this.plugin.projectList.slice();
     //find the index of the project
@@ -92,7 +92,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     //update item in array
     projectList[index] = {
       ...projectList[index],
-      enabled: true,
+      enabled: enable,
     };
 
     //update state
@@ -161,7 +161,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
               plugin={plugin}
               projectItem={projectItem}
               onResetConfiguration={this.handleResetConfiguration}
-              onEnablePlugin={this.handleEnablePlugin}
+              onEnablePlugin={this.handlePluginEnableStatus}
               trackIntegrationEvent={this.trackIntegrationEvent}
             />
           ))}

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
-import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -14,8 +13,6 @@ import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
 import CircleIndicator from 'app/components/circleIndicator';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
-
-import {colors} from './constants';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
@@ -142,7 +139,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
               <IntegrationItem integration={integration} />
             </IntegrationItemBox>
             <div>
-              {integration.status === 'disabled' && (
+              {/* {integration.status === 'disabled' && (
                 <AddIntegrationButton
                   size="xsmall"
                   priority="success"
@@ -150,7 +147,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
                   onAddIntegration={this.reinstallIntegration}
                   reinstall
                 />
-              )}
+              )} */}
               {integration.status === 'active' && (
                 <Tooltip
                   disabled={this.hasConfiguration()}

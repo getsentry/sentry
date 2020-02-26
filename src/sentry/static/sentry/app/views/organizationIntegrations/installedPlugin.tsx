@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -16,6 +16,8 @@ import {
 } from 'app/actionCreators/indicator';
 import {PluginNoProject, PluginProjectItem, Organization, AvatarProject} from 'app/types';
 import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
+import space from 'app/styles/space';
+import Switch from 'app/components/switch';
 
 export type Props = {
   api: Client;
@@ -23,7 +25,7 @@ export type Props = {
   projectItem: PluginProjectItem;
   organization: Organization;
   onResetConfiguration: (projectId: string) => void;
-  onEnablePlugin: (projectId: string) => void;
+  onEnablePlugin: (projectId: string, status: boolean) => void;
   trackIntegrationEvent: (
     options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'> & {project_id: string}
   ) => void; //analytics callback
@@ -58,6 +60,20 @@ export class InstalledPlugin extends React.Component<Props> {
     );
   };
 
+  updatePluginEnableStatus = async (enabled: boolean) => {
+    const {organization, projectItem, plugin} = this.props;
+    if (enabled) {
+      await this.pluginUpdate({enabled});
+    } else {
+      await this.props.api.requestPromise(
+        `/projects/${organization.slug}/${projectItem.projectSlug}/plugins/${plugin.id}/`,
+        {
+          method: 'DELETE',
+        }
+      );
+    }
+  };
+
   handleReset = async () => {
     try {
       addLoadingMessage(t('Removing...'));
@@ -82,16 +98,18 @@ export class InstalledPlugin extends React.Component<Props> {
     });
   };
 
-  enablePlugin = async () => {
+  toggleEnablePlugin = async (projectId: string, status: boolean = true) => {
     try {
       addLoadingMessage(t('Enabling...'));
-      await this.pluginUpdate({enabled: true});
-      addSuccessMessage(t('Configuration was enabled'));
-      this.props.onEnablePlugin(this.projectId);
+      await this.updatePluginEnableStatus(status);
+      addSuccessMessage(
+        tct('Configuration was [action].', {action: status ? 'enabled' : 'disabled'})
+      );
+      this.props.onEnablePlugin(projectId, status);
       this.props.trackIntegrationEvent({
         eventKey: 'integrations.enabled',
         eventName: 'Integrations: Enabled',
-        project_id: this.projectId,
+        project_id: projectId,
       });
     } catch (_err) {
       addErrorMessage(t('Unable to enable configuration'));
@@ -109,7 +127,6 @@ export class InstalledPlugin extends React.Component<Props> {
 
   render() {
     const {className, plugin, organization, projectItem} = this.props;
-
     return (
       <Container>
         <Access access={['org:integrations']}>
@@ -119,11 +136,7 @@ export class InstalledPlugin extends React.Component<Props> {
                 <ProjectBadge project={this.projectForBadge} />
               </IntegrationItemBox>
               <div>
-                {!projectItem.enabled ? (
-                  <Button size="small" priority="primary" onClick={this.enablePlugin}>
-                    {t('Enable')}
-                  </Button>
-                ) : (
+                {
                   <StyledButton
                     borderless
                     icon="icon-settings"
@@ -133,7 +146,7 @@ export class InstalledPlugin extends React.Component<Props> {
                   >
                     {t('Configure')}
                   </StyledButton>
-                )}
+                }
               </div>
               <div>
                 <Confirm
@@ -154,6 +167,12 @@ export class InstalledPlugin extends React.Component<Props> {
                   </StyledButton>
                 </Confirm>
               </div>
+              <Switch
+                isActive={projectItem.enabled}
+                toggle={() =>
+                  this.toggleEnablePlugin(projectItem.projectId, !projectItem.enabled)
+                }
+              />
             </IntegrationFlex>
           )}
         </Access>
@@ -165,7 +184,14 @@ export class InstalledPlugin extends React.Component<Props> {
 export default withApi(InstalledPlugin);
 
 const Container = styled('div')`
-  margin: 10px;
+  padding: ${space(2)};
+  border: 1px solid ${p => p.theme.borderLight};
+  border-bottom: none;
+  background-color: white;
+
+  &:last-child {
+    border-bottom: 1px solid ${p => p.theme.borderLight};
+  }
 `;
 
 const StyledButton = styled(Button)`
