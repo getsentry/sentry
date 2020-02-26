@@ -67,6 +67,9 @@ type Props = {
    */
   comingFromProjectId?: string;
 
+  /**
+   * Closes the modal when called
+   */
   closeModal: () => void;
 };
 
