@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:35.895739Z'
+created: '2019-04-07T10:03:31.304601Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,9 +10,9 @@ app:
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           module*
-            libfoo
+            u'libfoo'
           function*
-            main
+            u'main'
 --------------------------------------------------------------------------
 system:
   hash: 'a972f399399f5566f39b14a7afdd24ff'
@@ -21,6 +21,6 @@ system:
       stacktrace*
         frame*
           module*
-            libfoo
+            u'libfoo'
           function*
-            main
+            u'main'

@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:35.865097Z'
+created: '2019-04-07T10:03:31.287291Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,9 +10,9 @@ app:
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           filename* (removed version)
-            /data/foo/releases/<version>/app/views/foo.html.erb
+            u'/data/foo/releases/<version>/app/views/foo.html.erb'
           context-line*
-            <% if @hotels.size > 0 %>
+            u'<% if @hotels.size > 0 %>'
 --------------------------------------------------------------------------
 system:
   hash: '00ffe2f3150414a00633fb5671a918f8'
@@ -21,6 +21,6 @@ system:
       stacktrace*
         frame*
           filename* (removed version)
-            /data/foo/releases/<version>/app/views/foo.html.erb
+            u'/data/foo/releases/<version>/app/views/foo.html.erb'
           context-line*
-            <% if @hotels.size > 0 %>
+            u'<% if @hotels.size > 0 %>'

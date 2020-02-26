@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:43.451733Z'
+created: '2019-04-17T20:02:28.701389Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,4 +8,4 @@ default:
   component:
     default*
       message*
-        event
+        u'event'

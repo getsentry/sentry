@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:39.379764Z'
+created: '2019-03-14T17:12:37.506994Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,65 +10,65 @@ app:
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            main
+            u'main'
           lineno (function takes precedence)
             13
         frame* (frame considered in-app because no frame is in-app)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            normalFunc
+            u'normalFunc'
           lineno (function takes precedence)
             20
         frame* (frame considered in-app because no frame is in-app)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            recurFunc
+            u'recurFunc'
           lineno (function takes precedence)
             27
         frame (ignored due to recursion)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            recurFunc
+            u'recurFunc'
           lineno (function takes precedence)
             27
         frame (ignored due to recursion)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            recurFunc
+            u'recurFunc'
           lineno (function takes precedence)
             27
         frame* (frame considered in-app because no frame is in-app)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            recurFunc
+            u'recurFunc'
           lineno (function takes precedence)
             25
         frame* (frame considered in-app because no frame is in-app)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            throwError
+            u'throwError'
           lineno (function takes precedence)
             32
 --------------------------------------------------------------------------
@@ -79,64 +79,64 @@ system:
       stacktrace*
         frame*
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            main
+            u'main'
           lineno (function takes precedence)
             13
         frame*
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            normalFunc
+            u'normalFunc'
           lineno (function takes precedence)
             20
         frame*
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            recurFunc
+            u'recurFunc'
           lineno (function takes precedence)
             27
         frame (ignored due to recursion)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            recurFunc
+            u'recurFunc'
           lineno (function takes precedence)
             27
         frame (ignored due to recursion)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            recurFunc
+            u'recurFunc'
           lineno (function takes precedence)
             27
         frame*
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            recurFunc
+            u'recurFunc'
           lineno (function takes precedence)
             25
         frame*
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            Application.java
+            u'Application.java'
           function*
-            throwError
+            u'throwError'
           lineno (function takes precedence)
             32

@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:45.001110Z'
+created: '2019-05-08T07:31:17.178420Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,114 +11,114 @@ app:
         stacktrace*
           frame*
             module*
-              sentry.utils.safe
+              u'sentry.utils.safe'
             filename (module takes precedence)
-              safe.py
+              u'safe.py'
             function*
-              safe_execute
+              u'safe_execute'
             context-line*
-              result = func(*args, **kwargs)
+              u'result = func(*args, **kwargs)'
           frame*
             module*
-              sentry.utils.services
+              u'sentry.utils.services'
             filename (module takes precedence)
-              services.py
+              u'services.py'
             function*
-              <lambda>
+              u'<lambda>'
             context-line*
-              context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)
+              u'context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)'
           frame*
             module*
-              getsentry.quotas
+              u'getsentry.quotas'
             filename (module takes precedence)
-              quotas.py
+              u'quotas.py'
             function*
-              is_rate_limited
+              u'is_rate_limited'
             context-line*
-              return super(SubscriptionQuota, self).is_rate_limited(project, key=key)
+              u'return super(SubscriptionQuota, self).is_rate_limited(project, key=key)'
           frame*
             module*
-              sentry.quotas.redis
+              u'sentry.quotas.redis'
             filename (module takes precedence)
-              redis.py
+              u'redis.py'
             function*
-              is_rate_limited
+              u'is_rate_limited'
             context-line*
-              rejections = is_rate_limited(client, keys, args)
+              u'rejections = is_rate_limited(client, keys, args)'
           frame*
             module*
-              sentry.utils.redis
+              u'sentry.utils.redis'
             filename (module takes precedence)
-              redis.py
+              u'redis.py'
             function*
-              call_script
+              u'call_script'
             context-line*
-              return script(keys, args, client)
+              u'return script(keys, args, client)'
           frame (non app frame)
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              __call__
+              u'__call__'
             context-line*
-              return client.evalsha(self.sha, len(keys), *args)
+              u'return client.evalsha(self.sha, len(keys), *args)'
           frame (non app frame)
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              evalsha
+              u'evalsha'
             context-line*
-              return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)
+              u"return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
           frame (non app frame)
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              execute_command
+              u'execute_command'
             context-line*
-              return self.parse_response(connection, command_name, **options)
+              u'return self.parse_response(connection, command_name, **options)'
           frame (non app frame)
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              parse_response
+              u'parse_response'
             context-line*
-              response = connection.read_response()
+              u'response = connection.read_response()'
           frame (non app frame)
             module*
-              redis.connection
+              u'redis.connection'
             filename (module takes precedence)
-              connection.py
+              u'connection.py'
             function*
-              read_response
+              u'read_response'
             context-line*
-              response = self._parser.read_response()
+              u'response = self._parser.read_response()'
           frame (non app frame)
             module*
-              redis.connection
+              u'redis.connection'
             filename (module takes precedence)
-              connection.py
+              u'connection.py'
             function*
-              read_response
+              u'read_response'
             context-line*
-              (e.args,))
+              u'(e.args,))'
         type*
-          ConnectionError
+          u'ConnectionError'
         value (ignored because stacktrace takes precedence)
-          Error while reading from socket: ('Connection closed by server.',)
+          u"Error while reading from socket: ('Connection closed by server.',)"
 --------------------------------------------------------------------------
 default:
   hash: None
   component:
     default (exception of app takes precedence)
       message (exception of app takes precedence)
-        %s.process_error
+        u'%s.process_error'
 --------------------------------------------------------------------------
 system:
   hash: '013d3477a774fe20c468dc8accd516f1'
@@ -128,104 +128,104 @@ system:
         stacktrace*
           frame*
             module*
-              sentry.utils.safe
+              u'sentry.utils.safe'
             filename (module takes precedence)
-              safe.py
+              u'safe.py'
             function*
-              safe_execute
+              u'safe_execute'
             context-line*
-              result = func(*args, **kwargs)
+              u'result = func(*args, **kwargs)'
           frame*
             module*
-              sentry.utils.services
+              u'sentry.utils.services'
             filename (module takes precedence)
-              services.py
+              u'services.py'
             function*
-              <lambda>
+              u'<lambda>'
             context-line*
-              context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)
+              u'context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)'
           frame*
             module*
-              getsentry.quotas
+              u'getsentry.quotas'
             filename (module takes precedence)
-              quotas.py
+              u'quotas.py'
             function*
-              is_rate_limited
+              u'is_rate_limited'
             context-line*
-              return super(SubscriptionQuota, self).is_rate_limited(project, key=key)
+              u'return super(SubscriptionQuota, self).is_rate_limited(project, key=key)'
           frame*
             module*
-              sentry.quotas.redis
+              u'sentry.quotas.redis'
             filename (module takes precedence)
-              redis.py
+              u'redis.py'
             function*
-              is_rate_limited
+              u'is_rate_limited'
             context-line*
-              rejections = is_rate_limited(client, keys, args)
+              u'rejections = is_rate_limited(client, keys, args)'
           frame*
             module*
-              sentry.utils.redis
+              u'sentry.utils.redis'
             filename (module takes precedence)
-              redis.py
+              u'redis.py'
             function*
-              call_script
+              u'call_script'
             context-line*
-              return script(keys, args, client)
+              u'return script(keys, args, client)'
           frame*
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              __call__
+              u'__call__'
             context-line*
-              return client.evalsha(self.sha, len(keys), *args)
+              u'return client.evalsha(self.sha, len(keys), *args)'
           frame*
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              evalsha
+              u'evalsha'
             context-line*
-              return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)
+              u"return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
           frame*
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              execute_command
+              u'execute_command'
             context-line*
-              return self.parse_response(connection, command_name, **options)
+              u'return self.parse_response(connection, command_name, **options)'
           frame*
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              parse_response
+              u'parse_response'
             context-line*
-              response = connection.read_response()
+              u'response = connection.read_response()'
           frame*
             module*
-              redis.connection
+              u'redis.connection'
             filename (module takes precedence)
-              connection.py
+              u'connection.py'
             function*
-              read_response
+              u'read_response'
             context-line*
-              response = self._parser.read_response()
+              u'response = self._parser.read_response()'
           frame*
             module*
-              redis.connection
+              u'redis.connection'
             filename (module takes precedence)
-              connection.py
+              u'connection.py'
             function*
-              read_response
+              u'read_response'
             context-line*
-              (e.args,))
+              u'(e.args,))'
         type*
-          ConnectionError
+          u'ConnectionError'
         value (ignored because stacktrace takes precedence)
-          Error while reading from socket: ('Connection closed by server.',)
+          u"Error while reading from socket: ('Connection closed by server.',)"

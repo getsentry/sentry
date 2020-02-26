@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:40.979611Z'
+created: '2019-04-17T20:35:10.497138Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,7 +9,7 @@ app:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         type*
-          Error
+          u'Error'
 --------------------------------------------------------------------------
 system:
   hash: '902b0d55fddef6f8d651fe1035b7d4bd'
@@ -17,4 +17,4 @@ system:
     system*
       exception*
         type*
-          Error
+          u'Error'

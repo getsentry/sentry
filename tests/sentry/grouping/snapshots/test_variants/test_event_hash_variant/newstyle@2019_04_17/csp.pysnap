@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:42.552245Z'
+created: '2019-04-17T20:02:28.201100Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,9 +9,9 @@ default:
     default*
       csp*
         salt* (a static salt)
-          script-src
+          u'script-src'
         violation (not a local script violation)
         uri*
-          YYY
+          u'YYY'
       message (csp takes precedence)
-        Blocked 'script' from 'YYY'
+        u"Blocked 'script' from 'YYY'"

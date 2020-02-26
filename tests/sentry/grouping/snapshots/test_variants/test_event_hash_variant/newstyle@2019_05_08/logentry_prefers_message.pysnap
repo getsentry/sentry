@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:46.233771Z'
+created: '2019-05-08T07:29:42.577620Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,4 +8,4 @@ default:
   component:
     default*
       message*
-        Hello there %s!
+        u'Hello there %s!'

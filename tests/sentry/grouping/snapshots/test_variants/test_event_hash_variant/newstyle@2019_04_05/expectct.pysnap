@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:40.417133Z'
+created: '2019-03-15T11:58:32.827837Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,6 +9,6 @@ default:
     default*
       expect-ct*
         salt* (a static salt)
-          expect-ct
+          'expect-ct'
         hostname*
-          example.com
+          u'example.com'

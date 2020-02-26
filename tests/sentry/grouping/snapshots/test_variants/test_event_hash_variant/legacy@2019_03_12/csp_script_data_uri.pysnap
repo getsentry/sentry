@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:37.775767Z'
+created: '2019-03-14T17:12:36.926311Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,7 +9,7 @@ default:
     default*
       csp*
         salt* (a static salt)
-          img-src
+          u'img-src'
         violation (not a local script violation)
         uri*
-          data:
+          u'data:'

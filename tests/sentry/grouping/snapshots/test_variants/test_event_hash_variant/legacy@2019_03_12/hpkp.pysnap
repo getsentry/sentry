@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:38.457666Z'
+created: '2019-03-14T17:12:37.287074Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,6 +9,6 @@ default:
     default*
       hpkp*
         salt* (a static salt)
-          hpkp
+          'hpkp'
         hostname*
-          example.com
+          u'example.com'

@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:48.909778Z'
+created: '2020-01-15T14:24:46.412146Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,27 +11,27 @@ app:
         stacktrace*
           frame*
             filename*
-              server.php
+              u'server.php'
             context-line*
-              require_once __DIR__.'/public/index.php';
+              u"require_once __DIR__.'/public/index.php';"
           frame (non app frame)
             filename*
-              pipeline.php
+              u'pipeline.php'
             function* (anonymous class method)
-              run
+              u'run'
             context-line*
-              return $callable($passable);
+              u'return $callable($passable);'
           frame (non app frame)
             filename*
-              pipeline.php
+              u'pipeline.php'
             function*
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             context-line*
-              ? $pipe->{$this->method}(...$parameters)
+              u'? $pipe->{$this->method}(...$parameters)'
         type*
-          Exception
+          u'Exception'
         value (ignored because stacktrace takes precedence)
-          LARAVEL TEST
+          u'LARAVEL TEST'
 --------------------------------------------------------------------------
 system:
   hash: '63c67781779781d9b0a442a5b2bdb976'
@@ -41,24 +41,24 @@ system:
         stacktrace*
           frame*
             filename*
-              server.php
+              u'server.php'
             context-line*
-              require_once __DIR__.'/public/index.php';
+              u"require_once __DIR__.'/public/index.php';"
           frame*
             filename*
-              pipeline.php
+              u'pipeline.php'
             function* (anonymous class method)
-              run
+              u'run'
             context-line*
-              return $callable($passable);
+              u'return $callable($passable);'
           frame*
             filename*
-              pipeline.php
+              u'pipeline.php'
             function*
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             context-line*
-              ? $pipe->{$this->method}(...$parameters)
+              u'? $pipe->{$this->method}(...$parameters)'
         type*
-          Exception
+          u'Exception'
         value (ignored because stacktrace takes precedence)
-          LARAVEL TEST
+          u'LARAVEL TEST'

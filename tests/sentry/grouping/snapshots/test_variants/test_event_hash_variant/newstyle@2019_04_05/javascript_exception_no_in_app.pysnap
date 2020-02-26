@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:41.004452Z'
+created: '2019-04-09T18:49:36.630959Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,66 +11,66 @@ app:
         stacktrace
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              dispatchInteractiveEvent
+              u'dispatchInteractiveEvent'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              interactiveUpdates
+              u'interactiveUpdates'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              interactiveUpdates$1
+              u'interactiveUpdates$1'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performSyncWork
+              u'performSyncWork'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performWork
+              u'performWork'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performWorkOnRoot
+              u'performWorkOnRoot'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              renderRoot
+              u'renderRoot'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              replayUnitOfWork
+              u'replayUnitOfWork'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              invokeGuardedCallback
+              u'invokeGuardedCallback'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              Object.invokeGuardedCallbackDev
+              u'Object.invokeGuardedCallbackDev'
           frame (non app frame)
             filename*
-              index.js
+              u'index.js'
             function*
-              HTMLUnknownElement.sentryWrapped
+              u'HTMLUnknownElement.sentryWrapped'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              HTMLUnknownElement.callCallback
+              u'HTMLUnknownElement.callCallback'
         type*
-          ReferenceError
+          u'ReferenceError'
 --------------------------------------------------------------------------
 system:
   hash: 'c792aaace0c1a534a115ece18c376538'
@@ -80,63 +80,63 @@ system:
         stacktrace*
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              dispatchInteractiveEvent
+              u'dispatchInteractiveEvent'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              interactiveUpdates
+              u'interactiveUpdates'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              interactiveUpdates$1
+              u'interactiveUpdates$1'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performSyncWork
+              u'performSyncWork'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performWork
+              u'performWork'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performWorkOnRoot
+              u'performWorkOnRoot'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              renderRoot
+              u'renderRoot'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              replayUnitOfWork
+              u'replayUnitOfWork'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              invokeGuardedCallback
+              u'invokeGuardedCallback'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              Object.invokeGuardedCallbackDev
+              u'Object.invokeGuardedCallbackDev'
           frame*
             filename*
-              index.js
+              u'index.js'
             function*
-              HTMLUnknownElement.sentryWrapped
+              u'HTMLUnknownElement.sentryWrapped'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              HTMLUnknownElement.callCallback
+              u'HTMLUnknownElement.callCallback'
         type*
-          ReferenceError
+          u'ReferenceError'

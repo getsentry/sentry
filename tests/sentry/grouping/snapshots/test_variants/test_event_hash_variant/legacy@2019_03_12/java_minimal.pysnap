@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:38.560458Z'
+created: '2019-03-14T17:12:37.349423Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,508 +11,508 @@ app:
         stacktrace*
           frame* (frame considered in-app because no frame is in-app)
             module*
-              java.lang.Thread
+              u'java.lang.Thread'
             filename (module takes precedence)
-              Thread.java
+              u'Thread.java'
             function*
-              run
+              u'run'
             lineno (function takes precedence)
               844
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.tomcat.util.threads.TaskThread$WrappingRunnable
+              u'org.apache.tomcat.util.threads.TaskThread$WrappingRunnable'
             filename (module takes precedence)
-              TaskThread.java
+              u'TaskThread.java'
             function*
-              run
+              u'run'
             lineno (function takes precedence)
               61
           frame* (frame considered in-app because no frame is in-app)
             module*
-              java.util.concurrent.ThreadPoolExecutor$Worker
+              u'java.util.concurrent.ThreadPoolExecutor$Worker'
             filename (module takes precedence)
-              ThreadPoolExecutor.java
+              u'ThreadPoolExecutor.java'
             function*
-              run
+              u'run'
             lineno (function takes precedence)
               641
           frame* (frame considered in-app because no frame is in-app)
             module*
-              java.util.concurrent.ThreadPoolExecutor
+              u'java.util.concurrent.ThreadPoolExecutor'
             filename (module takes precedence)
-              ThreadPoolExecutor.java
+              u'ThreadPoolExecutor.java'
             function*
-              runWorker
+              u'runWorker'
             lineno (function takes precedence)
               1167
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.tomcat.util.net.SocketProcessorBase
+              u'org.apache.tomcat.util.net.SocketProcessorBase'
             filename (module takes precedence)
-              SocketProcessorBase.java
+              u'SocketProcessorBase.java'
             function*
-              run
+              u'run'
             lineno (function takes precedence)
               49
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.tomcat.util.net.NioEndpoint$SocketProcessor
+              u'org.apache.tomcat.util.net.NioEndpoint$SocketProcessor'
             filename (module takes precedence)
-              NioEndpoint.java
+              u'NioEndpoint.java'
             function*
-              doRun
+              u'doRun'
             lineno (function takes precedence)
               1434
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.coyote.AbstractProtocol$ConnectionHandler
+              u'org.apache.coyote.AbstractProtocol$ConnectionHandler'
             filename (module takes precedence)
-              AbstractProtocol.java
+              u'AbstractProtocol.java'
             function*
-              process
+              u'process'
             lineno (function takes precedence)
               798
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.coyote.AbstractProcessorLight
+              u'org.apache.coyote.AbstractProcessorLight'
             filename (module takes precedence)
-              AbstractProcessorLight.java
+              u'AbstractProcessorLight.java'
             function*
-              process
+              u'process'
             lineno (function takes precedence)
               66
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.coyote.http11.Http11Processor
+              u'org.apache.coyote.http11.Http11Processor'
             filename (module takes precedence)
-              Http11Processor.java
+              u'Http11Processor.java'
             function*
-              service
+              u'service'
             lineno (function takes precedence)
               783
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.connector.CoyoteAdapter
+              u'org.apache.catalina.connector.CoyoteAdapter'
             filename (module takes precedence)
-              CoyoteAdapter.java
+              u'CoyoteAdapter.java'
             function*
-              service
+              u'service'
             lineno (function takes precedence)
               349
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.StandardEngineValve
+              u'org.apache.catalina.core.StandardEngineValve'
             filename (module takes precedence)
-              StandardEngineValve.java
+              u'StandardEngineValve.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               87
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.valves.ErrorReportValve
+              u'org.apache.catalina.valves.ErrorReportValve'
             filename (module takes precedence)
-              ErrorReportValve.java
+              u'ErrorReportValve.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               79
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.StandardHostValve
+              u'org.apache.catalina.core.StandardHostValve'
             filename (module takes precedence)
-              StandardHostValve.java
+              u'StandardHostValve.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               140
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.authenticator.AuthenticatorBase
+              u'org.apache.catalina.authenticator.AuthenticatorBase'
             filename (module takes precedence)
-              AuthenticatorBase.java
+              u'AuthenticatorBase.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               474
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.StandardContextValve
+              u'org.apache.catalina.core.StandardContextValve'
             filename (module takes precedence)
-              StandardContextValve.java
+              u'StandardContextValve.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               96
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.StandardWrapperValve
+              u'org.apache.catalina.core.StandardWrapperValve'
             filename (module takes precedence)
-              StandardWrapperValve.java
+              u'StandardWrapperValve.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               198
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               192
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              OncePerRequestFilter.java
+              u'OncePerRequestFilter.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               107
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.filter.CharacterEncodingFilter
+              u'org.springframework.web.filter.CharacterEncodingFilter'
             filename (module takes precedence)
-              CharacterEncodingFilter.java
+              u'CharacterEncodingFilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
             lineno (function takes precedence)
               197
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               192
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              OncePerRequestFilter.java
+              u'OncePerRequestFilter.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               107
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.filter.HiddenHttpMethodFilter
+              u'org.springframework.web.filter.HiddenHttpMethodFilter'
             filename (module takes precedence)
-              HiddenHttpMethodFilter.java
+              u'HiddenHttpMethodFilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
             lineno (function takes precedence)
               81
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               192
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              OncePerRequestFilter.java
+              u'OncePerRequestFilter.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               107
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.filter.HttpPutFormContentFilter
+              u'org.springframework.web.filter.HttpPutFormContentFilter'
             filename (module takes precedence)
-              HttpPutFormContentFilter.java
+              u'HttpPutFormContentFilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
             lineno (function takes precedence)
               105
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               192
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              OncePerRequestFilter.java
+              u'OncePerRequestFilter.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               107
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.filter.RequestContextFilter
+              u'org.springframework.web.filter.RequestContextFilter'
             filename (module takes precedence)
-              RequestContextFilter.java
+              u'RequestContextFilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
             lineno (function takes precedence)
               99
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               192
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.tomcat.websocket.server.WsFilter
+              u'org.apache.tomcat.websocket.server.WsFilter'
             filename (module takes precedence)
-              WsFilter.java
+              u'WsFilter.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               52
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               230
           frame* (frame considered in-app because no frame is in-app)
             module*
-              javax.servlet.http.HttpServlet
+              u'javax.servlet.http.HttpServlet'
             filename (module takes precedence)
-              HttpServlet.java
+              u'HttpServlet.java'
             function*
-              service
+              u'service'
             lineno (function takes precedence)
               729
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              FrameworkServlet.java
+              u'FrameworkServlet.java'
             function*
-              service
+              u'service'
             lineno (function takes precedence)
               846
           frame* (frame considered in-app because no frame is in-app)
             module*
-              javax.servlet.http.HttpServlet
+              u'javax.servlet.http.HttpServlet'
             filename (module takes precedence)
-              HttpServlet.java
+              u'HttpServlet.java'
             function*
-              service
+              u'service'
             lineno (function takes precedence)
               622
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              FrameworkServlet.java
+              u'FrameworkServlet.java'
             function*
-              doGet
+              u'doGet'
             lineno (function takes precedence)
               861
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              FrameworkServlet.java
+              u'FrameworkServlet.java'
             function*
-              processRequest
+              u'processRequest'
             lineno (function takes precedence)
               970
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.servlet.DispatcherServlet
+              u'org.springframework.web.servlet.DispatcherServlet'
             filename (module takes precedence)
-              DispatcherServlet.java
+              u'DispatcherServlet.java'
             function*
-              doService
+              u'doService'
             lineno (function takes precedence)
               897
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.servlet.DispatcherServlet
+              u'org.springframework.web.servlet.DispatcherServlet'
             filename (module takes precedence)
-              DispatcherServlet.java
+              u'DispatcherServlet.java'
             function*
-              doDispatch
+              u'doDispatch'
             lineno (function takes precedence)
               963
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter
+              u'org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter'
             filename (module takes precedence)
-              AbstractHandlerMethodAdapter.java
+              u'AbstractHandlerMethodAdapter.java'
             function*
-              handle
+              u'handle'
             lineno (function takes precedence)
               85
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+              u'org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter'
             filename (module takes precedence)
-              RequestMappingHandlerAdapter.java
+              u'RequestMappingHandlerAdapter.java'
             function*
-              handleInternal
+              u'handleInternal'
             lineno (function takes precedence)
               738
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+              u'org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter'
             filename (module takes precedence)
-              RequestMappingHandlerAdapter.java
+              u'RequestMappingHandlerAdapter.java'
             function*
-              invokeHandlerMethod
+              u'invokeHandlerMethod'
             lineno (function takes precedence)
               827
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod
+              u'org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod'
             filename (module takes precedence)
-              ServletInvocableHandlerMethod.java
+              u'ServletInvocableHandlerMethod.java'
             function*
-              invokeAndHandle
+              u'invokeAndHandle'
             lineno (function takes precedence)
               116
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.method.support.InvocableHandlerMethod
+              u'org.springframework.web.method.support.InvocableHandlerMethod'
             filename (module takes precedence)
-              InvocableHandlerMethod.java
+              u'InvocableHandlerMethod.java'
             function*
-              invokeForRequest
+              u'invokeForRequest'
             lineno (function takes precedence)
               133
           frame* (frame considered in-app because no frame is in-app)
             module*
-              org.springframework.web.method.support.InvocableHandlerMethod
+              u'org.springframework.web.method.support.InvocableHandlerMethod'
             filename (module takes precedence)
-              InvocableHandlerMethod.java
+              u'InvocableHandlerMethod.java'
             function*
-              doInvoke
+              u'doInvoke'
             lineno (function takes precedence)
               205
           frame* (frame considered in-app because no frame is in-app)
             module*
-              java.lang.reflect.Method
+              u'java.lang.reflect.Method'
             filename (module takes precedence)
-              Method.java
+              u'Method.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               564
           frame* (frame considered in-app because no frame is in-app)
             module*
-              jdk.internal.reflect.DelegatingMethodAccessorImpl
+              u'jdk.internal.reflect.DelegatingMethodAccessorImpl'
             filename (module takes precedence)
-              DelegatingMethodAccessorImpl.java
+              u'DelegatingMethodAccessorImpl.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               43
           frame* (frame considered in-app because no frame is in-app)
             module*
-              jdk.internal.reflect.NativeMethodAccessorImpl
+              u'jdk.internal.reflect.NativeMethodAccessorImpl'
             filename (module takes precedence)
-              NativeMethodAccessorImpl.java
+              u'NativeMethodAccessorImpl.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               62
           frame* (frame considered in-app because no frame is in-app)
             module*
-              jdk.internal.reflect.NativeMethodAccessorImpl
+              u'jdk.internal.reflect.NativeMethodAccessorImpl'
             filename (module takes precedence)
-              NativeMethodAccessorImpl.java
+              u'NativeMethodAccessorImpl.java'
             function*
-              invoke0
+              u'invoke0'
           frame* (frame considered in-app because no frame is in-app)
             module*
-              io.sentry.example.Application
+              u'io.sentry.example.Application'
             filename (module takes precedence)
-              Application.java
+              u'Application.java'
             function*
-              home
+              u'home'
             lineno (function takes precedence)
               30
         type*
-          ArithmeticException
+          u'ArithmeticException'
         value (stacktrace and type take precedence)
-          / by zero
+          u'/ by zero'
 --------------------------------------------------------------------------
 default:
   hash: None
   component:
     default (exception of system takes precedence)
       message (exception of system takes precedence)
-        Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause
+        u'Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause'
 --------------------------------------------------------------------------
 system:
   hash: 'ec87dd10e4f7512ecccb4a068c5774ae'
@@ -522,498 +522,498 @@ system:
         stacktrace*
           frame*
             module*
-              java.lang.Thread
+              u'java.lang.Thread'
             filename (module takes precedence)
-              Thread.java
+              u'Thread.java'
             function*
-              run
+              u'run'
             lineno (function takes precedence)
               844
           frame*
             module*
-              org.apache.tomcat.util.threads.TaskThread$WrappingRunnable
+              u'org.apache.tomcat.util.threads.TaskThread$WrappingRunnable'
             filename (module takes precedence)
-              TaskThread.java
+              u'TaskThread.java'
             function*
-              run
+              u'run'
             lineno (function takes precedence)
               61
           frame*
             module*
-              java.util.concurrent.ThreadPoolExecutor$Worker
+              u'java.util.concurrent.ThreadPoolExecutor$Worker'
             filename (module takes precedence)
-              ThreadPoolExecutor.java
+              u'ThreadPoolExecutor.java'
             function*
-              run
+              u'run'
             lineno (function takes precedence)
               641
           frame*
             module*
-              java.util.concurrent.ThreadPoolExecutor
+              u'java.util.concurrent.ThreadPoolExecutor'
             filename (module takes precedence)
-              ThreadPoolExecutor.java
+              u'ThreadPoolExecutor.java'
             function*
-              runWorker
+              u'runWorker'
             lineno (function takes precedence)
               1167
           frame*
             module*
-              org.apache.tomcat.util.net.SocketProcessorBase
+              u'org.apache.tomcat.util.net.SocketProcessorBase'
             filename (module takes precedence)
-              SocketProcessorBase.java
+              u'SocketProcessorBase.java'
             function*
-              run
+              u'run'
             lineno (function takes precedence)
               49
           frame*
             module*
-              org.apache.tomcat.util.net.NioEndpoint$SocketProcessor
+              u'org.apache.tomcat.util.net.NioEndpoint$SocketProcessor'
             filename (module takes precedence)
-              NioEndpoint.java
+              u'NioEndpoint.java'
             function*
-              doRun
+              u'doRun'
             lineno (function takes precedence)
               1434
           frame*
             module*
-              org.apache.coyote.AbstractProtocol$ConnectionHandler
+              u'org.apache.coyote.AbstractProtocol$ConnectionHandler'
             filename (module takes precedence)
-              AbstractProtocol.java
+              u'AbstractProtocol.java'
             function*
-              process
+              u'process'
             lineno (function takes precedence)
               798
           frame*
             module*
-              org.apache.coyote.AbstractProcessorLight
+              u'org.apache.coyote.AbstractProcessorLight'
             filename (module takes precedence)
-              AbstractProcessorLight.java
+              u'AbstractProcessorLight.java'
             function*
-              process
+              u'process'
             lineno (function takes precedence)
               66
           frame*
             module*
-              org.apache.coyote.http11.Http11Processor
+              u'org.apache.coyote.http11.Http11Processor'
             filename (module takes precedence)
-              Http11Processor.java
+              u'Http11Processor.java'
             function*
-              service
+              u'service'
             lineno (function takes precedence)
               783
           frame*
             module*
-              org.apache.catalina.connector.CoyoteAdapter
+              u'org.apache.catalina.connector.CoyoteAdapter'
             filename (module takes precedence)
-              CoyoteAdapter.java
+              u'CoyoteAdapter.java'
             function*
-              service
+              u'service'
             lineno (function takes precedence)
               349
           frame*
             module*
-              org.apache.catalina.core.StandardEngineValve
+              u'org.apache.catalina.core.StandardEngineValve'
             filename (module takes precedence)
-              StandardEngineValve.java
+              u'StandardEngineValve.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               87
           frame*
             module*
-              org.apache.catalina.valves.ErrorReportValve
+              u'org.apache.catalina.valves.ErrorReportValve'
             filename (module takes precedence)
-              ErrorReportValve.java
+              u'ErrorReportValve.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               79
           frame*
             module*
-              org.apache.catalina.core.StandardHostValve
+              u'org.apache.catalina.core.StandardHostValve'
             filename (module takes precedence)
-              StandardHostValve.java
+              u'StandardHostValve.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               140
           frame*
             module*
-              org.apache.catalina.authenticator.AuthenticatorBase
+              u'org.apache.catalina.authenticator.AuthenticatorBase'
             filename (module takes precedence)
-              AuthenticatorBase.java
+              u'AuthenticatorBase.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               474
           frame*
             module*
-              org.apache.catalina.core.StandardContextValve
+              u'org.apache.catalina.core.StandardContextValve'
             filename (module takes precedence)
-              StandardContextValve.java
+              u'StandardContextValve.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               96
           frame*
             module*
-              org.apache.catalina.core.StandardWrapperValve
+              u'org.apache.catalina.core.StandardWrapperValve'
             filename (module takes precedence)
-              StandardWrapperValve.java
+              u'StandardWrapperValve.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               198
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               192
           frame*
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              OncePerRequestFilter.java
+              u'OncePerRequestFilter.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               107
           frame*
             module*
-              org.springframework.web.filter.CharacterEncodingFilter
+              u'org.springframework.web.filter.CharacterEncodingFilter'
             filename (module takes precedence)
-              CharacterEncodingFilter.java
+              u'CharacterEncodingFilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
             lineno (function takes precedence)
               197
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               192
           frame*
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              OncePerRequestFilter.java
+              u'OncePerRequestFilter.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               107
           frame*
             module*
-              org.springframework.web.filter.HiddenHttpMethodFilter
+              u'org.springframework.web.filter.HiddenHttpMethodFilter'
             filename (module takes precedence)
-              HiddenHttpMethodFilter.java
+              u'HiddenHttpMethodFilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
             lineno (function takes precedence)
               81
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               192
           frame*
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              OncePerRequestFilter.java
+              u'OncePerRequestFilter.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               107
           frame*
             module*
-              org.springframework.web.filter.HttpPutFormContentFilter
+              u'org.springframework.web.filter.HttpPutFormContentFilter'
             filename (module takes precedence)
-              HttpPutFormContentFilter.java
+              u'HttpPutFormContentFilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
             lineno (function takes precedence)
               105
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               192
           frame*
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              OncePerRequestFilter.java
+              u'OncePerRequestFilter.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               107
           frame*
             module*
-              org.springframework.web.filter.RequestContextFilter
+              u'org.springframework.web.filter.RequestContextFilter'
             filename (module takes precedence)
-              RequestContextFilter.java
+              u'RequestContextFilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
             lineno (function takes precedence)
               99
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               192
           frame*
             module*
-              org.apache.tomcat.websocket.server.WsFilter
+              u'org.apache.tomcat.websocket.server.WsFilter'
             filename (module takes precedence)
-              WsFilter.java
+              u'WsFilter.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               52
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              doFilter
+              u'doFilter'
             lineno (function takes precedence)
               165
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              ApplicationFilterChain.java
+              u'ApplicationFilterChain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
             lineno (function takes precedence)
               230
           frame*
             module*
-              javax.servlet.http.HttpServlet
+              u'javax.servlet.http.HttpServlet'
             filename (module takes precedence)
-              HttpServlet.java
+              u'HttpServlet.java'
             function*
-              service
+              u'service'
             lineno (function takes precedence)
               729
           frame*
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              FrameworkServlet.java
+              u'FrameworkServlet.java'
             function*
-              service
+              u'service'
             lineno (function takes precedence)
               846
           frame*
             module*
-              javax.servlet.http.HttpServlet
+              u'javax.servlet.http.HttpServlet'
             filename (module takes precedence)
-              HttpServlet.java
+              u'HttpServlet.java'
             function*
-              service
+              u'service'
             lineno (function takes precedence)
               622
           frame*
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              FrameworkServlet.java
+              u'FrameworkServlet.java'
             function*
-              doGet
+              u'doGet'
             lineno (function takes precedence)
               861
           frame*
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              FrameworkServlet.java
+              u'FrameworkServlet.java'
             function*
-              processRequest
+              u'processRequest'
             lineno (function takes precedence)
               970
           frame*
             module*
-              org.springframework.web.servlet.DispatcherServlet
+              u'org.springframework.web.servlet.DispatcherServlet'
             filename (module takes precedence)
-              DispatcherServlet.java
+              u'DispatcherServlet.java'
             function*
-              doService
+              u'doService'
             lineno (function takes precedence)
               897
           frame*
             module*
-              org.springframework.web.servlet.DispatcherServlet
+              u'org.springframework.web.servlet.DispatcherServlet'
             filename (module takes precedence)
-              DispatcherServlet.java
+              u'DispatcherServlet.java'
             function*
-              doDispatch
+              u'doDispatch'
             lineno (function takes precedence)
               963
           frame*
             module*
-              org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter
+              u'org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter'
             filename (module takes precedence)
-              AbstractHandlerMethodAdapter.java
+              u'AbstractHandlerMethodAdapter.java'
             function*
-              handle
+              u'handle'
             lineno (function takes precedence)
               85
           frame*
             module*
-              org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+              u'org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter'
             filename (module takes precedence)
-              RequestMappingHandlerAdapter.java
+              u'RequestMappingHandlerAdapter.java'
             function*
-              handleInternal
+              u'handleInternal'
             lineno (function takes precedence)
               738
           frame*
             module*
-              org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+              u'org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter'
             filename (module takes precedence)
-              RequestMappingHandlerAdapter.java
+              u'RequestMappingHandlerAdapter.java'
             function*
-              invokeHandlerMethod
+              u'invokeHandlerMethod'
             lineno (function takes precedence)
               827
           frame*
             module*
-              org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod
+              u'org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod'
             filename (module takes precedence)
-              ServletInvocableHandlerMethod.java
+              u'ServletInvocableHandlerMethod.java'
             function*
-              invokeAndHandle
+              u'invokeAndHandle'
             lineno (function takes precedence)
               116
           frame*
             module*
-              org.springframework.web.method.support.InvocableHandlerMethod
+              u'org.springframework.web.method.support.InvocableHandlerMethod'
             filename (module takes precedence)
-              InvocableHandlerMethod.java
+              u'InvocableHandlerMethod.java'
             function*
-              invokeForRequest
+              u'invokeForRequest'
             lineno (function takes precedence)
               133
           frame*
             module*
-              org.springframework.web.method.support.InvocableHandlerMethod
+              u'org.springframework.web.method.support.InvocableHandlerMethod'
             filename (module takes precedence)
-              InvocableHandlerMethod.java
+              u'InvocableHandlerMethod.java'
             function*
-              doInvoke
+              u'doInvoke'
             lineno (function takes precedence)
               205
           frame*
             module*
-              java.lang.reflect.Method
+              u'java.lang.reflect.Method'
             filename (module takes precedence)
-              Method.java
+              u'Method.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               564
           frame*
             module*
-              jdk.internal.reflect.DelegatingMethodAccessorImpl
+              u'jdk.internal.reflect.DelegatingMethodAccessorImpl'
             filename (module takes precedence)
-              DelegatingMethodAccessorImpl.java
+              u'DelegatingMethodAccessorImpl.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               43
           frame*
             module*
-              jdk.internal.reflect.NativeMethodAccessorImpl
+              u'jdk.internal.reflect.NativeMethodAccessorImpl'
             filename (module takes precedence)
-              NativeMethodAccessorImpl.java
+              u'NativeMethodAccessorImpl.java'
             function*
-              invoke
+              u'invoke'
             lineno (function takes precedence)
               62
           frame*
             module*
-              jdk.internal.reflect.NativeMethodAccessorImpl
+              u'jdk.internal.reflect.NativeMethodAccessorImpl'
             filename (module takes precedence)
-              NativeMethodAccessorImpl.java
+              u'NativeMethodAccessorImpl.java'
             function*
-              invoke0
+              u'invoke0'
           frame*
             module*
-              io.sentry.example.Application
+              u'io.sentry.example.Application'
             filename (module takes precedence)
-              Application.java
+              u'Application.java'
             function*
-              home
+              u'home'
             lineno (function takes precedence)
               30
         type*
-          ArithmeticException
+          u'ArithmeticException'
         value (stacktrace and type take precedence)
-          / by zero
+          u'/ by zero'

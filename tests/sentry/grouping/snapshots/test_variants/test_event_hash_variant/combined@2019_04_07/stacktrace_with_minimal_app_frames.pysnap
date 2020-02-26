@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:37.236528Z'
+created: '2019-04-07T10:03:31.710297Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,62 +10,62 @@ app:
       stacktrace (less than 10% of frames are in-app)
         frame*
           filename*
-            foo.py
+            u'foo.py'
           lineno*
             1
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
 --------------------------------------------------------------------------
@@ -76,61 +76,61 @@ system:
       stacktrace*
         frame*
           filename*
-            foo.py
+            u'foo.py'
           lineno*
             1
         frame*
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (ignored due to recursion)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (ignored due to recursion)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (ignored due to recursion)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (ignored due to recursion)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (ignored due to recursion)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (ignored due to recursion)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (ignored due to recursion)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (ignored due to recursion)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (ignored due to recursion)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1
         frame (ignored due to recursion)
           filename*
-            bar.py
+            u'bar.py'
           lineno*
             1

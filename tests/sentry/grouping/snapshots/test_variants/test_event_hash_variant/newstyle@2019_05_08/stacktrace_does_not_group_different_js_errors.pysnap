@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:46.846732Z'
+created: '2019-05-08T07:29:42.770977Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
       stacktrace
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            index.js
+            u'index.js'
 --------------------------------------------------------------------------
 fallback:
   hash: 'd41d8cd98f00b204e9800998ecf8427e'
@@ -22,4 +22,4 @@ system:
       stacktrace
         frame
           filename (ignored because frame points to a URL)
-            index.js
+            u'index.js'

@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:41.170686Z'
+created: '2019-05-08T19:13:31.280258Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,57 +11,57 @@ app:
         stacktrace
           frame (non app frame)
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
           frame (non app frame)
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              testMethod
+              u'testMethod'
           frame (non app frame)
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
           frame (non app frame)
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              eval
+              u'eval'
           frame (non app frame)
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              test
+              u'test'
           frame (non app frame)
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              map
+              u'map'
           frame (non app frame)
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
           frame (non app frame)
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              callback
+              u'callback'
           frame (non app frame)
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              callAnotherThing
+              u'callAnotherThing'
           frame (non app frame)
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              aha
+              u'aha'
           frame (non app frame)
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
         type*
-          Error
+          u'Error'
 --------------------------------------------------------------------------
 system:
   hash: 'fc72313a47981f6b86536e727d84c2d4'
@@ -71,54 +71,54 @@ system:
         stacktrace*
           frame
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
           frame*
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              testMethod
+              u'testMethod'
           frame*
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
           frame*
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              eval
+              u'eval'
           frame*
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              test
+              u'test'
           frame*
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              map
+              u'map'
           frame
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
           frame*
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              callback
+              u'callback'
           frame*
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              callAnotherThing
+              u'callAnotherThing'
           frame*
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              aha
+              u'aha'
           frame*
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
         type*
-          Error
+          u'Error'

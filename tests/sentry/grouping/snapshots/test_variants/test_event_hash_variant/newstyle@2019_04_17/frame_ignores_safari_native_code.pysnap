@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:43.065487Z'
+created: '2019-04-17T20:07:50.390585Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,9 +10,9 @@ app:
       stacktrace
         frame (non app frame)
           filename (native code indicated by filename)
-            [native code]
+            u'[native code]'
           function*
-            forEach
+            u'forEach'
 --------------------------------------------------------------------------
 system:
   hash: '30eb5001914d29dd8461898b5b8094fe'
@@ -21,6 +21,6 @@ system:
       stacktrace*
         frame*
           filename (native code indicated by filename)
-            [native code]
+            u'[native code]'
           function*
-            forEach
+            u'forEach'

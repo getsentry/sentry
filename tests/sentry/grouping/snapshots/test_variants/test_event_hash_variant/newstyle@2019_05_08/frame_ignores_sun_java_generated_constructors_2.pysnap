@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:45.534504Z'
+created: '2019-05-08T07:29:42.280719Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,9 +10,9 @@ app:
       stacktrace
         frame (non app frame)
           module* (removed codegen marker)
-            sun.reflect.GeneratedConstructorAccessor<auto>
+            u'sun.reflect.GeneratedConstructorAccessor<auto>'
           function*
-            invoke
+            u'invoke'
 --------------------------------------------------------------------------
 system:
   hash: '09e0efcab18f545166318118ed4e0292'
@@ -21,6 +21,6 @@ system:
       stacktrace*
         frame*
           module* (removed codegen marker)
-            sun.reflect.GeneratedConstructorAccessor<auto>
+            u'sun.reflect.GeneratedConstructorAccessor<auto>'
           function*
-            invoke
+            u'invoke'

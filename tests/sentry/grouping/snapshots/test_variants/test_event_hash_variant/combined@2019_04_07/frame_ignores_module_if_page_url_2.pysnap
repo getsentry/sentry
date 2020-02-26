@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:35.767011Z'
+created: '2019-05-08T07:33:27.994271Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,11 +11,11 @@ app:
         frame* (frame considered in-app because no frame is in-app)
           module* (ignored module)
             salt* (normalized generated module name)
-              <module>
+              '<module>'
           filename (module takes precedence)
-            foo.py
+            u'foo.py'
           function*
-            a
+            u'a'
 --------------------------------------------------------------------------
 system:
   hash: '37a2dbfebce02591474d46b7485e9923'
@@ -25,8 +25,8 @@ system:
         frame*
           module* (ignored module)
             salt* (normalized generated module name)
-              <module>
+              '<module>'
           filename (module takes precedence)
-            foo.py
+            u'foo.py'
           function*
-            a
+            u'a'

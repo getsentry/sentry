@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:45.976199Z'
+created: '2019-11-01T10:06:05.916131Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,51 +11,51 @@ app:
         stacktrace
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              testMethod
+              u'testMethod'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              eval
+              u'eval'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              test
+              u'test'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function (ignored unknown function name)
-              test/<
+              u'test/<'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              callback
+              u'callback'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              callAnotherThing
+              u'callAnotherThing'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
         type*
-          Error
+          u'Error'
         value*
-          bad
+          u'bad'
 --------------------------------------------------------------------------
 system:
   hash: 'c63e8727af1a8fe75872b6a762797113'
@@ -65,48 +65,48 @@ system:
         stacktrace*
           frame*
             filename*
-              test.html
+              u'test.html'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              testMethod
+              u'testMethod'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
           frame (ignored low quality javascript frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              eval
+              u'eval'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              test
+              u'test'
           frame*
             filename*
-              test.html
+              u'test.html'
             function (ignored unknown function name)
-              test/<
+              u'test/<'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              callback
+              u'callback'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              callAnotherThing
+              u'callAnotherThing'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
         type*
-          Error
+          u'Error'
         value (ignored because stacktrace takes precedence)
-          bad
+          u'bad'

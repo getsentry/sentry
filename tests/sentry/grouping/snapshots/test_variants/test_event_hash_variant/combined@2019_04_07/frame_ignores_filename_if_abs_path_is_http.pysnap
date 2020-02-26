@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:35.625066Z'
+created: '2019-09-03T07:26:05.860539Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,11 +10,11 @@ app:
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           filename (ignored because filename is a URL)
-            foo.py
+            u'foo.py'
           context-line*
-            hello world
+            u'hello world'
           function (function name is not used if context-line is available)
-            test
+            u'test'
 --------------------------------------------------------------------------
 system:
   hash: '5eb63bbbe01eeed093cb22bb8f5acdc3'
@@ -23,8 +23,8 @@ system:
       stacktrace*
         frame*
           filename (ignored because filename is a URL)
-            foo.py
+            u'foo.py'
           context-line*
-            hello world
+            u'hello world'
           function (function name is not used if context-line is available)
-            test
+            u'test'

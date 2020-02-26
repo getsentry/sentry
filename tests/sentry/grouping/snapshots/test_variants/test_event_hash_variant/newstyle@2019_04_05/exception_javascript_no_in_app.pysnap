@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:40.380666Z'
+created: '2019-04-09T18:49:36.326246Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,18 +11,18 @@ app:
         stacktrace
           frame (non app frame)
             module*
-              app/components/modals/createTeamModal
+              u'app/components/modals/createTeamModal'
             filename (module takes precedence)
-              createteammodal.jsx
+              u'createteammodal.jsx'
           frame (non app frame)
             module*
-              app/views/settings/components/forms/form
+              u'app/views/settings/components/forms/form'
             filename (module takes precedence)
-              form.jsx
+              u'form.jsx'
             function*
-              onError
+              u'onError'
         type*
-          TypeError
+          u'TypeError'
 --------------------------------------------------------------------------
 system:
   hash: '8717a0fb8a1ddcabdd21bc2b7ca9ebee'
@@ -32,15 +32,15 @@ system:
         stacktrace*
           frame*
             module*
-              app/components/modals/createTeamModal
+              u'app/components/modals/createTeamModal'
             filename (module takes precedence)
-              createteammodal.jsx
+              u'createteammodal.jsx'
           frame*
             module*
-              app/views/settings/components/forms/form
+              u'app/views/settings/components/forms/form'
             filename (module takes precedence)
-              form.jsx
+              u'form.jsx'
             function*
-              onError
+              u'onError'
         type*
-          TypeError
+          u'TypeError'

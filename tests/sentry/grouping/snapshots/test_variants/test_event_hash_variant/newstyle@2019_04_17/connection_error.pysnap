@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:42.540378Z'
+created: '2019-04-17T20:02:28.191952Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,92 +11,92 @@ app:
         stacktrace*
           frame*
             module*
-              sentry.utils.safe
+              u'sentry.utils.safe'
             filename (module takes precedence)
-              safe.py
+              u'safe.py'
             function*
-              safe_execute
+              u'safe_execute'
           frame*
             module*
-              sentry.utils.services
+              u'sentry.utils.services'
             filename (module takes precedence)
-              services.py
+              u'services.py'
             function*
-              <lambda>
+              u'<lambda>'
           frame*
             module*
-              getsentry.quotas
+              u'getsentry.quotas'
             filename (module takes precedence)
-              quotas.py
+              u'quotas.py'
             function*
-              is_rate_limited
+              u'is_rate_limited'
           frame*
             module*
-              sentry.quotas.redis
+              u'sentry.quotas.redis'
             filename (module takes precedence)
-              redis.py
+              u'redis.py'
             function*
-              is_rate_limited
+              u'is_rate_limited'
           frame*
             module*
-              sentry.utils.redis
+              u'sentry.utils.redis'
             filename (module takes precedence)
-              redis.py
+              u'redis.py'
             function*
-              call_script
+              u'call_script'
           frame (non app frame)
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              __call__
+              u'__call__'
           frame (non app frame)
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              evalsha
+              u'evalsha'
           frame (non app frame)
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              execute_command
+              u'execute_command'
           frame (non app frame)
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              parse_response
+              u'parse_response'
           frame (non app frame)
             module*
-              redis.connection
+              u'redis.connection'
             filename (module takes precedence)
-              connection.py
+              u'connection.py'
             function*
-              read_response
+              u'read_response'
           frame (non app frame)
             module*
-              redis.connection
+              u'redis.connection'
             filename (module takes precedence)
-              connection.py
+              u'connection.py'
             function*
-              read_response
+              u'read_response'
         type*
-          ConnectionError
+          u'ConnectionError'
         value (ignored because stacktrace takes precedence)
-          Error while reading from socket: ('Connection closed by server.',)
+          u"Error while reading from socket: ('Connection closed by server.',)"
 --------------------------------------------------------------------------
 default:
   hash: None
   component:
     default (exception of app takes precedence)
       message (exception of app takes precedence)
-        %s.process_error
+        u'%s.process_error'
 --------------------------------------------------------------------------
 system:
   hash: '011c0e7a2decebaeb1897a7f08baeb1a'
@@ -106,82 +106,82 @@ system:
         stacktrace*
           frame*
             module*
-              sentry.utils.safe
+              u'sentry.utils.safe'
             filename (module takes precedence)
-              safe.py
+              u'safe.py'
             function*
-              safe_execute
+              u'safe_execute'
           frame*
             module*
-              sentry.utils.services
+              u'sentry.utils.services'
             filename (module takes precedence)
-              services.py
+              u'services.py'
             function*
-              <lambda>
+              u'<lambda>'
           frame*
             module*
-              getsentry.quotas
+              u'getsentry.quotas'
             filename (module takes precedence)
-              quotas.py
+              u'quotas.py'
             function*
-              is_rate_limited
+              u'is_rate_limited'
           frame*
             module*
-              sentry.quotas.redis
+              u'sentry.quotas.redis'
             filename (module takes precedence)
-              redis.py
+              u'redis.py'
             function*
-              is_rate_limited
+              u'is_rate_limited'
           frame*
             module*
-              sentry.utils.redis
+              u'sentry.utils.redis'
             filename (module takes precedence)
-              redis.py
+              u'redis.py'
             function*
-              call_script
+              u'call_script'
           frame*
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              __call__
+              u'__call__'
           frame*
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              evalsha
+              u'evalsha'
           frame*
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              execute_command
+              u'execute_command'
           frame*
             module*
-              redis.client
+              u'redis.client'
             filename (module takes precedence)
-              client.py
+              u'client.py'
             function*
-              parse_response
+              u'parse_response'
           frame*
             module*
-              redis.connection
+              u'redis.connection'
             filename (module takes precedence)
-              connection.py
+              u'connection.py'
             function*
-              read_response
+              u'read_response'
           frame*
             module*
-              redis.connection
+              u'redis.connection'
             filename (module takes precedence)
-              connection.py
+              u'connection.py'
             function*
-              read_response
+              u'read_response'
         type*
-          ConnectionError
+          u'ConnectionError'
         value (ignored because stacktrace takes precedence)
-          Error while reading from socket: ('Connection closed by server.',)
+          u"Error while reading from socket: ('Connection closed by server.',)"

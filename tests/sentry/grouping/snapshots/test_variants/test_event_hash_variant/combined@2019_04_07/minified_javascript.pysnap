@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:36.511159Z'
+created: '2019-04-07T10:03:31.513544Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,226 +11,226 @@ app:
         stacktrace*
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              M
+              u'M'
             lineno (function takes precedence)
               172
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              S/<
+              u'S/<'
             lineno (function takes precedence)
               147
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              i
+              u'i'
             lineno (function takes precedence)
               147
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              b
+              u'b'
             lineno (function takes precedence)
               64
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              n
+              u'n'
             lineno (function takes precedence)
               64
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              g/</t[e]
+              u'g/</t[e]'
             lineno (function takes precedence)
               147
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              h/p._invoke</<
+              u'h/p._invoke</<'
             lineno (function takes precedence)
               147
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              W
+              u'W'
             lineno (function takes precedence)
               147
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/app
+              u'sentry/dist/app'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
             context-line (discarded because line too long)
             function*
-              e/<
+              u'e/<'
             lineno (function takes precedence)
               1
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/app
+              u'sentry/dist/app'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
             context-line (discarded because line too long)
             function*
-              e/</a</<
+              u'e/</a</<'
             lineno (function takes precedence)
               1
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              t.exports/<
+              u't.exports/<'
             lineno (function takes precedence)
               64
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              L
+              u'L'
             lineno (function takes precedence)
               147
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              t.exports/</<
+              u't.exports/</<'
             lineno (function takes precedence)
               64
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              c
+              u'c'
             lineno (function takes precedence)
               64
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              n
+              u'n'
             lineno (function takes precedence)
               64
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              g/</t[e]
+              u'g/</t[e]'
             lineno (function takes precedence)
               147
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              h/p._invoke</<
+              u'h/p._invoke</<'
             lineno (function takes precedence)
               147
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              W
+              u'W'
             lineno (function takes precedence)
               147
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/app
+              u'sentry/dist/app'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
             context-line (discarded because line too long)
             function*
-              e/<
+              u'e/<'
             lineno (function takes precedence)
               1
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/app
+              u'sentry/dist/app'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
             context-line (discarded because line too long)
             function*
-              componentPromise
+              u'componentPromise'
             lineno (function takes precedence)
               1
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/app
+              u'sentry/dist/app'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
             context-line (discarded because line too long)
             function*
-              o.e
+              u'o.e'
             lineno (function takes precedence)
               1
           frame* (frame considered in-app because no frame is in-app)
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              Pt</t.prototype.wrapTimeFunction/<
+              u'Pt</t.prototype.wrapTimeFunction/<'
             lineno (function takes precedence)
               14
         type*
-          NS_ERROR_NOT_INITIALIZED
+          u'NS_ERROR_NOT_INITIALIZED'
 --------------------------------------------------------------------------
 system:
   hash: '074e2ed5d89f602d31be5742ac107fef'
@@ -240,223 +240,223 @@ system:
         stacktrace*
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              M
+              u'M'
             lineno (function takes precedence)
               172
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              S/<
+              u'S/<'
             lineno (function takes precedence)
               147
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              i
+              u'i'
             lineno (function takes precedence)
               147
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              b
+              u'b'
             lineno (function takes precedence)
               64
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              n
+              u'n'
             lineno (function takes precedence)
               64
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              g/</t[e]
+              u'g/</t[e]'
             lineno (function takes precedence)
               147
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              h/p._invoke</<
+              u'h/p._invoke</<'
             lineno (function takes precedence)
               147
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              W
+              u'W'
             lineno (function takes precedence)
               147
           frame*
             module*
-              sentry/dist/app
+              u'sentry/dist/app'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
             context-line (discarded because line too long)
             function*
-              e/<
+              u'e/<'
             lineno (function takes precedence)
               1
           frame*
             module*
-              sentry/dist/app
+              u'sentry/dist/app'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
             context-line (discarded because line too long)
             function*
-              e/</a</<
+              u'e/</a</<'
             lineno (function takes precedence)
               1
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              t.exports/<
+              u't.exports/<'
             lineno (function takes precedence)
               64
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              L
+              u'L'
             lineno (function takes precedence)
               147
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              t.exports/</<
+              u't.exports/</<'
             lineno (function takes precedence)
               64
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              c
+              u'c'
             lineno (function takes precedence)
               64
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              n
+              u'n'
             lineno (function takes precedence)
               64
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              g/</t[e]
+              u'g/</t[e]'
             lineno (function takes precedence)
               147
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              h/p._invoke</<
+              u'h/p._invoke</<'
             lineno (function takes precedence)
               147
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              W
+              u'W'
             lineno (function takes precedence)
               147
           frame*
             module*
-              sentry/dist/app
+              u'sentry/dist/app'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
             context-line (discarded because line too long)
             function*
-              e/<
+              u'e/<'
             lineno (function takes precedence)
               1
           frame*
             module*
-              sentry/dist/app
+              u'sentry/dist/app'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
             context-line (discarded because line too long)
             function*
-              componentPromise
+              u'componentPromise'
             lineno (function takes precedence)
               1
           frame*
             module*
-              sentry/dist/app
+              u'sentry/dist/app'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js'
             context-line (discarded because line too long)
             function*
-              o.e
+              u'o.e'
             lineno (function takes precedence)
               1
           frame*
             module*
-              sentry/dist/vendor
+              u'sentry/dist/vendor'
             filename (module takes precedence)
-              /_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js
+              u'/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/vendor.js'
             context-line (discarded because line too long)
             function*
-              Pt</t.prototype.wrapTimeFunction/<
+              u'Pt</t.prototype.wrapTimeFunction/<'
             lineno (function takes precedence)
               14
         type*
-          NS_ERROR_NOT_INITIALIZED
+          u'NS_ERROR_NOT_INITIALIZED'

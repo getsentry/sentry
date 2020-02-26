@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:35.159284Z'
+created: '2019-04-07T10:03:31.052438Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,13 +11,13 @@ app:
         stacktrace*
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              foo/baz.py
+              u'foo/baz.py'
             lineno*
               1
         type*
-          ValueError
+          u'ValueError'
         value (stacktrace and type take precedence)
-          hello world
+          u'hello world'
 --------------------------------------------------------------------------
 system:
   hash: 'baf0bfa8bb312627cd5ef4171aec9f4e'
@@ -27,10 +27,10 @@ system:
         stacktrace*
           frame*
             filename*
-              foo/baz.py
+              u'foo/baz.py'
             lineno*
               1
         type*
-          ValueError
+          u'ValueError'
         value (stacktrace and type take precedence)
-          hello world
+          u'hello world'

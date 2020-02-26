@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:45.373309Z'
+created: '2019-11-01T10:02:43.404327Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,11 +10,11 @@ app:
       stacktrace
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            foo.py
+            u'foo.py'
           function*
-            test
+            u'test'
           context-line (discarded because from URL origin)
-            hello world
+            u'hello world'
 --------------------------------------------------------------------------
 system:
   hash: '098f6bcd4621d373cade4e832627b4f6'
@@ -23,8 +23,8 @@ system:
       stacktrace*
         frame*
           filename (ignored because frame points to a URL)
-            foo.py
+            u'foo.py'
           function*
-            test
+            u'test'
           context-line (discarded because from URL origin)
-            hello world
+            u'hello world'

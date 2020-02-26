@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:36.405929Z'
+created: '2019-09-03T07:26:06.405461Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,456 +11,456 @@ app:
         stacktrace (less than 10% of frames are in-app)
           frame*
             filename*
-              /server.php
+              u'/server.php'
             context-line*
-              require_once __DIR__.'/public/index.php';
+              u"require_once __DIR__.'/public/index.php';"
             lineno (line number is not used if context-line is available)
               21
           frame*
             filename*
-              /public/index.php
+              u'/public/index.php'
             context-line*
-                  $request = Illuminate\Http\Request::capture()
+              u'    $request = Illuminate\\Http\\Request::capture()'
             function (function name is not used if context-line is available)
-              require_once
+              u'require_once'
             lineno (line number is not used if context-line is available)
               55
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php'
             context-line*
-                          $response = $this->sendRequestThroughRouter($request);
+              u'            $response = $this->sendRequestThroughRouter($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Kernel::handle
+              u'Illuminate\\Foundation\\Http\\Kernel::handle'
             lineno (line number is not used if context-line is available)
               116
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php'
             context-line*
-                                  ->then($this->dispatchToRouter());
+              u'                    ->then($this->dispatchToRouter());'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Kernel::sendRequestThroughRouter
+              u'Illuminate\\Foundation\\Http\\Kernel::sendRequestThroughRouter'
             lineno (line number is not used if context-line is available)
               151
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                      return $pipeline($this->passable);
+              u'        return $pipeline($this->passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::then
+              u'Illuminate\\Pipeline\\Pipeline::then'
             lineno (line number is not used if context-line is available)
               104
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/CheckForMaintenanceMode.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/CheckForMaintenanceMode.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::handle
+              u'Illuminate\\Foundation\\Http\\Middleware\\CheckForMaintenanceMode::handle'
             lineno (line number is not used if context-line is available)
               62
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Middleware\ValidatePostSize::handle
+              u'Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize::handle'
             lineno (line number is not used if context-line is available)
               27
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Middleware\TransformsRequest::handle
+              u'Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle'
             lineno (line number is not used if context-line is available)
               21
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Middleware\TransformsRequest::handle
+              u'Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle'
             lineno (line number is not used if context-line is available)
               21
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame (non app frame)
             filename*
-              /vendor/fideloper/proxy/src/TrustProxies.php
+              u'/vendor/fideloper/proxy/src/TrustProxies.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Fideloper\Proxy\TrustProxies::handle
+              u'Fideloper\\Proxy\\TrustProxies::handle'
             lineno (line number is not used if context-line is available)
               57
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                              return $destination($passable);
+              u'                return $destination($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               30
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php'
             context-line*
-                          return $this->router->dispatch($request);
+              u'            return $this->router->dispatch($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Kernel::Illuminate\Foundation\Http\{closure}
+              u'Illuminate\\Foundation\\Http\\Kernel::Illuminate\\Foundation\\Http\\{closure}'
             lineno (line number is not used if context-line is available)
               176
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Router.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Router.php'
             context-line*
-                      return $this->dispatchToRoute($request);
+              u'        return $this->dispatchToRoute($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Router::dispatch
+              u'Illuminate\\Routing\\Router::dispatch'
             lineno (line number is not used if context-line is available)
               612
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Router.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Router.php'
             context-line*
-                      return $this->runRoute($request, $this->findRoute($request));
+              u'        return $this->runRoute($request, $this->findRoute($request));'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Router::dispatchToRoute
+              u'Illuminate\\Routing\\Router::dispatchToRoute'
             lineno (line number is not used if context-line is available)
               623
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Router.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Router.php'
             context-line*
-                          $this->runRouteWithinStack($route, $request)
+              u'            $this->runRouteWithinStack($route, $request)'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Router::runRoute
+              u'Illuminate\\Routing\\Router::runRoute'
             lineno (line number is not used if context-line is available)
               657
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Router.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Router.php'
             context-line*
-                                      });
+              u'                        });'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Router::runRouteWithinStack
+              u'Illuminate\\Routing\\Router::runRouteWithinStack'
             lineno (line number is not used if context-line is available)
               682
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                      return $pipeline($this->passable);
+              u'        return $pipeline($this->passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::then
+              u'Illuminate\\Pipeline\\Pipeline::then'
             lineno (line number is not used if context-line is available)
               104
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php
+              u'/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php'
             context-line*
-                      return $this->encrypt($next($this->decrypt($request)));
+              u'        return $this->encrypt($next($this->decrypt($request)));'
             function (function name is not used if context-line is available)
-              Illuminate\Cookie\Middleware\EncryptCookies::handle
+              u'Illuminate\\Cookie\\Middleware\\EncryptCookies::handle'
             lineno (line number is not used if context-line is available)
               66
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php
+              u'/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php'
             context-line*
-                      $response = $next($request);
+              u'        $response = $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::handle
+              u'Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse::handle'
             lineno (line number is not used if context-line is available)
               37
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php
+              u'/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php'
             context-line*
-                          $response = $next($request), $session
+              u'            $response = $next($request), $session'
             function (function name is not used if context-line is available)
-              Illuminate\Session\Middleware\StartSession::handle
+              u'Illuminate\\Session\\Middleware\\StartSession::handle'
             lineno (line number is not used if context-line is available)
               59
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php
+              u'/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\View\Middleware\ShareErrorsFromSession::handle
+              u'Illuminate\\View\\Middleware\\ShareErrorsFromSession::handle'
             lineno (line number is not used if context-line is available)
               49
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php'
             context-line*
-                          return tap($next($request), function ($response) use ($request) {
+              u'            return tap($next($request), function ($response) use ($request) {'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::handle
+              u'Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::handle'
             lineno (line number is not used if context-line is available)
               75
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Middleware\SubstituteBindings::handle
+              u'Illuminate\\Routing\\Middleware\\SubstituteBindings::handle'
             lineno (line number is not used if context-line is available)
               41
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                              return $destination($passable);
+              u'                return $destination($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               30
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Router.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Router.php'
             context-line*
-                                              $request, $route->run()
+              u'                                $request, $route->run()'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Router::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Router::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               680
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Route.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Route.php'
             context-line*
-                          return $this->runCallable();
+              u'            return $this->runCallable();'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Route::run
+              u'Illuminate\\Routing\\Route::run'
             lineno (line number is not used if context-line is available)
               179
           frame (non app frame)
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Route.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Route.php'
             context-line*
-                          $this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])
+              u"            $this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])"
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Route::runCallable
+              u'Illuminate\\Routing\\Route::runCallable'
             lineno (line number is not used if context-line is available)
               205
           frame*
             filename*
-              /routes/web.php
+              u'/routes/web.php'
             context-line*
-                  throw new Exception('LARAVEL TEST');
+              u"    throw new Exception('LARAVEL TEST');"
             function (function name is not used if context-line is available)
-              Illuminate\Routing\RouteFileRegistrar::{closure}
+              u'Illuminate\\Routing\\RouteFileRegistrar::{closure}'
             lineno (line number is not used if context-line is available)
               22
         type*
-          Exception
+          u'Exception'
         value*
-          LARAVEL TEST
+          u'LARAVEL TEST'
 --------------------------------------------------------------------------
 system:
   hash: '89037a724fe48e9f6144c3a14e182b9c'
@@ -470,453 +470,453 @@ system:
         stacktrace*
           frame*
             filename*
-              /server.php
+              u'/server.php'
             context-line*
-              require_once __DIR__.'/public/index.php';
+              u"require_once __DIR__.'/public/index.php';"
             lineno (line number is not used if context-line is available)
               21
           frame*
             filename*
-              /public/index.php
+              u'/public/index.php'
             context-line*
-                  $request = Illuminate\Http\Request::capture()
+              u'    $request = Illuminate\\Http\\Request::capture()'
             function (function name is not used if context-line is available)
-              require_once
+              u'require_once'
             lineno (line number is not used if context-line is available)
               55
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php'
             context-line*
-                          $response = $this->sendRequestThroughRouter($request);
+              u'            $response = $this->sendRequestThroughRouter($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Kernel::handle
+              u'Illuminate\\Foundation\\Http\\Kernel::handle'
             lineno (line number is not used if context-line is available)
               116
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php'
             context-line*
-                                  ->then($this->dispatchToRouter());
+              u'                    ->then($this->dispatchToRouter());'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Kernel::sendRequestThroughRouter
+              u'Illuminate\\Foundation\\Http\\Kernel::sendRequestThroughRouter'
             lineno (line number is not used if context-line is available)
               151
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                      return $pipeline($this->passable);
+              u'        return $pipeline($this->passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::then
+              u'Illuminate\\Pipeline\\Pipeline::then'
             lineno (line number is not used if context-line is available)
               104
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/CheckForMaintenanceMode.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/CheckForMaintenanceMode.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::handle
+              u'Illuminate\\Foundation\\Http\\Middleware\\CheckForMaintenanceMode::handle'
             lineno (line number is not used if context-line is available)
               62
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Middleware\ValidatePostSize::handle
+              u'Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize::handle'
             lineno (line number is not used if context-line is available)
               27
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Middleware\TransformsRequest::handle
+              u'Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle'
             lineno (line number is not used if context-line is available)
               21
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Middleware\TransformsRequest::handle
+              u'Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle'
             lineno (line number is not used if context-line is available)
               21
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame*
             filename*
-              /vendor/fideloper/proxy/src/TrustProxies.php
+              u'/vendor/fideloper/proxy/src/TrustProxies.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Fideloper\Proxy\TrustProxies::handle
+              u'Fideloper\\Proxy\\TrustProxies::handle'
             lineno (line number is not used if context-line is available)
               57
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                              return $destination($passable);
+              u'                return $destination($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               30
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php'
             context-line*
-                          return $this->router->dispatch($request);
+              u'            return $this->router->dispatch($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Kernel::Illuminate\Foundation\Http\{closure}
+              u'Illuminate\\Foundation\\Http\\Kernel::Illuminate\\Foundation\\Http\\{closure}'
             lineno (line number is not used if context-line is available)
               176
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Router.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Router.php'
             context-line*
-                      return $this->dispatchToRoute($request);
+              u'        return $this->dispatchToRoute($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Router::dispatch
+              u'Illuminate\\Routing\\Router::dispatch'
             lineno (line number is not used if context-line is available)
               612
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Router.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Router.php'
             context-line*
-                      return $this->runRoute($request, $this->findRoute($request));
+              u'        return $this->runRoute($request, $this->findRoute($request));'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Router::dispatchToRoute
+              u'Illuminate\\Routing\\Router::dispatchToRoute'
             lineno (line number is not used if context-line is available)
               623
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Router.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Router.php'
             context-line*
-                          $this->runRouteWithinStack($route, $request)
+              u'            $this->runRouteWithinStack($route, $request)'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Router::runRoute
+              u'Illuminate\\Routing\\Router::runRoute'
             lineno (line number is not used if context-line is available)
               657
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Router.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Router.php'
             context-line*
-                                      });
+              u'                        });'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Router::runRouteWithinStack
+              u'Illuminate\\Routing\\Router::runRouteWithinStack'
             lineno (line number is not used if context-line is available)
               682
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                      return $pipeline($this->passable);
+              u'        return $pipeline($this->passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::then
+              u'Illuminate\\Pipeline\\Pipeline::then'
             lineno (line number is not used if context-line is available)
               104
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php
+              u'/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php'
             context-line*
-                      return $this->encrypt($next($this->decrypt($request)));
+              u'        return $this->encrypt($next($this->decrypt($request)));'
             function (function name is not used if context-line is available)
-              Illuminate\Cookie\Middleware\EncryptCookies::handle
+              u'Illuminate\\Cookie\\Middleware\\EncryptCookies::handle'
             lineno (line number is not used if context-line is available)
               66
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php
+              u'/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php'
             context-line*
-                      $response = $next($request);
+              u'        $response = $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::handle
+              u'Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse::handle'
             lineno (line number is not used if context-line is available)
               37
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php
+              u'/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php'
             context-line*
-                          $response = $next($request), $session
+              u'            $response = $next($request), $session'
             function (function name is not used if context-line is available)
-              Illuminate\Session\Middleware\StartSession::handle
+              u'Illuminate\\Session\\Middleware\\StartSession::handle'
             lineno (line number is not used if context-line is available)
               59
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php
+              u'/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\View\Middleware\ShareErrorsFromSession::handle
+              u'Illuminate\\View\\Middleware\\ShareErrorsFromSession::handle'
             lineno (line number is not used if context-line is available)
               49
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php
+              u'/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php'
             context-line*
-                          return tap($next($request), function ($response) use ($request) {
+              u'            return tap($next($request), function ($response) use ($request) {'
             function (function name is not used if context-line is available)
-              Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::handle
+              u'Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::handle'
             lineno (line number is not used if context-line is available)
               75
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                                  return $callable($passable);
+              u'                    return $callable($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               53
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php'
             context-line*
-                                              ? $pipe->{$this->method}(...$parameters)
+              u'                                ? $pipe->{$this->method}(...$parameters)'
             function (function name is not used if context-line is available)
-              Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}
+              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
             lineno (line number is not used if context-line is available)
               163
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php'
             context-line*
-                      return $next($request);
+              u'        return $next($request);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Middleware\SubstituteBindings::handle
+              u'Illuminate\\Routing\\Middleware\\SubstituteBindings::handle'
             lineno (line number is not used if context-line is available)
               41
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Pipeline.php'
             context-line*
-                              return $destination($passable);
+              u'                return $destination($passable);'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Pipeline::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               30
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Router.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Router.php'
             context-line*
-                                              $request, $route->run()
+              u'                                $request, $route->run()'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Router::Illuminate\Routing\{closure}
+              u'Illuminate\\Routing\\Router::Illuminate\\Routing\\{closure}'
             lineno (line number is not used if context-line is available)
               680
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Route.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Route.php'
             context-line*
-                          return $this->runCallable();
+              u'            return $this->runCallable();'
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Route::run
+              u'Illuminate\\Routing\\Route::run'
             lineno (line number is not used if context-line is available)
               179
           frame*
             filename*
-              /vendor/laravel/framework/src/Illuminate/Routing/Route.php
+              u'/vendor/laravel/framework/src/Illuminate/Routing/Route.php'
             context-line*
-                          $this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])
+              u"            $this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])"
             function (function name is not used if context-line is available)
-              Illuminate\Routing\Route::runCallable
+              u'Illuminate\\Routing\\Route::runCallable'
             lineno (line number is not used if context-line is available)
               205
           frame*
             filename*
-              /routes/web.php
+              u'/routes/web.php'
             context-line*
-                  throw new Exception('LARAVEL TEST');
+              u"    throw new Exception('LARAVEL TEST');"
             function (function name is not used if context-line is available)
-              Illuminate\Routing\RouteFileRegistrar::{closure}
+              u'Illuminate\\Routing\\RouteFileRegistrar::{closure}'
             lineno (line number is not used if context-line is available)
               22
         type*
-          Exception
+          u'Exception'
         value (stacktrace and type take precedence)
-          LARAVEL TEST
+          u'LARAVEL TEST'

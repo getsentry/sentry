@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:42.952685Z'
+created: '2019-04-17T20:02:28.418294Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,9 +10,9 @@ app:
       stacktrace
         frame (non app frame)
           module*
-            foo.bar.Baz
+            u'foo.bar.Baz'
           function (ignored lambda function)
-            lambda$work$1
+            u'lambda$work$1'
 --------------------------------------------------------------------------
 system:
   hash: 'be7f1b8b4014de623c533a8218dba5bd'
@@ -21,6 +21,6 @@ system:
       stacktrace*
         frame*
           module*
-            foo.bar.Baz
+            u'foo.bar.Baz'
           function (ignored lambda function)
-            lambda$work$1
+            u'lambda$work$1'

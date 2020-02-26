@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:39.710993Z'
+created: '2019-04-03T22:37:15.506746Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,9 +11,9 @@ app:
         stacktrace*
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              foo/baz.c
+              u'foo/baz.c'
             function*
-              main
+              u'main'
             lineno (function takes precedence)
               1
 --------------------------------------------------------------------------
@@ -25,8 +25,8 @@ system:
         stacktrace*
           frame*
             filename*
-              foo/baz.c
+              u'foo/baz.c'
             function*
-              main
+              u'main'
             lineno (function takes precedence)
               1

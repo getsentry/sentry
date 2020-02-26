@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:41.773472Z'
+created: '2019-03-15T11:58:33.361642Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,10 +10,10 @@ app:
       stacktrace*
         frame*
           filename*
-            foo.py
+            u'foo.py'
         frame (non app frame)
           filename*
-            bar.py
+            u'bar.py'
 --------------------------------------------------------------------------
 system:
   hash: '659ad79e2e70c822d30a53d7d889529e'
@@ -22,7 +22,7 @@ system:
       stacktrace*
         frame*
           filename*
-            foo.py
+            u'foo.py'
         frame*
           filename*
-            bar.py
+            u'bar.py'

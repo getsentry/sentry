@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:41.596979Z'
+created: '2019-04-27T19:27:06.288229Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,26 +11,26 @@ app:
         stacktrace
           frame (non app frame)
             filename*
-              main.cpp
+              u'main.cpp'
             function*
-              main
+              u'main'
           frame (non app frame)
             filename*
-              main.cpp
+              u'main.cpp'
             function* (isolated function)
-              (anonymous namespace)::start
+              u'(anonymous namespace)::start'
           frame (non app frame)
             filename*
-              main.cpp
+              u'main.cpp'
             function* (isolated function)
-              (anonymous namespace)::crash
+              u'(anonymous namespace)::crash'
           frame (non app frame)
             filename*
-              main.cpp
+              u'main.cpp'
             function* (isolated function)
-              (anonymous namespace)::something::nested::Foo
+              u'(anonymous namespace)::something::nested::Foo'
         type (ignored because exception is synthetic)
-          EXC_BAD_ACCESS / KERN_INVALID_ADDRESS
+          u'EXC_BAD_ACCESS / KERN_INVALID_ADDRESS'
       threads (thread has no stacktrace)
 --------------------------------------------------------------------------
 system:
@@ -41,24 +41,24 @@ system:
         stacktrace*
           frame*
             filename*
-              main.cpp
+              u'main.cpp'
             function*
-              main
+              u'main'
           frame*
             filename*
-              main.cpp
+              u'main.cpp'
             function* (isolated function)
-              (anonymous namespace)::start
+              u'(anonymous namespace)::start'
           frame*
             filename*
-              main.cpp
+              u'main.cpp'
             function* (isolated function)
-              (anonymous namespace)::crash
+              u'(anonymous namespace)::crash'
           frame*
             filename*
-              main.cpp
+              u'main.cpp'
             function* (isolated function)
-              (anonymous namespace)::something::nested::Foo
+              u'(anonymous namespace)::something::nested::Foo'
         type (ignored because exception is synthetic)
-          EXC_BAD_ACCESS / KERN_INVALID_ADDRESS
+          u'EXC_BAD_ACCESS / KERN_INVALID_ADDRESS'
       threads (thread has no stacktrace)

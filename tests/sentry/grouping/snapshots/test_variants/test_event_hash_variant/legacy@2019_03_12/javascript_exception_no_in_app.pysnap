@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:38.610732Z'
+created: '2019-03-14T17:12:37.362234Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,92 +11,92 @@ app:
         stacktrace*
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              dispatchInteractiveEvent
+              u'dispatchInteractiveEvent'
             lineno (function takes precedence)
               4913
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              interactiveUpdates
+              u'interactiveUpdates'
             lineno (function takes precedence)
               2208
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              interactiveUpdates$1
+              u'interactiveUpdates$1'
             lineno (function takes precedence)
               17557
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              performSyncWork
+              u'performSyncWork'
             lineno (function takes precedence)
               17266
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              performWork
+              u'performWork'
             lineno (function takes precedence)
               17294
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              performWorkOnRoot
+              u'performWorkOnRoot'
             lineno (function takes precedence)
               17386
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              renderRoot
+              u'renderRoot'
             lineno (function takes precedence)
               16547
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              replayUnitOfWork
+              u'replayUnitOfWork'
             lineno (function takes precedence)
               15744
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              invokeGuardedCallback
+              u'invokeGuardedCallback'
             lineno (function takes precedence)
               248
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              Object.invokeGuardedCallbackDev
+              u'Object.invokeGuardedCallbackDev'
             lineno (function takes precedence)
               195
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/@sentry/browser/dist/index.js
+              u'webpack-internal:///../../../../node_modules/@sentry/browser/dist/index.js'
             function*
-              HTMLUnknownElement.sentryWrapped
+              u'HTMLUnknownElement.sentryWrapped'
             lineno (function takes precedence)
               3197
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              HTMLUnknownElement.callCallback
+              u'HTMLUnknownElement.callCallback'
             lineno (function takes precedence)
               145
         type*
-          ReferenceError
+          u'ReferenceError'
         value (stacktrace and type take precedence)
-          varant is not defined
+          u'varant is not defined'
 --------------------------------------------------------------------------
 system:
   hash: '60443ca22b22a43806f4358109278791'
@@ -106,89 +106,89 @@ system:
         stacktrace*
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              dispatchInteractiveEvent
+              u'dispatchInteractiveEvent'
             lineno (function takes precedence)
               4913
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              interactiveUpdates
+              u'interactiveUpdates'
             lineno (function takes precedence)
               2208
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              interactiveUpdates$1
+              u'interactiveUpdates$1'
             lineno (function takes precedence)
               17557
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              performSyncWork
+              u'performSyncWork'
             lineno (function takes precedence)
               17266
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              performWork
+              u'performWork'
             lineno (function takes precedence)
               17294
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              performWorkOnRoot
+              u'performWorkOnRoot'
             lineno (function takes precedence)
               17386
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              renderRoot
+              u'renderRoot'
             lineno (function takes precedence)
               16547
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              replayUnitOfWork
+              u'replayUnitOfWork'
             lineno (function takes precedence)
               15744
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              invokeGuardedCallback
+              u'invokeGuardedCallback'
             lineno (function takes precedence)
               248
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              Object.invokeGuardedCallbackDev
+              u'Object.invokeGuardedCallbackDev'
             lineno (function takes precedence)
               195
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/@sentry/browser/dist/index.js
+              u'webpack-internal:///../../../../node_modules/@sentry/browser/dist/index.js'
             function*
-              HTMLUnknownElement.sentryWrapped
+              u'HTMLUnknownElement.sentryWrapped'
             lineno (function takes precedence)
               3197
           frame*
             filename*
-              webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js
+              u'webpack-internal:///../../../../node_modules/react-dom/cjs/react-dom.development.js'
             function*
-              HTMLUnknownElement.callCallback
+              u'HTMLUnknownElement.callCallback'
             lineno (function takes precedence)
               145
         type*
-          ReferenceError
+          u'ReferenceError'
         value (stacktrace and type take precedence)
-          varant is not defined
+          u'varant is not defined'

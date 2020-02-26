@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:45:46.969999Z'
+created: '2019-11-01T10:06:06.520539Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,17 +10,17 @@ app:
       stacktrace
         frame (non app frame)
           filename (anonymous filename discarded)
-            <anonymous>
+            u'<anonymous>'
         frame (non app frame)
           filename*
-            dojo.js
+            u'dojo.js'
           function*
-            c
+            u'c'
         frame (non app frame)
           filename*
-            dojo.js
+            u'dojo.js'
           function* (trimmed javascript function)
-            _createDocumentViewModel
+            u'_createDocumentViewModel'
 --------------------------------------------------------------------------
 system:
   hash: 'c5da56c71b31f34c5880d734cbc8f5bb'
@@ -29,14 +29,14 @@ system:
       stacktrace*
         frame (ignored low quality javascript frame)
           filename (anonymous filename discarded)
-            <anonymous>
+            u'<anonymous>'
         frame*
           filename*
-            dojo.js
+            u'dojo.js'
           function*
-            c
+            u'c'
         frame*
           filename*
-            dojo.js
+            u'dojo.js'
           function* (trimmed javascript function)
-            _createDocumentViewModel
+            u'_createDocumentViewModel'
