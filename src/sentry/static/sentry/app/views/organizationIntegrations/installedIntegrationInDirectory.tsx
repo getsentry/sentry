@@ -139,16 +139,7 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
               <IntegrationItem integration={integration} />
             </IntegrationItemBox>
             <div>
-              {/* {integration.status === 'disabled' && (
-                <AddIntegrationButton
-                  size="xsmall"
-                  priority="success"
-                  provider={provider}
-                  onAddIntegration={this.reinstallIntegration}
-                  reinstall
-                />
-              )} */}
-              {integration.status === 'active' && (
+              {
                 <Tooltip
                   disabled={this.hasConfiguration()}
                   position="left"
@@ -157,14 +148,18 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
                   <StyledButton
                     borderless
                     icon="icon-settings"
-                    disabled={!this.hasConfiguration() || !hasAccess}
+                    disabled={
+                      !this.hasConfiguration() ||
+                      !hasAccess ||
+                      integration.status !== 'active'
+                    }
                     to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                     data-test-id="integration-configure-button"
                   >
                     Configure
                   </StyledButton>
                 </Tooltip>
-              )}
+              }
             </div>
             <div>
               <Confirm
@@ -208,21 +203,18 @@ const IntegrationItemBox = styled('div')`
 const IntegrationStatus = styled((props: {status: ObjectStatus}) => {
   const {status, ...p} = props;
   const color = status === 'active' ? theme.success : theme.gray2;
-  const children = (
-    <div {...p}>
-      <CircleIndicator size={6} color={color} />
-      <IntegrationStatusText>{`${t(
-        status === 'active' ? 'enabled' : 'disabled'
-      )}`}</IntegrationStatusText>
-    </div>
-  );
-  return status === 'active' ? (
-    children
-  ) : (
+
+  return (
     <Tooltip
       title={t('This Integration has been disconnected from the external provider')}
+      disabled={status === 'active'}
     >
-      {children}
+      <div {...p}>
+        <CircleIndicator size={6} color={color} />
+        <IntegrationStatusText>{`${t(
+          status === 'active' ? 'enabled' : 'disabled'
+        )}`}</IntegrationStatusText>
+      </div>
     </Tooltip>
   );
 })`
