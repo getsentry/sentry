@@ -100,7 +100,7 @@ def _process_signal(msg):
     remote_addr = msg.get("remote_addr")
 
     if outcome == Outcome.ACCEPTED:
-        event_saved.send_robust(project=project, sender=OutcomesConsumerWorker)
+        event_saved.send_robust(ip=remote_addr, project=project, sender=OutcomesConsumerWorker)
     elif outcome == Outcome.FILTERED:
         event_filtered.send_robust(ip=remote_addr, project=project, sender=OutcomesConsumerWorker)
     elif outcome == Outcome.RATE_LIMITED:
