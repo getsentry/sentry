@@ -45,6 +45,9 @@ def assemble_download(data_export):
     except DataExportError as err:
         # TODO(Leander): Implement logging
         return data_export.email_failure(message=err)
+    except BaseException as err:
+        # TODO(Leander): Implement logging
+        return data_export.email_failure(message="Internal processing failure")
 
 
 def process_discover_v2(data_export, file):
