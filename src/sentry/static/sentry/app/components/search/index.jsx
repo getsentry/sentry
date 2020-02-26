@@ -146,6 +146,7 @@ class Search extends React.Component {
     const itemProps = {
       ...getItemProps({
         item,
+        index,
       }),
     };
 
