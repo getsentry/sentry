@@ -1,278 +1,278 @@
 ---
-created: '2020-02-26T00:57:18.978124Z'
+created: '2019-05-08T21:58:35.987471Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: 9a671640bcd8830976947f4975a79427
+  hash: '9a671640bcd8830976947f4975a79427'
   component:
     app*
       exception*
         stacktrace*
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask
+              u'usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask'
             filename (module takes precedence)
-              _microtask.js
+              u'_microtask.js'
             function*
-              M
+              u'M'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise
+              u'usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise'
             filename (module takes precedence)
-              es6.promise.js
+              u'es6.promise.js'
             function*
-              fn
+              u'fn'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise
+              u'usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise'
             filename (module takes precedence)
-              es6.promise.js
+              u'es6.promise.js'
             function*
-              run
+              u'run'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
+              u'usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator'
             filename (module takes precedence)
-              asynctogenerator.js
+              u'asynctogenerator.js'
             function*
-              _next
+              u'_next'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
+              u'usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator'
             filename (module takes precedence)
-              asynctogenerator.js
+              u'asynctogenerator.js'
             function*
-              asyncGeneratorStep
+              u'asyncGeneratorStep'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+              u'usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime'
             filename (module takes precedence)
-              runtime.js
+              u'runtime.js'
             function*
-              key
+              u'key'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+              u'usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime'
             filename (module takes precedence)
-              runtime.js
+              u'runtime.js'
             function*
-              this
+              u'this'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+              u'usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime'
             filename (module takes precedence)
-              runtime.js
+              u'runtime.js'
             function*
-              tryCatch
+              u'tryCatch'
           frame*
             module*
-              app/components/lazyLoad
+              u'app/components/lazyLoad'
             filename (module takes precedence)
-              lazyload.jsx
+              u'lazyload.jsx'
             function*
-              fn
+              u'fn'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production
+              u'usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production'
             filename (module takes precedence)
-              react.production.min.js
+              u'react.production.min.js'
             function*
-              this
+              u'this'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
             filename (module takes precedence)
-              react-dom.production.min.js
+              u'react-dom.production.min.js'
             function*
-              this
+              u'this'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
             filename (module takes precedence)
-              react-dom.production.min.js
+              u'react-dom.production.min.js'
             function*
-              If
+              u'If'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
             filename (module takes precedence)
-              react-dom.production.min.js
+              u'react-dom.production.min.js'
             function*
-              Yg
+              u'Yg'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
             filename (module takes precedence)
-              react-dom.production.min.js
+              u'react-dom.production.min.js'
             function*
-              Xg
+              u'Xg'
           frame (non app frame)
             module*
-              usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
             filename (module takes precedence)
-              react-dom.production.min.js
+              u'react-dom.production.min.js'
             function*
-              rh
+              u'rh'
           frame*
             module*
-              app/views/groupDetails/shared/groupEventDetails
+              u'app/views/groupDetails/shared/groupEventDetails'
             filename (module takes precedence)
-              groupeventdetails.jsx
+              u'groupeventdetails.jsx'
             function*
-              X
+              u'X'
           frame*
             module*
-              app/views/groupDetails/shared/groupEventDetails
+              u'app/views/groupDetails/shared/groupEventDetails'
             filename (module takes precedence)
-              groupeventdetails.jsx
+              u'groupeventdetails.jsx'
             function*
-              this
+              u'this'
           frame*
             module*
-              app/api
+              u'app/api'
             filename (module takes precedence)
-              api.jsx
+              u'api.jsx'
             function*
-              fetchGroupEventAndMarkSeen
+              u'fetchGroupEventAndMarkSeen'
         type*
-          NotFoundError
+          u'NotFoundError'
         value (ignored because stacktrace takes precedence)
-          GET /issues/<int>/events/latest/ <int>
+          u'GET /issues/<int>/events/latest/ <int>'
 --------------------------------------------------------------------------
 system:
-  hash: 272b303fa2cd65124456c87f30cdf3d5
+  hash: '272b303fa2cd65124456c87f30cdf3d5'
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask
+              u'usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask'
             filename (module takes precedence)
-              _microtask.js
+              u'_microtask.js'
             function*
-              M
+              u'M'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise
+              u'usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise'
             filename (module takes precedence)
-              es6.promise.js
+              u'es6.promise.js'
             function*
-              fn
+              u'fn'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise
+              u'usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise'
             filename (module takes precedence)
-              es6.promise.js
+              u'es6.promise.js'
             function*
-              run
+              u'run'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
+              u'usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator'
             filename (module takes precedence)
-              asynctogenerator.js
+              u'asynctogenerator.js'
             function*
-              _next
+              u'_next'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
+              u'usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator'
             filename (module takes precedence)
-              asynctogenerator.js
+              u'asynctogenerator.js'
             function*
-              asyncGeneratorStep
+              u'asyncGeneratorStep'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+              u'usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime'
             filename (module takes precedence)
-              runtime.js
+              u'runtime.js'
             function*
-              key
+              u'key'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+              u'usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime'
             filename (module takes precedence)
-              runtime.js
+              u'runtime.js'
             function*
-              this
+              u'this'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+              u'usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime'
             filename (module takes precedence)
-              runtime.js
+              u'runtime.js'
             function*
-              tryCatch
+              u'tryCatch'
           frame*
             module*
-              app/components/lazyLoad
+              u'app/components/lazyLoad'
             filename (module takes precedence)
-              lazyload.jsx
+              u'lazyload.jsx'
             function*
-              fn
+              u'fn'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production
+              u'usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production'
             filename (module takes precedence)
-              react.production.min.js
+              u'react.production.min.js'
             function*
-              this
+              u'this'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
             filename (module takes precedence)
-              react-dom.production.min.js
+              u'react-dom.production.min.js'
             function*
-              this
+              u'this'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
             filename (module takes precedence)
-              react-dom.production.min.js
+              u'react-dom.production.min.js'
             function*
-              If
+              u'If'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
             filename (module takes precedence)
-              react-dom.production.min.js
+              u'react-dom.production.min.js'
             function*
-              Yg
+              u'Yg'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
             filename (module takes precedence)
-              react-dom.production.min.js
+              u'react-dom.production.min.js'
             function*
-              Xg
+              u'Xg'
           frame*
             module*
-              usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+              u'usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production'
             filename (module takes precedence)
-              react-dom.production.min.js
+              u'react-dom.production.min.js'
             function*
-              rh
+              u'rh'
           frame*
             module*
-              app/views/groupDetails/shared/groupEventDetails
+              u'app/views/groupDetails/shared/groupEventDetails'
             filename (module takes precedence)
-              groupeventdetails.jsx
+              u'groupeventdetails.jsx'
             function*
-              X
+              u'X'
           frame*
             module*
-              app/views/groupDetails/shared/groupEventDetails
+              u'app/views/groupDetails/shared/groupEventDetails'
             filename (module takes precedence)
-              groupeventdetails.jsx
+              u'groupeventdetails.jsx'
             function*
-              this
+              u'this'
           frame*
             module*
-              app/api
+              u'app/api'
             filename (module takes precedence)
-              api.jsx
+              u'api.jsx'
             function*
-              fetchGroupEventAndMarkSeen
+              u'fetchGroupEventAndMarkSeen'
         type*
-          NotFoundError
+          u'NotFoundError'
         value (ignored because stacktrace takes precedence)
-          GET /issues/<int>/events/latest/ <int>
+          u'GET /issues/<int>/events/latest/ <int>'

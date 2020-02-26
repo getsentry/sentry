@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:09.851473Z'
+created: '2019-05-21T19:16:08.166809Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,27 +10,27 @@ app:
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           module* (removed reflection marker)
-            sun.reflect.GeneratedMethodAccessor
+            'sun.reflect.GeneratedMethodAccessor'
           function*
-            invoke
+            u'invoke'
         frame* (frame considered in-app because no frame is in-app)
           module* (removed reflection marker)
-            jdk.internal.reflect.GeneratedMethodAccessor
+            'jdk.internal.reflect.GeneratedMethodAccessor'
           function*
-            invoke
+            u'invoke'
 --------------------------------------------------------------------------
 system:
-  hash: 9bc326575875422d0d4ced3c35d9f916
+  hash: '9bc326575875422d0d4ced3c35d9f916'
   component:
     system*
       stacktrace*
         frame*
           module* (removed reflection marker)
-            sun.reflect.GeneratedMethodAccessor
+            'sun.reflect.GeneratedMethodAccessor'
           function*
-            invoke
+            u'invoke'
         frame*
           module* (removed reflection marker)
-            jdk.internal.reflect.GeneratedMethodAccessor
+            'jdk.internal.reflect.GeneratedMethodAccessor'
           function*
-            invoke
+            u'invoke'

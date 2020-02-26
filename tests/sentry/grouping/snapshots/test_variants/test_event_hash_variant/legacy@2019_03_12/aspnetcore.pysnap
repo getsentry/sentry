@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:11.917333Z'
+created: '2019-09-03T07:26:07.106321Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,463 +11,463 @@ app:
         stacktrace (less than 10% of frames are in-app)
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware
+              u'Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              Invoke
+              u'Invoke'
           frame (non app frame)
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware
+              u'Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              Invoke
+              u'Invoke'
           frame (non app frame)
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Routing.EndpointMiddleware
+              u'Microsoft.AspNetCore.Routing.EndpointMiddleware'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              Invoke
+              u'Invoke'
           frame (non app frame)
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeAsync
+              u'InvokeAsync'
           frame (non app frame)
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeFilterPipelineAsync
+              u'InvokeFilterPipelineAsync'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
-              System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)
+              u'System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)'
             function (function name is not used if context-line is available)
-              Next
+              u'Next'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
-              Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ResourceExecutedContext)
+              u'Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ResourceExecutedContext)'
             function (function name is not used if context-line is available)
-              Rethrow
+              u'Rethrow'
           frame (non app frame)
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeNextResourceFilter
+              u'InvokeNextResourceFilter'
           frame (non app frame)
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeInnerFilterAsync
+              u'InvokeInnerFilterAsync'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
-              System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)
+              u'System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)'
             function (function name is not used if context-line is available)
-              Next
+              u'Next'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
-              Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ActionExecutedContext)
+              u'Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ActionExecutedContext)'
             function (function name is not used if context-line is available)
-              Rethrow
+              u'Rethrow'
           frame (non app frame)
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeNextActionFilterAsync
+              u'InvokeNextActionFilterAsync'
           frame (non app frame)
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame (non app frame)
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeActionMethodAsync
+              u'InvokeActionMethodAsync'
           frame (non app frame)
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor
+              u'Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor'
             context-line (discarded because line too long)
             function*
-              Execute
+              u'Execute'
           frame (non app frame)
             module*
-              Microsoft.Extensions.Internal.ObjectMethodExecutor
+              u'Microsoft.Extensions.Internal.ObjectMethodExecutor'
             context-line*
-              System.Object Execute(System.Object, System.Object[])
+              u'System.Object Execute(System.Object, System.Object[])'
             function (function name is not used if context-line is available)
-              Execute
+              u'Execute'
           frame*
             module*
-              (unknown)
+              u'(unknown)'
             context-line*
-              System.Object lambda_method(System.Runtime.CompilerServices.Closure, System.Object, System.Object[])
+              u'System.Object lambda_method(System.Runtime.CompilerServices.Closure, System.Object, System.Object[])'
             function (function name is not used if context-line is available)
-              lambda_method
+              u'lambda_method'
           frame*
             module*
-              SentryTest2.Controllers.ValuesController
+              u'SentryTest2.Controllers.ValuesController'
             filename (module takes precedence)
-              C:\Users\dvora\source\repos\SentryTest2\SentryTest2\Controllers\ValuesController.cs
+              u'C:\\Users\\dvora\\source\\repos\\SentryTest2\\SentryTest2\\Controllers\\ValuesController.cs'
             context-line*
-              Microsoft.AspNetCore.Mvc.ActionResult`1[System.String] Get(Int32)
+              u'Microsoft.AspNetCore.Mvc.ActionResult`1[System.String] Get(Int32)'
             function (function name is not used if context-line is available)
-              Get
+              u'Get'
             lineno (line number is not used if context-line is available)
               27
         type*
-          System.Exception
+          u'System.Exception'
         value*
-          sync exception
+          u'sync exception'
 --------------------------------------------------------------------------
 default:
   hash: None
   component:
     default (exception of system takes precedence)
       message (exception of system takes precedence)
-        An unhandled exception has occurred while executing the request.
+        u'An unhandled exception has occurred while executing the request.'
 --------------------------------------------------------------------------
 system:
-  hash: 13dfa104801704079b63004347f8fae6
+  hash: '13dfa104801704079b63004347f8fae6'
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware
+              u'Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              Invoke
+              u'Invoke'
           frame*
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame*
             module*
-              Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware
+              u'Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              Invoke
+              u'Invoke'
           frame*
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame*
             module*
-              Microsoft.AspNetCore.Routing.EndpointMiddleware
+              u'Microsoft.AspNetCore.Routing.EndpointMiddleware'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              Invoke
+              u'Invoke'
           frame*
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame*
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeAsync
+              u'InvokeAsync'
           frame*
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame*
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeFilterPipelineAsync
+              u'InvokeFilterPipelineAsync'
           frame*
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
-              System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)
+              u'System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)'
             function (function name is not used if context-line is available)
-              Next
+              u'Next'
           frame*
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
-              Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ResourceExecutedContext)
+              u'Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ResourceExecutedContext)'
             function (function name is not used if context-line is available)
-              Rethrow
+              u'Rethrow'
           frame*
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame*
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeNextResourceFilter
+              u'InvokeNextResourceFilter'
           frame*
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame*
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeInnerFilterAsync
+              u'InvokeInnerFilterAsync'
           frame*
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
-              System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)
+              u'System.Threading.Tasks.Task Next(State ByRef, Scope ByRef, System.Object ByRef, Boolean ByRef)'
             function (function name is not used if context-line is available)
-              Next
+              u'Next'
           frame*
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
-              Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ActionExecutedContext)
+              u'Void Rethrow(Microsoft.AspNetCore.Mvc.Filters.ActionExecutedContext)'
             function (function name is not used if context-line is available)
-              Rethrow
+              u'Rethrow'
           frame*
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame*
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeNextActionFilterAsync
+              u'InvokeNextActionFilterAsync'
           frame*
             module*
-              System.Runtime.CompilerServices.TaskAwaiter
+              u'System.Runtime.CompilerServices.TaskAwaiter'
             context-line*
-              Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)
+              u'Void HandleNonSuccessAndDebuggerNotification(System.Threading.Tasks.Task)'
             function (function name is not used if context-line is available)
-              HandleNonSuccessAndDebuggerNotification
+              u'HandleNonSuccessAndDebuggerNotification'
           frame*
             module*
-              System.Runtime.ExceptionServices.ExceptionDispatchInfo
+              u'System.Runtime.ExceptionServices.ExceptionDispatchInfo'
             context-line*
-              Void Throw()
+              u'Void Throw()'
             function (function name is not used if context-line is available)
-              Throw
+              u'Throw'
           frame*
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+              u'Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker'
             context-line*
-              Void MoveNext()
+              u'Void MoveNext()'
             function (function name is not used if context-line is available)
-              InvokeActionMethodAsync
+              u'InvokeActionMethodAsync'
           frame*
             module*
-              Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor
+              u'Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor'
             context-line (discarded because line too long)
             function*
-              Execute
+              u'Execute'
           frame*
             module*
-              Microsoft.Extensions.Internal.ObjectMethodExecutor
+              u'Microsoft.Extensions.Internal.ObjectMethodExecutor'
             context-line*
-              System.Object Execute(System.Object, System.Object[])
+              u'System.Object Execute(System.Object, System.Object[])'
             function (function name is not used if context-line is available)
-              Execute
+              u'Execute'
           frame*
             module*
-              (unknown)
+              u'(unknown)'
             context-line*
-              System.Object lambda_method(System.Runtime.CompilerServices.Closure, System.Object, System.Object[])
+              u'System.Object lambda_method(System.Runtime.CompilerServices.Closure, System.Object, System.Object[])'
             function (function name is not used if context-line is available)
-              lambda_method
+              u'lambda_method'
           frame*
             module*
-              SentryTest2.Controllers.ValuesController
+              u'SentryTest2.Controllers.ValuesController'
             filename (module takes precedence)
-              C:\Users\dvora\source\repos\SentryTest2\SentryTest2\Controllers\ValuesController.cs
+              u'C:\\Users\\dvora\\source\\repos\\SentryTest2\\SentryTest2\\Controllers\\ValuesController.cs'
             context-line*
-              Microsoft.AspNetCore.Mvc.ActionResult`1[System.String] Get(Int32)
+              u'Microsoft.AspNetCore.Mvc.ActionResult`1[System.String] Get(Int32)'
             function (function name is not used if context-line is available)
-              Get
+              u'Get'
             lineno (line number is not used if context-line is available)
               27
         type*
-          System.Exception
+          u'System.Exception'
         value (stacktrace and type take precedence)
-          sync exception
+          u'sync exception'

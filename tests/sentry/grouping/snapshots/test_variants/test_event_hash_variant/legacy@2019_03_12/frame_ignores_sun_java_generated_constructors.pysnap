@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:12.476025Z'
+created: '2019-03-14T17:12:37.179744Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,17 +10,17 @@ app:
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           module* (removed codegen marker)
-            sun.reflect.GeneratedSerializationConstructorAccessor<auto>
+            u'sun.reflect.GeneratedSerializationConstructorAccessor<auto>'
           function*
-            invoke
+            u'invoke'
 --------------------------------------------------------------------------
 system:
-  hash: 07d1a8e5728b3c4c7aa8b8273fd0e753
+  hash: '07d1a8e5728b3c4c7aa8b8273fd0e753'
   component:
     system*
       stacktrace*
         frame*
           module* (removed codegen marker)
-            sun.reflect.GeneratedSerializationConstructorAccessor<auto>
+            u'sun.reflect.GeneratedSerializationConstructorAccessor<auto>'
           function*
-            invoke
+            u'invoke'

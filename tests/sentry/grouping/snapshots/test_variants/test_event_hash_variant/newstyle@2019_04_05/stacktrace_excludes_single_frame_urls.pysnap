@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:17.129463Z'
+created: '2019-03-16T15:38:21.182114Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,16 +10,17 @@ app:
       stacktrace
         frame (non app frame)
           module*
-            <unknown module>
+            u'<unknown module>'
           filename (ignored because frame points to a URL)
-            
+            u''
 --------------------------------------------------------------------------
 system:
-  hash: cd2a9fd0cdaa8cd55ed22b101fc65882
+  hash: 'cd2a9fd0cdaa8cd55ed22b101fc65882'
   component:
     system*
       stacktrace*
         frame*
           module*
-            <unknown module>
+            u'<unknown module>'
           filename (ignored because frame points to a URL)
+            u''

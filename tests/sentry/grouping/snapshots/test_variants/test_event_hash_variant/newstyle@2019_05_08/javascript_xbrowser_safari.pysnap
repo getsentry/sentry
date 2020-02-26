@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:22.426393Z'
+created: '2019-11-01T10:06:05.997494Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,118 +11,118 @@ app:
         stacktrace
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              testMethod
+              u'testMethod'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
           frame (non app frame)
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              eval
+              u'eval'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              test
+              u'test'
           frame (non app frame)
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              map
+              u'map'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              callback
+              u'callback'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              callAnotherThing
+              u'callAnotherThing'
           frame (non app frame)
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              aha
+              u'aha'
           frame (non app frame)
             filename*
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
         type*
-          Error
+          u'Error'
         value*
-          bad
+          u'bad'
 --------------------------------------------------------------------------
 system:
-  hash: c63e8727af1a8fe75872b6a762797113
+  hash: 'c63e8727af1a8fe75872b6a762797113'
   component:
     system*
       exception*
         stacktrace*
           frame*
             filename*
-              test.html
+              u'test.html'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              testMethod
+              u'testMethod'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
           frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              eval
+              u'eval'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              test
+              u'test'
           frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              map
+              u'map'
           frame*
             filename*
-              test.html
+              u'test.html'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              callback
+              u'callback'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              callAnotherThing
+              u'callAnotherThing'
           frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
-              [native code]
+              u'[native code]'
             function*
-              aha
+              u'aha'
           frame*
             filename*
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
         type*
-          Error
+          u'Error'
         value (ignored because stacktrace takes precedence)
-          bad
+          u'bad'

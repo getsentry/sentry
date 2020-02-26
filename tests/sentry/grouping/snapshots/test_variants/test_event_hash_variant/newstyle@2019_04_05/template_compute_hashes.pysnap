@@ -1,14 +1,14 @@
 ---
-created: '2020-02-26T00:57:17.339670Z'
+created: '2019-03-15T11:58:33.430952Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
-  hash: 826f66ef602835f68030c04c634df320
+  hash: '826f66ef602835f68030c04c634df320'
   component:
     default*
       template*
         filename*
-          foo.html
+          u'foo.html'
         context-line*
-          hello world
+          u'hello world'

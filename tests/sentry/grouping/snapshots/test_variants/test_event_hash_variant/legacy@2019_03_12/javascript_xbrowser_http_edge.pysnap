@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:12.967427Z'
+created: '2019-05-08T19:44:34.480250Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,188 +11,188 @@ app:
         stacktrace*
           frame* (frame considered in-app because no frame is in-app)
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              Anonymous function
+              u'Anonymous function'
             lineno (function takes precedence)
               49
           frame* (frame considered in-app because no frame is in-app)
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              Foo.prototype.testMethod
+              u'Foo.prototype.testMethod'
             lineno (function takes precedence)
               43
           frame* (frame considered in-app because no frame is in-app)
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              aha
+              u'aha'
             lineno (function takes precedence)
               38
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              eval code
+              u'eval code'
             function*
-              eval code
+              u'eval code'
             lineno (function takes precedence)
               1
           frame* (frame considered in-app because no frame is in-app)
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              test
+              u'test'
             lineno (function takes precedence)
               32
           frame* (frame considered in-app because no frame is in-app)
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              native code
+              u'native code'
             function*
-              Array.prototype.map
+              u'Array.prototype.map'
           frame* (frame considered in-app because no frame is in-app)
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              Anonymous function
+              u'Anonymous function'
             lineno (function takes precedence)
               33
           frame* (frame considered in-app because no frame is in-app)
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              callback
+              u'callback'
             lineno (function takes precedence)
               24
           frame* (frame considered in-app because no frame is in-app)
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              callAnotherThing
+              u'callAnotherThing'
             lineno (function takes precedence)
               17
           frame* (frame considered in-app because no frame is in-app)
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              aha
+              u'aha'
             lineno (function takes precedence)
               18
         type*
-          Error
+          u'Error'
         value (stacktrace and type take precedence)
-          bad
+          u'bad'
 --------------------------------------------------------------------------
 system:
-  hash: e834aba6bf7b758128da092a68a18e9a
+  hash: 'e834aba6bf7b758128da092a68a18e9a'
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              Anonymous function
+              u'Anonymous function'
             lineno (function takes precedence)
               49
           frame*
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              Foo.prototype.testMethod
+              u'Foo.prototype.testMethod'
             lineno (function takes precedence)
               43
           frame*
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              aha
+              u'aha'
             lineno (function takes precedence)
               38
           frame*
             filename*
-              eval code
+              u'eval code'
             function*
-              eval code
+              u'eval code'
             lineno (function takes precedence)
               1
           frame*
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              test
+              u'test'
             lineno (function takes precedence)
               32
           frame*
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              native code
+              u'native code'
             function*
-              Array.prototype.map
+              u'Array.prototype.map'
           frame*
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              Anonymous function
+              u'Anonymous function'
             lineno (function takes precedence)
               33
           frame*
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              callback
+              u'callback'
             lineno (function takes precedence)
               24
           frame*
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              callAnotherThing
+              u'callAnotherThing'
             lineno (function takes precedence)
               17
           frame*
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              /test.html
+              u'/test.html'
             function*
-              aha
+              u'aha'
             lineno (function takes precedence)
               18
         type*
-          Error
+          u'Error'
         value (stacktrace and type take precedence)
-          bad
+          u'bad'

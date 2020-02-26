@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:17.173767Z'
+created: '2019-03-16T15:38:21.198348Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,33 +10,33 @@ app:
       stacktrace
         frame (non app frame)
           filename (anonymous filename discarded)
-            <anonymous>
+            u'<anonymous>'
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            dojo.js
+            u'dojo.js'
           function*
-            c
+            u'c'
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            dojo.js
+            u'dojo.js'
           function*
-            Object._createDocumentViewModel
+            u'Object._createDocumentViewModel'
 --------------------------------------------------------------------------
 system:
-  hash: e61225523929cf925f6ac3b1f7f26d85
+  hash: 'e61225523929cf925f6ac3b1f7f26d85'
   component:
     system*
       stacktrace*
         frame
           filename (anonymous filename discarded)
-            <anonymous>
+            u'<anonymous>'
         frame*
           filename (ignored because frame points to a URL)
-            dojo.js
+            u'dojo.js'
           function*
-            c
+            u'c'
         frame*
           filename (ignored because frame points to a URL)
-            dojo.js
+            u'dojo.js'
           function*
-            Object._createDocumentViewModel
+            u'Object._createDocumentViewModel'

@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:18.681622Z'
+created: '2019-04-17T20:07:50.591394Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,793 +11,793 @@ app:
         stacktrace
           frame (non app frame)
             module*
-              java.lang.Thread
+              u'java.lang.Thread'
             filename (module takes precedence)
-              thread.java
+              u'thread.java'
             function*
-              run
+              u'run'
           frame (non app frame)
             module*
-              org.apache.tomcat.util.threads.TaskThread$WrappingRunnable
+              u'org.apache.tomcat.util.threads.TaskThread$WrappingRunnable'
             filename (module takes precedence)
-              taskthread.java
+              u'taskthread.java'
             function*
-              run
+              u'run'
           frame (non app frame)
             module*
-              java.util.concurrent.ThreadPoolExecutor$Worker
+              u'java.util.concurrent.ThreadPoolExecutor$Worker'
             filename (module takes precedence)
-              threadpoolexecutor.java
+              u'threadpoolexecutor.java'
             function*
-              run
+              u'run'
           frame (non app frame)
             module*
-              java.util.concurrent.ThreadPoolExecutor
+              u'java.util.concurrent.ThreadPoolExecutor'
             filename (module takes precedence)
-              threadpoolexecutor.java
+              u'threadpoolexecutor.java'
             function*
-              runWorker
+              u'runWorker'
           frame (non app frame)
             module*
-              org.apache.tomcat.util.net.SocketProcessorBase
+              u'org.apache.tomcat.util.net.SocketProcessorBase'
             filename (module takes precedence)
-              socketprocessorbase.java
+              u'socketprocessorbase.java'
             function*
-              run
+              u'run'
           frame (non app frame)
             module*
-              org.apache.tomcat.util.net.NioEndpoint$SocketProcessor
+              u'org.apache.tomcat.util.net.NioEndpoint$SocketProcessor'
             filename (module takes precedence)
-              nioendpoint.java
+              u'nioendpoint.java'
             function*
-              doRun
+              u'doRun'
           frame (non app frame)
             module*
-              org.apache.coyote.AbstractProtocol$ConnectionHandler
+              u'org.apache.coyote.AbstractProtocol$ConnectionHandler'
             filename (module takes precedence)
-              abstractprotocol.java
+              u'abstractprotocol.java'
             function*
-              process
+              u'process'
           frame (non app frame)
             module*
-              org.apache.coyote.AbstractProcessorLight
+              u'org.apache.coyote.AbstractProcessorLight'
             filename (module takes precedence)
-              abstractprocessorlight.java
+              u'abstractprocessorlight.java'
             function*
-              process
+              u'process'
           frame (non app frame)
             module*
-              org.apache.coyote.http11.Http11Processor
+              u'org.apache.coyote.http11.Http11Processor'
             filename (module takes precedence)
-              http11processor.java
+              u'http11processor.java'
             function*
-              service
+              u'service'
           frame (non app frame)
             module*
-              org.apache.catalina.connector.CoyoteAdapter
+              u'org.apache.catalina.connector.CoyoteAdapter'
             filename (module takes precedence)
-              coyoteadapter.java
+              u'coyoteadapter.java'
             function*
-              service
+              u'service'
           frame (non app frame)
             module*
-              org.apache.catalina.core.StandardEngineValve
+              u'org.apache.catalina.core.StandardEngineValve'
             filename (module takes precedence)
-              standardenginevalve.java
+              u'standardenginevalve.java'
             function*
-              invoke
+              u'invoke'
           frame (non app frame)
             module*
-              org.apache.catalina.valves.ErrorReportValve
+              u'org.apache.catalina.valves.ErrorReportValve'
             filename (module takes precedence)
-              errorreportvalve.java
+              u'errorreportvalve.java'
             function*
-              invoke
+              u'invoke'
           frame (non app frame)
             module*
-              org.apache.catalina.core.StandardHostValve
+              u'org.apache.catalina.core.StandardHostValve'
             filename (module takes precedence)
-              standardhostvalve.java
+              u'standardhostvalve.java'
             function*
-              invoke
+              u'invoke'
           frame (non app frame)
             module*
-              org.apache.catalina.authenticator.AuthenticatorBase
+              u'org.apache.catalina.authenticator.AuthenticatorBase'
             filename (module takes precedence)
-              authenticatorbase.java
+              u'authenticatorbase.java'
             function*
-              invoke
+              u'invoke'
           frame (non app frame)
             module*
-              org.apache.catalina.core.StandardContextValve
+              u'org.apache.catalina.core.StandardContextValve'
             filename (module takes precedence)
-              standardcontextvalve.java
+              u'standardcontextvalve.java'
             function*
-              invoke
+              u'invoke'
           frame (non app frame)
             module*
-              org.apache.catalina.core.StandardWrapperValve
+              u'org.apache.catalina.core.StandardWrapperValve'
             filename (module takes precedence)
-              standardwrappervalve.java
+              u'standardwrappervalve.java'
             function*
-              invoke
+              u'invoke'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame (non app frame)
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              onceperrequestfilter.java
+              u'onceperrequestfilter.java'
             function*
-              doFilter
+              u'doFilter'
           frame (non app frame)
             module*
-              org.springframework.web.filter.CharacterEncodingFilter
+              u'org.springframework.web.filter.CharacterEncodingFilter'
             filename (module takes precedence)
-              characterencodingfilter.java
+              u'characterencodingfilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame (non app frame)
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              onceperrequestfilter.java
+              u'onceperrequestfilter.java'
             function*
-              doFilter
+              u'doFilter'
           frame (non app frame)
             module*
-              org.springframework.web.filter.HiddenHttpMethodFilter
+              u'org.springframework.web.filter.HiddenHttpMethodFilter'
             filename (module takes precedence)
-              hiddenhttpmethodfilter.java
+              u'hiddenhttpmethodfilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame (non app frame)
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              onceperrequestfilter.java
+              u'onceperrequestfilter.java'
             function*
-              doFilter
+              u'doFilter'
           frame (non app frame)
             module*
-              org.springframework.web.filter.HttpPutFormContentFilter
+              u'org.springframework.web.filter.HttpPutFormContentFilter'
             filename (module takes precedence)
-              httpputformcontentfilter.java
+              u'httpputformcontentfilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame (non app frame)
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              onceperrequestfilter.java
+              u'onceperrequestfilter.java'
             function*
-              doFilter
+              u'doFilter'
           frame (non app frame)
             module*
-              org.springframework.web.filter.RequestContextFilter
+              u'org.springframework.web.filter.RequestContextFilter'
             filename (module takes precedence)
-              requestcontextfilter.java
+              u'requestcontextfilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame (non app frame)
             module*
-              org.apache.tomcat.websocket.server.WsFilter
+              u'org.apache.tomcat.websocket.server.WsFilter'
             filename (module takes precedence)
-              wsfilter.java
+              u'wsfilter.java'
             function*
-              doFilter
+              u'doFilter'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame (non app frame)
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame (non app frame)
             module*
-              javax.servlet.http.HttpServlet
+              u'javax.servlet.http.HttpServlet'
             filename (module takes precedence)
-              httpservlet.java
+              u'httpservlet.java'
             function*
-              service
+              u'service'
           frame (non app frame)
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              frameworkservlet.java
+              u'frameworkservlet.java'
             function*
-              service
+              u'service'
           frame (non app frame)
             module*
-              javax.servlet.http.HttpServlet
+              u'javax.servlet.http.HttpServlet'
             filename (module takes precedence)
-              httpservlet.java
+              u'httpservlet.java'
             function*
-              service
+              u'service'
           frame (non app frame)
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              frameworkservlet.java
+              u'frameworkservlet.java'
             function*
-              doGet
+              u'doGet'
           frame (non app frame)
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              frameworkservlet.java
+              u'frameworkservlet.java'
             function*
-              processRequest
+              u'processRequest'
           frame (non app frame)
             module*
-              org.springframework.web.servlet.DispatcherServlet
+              u'org.springframework.web.servlet.DispatcherServlet'
             filename (module takes precedence)
-              dispatcherservlet.java
+              u'dispatcherservlet.java'
             function*
-              doService
+              u'doService'
           frame (non app frame)
             module*
-              org.springframework.web.servlet.DispatcherServlet
+              u'org.springframework.web.servlet.DispatcherServlet'
             filename (module takes precedence)
-              dispatcherservlet.java
+              u'dispatcherservlet.java'
             function*
-              doDispatch
+              u'doDispatch'
           frame (non app frame)
             module*
-              org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter
+              u'org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter'
             filename (module takes precedence)
-              abstracthandlermethodadapter.java
+              u'abstracthandlermethodadapter.java'
             function*
-              handle
+              u'handle'
           frame (non app frame)
             module*
-              org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+              u'org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter'
             filename (module takes precedence)
-              requestmappinghandleradapter.java
+              u'requestmappinghandleradapter.java'
             function*
-              handleInternal
+              u'handleInternal'
           frame (non app frame)
             module*
-              org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+              u'org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter'
             filename (module takes precedence)
-              requestmappinghandleradapter.java
+              u'requestmappinghandleradapter.java'
             function*
-              invokeHandlerMethod
+              u'invokeHandlerMethod'
           frame (non app frame)
             module*
-              org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod
+              u'org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod'
             filename (module takes precedence)
-              servletinvocablehandlermethod.java
+              u'servletinvocablehandlermethod.java'
             function*
-              invokeAndHandle
+              u'invokeAndHandle'
           frame (non app frame)
             module*
-              org.springframework.web.method.support.InvocableHandlerMethod
+              u'org.springframework.web.method.support.InvocableHandlerMethod'
             filename (module takes precedence)
-              invocablehandlermethod.java
+              u'invocablehandlermethod.java'
             function*
-              invokeForRequest
+              u'invokeForRequest'
           frame (non app frame)
             module*
-              org.springframework.web.method.support.InvocableHandlerMethod
+              u'org.springframework.web.method.support.InvocableHandlerMethod'
             filename (module takes precedence)
-              invocablehandlermethod.java
+              u'invocablehandlermethod.java'
             function*
-              doInvoke
+              u'doInvoke'
           frame (non app frame)
             module*
-              java.lang.reflect.Method
+              u'java.lang.reflect.Method'
             filename (module takes precedence)
-              method.java
+              u'method.java'
             function*
-              invoke
+              u'invoke'
           frame (non app frame)
             module*
-              jdk.internal.reflect.DelegatingMethodAccessorImpl
+              u'jdk.internal.reflect.DelegatingMethodAccessorImpl'
             filename (module takes precedence)
-              delegatingmethodaccessorimpl.java
+              u'delegatingmethodaccessorimpl.java'
             function*
-              invoke
+              u'invoke'
           frame (non app frame)
             module*
-              jdk.internal.reflect.NativeMethodAccessorImpl
+              u'jdk.internal.reflect.NativeMethodAccessorImpl'
             filename (module takes precedence)
-              nativemethodaccessorimpl.java
+              u'nativemethodaccessorimpl.java'
             function*
-              invoke
+              u'invoke'
           frame (non app frame)
             module*
-              jdk.internal.reflect.NativeMethodAccessorImpl
+              u'jdk.internal.reflect.NativeMethodAccessorImpl'
             filename (module takes precedence)
-              nativemethodaccessorimpl.java
+              u'nativemethodaccessorimpl.java'
             function*
-              invoke0
+              u'invoke0'
           frame (non app frame)
             module*
-              io.sentry.example.Application
+              u'io.sentry.example.Application'
             filename (module takes precedence)
-              application.java
+              u'application.java'
             function*
-              home
+              u'home'
         type*
-          ArithmeticException
+          u'ArithmeticException'
         value*
-          / by zero
+          u'/ by zero'
 --------------------------------------------------------------------------
 default:
   hash: None
   component:
     default (exception of system takes precedence)
       message (exception of system takes precedence)
-        Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause
+        u'Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause'
 --------------------------------------------------------------------------
 system:
-  hash: ec87dd10e4f7512ecccb4a068c5774ae
+  hash: 'ec87dd10e4f7512ecccb4a068c5774ae'
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              java.lang.Thread
+              u'java.lang.Thread'
             filename (module takes precedence)
-              thread.java
+              u'thread.java'
             function*
-              run
+              u'run'
           frame*
             module*
-              org.apache.tomcat.util.threads.TaskThread$WrappingRunnable
+              u'org.apache.tomcat.util.threads.TaskThread$WrappingRunnable'
             filename (module takes precedence)
-              taskthread.java
+              u'taskthread.java'
             function*
-              run
+              u'run'
           frame*
             module*
-              java.util.concurrent.ThreadPoolExecutor$Worker
+              u'java.util.concurrent.ThreadPoolExecutor$Worker'
             filename (module takes precedence)
-              threadpoolexecutor.java
+              u'threadpoolexecutor.java'
             function*
-              run
+              u'run'
           frame*
             module*
-              java.util.concurrent.ThreadPoolExecutor
+              u'java.util.concurrent.ThreadPoolExecutor'
             filename (module takes precedence)
-              threadpoolexecutor.java
+              u'threadpoolexecutor.java'
             function*
-              runWorker
+              u'runWorker'
           frame*
             module*
-              org.apache.tomcat.util.net.SocketProcessorBase
+              u'org.apache.tomcat.util.net.SocketProcessorBase'
             filename (module takes precedence)
-              socketprocessorbase.java
+              u'socketprocessorbase.java'
             function*
-              run
+              u'run'
           frame*
             module*
-              org.apache.tomcat.util.net.NioEndpoint$SocketProcessor
+              u'org.apache.tomcat.util.net.NioEndpoint$SocketProcessor'
             filename (module takes precedence)
-              nioendpoint.java
+              u'nioendpoint.java'
             function*
-              doRun
+              u'doRun'
           frame*
             module*
-              org.apache.coyote.AbstractProtocol$ConnectionHandler
+              u'org.apache.coyote.AbstractProtocol$ConnectionHandler'
             filename (module takes precedence)
-              abstractprotocol.java
+              u'abstractprotocol.java'
             function*
-              process
+              u'process'
           frame*
             module*
-              org.apache.coyote.AbstractProcessorLight
+              u'org.apache.coyote.AbstractProcessorLight'
             filename (module takes precedence)
-              abstractprocessorlight.java
+              u'abstractprocessorlight.java'
             function*
-              process
+              u'process'
           frame*
             module*
-              org.apache.coyote.http11.Http11Processor
+              u'org.apache.coyote.http11.Http11Processor'
             filename (module takes precedence)
-              http11processor.java
+              u'http11processor.java'
             function*
-              service
+              u'service'
           frame*
             module*
-              org.apache.catalina.connector.CoyoteAdapter
+              u'org.apache.catalina.connector.CoyoteAdapter'
             filename (module takes precedence)
-              coyoteadapter.java
+              u'coyoteadapter.java'
             function*
-              service
+              u'service'
           frame*
             module*
-              org.apache.catalina.core.StandardEngineValve
+              u'org.apache.catalina.core.StandardEngineValve'
             filename (module takes precedence)
-              standardenginevalve.java
+              u'standardenginevalve.java'
             function*
-              invoke
+              u'invoke'
           frame*
             module*
-              org.apache.catalina.valves.ErrorReportValve
+              u'org.apache.catalina.valves.ErrorReportValve'
             filename (module takes precedence)
-              errorreportvalve.java
+              u'errorreportvalve.java'
             function*
-              invoke
+              u'invoke'
           frame*
             module*
-              org.apache.catalina.core.StandardHostValve
+              u'org.apache.catalina.core.StandardHostValve'
             filename (module takes precedence)
-              standardhostvalve.java
+              u'standardhostvalve.java'
             function*
-              invoke
+              u'invoke'
           frame*
             module*
-              org.apache.catalina.authenticator.AuthenticatorBase
+              u'org.apache.catalina.authenticator.AuthenticatorBase'
             filename (module takes precedence)
-              authenticatorbase.java
+              u'authenticatorbase.java'
             function*
-              invoke
+              u'invoke'
           frame*
             module*
-              org.apache.catalina.core.StandardContextValve
+              u'org.apache.catalina.core.StandardContextValve'
             filename (module takes precedence)
-              standardcontextvalve.java
+              u'standardcontextvalve.java'
             function*
-              invoke
+              u'invoke'
           frame*
             module*
-              org.apache.catalina.core.StandardWrapperValve
+              u'org.apache.catalina.core.StandardWrapperValve'
             filename (module takes precedence)
-              standardwrappervalve.java
+              u'standardwrappervalve.java'
             function*
-              invoke
+              u'invoke'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame*
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              onceperrequestfilter.java
+              u'onceperrequestfilter.java'
             function*
-              doFilter
+              u'doFilter'
           frame*
             module*
-              org.springframework.web.filter.CharacterEncodingFilter
+              u'org.springframework.web.filter.CharacterEncodingFilter'
             filename (module takes precedence)
-              characterencodingfilter.java
+              u'characterencodingfilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame*
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              onceperrequestfilter.java
+              u'onceperrequestfilter.java'
             function*
-              doFilter
+              u'doFilter'
           frame*
             module*
-              org.springframework.web.filter.HiddenHttpMethodFilter
+              u'org.springframework.web.filter.HiddenHttpMethodFilter'
             filename (module takes precedence)
-              hiddenhttpmethodfilter.java
+              u'hiddenhttpmethodfilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame*
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              onceperrequestfilter.java
+              u'onceperrequestfilter.java'
             function*
-              doFilter
+              u'doFilter'
           frame*
             module*
-              org.springframework.web.filter.HttpPutFormContentFilter
+              u'org.springframework.web.filter.HttpPutFormContentFilter'
             filename (module takes precedence)
-              httpputformcontentfilter.java
+              u'httpputformcontentfilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame*
             module*
-              org.springframework.web.filter.OncePerRequestFilter
+              u'org.springframework.web.filter.OncePerRequestFilter'
             filename (module takes precedence)
-              onceperrequestfilter.java
+              u'onceperrequestfilter.java'
             function*
-              doFilter
+              u'doFilter'
           frame*
             module*
-              org.springframework.web.filter.RequestContextFilter
+              u'org.springframework.web.filter.RequestContextFilter'
             filename (module takes precedence)
-              requestcontextfilter.java
+              u'requestcontextfilter.java'
             function*
-              doFilterInternal
+              u'doFilterInternal'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame*
             module*
-              org.apache.tomcat.websocket.server.WsFilter
+              u'org.apache.tomcat.websocket.server.WsFilter'
             filename (module takes precedence)
-              wsfilter.java
+              u'wsfilter.java'
             function*
-              doFilter
+              u'doFilter'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              doFilter
+              u'doFilter'
           frame*
             module*
-              org.apache.catalina.core.ApplicationFilterChain
+              u'org.apache.catalina.core.ApplicationFilterChain'
             filename (module takes precedence)
-              applicationfilterchain.java
+              u'applicationfilterchain.java'
             function*
-              internalDoFilter
+              u'internalDoFilter'
           frame*
             module*
-              javax.servlet.http.HttpServlet
+              u'javax.servlet.http.HttpServlet'
             filename (module takes precedence)
-              httpservlet.java
+              u'httpservlet.java'
             function*
-              service
+              u'service'
           frame*
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              frameworkservlet.java
+              u'frameworkservlet.java'
             function*
-              service
+              u'service'
           frame*
             module*
-              javax.servlet.http.HttpServlet
+              u'javax.servlet.http.HttpServlet'
             filename (module takes precedence)
-              httpservlet.java
+              u'httpservlet.java'
             function*
-              service
+              u'service'
           frame*
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              frameworkservlet.java
+              u'frameworkservlet.java'
             function*
-              doGet
+              u'doGet'
           frame*
             module*
-              org.springframework.web.servlet.FrameworkServlet
+              u'org.springframework.web.servlet.FrameworkServlet'
             filename (module takes precedence)
-              frameworkservlet.java
+              u'frameworkservlet.java'
             function*
-              processRequest
+              u'processRequest'
           frame*
             module*
-              org.springframework.web.servlet.DispatcherServlet
+              u'org.springframework.web.servlet.DispatcherServlet'
             filename (module takes precedence)
-              dispatcherservlet.java
+              u'dispatcherservlet.java'
             function*
-              doService
+              u'doService'
           frame*
             module*
-              org.springframework.web.servlet.DispatcherServlet
+              u'org.springframework.web.servlet.DispatcherServlet'
             filename (module takes precedence)
-              dispatcherservlet.java
+              u'dispatcherservlet.java'
             function*
-              doDispatch
+              u'doDispatch'
           frame*
             module*
-              org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter
+              u'org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter'
             filename (module takes precedence)
-              abstracthandlermethodadapter.java
+              u'abstracthandlermethodadapter.java'
             function*
-              handle
+              u'handle'
           frame*
             module*
-              org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+              u'org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter'
             filename (module takes precedence)
-              requestmappinghandleradapter.java
+              u'requestmappinghandleradapter.java'
             function*
-              handleInternal
+              u'handleInternal'
           frame*
             module*
-              org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+              u'org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter'
             filename (module takes precedence)
-              requestmappinghandleradapter.java
+              u'requestmappinghandleradapter.java'
             function*
-              invokeHandlerMethod
+              u'invokeHandlerMethod'
           frame*
             module*
-              org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod
+              u'org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod'
             filename (module takes precedence)
-              servletinvocablehandlermethod.java
+              u'servletinvocablehandlermethod.java'
             function*
-              invokeAndHandle
+              u'invokeAndHandle'
           frame*
             module*
-              org.springframework.web.method.support.InvocableHandlerMethod
+              u'org.springframework.web.method.support.InvocableHandlerMethod'
             filename (module takes precedence)
-              invocablehandlermethod.java
+              u'invocablehandlermethod.java'
             function*
-              invokeForRequest
+              u'invokeForRequest'
           frame*
             module*
-              org.springframework.web.method.support.InvocableHandlerMethod
+              u'org.springframework.web.method.support.InvocableHandlerMethod'
             filename (module takes precedence)
-              invocablehandlermethod.java
+              u'invocablehandlermethod.java'
             function*
-              doInvoke
+              u'doInvoke'
           frame*
             module*
-              java.lang.reflect.Method
+              u'java.lang.reflect.Method'
             filename (module takes precedence)
-              method.java
+              u'method.java'
             function*
-              invoke
+              u'invoke'
           frame*
             module*
-              jdk.internal.reflect.DelegatingMethodAccessorImpl
+              u'jdk.internal.reflect.DelegatingMethodAccessorImpl'
             filename (module takes precedence)
-              delegatingmethodaccessorimpl.java
+              u'delegatingmethodaccessorimpl.java'
             function*
-              invoke
+              u'invoke'
           frame*
             module*
-              jdk.internal.reflect.NativeMethodAccessorImpl
+              u'jdk.internal.reflect.NativeMethodAccessorImpl'
             filename (module takes precedence)
-              nativemethodaccessorimpl.java
+              u'nativemethodaccessorimpl.java'
             function*
-              invoke
+              u'invoke'
           frame*
             module*
-              jdk.internal.reflect.NativeMethodAccessorImpl
+              u'jdk.internal.reflect.NativeMethodAccessorImpl'
             filename (module takes precedence)
-              nativemethodaccessorimpl.java
+              u'nativemethodaccessorimpl.java'
             function*
-              invoke0
+              u'invoke0'
           frame*
             module*
-              io.sentry.example.Application
+              u'io.sentry.example.Application'
             filename (module takes precedence)
-              application.java
+              u'application.java'
             function*
-              home
+              u'home'
         type*
-          ArithmeticException
+          u'ArithmeticException'
         value (ignored because stacktrace takes precedence)
-          / by zero
+          u'/ by zero'

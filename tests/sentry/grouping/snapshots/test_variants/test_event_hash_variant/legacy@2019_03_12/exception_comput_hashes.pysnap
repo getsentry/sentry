@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:12.075148Z'
+created: '2019-03-14T17:12:36.972970Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,16 +9,16 @@ app:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         type*
-          ValueError
+          u'ValueError'
         value*
-          hello world
+          u'hello world'
 --------------------------------------------------------------------------
 system:
-  hash: b23ee1963904c2ca87b145febf94b66c
+  hash: 'b23ee1963904c2ca87b145febf94b66c'
   component:
     system*
       exception*
         type*
-          ValueError
+          u'ValueError'
         value*
-          hello world
+          u'hello world'

@@ -1,71 +1,71 @@
 ---
-created: '2020-02-26T00:57:16.787447Z'
+created: '2019-03-15T18:37:00.180889Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: 86a7a80de1a3e572aeb20b28ae8d62c6
+  hash: '86a7a80de1a3e572aeb20b28ae8d62c6'
   component:
     app*
       exception*
         stacktrace*
           frame*
             module*
-              sentry.utils.safe
+              u'sentry.utils.safe'
             filename (module takes precedence)
-              safe.py
+              u'safe.py'
             function*
-              safe_execute
+              u'safe_execute'
           frame*
             module*
-              sentry.integrations.slack.notify_action
+              u'sentry.integrations.slack.notify_action'
             filename (module takes precedence)
-              notify_action.py
+              u'notify_action.py'
             function*
-              send_notification
+              u'send_notification'
           frame (non app frame)
             module*
-              requests.models
+              u'requests.models'
             filename (module takes precedence)
-              models.py
+              u'models.py'
             function*
-              raise_for_status
+              u'raise_for_status'
         type*
-          HTTPError
+          u'HTTPError'
 --------------------------------------------------------------------------
 default:
   hash: None
   component:
     default (exception of app takes precedence)
       message (exception of app takes precedence)
-        %s.process_error
+        u'%s.process_error'
 --------------------------------------------------------------------------
 system:
-  hash: 07a725d19885057d03eccfa450a274f4
+  hash: '07a725d19885057d03eccfa450a274f4'
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              sentry.utils.safe
+              u'sentry.utils.safe'
             filename (module takes precedence)
-              safe.py
+              u'safe.py'
             function*
-              safe_execute
+              u'safe_execute'
           frame*
             module*
-              sentry.integrations.slack.notify_action
+              u'sentry.integrations.slack.notify_action'
             filename (module takes precedence)
-              notify_action.py
+              u'notify_action.py'
             function*
-              send_notification
+              u'send_notification'
           frame*
             module*
-              requests.models
+              u'requests.models'
             filename (module takes precedence)
-              models.py
+              u'models.py'
             function*
-              raise_for_status
+              u'raise_for_status'
         type*
-          HTTPError
+          u'HTTPError'

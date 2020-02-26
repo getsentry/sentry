@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:14.660133Z'
+created: '2019-04-09T18:49:36.299638Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,18 +11,18 @@ app:
         stacktrace
           frame (non app frame)
             filename*
-              baz.py
+              u'baz.py'
         type*
-          ValueError
+          u'ValueError'
 --------------------------------------------------------------------------
 system:
-  hash: 9509e122c6175606d52862fa4f64853c
+  hash: '9509e122c6175606d52862fa4f64853c'
   component:
     system*
       exception*
         stacktrace*
           frame*
             filename*
-              baz.py
+              u'baz.py'
         type*
-          ValueError
+          u'ValueError'

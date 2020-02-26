@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:09.862964Z'
+created: '2019-04-07T10:03:31.270589Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,17 +10,17 @@ app:
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           filename*
-            foo.py
+            u'foo.py'
           function* (ruby block)
-            block
+            'block'
 --------------------------------------------------------------------------
 system:
-  hash: 27eed4125fc13d42163ddb0b8f357b48
+  hash: '27eed4125fc13d42163ddb0b8f357b48'
   component:
     system*
       stacktrace*
         frame*
           filename*
-            foo.py
+            u'foo.py'
           function* (ruby block)
-            block
+            'block'

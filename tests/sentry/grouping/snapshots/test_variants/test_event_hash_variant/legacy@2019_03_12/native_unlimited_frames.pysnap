@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:13.447068Z'
+created: '2019-09-03T07:26:07.932400Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,34 +11,34 @@ app:
         stacktrace
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
-              Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated(unsigned long,unsigned short,_GUID const &,_GUID const &,_GUID const &,HKL__ *,unsigned long)
+              u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated(unsigned long,unsigned short,_GUID const &,_GUID const &,_GUID const &,HKL__ *,unsigned long)'
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
-              Scaleform::GFx::AS3::IMEManager::DispatchEvent(char const *,char const *,char const *)
+              u'Scaleform::GFx::AS3::IMEManager::DispatchEvent(char const *,char const *,char const *)'
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
-              <lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()
+              u'<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()'
         type*
-          log_demo
+          u'log_demo'
         value*
-          Holy shit everything is on fire!
+          u'Holy shit everything is on fire!'
 --------------------------------------------------------------------------
 system:
-  hash: 3e0ae2ce25cce2fca3390f3416e6a82a
+  hash: '3e0ae2ce25cce2fca3390f3416e6a82a'
   component:
     system*
       exception*
         stacktrace
           frame
             function (function name is not used if module or filename are available)
-              Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated(unsigned long,unsigned short,_GUID const &,_GUID const &,_GUID const &,HKL__ *,unsigned long)
+              u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated(unsigned long,unsigned short,_GUID const &,_GUID const &,_GUID const &,HKL__ *,unsigned long)'
           frame
             function (function name is not used if module or filename are available)
-              Scaleform::GFx::AS3::IMEManager::DispatchEvent(char const *,char const *,char const *)
+              u'Scaleform::GFx::AS3::IMEManager::DispatchEvent(char const *,char const *,char const *)'
           frame
             function (function name is not used if module or filename are available)
-              <lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()
+              u'<lambda_5db80dab47756d3e72c2dcd38b80b1dd>::operator()'
         type*
-          log_demo
+          u'log_demo'
         value*
-          Holy shit everything is on fire!
+          u'Holy shit everything is on fire!'

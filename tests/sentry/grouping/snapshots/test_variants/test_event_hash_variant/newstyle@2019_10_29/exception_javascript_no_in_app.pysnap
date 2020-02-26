@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:25.149223Z'
+created: '2019-11-01T10:06:07.091791Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,48 +11,48 @@ app:
         stacktrace
           frame (non app frame)
             module*
-              app/components/modals/createTeamModal
+              u'app/components/modals/createTeamModal'
             filename (module takes precedence)
-              createteammodal.jsx
+              u'createteammodal.jsx'
             context-line*
-              onError(err);
+              u'onError(err);'
           frame (non app frame)
             module*
-              app/views/settings/components/forms/form
+              u'app/views/settings/components/forms/form'
             filename (module takes precedence)
-              form.jsx
+              u'form.jsx'
             function (ignored because sourcemap used and context line available)
-              onError
+              u'onError'
             context-line*
-              this.model.submitError(error);
+              u'this.model.submitError(error);'
         type*
-          TypeError
+          u'TypeError'
         value*
-          Cannot read property 'submitError' of null
+          u"Cannot read property 'submitError' of null"
 --------------------------------------------------------------------------
 system:
-  hash: 26552f86ca2368e708afa1df6effc1c5
+  hash: '26552f86ca2368e708afa1df6effc1c5'
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              app/components/modals/createTeamModal
+              u'app/components/modals/createTeamModal'
             filename (module takes precedence)
-              createteammodal.jsx
+              u'createteammodal.jsx'
             context-line*
-              onError(err);
+              u'onError(err);'
           frame*
             module*
-              app/views/settings/components/forms/form
+              u'app/views/settings/components/forms/form'
             filename (module takes precedence)
-              form.jsx
+              u'form.jsx'
             function (ignored because sourcemap used and context line available)
-              onError
+              u'onError'
             context-line*
-              this.model.submitError(error);
+              u'this.model.submitError(error);'
         type*
-          TypeError
+          u'TypeError'
         value (ignored because stacktrace takes precedence)
-          Cannot read property 'submitError' of null
+          u"Cannot read property 'submitError' of null"

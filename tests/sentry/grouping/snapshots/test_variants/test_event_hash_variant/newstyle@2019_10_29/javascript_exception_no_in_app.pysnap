@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:26.009736Z'
+created: '2019-05-08T07:33:31.998496Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,136 +11,136 @@ app:
         stacktrace
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              dispatchInteractiveEvent
+              u'dispatchInteractiveEvent'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              interactiveUpdates
+              u'interactiveUpdates'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              interactiveUpdates$1
+              u'interactiveUpdates$1'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performSyncWork
+              u'performSyncWork'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performWork
+              u'performWork'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performWorkOnRoot
+              u'performWorkOnRoot'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              renderRoot
+              u'renderRoot'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              replayUnitOfWork
+              u'replayUnitOfWork'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              invokeGuardedCallback
+              u'invokeGuardedCallback'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function* (trimmed javascript function)
-              invokeGuardedCallbackDev
+              u'invokeGuardedCallbackDev'
           frame (non app frame)
             filename*
-              index.js
+              u'index.js'
             function* (trimmed javascript function)
-              sentryWrapped
+              u'sentryWrapped'
           frame (non app frame)
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function* (trimmed javascript function)
-              callCallback
+              u'callCallback'
         type*
-          ReferenceError
+          u'ReferenceError'
         value*
-          varant is not defined
+          u'varant is not defined'
 --------------------------------------------------------------------------
 system:
-  hash: c0f3f7d6deb17aec9d07259ac684fad0
+  hash: 'c0f3f7d6deb17aec9d07259ac684fad0'
   component:
     system*
       exception*
         stacktrace*
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              dispatchInteractiveEvent
+              u'dispatchInteractiveEvent'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              interactiveUpdates
+              u'interactiveUpdates'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              interactiveUpdates$1
+              u'interactiveUpdates$1'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performSyncWork
+              u'performSyncWork'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performWork
+              u'performWork'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              performWorkOnRoot
+              u'performWorkOnRoot'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              renderRoot
+              u'renderRoot'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              replayUnitOfWork
+              u'replayUnitOfWork'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function*
-              invokeGuardedCallback
+              u'invokeGuardedCallback'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function* (trimmed javascript function)
-              invokeGuardedCallbackDev
+              u'invokeGuardedCallbackDev'
           frame*
             filename*
-              index.js
+              u'index.js'
             function* (trimmed javascript function)
-              sentryWrapped
+              u'sentryWrapped'
           frame*
             filename*
-              react-dom.development.js
+              u'react-dom.development.js'
             function* (trimmed javascript function)
-              callCallback
+              u'callCallback'
         type*
-          ReferenceError
+          u'ReferenceError'
         value (ignored because stacktrace takes precedence)
-          varant is not defined
+          u'varant is not defined'

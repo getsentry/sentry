@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:27.169098Z'
+created: '2019-05-08T07:29:42.737426Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,105 +10,105 @@ app:
       stacktrace
         frame (non app frame)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            main
+            u'main'
         frame (non app frame)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            normalFunc
+            u'normalFunc'
         frame (non app frame)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            recurFunc
+            u'recurFunc'
         frame (non app frame)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            recurFunc
+            u'recurFunc'
         frame (non app frame)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            recurFunc
+            u'recurFunc'
         frame (non app frame)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            recurFunc
+            u'recurFunc'
         frame (non app frame)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            throwError
+            u'throwError'
 --------------------------------------------------------------------------
 system:
-  hash: 894c3489e2ade384dc107bca6829d134
+  hash: '894c3489e2ade384dc107bca6829d134'
   component:
     system*
       stacktrace*
         frame*
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            main
+            u'main'
         frame*
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            normalFunc
+            u'normalFunc'
         frame*
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            recurFunc
+            u'recurFunc'
         frame (ignored due to recursion)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            recurFunc
+            u'recurFunc'
         frame (ignored due to recursion)
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            recurFunc
+            u'recurFunc'
         frame*
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            recurFunc
+            u'recurFunc'
         frame*
           module*
-            io.sentry.example.Application
+            u'io.sentry.example.Application'
           filename (module takes precedence)
-            application.java
+            u'application.java'
           function*
-            throwError
+            u'throwError'

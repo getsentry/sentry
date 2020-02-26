@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:15.979841Z'
+created: '2019-05-08T19:44:35.515454Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,148 +11,148 @@ app:
         stacktrace
           frame (non app frame)
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              Anonymous function
+              u'Anonymous function'
           frame (non app frame)
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              Foo.prototype.testMethod
+              u'Foo.prototype.testMethod'
           frame (non app frame)
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
           frame (non app frame)
             filename*
-              eval code
+              u'eval code'
             function*
-              eval code
+              u'eval code'
           frame (non app frame)
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              test
+              u'test'
           frame (non app frame)
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              native code
+              u'native code'
             function*
-              Array.prototype.map
+              u'Array.prototype.map'
           frame (non app frame)
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              Anonymous function
+              u'Anonymous function'
           frame (non app frame)
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              callback
+              u'callback'
           frame (non app frame)
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              callAnotherThing
+              u'callAnotherThing'
           frame (non app frame)
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
         type*
-          Error
+          u'Error'
 --------------------------------------------------------------------------
 system:
-  hash: e834aba6bf7b758128da092a68a18e9a
+  hash: 'e834aba6bf7b758128da092a68a18e9a'
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              Anonymous function
+              u'Anonymous function'
           frame*
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              Foo.prototype.testMethod
+              u'Foo.prototype.testMethod'
           frame*
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
           frame*
             filename*
-              eval code
+              u'eval code'
             function*
-              eval code
+              u'eval code'
           frame*
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              test
+              u'test'
           frame*
             module*
-              test
+              u'test'
             filename (module takes precedence)
-              native code
+              u'native code'
             function*
-              Array.prototype.map
+              u'Array.prototype.map'
           frame*
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              Anonymous function
+              u'Anonymous function'
           frame*
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              callback
+              u'callback'
           frame*
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              callAnotherThing
+              u'callAnotherThing'
           frame*
             module*
-              test
+              u'test'
             filename (ignored because frame points to a URL)
-              test.html
+              u'test.html'
             function*
-              aha
+              u'aha'
         type*
-          Error
+          u'Error'

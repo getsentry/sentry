@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T00:57:09.607609Z'
+created: '2019-04-07T10:03:31.136120Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,17 +10,17 @@ app:
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           module* (removed codegen marker)
-            invalid.gruml.talkytalkyhub.common.config.JipJipConfig$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>$$FastClassBySpringCGLIB$$<auto>
+            u'invalid.gruml.talkytalkyhub.common.config.JipJipConfig$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>$$FastClassBySpringCGLIB$$<auto>'
           function*
-            jipJipManagementApplication
+            u'jipJipManagementApplication'
 --------------------------------------------------------------------------
 system:
-  hash: be15ca3d511b96918e087c4f42503ca2
+  hash: 'be15ca3d511b96918e087c4f42503ca2'
   component:
     system*
       stacktrace*
         frame*
           module* (removed codegen marker)
-            invalid.gruml.talkytalkyhub.common.config.JipJipConfig$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>$$FastClassBySpringCGLIB$$<auto>
+            u'invalid.gruml.talkytalkyhub.common.config.JipJipConfig$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>$$FastClassBySpringCGLIB$$<auto>'
           function*
-            jipJipManagementApplication
+            u'jipJipManagementApplication'
