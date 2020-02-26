@@ -278,7 +278,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
 
-    def get_client(self, context=None):
+    def get_client(self):
         return JiraApiClient(
             self.model.metadata["base_url"],
             JiraCloud(self.model.metadata["shared_secret"]),

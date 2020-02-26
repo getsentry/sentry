@@ -112,26 +112,22 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
-def track_response_code(integration, code):
+def track_response_data(integration, code, error=None, **context):
+    logger = logging.getLogger("sentry.integrations.client")
+
     metrics.incr(
         "integrations.http_response",
         sample_rate=1.0,
         tags={"integration": integration, "status": code},
     )
 
-
-def log_request_failure(integration, code, error=None, **context):
-    logger = logging.getLogger("sentry.integrations")
-
-    logger.info(
-        "integrations.http_response",
-        extra={
-            "integration": integration,
-            "status": code,
-            "error": six.text_type(error[:128]) if error else None,
-            "context": context,
-        },
-    )
+    extra = {
+        "integration": integration,
+        "status": code,
+        "error": six.text_type(error[:128]) if error else None,
+    }
+    extra.update(context or {})
+    logger.info("integrations.http_response", extra=extra)
 
 
 class ApiClient(object):
@@ -205,42 +201,31 @@ class ApiClient(object):
             )
             resp.raise_for_status()
         except ConnectionError as e:
-            metrics.incr(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": self.integration_name, "status": "connection_error"},
-            )
-            log_request_failure(
-                self.integration_name, "connection_error", e, context=self.logging_context
+            track_response_data(
+                self.integration_name, "connection_error", e.message, context=self.logging_context
             )
             raise ApiHostError.from_exception(e)
         except Timeout as e:
-            metrics.incr(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": self.integration_name, "status": "timeout"},
+            track_response_data(
+                self.integration_name, "timeout", e.message, context=self.logging_context
             )
-            log_request_failure(self.integration_name, "timeout", e, context=self.logging_context)
             raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
-                track_response_code(self.integration_name, "unknown")
-                log_request_failure(
-                    self.integration_name, "unknown", e, context=self.logging_context
+                track_response_data(
+                    self.integration_name, "unknown", e.message, context=self.logging_context
                 )
                 self.logger.exception(
                     "request.error", extra={"integration": self.integration_name, "url": full_url}
                 )
                 raise ApiError("Internal Error")
-            track_response_code(self.integration_name, resp.status_code)
-            log_request_failure(
-                self.integration_name, resp.status_code, e, context=self.logging_context
+            track_response_data(
+                self.integration_name, resp.status_code, e.message, context=self.logging_context
             )
             raise ApiError.from_response(resp)
 
-        track_response_code(self.integration_name, resp.status_code)
-        log_request_failure(self.integration_name, resp.status_code, context=self.logging_context)
+        track_response_data(self.integration_name, resp.status_code, context=self.logging_context)
         if resp.status_code == 204:
             return {}
 
