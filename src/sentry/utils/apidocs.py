@@ -6,6 +6,7 @@ import json
 import inspect
 import requests
 import mimetypes
+from binascii import hexlify
 
 from collections import defaultdict
 from contextlib import contextmanager
@@ -414,7 +415,7 @@ class MockUtils(object):
         from sentry.models import Release, Activity
 
         if version is None:
-            version = os.urandom(20).encode("hex")
+            version = hexlify(os.urandom(20))
         with transaction.atomic():
             release = Release.objects.filter(
                 version=version, organization_id=project.organization_id, projects=project
