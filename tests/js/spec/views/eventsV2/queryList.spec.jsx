@@ -9,7 +9,7 @@ function openContextMenu(card) {
 }
 
 function clickMenuItem(card, selector) {
-  card.find(`DropdownMenu MenuItem[href="#${selector}"]`).simulate('click');
+  card.find(`DropdownMenu MenuItem[data-test-id="${selector}"]`).simulate('click');
 }
 
 describe('EventsV2 > QueryList', function() {

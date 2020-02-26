@@ -1318,9 +1318,11 @@ header + .alert {
     }
   }
 
-  li a {
+  li a,
+  li span.menu-target {
     .transition(none);
     color: @gray-dark;
+    cursor: pointer;
 
     &:hover,
     &.hover {

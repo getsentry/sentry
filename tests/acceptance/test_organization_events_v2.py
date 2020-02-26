@@ -455,7 +455,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Open the context menu
             card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
             # Delete the query
-            card.find_element_by_css_selector('[href="#delete-query"]').click()
+            card.find_element_by_css_selector('[data-test-id="delete-query"]').click()
 
             # Wait for card to clear
             self.browser.wait_until_not(card_selector)
@@ -481,7 +481,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             # Open the context menu, and duplicate
             card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
-            card.find_element_by_css_selector('[href="#duplicate-query"]').click()
+            card.find_element_by_css_selector('[data-test-id="duplicate-query"]').click()
 
             duplicate_name = "{} copy".format(query.name)
             # Wait for new element to show up.

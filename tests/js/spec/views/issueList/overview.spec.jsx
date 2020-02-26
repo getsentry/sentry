@@ -480,7 +480,7 @@ describe('IssueList,', function() {
 
       wrapper.find('IssueListSortOptions DropdownButton').simulate('click');
       wrapper
-        .find('IssueListSortOptions MenuItem a')
+        .find('IssueListSortOptions MenuItem span')
         .at(3)
         .simulate('click');
 
