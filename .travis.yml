@@ -220,7 +220,7 @@ matrix:
         - redis-server
         - postgresql
       before_install:
-        - *pip_install
+        - *before_install_default
         - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:19.11
         - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         - docker ps -a
