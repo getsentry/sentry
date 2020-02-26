@@ -68,7 +68,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled} = this.props;
+    const {organization, disabled, onFilterUpdate} = this.props;
 
     return (
       <Panel>
@@ -126,11 +126,11 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 onChange={onChange}
                 onKeyDown={onKeyDown}
                 onBlur={query => {
+                  onFilterUpdate(query);
                   onBlur(query);
-                  this.props.onFilterUpdate(query);
                 }}
                 onSearch={query => {
-                  this.props.onFilterUpdate(query);
+                  onFilterUpdate(query);
                   onChange(query, {});
                 }}
               />
