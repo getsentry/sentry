@@ -147,6 +147,7 @@ class Triggers extends React.Component<Props> {
         {triggers.length < 2 && (
           <BorderlessPanel>
             <FullWidthButton
+              disabled={disabled}
               type="button"
               size="small"
               icon="icon-circle-add"
