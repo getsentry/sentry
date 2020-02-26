@@ -63,6 +63,12 @@ class ExportedData(Model):
             return None
         return self.date_expired.strftime("%-I:%M %p on %B %d, %Y (%Z)")
 
+    @property
+    def payload(self):
+        payload = self.query_info.copy()
+        payload["export_type"] = ExportQueryType.as_str(self.query_type)
+        return payload
+
     def delete_file(self):
         if self.file:
             self.file.delete()
@@ -101,13 +107,11 @@ class ExportedData(Model):
     def email_failure(self, message):
         from sentry.utils.email import MessageBuilder
 
-        payload = self.query_info.copy()
-        payload["export_type"] = ExportQueryType.as_str(self.query_type)
         msg = MessageBuilder(
             subject="Unable to Export Data",
             context={
                 "error_message": message,
-                "payload": json.dumps(payload, indent=2, sort_keys=True),
+                "payload": json.dumps(self.payload, indent=2, sort_keys=True),
             },
             type="organization.export-data",
             template="sentry/emails/data-export-failure.txt",

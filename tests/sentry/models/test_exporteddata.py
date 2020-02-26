@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+import json
 import tempfile
 from datetime import timedelta
 from django.core import mail
@@ -44,9 +46,12 @@ class ExportedDataTest(TestCase):
         assert self.data_export.date_expired_string is None
         current_time = timezone.now()
         self.data_export.update(date_expired=current_time)
-        assert self.data_export.date_expired_string == current_time.strftime(
-            "%-I:%M %p on %B %d, %Y (%Z)"
-        )
+        assert isinstance(self.data_export.date_expired_string, six.binary_type)
+
+    def test_payload_property(self):
+        assert isinstance(self.data_export.payload, dict)
+        keys = self.data_export.query_info.keys() + ["export_type"]
+        assert sorted(self.data_export.payload.keys()) == sorted(keys)
 
     def test_delete_file(self):
         # Empty call should have no effect
@@ -120,7 +125,7 @@ class ExportedDataTest(TestCase):
             "template": "sentry/emails/data-export-success.txt",
             "html_template": "sentry/emails/data-export-success.html",
         }
-        assert builder.call_args[1] == expected_email_args
+        builder.assert_called_with(**expected_email_args)
 
     def test_email_failure(self):
         with self.tasks():
@@ -134,9 +139,12 @@ class ExportedDataTest(TestCase):
             self.data_export.email_failure(self.TEST_STRING)
         expected_email_args = {
             "subject": "Unable to Export Data",
-            "context": {"error_message": self.TEST_STRING},
             "type": "organization.export-data",
+            "context": {
+                "error_message": self.TEST_STRING,
+                "payload": json.dumps(self.data_export.payload, indent=2, sort_keys=True),
+            },
             "template": "sentry/emails/data-export-failure.txt",
             "html_template": "sentry/emails/data-export-failure.html",
         }
-        assert builder.call_args[1] == expected_email_args
+        builder.assert_called_with(**expected_email_args)
