@@ -1,24 +1,24 @@
 ---
-created: '2019-09-16T13:22:24.055225Z'
+created: '2020-02-26T19:54:42.052537Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         type*
-          u'Error'
+          "Error"
         value* (stripped common values)
-          u'<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>) at offset <hex>'
+          "<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>) at offset <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: 'b8e2a347e75266ca7bb565e2b3c0722e'
+  hash: "b8e2a347e75266ca7bb565e2b3c0722e"
   component:
     system*
       exception*
         type*
-          u'Error'
+          "Error"
         value* (stripped common values)
-          u'<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>) at offset <hex>'
+          "<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>) at offset <hex>"
