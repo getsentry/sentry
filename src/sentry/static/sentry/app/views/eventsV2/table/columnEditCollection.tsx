@@ -33,6 +33,7 @@ type State = {
 };
 
 const DRAG_CLASS = 'draggable-item';
+const GRAB_HANDLE_FUDGE = 25;
 
 class ColumnEditCollection extends React.Component<Props, State> {
   state = {
@@ -50,7 +51,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       portal.style.position = 'absolute';
       portal.style.top = '0';
       portal.style.left = '0';
-      portal.style.zIndex = '9999';
+      portal.style.zIndex = '10000';
 
       this.portal = portal;
 
@@ -128,8 +129,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
     if (this.dragGhostRef.current) {
       // move the ghost box
       const ghostDOM = this.dragGhostRef.current;
-      ghostDOM.style.left = `${event.pageX}px`;
-      ghostDOM.style.top = `${event.pageY}px`;
+      // Adjust so cursor is over the grab handle.
+      ghostDOM.style.left = `${event.pageX - GRAB_HANDLE_FUDGE}px`;
+      ghostDOM.style.top = `${event.pageY - GRAB_HANDLE_FUDGE}px`;
     }
 
     const dragItems = document.querySelectorAll(`.${DRAG_CLASS}`);
@@ -189,13 +191,16 @@ class ColumnEditCollection extends React.Component<Props, State> {
     if (typeof index !== 'number' || !this.state.isDragging || !this.portal) {
       return null;
     }
-
-    const top = `${this.state.top}px`;
-    const left = `${this.state.left}px`;
+    const top = Number(this.state.top) - GRAB_HANDLE_FUDGE;
+    const left = Number(this.state.left) - GRAB_HANDLE_FUDGE;
     const col = this.props.columns[index];
 
+    const style = {
+      top: `${top}px`,
+      left: `${left}px`,
+    };
     const ghost = (
-      <Ghost ref={this.dragGhostRef} style={{display: 'block', top, left}}>
+      <Ghost ref={this.dragGhostRef} style={style}>
         {this.renderItem(col, index, true)}
       </Ghost>
     );
@@ -240,20 +245,29 @@ class ColumnEditCollection extends React.Component<Props, State> {
     return (
       <div>
         {this.renderGhost()}
+        <RowContainer>
+          <Heading>
+            <strong>{t('Column')}</strong>
+            <strong>{t('Function')}</strong>
+          </Heading>
+        </RowContainer>
         {columns.map((col: Column, i: number) => this.renderItem(col, i))}
-        <Actions>
-          <Button onClick={this.handleAddColumn}>
-            <StyledIconAdd circle size="sm" />
-            {t('Add a column')}
-          </Button>
-        </Actions>
+        <RowContainer>
+          <Actions>
+            <Button size="xsmall" onClick={this.handleAddColumn}>
+              <StyledIconAdd circle size="sm" />
+              {t('Add a Column')}
+            </Button>
+          </Actions>
+        </RowContainer>
       </div>
     );
   }
 }
 
 const RowContainer = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 30px auto 30px;
   align-items: center;
   width: 100%;
 
@@ -262,15 +276,21 @@ const RowContainer = styled('div')`
 
 const Ghost = styled('div')`
   background: ${p => p.theme.white};
+  display: block;
   position: absolute;
   padding: 4px;
   border: 4px solid ${p => p.theme.borderLight};
   border-radius: 4px;
   width: 400px;
-  opacity: 80%;
+  opacity: 0.8;
+  cursor: grabbing;
 
   & > ${RowContainer} {
     margin-bottom: 0;
+  }
+
+  & svg {
+    cursor: grabbing;
   }
 `;
 
@@ -282,8 +302,8 @@ const DragPlaceholder = styled('div')`
 `;
 
 const IconButton = styled('button')`
-  padding: 0 ${space(1)};
   margin: 0;
+  padding: 0;
   border: 0;
   height: 16px;
   background: transparent;
@@ -295,7 +315,16 @@ const StyledIconAdd = styled(IconAdd)`
 `;
 
 const Actions = styled('div')`
-  padding-top: ${space(1)};
+  grid-column: 2 / 3;
+`;
+
+const Heading = styled('div')`
+  grid-column: 2 / 3;
+
+  /* Emulate the grid used in the column editor rows */
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-column-gap: ${space(1)};
 `;
 
 export default ColumnEditCollection;
