@@ -214,7 +214,7 @@ matrix:
     # Allowed to fail!
     - python: 3.6
       name: 'Python 3.6 backend (no migrations) [Postgres]'
-      env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1
+      env: TEST_SUITE=postgres DB=postgres SENTRY_PYTHON3=1 PYTEST_ADDOPTS="" PYTEST_SENTRY_ALWAYS_REPORT=no
       services:
         - memcached
         - redis-server
