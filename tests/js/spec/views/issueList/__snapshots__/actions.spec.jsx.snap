@@ -210,18 +210,6 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                         <span
                           className="css-zmpclt-ButtonLabel edwq9my1"
                         >
-                          <Icon
-                            hasChildren={true}
-                          >
-                            <Component
-                              className="css-474vvz-Icon edwq9my2"
-                              hasChildren={true}
-                            >
-                              <span
-                                className="css-474vvz-Icon edwq9my2"
-                              />
-                            </Component>
-                          </Icon>
                           Cancel
                         </span>
                       </Component>
@@ -289,18 +277,6 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                         <span
                           className="css-zmpclt-ButtonLabel edwq9my1"
                         >
-                          <Icon
-                            hasChildren={true}
-                          >
-                            <Component
-                              className="css-474vvz-Icon edwq9my2"
-                              hasChildren={true}
-                            >
-                              <span
-                                className="css-474vvz-Icon edwq9my2"
-                              />
-                            </Component>
-                          </Icon>
                           Bulk resolve issues
                         </span>
                       </Component>
@@ -559,18 +535,6 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                         <span
                           className="css-zmpclt-ButtonLabel edwq9my1"
                         >
-                          <Icon
-                            hasChildren={true}
-                          >
-                            <Component
-                              className="css-474vvz-Icon edwq9my2"
-                              hasChildren={true}
-                            >
-                              <span
-                                className="css-474vvz-Icon edwq9my2"
-                              />
-                            </Component>
-                          </Icon>
                           Cancel
                         </span>
                       </Component>
@@ -638,18 +602,6 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                         <span
                           className="css-zmpclt-ButtonLabel edwq9my1"
                         >
-                          <Icon
-                            hasChildren={true}
-                          >
-                            <Component
-                              className="css-474vvz-Icon edwq9my2"
-                              hasChildren={true}
-                            >
-                              <span
-                                className="css-474vvz-Icon edwq9my2"
-                              />
-                            </Component>
-                          </Icon>
                           Bulk resolve issues
                         </span>
                       </Component>

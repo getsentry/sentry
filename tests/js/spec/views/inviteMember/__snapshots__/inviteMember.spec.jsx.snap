@@ -675,21 +675,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                           <span
                                                             className="css-cmi7y3-ButtonLabel edwq9my1"
                                                           >
-                                                            <Icon
-                                                              hasChildren={true}
-                                                              size="xsmall"
-                                                            >
-                                                              <Component
-                                                                className="css-1299qb2-Icon edwq9my2"
-                                                                hasChildren={true}
-                                                                size="xsmall"
-                                                              >
-                                                                <span
-                                                                  className="css-1299qb2-Icon edwq9my2"
-                                                                  size="xsmall"
-                                                                />
-                                                              </Component>
-                                                            </Icon>
                                                             Add Team
                                                             <StyledChevronDown>
                                                               <Component
@@ -831,18 +816,6 @@ exports[`InviteMember should render roles when available and allowed, and handle
                     <span
                       className="css-zmpclt-ButtonLabel edwq9my1"
                     >
-                      <Icon
-                        hasChildren={true}
-                      >
-                        <Component
-                          className="css-474vvz-Icon edwq9my2"
-                          hasChildren={true}
-                        >
-                          <span
-                            className="css-474vvz-Icon edwq9my2"
-                          />
-                        </Component>
-                      </Icon>
                       Add Member
                     </span>
                   </Component>

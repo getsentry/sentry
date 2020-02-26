@@ -1673,18 +1673,6 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                             <span
                               className="css-zmpclt-ButtonLabel edwq9my1"
                             >
-                              <Icon
-                                hasChildren={true}
-                              >
-                                <Component
-                                  className="css-474vvz-Icon edwq9my2"
-                                  hasChildren={true}
-                                >
-                                  <span
-                                    className="css-474vvz-Icon edwq9my2"
-                                  />
-                                </Component>
-                              </Icon>
                               Create Project
                             </span>
                           </Component>
@@ -2699,18 +2687,6 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                             <span
                               className="css-zmpclt-ButtonLabel edwq9my1"
                             >
-                              <Icon
-                                hasChildren={true}
-                              >
-                                <Component
-                                  className="css-474vvz-Icon edwq9my2"
-                                  hasChildren={true}
-                                >
-                                  <span
-                                    className="css-474vvz-Icon edwq9my2"
-                                  />
-                                </Component>
-                              </Icon>
                               Create Project
                             </span>
                           </Component>
@@ -4425,18 +4401,6 @@ exports[`CreateProject should fill in project name if its empty when platform is
                             <span
                               className="css-zmpclt-ButtonLabel edwq9my1"
                             >
-                              <Icon
-                                hasChildren={true}
-                              >
-                                <Component
-                                  className="css-474vvz-Icon edwq9my2"
-                                  hasChildren={true}
-                                >
-                                  <span
-                                    className="css-474vvz-Icon edwq9my2"
-                                  />
-                                </Component>
-                              </Icon>
                               Create Project
                             </span>
                           </Component>
