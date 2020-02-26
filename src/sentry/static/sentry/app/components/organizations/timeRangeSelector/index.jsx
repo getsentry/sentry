@@ -315,6 +315,9 @@ class TimeRangeSelector extends React.PureComponent {
 
     const relativeSelected = isAbsoluteSelected ? null : relative || DEFAULT_STATS_PERIOD;
 
+    const allowClear =
+      typeof allowClearTimeRange === 'boolean' ? allowClearTimeRange : true;
+
     return (
       <DropdownMenu
         isOpen={this.state.isOpen}
@@ -334,7 +337,7 @@ class TimeRangeSelector extends React.PureComponent {
               }
               hasChanges={this.state.hasChanges}
               onClear={this.handleClear}
-              allowClear={allowClearTimeRange}
+              allowClear={allowClear}
               {...getActorProps()}
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}
