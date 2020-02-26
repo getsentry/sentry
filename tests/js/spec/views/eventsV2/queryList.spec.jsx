@@ -5,7 +5,7 @@ import {browserHistory} from 'react-router';
 import QueryList from 'app/views/eventsV2/queryList';
 
 function openContextMenu(card) {
-  card.find('DropdownMenu ContextMenuButton div').simulate('click');
+  card.find('DropdownMenu MoreOptions svg').simulate('click');
 }
 
 function clickMenuItem(card, selector) {
@@ -65,7 +65,7 @@ describe('EventsV2 > QueryList', function() {
     );
     const content = wrapper.find('QueryCard');
     // pre built + saved queries
-    expect(content).toHaveLength(4);
+    expect(content).toHaveLength(5);
   });
 
   it('can duplicate and trigger change callback', async function() {

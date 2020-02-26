@@ -1,11 +1,6 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import {
-  IssueAlertRuleActionTemplate,
-  IssueAlertRuleConditionTemplate,
-} from 'app/types/alerts';
-import {Organization, Project} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -13,8 +8,7 @@ import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 import PanelItem from 'app/components/panels/panelItem';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
+import routeTitleGen from 'app/utils/routeTitle';
 
 type RouteParams = {
   orgId: string;
@@ -23,17 +17,12 @@ type RouteParams = {
   ruleId: string; //TODO(ts): Make ruleId optional
 };
 
-type Props = {
-  organization: Organization;
-  project: Project;
-} & RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams, {}> & {
+  hasMetricAlerts: boolean;
+};
 
 type State = {
   alertType: string | null;
-  configs: {
-    actions: IssueAlertRuleActionTemplate[];
-    conditions: IssueAlertRuleConditionTemplate[];
-  } | null;
 } & AsyncView['state'];
 
 class RuleDetails extends AsyncView<Props, State> {
@@ -42,19 +31,20 @@ class RuleDetails extends AsyncView<Props, State> {
 
     return {
       ...super.getDefaultState(),
-      alertType: pathname.includes('issue-rules')
+      alertType: pathname.includes('/alerts/rules/')
         ? 'issue'
-        : pathname.includes('metric-rules')
+        : pathname.includes('/alerts/metric-rules/')
         ? 'metric'
         : null,
-      configs: null,
     };
   }
 
-  getEndpoints(): [string, string][] {
-    const {orgId, projectId} = this.props.params;
+  getTitle() {
+    return routeTitleGen(t('New Alert'), this.props.params.projectId, false);
+  }
 
-    return [['configs', `/projects/${orgId}/${projectId}/rules/configuration/`]];
+  getEndpoints(): [string, string][] {
+    return [];
   }
 
   handleChangeAlertType = (alertType: string) => {
@@ -69,44 +59,46 @@ class RuleDetails extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {alertType, configs} = this.state;
+    const {hasMetricAlerts} = this.props;
+    const {alertType} = this.state;
+
+    const shouldShowAlertTypeChooser = hasMetricAlerts;
+
     return (
       <React.Fragment>
-        <Panel>
-          <PanelHeader>{t('Choose an Alert Type')}</PanelHeader>
-          <PanelBody>
-            <PanelItem>
-              <RadioGroup
-                label={t('Select an Alert Type')}
-                value={this.state.alertType}
-                choices={[
-                  [
-                    'metric',
-                    t('Metric Alert'),
-                    t(
-                      'Metric alerts allow you to filter and set thresholds on errors. They can be used for high-level monitoring of patterns, or fine-grained monitoring of individual events.'
-                    ),
-                  ],
-                  [
-                    'issue',
-                    t('Issue Alert'),
-                    t(
-                      'Issue alerts fire whenever any issue in the project matches your specified criteria, such as a resolved issue re-appearing or an issue affecting many users.'
-                    ),
-                  ],
-                ]}
-                onChange={this.handleChangeAlertType}
-              />
-            </PanelItem>
-          </PanelBody>
-        </Panel>
+        {shouldShowAlertTypeChooser && (
+          <Panel>
+            <PanelHeader>{t('Choose an Alert Type')}</PanelHeader>
+            <PanelBody>
+              <PanelItem>
+                <RadioGroup
+                  label={t('Select an Alert Type')}
+                  value={this.state.alertType}
+                  choices={[
+                    [
+                      'metric',
+                      t('Metric Alert'),
+                      t(
+                        'Metric alerts allow you to filter and set thresholds on errors. They can be used for high-level monitoring of patterns, or fine-grained monitoring of individual events.'
+                      ),
+                    ],
+                    [
+                      'issue',
+                      t('Issue Alert'),
+                      t(
+                        'Issue alerts fire whenever any issue in the project matches your specified criteria, such as a resolved issue re-appearing or an issue affecting many users.'
+                      ),
+                    ],
+                  ]}
+                  onChange={this.handleChangeAlertType}
+                />
+              </PanelItem>
+            </PanelBody>
+          </Panel>
+        )}
 
         {alertType === 'issue' ? (
-          <IssueEditor
-            {...this.props}
-            actions={configs && configs.actions}
-            conditions={configs && configs.conditions}
-          />
+          <IssueEditor {...this.props} />
         ) : alertType === 'metric' ? (
           <IncidentRulesCreate {...this.props} />
         ) : null}
@@ -115,4 +107,4 @@ class RuleDetails extends AsyncView<Props, State> {
   }
 }
 
-export default withProject(withOrganization(RuleDetails));
+export default RuleDetails;

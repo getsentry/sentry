@@ -57,7 +57,7 @@ describe('IncidentsList', function() {
 
     wrapper = await createWrapper();
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain("You don't have any Incidents yet");
+    expect(wrapper.text()).toContain("You don't have any Alerts yet");
   });
 
   it('toggles all/open', async function() {
@@ -75,16 +75,16 @@ describe('IncidentsList', function() {
 
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: {}})
+      expect.objectContaining({query: {status: 'open'}})
     );
 
-    wrapper.setProps({location: {query: {status: 'open'}, search: '?status=open`'}});
+    wrapper.setProps({location: {query: {status: 'all'}, search: '?status=all`'}});
 
     expect(
       wrapper
         .find('.btn-group')
         .find('Button')
-        .at(1)
+        .at(2)
         .hasClass('active')
     ).toBe(true);
 
@@ -92,7 +92,7 @@ describe('IncidentsList', function() {
 
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: expect.objectContaining({status: 'open'})})
+      expect.objectContaining({query: expect.objectContaining({status: 'all'})})
     );
   });
 });

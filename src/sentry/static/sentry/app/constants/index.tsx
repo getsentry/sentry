@@ -197,6 +197,7 @@ export const DEFAULT_QUERY = 'is:unresolved';
 export const DEFAULT_USE_UTC = true;
 
 export const DEFAULT_RELATIVE_PERIODS = {
+  '1h': t('Last hour'),
   '24h': t('Last 24 hours'),
   '7d': t('Last 7 days'),
   '14d': t('Last 14 days'),
@@ -243,3 +244,4 @@ export const ORGANIZATION_FETCH_ERROR_TYPES = {
 };
 
 export const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
+export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/workflow/discover2/';

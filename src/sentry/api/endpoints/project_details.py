@@ -10,6 +10,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from sentry_relay import validate_pii_config
 
 from sentry import features
 from sentry.utils.data_filters import FilterTypes
@@ -41,6 +42,7 @@ from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerpri
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils import json
+from sentry.utils.compat import filter
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -175,8 +177,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         if not value:
             return value
 
-        from sentry import features
-
         organization = self.context["project"].organization
         request = self.context["request"]
         has_datascrubbers_v2 = features.has(
@@ -186,6 +186,12 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError(
                 "Organization does not have the datascrubbers-v2 feature enabled"
             )
+
+        try:
+            validate_pii_config(value)
+        except ValueError as e:
+            raise serializers.ValidationError(e)
+
         return value
 
     def validate_builtinSymbolSources(self, value):

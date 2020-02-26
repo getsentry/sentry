@@ -90,9 +90,6 @@ data_scrubber_enabled = BetterSignal(providing_args=["organization"])
 alert_rule_created = BetterSignal(providing_args=["project", "rule", "user"])
 repo_linked = BetterSignal(providing_args=["repo", "user"])
 release_created = BetterSignal(providing_args=["release"])
-release_commits_updated = BetterSignal(
-    providing_args=["release", "removed_commit_ids", "added_commit_ids"]
-)
 deploy_created = BetterSignal(providing_args=["deploy"])
 ownership_rule_created = BetterSignal(providing_args=["project"])
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
@@ -109,3 +106,4 @@ monitor_failed = BetterSignal(providing_args=["monitor"])
 # experiments
 join_request_created = BetterSignal(providing_args=["member"])
 join_request_link_viewed = BetterSignal(providing_args=["organization"])
+user_signup = BetterSignal(providing_args=["user", "source"])

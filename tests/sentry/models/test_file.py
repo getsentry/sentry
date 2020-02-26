@@ -6,6 +6,7 @@ from django.core.files.base import ContentFile
 
 from sentry.models import File, FileBlob
 from sentry.testutils import TestCase
+from sentry.utils.compat import map
 
 
 class FileBlobTest(TestCase):

@@ -143,12 +143,25 @@ const GuideStore = Reflux.createStore({
 
     if (!this.state.forceShow) {
       const user = ConfigStore.get('user');
-      guideKeys = guideKeys.filter(
-        key =>
-          !this.state.guides[key].seen &&
-          // Don't show guides to users who signed up way before these changes were implemented
-          (user.isSuperuser || new Date(user.dateJoined) > new Date(2019, 6, 1))
-      );
+
+      // Don't show guides to users who signed up way before these changes were implemented
+      const assistantThreshold = new Date(2019, 6, 1);
+      // Spam existing users about the discover tab, but not new signups.
+      const discoverDate = new Date(2020, 1, 6);
+      const userDateJoined = new Date(user?.dateJoined);
+
+      guideKeys = guideKeys.filter(key => {
+        if (this.state.guides[key].seen) {
+          return false;
+        }
+        if (user?.isSuperuser) {
+          return true;
+        }
+        if (key === 'discover_sidebar' && userDateJoined >= discoverDate) {
+          return false;
+        }
+        return userDateJoined > assistantThreshold;
+      });
     }
 
     let bestGuide = null;

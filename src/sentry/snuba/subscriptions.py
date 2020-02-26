@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
 import json
+import logging
 
 from django.db import transaction
 
 from sentry.api.event_search import get_filter
+from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
 from sentry.utils.snuba import _snuba_pool, SnubaError
 
@@ -12,10 +14,18 @@ query_aggregation_to_snuba = {
     QueryAggregations.TOTAL: ("count()", "", "count"),
     QueryAggregations.UNIQUE_USERS: ("uniq", "tags[sentry:user]", "unique_users"),
 }
+logger = logging.getLogger(__name__)
 
 
 def bulk_create_snuba_subscriptions(
-    projects, subscription_type, dataset, query, aggregation, time_window, resolution
+    projects,
+    subscription_type,
+    dataset,
+    query,
+    aggregation,
+    time_window,
+    resolution,
+    environment_names,
 ):
     """
     Creates a subscription to a snuba query for each project.
@@ -29,6 +39,7 @@ def bulk_create_snuba_subscriptions(
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
+    :param environment_names: List of environment names to filter by
     :return: A list of QuerySubscriptions
     """
     subscriptions = []
@@ -36,14 +47,28 @@ def bulk_create_snuba_subscriptions(
     for project in projects:
         subscriptions.append(
             create_snuba_subscription(
-                project, subscription_type, dataset, query, aggregation, time_window, resolution
+                project,
+                subscription_type,
+                dataset,
+                query,
+                aggregation,
+                time_window,
+                resolution,
+                environment_names,
             )
         )
     return subscriptions
 
 
 def create_snuba_subscription(
-    project, subscription_type, dataset, query, aggregation, time_window, resolution
+    project,
+    subscription_type,
+    dataset,
+    query,
+    aggregation,
+    time_window,
+    resolution,
+    environment_names,
 ):
     """
     Creates a subscription to a snuba query.
@@ -57,13 +82,14 @@ def create_snuba_subscription(
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
+    :param environment_names: List of environment names to filter by
     :return: The QuerySubscription representing the subscription
     """
     # TODO: Move this call to snuba into a task. This lets us successfully create a
     # subscription in postgres and rollback as needed without having to create/delete
     # from Snuba
     subscription_id = _create_in_snuba(
-        project, dataset, query, aggregation, time_window, resolution
+        project, dataset, query, aggregation, time_window, resolution, environment_names
     )
 
     return QuerySubscription.objects.create(
@@ -78,7 +104,9 @@ def create_snuba_subscription(
     )
 
 
-def bulk_update_snuba_subscriptions(subscriptions, query, aggregation, time_window, resolution):
+def bulk_update_snuba_subscriptions(
+    subscriptions, query, aggregation, time_window, resolution, environment_names
+):
     """
     Updates a list of query subscriptions.
 
@@ -88,18 +116,23 @@ def bulk_update_snuba_subscriptions(subscriptions, query, aggregation, time_wind
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
+    :param environment_names: List of environment names to filter by
     :return: A list of QuerySubscriptions
     """
     updated_subscriptions = []
     # TODO: Batch this up properly once we move to tasks.
     for subscription in subscriptions:
         updated_subscriptions.append(
-            update_snuba_subscription(subscription, query, aggregation, time_window, resolution)
+            update_snuba_subscription(
+                subscription, query, aggregation, time_window, resolution, environment_names
+            )
         )
     return subscriptions
 
 
-def update_snuba_subscription(subscription, query, aggregation, time_window, resolution):
+def update_snuba_subscription(
+    subscription, query, aggregation, time_window, resolution, environment_names
+):
     """
     Updates a subscription to a snuba query.
 
@@ -108,19 +141,22 @@ def update_snuba_subscription(subscription, query, aggregation, time_window, res
     :param aggregation: An aggregation to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
+    :param environment_names: List of environment names to filter by
     :return: The QuerySubscription representing the subscription
     """
     # TODO: Move this call to snuba into a task. This lets us successfully update a
     # subscription in postgres and rollback as needed without having to create/delete
     # from snuba
-    _delete_from_snuba(subscription)
+    dataset = QueryDatasets(subscription.dataset)
+    _delete_from_snuba(dataset, subscription.subscription_id)
     subscription_id = _create_in_snuba(
         subscription.project,
-        QueryDatasets(subscription.dataset),
+        dataset,
         query,
         aggregation,
         time_window,
         resolution,
+        environment_names,
     )
     subscription.update(
         subscription_id=subscription_id,
@@ -154,10 +190,17 @@ def delete_snuba_subscription(subscription):
         # TODO: Move this call to snuba into a task. This lets us successfully delete a
         # subscription in postgres and rollback as needed without having to create/delete
         # from snuba
-        _delete_from_snuba(subscription)
+        _delete_from_snuba(QueryDatasets(subscription.dataset), subscription.subscription_id)
 
 
-def _create_in_snuba(project, dataset, query, aggregation, time_window, resolution):
+def _create_in_snuba(
+    project, dataset, query, aggregation, time_window, resolution, environment_names
+):
+    conditions = resolve_discover_aliases({"conditions": get_filter(query).conditions})[0][
+        "conditions"
+    ]
+    if environment_names:
+        conditions.append(["environment", "IN", environment_names])
     response = _snuba_pool.urlopen(
         "POST",
         "/%s/subscriptions" % (dataset.value,),
@@ -168,24 +211,21 @@ def _create_in_snuba(project, dataset, query, aggregation, time_window, resoluti
                 # We only care about conditions here. Filter keys only matter for
                 # filtering to project and groups. Projects are handled with an
                 # explicit param, and groups can't be queried here.
-                "conditions": get_filter(query).conditions,
+                "conditions": conditions,
                 "aggregations": [query_aggregation_to_snuba[aggregation]],
                 "time_window": int(time_window.total_seconds()),
                 "resolution": int(resolution.total_seconds()),
             }
         ),
-        retries=False,
     )
     if response.status != 202:
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
     return json.loads(response.data)["subscription_id"]
 
 
-def _delete_from_snuba(subscription):
+def _delete_from_snuba(dataset, subscription_id):
     response = _snuba_pool.urlopen(
-        "DELETE",
-        "/%s/subscriptions/%s" % (subscription.dataset, subscription.subscription_id),
-        retries=False,
+        "DELETE", "/%s/subscriptions/%s" % (dataset.value, subscription_id)
     )
     if response.status != 202:
         raise SnubaError("HTTP %s response from Snuba!" % response.status)

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
-from sentry.receivers import check_for_onboarding_complete
+from sentry.receivers import try_mark_onboarding_complete
 
 
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
@@ -32,7 +32,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
                 values={"status": OnboardingTaskStatus.SKIPPED, "date_completed": timezone.now()},
             )
             if rows_affected or created:
-                check_for_onboarding_complete(organization.id)
+                try_mark_onboarding_complete(organization.id)
             return Response(status=204)
 
         return Response(status=404)

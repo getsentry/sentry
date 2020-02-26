@@ -10,8 +10,17 @@ from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry_plugins.utils import get_secret_field_config
 from sentry.utils import json, metrics
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 logger = logging.getLogger(__name__)
+
+DESCRIPTION = """
+Forward Sentry events to Amazon SQS.
+
+Amazon Simple Queue Service (SQS) is a fully managed message
+queuing service that enables you to decouple and scale microservices,
+distributed systems, and serverless applications.
+"""
 
 
 def get_regions():
@@ -23,9 +32,17 @@ def get_regions():
 class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
     title = "Amazon SQS"
     slug = "amazon-sqs"
-    description = "Forward Sentry events to Amazon SQS."
+    description = DESCRIPTION
     conf_key = "amazon-sqs"
     required_field = "queue_url"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Forward Sentry errors and events to Amazon SQS.
+            """,
+            IntegrationFeatures.DATA_FORWARDING,
+        )
+    ]
 
     def get_config(self, project, **kwargs):
         return [

@@ -21,6 +21,7 @@ from sentry.models import (
 )
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
+from sentry.utils.compat import map
 
 
 dummy_provider_config = {
@@ -194,3 +195,6 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         assert redirect.path == "/slo_url"
         assert "SAMLResponse" in query
+
+        updated = type(self.user).objects.get(pk=self.user.id)
+        assert updated.session_nonce != self.user.session_nonce

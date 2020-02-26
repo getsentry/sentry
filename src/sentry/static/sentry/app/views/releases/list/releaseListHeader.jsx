@@ -3,13 +3,21 @@ import React from 'react';
 import {PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 
-import {LastEventColumn, Layout, CountColumn, VersionColumn, StatsColumn} from './layout';
+import {
+  LastEventColumn,
+  Layout,
+  CountColumn,
+  VersionColumn,
+  ProjectsColumn,
+  StatsColumn,
+} from './layout';
 
 const ReleaseListHeader = () => {
   return (
     <PanelHeader>
       <Layout>
         <VersionColumn>{t('Version')}</VersionColumn>
+        <ProjectsColumn>{t('Project')}</ProjectsColumn>
         <StatsColumn />
         <CountColumn>{t('New Issues')}</CountColumn>
         <LastEventColumn>{t('Last Event')}</LastEventColumn>

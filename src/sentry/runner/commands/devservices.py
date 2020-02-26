@@ -4,6 +4,7 @@ import os
 import click
 from six import text_type
 from itertools import chain
+from sentry.utils.compat import map
 
 
 def get_docker_client():
@@ -81,19 +82,36 @@ def up(project, exclude):
     if "kafka" in settings.SENTRY_EVENTSTREAM:
         pass
     elif "snuba" in settings.SENTRY_EVENTSTREAM:
-        click.secho(
-            "! Skipping kafka and zookeeper since your eventstream backend does not require it",
-            err=True,
-            fg="cyan",
-        )
-        exclude |= {"kafka", "zookeeper"}
+        if not settings.SENTRY_USE_RELAY:
+            click.secho(
+                "! Skipping kafka and zookeeper since your eventstream backend does not require it",
+                err=True,
+                fg="cyan",
+            )
+            exclude |= {"kafka", "zookeeper"}
     else:
+        if settings.SENTRY_USE_RELAY:
+            click.secho(
+                "! Skipping snuba, and clickhouse since your eventstream backend does not require it",
+                err=True,
+                fg="cyan",
+            )
+            exclude |= {"snuba", "clickhouse"}
+        else:
+            click.secho(
+                "! Skipping kafka, zookeeper, snuba, and clickhouse since your eventstream backend does not require it",
+                err=True,
+                fg="cyan",
+            )
+            exclude |= {"kafka", "zookeeper", "snuba", "clickhouse"}
+
+    if not settings.SENTRY_USE_RELAY:
         click.secho(
-            "! Skipping kafka, zookeeper, snuba, and clickhouse since your eventstream backend does not require it",
+            "! Skipping relay, and reverse_proxy since you are not using Relay.",
             err=True,
             fg="cyan",
         )
-        exclude |= {"kafka", "zookeeper", "snuba", "clickhouse"}
+        exclude |= {"relay", "reverse_proxy"}
 
     if not sentry_options.get("symbolicator.enabled"):
         exclude |= {"symbolicator"}

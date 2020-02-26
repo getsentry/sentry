@@ -5,6 +5,7 @@ import {Environment, Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
+import {getDisplayName} from 'app/utils/environment';
 import {t} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
@@ -87,7 +88,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               ],
             ]}
             required
-            disabled={disabled}
+            isDisabled={disabled}
           />
           <SelectField
             name="environment"
@@ -96,10 +97,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             placeholder={t('All environments')}
             choices={
               defined(this.state.environments)
-                ? this.state.environments.map((env: Environment) => [env.id, env.name])
+                ? this.state.environments.map((env: Environment) => [
+                    env.name,
+                    getDisplayName(env),
+                  ])
                 : []
             }
-            disabled={this.state.environments === null}
+            isDisabled={this.state.environments === null}
+            multiple
+            isClearable
           />
           <FormField
             name="query"
@@ -110,19 +116,18 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               'You can apply standard Sentry filter syntax to filter by status, user, etc.'
             )}
           >
-            {({onChange, onBlur, onKeyDown}) => {
-              return (
-                <SearchBar
-                  disabled={disabled}
-                  useFormWrapper={false}
-                  organization={organization}
-                  onChange={onChange}
-                  onBlur={onBlur}
-                  onKeyDown={onKeyDown}
-                  onSearch={query => onChange(query, {})}
-                />
-              );
-            }}
+            {({onChange, onBlur, onKeyDown, value}) => (
+              <SearchBar
+                defaultQuery={value}
+                disabled={disabled}
+                useFormWrapper={false}
+                organization={organization}
+                onChange={onChange}
+                onBlur={onBlur}
+                onKeyDown={onKeyDown}
+                onSearch={query => onChange(query, {})}
+              />
+            )}
           </FormField>
           <SelectField
             name="timeWindow"
@@ -130,7 +135,9 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             help={t('The time window to use when evaluating the Metric')}
             choices={Object.entries(TIME_WINDOW_MAP)}
             required
-            disabled={disabled}
+            isDisabled={disabled}
+            getValue={value => Number(value)}
+            setValue={value => `${value}`}
           />
         </PanelBody>
       </Panel>

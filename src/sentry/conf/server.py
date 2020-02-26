@@ -113,6 +113,14 @@ else:
 
 NODE_MODULES_ROOT = os.path.normpath(NODE_MODULES_ROOT)
 
+RELAY_CONFIG_DIR = os.path.normpath(
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay")
+)
+
+REVERSE_PROXY_CONFIG = os.path.normpath(
+    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", "nginx.conf")
+)
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -146,7 +154,6 @@ if "DATABASE_URL" in os.environ:
     )
     if url.scheme == "postgres":
         DATABASES["default"]["ENGINE"] = "sentry.db.postgres"
-
 
 # This should always be UTC.
 TIME_ZONE = "UTC"
@@ -297,10 +304,6 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.csrf",
                 "django.template.context_processors.request",
-                "social_auth.context_processors.social_auth_by_name_backends",
-                "social_auth.context_processors.social_auth_backends",
-                "social_auth.context_processors.social_auth_by_type_backends",
-                "social_auth.context_processors.social_auth_login_redirect",
             ]
         },
     }
@@ -337,7 +340,6 @@ INSTALLED_APPS = (
     "sentry.auth.providers.google.apps.Config",
     "django.contrib.staticfiles",
 )
-
 
 # Silence internal hints from Django's system checks
 SILENCED_SYSTEM_CHECKS = (
@@ -480,7 +482,7 @@ SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 # Queue configuration
 from kombu import Exchange, Queue
 
-BROKER_URL = "redis://localhost:6379"
+BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS = {}
 
 # Ensure workers run async by default
@@ -812,6 +814,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": False,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": False,
+    # Enable Performance view
+    "organizations:performance-view": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Turns on grouping info.
@@ -930,12 +934,12 @@ SENTRY_CELERYBEAT_MONITORS = {
 }
 
 # Web Service
-SENTRY_WEB_HOST = "localhost"
+SENTRY_WEB_HOST = "127.0.0.1"
 SENTRY_WEB_PORT = 9000
 SENTRY_WEB_OPTIONS = {}
 
 # SMTP Service
-SENTRY_SMTP_HOST = "localhost"
+SENTRY_SMTP_HOST = "127.0.0.1"
 SENTRY_SMTP_PORT = 1025
 
 SENTRY_INTERFACES = {
@@ -1045,7 +1049,7 @@ SENTRY_RATELIMITER_OPTIONS = {}
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 
 # Snuba configuration
-SENTRY_SNUBA = os.environ.get("SNUBA", "http://localhost:1218")
+SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
 
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
@@ -1061,7 +1065,7 @@ SENTRY_SEARCH = os.environ.get(
 )
 SENTRY_SEARCH_OPTIONS = {}
 # SENTRY_SEARCH_OPTIONS = {
-#     'urls': ['http://localhost:9200/'],
+#     'urls': ['http://127.0.0.1:9200/'],
 #     'timeout': 5,
 # }
 
@@ -1112,11 +1116,6 @@ SENTRY_MAX_HTTP_BODY_SIZE = 4096 * 4  # 16kb
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
 SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
-# how many frames are fat
-SENTRY_MAX_STACKTRACE_FRAMES = 50
-# how many frames there can be at all
-SENTRY_STACKTRACE_FRAMES_HARD_LIMIT = 250
-SENTRY_MAX_EXCEPTIONS = 25
 
 # Gravatar service base url
 SENTRY_GRAVATAR_BASE_URL = "https://secure.gravatar.com"
@@ -1214,7 +1213,10 @@ SENTRY_ROLES = (
     {
         "id": "admin",
         "name": "Admin",
-        "desc": "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on). Additionally, they can manage memberships of teams that they are members of.",
+        "desc": "Admin privileges on any teams of which they're a member. They can create new teams and projects, "
+        "as well as remove teams and projects which they already hold membership on (or all teams, "
+        "if open membership is on). Additionally, they can manage memberships of teams that they are members "
+        "of.",
         "scopes": set(
             [
                 "event:read",
@@ -1262,7 +1264,8 @@ SENTRY_ROLES = (
     {
         "id": "owner",
         "name": "Owner",
-        "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.",
+        "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete "
+        "projects and members, as well as make billing and plan changes.",
         "is_global": True,
         "scopes": set(
             [
@@ -1327,6 +1330,12 @@ SENTRY_WATCHERS = (
     ),
 )
 
+# Controls whether DEVSERVICES will spin up a Relay and direct store traffic through Relay or not.
+# If Relay is used a reverse proxy server will be run at the 8000 (the port formally used by Sentry) that
+# will split the requests between Relay and Sentry (all store requests will be passed to Relay, and the
+# rest will be forwarded to Sentry)
+SENTRY_USE_RELAY = False
+
 SENTRY_DEVSERVICES = {
     "redis": {
         "image": "redis:5.0-alpine",
@@ -1337,7 +1346,7 @@ SENTRY_DEVSERVICES = {
     "postgres": {
         "image": "postgres:9.6-alpine",
         "ports": {"5432/tcp": 5432},
-        "environment": {"POSTGRES_DB": "sentry"},
+        "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
     },
     "zookeeper": {
@@ -1351,7 +1360,8 @@ SENTRY_DEVSERVICES = {
         "environment": {
             "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
             "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092",
-            "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka][ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
+            "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka]"
+            "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
             "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
@@ -1389,6 +1399,18 @@ SENTRY_DEVSERVICES = {
         "pull": True,
         "ports": {"3021/tcp": 3021},
         "command": ["run"],
+    },
+    "reverse_proxy": {
+        "image": "nginx:1.16.1",
+        "ports": {"80/tcp": 8000},
+        "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
+    },
+    "relay": {
+        "image": "us.gcr.io/sentryio/relay:latest",
+        "pull": True,
+        "ports": {"3000/tcp": 3000},
+        "volumes": {RELAY_CONFIG_DIR: {"bind": "/etc/relay"}},
+        "command": ["run", "--config", "/etc/relay"],
     },
 }
 
@@ -1457,11 +1479,7 @@ EMAIL_USE_TLS = DEAD
 SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
 
-GITHUB_APP_ID = DEAD
-GITHUB_API_SECRET = DEAD
-
 SUDO_URL = "sentry-sudo"
-
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
 # alerting the user on outdated SDKs.
@@ -1617,7 +1635,12 @@ SENTRY_BUILTIN_SOURCES = {
 # Relay
 # List of PKs whitelisted by Sentry.  All relays here are always
 # registered as internal relays.
-SENTRY_RELAY_WHITELIST_PK = []
+SENTRY_RELAY_WHITELIST_PK = [
+    # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
+    # This should NOT be part of any production environment.
+    # This key should match the key in /sentry/config/relay/credentials.json
+    "SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"
+]
 
 # When open registration is not permitted then only relays in the
 # whitelist can register.
@@ -1648,7 +1671,7 @@ SENTRY_USER_PERMISSIONS = ("broadcasts.admin",)
 
 KAFKA_CLUSTERS = {
     "default": {
-        "bootstrap.servers": "localhost:9092",
+        "bootstrap.servers": "127.0.0.1:9092",
         "compression.type": "lz4",
         "message.max.bytes": 50000000,  # 50MB, default is 1MB
     }
@@ -1740,3 +1763,10 @@ MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 MIGRATIONS_LOCKFILE_APP_WHITELIST = ()
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
+
+# Log error and abort processing (without dropping event) when process_event is
+# taking more than n seconds to process event
+SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 1800
+
+# Log warning when process_event is taking more than n seconds to process event
+SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120

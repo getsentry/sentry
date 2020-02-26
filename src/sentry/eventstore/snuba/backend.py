@@ -3,10 +3,9 @@ from __future__ import absolute_import
 import six
 
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import timedelta
 import logging
 
-from sentry import options
 from sentry.eventstore.base import EventStorage
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
@@ -22,6 +21,8 @@ DESC_ORDERING = ["-{}".format(TIMESTAMP), "-{}".format(EVENT_ID)]
 ASC_ORDERING = [TIMESTAMP, EVENT_ID]
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
+
+NODESTORE_LIMIT = 100
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +48,7 @@ class SnubaEventStorage(EventStorage):
 
     def get_events(
         self,
-        filter,
-        additional_columns=None,
+        filter,  # NOQA
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
@@ -57,19 +57,8 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
-        if not options.get("eventstore.use-nodestore"):
-            return self.__get_events(
-                filter,
-                additional_columns=additional_columns,
-                orderby=orderby,
-                limit=limit,
-                offset=offset,
-                referrer=referrer,
-                should_bind_nodes=False,
-            )
-
         return self.__get_events(
-            filter,
+            filter,  # NOQA
             orderby=orderby,
             limit=limit,
             offset=offset,
@@ -79,7 +68,7 @@ class SnubaEventStorage(EventStorage):
 
     def get_unfetched_events(
         self,
-        filter,
+        filter,  # NOQA
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
@@ -89,7 +78,7 @@ class SnubaEventStorage(EventStorage):
         Get events from Snuba, without node data loaded.
         """
         return self.__get_events(
-            filter,
+            filter,  # NOQA
             orderby=orderby,
             limit=limit,
             offset=offset,
@@ -99,17 +88,67 @@ class SnubaEventStorage(EventStorage):
 
     def __get_events(
         self,
-        filter,
-        additional_columns=None,
+        filter,  # NOQA
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer=None,
         should_bind_nodes=False,
     ):
-        assert filter, "You must provide a filter"
-        cols = self.__get_columns(additional_columns)
+        assert filter, "You must provide a filter"  # NOQA
+        cols = self.__get_columns()
         orderby = orderby or DESC_ORDERING
+
+        # This is an optimization for the Group.filter_by_event_id query where we
+        # have a single event ID and want to check all accessible projects for a
+        # direct hit. In this case it's usually faster to go to nodestore first.
+        if (
+            filter.event_ids
+            and filter.project_ids
+            and len(filter.event_ids) * len(filter.project_ids) < min(limit, NODESTORE_LIMIT)
+            and offset == 0
+        ):
+            event_list = [
+                Event(project_id=project_id, event_id=event_id)
+                for event_id in filter.event_ids
+                for project_id in filter.project_ids
+            ]
+            self.bind_nodes(event_list)
+
+            nodestore_events = [event for event in event_list if len(event.data)]
+
+            if nodestore_events:
+                event_ids = {event.event_id for event in nodestore_events}
+                project_ids = {event.project_id for event in nodestore_events}
+                start = min(event.datetime for event in nodestore_events)
+                end = max(event.datetime for event in nodestore_events) + timedelta(seconds=1)
+
+                result = snuba.aliased_query(
+                    selected_columns=cols,
+                    start=start,
+                    end=end,
+                    conditions=filter.conditions,
+                    filter_keys={"project_id": project_ids, "event_id": event_ids},
+                    orderby=orderby,
+                    limit=len(nodestore_events),
+                    offset=DEFAULT_OFFSET,
+                    referrer=referrer,
+                    dataset=snuba.Dataset.Events,
+                )
+
+                if "error" not in result:
+                    events = [self.__make_event(evt) for evt in result["data"]]
+
+                    # Bind previously fetched node data
+                    nodestore_dict = {
+                        (e.event_id, e.project_id): e.data.data for e in nodestore_events
+                    }
+                    for event in events:
+                        node_data = nodestore_dict[(event.event_id, event.project_id)]
+                        event.data.bind_data(node_data)
+                    return events
+
+            return []
 
         result = snuba.aliased_query(
             selected_columns=cols,
@@ -148,14 +187,12 @@ class SnubaEventStorage(EventStorage):
         if len(event.data) == 0:
             return None
 
-        event_time = datetime.fromtimestamp(event.data["timestamp"])
-
         # Load group_id from Snuba if not a transaction
         if event.get_event_type() != "transaction":
             result = snuba.raw_query(
                 selected_columns=["group_id"],
-                start=event_time,
-                end=event_time + timedelta(seconds=1),
+                start=event.datetime,
+                end=event.datetime + timedelta(seconds=1),
                 filter_keys={"project_id": [project_id], "event_id": [event_id]},
                 limit=1,
                 referrer="eventstore.get_event_by_id_nodestore",
@@ -173,65 +210,60 @@ class SnubaEventStorage(EventStorage):
 
         return event
 
-    def get_earliest_event_id(self, event, filter):
-        filter = deepcopy(filter)
+    def get_earliest_event_id(self, event, filter):  # NOQA
+        filter = deepcopy(filter)  # NOQA
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_before_event_condition(event))
         filter.end = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
+        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)  # NOQA
 
-    def get_latest_event_id(self, event, filter):
-        filter = deepcopy(filter)
+    def get_latest_event_id(self, event, filter):  # NOQA
+        filter = deepcopy(filter)  # NOQA
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
+        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)  # NOQA
 
-    def get_next_event_id(self, event, filter):
+    def get_next_event_id(self, event, filter):  # NOQA
         """
         Returns (project_id, event_id) of a next event given a current event
         and any filters/conditions. Returns None if no next event is found.
         """
-        assert filter, "You must provide a filter"
+        assert filter, "You must provide a filter"  # NOQA
 
         if not event:
             return None
 
-        filter = deepcopy(filter)
+        filter = deepcopy(filter)  # NOQA
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
+        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)  # NOQA
 
-    def get_prev_event_id(self, event, filter):
+    def get_prev_event_id(self, event, filter):  # NOQA
         """
         Returns (project_id, event_id) of a previous event given a current event
         and a filter. Returns None if no previous event is found.
         """
-        assert filter, "You must provide a filter"
+        assert filter, "You must provide a filter"  # NOQA
 
         if not event:
             return None
 
-        filter = deepcopy(filter)
+        filter = deepcopy(filter)  # NOQA
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_before_event_condition(event))
         filter.end = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
+        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)  # NOQA
 
-    def __get_columns(self, additional_columns=None):
-        columns = EventStorage.minimal_columns
+    def __get_columns(self):
+        return [col.value.event_name for col in EventStorage.minimal_columns]
 
-        if additional_columns:
-            columns = set(columns + additional_columns)
-
-        return [col.value.event_name for col in columns]
-
-    def __get_event_id_from_filter(self, filter=None, orderby=None):
+    def __get_event_id_from_filter(self, filter=None, orderby=None):  # NOQA
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
 
         try:

@@ -8,8 +8,10 @@ from sentry.models import ExportedData, User
 class ExportedDataSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         attrs = {}
+        users = User.objects.filter(id__in=set([item.user_id for item in item_list]))
+        user_lookup = {user.id: user for user in users}
         for item in item_list:
-            user = User.objects.get(id=item.user_id)
+            user = user_lookup[item.user_id]
             serialized_user = serialize(user)
             attrs[item] = {
                 "user": {
@@ -27,7 +29,6 @@ class ExportedDataSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dateFinished": obj.date_finished,
             "dateExpired": obj.date_expired,
-            "storageUrl": obj.storage_url,
             "query": {"type": obj.query_type, "info": obj.query_info},
             "status": obj.status,
         }

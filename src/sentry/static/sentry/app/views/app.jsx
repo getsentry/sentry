@@ -76,7 +76,7 @@ class App extends React.Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.props.api.request('/organizations/', {
       query: {
         member: '1',

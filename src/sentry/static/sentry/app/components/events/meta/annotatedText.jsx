@@ -6,32 +6,6 @@ import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import {t, tn} from 'app/locale';
 
-const Chunks = styled('span')`
-  span {
-    display: inline;
-  }
-`;
-
-const Redaction = styled('span')`
-  background: rgba(255, 0, 0, 0.05);
-  cursor: default;
-`;
-
-const Placeholder = styled(Redaction)`
-  font-style: italic;
-
-  :before {
-    content: '<';
-  }
-  :after {
-    content: '>';
-  }
-`;
-
-const ErrorIcon = styled(InlineSvg)`
-  color: ${props => props.theme.redDark};
-`;
-
 const REMARKS = {
   a: 'Annotated',
   x: 'Removed',
@@ -98,17 +72,29 @@ function renderValue(value, chunks, errors, remarks) {
   return element;
 }
 
+function getErrorMessage(error) {
+  const errorMessage = [];
+  if (error[0]) {
+    errorMessage.push(error[0]);
+  }
+  if (error[1] && error[1].reason) {
+    errorMessage.push(error[1].reason);
+  }
+
+  return errorMessage.join(': ');
+}
+
 function renderErrors(errors) {
   if (!errors.length) {
     return null;
   }
 
   const tooltip = (
-    <div style={{'text-align': 'left'}}>
+    <div style={{textAlign: 'left'}}>
       <strong>{tn('Processing Error:', 'Processing Errors:', errors.length)}</strong>
       <ul>
-        {errors.map(e => (
-          <li key={e}>{e}</li>
+        {errors.map((error, index) => (
+          <li key={index}>{getErrorMessage(error)}</li>
         ))}
       </ul>
     </div>
@@ -121,27 +107,49 @@ function renderErrors(errors) {
   );
 }
 
-function AnnotatedText({value, chunks, errors, remarks, props}) {
-  return (
-    <span {...props}>
-      {renderValue(value, chunks, errors, remarks)} {renderErrors(errors)}
-    </span>
-  );
-}
+const AnnotatedText = ({value, chunks, errors, remarks, ...props}) => (
+  <span {...props}>
+    {renderValue(value, chunks, errors, remarks)} {renderErrors(errors)}
+  </span>
+);
 
 AnnotatedText.propTypes = {
   value: PropTypes.string,
   chunks: PropTypes.array,
   errors: PropTypes.array,
   remarks: PropTypes.array,
-  props: PropTypes.object,
 };
 
 AnnotatedText.defaultProps = {
   chunks: [],
   errors: [],
   remarks: [],
-  props: {},
 };
+
+const Chunks = styled('span')`
+  span {
+    display: inline;
+  }
+`;
+
+const Redaction = styled('span')`
+  background: rgba(255, 0, 0, 0.05);
+  cursor: default;
+`;
+
+const Placeholder = styled(Redaction)`
+  font-style: italic;
+
+  :before {
+    content: '<';
+  }
+  :after {
+    content: '>';
+  }
+`;
+
+const ErrorIcon = styled(InlineSvg)`
+  color: ${props => props.theme.redDark};
+`;
 
 export default AnnotatedText;

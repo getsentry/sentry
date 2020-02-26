@@ -490,6 +490,11 @@ urlpatterns += [
                     name="sentry-organization-event-detail",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/data-export/(?P<data_export_id>\d+)/$",
+                    react_page_view,
+                    name="sentry-data-export-details",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/json/$",
                     GroupEventJsonView.as_view(),
                     name="sentry-group-event-json",
@@ -662,12 +667,12 @@ urlpatterns += [
         name="sentry-stream",
     ),
     url(
-        r"^organizations/(?P<organization_slug>[\w_-]+)/incidents/(?P<incident_id>\d+)/$",
+        r"^organizations/(?P<organization_slug>[\w_-]+)/alerts/(?P<incident_id>\d+)/$",
         react_page_view,
-        name="sentry-incident",
+        name="sentry-metric-alert",
     ),
     url(
-        r"^settings/(?P<organization_slug>[\w_-]+)/incident-rules/(?P<alert_rule_id>\d+)/$",
+        r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/alerts/metric-rules/(?P<alert_rule_id>\d+)/$",
         react_page_view,
         name="sentry-alert-rule",
     ),

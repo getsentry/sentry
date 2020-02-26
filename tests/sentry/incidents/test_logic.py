@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import json
 from uuid import uuid4
-
 import responses
 from datetime import timedelta
 from exam import fixture, patcher
@@ -25,7 +24,6 @@ from sentry.incidents.logic import (
     bulk_get_incident_aggregates,
     bulk_get_incident_event_stats,
     bulk_get_incident_stats,
-    calculate_incident_start,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
@@ -33,7 +31,6 @@ from sentry.incidents.logic import (
     create_incident,
     create_incident_activity,
     create_incident_snapshot,
-    create_initial_event_stats_snapshot,
     delete_alert_rule,
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
@@ -44,13 +41,9 @@ from sentry.incidents.logic import (
     get_incident_aggregates,
     get_incident_event_stats,
     get_incident_subscribers,
-    get_incident_suspect_commits,
-    get_incident_suspects,
     get_triggers_for_alert_rule,
-    INCIDENT_START_ROLLUP,
     ProjectsNotAssociatedWithAlertRuleError,
     subscribe_to_incident,
-    StatusAlreadyChangedError,
     update_alert_rule,
     update_alert_rule_trigger_action,
     update_alert_rule_trigger,
@@ -71,23 +64,20 @@ from sentry.incidents.models import (
     IncidentSnapshot,
     IncidentStatus,
     IncidentSubscription,
-    IncidentSuspectCommit,
     IncidentType,
 )
 from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription
-from sentry.models.commit import Commit
 from sentry.models.integration import Integration
-from sentry.models.repository import Repository
 from sentry.testutils import TestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils.compat import zip
 
 
 class CreateIncidentTest(TestCase):
     record_event = patcher("sentry.analytics.base.Analytics.record_event")
-    calculate_incident_suspects = patcher("sentry.incidents.tasks.calculate_incident_suspects")
 
     def test_simple(self):
-        incident_type = IncidentType.CREATED
+        incident_type = IncidentType.ALERT_TRIGGERED
         title = "hello"
         query = "goodbye"
         aggregation = QueryAggregations.UNIQUE_USERS
@@ -117,7 +107,8 @@ class CreateIncidentTest(TestCase):
             alert_rule=alert_rule,
         )
         assert incident.identifier == 1
-        assert incident.status == incident_type.value
+        assert incident.status == IncidentStatus.OPEN.value
+        assert incident.type == incident_type.value
         assert incident.title == title
         assert incident.query == query
         assert incident.aggregation == aggregation.value
@@ -138,9 +129,7 @@ class CreateIncidentTest(TestCase):
         )
         assert (
             IncidentActivity.objects.filter(
-                incident=incident,
-                type=IncidentActivityType.CREATED.value,
-                event_stats_snapshot__isnull=False,
+                incident=incident, type=IncidentActivityType.DETECTED.value
             ).count()
             == 1
         )
@@ -150,11 +139,8 @@ class CreateIncidentTest(TestCase):
         assert event.data == {
             "organization_id": six.text_type(self.organization.id),
             "incident_id": six.text_type(incident.id),
-            "incident_type": six.text_type(IncidentType.CREATED.value),
+            "incident_type": six.text_type(IncidentType.ALERT_TRIGGERED.value),
         }
-        self.calculate_incident_suspects.apply_async.assert_called_once_with(
-            kwargs={"incident_id": incident.id}
-        )
 
 
 @freeze_time()
@@ -166,8 +152,8 @@ class UpdateIncidentStatus(TestCase):
 
     def test_status_already_set(self):
         incident = self.create_incident(status=IncidentStatus.WARNING.value)
-        with self.assertRaises(StatusAlreadyChangedError):
-            update_incident_status(incident, IncidentStatus.WARNING)
+        update_incident_status(incident, IncidentStatus.WARNING)
+        assert incident.status == IncidentStatus.WARNING.value
 
     def run_test(self, incident, status, expected_date_closed, user=None, comment=None):
         prev_status = incident.status
@@ -184,7 +170,6 @@ class UpdateIncidentStatus(TestCase):
         assert activity.value == six.text_type(status.value)
         assert activity.previous_value == six.text_type(prev_status)
         assert activity.comment == comment
-        assert activity.event_stats_snapshot is None
 
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0]
@@ -200,7 +185,7 @@ class UpdateIncidentStatus(TestCase):
     def test_closed(self):
         incident = create_incident(
             self.organization,
-            IncidentType.CREATED,
+            IncidentType.ALERT_TRIGGERED,
             "Test",
             "",
             QueryAggregations.TOTAL,
@@ -276,8 +261,11 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         result = get_incident_event_stats(incident, data_points=20, **kwargs)
         # Duration of 300s / 20 data points
         assert result.rollup == 15
-        assert result.start == start if start else incident.date_started
-        assert result.end == end if end else incident.current_end_date
+        expected_start = start if start else incident.date_started
+        expected_end = end if end else incident.current_end_date
+        expected_start = expected_start - (expected_end - expected_start) / 5
+        assert result.start == expected_start
+        assert result.end == expected_end
         assert [r["count"] for r in result.data["data"]] == expected_results
 
     def test_project(self):
@@ -296,8 +284,11 @@ class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
             # Duration of 300s / 20 data points
             assert result.rollup == 15
-            assert result.start == start if start else incident.date_started
-            assert result.end == end if end else incident.current_end_date
+            expected_start = start if start else incident.date_started
+            expected_end = end if end else incident.current_end_date
+            expected_start = expected_start - (expected_end - expected_start) / 5
+            assert result.start == expected_start
+            assert result.end == expected_end
             assert [r["count"] for r in result.data["data"]] == expected_results
 
     def test_project(self):
@@ -436,35 +427,6 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         self.assert_notifications_sent(activity)
         assert not self.record_event.called
 
-    def test_snapshot(self):
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=1))
-        # Define events outside incident range. Should be included in the
-        # snapshot
-        self.create_event(self.now - timedelta(minutes=20))
-        self.create_event(self.now - timedelta(minutes=30))
-
-        # Too far out, should be excluded
-        self.create_event(self.now - timedelta(minutes=100))
-
-        incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
-        )
-        event_stats_snapshot = create_initial_event_stats_snapshot(incident)
-        self.record_event.reset_mock()
-        activity = create_incident_activity(
-            incident, IncidentActivityType.CREATED, event_stats_snapshot=event_stats_snapshot
-        )
-        assert activity.incident == incident
-        assert activity.type == IncidentActivityType.CREATED.value
-        assert activity.value is None
-        assert activity.previous_value is None
-
-        assert event_stats_snapshot == activity.event_stats_snapshot
-        self.assert_notifications_sent(activity)
-        assert not self.record_event.called
-
     def test_comment(self):
         incident = self.create_incident()
         comment = "hello"
@@ -538,164 +500,12 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         }
 
 
-class CreateInitialEventStatsSnapshotTest(TestCase, BaseIncidentsTest):
-    def test_snapshot(self):
-        with freeze_time(self.now):
-            self.create_event(self.now - timedelta(minutes=2))
-            self.create_event(self.now - timedelta(minutes=2))
-            self.create_event(self.now - timedelta(minutes=1))
-            # Define events outside incident range. Should be included in the
-            # snapshot
-            self.create_event(self.now - timedelta(minutes=15))
-            self.create_event(self.now - timedelta(minutes=20))
-
-            # Too far out, should be excluded
-            self.create_event(self.now - timedelta(minutes=100))
-
-            incident = self.create_incident(
-                date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
-            )
-            event_stat_snapshot = create_initial_event_stats_snapshot(incident)
-            assert event_stat_snapshot.start == self.now - timedelta(minutes=20)
-            assert [row[1] for row in event_stat_snapshot.values] == [1, 1, 2, 1]
-
-
 class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
     def test_simple(self):
         incident = self.create_incident()
         assert list(get_incident_subscribers(incident)) == []
         subscription = subscribe_to_incident(incident, self.user)[0]
         assert list(get_incident_subscribers(incident)) == [subscription]
-
-
-class GetIncidentSuspectsTest(TestCase, BaseIncidentsTest):
-    def test_simple(self):
-        release = self.create_release(project=self.project, version="v12")
-
-        self.repo = Repository.objects.create(
-            organization_id=self.organization.id, name=self.organization.id
-        )
-        commit_id = "a" * 40
-        release.set_commits(
-            [
-                {
-                    "id": commit_id,
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                }
-            ]
-        )
-        incident = self.create_incident(self.organization)
-        commit = Commit.objects.get(releasecommit__release=release)
-        IncidentSuspectCommit.objects.create(incident=incident, commit=commit, order=1)
-        assert [commit] == list(get_incident_suspects(incident, [self.project]))
-        assert [] == list(get_incident_suspects(incident, []))
-
-
-class GetIncidentSuspectCommitsTest(TestCase, BaseIncidentsTest):
-    def test_simple(self):
-        release = self.create_release(project=self.project, version="v12")
-
-        included_commits = set([letter * 40 for letter in ("a", "b", "c", "d")])
-        commit_iter = iter(included_commits)
-
-        one_min_ago = iso_format(before_now(minutes=1))
-        event = self.store_event(
-            data={
-                "fingerprint": ["group-1"],
-                "message": "Kaboom!",
-                "platform": "python",
-                "stacktrace": {
-                    "frames": [
-                        {"filename": "sentry/tasks.py"},
-                        {"filename": "sentry/models/release.py"},
-                    ]
-                },
-                "release": release.version,
-                "timestamp": one_min_ago,
-            },
-            project_id=self.project.id,
-        )
-        group = event.group
-        self.repo = Repository.objects.create(
-            organization_id=self.organization.id, name=self.organization.id
-        )
-        release.set_commits(
-            [
-                {
-                    "id": next(commit_iter),
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
-                },
-                {
-                    "id": next(commit_iter),
-                    "repository": self.repo.name,
-                    "author_email": "bob@example.com",
-                    "author_name": "Bob",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
-                },
-                {
-                    "id": next(commit_iter),
-                    "repository": self.repo.name,
-                    "author_email": "ross@example.com",
-                    "author_name": "Ross",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
-                },
-            ]
-        )
-        release_2 = self.create_release(project=self.project, version="v13")
-        event_2 = self.store_event(
-            data={
-                "fingerprint": ["group-2"],
-                "message": "Kaboom!",
-                "platform": "python",
-                "stacktrace": {
-                    "frames": [
-                        {"filename": "sentry/tasks.py"},
-                        {"filename": "sentry/models/group.py"},
-                    ]
-                },
-                "release": release_2.version,
-                "timestamp": one_min_ago,
-            },
-            project_id=self.project.id,
-        )
-        group_2 = event_2.group
-        excluded_id = "z" * 40
-        release_2.set_commits(
-            [
-                {
-                    "id": next(commit_iter),
-                    "repository": self.repo.name,
-                    "author_email": "hello@example.com",
-                    "author_name": "Hello",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/group.py", "type": "M"}],
-                },
-                {
-                    "id": excluded_id,
-                    "repository": self.repo.name,
-                    "author_email": "hello@example.com",
-                    "author_name": "Hello",
-                    "message": "i fixed a bug",
-                    "patch_set": [{"path": "src/sentry/models/not_group.py", "type": "M"}],
-                },
-            ]
-        )
-
-        commit_ids = (
-            Commit.objects.filter(releasecommit__release__in=[release, release_2])
-            .exclude(key=excluded_id)
-            .values_list("id", flat=True)
-        )
-        incident = self.create_incident(self.organization, groups=[group, group_2])
-        assert set(get_incident_suspect_commits(incident)) == set(commit_ids)
 
 
 @freeze_time()
@@ -723,7 +533,7 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
     def test(self):
         closed_incident = create_incident(
             self.organization,
-            IncidentType.CREATED,
+            IncidentType.ALERT_TRIGGERED,
             "Closed",
             "",
             QueryAggregations.TOTAL,
@@ -733,7 +543,7 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
         update_incident_status(closed_incident, IncidentStatus.CLOSED)
         open_incident = create_incident(
             self.organization,
-            IncidentType.CREATED,
+            IncidentType.ALERT_TRIGGERED,
             "Open",
             "",
             QueryAggregations.TOTAL,
@@ -741,12 +551,17 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
             date_started=timezone.now() - timedelta(days=30),
         )
         incidents = [closed_incident, open_incident]
-
+        changed = False
         for incident, incident_stats in zip(incidents, bulk_get_incident_stats(incidents)):
             event_stats = get_incident_event_stats(incident)
             assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
-            assert incident_stats["event_stats"].start == event_stats.start
-            assert incident_stats["event_stats"].end == event_stats.end
+            expected_start = incident_stats["event_stats"].start
+            expected_end = incident_stats["event_stats"].end
+            if not changed:
+                expected_start = expected_start - (expected_end - expected_start) / 5
+                changed = True
+            assert event_stats.start == expected_start
+            assert event_stats.end == expected_end
             assert incident_stats["event_stats"].rollup == event_stats.rollup
 
             aggregates = get_incident_aggregates(incident)
@@ -1010,67 +825,6 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects_with_deleted.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
         assert Incident.objects.filter(id=incident.id, alert_rule_id__isnull=True).exists()
-
-
-@freeze_time()
-class CalculateIncidentStartTest(TestCase, BaseIncidentsTest):
-    def test_empty(self):
-        assert timezone.now() == calculate_incident_start("", [self.project], [])
-
-    def test_single_event(self):
-        start = self.now - timedelta(minutes=2)
-        event = self.create_event(start)
-        assert start == calculate_incident_start("", [self.project], [event.group])
-
-    def test_single_spike(self):
-        fingerprint = "hello"
-        start = self.now - (INCIDENT_START_ROLLUP * 2)
-        for _ in range(3):
-            event = self.create_event(start, fingerprint=fingerprint)
-
-        end = self.now - INCIDENT_START_ROLLUP
-        for _ in range(4):
-            event = self.create_event(end, fingerprint=fingerprint)
-        assert start + ((end - start) / 3) == calculate_incident_start(
-            "", [self.project], [event.group]
-        )
-
-    def test_multiple_same_size_spikes(self):
-        # The most recent spike should take precedence
-        fingerprint = "hello"
-        older_spike = self.now - (INCIDENT_START_ROLLUP * 3)
-        for _ in range(3):
-            event = self.create_event(older_spike, fingerprint=fingerprint)
-
-        newer_spike = self.now - INCIDENT_START_ROLLUP
-        for _ in range(3):
-            event = self.create_event(newer_spike, fingerprint=fingerprint)
-        assert newer_spike == calculate_incident_start("", [self.project], [event.group])
-
-    def test_multiple_spikes_large_older(self):
-        # The older spike should take precedence because it's much larger
-        fingerprint = "hello"
-        older_spike = self.now - (INCIDENT_START_ROLLUP * 2)
-        for _ in range(4):
-            event = self.create_event(older_spike, fingerprint=fingerprint)
-
-        newer_spike = self.now - INCIDENT_START_ROLLUP
-        for _ in range(2):
-            event = self.create_event(newer_spike, fingerprint=fingerprint)
-        assert older_spike == calculate_incident_start("", [self.project], [event.group])
-
-    def test_multiple_spikes_large_much_older(self):
-        # The most recent spike should take precedence because even though the
-        # older spike is larger, it's much older.
-        fingerprint = "hello"
-        older_spike = self.now - (INCIDENT_START_ROLLUP * 1000)
-        for _ in range(3):
-            event = self.create_event(older_spike, fingerprint=fingerprint)
-
-        newer_spike = self.now - INCIDENT_START_ROLLUP
-        for _ in range(2):
-            event = self.create_event(newer_spike, fingerprint=fingerprint)
-        assert newer_spike == calculate_incident_start("", [self.project], [event.group])
 
 
 class TestGetExcludedProjectsForAlertRule(TestCase):

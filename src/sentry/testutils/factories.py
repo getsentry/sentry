@@ -16,7 +16,6 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 from hashlib import sha1
-from loremipsum import Generator
 from uuid import uuid4
 
 from sentry.event_manager import EventManager
@@ -30,10 +29,11 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
+    IncidentActivity,
     IncidentGroup,
     IncidentProject,
     IncidentSeen,
-    IncidentActivity,
+    IncidentType,
 )
 from sentry.mediators import (
     sentry_apps,
@@ -70,9 +70,7 @@ from sentry.models import (
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
 from sentry.snuba.models import QueryAggregations
-from sentry.utils import json
-
-loremipsum = Generator()
+from sentry.utils import loremipsum, json
 
 
 def get_fixture_path(name):
@@ -751,6 +749,7 @@ class Factories(object):
         date_closed=None,
         groups=None,
         seen_by=None,
+        alert_rule=None,
     ):
         if not title:
             title = petname.Generate(2, " ", letters=10).title()
@@ -761,9 +760,11 @@ class Factories(object):
             status=status,
             title=title,
             query=query,
+            alert_rule=alert_rule,
             date_started=date_started or timezone.now(),
             date_detected=date_detected or timezone.now(),
             date_closed=date_closed or timezone.now(),
+            type=IncidentType.ALERT_TRIGGERED.value,
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
@@ -791,6 +792,7 @@ class Factories(object):
         time_window=10,
         threshold_period=1,
         include_all_projects=False,
+        environment=None,
         excluded_projects=None,
         date_added=None,
     ):
@@ -805,6 +807,7 @@ class Factories(object):
             aggregation,
             time_window,
             threshold_period,
+            environment=environment,
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
         )

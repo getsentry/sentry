@@ -1,8 +1,8 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
+import omit from 'lodash/omit';
 import React from 'react';
 import moment from 'moment';
-import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -27,7 +27,7 @@ import {Incident} from '../types';
 import SparkLine from './sparkLine';
 import Status from '../status';
 
-const DEFAULT_QUERY_STATUS = '';
+const DEFAULT_QUERY_STATUS = 'open';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
 
@@ -35,15 +35,21 @@ type State = {
   incidentList: Incident[];
 };
 
+function getQueryStatus(status: any) {
+  return ['open', 'closed', 'all'].includes(status) ? status : DEFAULT_QUERY_STATUS;
+}
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): [string, string, any][] {
     const {params, location} = this.props;
+    const {query} = location;
+    const status = getQueryStatus(query.status);
+
     return [
       [
         'incidentList',
         `/organizations/${params && params.orgId}/incidents/`,
         {
-          query: location && location.query,
+          query: {...query, status},
         },
       ],
     ];
@@ -84,7 +90,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderEmpty() {
     return (
       <EmptyStateWarning>
-        <p>{t("You don't have any Incidents yet")}</p>
+        <p>{t("You don't have any Alerts yet")}</p>
       </EmptyStateWarning>
     );
   }
@@ -137,7 +143,7 @@ class IncidentsListContainer extends React.Component<Props> {
     const {router, params} = this.props;
     e.preventDefault();
 
-    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts-v2/`, router);
+    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/`, router);
   };
 
   render() {
@@ -145,12 +151,11 @@ class IncidentsListContainer extends React.Component<Props> {
     const {pathname, query} = location;
     const {orgId} = params;
 
-    const openIncidentsQuery = {...query, status: 'open'};
-    const closedIncidentsQuery = {...query, status: 'closed'};
-    const allIncidentsQuery = omit(query, 'status');
+    const openIncidentsQuery = omit({...query, status: 'open'}, 'cursor');
+    const closedIncidentsQuery = omit({...query, status: 'closed'}, 'cursor');
+    const allIncidentsQuery = omit({...query, status: 'all'}, 'cursor');
 
-    const status = query.status === undefined ? DEFAULT_QUERY_STATUS : query.status;
-
+    const status = getQueryStatus(query.status);
     return (
       <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
         <PageContent>
@@ -179,13 +184,6 @@ class IncidentsListContainer extends React.Component<Props> {
 
               <div className="btn-group">
                 <Button
-                  to={{pathname, query: allIncidentsQuery}}
-                  size="small"
-                  className={'btn' + (status === '' ? ' active' : '')}
-                >
-                  {t('All Alerts')}
-                </Button>
-                <Button
                   to={{pathname, query: openIncidentsQuery}}
                   size="small"
                   className={'btn' + (status === 'open' ? ' active' : '')}
@@ -198,6 +196,13 @@ class IncidentsListContainer extends React.Component<Props> {
                   className={'btn' + (status === 'closed' ? ' active' : '')}
                 >
                   {t('Resolved')}
+                </Button>
+                <Button
+                  to={{pathname, query: allIncidentsQuery}}
+                  size="small"
+                  className={'btn' + (status === 'all' ? ' active' : '')}
+                >
+                  {t('All')}
                 </Button>
               </div>
             </Actions>

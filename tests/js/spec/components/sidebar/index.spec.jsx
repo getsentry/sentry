@@ -95,12 +95,47 @@ describe('Sidebar', function() {
       routerContext
     );
 
-    expect(wrapper.find('[data-test-id="onboarding-progress-bar"]')).toHaveLength(1);
+    expect(wrapper.find('OnboardingProgressBar')).toHaveLength(1);
 
-    wrapper.find('[data-test-id="onboarding-progress-bar"]').simulate('click');
+    wrapper.find('OnboardingProgressBar').simulate('click');
     wrapper.update();
 
     expect(wrapper.find('OnboardingStatus SidebarPanel')).toMatchSnapshot();
+  });
+
+  it('handles discover-basic feature', function() {
+    wrapper = mountWithTheme(
+      <SidebarContainer
+        organization={{
+          ...organization,
+          features: ['discover-basic', 'events', 'discover'],
+        }}
+        user={user}
+        router={router}
+      />,
+      routerContext
+    );
+
+    // Should only show discover2 tab
+    expect(wrapper.find('SidebarItem[id="discover-v2"]')).toHaveLength(1);
+    expect(wrapper.find('SidebarItem[id="events"]')).toHaveLength(0);
+    expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(0);
+  });
+
+  it('handles discover feature', function() {
+    wrapper = mountWithTheme(
+      <SidebarContainer
+        organization={{...organization, features: ['discover', 'events']}}
+        user={user}
+        router={router}
+      />,
+      routerContext
+    );
+
+    // Should show events and discover1 as those features are on.
+    expect(wrapper.find('SidebarItem[id="discover-v2"]')).toHaveLength(0);
+    expect(wrapper.find('SidebarItem[id="events"]')).toHaveLength(1);
+    expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(1);
   });
 
   describe('SidebarHelp', function() {

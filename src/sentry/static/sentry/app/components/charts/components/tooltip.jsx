@@ -8,7 +8,6 @@ function defaultFormatAxisLabel(value, isTimestamp, utc, showTimeInTooltip) {
   if (!isTimestamp) {
     return value;
   }
-
   const format = `MMM D, YYYY${showTimeInTooltip ? ' LT' : ''}`;
 
   return getFormattedDate(value, format, {local: !utc});
@@ -59,11 +58,18 @@ function getFormatter({
         utc,
         showTimeInTooltip
       );
-      return `<div>${label} - ${seriesParamsOrParam.name}</div>
-              <div>${truncationFormatter(
-                seriesParamsOrParam.seriesName,
-                truncate
-              )}:  ${valueFormatter(seriesParamsOrParam.data.coord[1])}</div>`;
+      const truncatedName = truncationFormatter(seriesParamsOrParam.seriesName, truncate);
+      const formattedValue = valueFormatter(seriesParamsOrParam.data.coord[1]);
+      return [
+        '<div class="tooltip-series">',
+        `<div>
+          <span class="tooltip-label"><strong>${seriesParamsOrParam.name}</strong></span>
+          ${truncatedName}: ${formattedValue}
+        </div>`,
+        '</div>',
+        `<div class="tooltip-date">${label}</div>`,
+        '</div>',
+      ].join('');
     }
 
     const seriesParams = isAxisItem ? seriesParamsOrParam : [seriesParamsOrParam];
@@ -78,17 +84,17 @@ function getFormatter({
       axisFormatterOrDefault(timestamp, isGroupedByDate, utc, showTimeInTooltip);
 
     return [
-      `<div>${truncationFormatter(label, truncate)}</div>`,
+      '<div class="tooltip-series">',
       seriesParams
         .filter(getFilter)
-        .map(
-          s =>
-            `<div>${s.marker} ${truncationFormatter(
-              s.seriesName,
-              truncate
-            )}:  ${valueFormatter(s.data[1])}</div>`
-        )
+        .map(s => {
+          const formattedLabel = truncationFormatter(s.seriesName, truncate);
+          const value = valueFormatter(s.data[1]);
+          return `<div><span class="tooltip-label">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
+        })
         .join(''),
+      '</div>',
+      `<div class="tooltip-date">${label}</div>`,
     ].join('');
   };
 }
@@ -117,6 +123,14 @@ export default function Tooltip({
   return {
     show: true,
     trigger: 'item',
+    backgroundColor: 'transparent',
+    transitionDuration: 0,
+    position(pos, _params, dom, _rec, _size) {
+      // Center the tooltip slightly above the cursor.
+      const tipWidth = dom.clientWidth;
+      const tipHeight = dom.clientHeight;
+      return [pos[0] - tipWidth / 2, pos[1] - tipHeight - 16];
+    },
     formatter,
     ...props,
   };

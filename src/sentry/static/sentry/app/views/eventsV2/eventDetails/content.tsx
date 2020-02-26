@@ -22,16 +22,18 @@ import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import EventEntries from 'app/components/events/eventEntries';
+import {DataSection} from 'app/components/events/styles';
+import Projects from 'app/utils/projects';
 
 import EventView from '../eventView';
 import {hasAggregateField, EventQuery, generateTitle} from '../utils';
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
 import TagsTable from '../tagsTable';
-import EventInterfaces from './eventInterfaces';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
-import {SectionHeading} from '../styles';
+import {SectionHeading, ContentBox, HeaderBox} from '../styles';
 import OpsBreakdown from './transaction/opsBreakdown';
 
 const slugValidator = function(
@@ -164,12 +166,19 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 ),
                 fixed: 'events chart',
               })}
-            <EventInterfaces
-              organization={organization}
-              event={event}
-              projectId={this.projectId}
-              eventView={eventView}
-            />
+            <Projects orgId={organization.slug} slugs={[this.projectId]}>
+              {({projects}) => (
+                <StyledEventEntries
+                  organization={organization}
+                  event={event}
+                  project={projects[0]}
+                  location={location}
+                  showExampleCommit={false}
+                  showTagSummary={false}
+                  eventView={eventView}
+                />
+              )}
+            </Projects>
           </div>
           <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>
             <EventMetadata
@@ -305,28 +314,6 @@ const EventMetadata = (props: {
   );
 };
 
-const ContentBox = styled('div')`
-  padding: ${space(2)} ${space(4)};
-  margin: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: grid;
-    grid-template-rows: 1fr 30px;
-    grid-template-columns: 65% auto;
-    grid-column-gap: ${space(3)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 325px;
-  }
-`;
-
-const HeaderBox = styled(ContentBox)`
-  background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(2)};
-`;
-
 const Controller = styled('div')`
   display: flex;
   justify-content: flex-end;
@@ -369,6 +356,16 @@ const MetadataContainer = styled('div')`
 
 const MetadataJSON = styled(ExternalLink)`
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledEventEntries = styled(EventEntries)`
+  & ${DataSection} {
+    padding: ${space(3)} 0 0 0;
+  }
+  & ${DataSection}:first-child {
+    padding-top: 0;
+    border-top: none;
+  }
 `;
 
 export default withApi(EventDetailsContent);

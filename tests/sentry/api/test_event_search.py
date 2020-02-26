@@ -24,6 +24,7 @@ from sentry.api.event_search import (
     SearchVisitor,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 def test_get_json_meta_type():
@@ -413,6 +414,10 @@ class ParseSearchQueryTest(unittest.TestCase):
                 key=SearchKey(name="device.family"), operator="=", value=SearchValue(raw_value="")
             )
         ]
+        with self.assertRaises(
+            InvalidSearchQuery, expected_regex="Invalid format for numeric search"
+        ):
+            parse_search_query("device.family:")
 
     def test_custom_tag(self):
         assert parse_search_query("fruit:apple release:1.2.1") == [
@@ -472,7 +477,9 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_is_query_unsupported(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with self.assertRaises(
+            InvalidSearchQuery, expected_regex="queries are only supported in issue search"
+        ):
             parse_search_query("is:unassigned")
 
     def test_key_remapping(self):
@@ -830,7 +837,7 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             parse_search_query("(user.email:foo@example.com OR user.email:bar@example.com")
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 1). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at '(user.' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query(
@@ -838,13 +845,13 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             )
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 1). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at '((user' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query("user.email:foo@example.com OR user.email:bar@example.com)")
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 57). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at '.com)' (column 57). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             parse_search_query(
@@ -852,7 +859,7 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             )
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 91). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at 'com))' (column 91). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
     def test_grouping_without_boolean_terms(self):
@@ -868,13 +875,13 @@ class ParseBooleanSearchQueryTest(unittest.TestCase):
             ]
         assert (
             six.text_type(error.value)
-            == "Parse error: 'search' (column 28). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            == "Parse error at 'ect (evalu' (column 28). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
 
 class GetSnubaQueryArgsTest(TestCase):
     def test_simple(self):
-        filter = get_filter(
+        _filter = get_filter(
             "user.email:foo@example.com release:1.2.1 fruit:apple hello",
             {
                 "project_id": [1, 2, 3],
@@ -883,25 +890,25 @@ class GetSnubaQueryArgsTest(TestCase):
             },
         )
 
-        assert filter.conditions == [
+        assert _filter.conditions == [
             ["user.email", "=", "foo@example.com"],
             ["release", "=", "1.2.1"],
             [["ifNull", ["fruit", "''"]], "=", "apple"],
             [["positionCaseInsensitive", ["message", "'hello'"]], "!=", 0],
         ]
-        assert filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        assert filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
-        assert filter.filter_keys == {"project_id": [1, 2, 3]}
-        assert filter.project_ids == [1, 2, 3]
-        assert not filter.group_ids
-        assert not filter.event_ids
+        assert _filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        assert _filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        assert _filter.filter_keys == {"project_id": [1, 2, 3]}
+        assert _filter.project_ids == [1, 2, 3]
+        assert not _filter.group_ids
+        assert not _filter.event_ids
 
     def test_negation(self):
-        filter = get_filter("!user.email:foo@example.com")
-        assert filter.conditions == [
+        _filter = get_filter("!user.email:foo@example.com")
+        assert _filter.conditions == [
             [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "foo@example.com"]]
         ]
-        assert filter.filter_keys == {}
+        assert _filter.filter_keys == {}
 
     def test_implicit_and_explicit_tags(self):
         assert get_filter("tags[fruit]:apple").conditions == [
@@ -915,40 +922,40 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
 
     def test_no_search(self):
-        filter = get_filter(
+        _filter = get_filter(
             params={
                 "project_id": [1, 2, 3],
                 "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
                 "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
             }
         )
-        assert not filter.conditions
-        assert filter.filter_keys == {"project_id": [1, 2, 3]}
-        assert filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        assert filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        assert not _filter.conditions
+        assert _filter.filter_keys == {"project_id": [1, 2, 3]}
+        assert _filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        assert _filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
 
     def test_wildcard(self):
-        filter = get_filter("release:3.1.* user.email:*@example.com")
-        assert filter.conditions == [
+        _filter = get_filter("release:3.1.* user.email:*@example.com")
+        assert _filter.conditions == [
             [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "=", 1],
             [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
         ]
-        assert filter.filter_keys == {}
+        assert _filter.filter_keys == {}
 
     def test_wildcard_event_id(self):
         with self.assertRaises(InvalidSearchQuery):
             get_filter("id:deadbeef*")
 
     def test_negated_wildcard(self):
-        filter = get_filter("!release:3.1.* user.email:*@example.com")
-        assert filter.conditions == [
+        _filter = get_filter("!release:3.1.* user.email:*@example.com")
+        assert _filter.conditions == [
             [
                 [["isNull", ["release"]], "=", 1],
                 [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "!=", 1],
             ],
             [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
         ]
-        assert filter.filter_keys == {}
+        assert _filter.filter_keys == {}
 
     def test_escaped_wildcard(self):
         assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
@@ -963,21 +970,31 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
 
     def test_wildcard_array_field(self):
-        filter = get_filter(
+        _filter = get_filter(
             "error.value:Deadlock* stack.filename:*.py stack.abs_path:%APP_DIR%/th_ing*"
         )
-        assert filter.conditions == [
+        assert _filter.conditions == [
             ["error.value", "LIKE", "Deadlock%"],
             ["stack.filename", "LIKE", "%.py"],
             ["stack.abs_path", "LIKE", "\\%APP\\_DIR\\%/th\\_ing%"],
         ]
-        assert filter.filter_keys == {}
+        assert _filter.filter_keys == {}
 
     def test_has(self):
         assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
 
     def test_not_has(self):
         assert get_filter("!has:release").conditions == [[["isNull", ["release"]], "=", 1]]
+
+    def test_has_issue_id(self):
+        has_issue_filter = get_filter("has:issue.id")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "!=", 1]]
+
+    def test_not_has_issue_id(self):
+        has_issue_filter = get_filter("!has:issue.id")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "=", 1]]
 
     def test_message_negative(self):
         assert get_filter('!message:"post_process.process_error HTTPError 403"').conditions == [
@@ -995,76 +1012,93 @@ class GetSnubaQueryArgsTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             get_filter("(user.email:foo@example.com OR user.email:bar@example.com")
 
+    def test_issue_id_filter(self):
+        _filter = get_filter("issue.id:1")
+        assert not _filter.conditions
+        assert _filter.filter_keys == {"group_id": [1]}
+        assert _filter.group_ids == [1]
+
+        _filter = get_filter("issue.id:1 issue.id:2 issue.id:3")
+        assert not _filter.conditions
+        assert _filter.filter_keys == {"group_id": [1, 2, 3]}
+        assert _filter.group_ids == [1, 2, 3]
+
+        _filter = get_filter("issue.id:1 user.email:foo@example.com")
+        assert _filter.conditions == [["user.email", "=", "foo@example.com"]]
+        assert _filter.filter_keys == {"group_id": [1]}
+        assert _filter.group_ids == [1]
+
     def test_issue_filter(self):
-        filter = get_filter("issue.id:1")
-        assert not filter.conditions
-        assert filter.filter_keys == {"group_id": [1]}
-        assert filter.group_ids == [1]
-
-        filter = get_filter("issue.id:1 issue.id:2 issue.id:3")
-        assert not filter.conditions
-        assert filter.filter_keys == {"group_id": [1, 2, 3]}
-        assert filter.group_ids == [1, 2, 3]
-
-        filter = get_filter("issue.id:1 user.email:foo@example.com")
-        assert filter.conditions == [["user.email", "=", "foo@example.com"]]
-        assert filter.filter_keys == {"group_id": [1]}
-        assert filter.group_ids == [1]
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("issue:1", {"organization_id": 1})
+        assert "Invalid value '" in six.text_type(err)
+        assert "' for 'issue:' filter" in six.text_type(err)
 
     def test_environment_param(self):
         params = {"environment": ["", "prod"]}
-        filter = get_filter("", params)
+        _filter = get_filter("", params)
         # Should generate OR conditions
-        assert filter.conditions == [
+        assert _filter.conditions == [
             [["environment", "IS NULL", None], ["environment", "=", "prod"]]
         ]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
         params = {"environment": ["dev", "prod"]}
-        filter = get_filter("", params)
-        assert filter.conditions == [[["environment", "IN", {"dev", "prod"}]]]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        _filter = get_filter("", params)
+        assert _filter.conditions == [[["environment", "IN", {"dev", "prod"}]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
     def test_environment_condition_string(self):
-        filter = get_filter("environment:dev")
-        assert filter.conditions == [[["environment", "=", "dev"]]]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        _filter = get_filter("environment:dev")
+        assert _filter.conditions == [[["environment", "=", "dev"]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
-        filter = get_filter("!environment:dev")
-        assert filter.conditions == [[["environment", "!=", "dev"]]]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        _filter = get_filter("!environment:dev")
+        assert _filter.conditions == [[["environment", "!=", "dev"]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
-        filter = get_filter("environment:dev environment:prod")
+        _filter = get_filter("environment:dev environment:prod")
         # Will generate conditions that will never find anything
-        assert filter.conditions == [[["environment", "=", "dev"]], [["environment", "=", "prod"]]]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        assert _filter.conditions == [[["environment", "=", "dev"]], [["environment", "=", "prod"]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
-        filter = get_filter("environment: ")
+        _filter = get_filter('environment:""')
         # The '' environment is Null in snuba
-        assert filter.conditions == [[["environment", "IS NULL", None]]]
-        assert filter.filter_keys == {}
-        assert filter.group_ids == []
+        assert _filter.conditions == [[["environment", "IS NULL", None]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
     def test_project_name(self):
         p1 = self.create_project(organization=self.organization)
         p2 = self.create_project(organization=self.organization)
 
         params = {"project_id": [p1.id, p2.id]}
-        filter = get_filter("project.name:{}".format(p1.slug), params)
-        filter.conditions == [["project_id", "=", p1.id]]
-        filter.filter_keys == {"project_id": [p1.id, p2.id]}
-        filter.project_ids == [p1.id, p2.id]
+        _filter = get_filter("project.name:{}".format(p1.slug), params)
+        assert _filter.conditions == [["project_id", "=", p1.id]]
+        assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
+        assert _filter.project_ids == [p1.id, p2.id]
 
-        params = {"project_id": []}
-        filter = get_filter("!project.name:{}".format(p1.slug), params)
-        filter.conditions == [["project_id", "!=", p1.id]]
-        filter.filter_keys == {}
-        filter.project_ids == []
+        params = {"project_id": [p1.id, p2.id]}
+        _filter = get_filter("!project.name:{}".format(p1.slug), params)
+        assert _filter.conditions == [
+            [[["isNull", ["project_id"]], "=", 1], ["project_id", "!=", p1.id]]
+        ]
+        assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
+        assert _filter.project_ids == [p1.id, p2.id]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            params = {"project_id": []}
+            get_filter("project.name:{}".format(p1.slug), params)
+        assert (
+            "Invalid query. Project %s does not exist or is not an actively selected project"
+            % p1.slug
+            in six.text_type(err)
+        )
 
     def test_transaction_status(self):
         for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
@@ -1083,6 +1117,19 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    def test_function_with_default_arguments(self):
+        result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
+        assert result.having == [["rpm", ">", 100]]
+
+    def test_function_with_alias(self):
+        result = get_filter("p95():>100")
+        assert result.having == [["p95", ">", 100]]
+
+    def test_function_arguments(self):
+        result = get_filter("percentile(transaction.duration, 0.75):>100")
+        assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
+
+    @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
         result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
         assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
@@ -1166,11 +1213,12 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
     def test_field_alias_expansion(self):
-        fields = ["title", "last_seen", "latest_event", "project", "user", "message"]
+        fields = ["title", "last_seen", "latest_event", "project", "issue", "user", "message"]
         result = resolve_field_list(fields, {})
         assert result["selected_columns"] == [
             "title",
             "project.id",
+            "issue.id",
             "user.id",
             "user.username",
             "user.email",
@@ -1184,6 +1232,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == [
             "title",
             "project.id",
+            "issue.id",
             "user.id",
             "user.username",
             "user.email",
@@ -1245,6 +1294,115 @@ class ResolveFieldListTest(unittest.TestCase):
             fields = ["min(message)"]
             resolve_field_list(fields, {})
         assert "Invalid column" in six.text_type(err)
+
+    def test_percentile_function(self):
+        fields = ["percentile(transaction.duration, 0.75)"]
+        result = resolve_field_list(fields, {})
+
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(0.75)"]
+            resolve_field_list(fields, {})
+        assert "percentile(0.75): expected 2 arguments" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(0.75,)"]
+            resolve_field_list(fields, {})
+        assert "percentile(0.75,): expected 2 arguments" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(sanchez, 0.75)"]
+            resolve_field_list(fields, {})
+        assert (
+            "percentile(sanchez, 0.75): column argument invalid: sanchez is not a valid column"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(id, 0.75)"]
+            resolve_field_list(fields, {})
+        assert (
+            "percentile(id, 0.75): column argument invalid: id is not a numeric column"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["percentile(transaction.duration, 75)"]
+            resolve_field_list(fields, {})
+        assert (
+            "percentile(transaction.duration, 75): percentile argument invalid: 75 must be less than 1"
+            in six.text_type(err)
+        )
+
+    def test_rpm_function(self):
+        fields = ["rpm(3600)"]
+        result = resolve_field_list(fields, {})
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["divide(count(), divide(3600, 60))", None, "rpm_3600"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["rpm(30)"]
+            resolve_field_list(fields, {})
+        assert (
+            "rpm(30): interval argument invalid: 30 must be greater than or equal to 60"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["rpm()"]
+            resolve_field_list(fields, {})
+        assert "rpm(): invalid arguments: function called without default" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["rpm()"]
+            resolve_field_list(fields, {}, params={"start": "abc", "end": "def"})
+        assert "rpm(): invalid arguments: function called with invalid default" in six.text_type(
+            err
+        )
+
+        fields = ["rpm()"]
+        result = resolve_field_list(
+            fields, {}, params={"start": before_now(hours=2), "end": before_now(hours=1)}
+        )
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["divide(count(), divide(3600, 60))", None, "rpm"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+    def test_rps_function(self):
+        fields = ["rps(3600)"]
+        result = resolve_field_list(fields, {})
+
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["divide(count(), 3600)", None, "rps_3600"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+        ]
+        assert result["groupby"] == []
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["rps(0)"]
+            result = resolve_field_list(fields, {})
+        assert (
+            "rps(0): interval argument invalid: 0 must be greater than or equal to 1"
+            in six.text_type(err)
+        )
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:

@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconEdit} from 'app/icons/iconEdit';
 import PageHeading from 'app/components/pageHeading';
 
 import {
@@ -69,7 +69,7 @@ class Result extends React.Component<ResultProps, ResultState> {
     window.addEventListener('resize', this.throttledUpdateDimensions);
   }
 
-  componentWillReceiveProps(nextProps: ResultProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: ResultProps) {
     const {data, location} = nextProps;
     const visualization = getVisualization(data, location.query.visualization);
 
@@ -188,7 +188,7 @@ class Result extends React.Component<ResultProps, ResultState> {
           {getDynamicText({value: this.props.savedQuery!.name, fixed: 'saved query'})}
         </PageHeading>
         <SavedQueryAction onClick={this.props.onToggleEdit}>
-          <InlineSvg src="icon-edit" />
+          <IconEdit />
         </SavedQueryAction>
       </React.Fragment>
     );

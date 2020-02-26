@@ -144,7 +144,7 @@ def generate_transaction():
 class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsV2Test, self).setUp()
-        self.user = self.create_user("foo@example.com")
+        self.user = self.create_user("foo@example.com", is_superuser=True)
         self.org = self.create_organization(name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
@@ -412,6 +412,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # View the query list
             self.browser.get(self.landing_path)
             self.wait_until_loaded()
+
+            # Dismiss assistant as it is in the way.
+            self.browser.element('[aria-label="Got It"]').click()
 
             # Look at the results for our query.
             self.browser.element('[data-test-id="card-{}"]'.format(query.name)).click()

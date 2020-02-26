@@ -1,5 +1,6 @@
 import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import Results from 'app/views/eventsV2/results';
@@ -14,6 +15,9 @@ const FIELDS = [
   {
     field: 'user',
   },
+  {
+    field: 'count(user)',
+  },
 ];
 
 const generateFields = () => {
@@ -25,6 +29,7 @@ const generateFields = () => {
 describe('EventsV2 > Results', function() {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
+  let eventResultsMock;
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
@@ -52,7 +57,7 @@ describe('EventsV2 > Results', function() {
       url: '/organizations/org-slug/releases/',
       body: [],
     });
-    MockApiClient.addMockResponse({
+    eventResultsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
@@ -71,6 +76,12 @@ describe('EventsV2 > Results', function() {
             timestamp: '2019-05-23T22:12:48+00:00',
           },
         ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {
+        count: 2,
       },
     });
     MockApiClient.addMockResponse({
@@ -93,10 +104,59 @@ describe('EventsV2 > Results', function() {
         tags: [{key: 'browser', value: 'Firefox'}],
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-facets/',
+      body: [
+        {
+          key: 'release',
+          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+        },
+        {
+          key: 'environment',
+          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+        },
+      ],
+    });
   });
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
+  });
+
+  it('loads data when moving from an invalid to valid EventView', function() {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    // Start off with an invalid view (empty is invalid)
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+    // No request as eventview was invalid.
+    expect(eventResultsMock).not.toHaveBeenCalled();
+
+    // Should redirect.
+    expect(browserHistory.replace).toHaveBeenCalled();
+
+    // Update location simulating a redirect.
+    wrapper.setProps({location: {query: {...generateFields()}}});
+    wrapper.update();
+
+    // Should load events once
+    expect(eventResultsMock).toHaveBeenCalled();
   });
 
   it('pagination cursor should be cleared when making a search', function() {
@@ -145,5 +205,43 @@ describe('EventsV2 > Results', function() {
         statsPeriod: '14d',
       },
     });
+  });
+
+  it('renders a y-axis selector', function() {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), yAxis: 'count(user)'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+    const selector = wrapper.find('YAxisSelector');
+    expect(selector).toHaveLength(1);
+
+    // Open the selector
+    selector.find('StyledDropdownButton button').simulate('click');
+
+    // Click one of the options.
+    selector
+      .find('DropdownMenu MenuItem a')
+      .first()
+      .simulate('click');
+    wrapper.update();
+
+    const eventsRequest = wrapper.find('EventsChart');
+    expect(eventsRequest.props().yAxis).toEqual('count(user)');
   });
 });
