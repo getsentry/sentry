@@ -221,7 +221,7 @@ export function renderTemplate(template: ParsedTemplate, components: ComponentMa
 
     // In case we cannot find our component, we call back to an empty
     // span so that stuff shows up at least.
-    let reference = components[groupKey] || <span key={idx++} />;
+    let reference = components[groupKey] ?? <span key={idx++} />;
 
     if (!React.isValidElement(reference)) {
       reference = <span key={idx++}>{reference}</span>;
