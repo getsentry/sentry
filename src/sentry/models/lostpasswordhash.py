@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import timedelta
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
@@ -71,10 +71,8 @@ class LostPasswordHash(Model):
 
     @classmethod
     def for_user(cls, user):
-        password_hash, created = cls.objects.get_or_create(user=user)
-        if not password_hash.is_valid():
-            password_hash.date_added = timezone.now()
-            password_hash.set_hash()
-            password_hash.save()
-
-        return password_hash
+        # Always invalidate existing hashes so a new one is generated
+        # each time, thus not being able to reuse old hashes.
+        with transaction.atomic():
+            cls.objects.filter(user=user).delete()
+            return cls.objects.create(user=user)
