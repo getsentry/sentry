@@ -15,6 +15,8 @@ type State = {
   plugins: PluginWithProjectList[];
 };
 
+type Tab = AbstractIntegrationDetailedView['state']['tab'];
+
 class PluginDetailedView extends AbstractIntegrationDetailedView<
   AbstractIntegrationDetailedView['props'],
   State & AbstractIntegrationDetailedView['state']
@@ -123,6 +125,14 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
       {}
     );
   };
+
+  getTabDiplay(tab: Tab) {
+    //we want to show project configurations to make it more clear
+    if (tab === 'configurations') {
+      return 'project configurations';
+    }
+    return 'overview';
+  }
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     return (

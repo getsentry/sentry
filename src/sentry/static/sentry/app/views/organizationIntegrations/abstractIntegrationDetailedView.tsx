@@ -24,7 +24,7 @@ import {
 import Alert, {Props as AlertProps} from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-import {IconClose} from 'app/icons';
+import {IconClose, IconGithub} from 'app/icons';
 import IntegrationStatus from './integrationStatus';
 
 type Tab = 'information' | 'configurations';
@@ -347,11 +347,15 @@ class AbstractIntegrationDetailedView<
                 <AuthorName>{this.author}</AuthorName>
               </div>
             )}
-            {this.resourceLinks.map(({title, url}) => (
-              <ExternalLink key={url} href={url}>
-                {t(title)}
-              </ExternalLink>
-            ))}
+            {this.resourceLinks.map(({title, url}) => {
+              const icon = title === 'View Source' ? <IconCode /> : <StyledIconGithub />;
+              return (
+                <ExternalLinkContainer key={url}>
+                  {icon}
+                  <ExternalLink href={url}>{t(title)}</ExternalLink>
+                </ExternalLinkContainer>
+              );
+            })}
           </Metadata>
         </Flex>
       </React.Fragment>
@@ -444,10 +448,6 @@ const Metadata = styled(Flex)`
   font-size: 0.9em;
   margin-left: ${space(4)};
   margin-right: 100px;
-
-  a {
-    margin-bottom: ${space(2)};
-  }
 `;
 
 const AuthorName = styled('div')`
@@ -500,5 +500,16 @@ const EmptyConfigurationBody = styled('div')`
   line-height: 28px;
   color: ${p => p.theme.gray2};
   padding-bottom: ${space(2)};
+`;
+
+const IconCode = () => (
+  <span className="icon-code2" style={{fontWeight: 'bold', marginRight: space(1)}} />
+);
+const StyledIconGithub = styled(IconGithub)`
+  margin-right: ${space(1)};
+`;
+
+const ExternalLinkContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 export default AbstractIntegrationDetailedView;
