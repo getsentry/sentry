@@ -14,14 +14,14 @@ export function navigateTo(to: string, router: InjectedRouter) {
 
   if (needOrg || needProject) {
     openModal(
-      ({closeModal, Header, Body}) => (
+      ({closeModal, Body}) => (
         <ContextPickerModal
-          Header={Header}
           Body={Body}
           nextPath={to}
           needOrg={needOrg}
           needProject={needProject}
           comingFromProjectId={comingFromProjectId}
+          closeModal={closeModal}
           onFinish={path => {
             closeModal();
             setTimeout(() => router.push(path), 0);
