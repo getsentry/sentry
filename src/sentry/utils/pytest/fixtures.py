@@ -301,9 +301,9 @@ def insta_snapshot(request, log):
                 source = source[len(_test_base) + 1 :]
             if _snapshot_writeback == "new":
                 reference_file += ".new"
-            with open(reference_file, "w") as f:
+            with io.open(reference_file, "wt", encoding="utf-8") as f:
                 f.write(
-                    "---\n%s\n---\n%s\n"
+                    u"---\n%s\n---\n%s\n"
                     % (
                         yaml.safe_dump(
                             {
