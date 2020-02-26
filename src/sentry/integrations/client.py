@@ -112,7 +112,7 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
-def track_response_data(integration, code, error=None, **context):
+def track_response_data(integration, code, error=None, context=None):
     logger = logging.getLogger("sentry.integrations.client")
 
     metrics.incr(

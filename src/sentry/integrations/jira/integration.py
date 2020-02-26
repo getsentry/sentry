@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import six
+from operator import attrgetter
 
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
@@ -285,7 +286,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             verify_ssl=True,
             logging_context={
                 "org_id": self.organization_id,
-                "integration_id": self._org_integration.integration.id,
+                "integration_id": attrgetter("_org_integration.integration.id")(self),
+                "org_integration_id": attrgetter("_org_integration.id")(self),
             },
         )
 
