@@ -10,7 +10,6 @@ import {t} from 'app/locale';
 import {assert} from 'app/types/utils';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
 
 import {
   downloadAsCsv,
