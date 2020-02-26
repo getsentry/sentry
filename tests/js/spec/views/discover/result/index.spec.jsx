@@ -186,7 +186,7 @@ describe('Result', function() {
 
         wrapper
           .find('ul.dropdown-menu')
-          .find('a')
+          .find('span')
           .at(1)
           .simulate('click');
 

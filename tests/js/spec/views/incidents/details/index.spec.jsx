@@ -115,7 +115,7 @@ describe('IncidentDetails', function() {
     expect(wrapper.find('Status').text()).not.toBe('Resolved');
     wrapper.find('[data-test-id="status-dropdown"] DropdownButton').simulate('click');
     wrapper
-      .find('[data-test-id="status-dropdown"] MenuItem a')
+      .find('[data-test-id="status-dropdown"] MenuItem span')
       .at(0)
       .simulate('click');
 
