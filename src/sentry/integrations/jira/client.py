@@ -91,13 +91,13 @@ class JiraApiClient(ApiClient):
 
     integration_name = "jira"
 
-    def __init__(self, base_url, jira_style, verify_ssl):
+    def __init__(self, base_url, jira_style, verify_ssl, logging_context=None):
         self.base_url = base_url
         # `jira_style` encapsulates differences between jira server & jira cloud.
         # We only support one API version for Jira, but server/cloud require different
         # authentication mechanisms and caching.
         self.jira_style = jira_style
-        super(JiraApiClient, self).__init__(verify_ssl)
+        super(JiraApiClient, self).__init__(verify_ssl, logging_context)
 
     def request(self, method, path, data=None, params=None, **kwargs):
         """

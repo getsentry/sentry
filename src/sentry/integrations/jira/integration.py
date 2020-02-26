@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import six
+from operator import attrgetter
 
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
@@ -283,6 +284,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             self.model.metadata["base_url"],
             JiraCloud(self.model.metadata["shared_secret"]),
             verify_ssl=True,
+            logging_context={
+                "org_id": self.organization_id,
+                "integration_id": attrgetter("org_integration.integration.id")(self),
+                "org_integration_id": attrgetter("org_integration.id")(self),
+            },
         )
 
     def get_issue(self, issue_id, **kwargs):
@@ -498,7 +504,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         defaults = self.get_project_defaults(group.project_id)
         project_id = params.get("project", defaults.get("project"))
-
         client = self.get_client()
         try:
             jira_projects = client.get_projects_list()
