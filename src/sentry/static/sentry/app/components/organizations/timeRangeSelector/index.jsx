@@ -235,7 +235,6 @@ class TimeRangeSelector extends React.PureComponent {
   handleClear = () => {
     const {onChange} = this.props;
 
-    console.log('cleear this.state', this.state);
     const newDateTime = {
       relative: null,
       start: null,
