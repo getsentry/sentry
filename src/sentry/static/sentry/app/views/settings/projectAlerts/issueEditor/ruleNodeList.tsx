@@ -22,10 +22,9 @@ type Props = {
   // Placeholder for select control
   placeholder: string;
 
-  onPropertyChange: (ruleIndex: number) => (prop: string, val: string) => void;
+  onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
 
-  // TODO(ts): Type value
-  onAddRow: (value: unknown) => void;
+  onAddRow: (value: string) => void;
 
   onDeleteRow: (ruleIndex: number) => void;
 };
@@ -69,10 +68,11 @@ class RuleNodeList extends React.Component<Props> {
               return (
                 <RuleNode
                   key={idx}
+                  index={idx}
                   node={this.getNode(item.id)}
-                  onDelete={() => onDeleteRow(idx)}
+                  onDelete={onDeleteRow}
                   data={item}
-                  onPropertyChange={onPropertyChange(idx)}
+                  onPropertyChange={onPropertyChange}
                 />
               );
             })}
