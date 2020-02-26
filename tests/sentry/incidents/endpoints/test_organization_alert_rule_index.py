@@ -74,7 +74,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-
         valid_alert_rule = {
             "aggregation": 0,
             "aggregations": [0],
@@ -87,17 +86,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                     "resolveThreshold": 100,
                     "thresholdType": 0,
                     "actions": [
-                        # {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
-                        {
-                            "alertRuleTriggerId": "42",
-                            "targetIdentifier": "#spam-alerts-dev",
-                            "targetType": "specific",
-                            "integrationId": 1,
-                            "desc": "Send a Slack notificaiton to #spam-alerts-dev",
-                            "type": "slack",
-                            "id": "38",
-                            "dateCreated": "2020-02-19T17:07:46.206658Z"
-                        },
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
                 },
                 {

@@ -461,7 +461,6 @@ def create_alert_rule(
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`.
-    :param actions: A list of alert rule triggers for this for this rule
 
     :return: The created `AlertRule`
     """
@@ -738,7 +737,6 @@ def create_alert_rule_trigger(
     resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
-    # :param actions: A list of alert rule trigger actions for this trigger
     :return: The created AlertRuleTrigger
     """
     if AlertRuleTrigger.objects.filter(alert_rule=alert_rule, label=label).exists():
@@ -784,7 +782,6 @@ def update_alert_rule_trigger(
     resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
-    # :param actions: A list of alert rule trigger actions for this trigger
     :return: The updated AlertRuleTrigger
     """
 

@@ -112,6 +112,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                         % (type_info.slug, allowed_target_types)
                     }
                 )
+
         if attrs.get("type") == AlertRuleTriggerAction.Type.EMAIL:
             if target_type == AlertRuleTriggerAction.TargetType.TEAM:
                 try:
@@ -155,7 +156,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             if getattr(instance, field_name) != value:
                 changed = True
                 break
-
         return validated_data if changed else {}
 
     def update(self, instance, validated_data):
