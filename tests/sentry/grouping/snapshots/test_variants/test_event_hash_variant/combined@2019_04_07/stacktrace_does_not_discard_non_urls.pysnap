@@ -1,5 +1,5 @@
 ---
-created: '2019-09-03T07:26:06.715819Z'
+created: '2020-02-26T00:45:36.947450Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,9 +10,9 @@ app:
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           filename*
-            u'foo'
+            foo
           context-line*
-            u'<HTML>'
+            <HTML>
           lineno (line number is not used if context-line is available)
             1
 --------------------------------------------------------------------------
@@ -23,8 +23,8 @@ system:
       stacktrace*
         frame*
           filename*
-            u'foo'
+            foo
           context-line*
-            u'<HTML>'
+            <HTML>
           lineno (line number is not used if context-line is available)
             1

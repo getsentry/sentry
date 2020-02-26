@@ -1,5 +1,5 @@
 ---
-created: '2019-04-07T10:03:31.649772Z'
+created: '2020-02-26T00:45:37.041727Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,9 +10,9 @@ app:
       stacktrace (ignored single frame stack)
         frame (non app frame)
           module*
-            u'<unknown module>'
+            <unknown module>
           filename (module takes precedence)
-            u'/bar/'
+            /bar/
           context-line (discarded because from URL origin)
           lineno*
             107
@@ -27,9 +27,9 @@ system:
       stacktrace (ignored single frame stack)
         frame*
           module*
-            u'<unknown module>'
+            <unknown module>
           filename (module takes precedence)
-            u'/bar/'
+            /bar/
           context-line (discarded because from URL origin)
           lineno*
             107

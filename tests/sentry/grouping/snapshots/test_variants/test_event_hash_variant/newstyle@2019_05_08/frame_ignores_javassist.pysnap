@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T07:29:42.220823Z'
+created: '2020-02-26T00:45:45.421199Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,9 +10,9 @@ app:
       stacktrace
         frame (non app frame)
           module* (removed codegen marker)
-            u'com.example.api.entry.EntriesResource_$$_javassist<auto>'
+            com.example.api.entry.EntriesResource_$$_javassist<auto>
           function*
-            u'fn'
+            fn
 --------------------------------------------------------------------------
 system:
   hash: '538bdfd8d7bb2495d0d6429c3689a420'
@@ -21,6 +21,6 @@ system:
       stacktrace*
         frame*
           module* (removed codegen marker)
-            u'com.example.api.entry.EntriesResource_$$_javassist<auto>'
+            com.example.api.entry.EntriesResource_$$_javassist<auto>
           function*
-            u'fn'
+            fn

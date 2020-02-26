@@ -1,5 +1,5 @@
 ---
-created: '2019-11-01T10:06:07.621619Z'
+created: '2020-02-26T00:45:48.720572Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,75 +11,75 @@ app:
         stacktrace
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'testMethod'
+              testMethod
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'aha'
+              aha
           frame (non app frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'eval'
+              eval
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'test'
+              test
           frame (non app frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'map'
+              map
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'callback'
+              callback
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'callAnotherThing'
+              callAnotherThing
           frame (non app frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'aha'
+              aha
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'aha'
+              aha
         type*
-          u'Error'
+          Error
         value*
-          u'bad'
+          bad
 --------------------------------------------------------------------------
 system:
   hash: 'b2602ad455472dede8e4c340d8a7eaba'
@@ -89,72 +89,72 @@ system:
         stacktrace*
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'testMethod'
+              testMethod
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'aha'
+              aha
           frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'eval'
+              eval
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'test'
+              test
           frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'map'
+              map
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'callback'
+              callback
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'callAnotherThing'
+              callAnotherThing
           frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'aha'
+              aha
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'aha'
+              aha
         type*
-          u'Error'
+          Error
         value (ignored because stacktrace takes precedence)
-          u'bad'
+          bad

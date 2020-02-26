@@ -1,5 +1,5 @@
 ---
-created: '2019-09-10T09:51:02.717347Z'
+created: '2020-02-26T00:45:39.195757Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,43 +11,43 @@ app:
         stacktrace*
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              u'exe_common.inl'
+              exe_common.inl
             function*
-              u'__scrt_common_main_seh'
+              __scrt_common_main_seh
             lineno (function takes precedence)
               288
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              u'exe_common.inl'
+              exe_common.inl
             function*
-              u'invoke_main'
+              invoke_main
             lineno (function takes precedence)
               78
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              u'main.cpp'
+              main.cpp
             function*
-              u'main'
+              main
             lineno (function takes precedence)
               35
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              u'main.cpp'
+              main.cpp
             function*
-              u"`anonymous namespace'::start"
+              `anonymous namespace'::start
             lineno (function takes precedence)
               28
           frame* (frame considered in-app because no frame is in-app)
             filename*
-              u'main.cpp'
+              main.cpp
             function*
-              u'?A0xc3a0617d::crash'
+              ?A0xc3a0617d::crash
             lineno (function takes precedence)
               24
         type*
-          u'EXCEPTION_ACCESS_VIOLATION_WRITE'
+          EXCEPTION_ACCESS_VIOLATION_WRITE
         value (stacktrace and type take precedence)
-          u'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
+          Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE
 --------------------------------------------------------------------------
 system:
   hash: 'f133068802b8a7f6162e0c7d8fc6b984'
@@ -57,40 +57,40 @@ system:
         stacktrace*
           frame*
             filename*
-              u'exe_common.inl'
+              exe_common.inl
             function*
-              u'__scrt_common_main_seh'
+              __scrt_common_main_seh
             lineno (function takes precedence)
               288
           frame*
             filename*
-              u'exe_common.inl'
+              exe_common.inl
             function*
-              u'invoke_main'
+              invoke_main
             lineno (function takes precedence)
               78
           frame*
             filename*
-              u'main.cpp'
+              main.cpp
             function*
-              u'main'
+              main
             lineno (function takes precedence)
               35
           frame*
             filename*
-              u'main.cpp'
+              main.cpp
             function*
-              u"`anonymous namespace'::start"
+              `anonymous namespace'::start
             lineno (function takes precedence)
               28
           frame*
             filename*
-              u'main.cpp'
+              main.cpp
             function*
-              u'?A0xc3a0617d::crash'
+              ?A0xc3a0617d::crash
             lineno (function takes precedence)
               24
         type*
-          u'EXCEPTION_ACCESS_VIOLATION_WRITE'
+          EXCEPTION_ACCESS_VIOLATION_WRITE
         value (stacktrace and type take precedence)
-          u'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
+          Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE

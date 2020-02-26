@@ -1,5 +1,5 @@
 ---
-created: '2019-03-15T11:58:33.422866Z'
+created: '2020-02-26T00:45:42.075521Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,40 +10,40 @@ app:
       stacktrace*
         frame*
           filename*
-            u'foo.py'
+            foo.py
         frame (non app frame)
           filename*
-            u'bar.py'
+            bar.py
         frame (non app frame)
           filename*
-            u'bar.py'
+            bar.py
         frame (non app frame)
           filename*
-            u'bar.py'
+            bar.py
         frame (non app frame)
           filename*
-            u'bar.py'
+            bar.py
         frame (non app frame)
           filename*
-            u'bar.py'
+            bar.py
         frame (non app frame)
           filename*
-            u'bar.py'
+            bar.py
         frame (non app frame)
           filename*
-            u'bar.py'
+            bar.py
         frame (non app frame)
           filename*
-            u'bar.py'
+            bar.py
         frame (non app frame)
           filename*
-            u'bar.py'
+            bar.py
         frame (non app frame)
           filename*
-            u'bar.py'
+            bar.py
         frame (non app frame)
           filename*
-            u'bar.py'
+            bar.py
 --------------------------------------------------------------------------
 system:
   hash: '659ad79e2e70c822d30a53d7d889529e'
@@ -52,37 +52,37 @@ system:
       stacktrace*
         frame*
           filename*
-            u'foo.py'
+            foo.py
         frame*
           filename*
-            u'bar.py'
+            bar.py
         frame (ignored due to recursion)
           filename*
-            u'bar.py'
+            bar.py
         frame (ignored due to recursion)
           filename*
-            u'bar.py'
+            bar.py
         frame (ignored due to recursion)
           filename*
-            u'bar.py'
+            bar.py
         frame (ignored due to recursion)
           filename*
-            u'bar.py'
+            bar.py
         frame (ignored due to recursion)
           filename*
-            u'bar.py'
+            bar.py
         frame (ignored due to recursion)
           filename*
-            u'bar.py'
+            bar.py
         frame (ignored due to recursion)
           filename*
-            u'bar.py'
+            bar.py
         frame (ignored due to recursion)
           filename*
-            u'bar.py'
+            bar.py
         frame (ignored due to recursion)
           filename*
-            u'bar.py'
+            bar.py
         frame (ignored due to recursion)
           filename*
-            u'bar.py'
+            bar.py

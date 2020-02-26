@@ -1,5 +1,5 @@
 ---
-created: '2019-04-07T10:03:31.127614Z'
+created: '2020-02-26T00:45:35.585367Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,9 +10,9 @@ app:
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           module* (removed codegen marker)
-            u'sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>'
+            sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>
           function*
-            u'invoke'
+            invoke
 --------------------------------------------------------------------------
 system:
   hash: '353e05904b48bd3ae4fa9623934a70d0'
@@ -21,6 +21,6 @@ system:
       stacktrace*
         frame*
           module* (removed codegen marker)
-            u'sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>'
+            sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>
           function*
-            u'invoke'
+            invoke

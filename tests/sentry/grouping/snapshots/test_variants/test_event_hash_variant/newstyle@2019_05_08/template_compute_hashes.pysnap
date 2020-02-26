@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T07:29:42.889892Z'
+created: '2020-02-26T00:45:47.154052Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,6 +9,6 @@ default:
     default*
       template*
         filename*
-          u'foo.html'
+          foo.html
         context-line*
-          u'hello world'
+          hello world

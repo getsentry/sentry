@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T07:29:42.503455Z'
+created: '2020-02-26T00:45:45.868958Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,9 +9,10 @@ app:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         type*
-          u'Error'
+          Error
         value* (stripped common values)
-          u'Loading chunk <int> failed.\n(timeout: <url>'
+          Loading chunk <int> failed.
+(timeout: <url>
 --------------------------------------------------------------------------
 system:
   hash: '10dfd81e2df31e96fae451b9e205ad81'
@@ -19,6 +20,7 @@ system:
     system*
       exception*
         type*
-          u'Error'
+          Error
         value* (stripped common values)
-          u'Loading chunk <int> failed.\n(timeout: <url>'
+          Loading chunk <int> failed.
+(timeout: <url>

@@ -1,5 +1,5 @@
 ---
-created: '2019-05-08T19:44:35.537132Z'
+created: '2020-02-26T00:45:41.153411Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,73 +11,73 @@ app:
         stacktrace
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'testMethod'
+              testMethod
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'aha'
+              aha
           frame (non app frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'eval'
+              eval
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'test'
+              test
           frame (non app frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'map'
+              map
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'callback'
+              callback
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'callAnotherThing'
+              callAnotherThing
           frame (non app frame)
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'aha'
+              aha
           frame (non app frame)
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'aha'
+              aha
         type*
-          u'Error'
+          Error
 --------------------------------------------------------------------------
 system:
   hash: '1c374ace6b13add91c6824b945dce4c3'
@@ -87,70 +87,70 @@ system:
         stacktrace*
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'testMethod'
+              testMethod
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'aha'
+              aha
           frame*
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'eval'
+              eval
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'test'
+              test
           frame*
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'map'
+              map
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'callback'
+              callback
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'callAnotherThing'
+              callAnotherThing
           frame*
             filename (native code indicated by filename)
-              u'[native code]'
+              [native code]
             function*
-              u'aha'
+              aha
           frame*
             module*
-              u'test'
+              test
             filename (ignored because frame points to a URL)
-              u'test.html'
+              test.html
             function*
-              u'aha'
+              aha
         type*
-          u'Error'
+          Error
