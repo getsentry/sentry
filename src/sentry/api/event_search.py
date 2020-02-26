@@ -683,6 +683,10 @@ def convert_search_filter_to_snuba_query(search_filter):
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
     elif name == "transaction.status":
+        # Handle "has" queries
+        if search_filter.value.raw_value == "":
+            return [["isNull", [name]], search_filter.operator, 1]
+
         internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
         if internal_value is None:
             raise InvalidSearchQuery(

@@ -1419,3 +1419,32 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["count_id"] == 2
             assert data[0]["count_unique_project_id"] == 2
             assert data[0]["count_unique_project"] == 2
+
+    def test_has_transaction_status(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("transaction")
+        data["transaction"] = "/transactionstatus/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "count(id)"],
+                    "query": "event.type:transaction has:transaction.status",
+                    "sort": "-count(id)",
+                    "statsPeriod": "24h",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["count_id"] == 1
