@@ -1,3 +1,21 @@
+export type IssueAlertRuleFormField =
+  | {
+      type: 'choice';
+      choices?: [string, string][];
+      initial?: string;
+      placeholder?: string;
+    }
+  | {
+      type: 'string';
+      initial?: string;
+      placeholder?: string;
+    }
+  | {
+      type: 'number';
+      placeholder?: number | string;
+      initial?: string;
+    };
+
 /**
  * These templates that tell the UI how to render the action or condition
  * and what fields it needs
@@ -7,20 +25,7 @@ export type IssueAlertRuleActionTemplate = {
   label: string;
   enabled: boolean;
   formFields?: {
-    [key: string]:
-      | {
-          type: 'choice';
-          choices: [string, string][];
-          placeholder?: string;
-        }
-      | {
-          type: 'string';
-          placeholder?: string;
-        }
-      | {
-          type: 'number';
-          placeholder?: number | string;
-        };
+    [key: string]: IssueAlertRuleFormField;
   };
 };
 export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
