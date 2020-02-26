@@ -19,23 +19,15 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
 };
 
-type State = {
-  alertType: string | null;
-};
-
-class ProjectAlertsEditor extends React.Component<Props, State> {
-  state = {
-    alertType: this.props.location.pathname.includes('/alerts/rules/')
-      ? 'issue'
-      : this.props.location.pathname.includes('/alerts/metric-rules/')
-      ? 'metric'
-      : null,
-  };
-
+class ProjectAlertsEditor extends React.Component<Props> {
   render() {
-    const {hasMetricAlerts} = this.props;
-    const {projectId} = this.props.params;
-    const {alertType} = this.state;
+    const {hasMetricAlerts, location, params} = this.props;
+    const {projectId} = params;
+    const alertType = location.pathname.includes('/alerts/rules/')
+      ? 'issue'
+      : location.pathname.includes('/alerts/metric-rules/')
+      ? 'metric'
+      : null;
 
     const title = t('Edit Alert');
 
