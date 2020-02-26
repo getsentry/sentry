@@ -37,16 +37,11 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        print("instantiating serializer...")
         serializer = AlertRuleSerializer(
             context={"organization": organization, "access": request.access}, data=request.data
         )
-        print("serializer is::", serializer)
-        print("verifying validity...")
         if serializer.is_valid():
-            print("it's valid!")
             alert_rule = serializer.save()
-            print("alert rule:",alert_rule)
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
