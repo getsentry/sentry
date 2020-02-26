@@ -274,7 +274,7 @@ def build_incident_query_params(incident, start=None, end=None):
     return bulk_build_incident_query_params([incident], start=start, end=end)[0]
 
 
-def bulk_build_incident_query_params(incidents, start=None, end=None):
+def bulk_build_incident_query_params(incidents, start=None, end=None, prewindow=False):
     incident_groups = defaultdict(list)
     for incident_id, group_id in IncidentGroup.objects.filter(incident__in=incidents).values_list(
         "incident_id", "group_id"
@@ -292,8 +292,9 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
             "start": incident.date_started if start is None else start,
             "end": incident.current_end_date if end is None else end,
         }
-        prewindow_time_range = calculate_incident_prewindow(params["start"], params["end"])
-        params["start"] = params["start"] - prewindow_time_range
+        if prewindow:
+            prewindow_time_range = calculate_incident_prewindow(params["start"], params["end"])
+            params["start"] = params["start"] - prewindow_time_range
         group_ids = incident_groups[incident.id]
         if group_ids:
             params["group_ids"] = group_ids
@@ -329,7 +330,9 @@ def get_incident_event_stats(incident, start=None, end=None, data_points=50):
     Gets event stats for an incident. If start/end are provided, uses that time
     period, otherwise uses the incident start/current_end.
     """
-    query_params = bulk_build_incident_query_params([incident], start=start, end=end)
+    query_params = bulk_build_incident_query_params(
+        [incident], start=start, end=end, prewindow=True
+    )
     return bulk_get_incident_event_stats([incident], query_params, data_points=data_points)[0]
 
 
@@ -405,7 +408,7 @@ def bulk_get_incident_stats(incidents):
 
     to_fetch = [i for i in incidents if i.id not in incident_stats]
     if to_fetch:
-        query_params_list = bulk_build_incident_query_params(to_fetch)
+        query_params_list = bulk_build_incident_query_params(to_fetch, prewindow=True)
         all_event_stats = bulk_get_incident_event_stats(to_fetch, query_params_list)
         all_aggregates = bulk_get_incident_aggregates(query_params_list)
         for incident, event_stats, aggregates in zip(to_fetch, all_event_stats, all_aggregates):
