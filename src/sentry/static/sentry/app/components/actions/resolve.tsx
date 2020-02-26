@@ -9,8 +9,37 @@ import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import {formatVersion} from 'app/utils/formatters';
+import {
+  Release,
+  ResolutionStatus,
+  ResolutionStatusDetails,
+  UpdateResolutionStatus,
+} from 'app/types';
 
-export default class ResolveActions extends React.Component {
+const defaultProps = {
+  isResolved: false,
+  isAutoResolved: false,
+  confirmLabel: t('Resolve'),
+};
+
+type Props = {
+  hasRelease: boolean;
+  onUpdate: (data: UpdateResolutionStatus) => void;
+  orgId: string;
+  latestRelease?: Release;
+  projectId?: string;
+  shouldConfirm?: boolean;
+  confirmMessage?: React.ReactNode;
+  disabled?: boolean;
+  disableDropdown?: boolean;
+  projectFetchError?: boolean;
+} & typeof defaultProps;
+
+type State = {
+  modal: boolean;
+};
+
+class ResolveActions extends React.Component<Props, State> {
   static propTypes = {
     hasRelease: PropTypes.bool.isRequired,
     latestRelease: PropTypes.object,
@@ -27,28 +56,22 @@ export default class ResolveActions extends React.Component {
     projectFetchError: PropTypes.bool,
   };
 
-  static defaultProps = {
-    isResolved: false,
-    isAutoResolved: false,
-    confirmLabel: 'Resolve',
-  };
+  static defaultProps = defaultProps;
 
-  constructor(props) {
-    super(props);
-    this.state = {modal: false};
-  }
+  state = {modal: false};
 
-  onCustomResolution(statusDetails) {
+  onCustomResolution(statusDetails: ResolutionStatusDetails) {
     this.setState({
       modal: false,
     });
+
     this.props.onUpdate({
-      status: 'resolved',
+      status: ResolutionStatus.RESOLVED,
       statusDetails,
     });
   }
 
-  getButtonClass(otherClasses) {
+  getButtonClass(otherClasses?: string) {
     return classNames('btn btn-default btn-sm', otherClasses);
   }
 
@@ -76,7 +99,7 @@ export default class ResolveActions extends React.Component {
             <a
               data-test-id="button-unresolve"
               className={this.getButtonClass('active')}
-              onClick={() => onUpdate({status: 'unresolved'})}
+              onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
             >
               <span className="icon-checkmark" />
             </a>
@@ -123,7 +146,9 @@ export default class ResolveActions extends React.Component {
       <div style={{display: 'inline-block'}}>
         <CustomResolutionModal
           show={this.state.modal}
-          onSelected={statusDetails => this.onCustomResolution(statusDetails)}
+          onSelected={(statusDetails: ResolutionStatusDetails) =>
+            this.onCustomResolution(statusDetails)
+          }
           onCanceled={() => this.setState({modal: false})}
           orgId={orgId}
           projectId={projectId}
@@ -133,9 +158,9 @@ export default class ResolveActions extends React.Component {
             <div className="btn-group">
               <ActionLink
                 {...actionLinkProps}
-                title="Resolve"
+                title={t('Resolve')}
                 className={buttonClass}
-                onAction={() => onUpdate({status: 'resolved'})}
+                onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
               >
                 <span className="icon-checkmark hidden-xs" style={{marginRight: 5}} />
                 {t('Resolve')}
@@ -154,11 +179,12 @@ export default class ResolveActions extends React.Component {
                   <Tooltip title={actionTitle} containerDisplayMode="block">
                     <ActionLink
                       {...actionLinkProps}
+                      title={t('The next release')}
                       onAction={() => {
                         return (
                           hasRelease &&
                           onUpdate({
-                            status: 'resolved',
+                            status: ResolutionStatus.RESOLVED,
                             statusDetails: {
                               inNextRelease: true,
                             },
@@ -172,11 +198,12 @@ export default class ResolveActions extends React.Component {
                   <Tooltip title={actionTitle} containerDisplayMode="block">
                     <ActionLink
                       {...actionLinkProps}
+                      title={t('The current release')}
                       onAction={() => {
                         return (
                           hasRelease &&
                           onUpdate({
-                            status: 'resolved',
+                            status: ResolutionStatus.RESOLVED,
                             statusDetails: {
                               inRelease: latestRelease ? latestRelease.version : 'latest',
                             },
@@ -195,6 +222,7 @@ export default class ResolveActions extends React.Component {
                   <Tooltip title={actionTitle} containerDisplayMode="block">
                     <ActionLink
                       {...actionLinkProps}
+                      title={t('Another version')}
                       onAction={() => hasRelease && this.setState({modal: true})}
                       shouldConfirm={false}
                     >
@@ -210,3 +238,5 @@ export default class ResolveActions extends React.Component {
     );
   }
 }
+
+export default ResolveActions;

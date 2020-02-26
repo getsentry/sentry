@@ -6,6 +6,7 @@ from datetime import datetime
 
 from time import time
 from django.utils import timezone
+from django.conf import settings
 
 from sentry_relay.processing import StoreNormalizer
 
@@ -224,12 +225,12 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
             has_changed = True
             data = new_data
     except RetrySymbolication as e:
-        if start_time and (time() - start_time) > 120:
+        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
             error_logger.warning(
                 "process.slow", extra={"project_id": project_id, "event_id": event_id}
             )
 
-        if start_time and (time() - start_time) > 3600:
+        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             # Do not drop event but actually continue with rest of pipeline
             # (persisting unsymbolicated event)
             error_logger.exception(
