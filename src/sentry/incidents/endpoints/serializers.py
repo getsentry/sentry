@@ -73,7 +73,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         }
 
     def validate_type(self, type):
-        print ("validating type", type)
         if type not in string_to_action_type:
             raise serializers.ValidationError(
                 "Invalid type, valid values are [%s]" % ", ".join(string_to_action_type.keys())
@@ -81,7 +80,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return string_to_action_type[type]
 
     def validate_target_type(self, target_type):
-        print ("validating target_type", target_type)
         if target_type not in string_to_action_target_type:
             raise serializers.ValidationError(
                 "Invalid targetType, valid values are [%s]"
@@ -90,7 +88,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return string_to_action_target_type[target_type]
 
     def validate(self, attrs):
-        print("AlertRuleTriggerActionSerializer validate")
         if ("type" in attrs) != ("target_type" in attrs) != ("target_identifier" in attrs):
             raise serializers.ValidationError(
                 "type, targetType and targetIdentifier must be passed together"
@@ -115,7 +112,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                         % (type_info.slug, allowed_target_types)
                     }
                 )
-        print ("validating action...", attrs)
         if attrs.get("type") == AlertRuleTriggerAction.Type.EMAIL:
             if target_type == AlertRuleTriggerAction.TargetType.TEAM:
                 try:
@@ -135,10 +131,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 ).exists():
                     raise serializers.ValidationError("User does not belong to this organization")
         elif attrs.get("type") == AlertRuleTriggerAction.Type.SLACK:
-            print ("action type is slack!")
-            print ("int attrs:", attrs.get("integration"))
             if not attrs.get("integration"):
-                print ("raising integration error!")
                 raise serializers.ValidationError(
                     {"integration": "Integration must be provided for slack"}
                 )
@@ -149,7 +142,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return create_alert_rule_trigger_action(trigger=self.context["trigger"], **validated_data)
 
     def _remove_unchanged_fields(self, instance, validated_data):
-        print ("removing unchanged fields:", self, instance, validated_data)
         changed = False
         if (
             validated_data.get("type", instance.type) == AlertRuleTriggerAction.Type.SLACK.value
@@ -163,12 +155,10 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             if getattr(instance, field_name) != value:
                 changed = True
                 break
-        print ("changed?", changed)
 
         return validated_data if changed else {}
 
     def update(self, instance, validated_data):
-        print ("updating and removing unchanged")
         validated_data = self._remove_unchanged_fields(instance, validated_data)
         return update_alert_rule_trigger_action(instance, **validated_data)
 
@@ -186,8 +176,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
     # TODO: These might be slow for many projects, since it will query for each
     # individually. If we find this to be a problem then we can look into batching.
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
-
-    actions = AlertRuleTriggerActionSerializer(many=True)
+    actions = serializers.ListField(required=True)
 
     class Meta:
         model = AlertRuleTrigger
@@ -213,9 +202,13 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         try:
-            return create_alert_rule_trigger(
+            actions = validated_data.pop("actions")
+            alert_rule_trigger = create_alert_rule_trigger(
                 alert_rule=self.context["alert_rule"], **validated_data
             )
+            self._handle_action_updates(alert_rule_trigger, actions)
+
+            return alert_rule_trigger
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
@@ -236,11 +229,51 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
         return validated_data
 
     def update(self, instance, validated_data):
+        actions = validated_data.pop("actions")
         validated_data = self._remove_unchanged_fields(instance, validated_data)
         try:
-            return update_alert_rule_trigger(instance, **validated_data)
+            alert_rule_trigger = update_alert_rule_trigger(instance, **validated_data)
+            self._handle_action_updates(alert_rule_trigger, actions)
+            return alert_rule_trigger
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
+
+    def _handle_action_updates(self, alert_rule_trigger, actions):
+        if actions is not None:
+            # Delete actions we don't have present in the updated data.
+            action_ids = [x["id"] for x in actions if "id" in x]
+            AlertRuleTriggerAction.objects.filter(alert_rule_trigger=alert_rule_trigger).exclude(
+                id__in=action_ids
+            ).delete()
+
+            for action_data in actions:
+                # TODO: This feels like a hack and shouldn't be needed?
+                if "integration_id" in action_data:
+                    action_data["integration"] = action_data["integration_id"]
+                    del action_data["integration_id"]
+
+                if "id" in action_data:
+                    action_instance = AlertRuleTriggerAction.objects.get(
+                        alert_rule_trigger=alert_rule_trigger, id=action_data["id"]
+                    )
+                else:
+                    action_instance = None
+
+                action_serializer = AlertRuleTriggerActionSerializer(
+                    context={
+                        "alert_rule": alert_rule_trigger.alert_rule,
+                        "trigger": alert_rule_trigger,
+                        "organization": self.context["organization"],
+                        "access": self.context["access"],
+                    },
+                    instance=action_instance,
+                    data=action_data,
+                )
+
+                if action_serializer.is_valid():
+                    action_serializer.save()
+                else:
+                    raise serializers.ValidationError(action_serializer.errors)
 
 
 class AlertRuleSerializer(CamelSnakeModelSerializer):
@@ -256,7 +289,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     projects = serializers.ListField(child=ProjectField(), required=False)
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
     triggers = serializers.ListField(required=True)
-    # triggers = AlertRuleTriggerSerializer(many=True, required=True)
 
     class Meta:
         model = AlertRule
@@ -299,7 +331,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         This includes ensuring there is either 1 or 2 triggers, which each have actions, and have proper thresholds set.
         The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
         """
-        print("AlertRuleSerializer validate")
         triggers = data.get("triggers", [])
         if triggers:
             if len(triggers) == 1:
@@ -414,46 +445,52 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         try:
-            # TODO: Remove this, just temporary while we're supporting both fields.
-            if "aggregation" not in validated_data:
-                raise serializers.ValidationError("aggregation is required")
-
             triggers = validated_data.pop("triggers")
             alert_rule = create_alert_rule(
                 organization=self.context["organization"], **validated_data
             )
-
-            if triggers:
-                for trigger_data in triggers:
-                    create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
-
+            self._handle_trigger_updates(alert_rule, triggers)
             return alert_rule
         except AlertRuleNameAlreadyUsedError:
             raise serializers.ValidationError("This name is already in use for this project")
 
     def update(self, instance, validated_data):
-        validated_data = self._remove_unchanged_fields(instance, validated_data)
         triggers = validated_data.pop("triggers")
-        alert_rule = update_alert_rule(instance, **validated_data)
+        validated_data = self._remove_unchanged_fields(instance, validated_data)
+        try:
+            alert_rule = update_alert_rule(instance, **validated_data)
+            self._handle_trigger_updates(alert_rule, triggers)
+            return alert_rule
+        except AlertRuleNameAlreadyUsedError:
+            raise serializers.ValidationError("This name is already in use for this project")
+
+    def _handle_trigger_updates(self, alert_rule, triggers):
         if triggers is not None:
-            # Delete triggers we don't have present in the updated data.
+            # Delete triggers we don't have present in the incoming data
             trigger_ids = [x["id"] for x in triggers if "id" in x]
             AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
                 id__in=trigger_ids
             ).delete()
 
             for trigger_data in triggers:
-                try:
-                    if "id" in trigger_data:
-                        trigger_instance = AlertRuleTrigger.objects.get(
-                            alert_rule=alert_rule, id=trigger_data["id"]
-                        )
-                        trigger_data.pop("id")
-                        update_alert_rule_trigger(trigger_instance, **trigger_data)
-                    else:
-                        create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
-                except AlertRuleTriggerLabelAlreadyUsedError:
-                    raise serializers.ValidationError(
-                        "This trigger label is already in use for this alert rule"
+                if "id" in trigger_data:
+                    trigger_instance = AlertRuleTrigger.objects.get(
+                        alert_rule=alert_rule, id=trigger_data["id"]
                     )
-        return alert_rule
+                else:
+                    trigger_instance = None
+
+                trigger_serializer = AlertRuleTriggerSerializer(
+                    context={
+                        "alert_rule": alert_rule,
+                        "organization": self.context["organization"],
+                        "access": self.context["access"],
+                    },
+                    instance=trigger_instance,
+                    data=trigger_data,
+                )
+
+                if trigger_serializer.is_valid():
+                    trigger_serializer.save()
+                else:
+                    raise serializers.ValidationError(trigger_serializer.errors)
