@@ -23,12 +23,9 @@ class ProjectAlertsEditor extends React.Component<Props> {
   render() {
     const {hasMetricAlerts, location, params} = this.props;
     const {projectId} = params;
-    const alertType = location.pathname.includes('/alerts/rules/')
-      ? 'issue'
-      : location.pathname.includes('/alerts/metric-rules/')
+    const alertType = location.pathname.includes('/alerts/metric-rules/')
       ? 'metric'
-      : null;
-
+      : 'issue';
     const title = t('Edit Alert');
 
     return (
