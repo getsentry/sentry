@@ -33,10 +33,9 @@ def dump_variant(variant, lines=None, indent=0):
             if isinstance(value, GroupingComponent):
                 _dump_component(value, indent + 1)
             else:
-                lines.append("%s%s" % ("  " * (indent + 1), value))
+                lines.append("  " * (indent + 1) + repr(value))
 
     lines.append("%shash: %r" % ("  " * indent, variant.get_hash()))
-
     for (key, value) in sorted(variant.__dict__.items()):
         if isinstance(value, GroupingComponent):
             lines.append("%s%s:" % ("  " * indent, key))

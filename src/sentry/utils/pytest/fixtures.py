@@ -301,7 +301,7 @@ def insta_snapshot(request, log):
                 source = source[len(_test_base) + 1 :]
             if _snapshot_writeback == "new":
                 reference_file += ".new"
-            with io.open(reference_file, "wt", encoding="utf-8") as f:
+            with open(reference_file, "w") as f:
                 f.write(
                     "---\n%s\n---\n%s\n"
                     % (
