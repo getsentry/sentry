@@ -21,17 +21,23 @@ type FormField = {
 };
 
 type Props = {
+  index: number;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
   data?: IssueAlertRuleAction | IssueAlertRuleCondition;
-  onDelete: () => void;
-  onPropertyChange: (name: string, value: string) => void;
+  onDelete: (rowIndex: number) => void;
+  onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
 class RuleNode extends React.Component<Props> {
+  handleDelete = () => {
+    const {index, onDelete} = this.props;
+    onDelete(index);
+  };
+
   getChoiceField = (name: string, fieldConfig: FormField) => {
     // Select the first item on this list
     // If it's not yet defined, call onPropertyChange to make sure the value is set on state
-    const {data, onPropertyChange} = this.props;
+    const {data, index, onPropertyChange} = this.props;
     let initialVal;
 
     if (data) {
@@ -41,7 +47,6 @@ class RuleNode extends React.Component<Props> {
         } else {
           initialVal = fieldConfig.choices[0][0];
         }
-        onPropertyChange(name, initialVal);
       } else {
         initialVal = data[name];
       }
@@ -68,13 +73,13 @@ class RuleNode extends React.Component<Props> {
           }),
         }}
         choices={choices}
-        onChange={({value}) => this.props.onPropertyChange(name, value)}
+        onChange={({value}) => onPropertyChange(index, name, value)}
       />
     );
   };
 
   getTextField = (name: string, fieldConfig: FormField) => {
-    const {data, onPropertyChange} = this.props;
+    const {data, index, onPropertyChange} = this.props;
 
     return (
       <InlineInput
@@ -83,14 +88,14 @@ class RuleNode extends React.Component<Props> {
         value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          onPropertyChange(name, e.target.value)
+          onPropertyChange(index, name, e.target.value)
         }
       />
     );
   };
 
   getNumberField = (name: string, fieldConfig: FormField) => {
-    const {data, onPropertyChange} = this.props;
+    const {data, index, onPropertyChange} = this.props;
 
     return (
       <InlineInput
@@ -99,7 +104,7 @@ class RuleNode extends React.Component<Props> {
         value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          onPropertyChange(name, e.target.value)
+          onPropertyChange(index, name, e.target.value)
         }
       />
     );
@@ -123,9 +128,9 @@ class RuleNode extends React.Component<Props> {
 
     const {label, formFields} = node;
 
-    const parts = label.split(/({\w+})/).map(part => {
+    const parts = label.split(/({\w+})/).map((part, i) => {
       if (!/^{\w+}$/.test(part)) {
-        return <Separator>{part}</Separator>;
+        return <Separator key={i}>{part}</Separator>;
       }
 
       const key = part.slice(1, -1);
@@ -157,7 +162,7 @@ class RuleNode extends React.Component<Props> {
   }
 
   render() {
-    const {data, onDelete} = this.props;
+    const {data} = this.props;
 
     return (
       <RuleRow>
@@ -165,7 +170,7 @@ class RuleNode extends React.Component<Props> {
         {this.renderRow()}
         <DeleteButton
           label={t('Delete Node')}
-          onClick={onDelete}
+          onClick={this.handleDelete}
           type="button"
           size="small"
           icon="icon-trash"

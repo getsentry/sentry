@@ -23,6 +23,7 @@ from sentry.utils.kafka import create_batching_kafka_consumer
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.userreport import Conflict, save_userreport
+from sentry.event_manager import save_transaction_events
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
     def flush_batch(self, batch):
         attachment_chunks = []
         other_messages = []
+        transactions = []
 
         projects_to_fetch = set()
 
@@ -70,8 +72,10 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 message_type = message["type"]
                 projects_to_fetch.add(message["project_id"])
 
-                if message_type in ("event", "transaction"):
+                if message_type == "event":
                     other_messages.append((process_event, message))
+                elif message_type == "transaction":
+                    transactions.append(message)
                 elif message_type == "attachment_chunk":
                     attachment_chunks.append(message)
                 elif message_type == "attachment":
@@ -84,23 +88,45 @@ class IngestConsumerWorker(AbstractBatchWorker):
         with metrics.timer("ingest_consumer.fetch_projects"):
             projects = {p.id: p for p in Project.objects.get_many_from_cache(projects_to_fetch)}
 
-        # attachment_chunk messages need to be processed before attachment/event messages.
-        with metrics.timer("ingest_consumer.process_attachment_chunk_batch"):
-            for _ in self.pool.imap_unordered(
-                lambda msg: process_attachment_chunk(msg, projects=projects),
-                attachment_chunks,
-                chunksize=100,
-            ):
-                pass
+        if attachment_chunks:
+            # attachment_chunk messages need to be processed before attachment/event messages.
+            with metrics.timer("ingest_consumer.process_attachment_chunk_batch"):
+                for _ in self.pool.imap_unordered(
+                    lambda msg: process_attachment_chunk(msg, projects=projects),
+                    attachment_chunks,
+                    chunksize=100,
+                ):
+                    pass
 
-        with metrics.timer("ingest_consumer.process_other_messages_batch"):
-            for _ in self.pool.imap_unordered(
-                lambda args: args[0](args[1], projects=projects), other_messages, chunksize=100
-            ):
-                pass
+        if other_messages:
+            with metrics.timer("ingest_consumer.process_other_messages_batch"):
+                for _ in self.pool.imap_unordered(
+                    lambda args: args[0](args[1], projects=projects), other_messages, chunksize=100
+                ):
+                    pass
+
+        if transactions:
+            process_transactions_batch(transactions, projects)
 
     def shutdown(self):
         pass
+
+
+@metrics.wraps("ingest_consumer.process_transactions_batch")
+def process_transactions_batch(messages, projects):
+    events = []
+    for message in messages:
+        payload = message["payload"]
+        project_id = int(message["project_id"])
+
+        if project_id not in projects:
+            continue
+
+        with metrics.timer("ingest_consumer.decode_transaction_json"):
+            data = json.loads(payload)
+            events.append(data)
+
+    save_transaction_events(events, projects)
 
 
 @metrics.wraps("ingest_consumer.process_event")
