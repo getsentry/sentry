@@ -19,7 +19,7 @@ except ImportError:
 
 @contextmanager
 def create_topic(partitions=1, replication_factor=1):
-    command = ["docker", "exec", "kafka", "kafka-topics"] + [
+    command = ["docker", "exec", "sentry_kafka", "kafka-topics"] + [
         "--zookeeper",
         os.environ["SENTRY_ZOOKEEPER_HOSTS"],
     ]
