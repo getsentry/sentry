@@ -16,6 +16,7 @@ import {Column} from '../eventView';
 import {AGGREGATE_ALIASES} from '../data';
 
 type Props = {
+  className?: string;
   organization: OrganizationSummary;
   parentIndex: number;
   column: Column;
@@ -24,17 +25,13 @@ type Props = {
 };
 
 type State = {
-  field: string;
   fields: SelectValue<string>[];
-  aggregation: Aggregation;
   aggregations: string[];
 };
 
 class ColumnEditRow extends React.Component<Props, State> {
   state = {
-    field: this.props.column.field,
     fields: generateOptions(Object.keys(FIELDS).concat(this.props.tagKeys)),
-    aggregation: this.props.column.aggregation as Aggregation,
     aggregations: filterAggregations(this.props.organization, this.props.column.field),
   };
 
@@ -47,26 +44,27 @@ class ColumnEditRow extends React.Component<Props, State> {
   handleFieldChange = ({value}) => {
     this.setState((state: State, props: Props) => {
       const newAggregates = filterAggregations(props.organization, value);
-      const newState = {...state, field: value, aggregations: newAggregates};
+      const newState = {...state, aggregations: newAggregates};
+      let aggregation = props.column.aggregation;
 
       // If the new field makes the aggregation invalid, we should clear that state.
-      if (state.aggregation && !newAggregates.includes(state.aggregation)) {
-        // TODO(mark) Figure out why react-select isn't wiping the text value when this happens.
-        newState.aggregation = '';
+      if (aggregation && !newAggregates.includes(aggregation as Aggregation)) {
+        aggregation = '';
       }
+      this.triggerChange(value, aggregation as string);
+
       return newState;
-    }, this.triggerChange);
+    });
   };
 
   handleFunctionChange = ({value}) => {
     // TODO(mark) When we add improved tracing function support also clear
     // the function parameter as necessary.
-    this.setState({aggregation: value}, this.triggerChange);
+    this.triggerChange(this.props.column.field, value);
   };
 
-  triggerChange() {
+  triggerChange(field: string, aggregation: string) {
     const {parentIndex} = this.props;
-    const {field, aggregation} = this.state;
     this.props.onChange(parentIndex, {
       field,
       aggregation,
@@ -80,17 +78,22 @@ class ColumnEditRow extends React.Component<Props, State> {
   }
 
   render() {
-    const {field, fields, aggregation, aggregations} = this.state;
+    const {fields, aggregations} = this.state;
+    const {column, className} = this.props;
 
     return (
-      <RowContainer>
-        <SelectControl options={fields} value={field} onChange={this.handleFieldChange} />
+      <Container className={className}>
         <SelectControl
-          options={aggregations.map(item => ({label: item, value: item}))}
-          value={aggregation}
+          options={fields}
+          value={column.field}
+          onChange={this.handleFieldChange}
+        />
+        <SelectControl
+          options={generateOptions(aggregations)}
+          value={column.aggregation}
           onChange={this.handleFunctionChange}
         />
-      </RowContainer>
+      </Container>
     );
   }
 }
@@ -141,11 +144,13 @@ function filterAggregations(organization: OrganizationSummary, f?: Field): Aggre
   return functionList as Aggregation[];
 }
 
-const RowContainer = styled('div')`
+const Container = styled('div')`
   display: grid;
-  grid-template-columns: repeat(2, 50%);
-  grid-column-gap: ${space(2)};
+  grid-template-columns: repeat(2, 1fr);
+  grid-column-gap: ${space(1)};
   align-items: center;
+
+  flex-grow: 1;
 `;
 
 export default ColumnEditRow;
