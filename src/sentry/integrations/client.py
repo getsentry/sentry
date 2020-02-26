@@ -112,24 +112,6 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
-def track_response_data(integration, code, error=None, context=None):
-    logger = logging.getLogger("sentry.integrations.client")
-
-    metrics.incr(
-        "integrations.http_response",
-        sample_rate=1.0,
-        tags={"integration": integration, "status": code},
-    )
-
-    extra = {
-        "integration": integration,
-        "status": code,
-        "error": six.text_type(error[:128]) if error else None,
-    }
-    extra.update(context or {})
-    logger.info("integrations.http_response", extra=extra)
-
-
 class ApiClient(object):
     base_url = None
 
@@ -145,6 +127,23 @@ class ApiClient(object):
     def __init__(self, verify_ssl=True, logging_context=None):
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
+
+    def track_response_data(self, integration, code, error=None):
+        logger = logging.getLogger("sentry.integrations.client")
+
+        metrics.incr(
+            "integrations.http_response",
+            sample_rate=1.0,
+            tags={"integration": integration, "status": code},
+        )
+
+        extra = {
+            "integration": integration,
+            "status": code,
+            "error": six.text_type(error[:128]) if error else None,
+        }
+        extra.update(getattr(self, "logging_context", None) or {})
+        logger.info("integrations.http_response", extra=extra)
 
     def build_url(self, path):
         if path.startswith("/"):
@@ -201,31 +200,24 @@ class ApiClient(object):
             )
             resp.raise_for_status()
         except ConnectionError as e:
-            track_response_data(
-                self.integration_name, "connection_error", e.message, context=self.logging_context
-            )
+            self.track_response_data(self.integration_name, "connection_error", e.message)
             raise ApiHostError.from_exception(e)
         except Timeout as e:
-            track_response_data(
-                self.integration_name, "timeout", e.message, context=self.logging_context
-            )
+            self.track_response_data(self.integration_name, "timeout", e.message)
             raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
-                track_response_data(
-                    self.integration_name, "unknown", e.message, context=self.logging_context
-                )
+                self.track_response_data(self.integration_name, "unknown", e.message)
                 self.logger.exception(
                     "request.error", extra={"integration": self.integration_name, "url": full_url}
                 )
                 raise ApiError("Internal Error")
-            track_response_data(
-                self.integration_name, resp.status_code, e.message, context=self.logging_context
-            )
+            self.track_response_data(self.integration_name, resp.status_code, e.message)
             raise ApiError.from_response(resp)
 
-        track_response_data(self.integration_name, resp.status_code, context=self.logging_context)
+        self.track_response_data(self.integration_name, resp.status_code)
+
         if resp.status_code == 204:
             return {}
 

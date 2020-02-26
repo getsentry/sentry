@@ -286,8 +286,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             verify_ssl=True,
             logging_context={
                 "org_id": self.organization_id,
-                "integration_id": attrgetter("_org_integration.integration.id")(self),
-                "org_integration_id": attrgetter("_org_integration.id")(self),
+                "integration_id": attrgetter("org_integration.integration.id")(self),
+                "org_integration_id": attrgetter("org_integration.id")(self),
             },
         )
 
