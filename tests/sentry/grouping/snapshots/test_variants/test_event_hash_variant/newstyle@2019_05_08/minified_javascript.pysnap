@@ -1,418 +1,418 @@
 ---
-created: '2019-10-31T12:42:10.619408Z'
+created: '2020-02-26T19:54:39.152108Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'M'
+              "M"
             context-line (discarded because line too long)
-              u'{snip} o,r;for(b&&(o=i.domain)&&o.exit();t;){r=t.fn,t=t.next;try{r()}catch(o){throw t?n():e=void 0,o}}e=void 0,o&&o.enter()};if(b)n=function(){i.n {snip}'
+              "{snip} o,r;for(b&&(o=i.domain)&&o.exit();t;){r=t.fn,t=t.next;try{r()}catch(o){throw t?n():e=void 0,o}}e=void 0,o&&o.enter()};if(b)n=function(){i.n {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'S/<'
+              "S/<"
             context-line (discarded because line too long)
-              u'{snip} ,M):b(n)):M(o)}catch(t){a&&!i&&a.exit(),M(t)}};n.length>p;)i(n[p++]);t._c=[],t._n=!1,e&&!t._h&&x(t)})}},x=function(t){d.call(b,function(){va {snip}'
+              "{snip} ,M):b(n)):M(o)}catch(t){a&&!i&&a.exit(),M(t)}};n.length>p;)i(n[p++]);t._c=[],t._n=!1,e&&!t._h&&x(t)})}},x=function(t){d.call(b,function(){va {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'i'
+              "i"
             context-line (discarded because line too long)
-              u'{snip} ry{c?(r||(2==t._h&&T(t),t._h=1),!0===c?n=o:(a&&a.enter(),n=c(o),a&&(a.exit(),i=!0)),n===e.promise?M(y("Promise-chain cycle")):(p=N(n))?p.cal {snip}'
+              "{snip} ry{c?(r||(2==t._h&&T(t),t._h=1),!0===c?n=o:(a&&a.enter(),n=c(o),a&&(a.exit(),i=!0)),n===e.promise?M(y(\"Promise-chain cycle\")):(p=N(n))?p.cal {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'b'
+              "b"
             context-line (discarded because line too long)
-              u'{snip} ply(e,o);function c(t){n(i,r,p,c,b,"next",t)}function b(t){n(i,r,p,c,b,"throw",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.lo {snip}'
+              "{snip} ply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.lo {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'n'
+              "n"
             context-line (discarded because line too long)
-              u'{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}'
+              "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'g/</t[e]'
+              "g/</t[e]"
             context-line (discarded because line too long)
-              u'{snip} row","return"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}'
+              "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'_invoke</<'
+              "_invoke</<"
             context-line (discarded because line too long)
-              u'{snip} lse"return"===n.method&&n.abrupt("return",n.arg);o=s;var b=W(t,e,n);if("normal"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}'
+              "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'W'
+              "W"
             context-line (discarded because line too long)
-              u'{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:"normal",arg:t.call(e,n)}}catch(t){return{type:"throw",arg:t}}}function v(){}function y(){}fun {snip}'
+              "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/app'
+              "sentry/dist/app"
             filename (ignored because frame points to a URL)
-              u'app.js'
+              "app.js"
             function (ignored unknown function name)
-              u'e/<'
+              "e/<"
             context-line (discarded because line too long)
-              u'{snip} (e.t0)&&n<I)){e.next=12;break}return n++,e.abrupt("return",a());case 12:throw e.t0;case 13:case"end":return e.stop()}},e,this,[[0,7]])}));re {snip}'
+              "{snip} (e.t0)&&n<I)){e.next=12;break}return n++,e.abrupt(\"return\",a());case 12:throw e.t0;case 13:case\"end\":return e.stop()}},e,this,[[0,7]])}));re {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/app'
+              "sentry/dist/app"
             filename (ignored because frame points to a URL)
-              u'app.js'
+              "app.js"
             function (ignored unknown function name)
-              u'e/</a</<'
+              "e/</a</<"
             context-line (discarded because line too long)
-              u'{snip} urn e.stop()}},e,this,[[0,7]])}));return function(){return e.apply(this,arguments)}}(),e.abrupt("return",a());case 3:case"end":return e.stop {snip}'
+              "{snip} urn e.stop()}},e,this,[[0,7]])}));return function(){return e.apply(this,arguments)}}(),e.abrupt(\"return\",a());case 3:case\"end\":return e.stop {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'exports/<'
+              "exports/<"
             context-line (discarded because line too long)
-              u'{snip} unction(t){return function(){var e=this,o=arguments;return new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,"next",t)} {snip}'
+              "{snip} unction(t){return function(){var e=this,o=arguments;return new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)} {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'L'
+              "L"
             context-line (discarded because line too long)
-              u'{snip} function(t){O(this,L,"Promise","_h"),s(t),o.call(this);try{t(M(H,this,1),M(C,this,1))}catch(t){C.call(this,t)}},(o=function(t){this._c=[],th {snip}'
+              "{snip} function(t){O(this,L,\"Promise\",\"_h\"),s(t),o.call(this);try{t(M(H,this,1),M(C,this,1))}catch(t){C.call(this,t)}},(o=function(t){this._c=[],th {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'exports/</<'
+              "exports/</<"
             context-line (discarded because line too long)
-              u'{snip} n(i,r,p,c,b,"next",t)}function b(t){n(i,r,p,c,b,"throw",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.load(n(1467))},,function( {snip}'
+              "{snip} n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.load(n(1467))},,function( {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'c'
+              "c"
             context-line (discarded because line too long)
-              u'{snip} new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,"next",t)}function b(t){n(i,r,p,c,b,"throw",t)}c(void 0)})}}},,,funct {snip}'
+              "{snip} new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,funct {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'n'
+              "n"
             context-line (discarded because line too long)
-              u'{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}'
+              "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'g/</t[e]'
+              "g/</t[e]"
             context-line (discarded because line too long)
-              u'{snip} row","return"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}'
+              "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'_invoke</<'
+              "_invoke</<"
             context-line (discarded because line too long)
-              u'{snip} lse"return"===n.method&&n.abrupt("return",n.arg);o=s;var b=W(t,e,n);if("normal"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}'
+              "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'W'
+              "W"
             context-line (discarded because line too long)
-              u'{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:"normal",arg:t.call(e,n)}}catch(t){return{type:"throw",arg:t}}}function v(){}function y(){}fun {snip}'
+              "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/app'
+              "sentry/dist/app"
             filename (ignored because frame points to a URL)
-              u'app.js'
+              "app.js"
             function (ignored unknown function name)
-              u'e/<'
+              "e/<"
             context-line (discarded because line too long)
-              u'{snip} r(;;)switch(e.prev=e.next){case 0:return e.prev=0,e.next=3,t();case 3:return r=e.sent,e.abrupt("return",r.default||r);case 7:if(e.prev=7,e.t {snip}'
+              "{snip} r(;;)switch(e.prev=e.next){case 0:return e.prev=0,e.next=3,t();case 3:return r=e.sent,e.abrupt(\"return\",r.default||r);case 7:if(e.prev=7,e.t {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/app'
+              "sentry/dist/app"
             filename (ignored because frame points to a URL)
-              u'app.js'
+              "app.js"
             function*
-              u'componentPromise'
+              "componentPromise"
             context-line (discarded because line too long)
-              u'{snip} orgId/issues/:groupId/",componentPromise:function(){return n.e(75).then(n.bind(null,2497))},component:Object(cs.default)(Zt.a)},b.a.createEl {snip}'
+              "{snip} orgId/issues/:groupId/\",componentPromise:function(){return n.e(75).then(n.bind(null,2497))},component:Object(cs.default)(Zt.a)},b.a.createEl {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/app'
+              "sentry/dist/app"
             filename (ignored because frame points to a URL)
-              u'app.js'
+              "app.js"
             function* (trimmed javascript function)
-              u'e'
+              "e"
             context-line (discarded because line too long)
-              u'{snip} "+i+")");o.type=a,o.request=i,n[1](o)}r[e]=void 0}};var c=setTimeout(function(){i({type:"timeout",target:s})},12e4);s.onerror=s.onload=i,do {snip}'
+              "{snip} \"+i+\")\");o.type=a,o.request=i,n[1](o)}r[e]=void 0}};var c=setTimeout(function(){i({type:\"timeout\",target:s})},12e4);s.onerror=s.onload=i,do {snip}"
           frame (non app frame)
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'wrapTimeFunction/<'
+              "wrapTimeFunction/<"
             context-line (discarded because line too long)
-              u'{snip} ism:{data:{function:Dt(t)},handled:!0,type:"instrument"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}'
+              "{snip} ism:{data:{function:Dt(t)},handled:!0,type:\"instrument\"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}"
         type*
-          u'NS_ERROR_NOT_INITIALIZED'
+          "NS_ERROR_NOT_INITIALIZED"
 --------------------------------------------------------------------------
 system:
-  hash: 'dcfcd48a02c100bbe4023cbc783054f0'
+  hash: "dcfcd48a02c100bbe4023cbc783054f0"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'M'
+              "M"
             context-line (discarded because line too long)
-              u'{snip} o,r;for(b&&(o=i.domain)&&o.exit();t;){r=t.fn,t=t.next;try{r()}catch(o){throw t?n():e=void 0,o}}e=void 0,o&&o.enter()};if(b)n=function(){i.n {snip}'
+              "{snip} o,r;for(b&&(o=i.domain)&&o.exit();t;){r=t.fn,t=t.next;try{r()}catch(o){throw t?n():e=void 0,o}}e=void 0,o&&o.enter()};if(b)n=function(){i.n {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'S/<'
+              "S/<"
             context-line (discarded because line too long)
-              u'{snip} ,M):b(n)):M(o)}catch(t){a&&!i&&a.exit(),M(t)}};n.length>p;)i(n[p++]);t._c=[],t._n=!1,e&&!t._h&&x(t)})}},x=function(t){d.call(b,function(){va {snip}'
+              "{snip} ,M):b(n)):M(o)}catch(t){a&&!i&&a.exit(),M(t)}};n.length>p;)i(n[p++]);t._c=[],t._n=!1,e&&!t._h&&x(t)})}},x=function(t){d.call(b,function(){va {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'i'
+              "i"
             context-line (discarded because line too long)
-              u'{snip} ry{c?(r||(2==t._h&&T(t),t._h=1),!0===c?n=o:(a&&a.enter(),n=c(o),a&&(a.exit(),i=!0)),n===e.promise?M(y("Promise-chain cycle")):(p=N(n))?p.cal {snip}'
+              "{snip} ry{c?(r||(2==t._h&&T(t),t._h=1),!0===c?n=o:(a&&a.enter(),n=c(o),a&&(a.exit(),i=!0)),n===e.promise?M(y(\"Promise-chain cycle\")):(p=N(n))?p.cal {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'b'
+              "b"
             context-line (discarded because line too long)
-              u'{snip} ply(e,o);function c(t){n(i,r,p,c,b,"next",t)}function b(t){n(i,r,p,c,b,"throw",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.lo {snip}'
+              "{snip} ply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.lo {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'n'
+              "n"
             context-line (discarded because line too long)
-              u'{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}'
+              "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'g/</t[e]'
+              "g/</t[e]"
             context-line (discarded because line too long)
-              u'{snip} row","return"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}'
+              "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'_invoke</<'
+              "_invoke</<"
             context-line (discarded because line too long)
-              u'{snip} lse"return"===n.method&&n.abrupt("return",n.arg);o=s;var b=W(t,e,n);if("normal"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}'
+              "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'W'
+              "W"
             context-line (discarded because line too long)
-              u'{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:"normal",arg:t.call(e,n)}}catch(t){return{type:"throw",arg:t}}}function v(){}function y(){}fun {snip}'
+              "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
           frame*
             module*
-              u'sentry/dist/app'
+              "sentry/dist/app"
             filename (ignored because frame points to a URL)
-              u'app.js'
+              "app.js"
             function (ignored unknown function name)
-              u'e/<'
+              "e/<"
             context-line (discarded because line too long)
-              u'{snip} (e.t0)&&n<I)){e.next=12;break}return n++,e.abrupt("return",a());case 12:throw e.t0;case 13:case"end":return e.stop()}},e,this,[[0,7]])}));re {snip}'
+              "{snip} (e.t0)&&n<I)){e.next=12;break}return n++,e.abrupt(\"return\",a());case 12:throw e.t0;case 13:case\"end\":return e.stop()}},e,this,[[0,7]])}));re {snip}"
           frame*
             module*
-              u'sentry/dist/app'
+              "sentry/dist/app"
             filename (ignored because frame points to a URL)
-              u'app.js'
+              "app.js"
             function (ignored unknown function name)
-              u'e/</a</<'
+              "e/</a</<"
             context-line (discarded because line too long)
-              u'{snip} urn e.stop()}},e,this,[[0,7]])}));return function(){return e.apply(this,arguments)}}(),e.abrupt("return",a());case 3:case"end":return e.stop {snip}'
+              "{snip} urn e.stop()}},e,this,[[0,7]])}));return function(){return e.apply(this,arguments)}}(),e.abrupt(\"return\",a());case 3:case\"end\":return e.stop {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'exports/<'
+              "exports/<"
             context-line (discarded because line too long)
-              u'{snip} unction(t){return function(){var e=this,o=arguments;return new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,"next",t)} {snip}'
+              "{snip} unction(t){return function(){var e=this,o=arguments;return new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)} {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'L'
+              "L"
             context-line (discarded because line too long)
-              u'{snip} function(t){O(this,L,"Promise","_h"),s(t),o.call(this);try{t(M(H,this,1),M(C,this,1))}catch(t){C.call(this,t)}},(o=function(t){this._c=[],th {snip}'
+              "{snip} function(t){O(this,L,\"Promise\",\"_h\"),s(t),o.call(this);try{t(M(H,this,1),M(C,this,1))}catch(t){C.call(this,t)}},(o=function(t){this._c=[],th {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'exports/</<'
+              "exports/</<"
             context-line (discarded because line too long)
-              u'{snip} n(i,r,p,c,b,"next",t)}function b(t){n(i,r,p,c,b,"throw",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.load(n(1467))},,function( {snip}'
+              "{snip} n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.load(n(1467))},,function( {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'c'
+              "c"
             context-line (discarded because line too long)
-              u'{snip} new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,"next",t)}function b(t){n(i,r,p,c,b,"throw",t)}c(void 0)})}}},,,funct {snip}'
+              "{snip} new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,funct {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'n'
+              "n"
             context-line (discarded because line too long)
-              u'{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}'
+              "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'g/</t[e]'
+              "g/</t[e]"
             context-line (discarded because line too long)
-              u'{snip} row","return"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}'
+              "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'_invoke</<'
+              "_invoke</<"
             context-line (discarded because line too long)
-              u'{snip} lse"return"===n.method&&n.abrupt("return",n.arg);o=s;var b=W(t,e,n);if("normal"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}'
+              "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function*
-              u'W'
+              "W"
             context-line (discarded because line too long)
-              u'{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:"normal",arg:t.call(e,n)}}catch(t){return{type:"throw",arg:t}}}function v(){}function y(){}fun {snip}'
+              "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
           frame*
             module*
-              u'sentry/dist/app'
+              "sentry/dist/app"
             filename (ignored because frame points to a URL)
-              u'app.js'
+              "app.js"
             function (ignored unknown function name)
-              u'e/<'
+              "e/<"
             context-line (discarded because line too long)
-              u'{snip} r(;;)switch(e.prev=e.next){case 0:return e.prev=0,e.next=3,t();case 3:return r=e.sent,e.abrupt("return",r.default||r);case 7:if(e.prev=7,e.t {snip}'
+              "{snip} r(;;)switch(e.prev=e.next){case 0:return e.prev=0,e.next=3,t();case 3:return r=e.sent,e.abrupt(\"return\",r.default||r);case 7:if(e.prev=7,e.t {snip}"
           frame*
             module*
-              u'sentry/dist/app'
+              "sentry/dist/app"
             filename (ignored because frame points to a URL)
-              u'app.js'
+              "app.js"
             function*
-              u'componentPromise'
+              "componentPromise"
             context-line (discarded because line too long)
-              u'{snip} orgId/issues/:groupId/",componentPromise:function(){return n.e(75).then(n.bind(null,2497))},component:Object(cs.default)(Zt.a)},b.a.createEl {snip}'
+              "{snip} orgId/issues/:groupId/\",componentPromise:function(){return n.e(75).then(n.bind(null,2497))},component:Object(cs.default)(Zt.a)},b.a.createEl {snip}"
           frame*
             module*
-              u'sentry/dist/app'
+              "sentry/dist/app"
             filename (ignored because frame points to a URL)
-              u'app.js'
+              "app.js"
             function* (trimmed javascript function)
-              u'e'
+              "e"
             context-line (discarded because line too long)
-              u'{snip} "+i+")");o.type=a,o.request=i,n[1](o)}r[e]=void 0}};var c=setTimeout(function(){i({type:"timeout",target:s})},12e4);s.onerror=s.onload=i,do {snip}'
+              "{snip} \"+i+\")\");o.type=a,o.request=i,n[1](o)}r[e]=void 0}};var c=setTimeout(function(){i({type:\"timeout\",target:s})},12e4);s.onerror=s.onload=i,do {snip}"
           frame*
             module*
-              u'sentry/dist/vendor'
+              "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
-              u'vendor.js'
+              "vendor.js"
             function (ignored unknown function name)
-              u'wrapTimeFunction/<'
+              "wrapTimeFunction/<"
             context-line (discarded because line too long)
-              u'{snip} ism:{data:{function:Dt(t)},handled:!0,type:"instrument"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}'
+              "{snip} ism:{data:{function:Dt(t)},handled:!0,type:\"instrument\"}}),t.apply(this,e)}},t.prototype.wrapRAF=function(t){return function(e){return t(Et( {snip}"
         type*
-          u'NS_ERROR_NOT_INITIALIZED'
+          "NS_ERROR_NOT_INITIALIZED"

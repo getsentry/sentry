@@ -1,26 +1,26 @@
 ---
-created: '2019-04-17T20:02:28.523687Z'
+created: '2020-02-26T19:54:34.460095Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
           filename*
-            u'foo.py'
+            "foo.py"
           function* (ruby block)
-            'block'
+            "block"
 --------------------------------------------------------------------------
 system:
-  hash: '27eed4125fc13d42163ddb0b8f357b48'
+  hash: "27eed4125fc13d42163ddb0b8f357b48"
   component:
     system*
       stacktrace*
         frame*
           filename*
-            u'foo.py'
+            "foo.py"
           function* (ruby block)
-            'block'
+            "block"

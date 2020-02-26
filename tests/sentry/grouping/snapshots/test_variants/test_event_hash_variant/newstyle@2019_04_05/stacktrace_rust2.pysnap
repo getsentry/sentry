@@ -1,64 +1,64 @@
 ---
-created: '2019-06-05T11:45:16.085243Z'
+created: '2020-02-26T19:54:32.728234Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: 'eb87c1031dba55b67df86fb9fff59dc6'
+  hash: "eb87c1031dba55b67df86fb9fff59dc6"
   component:
     app*
       exception*
         stacktrace*
           frame (non app frame)
             function*
-              u'_main'
+              "_main"
           frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
-              u'std::rt::lang_start_internal'
+              "std::rt::lang_start_internal"
           frame (non app frame)
             function*
-              u'___rust_maybe_catch_panic'
+              "___rust_maybe_catch_panic"
           frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
-              u'std::panicking::try::do_call'
+              "std::panicking::try::do_call"
           frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
-              u'std::rt::lang_start::{{closure}}'
+              "std::rt::lang_start::{{closure}}"
           frame* (marked in-app by grouping enhancement rule (family:native function:log_demo::* +app))
             function*
-              u'log_demo::main'
+              "log_demo::main"
           frame (non app frame)
             function*
-              u'log::__private_api_log'
+              "log::__private_api_log"
         type*
-          u'log_demo'
+          "log_demo"
 --------------------------------------------------------------------------
 system:
-  hash: '9b33b65a645c66239cafcd276fcd0659'
+  hash: "9b33b65a645c66239cafcd276fcd0659"
   component:
     system*
       exception*
         stacktrace*
           frame*
             function*
-              u'_main'
+              "_main"
           frame* (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
-              u'std::rt::lang_start_internal'
+              "std::rt::lang_start_internal"
           frame (ignored by grouping enhancement rule (family:native function:__* -group))
             function*
-              u'___rust_maybe_catch_panic'
+              "___rust_maybe_catch_panic"
           frame* (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
-              u'std::panicking::try::do_call'
+              "std::panicking::try::do_call"
           frame* (marked out of app by grouping enhancement rule (family:native function:std::* -app))
             function*
-              u'std::rt::lang_start::{{closure}}'
+              "std::rt::lang_start::{{closure}}"
           frame* (marked in-app by grouping enhancement rule (family:native function:log_demo::* +app))
             function*
-              u'log_demo::main'
+              "log_demo::main"
           frame (ignored by grouping enhancement rule (family:native function:*::__* -group))
             function*
-              u'log::__private_api_log'
+              "log::__private_api_log"
         type*
-          u'log_demo'
+          "log_demo"

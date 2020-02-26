@@ -1,25 +1,25 @@
 ---
-created: '2019-04-17T20:07:50.295173Z'
+created: '2020-02-26T19:54:33.997618Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app
       stacktrace
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            u'7f7aaadf-a006-4217-9ed5-5fbf8585c6c0'
+            "7f7aaadf-a006-4217-9ed5-5fbf8585c6c0"
 --------------------------------------------------------------------------
 fallback:
-  hash: 'd41d8cd98f00b204e9800998ecf8427e'
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
 --------------------------------------------------------------------------
 system:
-  hash: None
+  hash: null
   component:
     system
       stacktrace
         frame
           filename (ignored because frame points to a URL)
-            u'7f7aaadf-a006-4217-9ed5-5fbf8585c6c0'
+            "7f7aaadf-a006-4217-9ed5-5fbf8585c6c0"

@@ -1,166 +1,166 @@
 ---
-created: '2019-04-17T20:07:50.747578Z'
+created: '2020-02-26T19:54:36.158642Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '6e721dc6a6f261cc9ce994fe8dc2c917'
+  hash: "6e721dc6a6f261cc9ce994fe8dc2c917"
   component:
     app*
       exception*
         stacktrace*
           frame*
             module*
-              u'hub'
+              "hub"
             filename (module takes precedence)
-              u'hub.js'
+              "hub.js"
             function*
-              u'Hub.Object.<anonymous>.Hub.withScope'
+              "Hub.Object.<anonymous>.Hub.withScope"
           frame*
             module*
-              u'onunhandledrejection.ts'
+              "onunhandledrejection.ts"
             filename (module takes precedence)
-              u'onunhandledrejection.ts'
+              "onunhandledrejection.ts"
             function*
-              u'null.<anonymous>'
+              "null.<anonymous>"
           frame (non app frame)
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'index.js'
+              "index.js"
             function*
-              u'Hub.mockConstructor [as captureException]'
+              "Hub.mockConstructor [as captureException]"
           frame (non app frame)
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'index.js'
+              "index.js"
             function*
-              u'Hub.<anonymous>'
+              "Hub.<anonymous>"
           frame (non app frame)
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'index.js'
+              "index.js"
             function*
-              u'finalReturnValue'
+              "finalReturnValue"
           frame (non app frame)
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'index.js'
+              "index.js"
             function*
-              u'Hub.<anonymous>'
+              "Hub.<anonymous>"
           frame*
             module*
-              u'hub.ts'
+              "hub.ts"
             filename (module takes precedence)
-              u'hub.ts'
+              "hub.ts"
             function*
-              u'Hub.Object.<anonymous>.Hub.captureException'
+              "Hub.Object.<anonymous>.Hub.captureException"
           frame*
             module*
-              u'hub'
+              "hub"
             filename (module takes precedence)
-              u'hub.js'
+              "hub.js"
             function*
-              u'Hub.Object.<anonymous>.Hub.invokeClient'
+              "Hub.Object.<anonymous>.Hub.invokeClient"
           frame*
             module*
-              u'baseclient.ts'
+              "baseclient.ts"
             filename (module takes precedence)
-              u'baseclient.ts'
+              "baseclient.ts"
             function*
-              u'NodeClient.Object.<anonymous>.BaseClient.captureException'
+              "NodeClient.Object.<anonymous>.BaseClient.captureException"
           frame*
             module*
-              u'backend.ts'
+              "backend.ts"
             filename (module takes precedence)
-              u'backend.ts'
+              "backend.ts"
             function*
-              u'NodeBackend.Object.<anonymous>.NodeBackend.eventFromException'
+              "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException"
         type*
-          u'Error'
+          "Error"
         value (ignored because stacktrace takes precedence)
-          u'bla'
+          "bla"
 --------------------------------------------------------------------------
 system:
-  hash: '4dc62db23de39a20e1274015ee07d202'
+  hash: "4dc62db23de39a20e1274015ee07d202"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'hub'
+              "hub"
             filename (module takes precedence)
-              u'hub.js'
+              "hub.js"
             function*
-              u'Hub.Object.<anonymous>.Hub.withScope'
+              "Hub.Object.<anonymous>.Hub.withScope"
           frame*
             module*
-              u'onunhandledrejection.ts'
+              "onunhandledrejection.ts"
             filename (module takes precedence)
-              u'onunhandledrejection.ts'
+              "onunhandledrejection.ts"
             function*
-              u'null.<anonymous>'
+              "null.<anonymous>"
           frame*
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'index.js'
+              "index.js"
             function*
-              u'Hub.mockConstructor [as captureException]'
+              "Hub.mockConstructor [as captureException]"
           frame*
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'index.js'
+              "index.js"
             function*
-              u'Hub.<anonymous>'
+              "Hub.<anonymous>"
           frame*
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'index.js'
+              "index.js"
             function*
-              u'finalReturnValue'
+              "finalReturnValue"
           frame*
             module*
-              u'jest-mock.build:index'
+              "jest-mock.build:index"
             filename (module takes precedence)
-              u'index.js'
+              "index.js"
             function*
-              u'Hub.<anonymous>'
+              "Hub.<anonymous>"
           frame*
             module*
-              u'hub.ts'
+              "hub.ts"
             filename (module takes precedence)
-              u'hub.ts'
+              "hub.ts"
             function*
-              u'Hub.Object.<anonymous>.Hub.captureException'
+              "Hub.Object.<anonymous>.Hub.captureException"
           frame*
             module*
-              u'hub'
+              "hub"
             filename (module takes precedence)
-              u'hub.js'
+              "hub.js"
             function*
-              u'Hub.Object.<anonymous>.Hub.invokeClient'
+              "Hub.Object.<anonymous>.Hub.invokeClient"
           frame*
             module*
-              u'baseclient.ts'
+              "baseclient.ts"
             filename (module takes precedence)
-              u'baseclient.ts'
+              "baseclient.ts"
             function*
-              u'NodeClient.Object.<anonymous>.BaseClient.captureException'
+              "NodeClient.Object.<anonymous>.BaseClient.captureException"
           frame*
             module*
-              u'backend.ts'
+              "backend.ts"
             filename (module takes precedence)
-              u'backend.ts'
+              "backend.ts"
             function*
-              u'NodeBackend.Object.<anonymous>.NodeBackend.eventFromException'
+              "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException"
         type*
-          u'Error'
+          "Error"
         value (ignored because stacktrace takes precedence)
-          u'bla'
+          "bla"

@@ -1,30 +1,30 @@
 ---
-created: '2019-04-07T10:03:31.329732Z'
+created: '2020-02-26T19:52:19.023306Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           module*
-            u'foo'
+            "foo"
           filename (module takes precedence)
-            u'foo.py'
+            "foo.py"
           lineno*
             1
 --------------------------------------------------------------------------
 system:
-  hash: '299a0be4a5a79e6a59fdd251b19d78bb'
+  hash: "299a0be4a5a79e6a59fdd251b19d78bb"
   component:
     system*
       stacktrace*
         frame*
           module*
-            u'foo'
+            "foo"
           filename (module takes precedence)
-            u'foo.py'
+            "foo.py"
           lineno*
             1
