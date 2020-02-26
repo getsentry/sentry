@@ -1,4 +1,4 @@
-import {ModalBody} from 'react-bootstrap';
+import {ModalBody, ModalHeader} from 'react-bootstrap';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
@@ -21,6 +21,11 @@ type Props = {
    * The destination route
    */
   nextPath: string;
+
+  /**
+   * Container for modal header
+   */
+  Header: typeof ModalHeader;
 
   /**
    * Container for modal body
@@ -66,11 +71,6 @@ type Props = {
    * on which the modal was opened
    */
   comingFromProjectId?: string;
-
-  /**
-   * Closes the modal when called
-   */
-  closeModal: () => void;
 };
 
 class ContextPickerModal extends React.Component<Props> {
@@ -227,7 +227,7 @@ class ContextPickerModal extends React.Component<Props> {
       organizations,
       projects,
       loading,
-      closeModal,
+      Header,
       Body,
       comingFromProjectId,
     } = this.props;
@@ -257,8 +257,7 @@ class ContextPickerModal extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <CloseButton onClick={closeModal}>x</CloseButton>
-        <Header>{this.headerText}</Header>
+        <Header closeButton>{this.headerText}</Header>
         <Body>
           {loading && <StyledLoadingIndicator overlay />}
           {needOrg && (
@@ -353,26 +352,6 @@ const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerSt
 });
 
 export default ContextPickerModalContainer;
-
-const Header = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const CloseButton = styled('button')`
-  color: ${theme.gray2};
-  height: 30px;
-  width: 30px;
-  float: right;
-  display: block;
-  border-radius: 50%;
-  position: absolute;
-  top: -15px;
-  right: -15px;
-  padding: 0px;
-  font-weight: bold;
-  margin: 0 auto;
-  font-size: ${p => p.theme.fontSizeLarge};
-`;
 
 const StyledSelectControl = styled(SelectControl)`
   margin-top: ${space(1)};
