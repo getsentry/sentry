@@ -57,6 +57,12 @@ def adjust_settings_for_relay_tests(settings):
 
 
 class SentryStoreHelper(object):
+    """
+    Unit tests that post to the store entry point should use this
+    helper class (together with RelayStoreHelper) to check the functionality
+    with both posting to the Sentry Store and the Relay Store.
+    """
+
     def use_relay(self):
         return False
 
@@ -71,6 +77,12 @@ class SentryStoreHelper(object):
 
 
 class RelayStoreHelper(object):
+    """
+    Unit tests that post to the store entry point should use this
+    helper class (together with RelayStoreHelper) to check the functionality
+    with both posting to the Sentry Store and the Relay Store.
+    """
+
     def use_relay(self):
         return True
 
