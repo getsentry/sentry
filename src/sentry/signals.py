@@ -56,7 +56,7 @@ event_discarded = BetterSignal(providing_args=["project", "category", "quantity"
 event_dropped = BetterSignal(
     providing_args=["ip", "data", "project", "reason_code", "category", "quantity"]
 )
-event_filtered = BetterSignal(providing_args=["ip", "data", "project", "category", "quantity"])
+event_filtered = BetterSignal(providing_args=["ip", "project", "category", "quantity"])
 pending_delete = BetterSignal(providing_args=["instance", "actor"])
 event_processed = BetterSignal(providing_args=["project", "event"])
 event_saved = BetterSignal(providing_args=["project", "category", "quantity"])
