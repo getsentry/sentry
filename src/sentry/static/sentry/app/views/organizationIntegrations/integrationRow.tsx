@@ -37,7 +37,10 @@ const IntegrationRow = (props: Props) => {
     configurations,
   } = props;
 
-  const baseUrl = `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
+  const baseUrl =
+    publishStatus === 'internal'
+      ? `/settings/${organization.slug}/developer-settings/${slug}/`
+      : `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
 
   const renderDetails = () => {
     if (type === 'sentryApp') {
