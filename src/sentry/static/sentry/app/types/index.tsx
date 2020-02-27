@@ -115,6 +115,30 @@ export type Project = {
   processingIssues: number;
 } & AvatarProject;
 
+export type ProjectRelease = {
+  version: string;
+  dateCreated: string;
+  dateReleased: string | null;
+  commitCount: number;
+  authors: User[];
+  newGroups: number;
+  healthData: Health | null;
+  projectSlug: string;
+};
+
+export type Health = {
+  crash_free_users: number | null;
+  total_users: number;
+  crash_free_sessions: number | null;
+  stats: HealthGraphData;
+  crashes: number;
+  errors: number;
+  adoption: number | null;
+};
+export type HealthGraphData = {
+  [key: string]: [number, number][];
+};
+
 export type Team = {
   id: string;
   slug: string;
@@ -748,7 +772,7 @@ export type Release = {
   authors: User[];
   owner?: any; // TODO(ts)
   newGroups: number;
-  projects: {slug: string; name: string}[];
+  projects: {slug: string; name: string; healthData?: Health | null}[];
 } & BaseRelease;
 
 export type BaseRelease = {
