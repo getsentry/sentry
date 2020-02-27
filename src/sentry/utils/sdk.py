@@ -244,6 +244,7 @@ class RavenShim(object):
 def bind_organization_context(organization):
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
+    # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
     with sentry_sdk.configure_scope() as scope:
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
