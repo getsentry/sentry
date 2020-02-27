@@ -1,7 +1,8 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
 from django.core.urlresolvers import reverse
-from structlog import get_logger
 
 from sentry import roles
 from sentry.models import InviteStatus, OrganizationMember
@@ -63,5 +64,5 @@ def send_invite_request_notification_email(member_id):
         try:
             msg.send_async([recipient.get_email()])
         except Exception as e:
-            logger = get_logger(name="sentry.mail")
+            logger = logging.getLogger("sentry.mail")
             logger.exception(e)

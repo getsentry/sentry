@@ -10,9 +10,10 @@ from django.db import models, transaction
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.translation import ugettext_lazy as _
+
+import logging
 from enum import Enum
 from hashlib import md5
-from structlog import get_logger
 from uuid import uuid4
 from six.moves.urllib.parse import urlencode
 
@@ -230,7 +231,7 @@ class OrganizationMember(Model):
         try:
             msg.send_async([self.get_email()])
         except Exception as e:
-            logger = get_logger(name="sentry.mail")
+            logger = logging.getLogger("sentry.mail")
             logger.exception(e)
 
     def send_sso_link_email(self, actor, provider):
