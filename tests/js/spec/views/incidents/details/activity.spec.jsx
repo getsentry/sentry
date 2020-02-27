@@ -26,6 +26,7 @@ describe('IncidentDetails -> Activity', function() {
     mountWithTheme(
       <IncidentActivity
         params={{alertId: incident.identifier, orgId: organization.slug}}
+        incident={incident}
         {...props}
       />,
       routerContext
