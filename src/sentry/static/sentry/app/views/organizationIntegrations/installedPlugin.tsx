@@ -48,29 +48,23 @@ export class InstalledPlugin extends React.Component<Props> {
     );
   }
 
-  pluginUpdate = async (data: object) => {
+  pluginUpdate = async (data: object, method: 'POST' | 'DELETE' = 'POST') => {
     const {organization, projectItem, plugin} = this.props;
     // no try/catch so the caller will have to have it
     await this.props.api.requestPromise(
       `/projects/${organization.slug}/${projectItem.projectSlug}/plugins/${plugin.id}/`,
       {
-        method: 'POST',
+        method,
         data,
       }
     );
   };
 
   updatePluginEnableStatus = async (enabled: boolean) => {
-    const {organization, projectItem, plugin} = this.props;
     if (enabled) {
       await this.pluginUpdate({enabled});
     } else {
-      await this.props.api.requestPromise(
-        `/projects/${organization.slug}/${projectItem.projectSlug}/plugins/${plugin.id}/`,
-        {
-          method: 'DELETE',
-        }
-      );
+      await this.pluginUpdate({enabled}, 'DELETE');
     }
   };
 
