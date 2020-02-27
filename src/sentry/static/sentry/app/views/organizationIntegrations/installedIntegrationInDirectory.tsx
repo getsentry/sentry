@@ -200,24 +200,26 @@ const IntegrationItemBox = styled('div')`
   flex: 1;
 `;
 
-const IntegrationStatus = styled((props: {status: ObjectStatus}) => {
-  const {status, ...p} = props;
-  const color = status === 'active' ? theme.success : theme.gray2;
-
-  return (
-    <Tooltip
-      title={t('This Integration has been disconnected from the external provider')}
-      disabled={status === 'active'}
-    >
-      <div {...p}>
-        <CircleIndicator size={6} color={color} />
-        <IntegrationStatusText>{`${t(
-          status === 'active' ? 'enabled' : 'disabled'
-        )}`}</IntegrationStatusText>
-      </div>
-    </Tooltip>
-  );
-})`
+const IntegrationStatus = styled(
+  (props: React.HTMLAttributes<HTMLElement> & {status: ObjectStatus}) => {
+    const {status, ...p} = props;
+    const color = status === 'active' ? theme.success : theme.gray2;
+    const titleText =
+      status === 'active'
+        ? 'This Integration can be disabled by clicking the Uninstall button'
+        : 'This Integration has been disconnected from the external provider';
+    return (
+      <Tooltip title={t(titleText)}>
+        <div {...p}>
+          <CircleIndicator size={6} color={color} />
+          <IntegrationStatusText>{`${t(
+            status === 'active' ? 'enabled' : 'disabled'
+          )}`}</IntegrationStatusText>
+        </div>
+      </Tooltip>
+    );
+  }
+)`
   display: flex;
   align-items: center;
   color: ${p => p.theme.gray2};

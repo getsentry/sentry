@@ -27,7 +27,7 @@ import marked, {singleLineRenderer} from 'app/utils/marked';
 import {IconClose, IconGithub} from 'app/icons';
 import IntegrationStatus from './integrationStatus';
 
-type Tab = 'information' | 'configurations';
+type Tab = 'overview' | 'configurations';
 
 type AlertType = AlertProps & {
   text: string;
@@ -46,12 +46,11 @@ class AbstractIntegrationDetailedView<
   P extends Props = Props,
   S extends State = State
 > extends AsyncComponent<P, S> {
-  tabs: Tab[] = ['information', 'configurations'];
+  tabs: Tab[] = ['overview', 'configurations'];
 
   componentDidMount() {
     const {location} = this.props;
-    const value =
-      location.query.tab === 'configurations' ? 'configurations' : 'information';
+    const value = location.query.tab === 'configurations' ? 'configurations' : 'overview';
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({tab: value});
   }
@@ -89,7 +88,7 @@ class AbstractIntegrationDetailedView<
     return [];
   }
 
-  //Returns a list of the resources displayed at the bottom of the information card
+  //Returns a list of the resources displayed at the bottom of the overview card
   get resourceLinks(): Array<{title: string; url: string}> {
     // Allow children to implement this
     throw new Error('Not implemented');
@@ -124,7 +123,7 @@ class AbstractIntegrationDetailedView<
   //Returns the string that is shown as the title of a tab
   getTabDiplay(tab: Tab): string {
     //default is return the tab
-    return tab === 'information' ? 'overview' : 'configurations';
+    return tab;
   }
 
   //Render the button at the top which is usually just an installation button
@@ -136,6 +135,18 @@ class AbstractIntegrationDetailedView<
     throw new Error('Not implemented');
   }
 
+  renderButton(
+    _disabledFromFeatures: boolean, //from the feature gate
+    _userHasAccess: boolean, //from user permissions
+    configurations: boolean = true
+  ): React.ReactElement {
+    // Allow children to implement this
+    if (!configurations && _disabledFromFeatures) {
+      return <div />;
+    }
+    return this.renderTopButton(_disabledFromFeatures, _userHasAccess);
+  }
+
   //Returns the permission descriptions, only use by Sentry Apps
   renderPermissions(): React.ReactElement | null {
     //default is don't render permissions
@@ -143,9 +154,6 @@ class AbstractIntegrationDetailedView<
   }
 
   renderEmptyConfigurations() {
-    const {organization} = this.props;
-    const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
-
     return (
       <EmptyConfigurationContainer>
         <EmptyConfigurationTitle>You haven't set anything up yet</EmptyConfigurationTitle>
@@ -153,31 +161,7 @@ class AbstractIntegrationDetailedView<
           But that doesn’t have to be the case for long! Add an installation to get
           started.
         </EmptyConfigurationBody>
-        <div>
-          <IntegrationDirectoryFeatures {...this.featureProps}>
-            {({disabled, disabledReason}) =>
-              disabled ? (
-                <div />
-              ) : (
-                <DisableWrapper>
-                  <Access organization={organization} access={['org:integrations']}>
-                    {({hasAccess}) => (
-                      <Tooltip
-                        title={t(
-                          'You must be an organization owner, manager or admin to install this.'
-                        )}
-                        disabled={hasAccess}
-                      >
-                        {this.renderTopButton(disabled, hasAccess)}
-                      </Tooltip>
-                    )}
-                  </Access>
-                  {disabled && <DisabledNotice reason={disabledReason} />}
-                </DisableWrapper>
-              )
-            }
-          </IntegrationDirectoryFeatures>
-        </div>
+        <div>{this.renderAddInstallButton(false)}</div>
       </EmptyConfigurationContainer>
     );
   }
@@ -248,7 +232,7 @@ class AbstractIntegrationDetailedView<
     );
   }
 
-  renderAddInstallButton() {
+  renderAddInstallButton(configurations = true) {
     const {organization} = this.props;
     const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
 
@@ -264,7 +248,7 @@ class AbstractIntegrationDetailedView<
                   )}
                   disabled={hasAccess}
                 >
-                  {this.renderTopButton(disabled, hasAccess)}
+                  {this.renderButton(disabled, hasAccess, configurations)}
                 </Tooltip>
               )}
             </Access>
@@ -367,7 +351,7 @@ class AbstractIntegrationDetailedView<
       <React.Fragment>
         {this.renderTopSection()}
         {this.renderTabs()}
-        {this.state.tab === 'information'
+        {this.state.tab === 'overview'
           ? this.renderInformationCard()
           : this.renderConfigurations()}
       </React.Fragment>

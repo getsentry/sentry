@@ -32,7 +32,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   AbstractIntegrationDetailedView['props'],
   State & AbstractIntegrationDetailedView['state']
 > {
-  tabs: Tab[] = ['information'];
+  tabs: Tab[] = ['overview'];
   getEndpoints(): ([string, string, any] | [string, string])[] {
     const {
       organization,
