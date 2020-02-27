@@ -76,7 +76,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
     router.push({
       ...location,
-      query: {...location.query, query},
+      query: {...location.query, cursor: undefined, query},
     });
   };
 
@@ -85,7 +85,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
     router.push({
       ...location,
-      query: {...location.query, sort},
+      query: {...location.query, cursor: undefined, sort},
     });
   };
 
@@ -197,12 +197,10 @@ const StyledPageHeader = styled(PageHeader)`
   }
 `;
 const SortAndFilterWrapper = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-column-gap: ${space(2)};
   margin-bottom: ${space(2)};
-
-  & > *:not(:last-child) {
-    margin-right: ${space(1)};
-  }
 `;
 
 export default withOrganization(ReleasesList);
