@@ -156,6 +156,78 @@ class AlertRuleTriggerClearCacheTest(TestCase):
         ) is None
 
 
+class ActiveIncidentClearCacheTest(TestCase):
+    def setUp(self):
+        self.alert_rule = self.create_alert_rule()
+        self.trigger = self.create_alert_rule_trigger(self.alert_rule)
+
+    def test_negative_cache(self):
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            is None
+        )
+        Incident.objects.get_active_incident(self.alert_rule, self.project)
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            is False
+        )
+        self.create_incident(status=IncidentStatus.CLOSED.value)
+        self.alert_rule.save()
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+        ) is False
+
+    def test_cache(self):
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            is None
+        )
+        active_incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+        Incident.objects.get_active_incident(self.alert_rule, self.project)
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            == active_incident
+        )
+        active_incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            is None
+        )
+        Incident.objects.get_active_incident(self.alert_rule, self.project)
+        assert (
+            cache.get(
+                Incident.objects._build_active_incident_cache_key(
+                    self.alert_rule.id, self.project.id
+                )
+            )
+            == active_incident
+        )
+
+
 class IncidentCreationTest(TestCase):
     def test_simple(self):
         title = "hello"
