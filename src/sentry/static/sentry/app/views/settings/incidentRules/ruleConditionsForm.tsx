@@ -33,6 +33,7 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
+  onFilterUpdate: (query: string) => void;
 };
 
 type State = {
@@ -67,7 +68,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled} = this.props;
+    const {organization, disabled, onFilterUpdate} = this.props;
 
     return (
       <Panel>
@@ -123,9 +124,15 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 useFormWrapper={false}
                 organization={organization}
                 onChange={onChange}
-                onBlur={onBlur}
                 onKeyDown={onKeyDown}
-                onSearch={query => onChange(query, {})}
+                onBlur={query => {
+                  onFilterUpdate(query);
+                  onBlur(query);
+                }}
+                onSearch={query => {
+                  onFilterUpdate(query);
+                  onChange(query, {});
+                }}
               />
             )}
           </FormField>

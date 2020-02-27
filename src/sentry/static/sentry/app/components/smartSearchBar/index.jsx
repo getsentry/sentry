@@ -312,13 +312,14 @@ class SmartSearchBar extends React.Component {
     });
   };
 
-  onQueryBlur = () => {
+  onQueryBlur = e => {
     // wait 200ms before closing dropdown in case blur was a result of
     // clicking a menu option
+    const value = e.target.value;
     this.blurTimeout = setTimeout(() => {
       this.blurTimeout = null;
       this.setState({dropdownVisible: false});
-      callIfFunction(this.props.onBlur);
+      callIfFunction(this.props.onBlur, value);
     }, DROPDOWN_BLUR_DURATION);
   };
 
