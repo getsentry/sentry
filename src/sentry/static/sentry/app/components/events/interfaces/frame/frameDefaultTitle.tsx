@@ -11,21 +11,20 @@ import {t} from 'app/locale';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 
 import FrameFunctionName from './frameFunctionName';
-import getPlatform from './getPlatform';
-import trimPackage from './trimPackage';
+import {getPlatform, trimPackage} from './utils';
 import FrameDefaultTitleOriginalSourceInfo from './frameDefaultTitleOriginalSourceInfo';
-import {Data, PlatformType} from './types';
+import {Frame, PlatformType} from './types';
 
 type Props = {
-  data: Data;
+  frame: Frame;
   platform: PlatformType;
 };
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-const FrameDefaultTitle = ({data, platform}: Props) => {
+const FrameDefaultTitle = ({frame, platform}: Props) => {
   const title: Array<React.ReactElement> = [];
-  const framePlatform = getPlatform(data.platform, platform);
+  const framePlatform = getPlatform(frame.platform, platform);
 
   const handleExternalLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
@@ -33,50 +32,47 @@ const FrameDefaultTitle = ({data, platform}: Props) => {
 
   const getPathName = (shouldPrioritizeModuleName: boolean): GetPathNameOutput => {
     if (shouldPrioritizeModuleName) {
-      if (data.module) {
+      if (frame.module) {
         return {
           key: 'module',
-          value: data.module,
-          meta: getMeta(data, 'module'),
+          value: frame.module,
+          meta: getMeta(frame, 'module'),
         };
       }
       return {
         key: 'filename',
-        value: data.filename,
-        meta: getMeta(data, 'filename'),
+        value: frame.filename,
+        meta: getMeta(frame, 'filename'),
       };
     }
 
-    if (data.filename) {
+    if (frame.filename) {
       return {
         key: 'filename',
-        value: data.filename,
-        meta: getMeta(data, 'filename'),
+        value: frame.filename,
+        meta: getMeta(frame, 'filename'),
       };
     }
 
     return {
       key: 'module',
-      value: data.module,
-      meta: getMeta(data, 'module'),
+      value: frame.module,
+      meta: getMeta(frame, 'module'),
     };
   };
 
   // TODO(dcramer): this needs to use a formatted string so it can be
   // localized correctly
-  if (defined(data.filename || data.module)) {
+  if (defined(frame.filename || frame.module)) {
     // prioritize module name for Java as filename is often only basename
     const shouldPrioritizeModuleName =
       framePlatform === 'java' || framePlatform === 'csharp';
 
     const pathName = getPathName(shouldPrioritizeModuleName);
-
-    console.log('pathName', pathName);
-
-    const enablePathTooltip = defined(data.absPath) && data.absPath !== pathName.value;
+    const enablePathTooltip = defined(frame.absPath) && frame.absPath !== pathName.value;
 
     title.push(
-      <Tooltip key={pathName.key} title={data.absPath} disabled={!enablePathTooltip}>
+      <Tooltip key={pathName.key} title={frame.absPath} disabled={!enablePathTooltip}>
         <code key="filename" className="filename">
           {pathName.meta ? (
             <AnnotatedText
@@ -94,9 +90,9 @@ const FrameDefaultTitle = ({data, platform}: Props) => {
 
     // in case we prioritized the module name but we also have a filename info
     // we want to show a litle (?) icon that on hover shows the actual filename
-    if (shouldPrioritizeModuleName && data.filename && framePlatform !== 'csharp') {
+    if (shouldPrioritizeModuleName && frame.filename && framePlatform !== 'csharp') {
       title.push(
-        <Tooltip key={data.filename} title={data.filename}>
+        <Tooltip key={frame.filename} title={frame.filename}>
           <a className="in-at real-filename">
             <IconQuestion size="xs" />
           </a>
@@ -104,10 +100,10 @@ const FrameDefaultTitle = ({data, platform}: Props) => {
       );
     }
 
-    if (data.absPath && isUrl(data.absPath)) {
+    if (frame.absPath && isUrl(frame.absPath)) {
       title.push(
         <ExternalLink
-          href={data.absPath}
+          href={frame.absPath}
           className="icon-open"
           key="share"
           onClick={handleExternalLink}
@@ -115,7 +111,7 @@ const FrameDefaultTitle = ({data, platform}: Props) => {
       );
     }
 
-    if (defined(data.function) || defined(data.rawFunction)) {
+    if (defined(frame.function) || defined(frame.rawFunction)) {
       title.push(
         <span className="in-at" key="in">
           {` ${t('in')} `}
@@ -124,14 +120,14 @@ const FrameDefaultTitle = ({data, platform}: Props) => {
     }
   }
 
-  if (defined(data.function) || defined(data.rawFunction)) {
-    title.push(<FrameFunctionName data={data} key="function" className="function" />);
+  if (defined(frame.function) || defined(frame.rawFunction)) {
+    title.push(<FrameFunctionName frame={frame} key="function" className="function" />);
   }
 
   // we don't want to render out zero line numbers which are used to
   // indicate lack of source information for native setups.  We could
   // TODO(mitsuhiko): only do this for events from native platforms?
-  if (defined(data.lineNo) && data.lineNo !== 0) {
+  if (defined(frame.lineNo) && frame.lineNo !== 0) {
     title.push(
       <span className="in-at in-at-line" key="no">
         {` ${t('at line')} `}
@@ -139,30 +135,30 @@ const FrameDefaultTitle = ({data, platform}: Props) => {
     );
     title.push(
       <code key="line" className="lineno">
-        {defined(data.colNo) ? `${data.lineNo}:${data.colNo}` : data.lineNo}
+        {defined(frame.colNo) ? `${frame.lineNo}:${frame.colNo}` : frame.lineNo}
       </code>
     );
   }
 
-  if (defined(data.package) && framePlatform !== 'csharp') {
+  if (defined(frame.package) && framePlatform !== 'csharp') {
     title.push(
       <span className="within" key="within">
         {` ${t('within')} `}
       </span>
     );
     title.push(
-      <code title={data.package} className="package" key="package">
-        {trimPackage(data.package)}
+      <code title={frame.package} className="package" key="package">
+        {trimPackage(frame.package)}
       </code>
     );
   }
 
-  if (defined(data.origAbsPath)) {
+  if (defined(frame.origAbsPath)) {
     title.push(
       <Tooltip
         key="info-tooltip"
         title={
-          <FrameDefaultTitleOriginalSourceInfo mapUrl={data.mapUrl} map={data.map} />
+          <FrameDefaultTitleOriginalSourceInfo mapUrl={frame.mapUrl} map={frame.map} />
         }
       >
         <a className="in-at original-src">

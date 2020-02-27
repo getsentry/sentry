@@ -6,10 +6,10 @@ import {Meta} from 'app/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 
-import {Data} from './types';
+import {Frame} from './types';
 
 type Props = {
-  data: Data;
+  frame: Frame;
   className?: string;
 };
 
@@ -39,32 +39,32 @@ class FrameFunctionName extends React.Component<Props, State> {
   };
 
   getToggleValue(withRawFunctionCondition: boolean = false): React.ReactNode {
-    const {data} = this.props;
+    const {frame} = this.props;
     let valueOutput: ToggleValueOutput = t('<unknown>');
 
     if (withRawFunctionCondition) {
       const {rawFunction} = this.state;
       if (!rawFunction) {
-        if (data.function) {
+        if (frame.function) {
           valueOutput = {
-            value: data.function,
-            meta: getMeta(data, 'function'),
+            value: frame.function,
+            meta: getMeta(frame, 'function'),
           };
         }
       }
     } else {
-      if (data.function) {
+      if (frame.function) {
         valueOutput = {
-          value: data.function,
-          meta: getMeta(data, 'function'),
+          value: frame.function,
+          meta: getMeta(frame, 'function'),
         };
       }
     }
 
-    if (data.rawFunction) {
+    if (typeof valueOutput === 'string' && frame.rawFunction) {
       valueOutput = {
-        value: data.rawFunction,
-        meta: getMeta(data, 'rawFunction'),
+        value: frame.rawFunction,
+        meta: getMeta(frame, 'rawFunction'),
       };
     }
 
@@ -87,9 +87,9 @@ class FrameFunctionName extends React.Component<Props, State> {
   }
 
   render() {
-    const {data, ...props} = this.props;
-    const func = data.function;
-    const rawFunc = data.rawFunction;
+    const {frame, ...props} = this.props;
+    const func = frame.function;
+    const rawFunc = frame.rawFunction;
     const canToggle = rawFunc && func && func !== rawFunc;
 
     if (!canToggle) {
