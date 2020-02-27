@@ -2,13 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Release} from 'app/types';
+import {Release, ProjectRelease} from 'app/types';
 import AvatarList from 'app/components/avatar/avatarList';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 
 type Props = {
-  release: Release;
+  release: Release | ProjectRelease;
   withHeading: boolean;
 };
 

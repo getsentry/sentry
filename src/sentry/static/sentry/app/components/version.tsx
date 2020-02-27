@@ -145,6 +145,14 @@ Version.propTypes = {
   className: PropTypes.string,
 };
 
+// TODO(matej): try to wrap version with this when truncate prop is true (in seperate PR)
+// const VersionWrapper = styled('div')`
+//   ${overflowEllipsis};
+//   max-width: 100%;
+//   width: auto;
+//   display: inline-block;
+// `;
+
 const VersionText = styled('span')<{truncate?: boolean}>`
   ${p =>
     p.truncate &&
