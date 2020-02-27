@@ -113,6 +113,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             "provider": "integrations:bitbucket_server",
             "repo": repo,
             "project": project,
+            "identifier": project + "/" + repo,
             "name": full_repo_name,
             "installation": integration.id,
             "external_id": six.text_type(REPO["id"]),
