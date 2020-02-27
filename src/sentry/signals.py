@@ -52,14 +52,18 @@ class BetterSignal(Signal):
 
 
 buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra", "result"])
-event_accepted = BetterSignal(providing_args=["ip", "data", "project"])
-event_discarded = BetterSignal(providing_args=["project"])
-event_dropped = BetterSignal(providing_args=["ip", "data", "project", "reason_code"])
-event_filtered = BetterSignal(providing_args=["ip", "data", "project"])
-event_received = BetterSignal(providing_args=["ip", "project"])
+event_discarded = BetterSignal(providing_args=["project", "category", "quantity"])
+event_dropped = BetterSignal(
+    providing_args=["ip", "data", "project", "reason_code", "category", "quantity"]
+)
+event_filtered = BetterSignal(providing_args=["ip", "project", "category", "quantity"])
 pending_delete = BetterSignal(providing_args=["instance", "actor"])
 event_processed = BetterSignal(providing_args=["project", "event"])
-event_saved = BetterSignal(providing_args=["project"])
+event_saved = BetterSignal(providing_args=["project", "category", "quantity"])
+
+# DEPRECATED
+event_received = BetterSignal(providing_args=["ip", "project"])
+event_accepted = BetterSignal(providing_args=["ip", "data", "project"])
 
 # Organization Onboarding Signals
 project_created = BetterSignal(providing_args=["project", "user", "default_rules"])
