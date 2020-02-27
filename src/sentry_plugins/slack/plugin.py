@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
-from sentry import http, tagstore
+from sentry import tagstore
 from sentry.plugins.bases import notify
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 
+from .client import SlackApiClient
 from sentry_plugins.base import CorePluginMixin
 
 LEVEL_TO_COLOR = {
@@ -15,14 +16,6 @@ LEVEL_TO_COLOR = {
     "error": "f43f20",
     "fatal": "d20f2a",
 }
-
-
-def track_response_code(status_code):
-    metrics.incr(
-        "sentry-plugins.http_response",
-        sample_rate=1.0,
-        tags={"status": status_code, "plugin": "slack"},
-    )
 
 
 class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
@@ -165,11 +158,6 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         if not self.is_configured(project):
             return
 
-        webhook = self.get_option("webhook", project)
-        username = (self.get_option("username", project) or "Sentry").strip()
-        icon_url = self.get_option("icon_url", project)
-        channel = (self.get_option("channel", project) or "").strip()
-
         title = event.title.encode("utf-8")
         # TODO(dcramer): we'd like this to be the event culprit, but Sentry
         # does not currently retain it
@@ -235,7 +223,6 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
                         "short": True,
                     }
                 )
-
         payload = {
             "attachments": [
                 {
@@ -247,20 +234,26 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
                 }
             ]
         }
+        client = self.get_client(project)
 
-        if username:
-            payload["username"] = username.encode("utf-8")
+        if client.username:
+            payload["username"] = client.username.encode("utf-8")
 
-        if channel:
-            payload["channel"] = channel
+        if client.channel:
+            payload["channel"] = client.channel
 
-        if icon_url:
-            payload["icon_url"] = icon_url
+        if client.icon_url:
+            payload["icon_url"] = client.icon_url
 
         values = {"payload": json.dumps(payload)}
+        client.request(values)
 
+    def get_client(self, project):
+        webhook = self.get_option("webhook", project)
         # Apparently we've stored some bad data from before we used `URLField`.
         webhook = webhook.strip(" ")
-        response = http.safe_urlopen(webhook, method="POST", data=values, timeout=5)
-        track_response_code(response.status_code)
-        return response
+        username = (self.get_option("username", project) or "Sentry").strip()
+        icon_url = self.get_option("icon_url", project)
+        channel = (self.get_option("channel", project) or "").strip()
+
+        return SlackApiClient(webhook, username, icon_url, channel)
