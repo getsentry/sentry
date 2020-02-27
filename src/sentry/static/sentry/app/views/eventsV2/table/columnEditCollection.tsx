@@ -15,13 +15,14 @@ import theme from 'app/utils/theme';
 
 import {AGGREGATIONS, FIELDS, TRACING_FIELDS} from '../eventQueryParams';
 import {Column} from '../eventView';
-import {ColumnEditRow, FieldValue, FieldValueKind} from './columnEditRow';
+import {FieldValue, FieldValueKind} from './types';
+import {ColumnEditRow} from './columnEditRow';
 
 type Props = {
   // Input columns
   columns: Column[];
   organization: OrganizationSummary;
-  tagKeys: string[];
+  tagKeys: null | string[];
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
 };
@@ -125,15 +126,17 @@ class ColumnEditCollection extends React.Component<Props, State> {
       };
     });
 
-    tagKeys.forEach(tag => {
-      fieldOptions[`tag:${tag}`] = {
-        label: tag,
-        value: {
-          kind: FieldValueKind.TAG,
-          meta: {name: tag, dataType: 'string'},
-        },
-      };
-    });
+    if (tagKeys !== null) {
+      tagKeys.forEach(tag => {
+        fieldOptions[`tag:${tag}`] = {
+          label: tag,
+          value: {
+            kind: FieldValueKind.TAG,
+            meta: {name: tag, dataType: 'string'},
+          },
+        };
+      });
+    }
 
     this.setState({fieldOptions});
   }
@@ -269,14 +272,18 @@ class ColumnEditCollection extends React.Component<Props, State> {
     };
     const ghost = (
       <Ghost ref={this.dragGhostRef} style={style}>
-        {this.renderItem(col, index, true, true)}
+        {this.renderItem(col, index, {isGhost: true})}
       </Ghost>
     );
 
     return ReactDOM.createPortal(ghost, this.portal);
   }
 
-  renderItem(col: Column, i: number, canDelete: boolean, isGhost: boolean = false) {
+  renderItem(
+    col: Column,
+    i: number,
+    {canDelete = true, isGhost = false}: {canDelete?: boolean; isGhost?: boolean}
+  ) {
     const {isDragging, draggingTargetIndex, fieldOptions} = this.state;
 
     // Replace the dragged row with a placeholder.
@@ -329,7 +336,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <strong>{t('Field Parameter')}</strong>
           </Heading>
         </RowContainer>
-        {columns.map((col: Column, i: number) => this.renderItem(col, i, canDelete))}
+        {columns.map((col: Column, i: number) => this.renderItem(col, i, {canDelete}))}
         <RowContainer>
           <Actions>
             <Button size="xsmall" onClick={this.handleAddColumn}>

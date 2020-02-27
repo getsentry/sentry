@@ -13,7 +13,7 @@ import ColumnEditCollection from './columnEditCollection';
 type Props = {
   columns: Column[];
   organization: OrganizationSummary;
-  tagKeys: string[];
+  tagKeys: null | string[];
   // Fired when column selections have been applied.
   onApply: (columns: Column[]) => void;
 } & ModalRenderProps;

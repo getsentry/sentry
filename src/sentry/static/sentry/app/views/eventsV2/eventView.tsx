@@ -572,26 +572,27 @@ class EventView {
     });
   }
 
-  withNewColumn(newColumn: Column): EventView {
-    const field = newColumn.field.trim();
-    const aggregation = newColumn.aggregation.trim();
-    const fieldAsString = generateFieldAsString({field, aggregation});
-    const newField: Field = {
-      field: fieldAsString,
-      width: newColumn.width || COL_WIDTH_UNDEFINED,
-    };
-
+  withColumns(columns: Column[]): EventView {
     const newEventView = this.clone();
-    newEventView.fields = [...newEventView.fields, newField];
+    const fields: Field[] = columns
+      .map(col => generateFieldAsString(col))
+      .map((field, i) => {
+        // newly added field
+        if (!newEventView.fields[i]) {
+          return {field, width: COL_WIDTH_UNDEFINED};
+        }
+        // Existing columns that were not re ordered should retain
+        // their old widths.
+        const existing = newEventView.fields[i];
+        let width = COL_WIDTH_UNDEFINED;
+        if (existing.field === field && existing.width !== undefined) {
+          width = existing.width;
+        }
+        return {field, width};
+      });
+    newEventView.fields = fields;
 
     return newEventView;
-  }
-
-  withNewColumnAt(newColumn: Column, insertIndex: number): EventView {
-    const newEventView = this.withNewColumn(newColumn);
-    const fromIndex = newEventView.fields.length - 1;
-
-    return newEventView.withMovedColumn({fromIndex, toIndex: insertIndex});
   }
 
   withUpdatedColumn(

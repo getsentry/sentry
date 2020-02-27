@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
-
 import {openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import GlobalModal from 'app/components/globalModal';
@@ -37,6 +36,14 @@ storiesOf('Discover|ColumnEditor', module).add(
       {
         field: '',
         aggregation: 'p95',
+      },
+      {
+        field: 'issue.id',
+        aggregation: '',
+      },
+      {
+        field: 'issue.id',
+        aggregation: 'count_unique',
       },
     ];
 

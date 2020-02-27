@@ -1060,11 +1060,14 @@ describe('EventView.clone()', function() {
   });
 });
 
-describe('EventView.withNewColumn()', function() {
+describe('EventView.withColumns()', function() {
   const state = {
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [
+      {field: 'count()', width: 30},
+      {field: 'project.id', width: 99},
+    ],
     sorts: generateSorts(['count']),
     query: 'event.type:error',
     project: [42],
@@ -1073,71 +1076,39 @@ describe('EventView.withNewColumn()', function() {
     statsPeriod: '14d',
     environment: ['staging'],
   };
+  const eventView = new EventView(state);
 
-  it('add a field', function() {
-    const eventView = new EventView(state);
-
-    const newColumn = {
-      aggregation: '',
-      field: 'title',
-    };
-
-    const eventView2 = eventView.withNewColumn(newColumn);
-
-    expect(eventView2 !== eventView).toBeTruthy();
-
-    expect(eventView).toMatchObject(state);
-
-    const nextState = {
-      ...state,
-      fields: [...state.fields, {field: 'title'}],
-    };
-
-    expect(eventView2).toMatchObject(nextState);
+  it('adds new columns, and replaces existing ones', function() {
+    const newView = eventView.withColumns([
+      {field: 'title', aggregation: ''},
+      {field: '', aggregation: 'count'},
+      {field: 'project.id', aggregation: ''},
+      {field: 'culprit', aggregation: ''},
+    ]);
+    // Views should be different.
+    expect(newView.isEqualTo(eventView)).toBe(false);
+    expect(newView.fields).toEqual([
+      {field: 'title', width: COL_WIDTH_UNDEFINED},
+      {field: 'count()', width: COL_WIDTH_UNDEFINED},
+      {field: 'project.id', width: COL_WIDTH_UNDEFINED},
+      {field: 'culprit', width: COL_WIDTH_UNDEFINED},
+    ]);
   });
 
-  it('add an aggregate function with no arguments', function() {
-    const eventView = new EventView(state);
+  it('inherits widths from existing columns when names match', function() {
+    const newView = eventView.withColumns([
+      {field: '', aggregation: 'count'},
+      {field: 'project.id', aggregation: ''},
+      {field: 'title', aggregation: ''},
+      {field: 'time', aggregation: ''},
+    ]);
 
-    const newColumn = {
-      aggregation: 'count',
-      field: '',
-    };
-
-    const eventView2 = eventView.withNewColumn(newColumn);
-
-    expect(eventView2 !== eventView).toBeTruthy();
-
-    expect(eventView).toMatchObject(state);
-
-    const nextState = {
-      ...state,
-      fields: [...state.fields, {field: 'count()'}],
-    };
-
-    expect(eventView2).toMatchObject(nextState);
-  });
-
-  it('add an aggregate function with arguments', function() {
-    const eventView = new EventView(state);
-
-    const newColumn = {
-      aggregation: 'avg',
-      field: 'transaction.duration',
-    };
-
-    const eventView2 = eventView.withNewColumn(newColumn);
-
-    expect(eventView2 !== eventView).toBeTruthy();
-
-    expect(eventView).toMatchObject(state);
-
-    const nextState = {
-      ...state,
-      fields: [...state.fields, {field: 'avg(transaction.duration)'}],
-    };
-
-    expect(eventView2).toMatchObject(nextState);
+    expect(newView.fields).toEqual([
+      {field: 'count()', width: 30},
+      {field: 'project.id', width: 99},
+      {field: 'title', width: COL_WIDTH_UNDEFINED},
+      {field: 'time', width: COL_WIDTH_UNDEFINED},
+    ]);
   });
 });
 
@@ -2089,12 +2060,8 @@ describe('isAPIPayloadSimilar', function() {
       const location = {};
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const newColumn = {
-        aggregation: '',
-        field: 'title',
-      };
-
-      const otherEventView = thisEventView.withNewColumn(newColumn);
+      const otherEventView = thisEventView.clone();
+      otherEventView.fields.push({field: 'title', width: COL_WIDTH_UNDEFINED});
       const otherLocation = {};
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
@@ -2246,12 +2213,8 @@ describe('isAPIPayloadSimilar', function() {
       const location = {};
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
-      const newColumn = {
-        aggregation: '',
-        field: 'title',
-      };
-
-      const otherEventView = thisEventView.withNewColumn(newColumn);
+      const otherEventView = thisEventView.clone();
+      otherEventView.fields.push({field: 'title', width: COL_WIDTH_UNDEFINED});
       const otherLocation = {};
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
