@@ -498,6 +498,61 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["count_id"] == 2
         assert data[1]["count_unique_user"] == 2
 
+    def test_aggregate_field_with_dotted_param(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_1"],
+                "user": {"id": "123", "email": "foo@example.com"},
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"id": "123", "email": "foo@example.com"},
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"id": "456", "email": "bar@example.com"},
+            },
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["issue.id", "issue_title", "count(id)", "count_unique(user.email)"],
+                    "orderby": "issue.id",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert data[0]["issue.id"] == event1.group_id
+        assert data[0]["count_id"] == 1
+        assert data[0]["count_unique_user_email"] == 1
+        assert "latest_event" in data[0]
+        assert "project.name" in data[0]
+        assert "projectid" not in data[0]
+        assert "project.id" not in data[0]
+        assert data[1]["issue.id"] == event2.group_id
+        assert data[1]["count_id"] == 2
+        assert data[1]["count_unique_user_email"] == 2
+
     def test_error_rate_alias_field(self):
         self.login_as(user=self.user)
         project = self.create_project()
