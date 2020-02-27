@@ -21,20 +21,6 @@ class QuotaScope(IntEnum):
         return self.name.lower()
 
 
-@unique
-class DataCategory(IntEnum):
-    DEFAULT = 0
-    ERROR = 1
-    TRANSACTION = 2
-    SECURITY = 3
-    ATTACHMENT = 4
-    SESSION = 5
-    CRASH = 6
-
-    def api_name(self):
-        return self.name.lower()
-
-
 class QuotaConfig(object):
     """
     Abstract configuration for a quota.

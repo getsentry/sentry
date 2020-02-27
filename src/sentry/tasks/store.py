@@ -11,6 +11,7 @@ from django.conf import settings
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import features, reprocessing
+from sentry.constants import DataCategory
 from sentry.relay.config import get_project_config
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
@@ -488,6 +489,8 @@ def _do_save_event(
             if data is not None:
                 metric_tags["event_type"] = event_type = data.get("type") or "none"
 
+    data_category = DataCategory.from_event_type(event_type)
+
     with metrics.global_tags(event_type=event_type):
         if data is not None:
             data = CanonicalKeyDict(data)
@@ -548,6 +551,7 @@ def _do_save_event(
                     None,
                     timestamp,
                     event_id,
+                    data_category,
                 )
 
         except HashDiscarded:
@@ -575,6 +579,7 @@ def _do_save_event(
                 reason,
                 timestamp,
                 event_id,
+                data_category,
             )
 
         finally:
