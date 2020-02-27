@@ -268,7 +268,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         # We had/have logic to remove unchanged fields from the serializer before passing them to update
         # It is possible with an error here that sending an update without changing the field
         # could nullify it. So we make sure it's not getting nullified here.
-        # we can an update with all the same fields, and it comes back as 125 instead of None.
+        # we can an update with all the same fields, and it comes back as 75 instead of None.
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.organization.slug, alert_rule.id, **serialized_alert_rule

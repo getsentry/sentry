@@ -12,12 +12,7 @@ from sentry.incidents.endpoints.serializers import (
     string_to_action_type,
     string_to_action_target_type,
 )
-from sentry.incidents.logic import (
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
-    InvalidTriggerActionError,
-)
+from sentry.incidents.logic import create_alert_rule_trigger, InvalidTriggerActionError
 from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -220,116 +215,6 @@ class TestAlertRuleSerializer(TestCase):
 
         assert serializer.is_valid(), serializer.errors
 
-    def _run_changed_fields_test(self, alert_rule, params, expected):
-        test_params = self.valid_params.copy()
-        test_params.update(params)
-
-        expected.update({"triggers": self.Any(list)})
-        serializer = AlertRuleSerializer(
-            context=self.context, instance=alert_rule, data=test_params, partial=True
-        )
-
-        assert serializer.is_valid(), serializer.errors
-
-        assert (
-            serializer._remove_unchanged_fields(alert_rule, serializer.validated_data) == expected
-        )
-
-    def test_remove_unchanged_fields(self):
-        a_project = self.create_project()
-        projects = [self.project, a_project]
-
-        test_params = self.valid_params.copy()
-        test_params.update({"projects": [self.project.slug, a_project.slug]})
-
-        name = "hello"
-        query = "level:error"
-        aggregation = QueryAggregations.TOTAL
-        time_window = 10
-        alert_rule = create_alert_rule(
-            self.organization, projects, name, query, aggregation, time_window, 1
-        )
-        self._run_changed_fields_test(
-            alert_rule,
-            {
-                "projects": [p.slug for p in projects],
-                "name": name,
-                "query": query,
-                "aggregation": aggregation.value,
-                "time_window": time_window,
-            },
-            {},
-        )
-
-        temp_params = test_params.copy()
-        temp_params.update({"projects": [p.slug for p in projects]})
-        self._run_changed_fields_test(alert_rule, temp_params, {})
-
-        self._run_changed_fields_test(
-            alert_rule, {"projects": [self.project.slug]}, {"projects": [self.project]}
-        )
-
-        temp_params = test_params.copy()
-        temp_params.update({"name": name})
-        self._run_changed_fields_test(alert_rule, temp_params, {})
-
-        temp_params = test_params.copy()
-        temp_params.update({"name": "a name"})
-        self._run_changed_fields_test(alert_rule, temp_params, {"name": "a name"})
-
-        temp_params = test_params.copy()
-        temp_params.update({"query": query})
-        self._run_changed_fields_test(alert_rule, temp_params, {})
-
-        temp_params = test_params.copy()
-        temp_params.update({"query": "level:warning"})
-        self._run_changed_fields_test(alert_rule, temp_params, {"query": "level:warning"})
-
-        temp_params = test_params.copy()
-        temp_params.update({"aggregation": aggregation.value})
-        self._run_changed_fields_test(alert_rule, temp_params, {})
-
-        temp_params = test_params.copy()
-        temp_params.update({"aggregation": 1})
-        self._run_changed_fields_test(
-            alert_rule, temp_params, {"aggregation": QueryAggregations.UNIQUE_USERS}
-        )
-
-        temp_params = test_params.copy()
-        temp_params.update({"time_window": time_window})
-        self._run_changed_fields_test(alert_rule, temp_params, {})
-
-        temp_params = test_params.copy()
-        temp_params.update({"time_window": 20})
-        self._run_changed_fields_test(alert_rule, temp_params, {"time_window": 20})
-
-    def test_remove_unchanged_fields_include_all(self):
-        projects = [self.project]
-        excluded = [self.create_project()]
-        alert_rule = self.create_alert_rule(
-            name="hello", include_all_projects=True, excluded_projects=excluded
-        )
-
-        self._run_changed_fields_test(
-            alert_rule,
-            {"include_all_projects": True, "excluded_projects": [e.slug for e in excluded]},
-            {},
-        )
-
-        self._run_changed_fields_test(
-            alert_rule, {"excluded_projects": [e.slug for e in excluded]}, {}
-        )
-        self._run_changed_fields_test(
-            alert_rule,
-            {"excluded_projects": [p.slug for p in projects]},
-            {"excluded_projects": projects},
-        )
-
-        self._run_changed_fields_test(alert_rule, {"include_all_projects": True}, {})
-        self._run_changed_fields_test(
-            alert_rule, {"include_all_projects": False}, {"include_all_projects": False}
-        )
-
 
 class TestAlertRuleTriggerSerializer(TestCase):
     @fixture
@@ -390,65 +275,6 @@ class TestAlertRuleTriggerSerializer(TestCase):
             {"thresholdType": "a"}, {"thresholdType": ["A valid integer is required."]}
         )
         self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
-
-    def _run_changed_fields_test(self, trigger, params, expected):
-        serializer = AlertRuleTriggerSerializer(
-            context=self.context, instance=trigger, data=params, partial=True
-        )
-        assert serializer.is_valid(), serializer.errors
-        assert serializer._remove_unchanged_fields(trigger, serializer.validated_data) == expected
-
-    def test_remove_unchanged_fields(self):
-        excluded_projects = [self.project]
-        label = "hello"
-        threshold_type = AlertRuleThresholdType.ABOVE
-        alert_threshold = 1000
-        resolve_threshold = 400
-        trigger = create_alert_rule_trigger(
-            self.alert_rule,
-            label,
-            threshold_type,
-            alert_threshold,
-            resolve_threshold,
-            excluded_projects=excluded_projects,
-        )
-
-        self._run_changed_fields_test(
-            trigger,
-            {
-                "label": label,
-                "threshold_type": threshold_type.value,
-                "alert_threshold": alert_threshold,
-                "resolve_threshold": resolve_threshold,
-                "excludedProjects": [p.slug for p in excluded_projects],
-            },
-            {},
-        )
-
-        self._run_changed_fields_test(trigger, {"label": label}, {})
-        self._run_changed_fields_test(trigger, {"label": "a name"}, {"label": "a name"})
-
-        self._run_changed_fields_test(trigger, {"threshold_type": threshold_type.value}, {})
-        self._run_changed_fields_test(
-            trigger, {"threshold_type": 1}, {"threshold_type": AlertRuleThresholdType.BELOW}
-        )
-
-        self._run_changed_fields_test(trigger, {"alert_threshold": alert_threshold}, {})
-        self._run_changed_fields_test(trigger, {"alert_threshold": 2000}, {"alert_threshold": 2000})
-
-        self._run_changed_fields_test(trigger, {"resolve_threshold": resolve_threshold}, {})
-        self._run_changed_fields_test(
-            trigger, {"resolve_threshold": 200}, {"resolve_threshold": 200}
-        )
-
-        self._run_changed_fields_test(
-            trigger, {"excluded_projects": [p.slug for p in excluded_projects]}, {}
-        )
-        self._run_changed_fields_test(
-            trigger,
-            {"excluded_projects": [self.other_project.slug]},
-            {"excluded_projects": [self.other_project]},
-        )
 
 
 class TestAlertRuleTriggerActionSerializer(TestCase):
@@ -518,66 +344,6 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
             % ", ".join(string_to_action_target_type.keys())
         ]
         self.run_fail_validation_test({"targetType": 50}, {"targetType": invalid_values})
-
-    def _run_changed_fields_test(self, trigger, params, expected):
-        serializer = AlertRuleTriggerActionSerializer(
-            context=self.context, instance=trigger, data=params, partial=True
-        )
-        assert serializer.is_valid(), serializer.errors
-        assert serializer._remove_unchanged_fields(trigger, serializer.validated_data) == expected
-
-    def test_remove_unchanged_fields(self):
-        type = AlertRuleTriggerAction.Type.EMAIL
-        target_type = AlertRuleTriggerAction.TargetType.USER
-        identifier = six.text_type(self.user.id)
-        action = create_alert_rule_trigger_action(self.trigger, type, target_type, identifier)
-
-        self._run_changed_fields_test(
-            action,
-            {
-                "type": AlertRuleTriggerAction.get_registered_type(type).slug,
-                "target_type": action_target_type_to_string[target_type],
-                "target_identifier": identifier,
-            },
-            {},
-        )
-
-        integration = Integration.objects.create(external_id="1", provider="slack", metadata={})
-
-        self._run_changed_fields_test(
-            action,
-            {
-                "type": AlertRuleTriggerAction.get_registered_type(
-                    AlertRuleTriggerAction.Type.SLACK
-                ).slug,
-                "targetIdentifier": identifier,
-                "targetType": action_target_type_to_string[
-                    AlertRuleTriggerAction.TargetType.SPECIFIC
-                ],
-                "integration": integration.id,
-            },
-            {
-                "type": AlertRuleTriggerAction.Type.SLACK,
-                "integration": integration,
-                "target_identifier": identifier,
-                "target_type": AlertRuleTriggerAction.TargetType.SPECIFIC,
-            },
-        )
-
-        new_team = self.create_team(self.organization)
-        self._run_changed_fields_test(
-            action,
-            {
-                "type": AlertRuleTriggerAction.get_registered_type(type).slug,
-                "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.TEAM],
-                "target_identifier": six.text_type(new_team.id),
-            },
-            {
-                "type": type,
-                "target_type": AlertRuleTriggerAction.TargetType.TEAM,
-                "target_identifier": six.text_type(new_team.id),
-            },
-        )
 
     def test_user_perms(self):
         self.run_fail_validation_test(

@@ -241,7 +241,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "triggers": [
                 {
                     "label": "critical",
-                    "alertThreshold": 200,
+                    "alertThreshold": 75,
                     "resolveThreshold": 100,
                     "thresholdType": 1,
                 }
@@ -252,7 +252,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
             )
-            assert resp.data == {"triggers": [{"actions": [u"This field is required."]}]}
+            assert resp.data == {u"nonFieldErrors": [u'"critical" trigger must have an action.']}
 
     def test_invalid_projects(self):
         self.create_member(
