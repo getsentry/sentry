@@ -206,15 +206,15 @@ const IntegrationStatus = styled(
     const color = status === 'active' ? theme.success : theme.gray2;
     const titleText =
       status === 'active'
-        ? 'This Integration can be disabled by clicking the Uninstall button'
-        : 'This Integration has been disconnected from the external provider';
+        ? t('This Integration can be disabled by clicking the Uninstall button')
+        : t('This Integration has been disconnected from the external provider');
     return (
-      <Tooltip title={t(titleText)}>
+      <Tooltip title={titleText}>
         <div {...p}>
           <CircleIndicator size={6} color={color} />
-          <IntegrationStatusText>{`${t(
-            status === 'active' ? 'enabled' : 'disabled'
-          )}`}</IntegrationStatusText>
+          <IntegrationStatusText>{`${
+            status === 'active' ? t('enabled') : t('disabled')
+          }`}</IntegrationStatusText>
         </div>
       </Tooltip>
     );
