@@ -17,7 +17,7 @@ type State = {
   view: number;
 };
 
-class FrameRegisterValue extends React.Component<Props, State> {
+class frameRegistersValue extends React.Component<Props, State> {
   state = {
     view: 0,
   };
@@ -75,7 +75,7 @@ class FrameRegisterValue extends React.Component<Props, State> {
   }
 }
 
-export default FrameRegisterValue;
+export default frameRegistersValue;
 
 const InlinePre = styled('pre')`
   display: inline;
