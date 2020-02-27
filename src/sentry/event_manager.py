@@ -16,6 +16,7 @@ from django.utils.encoding import force_text
 from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
 from sentry.attachments import attachment_cache
 from sentry.constants import (
+    DataCategory,
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
@@ -662,6 +663,7 @@ def _pull_out_data(jobs, projects):
         job["recorded_timestamp"] = data.get("timestamp")
         job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
         job["data"] = data = event.data.data
+        job["category"] = DataCategory.from_event_type(data.get("type"))
         job["platform"] = event.platform
         event._project_cache = projects[job["project_id"]]
 
