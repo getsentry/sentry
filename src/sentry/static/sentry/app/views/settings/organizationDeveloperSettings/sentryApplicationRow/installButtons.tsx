@@ -33,8 +33,7 @@ export const UninstallButton = ({
       onConfirming={onUninstallModalOpen} //called when the confirm modal opens
       disabled={disabled}
     >
-      <StyledButton size="small" data-test-id="sentry-app-uninstall">
-        <IconSubtract circle style={{marginRight: space(0.75)}} />
+      <StyledButton borderless icon="icon-trash" data-test-id="sentry-app-uninstall">
         {t('Uninstall')}
       </StyledButton>
     </Confirm>
@@ -58,6 +57,35 @@ export const InstallButton = ({onClickInstall}: InstallButtonProps) => {
 };
 
 const StyledButton = styled(Button)`
+  color: ${p => p.theme.gray2};
+`;
+
+export const UninstallAppButton = ({
+  install,
+  app,
+  onClickUninstall,
+  onUninstallModalOpen,
+  disabled,
+}: UninstallButtonProps) => {
+  const message = t(`Are you sure you want to remove the ${app.slug} installation?`);
+
+  return (
+    <Confirm
+      message={message}
+      priority="danger"
+      onConfirm={() => onClickUninstall && install && onClickUninstall(install)} //called when the user confirms the action
+      onConfirming={onUninstallModalOpen} //called when the confirm modal opens
+      disabled={disabled}
+    >
+      <StyledUninstallButton size="small" data-test-id="sentry-app-uninstall">
+        <IconSubtract circle style={{marginRight: space(0.75)}} />
+        {t('Uninstall')}
+      </StyledUninstallButton>
+    </Confirm>
+  );
+};
+
+const StyledUninstallButton = styled(Button)`
   color: ${p => p.theme.gray2};
   background: #ffffff;
 

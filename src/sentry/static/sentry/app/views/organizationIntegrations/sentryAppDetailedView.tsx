@@ -17,7 +17,7 @@ import withOrganization from 'app/utils/withOrganization';
 import SplitInstallationIdModal from 'app/views/organizationIntegrations/SplitInstallationIdModal';
 import {openModal} from 'app/actionCreators/modal';
 import {getSentryAppInstallStatus} from 'app/utils/integrationUtil';
-import {UninstallButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
+import {UninstallAppButton} from '../settings/organizationDeveloperSettings/sentryApplicationRow/installButtons';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {
@@ -245,7 +245,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
         {t('Accept & Install')}
       </InstallButton>
     ) : (
-      <UninstallButton
+      <UninstallAppButton
         install={this.install}
         app={this.sentryApp}
         onClickUninstall={this.handleUninstall}
