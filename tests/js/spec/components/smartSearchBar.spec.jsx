@@ -243,7 +243,7 @@ describe('SmartSearchBar', function() {
       searchBar.state.dropdownVisible = true;
 
       jest.useFakeTimers();
-      searchBar.onQueryBlur();
+      searchBar.onQueryBlur({target: {value: 'test'}});
       jest.advanceTimersByTime(201); // doesn't close until 200ms
 
       expect(searchBar.state.dropdownVisible).toBe(false);

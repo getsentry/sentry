@@ -1765,3 +1765,10 @@ MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 MIGRATIONS_LOCKFILE_APP_WHITELIST = ()
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
+
+# Log error and abort processing (without dropping event) when process_event is
+# taking more than n seconds to process event
+SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 1800
+
+# Log warning when process_event is taking more than n seconds to process event
+SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120

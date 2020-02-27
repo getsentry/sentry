@@ -24,7 +24,7 @@ type Props = {
   busy?: boolean;
   to?: string | object;
   href?: string;
-  icon?: string;
+  icon?: string | React.ReactNode;
   iconSize?: string;
   title?: string;
   external?: boolean;
@@ -56,7 +56,7 @@ class Button extends React.Component<ButtonProps, {}> {
     /**
      * Path to an icon svg that will be displayed to left of button label
      */
-    icon: PropTypes.string,
+    icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
     /**
      * Tooltip text
      */
@@ -165,16 +165,20 @@ class Button extends React.Component<ButtonProps, {}> {
         >
           {icon && (
             <Icon size={size} hasChildren={!!children}>
-              <StyledInlineSvg
-                src={icon}
-                size={
-                  iconSize
-                    ? iconSize
-                    : (size && size.endsWith('small')) || size === 'micro'
-                    ? '12px'
-                    : '14px'
-                }
-              />
+              {typeof icon === 'string' ? (
+                <StyledInlineSvg
+                  src={icon}
+                  size={
+                    iconSize
+                      ? iconSize
+                      : (size && size.endsWith('small')) || size === 'micro'
+                      ? '12px'
+                      : '14px'
+                  }
+                />
+              ) : (
+                icon
+              )}
             </Icon>
           )}
           {children}

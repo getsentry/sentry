@@ -26,15 +26,24 @@ class Breadcrumb extends React.Component {
       classes.add('crumb-' + crumb.type.replace(/[\s_]+/g, '-').toLowerCase());
     }
 
-    // special case for 'ui.' category breadcrumbs
+    // special case for 'ui.' and `sentry.` category breadcrumbs
     // TODO: find a better way to customize UI around non-schema data
-    if (crumb.category && crumb.category.slice(0, 3) === 'ui.') {
-      classes.add('crumb-user');
+    const isDotSeparatedCategory = /.+\..+/.test(crumb.category);
+    if (isDotSeparatedCategory) {
+      const [category, subcategory] = crumb.category.split('.');
+      if (category === 'ui') {
+        classes.add('crumb-user');
+      } else if (category === 'sentry' && subcategory === 'transaction') {
+        // Warning has a precedence over other icons, so we want to force it.
+        classes.delete('crumb-warning');
+        classes.add('crumb-navigation');
+      }
     }
 
     if (crumb.last) {
       classes.add('crumb-last');
     }
+
     return [...classes].join(' ');
   };
 

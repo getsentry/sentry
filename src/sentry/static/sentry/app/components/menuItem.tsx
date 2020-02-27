@@ -3,7 +3,7 @@ import React from 'react';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 
-type Props = {
+type MenuItemProps = {
   header?: boolean;
   divider?: boolean;
   title?: string;
@@ -17,6 +17,8 @@ type Props = {
   className?: string;
   onClick?: (evt: React.MouseEvent) => void;
 };
+
+type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItemProps>;
 
 class MenuItem extends React.Component<Props> {
   static propTypes = {
@@ -56,41 +58,73 @@ class MenuItem extends React.Component<Props> {
         </Link>
       );
     }
+    if (this.props.href) {
+      return (
+        <a
+          title={this.props.title}
+          onClick={this.handleClick}
+          href={this.props.href}
+          tabIndex={-1}
+        >
+          {this.props.children}
+        </a>
+      );
+    }
+
     return (
-      <a
+      <span
+        className="menu-target"
+        role="button"
         title={this.props.title}
         onClick={this.handleClick}
-        href={this.props.href}
         tabIndex={-1}
       >
         {this.props.children}
-      </a>
+      </span>
     );
   };
 
   render() {
+    const {
+      header,
+      divider,
+      title,
+      onSelect,
+      eventKey,
+      isActive,
+      noAnchor,
+      href,
+      to,
+      query,
+      className,
+      onClick,
+      children,
+      ...props
+    } = this.props;
+
     const classes = {
-      'dropdown-header': this.props.header,
-      divider: this.props.divider,
-      active: this.props.isActive,
+      'dropdown-header': header,
+      active: isActive,
+      divider,
     };
 
-    let children: React.ReactNode | null = null;
-    if (this.props.noAnchor) {
-      children = this.props.children;
-    } else if (this.props.header) {
-      children = this.props.children;
-    } else if (!this.props.divider) {
-      children = this.renderAnchor();
+    let renderChildren: React.ReactNode | null = null;
+    if (noAnchor) {
+      renderChildren = children;
+    } else if (header) {
+      renderChildren = children;
+    } else if (!divider) {
+      renderChildren = this.renderAnchor();
     }
 
     return (
       <li
         role="presentation"
-        className={classNames(this.props.className, classes)}
-        onClick={this.props.onClick}
+        className={classNames(className, classes)}
+        onClick={onClick}
+        {...props}
       >
-        {children}
+        {renderChildren}
       </li>
     );
   }
