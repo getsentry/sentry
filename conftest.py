@@ -25,10 +25,10 @@ def pytest_configure(config):
     # add custom test markers
     config.addinivalue_line(
         "markers",
-        "uses_sentry_store: mark test as using the sentry store endpoint and therefore using legacy code",
+        "group_sentry_store: mark test as using the sentry store endpoint and therefore using legacy code",
     )
     config.addinivalue_line(
-        "markers", "uses_relay_store: mark test as using the relay store endpoint"
+        "markers", "group_relay_store: mark test as using the relay store endpoint"
     )
 
 

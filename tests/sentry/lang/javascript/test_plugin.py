@@ -10,13 +10,7 @@ from base64 import b64encode
 
 from sentry.utils.compat.mock import patch
 from sentry.models import File, Release, ReleaseFile
-from sentry.testutils import (
-    TestCase,
-    SnubaTestCase,
-    TransactionTestCase,
-    SentryStoreHelper,
-    RelayStoreHelper,
-)
+from sentry.testutils import TestCase, SnubaTestCase, SentryStoreHelper
 
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
@@ -42,6 +36,10 @@ def load_fixture(name):
 
 
 class JavascriptIntegrationTest(SnubaTestCase):
+    def setUp(self):
+        super(JavascriptIntegrationTest, self).setUp()
+        self.min_ago = iso_format(before_now(minutes=1))
+
     def test_adds_contexts_without_device(self):
         data = {
             "timestamp": self.min_ago,
@@ -1343,17 +1341,8 @@ class JavascriptIntegrationTest(SnubaTestCase):
             assert not frame_list[x].in_app
 
 
-@pytest.mark.uses_sentry_store
+@pytest.mark.group_sentry_store
 class JavascriptIntegrationTestLegacy(SentryStoreHelper, TestCase, JavascriptIntegrationTest):
     def setUp(self):
         super(JavascriptIntegrationTestLegacy, self).setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
-
-
-@pytest.mark.uses_relay_store
-class JavascriptIntegrationTestRelay(
-    RelayStoreHelper, TransactionTestCase, JavascriptIntegrationTest
-):
-    def setUp(self):
-        super(JavascriptIntegrationTestRelay, self).setUp()
         self.min_ago = iso_format(before_now(minutes=1))

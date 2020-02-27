@@ -7,7 +7,7 @@ from six import BytesIO
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry.testutils import TransactionTestCase, SentryStoreHelper, RelayStoreHelper, TestCase
+from sentry.testutils import SentryStoreHelper, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
@@ -195,15 +195,8 @@ class BasicResolvingIntegrationTest(object):
         }
 
 
-@pytest.mark.uses_sentry_store
+@pytest.mark.group_sentry_store
 class BasicResolvingIntegrationTestLegacy(
     SentryStoreHelper, TestCase, BasicResolvingIntegrationTest
-):
-    pass
-
-
-@pytest.mark.uses_relay_store
-class BasicResolvingIntegrationTestRelay(
-    RelayStoreHelper, TransactionTestCase, BasicResolvingIntegrationTest
 ):
     pass

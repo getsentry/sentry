@@ -7,7 +7,7 @@ import json
 import pytest
 import responses
 
-from sentry.testutils import TransactionTestCase, SentryStoreHelper, RelayStoreHelper
+from sentry.testutils import TransactionTestCase, SentryStoreHelper
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
@@ -94,11 +94,6 @@ class ExampleTestCase(object):
         assert frame_list[3].filename == "test.js"
 
 
-@pytest.mark.uses_sentry_store
+@pytest.mark.group_sentry_store
 class ExampleTestCaseLegacy(SentryStoreHelper, TransactionTestCase, ExampleTestCase):
-    pass
-
-
-@pytest.mark.uses_relayt_store
-class ExampleTestCaseRelay(RelayStoreHelper, TransactionTestCase, ExampleTestCase):
     pass
