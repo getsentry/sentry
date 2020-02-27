@@ -18,6 +18,7 @@ from sentry.integrations import (
 from six.moves.urllib.parse import urlparse
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import PipelineView
+from sentry.utils.compat import filter
 from django.utils.translation import ugettext_lazy as _
 from sentry.integrations.exceptions import ApiError
 from sentry.models.repository import Repository
