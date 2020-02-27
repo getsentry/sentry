@@ -120,6 +120,11 @@ class GlobalSelectionHeader extends React.Component {
      */
     showRelative: PropTypes.bool,
 
+    /**
+     * Allow user to clear the time range selection
+     */
+    allowClearTimeRange: PropTypes.bool,
+
     // Callbacks //
     onChangeProjects: PropTypes.func,
     onUpdateProjects: PropTypes.func,
@@ -559,6 +564,7 @@ class GlobalSelectionHeader extends React.Component {
       showRelative,
       showDateSelector,
       showEnvironmentSelector,
+      allowClearTimeRange,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
 
@@ -645,6 +651,7 @@ class GlobalSelectionHeader extends React.Component {
                 onChange={this.handleChangeTime}
                 onUpdate={this.handleUpdateTime}
                 organization={organization}
+                allowClearTimeRange={allowClearTimeRange}
               />
             </HeaderItemPosition>
           </React.Fragment>
