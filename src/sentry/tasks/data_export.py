@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import csv
 import tempfile
 
-from django.db import transaction
+from django.db import transaction, IntegrityError
 
 from sentry import tagstore
 from sentry.constants import ExportQueryType
@@ -13,27 +13,41 @@ from sentry.tasks.base import instrumented_task
 SNUBA_MAX_RESULTS = 1000
 
 
+class DataExportError(Exception):
+    pass
+
+
 @instrumented_task(name="sentry.tasks.data_export.assemble_download", queue="data_export")
 def assemble_download(data_export):
     # Create a temporary file
-    with tempfile.TemporaryFile() as tf:
-        # Process the query based on its type
-        if data_export.query_type == ExportQueryType.DISCOVER_V2:
-            process_discover_v2(data_export, tf)
-            return
-        elif data_export.query_type == ExportQueryType.BILLING_REPORT:
-            process_billing_report(data_export, tf)
-            return
-        elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
-            file_name = process_issue_by_tag(data_export, tf)
-        # Create a new File object and attach it to the ExportedData
-        tf.seek(0)
-        with transaction.atomic():
-            file = File.objects.create(
-                name=file_name, type="export.csv", headers={"Content-Type": "text/csv"}
-            )
-            file.putfile(tf)
-            data_export.finalize_upload(file=file)
+    try:
+        with tempfile.TemporaryFile() as tf:
+            # Process the query based on its type
+            if data_export.query_type == ExportQueryType.DISCOVER_V2:
+                process_discover_v2(data_export, tf)
+                return
+            elif data_export.query_type == ExportQueryType.BILLING_REPORT:
+                process_billing_report(data_export, tf)
+                return
+            elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
+                file_name = process_issue_by_tag(data_export, tf)
+            # Create a new File object and attach it to the ExportedData
+            tf.seek(0)
+            try:
+                with transaction.atomic():
+                    file = File.objects.create(
+                        name=file_name, type="export.csv", headers={"Content-Type": "text/csv"}
+                    )
+                    file.putfile(tf)
+                    data_export.finalize_upload(file=file)
+            except IntegrityError:
+                raise DataExportError("Failed to save the assembled file")
+    except DataExportError as err:
+        # TODO(Leander): Implement logging
+        return data_export.email_failure(message=err)
+    except BaseException:
+        # TODO(Leander): Implement logging
+        return data_export.email_failure(message="Internal processing failure")
 
 
 def process_discover_v2(data_export, file):
@@ -53,17 +67,23 @@ def process_issue_by_tag(data_export, file):
     (Adapted from 'src/sentry/web/frontend/group_tag_export.py')
     """
     # Get the pertaining project
-    payload = data_export.query_info
-    project = Project.objects.get(id=payload["project_id"])
+    try:
+        payload = data_export.query_info
+        project = Project.objects.get(id=payload["project_id"])
+    except Project.DoesNotExist:
+        raise DataExportError("Requested project does not exist")
 
     # Get the pertaining issue
-    group, _ = get_group_with_redirect(
-        payload["group_id"], queryset=Group.objects.filter(project=project)
-    )
+    try:
+        group, _ = get_group_with_redirect(
+            payload["group_id"], queryset=Group.objects.filter(project=project)
+        )
+    except Group.DoesNotExist:
+        raise DataExportError("Requested issue does not exist")
 
     # Get the pertaining key
     key = payload["key"]
-    lookup_key = u"sentry:{0}".format(key) if tagstore.is_reserved_key(key) else key
+    lookup_key = u"sentry:{}".format(key) if tagstore.is_reserved_key(key) else key
 
     # If the key is the 'user' tag, attach the event user
     def attach_eventuser(items):

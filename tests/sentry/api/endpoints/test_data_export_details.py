@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
 import six
-
-from django.core.urlresolvers import reverse
+from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models import ExportedData
@@ -13,38 +12,58 @@ from sentry.testutils import APITestCase
 class DataExportDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-data-export-details"
 
-    TEST_DATE_ADDED = timezone.now()
+    def setUp(self):
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        self.data_export = ExportedData.objects.create(
+            user=self.user, organization=self.organization, query_type=0, query_info={"env": "test"}
+        )
 
-    def test_simple(self):
+    def test_content(self):
         with self.feature("organizations:data-export"):
-            self.user = self.create_user("foo@example.com")
-            self.org = self.create_organization(owner=self.user, name="Toucan Sam")
-            self.login_as(user=self.user)
+            response = self.get_valid_response(self.organization.slug, self.data_export.id)
+        assert response.data["id"] == self.data_export.id
+        assert response.data["user"] == {
+            "id": six.binary_type(self.user.id),
+            "email": self.user.email,
+            "username": self.user.username,
+        }
+        assert response.data["dateCreated"] == self.data_export.date_added
+        assert response.data["query"] == {
+            "type": self.data_export.query_type,
+            "info": self.data_export.query_info,
+        }
 
-            data_export = ExportedData.objects.create(
-                organization=self.org,
-                user=self.user,
-                date_added=self.TEST_DATE_ADDED,
-                query_type=1,
-                query_info={"environment": "test"},
-            )
-            url = reverse(
-                self.endpoint,
-                kwargs={"data_export_id": data_export.id, "organization_slug": self.org.slug},
-            )
+    def test_early(self):
+        with self.feature("organizations:data-export"):
+            response = self.get_valid_response(self.organization.slug, self.data_export.id)
+        assert response.data["dateFinished"] is None
+        assert response.data["dateExpired"] is None
+        assert response.data["status"] == ExportStatus.Early
 
-            response = self.client.get(url, format="json")
-            assert response.status_code == 200
-            assert response.data == {
-                "id": data_export.id,
-                "user": {
-                    "id": six.binary_type(self.user.id),
-                    "email": self.user.email,
-                    "username": self.user.username,
-                },
-                "dateCreated": self.TEST_DATE_ADDED,
-                "dateFinished": None,
-                "dateExpired": None,
-                "query": {"type": data_export.query_type, "info": data_export.query_info},
-                "status": ExportStatus.Early,
-            }
+    def test_valid(self):
+        self.data_export.update(
+            date_finished=timezone.now() - timedelta(weeks=2),
+            date_expired=timezone.now() + timedelta(weeks=1),
+        )
+        with self.feature("organizations:data-export"):
+            response = self.get_valid_response(self.organization.slug, self.data_export.id)
+        assert response.data["dateFinished"] is not None
+        assert response.data["dateFinished"] == self.data_export.date_finished
+        assert response.data["dateExpired"] is not None
+        assert response.data["dateExpired"] == self.data_export.date_expired
+        assert response.data["status"] == ExportStatus.Valid
+
+    def test_expired(self):
+        self.data_export.update(
+            date_finished=timezone.now() - timedelta(weeks=2),
+            date_expired=timezone.now() - timedelta(weeks=1),
+        )
+        with self.feature("organizations:data-export"):
+            response = self.get_valid_response(self.organization.slug, self.data_export.id)
+        assert response.data["dateFinished"] is not None
+        assert response.data["dateFinished"] == self.data_export.date_finished
+        assert response.data["dateExpired"] is not None
+        assert response.data["dateExpired"] == self.data_export.date_expired
+        assert response.data["status"] == ExportStatus.Expired
