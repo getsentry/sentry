@@ -8,8 +8,10 @@ from contextlib import contextmanager
 from django.db import transaction, IntegrityError
 
 from sentry import tagstore
+from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ExportQueryType
 from sentry.models import EventUser, ExportedData, File, Group, Project, get_group_with_redirect
+from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba
 from sentry.utils.sdk import capture_exception
@@ -59,8 +61,6 @@ def assemble_download(data_export_id):
                 )
                 raise DataExportError("Failed to save the assembled file")
     except DataExportError as error:
-        return data_export.email_failure(message=error)
-    except NotImplementedError as error:
         return data_export.email_failure(message=error)
     except BaseException as error:
         metrics.incr("dataexport.error", instance=six.text_type(error))
@@ -155,9 +155,56 @@ def process_issue_by_tag(data_export, file, limit=None):
     return file_name
 
 
-def process_discover(data_export, file):
-    # TODO(Leander): Implement processing for Discover
-    raise NotImplementedError("Discover processing has not been implemented yet")
+def process_discover(data_export, file, limit=None):
+    payload = data_export.query_info
+
+    start, end = get_date_range_from_params(payload)
+    project = Project.objects.get(id=payload["project"])
+
+    params = {
+        "organization_id": data_export.organization_id,
+        "project_id": [project.id],
+        "start": start,
+        "end": end,
+    }
+
+    def data_fn(offset, limit):
+        return discover.query(
+            selected_columns=payload["field"],
+            query=payload["query"],
+            params=params,
+            offset=offset,
+            limit=limit,
+            referrer="api.organization-events-v2",
+            auto_fields=True,
+            use_aggregate_conditions=True,
+        )
+
+    with snuba_error_handler():
+        # Get a single entry to prepare the header row
+        sample = data_fn(0, 1)["data"][0]
+    # Example file name: DISCOVER_V2-project10__721.csv
+    file_details = u"{}__{}".format(project.slug, data_export.id)
+    file_name = get_file_name(ExportQueryType.DISCOVER_V2_STR, file_details)
+
+    # Iterate through all the GroupTagValues
+    writer = create_writer(file, sample.keys())
+    iteration = 0
+    with snuba_error_handler():
+        while True:
+            offset = SNUBA_MAX_RESULTS * iteration
+            next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
+            raw_data = data_fn(offset, SNUBA_MAX_RESULTS)["data"]
+            if len(raw_data) == 0:
+                break
+            if limit and limit < next_offset:
+                # Since the next offset will pass the limit, write the remainder and quit
+                writer.writerows(raw_data[: limit % SNUBA_MAX_RESULTS])
+                break
+            else:
+                writer.writerows(raw_data)
+                iteration += 1
+    return file_name
 
 
 def create_writer(file, fields):
