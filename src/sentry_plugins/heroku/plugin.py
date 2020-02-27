@@ -10,6 +10,8 @@ from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.bases import ReleaseTrackingPlugin
 
+from sentry.integrations import FeatureDescription, IntegrationFeatures
+
 logger = logging.getLogger("sentry.plugins.heroku")
 
 
@@ -80,6 +82,14 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
     slug = "heroku"
     description = "Integrate Heroku release tracking."
     required_field = "repository"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Integrate Heroku release tracking.
+            """,
+            IntegrationFeatures.DEPLOYMENT,
+        )
+    ]
 
     def configure(self, project, request):
         return react_plugin_config(self, project, request)

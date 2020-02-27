@@ -4,10 +4,16 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 import getRuntimeKnownDataDetails from './getRuntimeKnownDataDetails';
 import {RuntimeData, RuntimeKnownDataType} from './types';
 
-function getRuntimeKnownData(data: RuntimeData): Array<KeyValueListData> {
+function getRuntimeKnownData(
+  data: RuntimeData,
+  runTimerKnownDataValues: Array<RuntimeKnownDataType>
+): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
-  const dataKeys = Object.keys(data);
+  const dataKeys = runTimerKnownDataValues.filter(
+    runTimerKnownDataValue => data[runTimerKnownDataValue]
+  );
+
   for (const key of dataKeys) {
     const knownDataDetails = getRuntimeKnownDataDetails(
       data,

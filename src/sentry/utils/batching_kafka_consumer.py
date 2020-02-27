@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import abc
+import gc
 import logging
 import six
 import time
@@ -115,6 +116,7 @@ class BatchingKafkaConsumer(object):
         queued_min_messages=DEFAULT_QUEUED_MIN_MESSAGES,
         metrics_sample_rates=None,
         metrics_default_tags=None,
+        pause_gc=False,
     ):
         assert isinstance(worker, AbstractBatchWorker)
         self.worker = worker
@@ -156,6 +158,9 @@ class BatchingKafkaConsumer(object):
         self.producer = producer
         self.commit_log_topic = commit_log_topic
         self.dead_letter_topic = dead_letter_topic
+        self.pause_gc = pause_gc
+        if pause_gc:
+            gc.disable()
 
     def __record_timing(self, metric, value, tags=None):
         if self.__metrics is None:
@@ -298,6 +303,15 @@ class BatchingKafkaConsumer(object):
         self.__batch_deadline = None
         self.__batch_messages_processed_count = 0
         self.__batch_processing_time_ms = 0.0
+
+        if self.pause_gc:
+            logger.debug("Running manual full GC after batch")
+            gc_start = time.time()
+            gc.collect()
+            gc_end = time.time()
+            gc_duration = (gc_end - gc_start) * 1000
+            logger.debug("Finished manual GC, took %dms", gc_duration)
+            self.__record_timing("gc.collect", gc_duration)
 
     def _flush(self, force=False):
         """Decides whether the `BatchingKafkaConsumer` should flush because of either

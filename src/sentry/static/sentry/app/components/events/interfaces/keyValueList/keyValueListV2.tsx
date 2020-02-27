@@ -21,7 +21,7 @@ type Props = {
 const KeyValueList = ({
   data,
   isContextData = false,
-  isSorted = false,
+  isSorted = true,
   raw = false,
   longKeys = false,
   onClick,

@@ -71,7 +71,7 @@ type ConditionOrAction = string;
 type Props = {
   project: Project;
   organization: Organization;
-} & RouteComponentProps<{orgId: string; projectId: string; ruleId: string}, {}>;
+} & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
   rule: UnsavedIssueAlertRule | IssueAlertRule;
@@ -138,11 +138,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         method: isNew ? 'POST' : 'PUT',
         data: rule,
       });
-
       this.setState({detailedError: null, rule: resp});
 
       addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
-      browserHistory.replace(recreateRoute('', {...this.props, stepBack: -1}));
+      browserHistory.replace(recreateRoute('', {...this.props, stepBack: -2}));
     } catch (err) {
       this.setState({
         detailedError: err.responseJSON || {__all__: 'Unknown error'},
@@ -214,53 +213,79 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
   };
 
-  handlePropertyChange = (type: ConditionOrAction) => {
-    return (idx: number) => {
-      return (prop: string, val: string) => {
-        this.setState(state => {
-          const rule = {...state.rule} as IssueAlertRule;
-          rule[type][idx][prop] = val;
-          return {rule};
-        });
+  handlePropertyChange = (
+    type: ConditionOrAction,
+    idx: number,
+    prop: string,
+    val: string
+  ) => {
+    this.setState(state => {
+      const rule = {...state.rule} as IssueAlertRule;
+      rule[type][idx][prop] = val;
+      return {rule};
+    });
+  };
+
+  handleAddRow = (type: ConditionOrAction, id: string) => {
+    this.setState(state => {
+      const configuration = this.state.configs?.[type]?.find(c => c.id === id);
+
+      // Set initial configuration
+      const initialValue = configuration?.formFields
+        ? Object.fromEntries(
+            Object.entries(configuration.formFields)
+              // TODO(ts): Doesn't work if I cast formField as IssueAlertRuleFormField
+              .map(([key, formField]: [string, any]) => [
+                key,
+                formField?.initial ?? formField?.choices?.[0]?.[0],
+              ])
+              .filter(([, initial]) => !!initial)
+          )
+        : {};
+      const newRule = {
+        id,
+        ...initialValue,
       };
-    };
+
+      const rule = {
+        ...state.rule,
+        [type]: [...(state.rule ? state.rule[type] : []), newRule],
+      } as IssueAlertRule;
+
+      return {
+        rule,
+      };
+    });
   };
 
-  handleAddRow = (type: ConditionOrAction) => {
-    return id => {
-      this.setState(state => {
-        const rule = {
-          ...state.rule,
-          [type]: [...(state.rule ? state.rule[type] : []), {id}],
-        } as IssueAlertRule;
+  handleDeleteRow = (type: ConditionOrAction, idx: number) => {
+    this.setState(prevState => {
+      const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
 
-        return {
-          rule,
-        };
-      });
-    };
+      if (prevState.rule) {
+        newTypeList.splice(idx, 1);
+      }
+
+      const rule = {
+        ...prevState.rule,
+        [type]: newTypeList,
+      } as IssueAlertRule;
+
+      return {
+        rule,
+      };
+    });
   };
 
-  handleDeleteRow = (type: ConditionOrAction) => {
-    return (idx: number) => {
-      this.setState(prevState => {
-        const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
-
-        if (prevState.rule) {
-          newTypeList.splice(idx, 1);
-        }
-
-        const rule = {
-          ...prevState.rule,
-          [type]: newTypeList,
-        } as IssueAlertRule;
-
-        return {
-          rule,
-        };
-      });
-    };
-  };
+  handleAddCondition = (id: string) => this.handleAddRow('conditions', id);
+  handleAddAction = (id: string) => this.handleAddRow('actions', id);
+  handleDeleteCondition = (ruleIndex: number) =>
+    this.handleDeleteRow('conditions', ruleIndex);
+  handleDeleteAction = (ruleIndex: number) => this.handleDeleteRow('actions', ruleIndex);
+  handleChangeConditionProperty = (ruleIndex: number, prop: string, val: string) =>
+    this.handlePropertyChange('conditions', ruleIndex, prop, val);
+  handleChangeActionProperty = (ruleIndex: number, prop: string, val: string) =>
+    this.handlePropertyChange('actions', ruleIndex, prop, val);
 
   renderLoading() {
     return this.renderBody();
@@ -280,7 +305,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
-    const title = ruleId ? t('Edit Alert Rule') : t('New Alert Rule');
+    const title = ruleId ? t('Edit Alert') : t('New Alert');
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
@@ -371,9 +396,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   nodes={this.state.configs?.conditions ?? null}
                   items={conditions || []}
                   placeholder={t('Add a condition...')}
-                  onPropertyChange={this.handlePropertyChange('conditions')}
-                  onAddRow={this.handleAddRow('conditions')}
-                  onDeleteRow={this.handleDeleteRow('conditions' as const)}
+                  onPropertyChange={this.handleChangeConditionProperty}
+                  onAddRow={this.handleAddCondition}
+                  onDeleteRow={this.handleDeleteCondition}
                 />
               </PanelRuleItem>
 
@@ -390,9 +415,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   nodes={this.state.configs?.actions ?? null}
                   items={actions || []}
                   placeholder={t('Add an action...')}
-                  onPropertyChange={this.handlePropertyChange('actions')}
-                  onAddRow={this.handleAddRow('actions')}
-                  onDeleteRow={this.handleDeleteRow('actions')}
+                  onPropertyChange={this.handleChangeActionProperty}
+                  onAddRow={this.handleAddAction}
+                  onDeleteRow={this.handleDeleteAction}
                 />
               </PanelRuleItem>
             </PanelBody>

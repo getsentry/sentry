@@ -13,6 +13,22 @@ try:
 except ImportError:
     import functools  # NOQA
 
+from six.moves import map as _map
+from six.moves import filter as _filter
+from six.moves import zip as _zip
+
+
+def map(a, b, *c):
+    return list(_map(a, b, *c))
+
+
+def filter(a, b):
+    return list(_filter(a, b))
+
+
+def zip(*a):
+    return list(_zip(*a))
+
 
 def _identity(x):
     return x

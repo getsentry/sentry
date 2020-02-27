@@ -4,7 +4,7 @@ import logging
 import operator
 from copy import deepcopy
 from datetime import timedelta
-from six.moves import zip
+
 
 from django.conf import settings
 from django.db import transaction
@@ -25,6 +25,7 @@ from sentry.incidents.tasks import handle_trigger_action
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.compat import zip
 
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ class SubscriptionProcessor(object):
     def __init__(self, subscription):
         self.subscription = subscription
         try:
-            self.alert_rule = AlertRule.objects.get(query_subscriptions=subscription)
+            self.alert_rule = AlertRule.objects.get_for_subscription(subscription)
         except AlertRule.DoesNotExist:
             return
 

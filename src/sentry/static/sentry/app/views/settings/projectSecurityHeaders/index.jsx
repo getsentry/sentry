@@ -63,7 +63,7 @@ export default class ProjectSecurityHeaders extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('Additional Configuration')}</PanelHeader>
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <TextBlock style={{marginBottom: 20}}>
               {tct(
                 'In addition to the [key_param] parameter, you may also pass the following within the querystring for the report URI:',

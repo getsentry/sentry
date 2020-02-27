@@ -20,9 +20,8 @@ exports[`AccountIdentities renders empty 1`] = `
         </Styled(div)>
       </PanelHeader>
       <PanelBody
-        direction="column"
-        disablePadding={true}
-        flex={false}
+        flexible={false}
+        withPadding={false}
       >
         <EmptyMessage>
           There are no identities associated with this account
@@ -53,9 +52,8 @@ exports[`AccountIdentities renders list 1`] = `
         </Styled(div)>
       </PanelHeader>
       <PanelBody
-        direction="column"
-        disablePadding={true}
-        flex={false}
+        flexible={false}
+        withPadding={false}
       >
         <PanelItem
           alignItems="center"
