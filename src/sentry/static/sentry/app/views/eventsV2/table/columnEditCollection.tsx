@@ -3,14 +3,15 @@ import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import {IconAdd, IconGrabbable, IconClose} from 'app/icons';
-import {t} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
-import space from 'app/styles/space';
 import {
   UserSelectValues,
   setBodyUserSelect,
 } from 'app/components/events/interfaces/spans/utils';
+import {IconAdd, IconGrabbable, IconClose} from 'app/icons';
+import {t} from 'app/locale';
+import {OrganizationSummary} from 'app/types';
+import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 import {Column} from '../eventView';
 import ColumnEditRow from './columnEditRow';
@@ -51,7 +52,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       portal.style.position = 'absolute';
       portal.style.top = '0';
       portal.style.left = '0';
-      portal.style.zIndex = '10000';
+      portal.style.zIndex = String(theme.zIndex.modal);
 
       this.portal = portal;
 
