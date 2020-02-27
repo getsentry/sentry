@@ -33,7 +33,7 @@ const User = ({data}: Props) => {
   }
 
   const getKeyValueData = (val: object) => {
-    Object.keys(val).map(key => [key, val[key]]);
+    return Object.keys(val).map(key => [key, val[key]]);
   };
 
   return (
