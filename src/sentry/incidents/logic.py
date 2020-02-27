@@ -270,8 +270,10 @@ def create_event_stat_snapshot(incident, start, end):
     )
 
 
-def build_incident_query_params(incident, start=None, end=None):
-    return bulk_build_incident_query_params([incident], start=start, end=end)[0]
+def build_incident_query_params(incident, start=None, end=None, prewindow=False):
+    return bulk_build_incident_query_params([incident], start=start, end=end, prewindow=prewindow)[
+        0
+    ]
 
 
 def bulk_build_incident_query_params(incidents, start=None, end=None, prewindow=False):
