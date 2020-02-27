@@ -110,6 +110,7 @@ class SlackNotifyServiceAction(EventAction):
             payload = {
                 "token": integration.metadata["access_token"],
                 "channel": channel,
+                "link_names": 1,
                 "attachments": json.dumps([attachment]),
             }
 
