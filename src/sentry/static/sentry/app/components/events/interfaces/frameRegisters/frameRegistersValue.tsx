@@ -67,7 +67,7 @@ class frameRegistersValue extends React.Component<Props, State> {
             formattedValue
           )}
         </FixedWidth>
-        <Tooltip title={this.tootTipTitle()}>
+        <Tooltip title={this.tooltipTitle()}>
           <Toggle className="icon-filter" onClick={this.toggleView} />
         </Tooltip>
       </InlinePre>
