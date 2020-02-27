@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {SentryApp, SentryAppInstallation} from 'app/types';
 import {IconSubtract} from 'app/icons';
 import space from 'app/styles/space';
@@ -23,7 +23,9 @@ export const UninstallButton = ({
   onUninstallModalOpen,
   disabled,
 }: UninstallButtonProps) => {
-  const message = t(`Are you sure you want to remove the ${app.slug} installation?`);
+  const message = tct('Are you sure you want to remove the [slug] installation?', {
+    slug: app.slug,
+  });
 
   return (
     <Confirm
@@ -67,7 +69,9 @@ export const UninstallAppButton = ({
   onUninstallModalOpen,
   disabled,
 }: UninstallButtonProps) => {
-  const message = t(`Are you sure you want to remove the ${app.slug} installation?`);
+  const message = tct('Are you sure you want to remove the [slug] installation?', {
+    slug: app.slug,
+  });
 
   return (
     <Confirm
