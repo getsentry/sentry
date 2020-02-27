@@ -64,7 +64,7 @@ export class InstalledPlugin extends React.Component<Props> {
     if (enabled) {
       await this.pluginUpdate({enabled});
     } else {
-      await this.pluginUpdate({enabled}, 'DELETE');
+      await this.pluginUpdate({}, 'DELETE');
     }
   };
 
