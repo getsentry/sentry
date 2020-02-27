@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import get from 'lodash/get';
 
-import Frame from 'app/components/events/interfaces/frame';
+import Frame from 'app/components/events/interfaces/frame/frame';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
