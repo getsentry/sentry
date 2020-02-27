@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from sentry import http, tagstore
 from sentry.plugins.bases import notify
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.http import absolute_uri
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 
@@ -15,6 +15,14 @@ LEVEL_TO_COLOR = {
     "error": "f43f20",
     "fatal": "d20f2a",
 }
+
+
+def track_response_code(status_code):
+    metrics.incr(
+        "sentry-plugins.slack.http_response",
+        sample_rate=1.0,
+        tags={"status": status_code, "plugin": "slack"},
+    )
 
 
 class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
@@ -253,4 +261,6 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
 
         # Apparently we've stored some bad data from before we used `URLField`.
         webhook = webhook.strip(" ")
-        return http.safe_urlopen(webhook, method="POST", data=values, timeout=5)
+        response = http.safe_urlopen(webhook, method="POST", data=values, timeout=5)
+        track_response_code(response.status_code)
+        return response
