@@ -249,9 +249,8 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         client.request(values)
 
     def get_client(self, project):
-        webhook = self.get_option("webhook", project)
+        webhook = self.get_option("webhook", project).strip()
         # Apparently we've stored some bad data from before we used `URLField`.
-        webhook = webhook.strip(" ")
         username = (self.get_option("username", project) or "Sentry").strip()
         icon_url = self.get_option("icon_url", project)
         channel = (self.get_option("channel", project) or "").strip()
