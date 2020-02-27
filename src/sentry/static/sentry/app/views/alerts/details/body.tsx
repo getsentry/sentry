@@ -188,6 +188,7 @@ export default class DetailsBody extends React.Component<Props> {
               </SeenByTab>
             </StyledNavTabs>
             <Activity
+              incident={incident}
               params={params}
               incidentStatus={!!incident ? incident.status : null}
             />
