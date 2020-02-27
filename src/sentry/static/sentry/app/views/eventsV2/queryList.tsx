@@ -191,13 +191,13 @@ class QueryList extends React.Component<Props> {
             return (
               <ContextMenu>
                 <MenuItem
-                  href="#delete-query"
+                  data-test-id="delete-query"
                   onClick={this.handleDeleteQuery(eventView)}
                 >
                   {t('Delete Query')}
                 </MenuItem>
                 <MenuItem
-                  href="#duplicate-query"
+                  data-test-id="duplicate-query"
                   onClick={this.handleDuplicateQuery(eventView)}
                 >
                   {t('Duplicate Query')}
@@ -252,51 +252,46 @@ const QueryGrid = styled('div')`
   }
 `;
 
-class ContextMenu extends React.Component {
-  render() {
-    const {children} = this.props;
+const ContextMenu = ({children}) => (
+  <DropdownMenu>
+    {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+      const topLevelCx = classNames('dropdown', {
+        'anchor-right': true,
+        open: isOpen,
+      });
 
-    return (
-      <DropdownMenu>
-        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-          const topLevelCx = classNames('dropdown', {
-            'anchor-right': true,
-            open: isOpen,
-          });
-
-          return (
-            <MoreOptions
-              {...getRootProps({
-                className: topLevelCx,
-              })}
-            >
-              <IconEllipsis
-                data-test-id="context-menu"
-                size="md"
-                {...(getActorProps({
-                  onClick: (event: MouseEvent) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                  },
-                }) as any)}
-              />
-              {isOpen && (
-                <ul
-                  {...(getMenuProps({}) as any)}
-                  className={classNames('dropdown-menu')}
-                >
-                  {children}
-                </ul>
-              )}
-            </MoreOptions>
-          );
-        }}
-      </DropdownMenu>
-    );
-  }
-}
+      return (
+        <MoreOptions
+          {...getRootProps({
+            className: topLevelCx,
+          })}
+        >
+          <DropdownTarget
+            {...getActorProps({
+              onClick: (event: MouseEvent) => {
+                event.stopPropagation();
+                event.preventDefault();
+              },
+            })}
+          >
+            <IconEllipsis data-test-id="context-menu" size="md" />
+          </DropdownTarget>
+          {isOpen && (
+            <ul {...getMenuProps({})} className={classNames('dropdown-menu')}>
+              {children}
+            </ul>
+          )}
+        </MoreOptions>
+      );
+    }}
+  </DropdownMenu>
+);
 
 const MoreOptions = styled('span')`
+  display: flex;
+`;
+
+const DropdownTarget = styled('div')`
   display: flex;
 `;
 

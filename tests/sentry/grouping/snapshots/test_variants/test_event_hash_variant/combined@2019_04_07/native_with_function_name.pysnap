@@ -1,64 +1,64 @@
 ---
-created: '2019-04-27T19:27:04.703573Z'
+created: '2020-02-26T19:54:25.348795Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             filename*
-              u'main.cpp'
+              "main.cpp"
             function*
-              u'main'
+              "main"
           frame (non app frame)
             filename*
-              u'main.cpp'
+              "main.cpp"
             function* (isolated function)
-              u'(anonymous namespace)::start'
+              "(anonymous namespace)::start"
           frame (non app frame)
             filename*
-              u'main.cpp'
+              "main.cpp"
             function* (isolated function)
-              u'(anonymous namespace)::crash'
+              "(anonymous namespace)::crash"
           frame (non app frame)
             filename*
-              u'main.cpp'
+              "main.cpp"
             function* (isolated function)
-              u'(anonymous namespace)::something::nested::Foo'
+              "(anonymous namespace)::something::nested::Foo"
         type (ignored because exception is synthetic)
-          u'EXC_BAD_ACCESS / KERN_INVALID_ADDRESS'
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
       threads (thread has no stacktrace)
 --------------------------------------------------------------------------
 system:
-  hash: '282d9d4e85027e073026ace9ad3d05fd'
+  hash: "282d9d4e85027e073026ace9ad3d05fd"
   component:
     system*
       exception*
         stacktrace*
           frame*
             filename*
-              u'main.cpp'
+              "main.cpp"
             function*
-              u'main'
+              "main"
           frame*
             filename*
-              u'main.cpp'
+              "main.cpp"
             function* (isolated function)
-              u'(anonymous namespace)::start'
+              "(anonymous namespace)::start"
           frame*
             filename*
-              u'main.cpp'
+              "main.cpp"
             function* (isolated function)
-              u'(anonymous namespace)::crash'
+              "(anonymous namespace)::crash"
           frame*
             filename*
-              u'main.cpp'
+              "main.cpp"
             function* (isolated function)
-              u'(anonymous namespace)::something::nested::Foo'
+              "(anonymous namespace)::something::nested::Foo"
         type (ignored because exception is synthetic)
-          u'EXC_BAD_ACCESS / KERN_INVALID_ADDRESS'
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
       threads (thread has no stacktrace)

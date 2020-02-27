@@ -236,7 +236,7 @@ describe('EventsV2 > Results', function() {
 
     // Click one of the options.
     selector
-      .find('DropdownMenu MenuItem a')
+      .find('DropdownMenu MenuItem span')
       .first()
       .simulate('click');
     wrapper.update();
