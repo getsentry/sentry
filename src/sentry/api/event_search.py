@@ -175,7 +175,7 @@ PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 
-UNESCAPED_QUOTE_REGEX = re.compile(r'(^"|[^\\]")')
+UNESCAPED_QUOTE_REGEX = re.compile(r'(?<!\\)"')
 
 
 class InvalidSearchQuery(Exception):
