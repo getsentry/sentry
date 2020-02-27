@@ -1,26 +1,26 @@
 ---
-created: '2019-05-08T07:29:42.306583Z'
+created: '2020-02-26T19:54:38.110078Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
           filename*
-            u'foo.html.erb'
+            "foo.html.erb"
           function* (removed generated erb template suffix)
-            u'_foo_html_erb'
+            "_foo_html_erb"
 --------------------------------------------------------------------------
 system:
-  hash: '4067a71d7098866f87c746a57a77b2bb'
+  hash: "4067a71d7098866f87c746a57a77b2bb"
   component:
     system*
       stacktrace*
         frame*
           filename*
-            u'foo.html.erb'
+            "foo.html.erb"
           function* (removed generated erb template suffix)
-            u'_foo_html_erb'
+            "_foo_html_erb"

@@ -1,150 +1,150 @@
 ---
-created: '2019-05-08T19:44:35.503850Z'
+created: '2020-02-26T19:54:31.351405Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
           frame (non app frame)
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'Foo.testMethod'
+              "Foo.testMethod"
           frame (non app frame)
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'aha'
+              "aha"
           frame (non app frame)
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'eval'
+              "eval"
           frame (non app frame)
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'test'
+              "test"
           frame (non app frame)
             filename (anonymous filename discarded)
-              u'<anonymous>'
+              "<anonymous>"
             function*
-              u'Array.map'
+              "Array.map"
           frame (non app frame)
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
           frame (non app frame)
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'Object.callback'
+              "Object.callback"
           frame (non app frame)
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'callAnotherThing'
+              "callAnotherThing"
           frame (non app frame)
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'Object.aha'
+              "Object.aha"
         type*
-          u'Error'
+          "Error"
 --------------------------------------------------------------------------
 system:
-  hash: 'ae807192d4f922c3f0513ce4df585ce6'
+  hash: "ae807192d4f922c3f0513ce4df585ce6"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
           frame*
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'Foo.testMethod'
+              "Foo.testMethod"
           frame*
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'aha'
+              "aha"
           frame*
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'eval'
+              "eval"
           frame*
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'test'
+              "test"
           frame*
             filename (anonymous filename discarded)
-              u'<anonymous>'
+              "<anonymous>"
             function*
-              u'Array.map'
+              "Array.map"
           frame*
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
           frame*
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'Object.callback'
+              "Object.callback"
           frame*
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'callAnotherThing'
+              "callAnotherThing"
           frame*
             module*
-              u'test'
+              "test"
             filename (ignored because frame points to a URL)
-              u'test.html'
+              "test.html"
             function*
-              u'Object.aha'
+              "Object.aha"
         type*
-          u'Error'
+          "Error"

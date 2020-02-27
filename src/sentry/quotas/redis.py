@@ -5,14 +5,8 @@ import six
 
 from time import time
 
-from sentry.quotas.base import (
-    DataCategory,
-    NotRateLimited,
-    Quota,
-    QuotaConfig,
-    QuotaScope,
-    RateLimited,
-)
+from sentry.constants import DataCategory
+from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     validate_dynamic_cluster,
