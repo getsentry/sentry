@@ -186,7 +186,7 @@ matrix:
 
     - <<: *postgres_default
       name: 'Sentry-Relay integration tests'
-      env: TEST_SUITE=realy-integration DB=postgres
+      env: TEST_SUITE=relay-integration DB=postgres
       services:
         - docker
         - memcached
