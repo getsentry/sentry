@@ -161,7 +161,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
               plugin={plugin}
               projectItem={projectItem}
               onResetConfiguration={this.handleResetConfiguration}
-              onEnablePlugin={this.handlePluginEnableStatus}
+              onPluginEnableStatusChange={this.handlePluginEnableStatus}
               trackIntegrationEvent={this.trackIntegrationEvent}
             />
           ))}

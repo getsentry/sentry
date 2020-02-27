@@ -25,7 +25,7 @@ export type Props = {
   projectItem: PluginProjectItem;
   organization: Organization;
   onResetConfiguration: (projectId: string) => void;
-  onEnablePlugin: (projectId: string, status: boolean) => void;
+  onPluginEnableStatusChange: (projectId: string, status: boolean) => void;
   trackIntegrationEvent: (
     options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'> & {project_id: string}
   ) => void; //analytics callback
@@ -105,14 +105,18 @@ export class InstalledPlugin extends React.Component<Props> {
       addSuccessMessage(
         tct('Configuration was [action].', {action: status ? 'enabled' : 'disabled'})
       );
-      this.props.onEnablePlugin(projectId, status);
+      this.props.onPluginEnableStatusChange(projectId, status);
       this.props.trackIntegrationEvent({
-        eventKey: 'integrations.enabled',
-        eventName: 'Integrations: Enabled',
+        eventKey: status ? 'integrations.enabled' : 'integrations.disabled',
+        eventName: status ? 'Integrations: Enabled' : 'Integrations: Disabled',
         project_id: projectId,
       });
     } catch (_err) {
-      addErrorMessage(t('Unable to enable configuration'));
+      addErrorMessage(
+        tct('Unable to [action] configuration.', {
+          action: status ? 'enabled' : 'disabled',
+        })
+      );
     }
   };
 
