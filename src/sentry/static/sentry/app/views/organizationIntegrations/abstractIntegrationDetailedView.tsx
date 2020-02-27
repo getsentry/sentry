@@ -237,7 +237,7 @@ class AbstractIntegrationDetailedView<
     );
   }
 
-  renderAddInstallButton(hideButton = false) {
+  renderAddInstallButton(hideButtonIfDisabled = false) {
     const {organization} = this.props;
     const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
 
@@ -253,7 +253,7 @@ class AbstractIntegrationDetailedView<
                   )}
                   disabled={hasAccess}
                 >
-                  {!hideButton && disabled ? (
+                  {!hideButtonIfDisabled && disabled ? (
                     <div />
                   ) : (
                     this.renderTopButton(disabled, hasAccess)
