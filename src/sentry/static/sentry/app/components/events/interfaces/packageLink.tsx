@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
-import trimPackage from 'app/components/events/interfaces/frame/trimPackage';
+import {trimPackage} from 'app/components/events/interfaces/frame/utils';
 import InlineSvg from 'app/components/inlineSvg';
 import {PackageStatusIcon} from 'app/components/events/interfaces/packageStatus';
 
