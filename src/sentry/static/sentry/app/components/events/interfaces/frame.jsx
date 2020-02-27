@@ -28,6 +28,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import {combineStatus} from 'app/components/events/interfaces/debugmeta';
 import {Assembly} from 'app/components/events/interfaces/assembly';
 import {parseAssembly} from 'app/components/events/interfaces/utils';
+import {IconRefresh} from 'app/icons/iconRefresh';
 
 export function trimPackage(pkg) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -498,7 +499,7 @@ export class Frame extends React.Component {
           title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
         >
           <RepeatedContent>
-            <span className="icon-refresh" />
+            <StyledIconRefresh />
             <span>{timesRepeated}</span>
           </RepeatedContent>
         </RepeatedFrames>
@@ -643,19 +644,21 @@ const VertCenterWrapper = styled('div')`
 
 const RepeatedContent = styled(VertCenterWrapper)`
   justify-content: center;
-  flex-direction: column;
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
-    flex-direction: row;
-  }
 `;
 
-const NativeLineContent = styled(RepeatedContent)`
+const NativeLineContent = styled(VertCenterWrapper)`
   flex: 1;
   overflow: hidden;
+  justify-content: center;
 
   & > span {
     display: block;
     padding: 0 5px;
+  }
+
+  flex-direction: column;
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    flex-direction: row;
   }
 `;
 
@@ -674,6 +677,10 @@ const Symbol = styled('span')`
   @media (min-width: ${props => props.theme.breakpoints[2]}) {
     text-align: left;
   }
+`;
+
+const StyledIconRefresh = styled(IconRefresh)`
+  margin-right: ${space(0.25)};
 `;
 
 export default withSentryAppComponents(Frame, {componentType: 'stacktrace-link'});
