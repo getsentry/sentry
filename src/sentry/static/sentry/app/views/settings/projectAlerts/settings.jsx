@@ -94,7 +94,7 @@ class ProjectAlertSettings extends AsyncView {
                 disabled={!canEditRule}
                 priority="primary"
                 size="small"
-                icon={<IconAdd circle />}
+                icon={<IconAdd size="xs" circle />}
               >
                 {t('New Alert Rule')}
               </Button>
