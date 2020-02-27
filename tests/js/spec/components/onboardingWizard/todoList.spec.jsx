@@ -17,7 +17,7 @@ describe('TodoList', function() {
       <TodoList organization={organization} />,
       routerContext
     );
-    expect(wrapper.find('Action[data-test-id=7]').exists()).toBe(false);
+    expect(wrapper.find('Action[data-test-id="setup_sourcemaps"]').exists()).toBe(false);
   });
 
   it('does not render `upload source maps` task with python project', function() {
@@ -28,7 +28,7 @@ describe('TodoList', function() {
       <TodoList organization={organization} />,
       routerContext
     );
-    expect(wrapper.find('Action[data-test-id=7]').exists()).toBe(false);
+    expect(wrapper.find('Action[data-test-id="setup_sourcemaps"]').exists()).toBe(false);
   });
 
   it('renders `upload source maps` task with js project', function() {
@@ -39,9 +39,9 @@ describe('TodoList', function() {
       <TodoList organization={organization} />,
       routerContext
     );
-    expect(wrapper.find('Action[data-test-id=7] ItemHeader').text()).toBe(
-      'Upload source maps'
-    );
+    expect(
+      wrapper.find('Action[data-test-id="setup_sourcemaps"] ItemHeader').text()
+    ).toBe('Upload source maps');
   });
 
   it('opens invite members modal on `invite team members` task click', function() {
@@ -50,7 +50,7 @@ describe('TodoList', function() {
       <TodoList organization={organization} />,
       routerContext
     );
-    wrapper.find('Action[data-test-id=3]').simulate('click');
+    wrapper.find('Action[data-test-id="invite_member"]').simulate('click');
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 });

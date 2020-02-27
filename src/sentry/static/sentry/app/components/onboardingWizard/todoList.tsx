@@ -6,7 +6,7 @@ import TodoItem from 'app/components/onboardingWizard/toDoItem';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {Client} from 'app/api';
-import {Organization, OnboardingTask} from 'app/types';
+import {Organization, OnboardingTask, OnboardingTaskKey} from 'app/types';
 
 type Props = {
   api: Client;
@@ -42,7 +42,7 @@ class TodoList extends React.Component<Props, State> {
     this.setState({tasks});
   }
 
-  skipTask = async (skippedTask: number) => {
+  skipTask = async (skippedTask: OnboardingTaskKey) => {
     const {organization, api} = this.props;
 
     await api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {

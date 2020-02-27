@@ -131,7 +131,7 @@ class OrganizationDetailsTest(APITestCase):
         url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
         response = self.client.get(url, format="json")
         assert len(response.data["onboardingTasks"]) == 1
-        assert response.data["onboardingTasks"][0]["task"] == 1
+        assert response.data["onboardingTasks"][0]["task"] == "create_project"
 
 
 class OrganizationUpdateTest(APITestCase):

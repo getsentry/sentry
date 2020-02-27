@@ -42,7 +42,7 @@ def try_mark_onboarding_complete(organization_id):
             & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
         ).values_list("task", flat=True)
     )
-    if completed >= OnboardingTask.REQUIRED_ONBOARDING_TASKS:
+    if completed >= OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS:
         try:
             with transaction.atomic():
                 OrganizationOption.objects.create(
@@ -283,7 +283,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         task = OnboardingTask.ISSUE_TRACKER
         status = OnboardingTaskStatus.PENDING
     elif isinstance(plugin, NotificationPlugin):
-        task = OnboardingTask.NOTIFICATION_SERVICE
+        task = OnboardingTask.ALERT_RULE
         status = OnboardingTaskStatus.COMPLETE
     else:
         return

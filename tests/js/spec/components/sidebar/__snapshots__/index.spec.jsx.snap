@@ -1319,7 +1319,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                     className="css-1vmqa5q-StyledTodoList epgvp2d0"
                   >
                     <WithOrganizationMockWrapper
-                      key="1"
+                      key="create_project"
                       onSkip={[Function]}
                       task={
                         Object {
@@ -1330,7 +1330,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           "location": "/organizations/org-slug/projects/new/",
                           "prereq": Array [],
                           "skippable": false,
-                          "task": 1,
+                          "task": "create_project",
                           "title": "Create a project",
                         }
                       }
@@ -1374,7 +1374,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "location": "/organizations/org-slug/projects/new/",
                             "prereq": Array [],
                             "skippable": false,
-                            "task": 1,
+                            "task": "create_project",
                             "title": "Create a project",
                           }
                         }
@@ -1752,7 +1752,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "location": "/organizations/org-slug/projects/new/",
                               "prereq": Array [],
                               "skippable": false,
-                              "task": 1,
+                              "task": "create_project",
                               "title": "Create a project",
                             }
                           }
@@ -1768,16 +1768,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   className="css-9av8oo-Content ev4hf7u1"
                                 >
                                   <Action
-                                    data-test-id={1}
+                                    data-test-id="create_project"
                                     onClick={[Function]}
                                   >
                                     <ActionTarget
-                                      data-test-id={1}
+                                      data-test-id="create_project"
                                       onClick={[Function]}
                                     >
                                       <div
                                         className="css-kvrkkk-ActionTarget ev4hf7u6"
-                                        data-test-id={1}
+                                        data-test-id="create_project"
                                         onClick={[Function]}
                                       >
                                         <Checkbox>
@@ -1977,7 +1977,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                       </withRouter(TodoItem)>
                     </WithOrganizationMockWrapper>
                     <WithOrganizationMockWrapper
-                      key="2"
+                      key="send_first_event"
                       onSkip={[Function]}
                       task={
                         Object {
@@ -1990,7 +1990,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             1,
                           ],
                           "skippable": false,
-                          "task": 2,
+                          "task": "send_first_event",
                           "title": "Send your first event",
                         }
                       }
@@ -2036,7 +2036,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               1,
                             ],
                             "skippable": false,
-                            "task": 2,
+                            "task": "send_first_event",
                             "title": "Send your first event",
                           }
                         }
@@ -2416,7 +2416,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 1,
                               ],
                               "skippable": false,
-                              "task": 2,
+                              "task": "send_first_event",
                               "title": "Send your first event",
                             }
                           }
@@ -2432,16 +2432,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   className="css-9av8oo-Content ev4hf7u1"
                                 >
                                   <Action
-                                    data-test-id={2}
+                                    data-test-id="send_first_event"
                                     onClick={[Function]}
                                   >
                                     <ActionTarget
-                                      data-test-id={2}
+                                      data-test-id="send_first_event"
                                       onClick={[Function]}
                                     >
                                       <div
                                         className="css-kvrkkk-ActionTarget ev4hf7u6"
-                                        data-test-id={2}
+                                        data-test-id="send_first_event"
                                         onClick={[Function]}
                                       >
                                         <Checkbox>
@@ -2641,7 +2641,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                       </withRouter(TodoItem)>
                     </WithOrganizationMockWrapper>
                     <WithOrganizationMockWrapper
-                      key="3"
+                      key="invite_member"
                       onSkip={[Function]}
                       task={
                         Object {
@@ -2653,7 +2653,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           "display": true,
                           "prereq": Array [],
                           "skippable": true,
-                          "task": 3,
+                          "task": "invite_member",
                           "title": "Invite team members",
                         }
                       }
@@ -2698,7 +2698,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "display": true,
                             "prereq": Array [],
                             "skippable": true,
-                            "task": 3,
+                            "task": "invite_member",
                             "title": "Invite team members",
                           }
                         }
@@ -3077,7 +3077,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "display": true,
                               "prereq": Array [],
                               "skippable": true,
-                              "task": 3,
+                              "task": "invite_member",
                               "title": "Invite team members",
                             }
                           }
@@ -3093,16 +3093,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   className="css-9av8oo-Content ev4hf7u1"
                                 >
                                   <Action
-                                    data-test-id={3}
+                                    data-test-id="invite_member"
                                     onClick={[Function]}
                                   >
                                     <ActionTarget
-                                      data-test-id={3}
+                                      data-test-id="invite_member"
                                       onClick={[Function]}
                                     >
                                       <div
                                         className="css-kvrkkk-ActionTarget ev4hf7u6"
-                                        data-test-id={3}
+                                        data-test-id="invite_member"
                                         onClick={[Function]}
                                       >
                                         <Checkbox>
@@ -3369,7 +3369,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                       </withRouter(TodoItem)>
                     </WithOrganizationMockWrapper>
                     <WithOrganizationMockWrapper
-                      key="4"
+                      key="setup_second_platform"
                       onSkip={[Function]}
                       task={
                         Object {
@@ -3383,7 +3383,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             2,
                           ],
                           "skippable": true,
-                          "task": 4,
+                          "task": "setup_second_platform",
                           "title": "Add a second platform",
                         }
                       }
@@ -3430,7 +3430,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               2,
                             ],
                             "skippable": true,
-                            "task": 4,
+                            "task": "setup_second_platform",
                             "title": "Add a second platform",
                           }
                         }
@@ -3811,7 +3811,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 2,
                               ],
                               "skippable": true,
-                              "task": 4,
+                              "task": "setup_second_platform",
                               "title": "Add a second platform",
                             }
                           }
@@ -3827,16 +3827,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   className="css-9av8oo-Content ev4hf7u1"
                                 >
                                   <Action
-                                    data-test-id={4}
+                                    data-test-id="setup_second_platform"
                                     onClick={[Function]}
                                   >
                                     <ActionTarget
-                                      data-test-id={4}
+                                      data-test-id="setup_second_platform"
                                       onClick={[Function]}
                                     >
                                       <div
                                         className="css-kvrkkk-ActionTarget ev4hf7u6"
-                                        data-test-id={4}
+                                        data-test-id="setup_second_platform"
                                         onClick={[Function]}
                                       >
                                         <Checkbox>
@@ -4102,7 +4102,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                       </withRouter(TodoItem)>
                     </WithOrganizationMockWrapper>
                     <WithOrganizationMockWrapper
-                      key="5"
+                      key="setup_user_context"
                       onSkip={[Function]}
                       task={
                         Object {
@@ -4117,7 +4117,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             2,
                           ],
                           "skippable": true,
-                          "task": 5,
+                          "task": "setup_user_context",
                           "title": "Add user context",
                         }
                       }
@@ -4165,7 +4165,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               2,
                             ],
                             "skippable": true,
-                            "task": 5,
+                            "task": "setup_user_context",
                             "title": "Add user context",
                           }
                         }
@@ -4547,7 +4547,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 2,
                               ],
                               "skippable": true,
-                              "task": 5,
+                              "task": "setup_user_context",
                               "title": "Add user context",
                             }
                           }
@@ -4563,23 +4563,23 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   className="css-9av8oo-Content ev4hf7u1"
                                 >
                                   <Action
-                                    data-test-id={5}
+                                    data-test-id="setup_user_context"
                                     onClick={[Function]}
                                   >
                                     <ActionExternalLink
-                                      data-test-id={5}
+                                      data-test-id="setup_user_context"
                                       href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
                                       onClick={[Function]}
                                     >
                                       <ForwardRef
                                         className="css-1usfu4d-ActionExternalLink ev4hf7u5"
-                                        data-test-id={5}
+                                        data-test-id="setup_user_context"
                                         href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
                                         onClick={[Function]}
                                       >
                                         <a
                                           className="css-1usfu4d-ActionExternalLink ev4hf7u5"
-                                          data-test-id={5}
+                                          data-test-id="setup_user_context"
                                           href="https://docs.sentry.io/enriching-error-data/context/#capturing-the-user"
                                           onClick={[Function]}
                                           rel="noreferrer noopener"
@@ -4850,7 +4850,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                       </withRouter(TodoItem)>
                     </WithOrganizationMockWrapper>
                     <WithOrganizationMockWrapper
-                      key="6"
+                      key="setup_release_tracking"
                       onSkip={[Function]}
                       task={
                         Object {
@@ -4865,7 +4865,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             2,
                           ],
                           "skippable": true,
-                          "task": 6,
+                          "task": "setup_release_tracking",
                           "title": "Set up release tracking",
                         }
                       }
@@ -4913,7 +4913,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               2,
                             ],
                             "skippable": true,
-                            "task": 6,
+                            "task": "setup_release_tracking",
                             "title": "Set up release tracking",
                           }
                         }
@@ -5295,7 +5295,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 2,
                               ],
                               "skippable": true,
-                              "task": 6,
+                              "task": "setup_release_tracking",
                               "title": "Set up release tracking",
                             }
                           }
@@ -5311,16 +5311,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   className="css-9av8oo-Content ev4hf7u1"
                                 >
                                   <Action
-                                    data-test-id={6}
+                                    data-test-id="setup_release_tracking"
                                     onClick={[Function]}
                                   >
                                     <ActionTarget
-                                      data-test-id={6}
+                                      data-test-id="setup_release_tracking"
                                       onClick={[Function]}
                                     >
                                       <div
                                         className="css-kvrkkk-ActionTarget ev4hf7u6"
-                                        data-test-id={6}
+                                        data-test-id="setup_release_tracking"
                                         onClick={[Function]}
                                       >
                                         <Checkbox>
