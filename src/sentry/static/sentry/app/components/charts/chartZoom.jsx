@@ -214,7 +214,7 @@ class ChartZoom extends React.Component {
       return children(props);
     }
 
-    const dateFormat = useShortDate ? 'MMM Do' : 'lll';
+    const dateFormat = useShortDate ? 'MMM Do' : 'll[\n]LT';
     const hasShortInterval = useShortInterval(this.props);
     const xAxisOptions = {
       axisLabel: {
