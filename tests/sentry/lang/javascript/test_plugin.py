@@ -1341,7 +1341,7 @@ class JavascriptIntegrationTest(SnubaTestCase):
             assert not frame_list[x].in_app
 
 
-@pytest.mark.group_sentry_store
+@pytest.mark.sentry_store_integration
 class JavascriptIntegrationTestLegacy(SentryStoreHelper, TestCase, JavascriptIntegrationTest):
     def setUp(self):
         super(JavascriptIntegrationTestLegacy, self).setUp()

@@ -195,7 +195,7 @@ class BasicResolvingIntegrationTest(object):
         }
 
 
-@pytest.mark.group_sentry_store
+@pytest.mark.sentry_store_integration
 class BasicResolvingIntegrationTestLegacy(
     SentryStoreHelper, TestCase, BasicResolvingIntegrationTest
 ):

@@ -6,6 +6,6 @@ from ....sentry.lang.javascript.test_example import ExampleTestCase
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 
 
-@pytest.mark.group_relay_store
+@pytest.mark.relay_store_integration
 class ExampleTestCaseRelay(RelayStoreHelper, TransactionTestCase, ExampleTestCase):
     pass

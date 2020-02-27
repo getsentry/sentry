@@ -6,7 +6,7 @@ from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-@pytest.mark.group_relay_store
+@pytest.mark.relay_store_integration
 class JavascriptIntegrationTestRelay(
     RelayStoreHelper, TransactionTestCase, JavascriptIntegrationTest
 ):

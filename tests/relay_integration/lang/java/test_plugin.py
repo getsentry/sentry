@@ -5,7 +5,7 @@ from ....sentry.lang.java.test_plugin import BasicResolvingIntegrationTest
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 
 
-@pytest.mark.group_relay_store
+@pytest.mark.relay_store_integration
 class BasicResolvingIntegrationTestRelay(
     RelayStoreHelper, TransactionTestCase, BasicResolvingIntegrationTest
 ):

@@ -94,6 +94,6 @@ class ExampleTestCase(object):
         assert frame_list[3].filename == "test.js"
 
 
-@pytest.mark.group_sentry_store
+@pytest.mark.sentry_store_integration
 class ExampleTestCaseLegacy(SentryStoreHelper, TransactionTestCase, ExampleTestCase):
     pass
