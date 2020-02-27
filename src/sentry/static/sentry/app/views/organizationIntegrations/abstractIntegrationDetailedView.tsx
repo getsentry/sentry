@@ -152,18 +152,6 @@ class AbstractIntegrationDetailedView<
     throw new Error('Not implemented');
   }
 
-  renderButton(
-    _disabledFromFeatures: boolean, //from the feature gate
-    _userHasAccess: boolean, //from user permissions
-    configurations: boolean = true
-  ): React.ReactElement {
-    // Allow children to implement this
-    if (!configurations && _disabledFromFeatures) {
-      return <div />;
-    }
-    return this.renderTopButton(_disabledFromFeatures, _userHasAccess);
-  }
-
   //Returns the permission descriptions, only use by Sentry Apps
   renderPermissions(): React.ReactElement | null {
     //default is don't render permissions
@@ -178,7 +166,7 @@ class AbstractIntegrationDetailedView<
           But that doesn’t have to be the case for long! Add an installation to get
           started.
         </EmptyConfigurationBody>
-        <div>{this.renderAddInstallButton(false)}</div>
+        <div>{this.renderAddInstallButton(true)}</div>
       </EmptyConfigurationContainer>
     );
   }
@@ -249,7 +237,7 @@ class AbstractIntegrationDetailedView<
     );
   }
 
-  renderAddInstallButton(configurations = true) {
+  renderAddInstallButton(hideButton = false) {
     const {organization} = this.props;
     const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
 
@@ -265,7 +253,11 @@ class AbstractIntegrationDetailedView<
                   )}
                   disabled={hasAccess}
                 >
-                  {this.renderButton(disabled, hasAccess, configurations)}
+                  {!hideButton && disabled ? (
+                    <div />
+                  ) : (
+                    this.renderTopButton(disabled, hasAccess)
+                  )}
                 </Tooltip>
               )}
             </Access>

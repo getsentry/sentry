@@ -97,7 +97,7 @@ export class InstalledPlugin extends React.Component<Props> {
       addLoadingMessage(t('Enabling...'));
       await this.updatePluginEnableStatus(status);
       addSuccessMessage(
-        tct('Configuration was [action].', {action: status ? 'enabled' : 'disabled'})
+        status ? t('Configuration was enabled.') : t('Configuration was disabled.')
       );
       this.props.onPluginEnableStatusChange(projectId, status);
       this.props.trackIntegrationEvent({
@@ -107,9 +107,9 @@ export class InstalledPlugin extends React.Component<Props> {
       });
     } catch (_err) {
       addErrorMessage(
-        tct('Unable to [action] configuration.', {
-          action: status ? 'enabled' : 'disabled',
-        })
+        status
+          ? t('Unable to enable configuration.')
+          : t('Unable to disable configuration.')
       );
     }
   };
