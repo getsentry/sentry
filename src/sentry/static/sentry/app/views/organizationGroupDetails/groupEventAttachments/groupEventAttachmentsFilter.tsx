@@ -22,7 +22,7 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
 
   return (
     <FilterWrapper>
-      <MergedButtonBar>
+      <ButtonBar merged>
         <Button
           size="small"
           to={{pathname, query: allAttachmentsQuery}}
@@ -37,7 +37,7 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
         >
           {t('Only Crash Reports')}
         </Button>
-      </MergedButtonBar>
+      </ButtonBar>
     </FilterWrapper>
   );
 };
@@ -46,17 +46,6 @@ const FilterWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   margin-bottom: ${space(3)};
-`;
-
-const MergedButtonBar = styled(ButtonBar)`
-  & > a:first-child:not(:last-child) {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-  & > a:last-child:not(:first-child) {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
 `;
 
 export default withRouter(GroupEventAttachmentsFilter);
