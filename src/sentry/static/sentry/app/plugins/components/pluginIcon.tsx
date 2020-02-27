@@ -6,6 +6,7 @@ import sentry from 'app/../images/logos/logo-sentry.svg';
 import amixr from 'app/../images/logos/logo-amixr.svg';
 import asana from 'app/../images/logos/logo-asana.svg';
 import bitbucket from 'app/../images/logos/logo-bitbucket.svg';
+import bitbucketserver from 'app/../images/logos/logo-bitbucket-server.svg';
 import campfire from 'app/../images/logos/logo-campfire.svg';
 import clickup from 'app/../images/logos/logo-clickup.svg';
 import clubhouse from 'app/../images/logos/logo-clubhouse.svg';
@@ -48,6 +49,7 @@ export const ICON_PATHS = {
   amixr,
   asana,
   bitbucket,
+  bitbucket_server: bitbucketserver,
   campfire,
   clickup,
   clubhouse,
