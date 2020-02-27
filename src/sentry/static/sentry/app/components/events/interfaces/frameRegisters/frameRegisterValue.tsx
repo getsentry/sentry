@@ -1,20 +1,23 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import {Meta} from 'app/types';
+import styled from '@emotion/styled';
 import Tooltip from 'app/components/tooltip';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {t} from 'app/locale';
 
 const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
 
 type Props = {
   value: string | number;
+  meta?: Meta;
 };
 
 type State = {
   view: number;
 };
 
-export default class RegisterValue extends React.Component<Props, State> {
+class FrameRegisterValue extends React.Component<Props, State> {
   state = {
     view: 0,
   };
@@ -23,7 +26,13 @@ export default class RegisterValue extends React.Component<Props, State> {
     this.setState(state => ({view: (state.view + 1) % REGISTER_VIEWS.length}));
   };
 
-  formatValue = (value: Props['value']) => {
+  tootTipTitle = () => {
+    return REGISTER_VIEWS[this.state.view];
+  };
+
+  formatValue = () => {
+    const value = this.props.value;
+
     try {
       const parsed = typeof value === 'string' ? parseInt(value, 16) : value;
       if (isNaN(parsed)) {
@@ -37,22 +46,36 @@ export default class RegisterValue extends React.Component<Props, State> {
         default:
           return `0x${('0000000000000000' + parsed.toString(16)).substr(-16)}`;
       }
-    } catch (e) {
+    } catch {
       return value;
     }
   };
 
   render() {
+    const formattedValue = this.formatValue();
     return (
       <InlinePre>
-        <FixedWidth>{this.formatValue(this.props.value)}</FixedWidth>
-        <Tooltip title={REGISTER_VIEWS[this.state.view]}>
+        <FixedWidth>
+          {this.props.meta ? (
+            <AnnotatedText
+              vakue={formattedValue}
+              chunks={this.props.meta.chunks}
+              remarks={this.props.meta.rem}
+              errors={this.props.meta.err}
+            />
+          ) : (
+            formattedValue
+          )}
+        </FixedWidth>
+        <Tooltip title={this.tootTipTitle()}>
           <Toggle className="icon-filter" onClick={this.toggleView} />
         </Tooltip>
       </InlinePre>
     );
   }
 }
+
+export default FrameRegisterValue;
 
 const InlinePre = styled('pre')`
   display: inline;

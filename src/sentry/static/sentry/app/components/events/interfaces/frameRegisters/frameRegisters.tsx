@@ -1,42 +1,41 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
+import styled from '@emotion/styled';
 import {defined} from 'app/utils';
 import {t} from 'app/locale';
-import RegisterValue from 'app/components/events/interfaces/frameRegisters/registerValue';
+import RegisterValue from 'app/components/events/interfaces/frameRegisters/frameRegisterValue';
+import {getMeta} from 'app/components/events/meta/metaProxy';
 
 type Props = {
   data: {[key: string]: string};
 };
 
-class FrameRegisters extends React.Component<Props> {
+const FrameRegisters = ({data}: Props) => {
   // make sure that clicking on the registers does not actually do
   // anything on the containing element.
-  preventToggling = (evt: React.MouseEvent<HTMLDivElement>) => {
-    evt.stopPropagation();
+  const handlePreventToggling = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
   };
 
-  render() {
-    return (
-      <RegistersWrapper>
-        <RegistersHeading>{t('registers')}</RegistersHeading>
-        <Registers>
-          {Object.entries(this.props.data).map(([name, value]) => {
-            if (defined(value)) {
-              return (
-                <Register key={name} onClick={this.preventToggling}>
-                  <RegisterName>{name}</RegisterName> <RegisterValue value={value} />
-                </Register>
-              );
-            }
-
+  return (
+    <RegistersWrapper>
+      <RegistersHeading>{t('registers')}</RegistersHeading>
+      <Registers>
+        {Object.entries(data).map(([name, value]) => {
+          if (!defined(value)) {
             return null;
-          })}
-        </Registers>
-      </RegistersWrapper>
-    );
-  }
-}
+          }
+          return (
+            <Register key={name} onClick={handlePreventToggling}>
+              <RegisterName>{name}</RegisterName>
+              <RegisterValue value={value} meta={getMeta(data, name)} />
+            </Register>
+          );
+        })}
+      </Registers>
+    </RegistersWrapper>
+  );
+};
 
 const RegistersWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.borderLight};
