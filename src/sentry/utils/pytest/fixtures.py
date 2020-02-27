@@ -7,6 +7,7 @@ including ``db`` fixture in the function resolution scope.
 """
 from __future__ import absolute_import, print_function, unicode_literals
 
+import io
 import os
 import re
 import sys
@@ -281,8 +282,8 @@ def insta_snapshot(request, log):
             )
 
         try:
-            with open(reference_file) as f:
-                match = _yaml_snap_re.match(f.read().decode("utf-8"))
+            with io.open(reference_file, "rt", encoding="utf-8") as f:
+                match = _yaml_snap_re.match(f.read())
                 if match is None:
                     raise IOError()
                 _header, refval = match.groups()
@@ -302,7 +303,7 @@ def insta_snapshot(request, log):
                 reference_file += ".new"
             with open(reference_file, "w") as f:
                 f.write(
-                    "---\n%s\n---\n%s\n"
+                    u"---\n%s\n---\n%s\n"
                     % (
                         yaml.safe_dump(
                             {
