@@ -19,7 +19,7 @@ LEVEL_TO_COLOR = {
 
 def track_response_code(status_code):
     metrics.incr(
-        "sentry-plugins.slack.http_response",
+        "sentry-plugins.http_response",
         sample_rate=1.0,
         tags={"status": status_code, "plugin": "slack"},
     )
