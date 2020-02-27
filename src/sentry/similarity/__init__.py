@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import itertools
 import logging
 
 from django.conf import settings
@@ -19,6 +18,7 @@ from sentry.similarity.features import (
 )
 from sentry.similarity.signatures import MinHashSignatureBuilder
 from sentry.utils import redis
+from sentry.utils.compat import map
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
 
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def text_shingle(n, value):
-    return itertools.imap(u"".join, shingle(n, value))
+    return map(u"".join, shingle(n, value))
 
 
 class FrameEncodingError(ValueError):

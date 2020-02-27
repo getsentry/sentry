@@ -79,7 +79,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
         getter = queryset.get
 
     if not (
-        isinstance(id_or_qualified_short_id, (long, int))  # noqa
+        isinstance(id_or_qualified_short_id, six.integer_types)  # noqa
         or id_or_qualified_short_id.isdigit()
     ):  # NOQA
         short_id = parse_short_id(id_or_qualified_short_id)

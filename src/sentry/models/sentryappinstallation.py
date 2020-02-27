@@ -11,7 +11,7 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Pa
 
 
 def default_uuid():
-    return six.binary_type(uuid.uuid4())
+    return six.text_type(uuid.uuid4())
 
 
 class SentryAppInstallationToken(Model):

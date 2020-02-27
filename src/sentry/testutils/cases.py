@@ -21,7 +21,6 @@ __all__ = (
 )
 
 import base64
-import contextlib
 import os
 import os.path
 import pytest
@@ -772,9 +771,7 @@ class SnubaTestCase(BaseTestCase):
         assert requests.post(settings.SENTRY_SNUBA + "/tests/transactions/drop").status_code == 200
 
     def store_event(self, *args, **kwargs):
-        with contextlib.nested(
-            mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert)
-        ):
+        with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
             stored_event = Factories.store_event(*args, **kwargs)
             stored_group = stored_event.group
             if stored_group is not None:

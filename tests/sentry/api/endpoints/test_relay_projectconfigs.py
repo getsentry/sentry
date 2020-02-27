@@ -46,7 +46,7 @@ def private_key(key_pair):
 
 @pytest.fixture
 def relay_id():
-    return six.binary_type(uuid4())
+    return six.binary_type(six.text_type(uuid4()).encode("ascii"))
 
 
 @pytest.fixture

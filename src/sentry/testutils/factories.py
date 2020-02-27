@@ -9,14 +9,15 @@ import petname
 import random
 import six
 import warnings
+from binascii import hexlify
+from hashlib import sha1
+from uuid import uuid4
 from importlib import import_module
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
-from hashlib import sha1
-from uuid import uuid4
 
 from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
@@ -302,7 +303,7 @@ class Factories(object):
     @staticmethod
     def create_release(project, user=None, version=None, date_added=None):
         if version is None:
-            version = os.urandom(20).encode("hex")
+            version = hexlify(os.urandom(20))
 
         if date_added is None:
             date_added = timezone.now()

@@ -32,7 +32,7 @@ def get_username(
     elif details.get("username"):
         username = six.text_type(details["username"])
     else:
-        username = uuid4().get_hex()
+        username = uuid4().hex
 
     max_length = UserSocialAuth.username_max_length()
     short_username = username[: max_length - uuid_length]
@@ -44,7 +44,7 @@ def get_username(
     # as base but adding a unique hash at the end. Original
     # username is cut to avoid any field max_length.
     while user_exists(username=final_username):
-        username = short_username + uuid4().get_hex()[:uuid_length]
+        username = short_username + uuid4().hex[:uuid_length]
         username = username[:max_length]
         final_username = UserSocialAuth.clean_username(username)
         if do_slugify:

@@ -54,7 +54,7 @@ UUID_CHARS_IN_SLUG = 6
 
 
 def default_uuid():
-    return six.binary_type(uuid.uuid4())
+    return six.text_type(uuid.uuid4())
 
 
 def generate_slug(name, is_internal=False):

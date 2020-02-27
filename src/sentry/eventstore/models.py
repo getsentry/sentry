@@ -261,7 +261,7 @@ class Event(object):
         be saved under this key in nodestore so it can be retrieved using the
         same generated id when we only have project_id and event_id.
         """
-        return md5("{}:{}".format(project_id, event_id)).hexdigest()
+        return md5(u"{}:{}".format(project_id, event_id).encode("utf-8")).hexdigest()
 
     # TODO We need a better way to cache these properties.  functools32
     # doesn't quite do the trick as there is a reference bug with unsaved
