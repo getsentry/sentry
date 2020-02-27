@@ -76,7 +76,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     options = {
         "image": "us.gcr.io/sentryio/relay:latest",
         "ports": {"3000/tcp": _relay_port},
-        "network": "sentry",
+        "network": "host",
         "detach": True,
         "name": container_name,
         "volumes": {config_path: {"bind": "/etc/relay"}},
