@@ -38,7 +38,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
 
         # We need a fallback datetime for the event
         if time is None:
-            time = now - timedelta(days=1)
+            time = now - timedelta(days=2)
             time = time.replace(hour=0, minute=0, second=0, microsecond=0)
 
         event_data["timestamp"] = time.isoformat()
@@ -61,7 +61,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_python_rawbody_event(self):
         event = self.create_sample_event(platform="python-rawbody")
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.browser.move_to(".request pre span")
+        self.browser.move_to('[data-test-id="rich-http-content-body-context-data"]')
         self.browser.snapshot("issue details python raw body")
 
     def test_python_formdata_event(self):

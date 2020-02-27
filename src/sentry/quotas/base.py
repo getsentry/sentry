@@ -4,9 +4,134 @@ import six
 
 from django.conf import settings
 from django.core.cache import cache
+from enum import IntEnum, unique
 
 from sentry import options
+from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
+
+
+@unique
+class QuotaScope(IntEnum):
+    ORGANIZATION = 1
+    PROJECT = 2
+    KEY = 3
+
+    def api_name(self):
+        return self.name.lower()
+
+
+class QuotaConfig(object):
+    """
+    Abstract configuration for a quota.
+
+    Sentry applies multiple quotas to an event before accepting it, some of
+    which can be configured by the user depending on plan. An event will be
+    counted against all quotas that it matches with based on the ``category``.
+
+    The `QuotaConfig` object is not persisted, but is the contract between
+    Sentry and Relay. Most importantly, a `QuotaConfig` instance does not
+    contain information about how many events can still be accepted, it only
+    represents settings that should be applied. The actual counts are in the
+    rate limiter (e.g. implemented via Redis caches).
+
+    :param id:          The unique identifier for counting this quota. Required
+                        except for quotas with ``limit=0``, since they are
+                        statically enforced.
+    :param categories:  A set of data categories that this quota applies to. If
+                        missing or empty, this quota applies to all data.
+    :param scope:       A scope for this quota. This quota is enforced
+                        separately within each instance of this scope (e.g. for
+                        each project key separately). Defaults to ORGANIZATION.
+    :param scope_id:    Identifier of the scope to apply to. If set, then this
+                        quota will only apply to the specified scope instance
+                        (e.g. a project key). Requires ``scope`` to be set
+                        explicitly.
+    :param limit:       Maxmimum number of matching events allowed. Can be ``0``
+                        to reject all events, ``None`` for an unlimited counted
+                        quota, or a positive number for enforcement. Requires
+                        ``window`` if the limit is not ``0``.
+    :param window:      The time window in seconds to enforce this quota in.
+                        Required in all cases except ``limit=0``, since those
+                        quotas are not measured.
+    :param reason_code: A machine readable reason returned when this quota is
+                        exceeded. Required in all cases except ``limit=None``,
+                        since unlimited quotas can never be exceeded.
+    """
+
+    __slots__ = ["id", "categories", "scope", "scope_id", "limit", "window", "reason_code"]
+
+    def __init__(
+        self,
+        id=None,
+        categories=None,
+        scope=None,
+        scope_id=None,
+        limit=None,
+        window=None,
+        reason_code=None,
+    ):
+        if limit is not None:
+            assert reason_code, "reason code required for fallible quotas"
+
+        if limit == 0:
+            assert window is None, "zero-sized quotas cannot have a window"
+        else:
+            assert id, "measured quotas require an identifier"
+            assert window and window > 0, "window cannot be zero"
+
+        if scope_id is not None:
+            assert scope, "scope must be declared explicitly when scope_id is given"
+        elif scope is None:
+            scope = QuotaScope.ORGANIZATION
+
+        self.id = id
+        self.scope = scope
+        self.scope_id = six.text_type(scope_id) if scope_id is not None else None
+        self.categories = set(categories or [])
+        # NOTE: Use `quotas.base._limit_from_settings` to map from settings
+        self.limit = limit
+        self.window = window
+        self.reason_code = reason_code
+
+    @property
+    def should_track(self):
+        """
+        Whether the quotas service should track this quota at all.
+        """
+
+        return self.id is not None
+
+    def to_json_legacy(self):
+        data = {
+            "prefix": six.text_type(self.id) if self.id is not None else None,
+            "subscope": six.text_type(self.scope_id) if self.scope_id is not None else None,
+            "limit": self.limit,
+            "window": self.window,
+            "reasonCode": self.reason_code,
+        }
+
+        if self.scope != QuotaScope.ORGANIZATION and self.scope_id is not None:
+            data["subscope"] = self.scope_id
+
+        return prune_empty_keys(data)
+
+    def to_json(self):
+        categories = None
+        if self.categories:
+            categories = [c.api_name() for c in self.categories]
+
+        data = {
+            "id": six.text_type(self.id) if self.id is not None else None,
+            "scope": self.scope.api_name(),
+            "scope_id": self.scope_id,
+            "categories": categories,
+            "limit": self.limit,
+            "window": self.window,
+            "reasonCode": self.reason_code,
+        }
+
+        return prune_empty_keys(data)
 
 
 class RateLimit(object):

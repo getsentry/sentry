@@ -320,7 +320,11 @@ exports[`SharedGroupDetails renders 1`] = `
                         }
                       }
                       isShare={true}
-                      orgId="test-org"
+                      organization={
+                        Object {
+                          "slug": "test-org",
+                        }
+                      }
                       project={
                         Object {
                           "environments": Array [],
@@ -340,7 +344,7 @@ exports[`SharedGroupDetails renders 1`] = `
                       showTagSummary={true}
                     >
                       <EventEntries
-                        className="css-1bpekop-BorderlessEventEntries enep45q0"
+                        className="css-gv2wnj-BorderlessEventEntries enep45q0"
                         event={
                           Object {
                             "dateCreated": "2019-05-21T18:01:48.762Z",
@@ -457,7 +461,11 @@ exports[`SharedGroupDetails renders 1`] = `
                           }
                         }
                         isShare={true}
-                        orgId="test-org"
+                        organization={
+                          Object {
+                            "slug": "test-org",
+                          }
+                        }
                         project={
                           Object {
                             "environments": Array [],
@@ -477,7 +485,7 @@ exports[`SharedGroupDetails renders 1`] = `
                         showTagSummary={true}
                       >
                         <div
-                          className="css-1bpekop-BorderlessEventEntries enep45q0"
+                          className="css-gv2wnj-BorderlessEventEntries enep45q0"
                           data-test-id="event-entries"
                         >
                            
@@ -533,7 +541,7 @@ exports[`SharedGroupDetails renders 1`] = `
                             }
                             isShare={true}
                             key="entry-0"
-                            orgId={null}
+                            orgId="test-org"
                             projectId="project-slug"
                             type="message"
                           >
@@ -567,13 +575,13 @@ exports[`SharedGroupDetails renders 1`] = `
                                 className=""
                               >
                                 <div
-                                  className=" css-1tpn1lm-DataSection e1fbjd860"
+                                  className=" css-1tpn1lm-DataSection e1z0bih42"
                                 >
                                   <SectionHeader
                                     id="message"
                                   >
                                     <div
-                                      className="css-1aabq9z-SectionHeader e1fbjd862"
+                                      className="css-mxpc8d-SectionHeader e1fbjd861"
                                       id="message"
                                     >
                                       <Permalink
@@ -581,7 +589,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                         href="#message"
                                       >
                                         <a
-                                          className="permalink css-1p3e1t-Permalink e1fbjd861"
+                                          className="permalink css-1p3e1t-Permalink e1fbjd860"
                                           href="#message"
                                         >
                                           <em
@@ -596,7 +604,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                   </SectionHeader>
                                   <SectionContents>
                                     <div
-                                      className="css-16dhebx-SectionContents e1fbjd863"
+                                      className="css-16dhebx-SectionContents e1fbjd862"
                                     >
                                       <pre
                                         className="plain"

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import operator
 import six
 
+
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
@@ -13,9 +14,9 @@ from sentry.utils.safe import get_path
 from django.db.models import Q
 from django.core.cache import cache
 
-from itertools import izip
 from collections import defaultdict
 from functools import reduce
+from sentry.utils.compat import zip
 
 PATH_SEPERATORS = frozenset(["/", "\\"])
 
@@ -25,14 +26,14 @@ def tokenize_path(path):
         if sep in path:
             # Exclude empty path segments as some repository integrations
             # start their paths with `/` which we want to ignore.
-            return reversed(filter(lambda x: x != "", path.split(sep)))
+            return reversed([x for x in path.split(sep) if x != ""])
     else:
         return iter([path])
 
 
 def score_path_match_length(path_a, path_b):
     score = 0
-    for a, b in izip(tokenize_path(path_a), tokenize_path(path_b)):
+    for a, b in zip(tokenize_path(path_a), tokenize_path(path_b)):
         if a.lower() != b.lower():
             break
         score += 1

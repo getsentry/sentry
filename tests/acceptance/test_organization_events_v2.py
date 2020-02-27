@@ -144,7 +144,7 @@ def generate_transaction():
 class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationEventsV2Test, self).setUp()
-        self.user = self.create_user("foo@example.com")
+        self.user = self.create_user("foo@example.com", is_superuser=True)
         self.org = self.create_organization(name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
@@ -455,7 +455,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Open the context menu
             card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
             # Delete the query
-            card.find_element_by_css_selector('[href="#delete-query"]').click()
+            card.find_element_by_css_selector('[data-test-id="delete-query"]').click()
 
             # Wait for card to clear
             self.browser.wait_until_not(card_selector)
@@ -481,7 +481,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             # Open the context menu, and duplicate
             card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
-            card.find_element_by_css_selector('[href="#duplicate-query"]').click()
+            card.find_element_by_css_selector('[data-test-id="duplicate-query"]').click()
 
             duplicate_name = "{} copy".format(query.name)
             # Wait for new element to show up.

@@ -5,11 +5,11 @@ import {browserHistory} from 'react-router';
 import QueryList from 'app/views/eventsV2/queryList';
 
 function openContextMenu(card) {
-  card.find('DropdownMenu MoreOptions IconEllipsis').simulate('click');
+  card.find('DropdownMenu MoreOptions svg').simulate('click');
 }
 
 function clickMenuItem(card, selector) {
-  card.find(`DropdownMenu MenuItem[href="#${selector}"]`).simulate('click');
+  card.find(`DropdownMenu MenuItem[data-test-id="${selector}"]`).simulate('click');
 }
 
 describe('EventsV2 > QueryList', function() {

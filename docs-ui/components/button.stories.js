@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
-import {boolean} from '@storybook/addon-knobs';
+import {boolean, number} from '@storybook/addon-knobs';
 
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import DropdownButton from 'app/components/dropdownButton';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
@@ -203,5 +204,38 @@ storiesOf('UI|Buttons', module)
           <DropdownButton isOpen>Open</DropdownButton>
         </Item>
       </React.Fragment>
+    ))
+  )
+  .add(
+    'ButtonBar',
+    withInfo('Buttons in a Bar container')(() => (
+      <div>
+        <Section>
+          <h3>With a Gap</h3>
+          <ButtonBar gap={number('button gap', 1)}>
+            <Button>First Button</Button>
+            <Button>Second Button</Button>
+            <Button>Third Button</Button>
+          </ButtonBar>
+        </Section>
+
+        <Section>
+          <h3>Merged Buttons</h3>
+          <ButtonBar merged>
+            <Button>Left Button</Button>
+            <Button priority="primary">Right Button</Button>
+          </ButtonBar>
+        </Section>
+
+        <Section>
+          <h3>Multiple Merged Buttons</h3>
+          <ButtonBar merged>
+            <Button>First Button</Button>
+            <Button>Second Button</Button>
+            <Button>Third Button</Button>
+            <Button>Fourth Button</Button>
+          </ButtonBar>
+        </Section>
+      </div>
     ))
   );

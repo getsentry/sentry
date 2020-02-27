@@ -5,18 +5,20 @@ import flatMap from 'lodash/flatMap';
 import styled from '@emotion/styled';
 
 import CommitRow from 'app/components/commitRow';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconAdd, IconSubtract} from 'app/icons';
+import {Panel} from 'app/components/panels';
+import {DataSection, CauseHeader} from 'app/components/events/styles';
 import withApi from 'app/utils/withApi';
+import space from 'app/styles/space';
 
 import {t} from 'app/locale';
 
-import {Panel} from 'app/components/panels';
-
-const ExpandButton = styled('span')`
-  cursor: pointer;
-  position: absolute;
-  right: 0;
-  top: 7px;
+const ExpandButton = styled('button')`
+  display: flex;
+  align-items: center;
+  & > svg {
+    margin-left: ${space(0.5)};
+  }
 `;
 
 class EventCause extends React.Component {
@@ -58,10 +60,10 @@ class EventCause extends React.Component {
     this.props.api.request(
       `/projects/${this.props.orgId}/${this.props.projectId}/events/${event.id}/committers/`,
       {
-        success: (data, _, jqXHR) => {
+        success: data => {
           this.setState(data);
         },
-        error: error => {
+        error: () => {
           this.setState({
             committers: undefined,
           });
@@ -94,31 +96,31 @@ class EventCause extends React.Component {
     const commits = this.getUniqueCommitsWithAuthors();
 
     return (
-      <div className="box">
-        <div className="box-header">
+      <DataSection>
+        <CauseHeader>
           <h3>
             {t('Suspect Commits')} ({commits.length})
-            {commits.length > 1 && (
-              <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
-                {expanded ? (
-                  <React.Fragment>
-                    {t('Show less')} <InlineSvg src="icon-circle-subtract" size="16px" />
-                  </React.Fragment>
-                ) : (
-                  <React.Fragment>
-                    {t('Show more')} <InlineSvg src="icon-circle-add" size="16px" />
-                  </React.Fragment>
-                )}
-              </ExpandButton>
-            )}
           </h3>
-          <Panel>
-            {commits.slice(0, expanded ? 100 : 1).map(commit => {
-              return <CommitRow key={commit.id} commit={commit} />;
-            })}
-          </Panel>
-        </div>
-      </div>
+          {commits.length > 1 && (
+            <ExpandButton onClick={() => this.setState({expanded: !expanded})}>
+              {expanded ? (
+                <React.Fragment>
+                  {t('Show less')} <IconSubtract circle size="md" />
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  {t('Show more')} <IconAdd circle size="md" />
+                </React.Fragment>
+              )}
+            </ExpandButton>
+          )}
+        </CauseHeader>
+        <Panel>
+          {commits.slice(0, expanded ? 100 : 1).map(commit => {
+            return <CommitRow key={commit.id} commit={commit} />;
+          })}
+        </Panel>
+      </DataSection>
     );
   }
 }

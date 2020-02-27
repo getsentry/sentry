@@ -25,7 +25,7 @@ class GroupReleaseChart extends React.Component {
     this.state = this.getNextState(this.props);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     this.setState(this.getNextState(nextProps));
   }
 

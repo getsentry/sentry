@@ -23,9 +23,8 @@ exports[`ProjectSecurityHeaders renders 1`] = `
         Additional Configuration
       </PanelHeader>
       <PanelBody
-        direction="column"
-        disablePadding={false}
-        flex={false}
+        flexible={false}
+        withPadding={true}
       >
         <TextBlock
           style={
@@ -113,9 +112,8 @@ exports[`ProjectSecurityHeaders renders 1`] = `
         Supported Formats
       </PanelHeader>
       <PanelBody
-        direction="column"
-        disablePadding={true}
-        flex={false}
+        flexible={false}
+        withPadding={false}
       >
         <PanelItem
           flexDirection="column"

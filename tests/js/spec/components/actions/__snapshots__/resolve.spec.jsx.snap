@@ -273,6 +273,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                                     message="Are you sure???"
                                     onAction={[Function]}
                                     shouldConfirm={true}
+                                    title="The next release"
                                   >
                                     <Confirm
                                       cancelText="Cancel"
@@ -284,7 +285,9 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                                       stopPropagation={false}
                                     >
                                       <a
+                                        aria-label="The next release"
                                         onClick={[Function]}
+                                        title="The next release"
                                       >
                                          
                                         The next release
@@ -381,6 +384,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                                     message="Are you sure???"
                                     onAction={[Function]}
                                     shouldConfirm={true}
+                                    title="The current release"
                                   >
                                     <Confirm
                                       cancelText="Cancel"
@@ -392,7 +396,9 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                                       stopPropagation={false}
                                     >
                                       <a
+                                        aria-label="The current release"
                                         onClick={[Function]}
+                                        title="The current release"
                                       >
                                          
                                         The current release
@@ -489,16 +495,19 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                                     message="Are you sure???"
                                     onAction={[Function]}
                                     shouldConfirm={false}
+                                    title="Another version"
                                   >
                                     <ActionLinkAnchor
+                                      aria-label="Another version"
                                       className=""
-                                      data-test-id="action-link"
+                                      data-test-id="action-link-another-version"
                                       disabled={false}
                                       onClick={[Function]}
                                     >
                                       <a
+                                        aria-label="Another version"
                                         className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
-                                        data-test-id="action-link"
+                                        data-test-id="action-link-another-version"
                                         disabled={false}
                                         onClick={[Function]}
                                       >
@@ -740,16 +749,19 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                     disabled={false}
                                     onAction={[Function]}
                                     shouldConfirm={false}
+                                    title="The next release"
                                   >
                                     <ActionLinkAnchor
+                                      aria-label="The next release"
                                       className=""
-                                      data-test-id="action-link"
+                                      data-test-id="action-link-the-next-release"
                                       disabled={false}
                                       onClick={[Function]}
                                     >
                                       <a
+                                        aria-label="The next release"
                                         className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
-                                        data-test-id="action-link"
+                                        data-test-id="action-link-the-next-release"
                                         disabled={false}
                                         onClick={[Function]}
                                       >
@@ -794,16 +806,19 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                     disabled={false}
                                     onAction={[Function]}
                                     shouldConfirm={false}
+                                    title="The current release"
                                   >
                                     <ActionLinkAnchor
+                                      aria-label="The current release"
                                       className=""
-                                      data-test-id="action-link"
+                                      data-test-id="action-link-the-current-release"
                                       disabled={false}
                                       onClick={[Function]}
                                     >
                                       <a
+                                        aria-label="The current release"
                                         className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
-                                        data-test-id="action-link"
+                                        data-test-id="action-link-the-current-release"
                                         disabled={false}
                                         onClick={[Function]}
                                       >
@@ -848,16 +863,19 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                     disabled={false}
                                     onAction={[Function]}
                                     shouldConfirm={false}
+                                    title="Another version"
                                   >
                                     <ActionLinkAnchor
+                                      aria-label="Another version"
                                       className=""
-                                      data-test-id="action-link"
+                                      data-test-id="action-link-another-version"
                                       disabled={false}
                                       onClick={[Function]}
                                     >
                                       <a
+                                        aria-label="Another version"
                                         className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
-                                        data-test-id="action-link"
+                                        data-test-id="action-link-another-version"
                                         disabled={false}
                                         onClick={[Function]}
                                       >

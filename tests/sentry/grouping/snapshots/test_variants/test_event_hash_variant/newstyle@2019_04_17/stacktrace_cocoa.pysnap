@@ -1,28 +1,28 @@
 ---
-created: '2019-04-17T20:02:28.888856Z'
+created: '2020-02-26T19:54:36.349135Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: 'eb416f98479efa56a77c524602dc9979'
+  hash: "eb416f98479efa56a77c524602dc9979"
   component:
     app*
       stacktrace*
         frame*
           filename*
-            u'bar.m'
+            "bar.m"
         frame (non app frame)
           filename*
-            u'baz.m'
+            "baz.m"
 --------------------------------------------------------------------------
 system:
-  hash: '1df786c8c266506e1acb6669c8df5154'
+  hash: "1df786c8c266506e1acb6669c8df5154"
   component:
     system*
       stacktrace*
         frame*
           filename*
-            u'bar.m'
+            "bar.m"
         frame*
           filename*
-            u'baz.m'
+            "baz.m"

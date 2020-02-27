@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from collections import defaultdict
 from datetime import timedelta
-from rest_framework import serializers
 from uuid import uuid4
 
 import six
@@ -42,8 +41,7 @@ from sentry.snuba.subscriptions import (
     query_aggregation_to_snuba,
 )
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
-
-MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
+from sentry.utils.compat import zip
 
 
 class AlreadyDeletedError(Exception):
@@ -100,13 +98,7 @@ def create_incident(
                 [IncidentGroup(incident=incident, group=group) for group in groups]
             )
 
-        event_stats_snapshot = create_initial_event_stats_snapshot(incident)
-        create_incident_activity(
-            incident,
-            IncidentActivityType.DETECTED,
-            event_stats_snapshot=event_stats_snapshot,
-            user=user,
-        )
+        create_incident_activity(incident, IncidentActivityType.DETECTED, user=user)
         analytics.record(
             "incident.created",
             incident_id=incident.id,
@@ -178,18 +170,6 @@ def set_incident_seen(incident, user=None):
     return incident_seen
 
 
-def create_initial_event_stats_snapshot(incident):
-    """
-    Creates an event snapshot representing the state at the beginning of
-    an incident. It's intended to capture the history of the events involved in
-    the incident, the spike and a short period of time after that.
-    """
-    initial_period_length = min(timezone.now() - incident.date_started, MAX_INITIAL_INCIDENT_PERIOD)
-    end = incident.date_started + initial_period_length
-    start = end - (initial_period_length * 4)
-    return create_event_stat_snapshot(incident, start, end)
-
-
 @transaction.atomic
 def create_incident_activity(
     incident,
@@ -198,7 +178,6 @@ def create_incident_activity(
     value=None,
     previous_value=None,
     comment=None,
-    event_stats_snapshot=None,
     mentioned_user_ids=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
@@ -212,7 +191,6 @@ def create_incident_activity(
         value=value,
         previous_value=previous_value,
         comment=comment,
-        event_stats_snapshot=event_stats_snapshot,
     )
 
     if mentioned_user_ids:
@@ -313,6 +291,8 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
             "start": incident.date_started if start is None else start,
             "end": incident.current_end_date if end is None else end,
         }
+        prewindow_time_range = calculate_incident_prewindow(params["start"], params["end"])
+        params["start"] = params["start"] - prewindow_time_range
         group_ids = incident_groups[incident.id]
         if group_ids:
             params["group_ids"] = group_ids
@@ -332,6 +312,15 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
         query_args_list.append(snuba_args)
 
     return query_args_list
+
+
+def calculate_incident_prewindow(start, end, incident=None):
+    # Make the a bit earlier to show more relevant data from before the incident started:
+    prewindow = (end - start) / 5
+    if incident and incident.alert_rule is not None:
+        alert_rule_time_window = incident.alert_rule.time_window
+        prewindow = max(alert_rule_time_window, prewindow)
+    return prewindow
 
 
 def get_incident_event_stats(incident, start=None, end=None, data_points=50):
@@ -441,9 +430,7 @@ def get_incident_subscribers(incident):
 
 
 def get_incident_activity(incident):
-    return IncidentActivity.objects.filter(incident=incident).select_related(
-        "user", "event_stats_snapshot", "incident"
-    )
+    return IncidentActivity.objects.filter(incident=incident).select_related("user", "incident")
 
 
 class AlertRuleNameAlreadyUsedError(Exception):
@@ -464,7 +451,6 @@ def create_alert_rule(
     environment=None,
     include_all_projects=False,
     excluded_projects=None,
-    triggers=None,
 ):
     """
     Creates an alert rule for an organization.
@@ -484,7 +470,6 @@ def create_alert_rule(
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`.
-    :param actions: A list of alert rule triggers for this for this rule
 
     :return: The created `AlertRule`
     """
@@ -521,10 +506,6 @@ def create_alert_rule(
             for e in environment:
                 AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=e)
 
-        if triggers:
-            for trigger_data in triggers:
-                create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
-
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
     return alert_rule
@@ -541,7 +522,6 @@ def update_alert_rule(
     threshold_period=None,
     include_all_projects=None,
     excluded_projects=None,
-    triggers=None,
 ):
     """
     Updates an alert rule.
@@ -665,28 +645,6 @@ def update_alert_rule(
         else:
             AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).delete()
 
-        if triggers is not None:
-            # Delete triggers we don't have present in the updated data.
-            trigger_ids = [x["id"] for x in triggers if "id" in x]
-            AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
-                id__in=trigger_ids
-            ).delete()
-
-            for trigger_data in triggers:
-                try:
-                    if "id" in trigger_data:
-                        trigger_instance = AlertRuleTrigger.objects.get(
-                            alert_rule=alert_rule, id=trigger_data["id"]
-                        )
-                        trigger_data.pop("id")
-                        update_alert_rule_trigger(trigger_instance, **trigger_data)
-                    else:
-                        create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
-                except AlertRuleTriggerLabelAlreadyUsedError:
-                    raise serializers.ValidationError(
-                        "This trigger label is already in use for this alert rule"
-                    )
-
         if existing_subs and (
             query is not None or aggregation is not None or time_window is not None
         ):
@@ -776,7 +734,6 @@ def create_alert_rule_trigger(
     alert_threshold,
     resolve_threshold=None,
     excluded_projects=None,
-    actions=None,
 ):
     """
     Creates a new AlertRuleTrigger
@@ -789,7 +746,6 @@ def create_alert_rule_trigger(
     resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
-    :param actions: A list of alert rule trigger actions for this trigger
     :return: The created AlertRuleTrigger
     """
     if AlertRuleTrigger.objects.filter(alert_rule=alert_rule, label=label).exists():
@@ -814,10 +770,6 @@ def create_alert_rule_trigger(
             ]
             AlertRuleTriggerExclusion.objects.bulk_create(new_exclusions)
 
-        if actions:
-            for action_data in actions:
-                create_alert_rule_trigger_action(trigger=trigger, **action_data)
-
     return trigger
 
 
@@ -828,7 +780,6 @@ def update_alert_rule_trigger(
     alert_threshold=None,
     resolve_threshold=None,
     excluded_projects=None,
-    actions=None,
 ):
     """
     :param trigger: The AlertRuleTrigger to update
@@ -840,7 +791,6 @@ def update_alert_rule_trigger(
     resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
-    :param actions: A list of alert rule trigger actions for this trigger
     :return: The updated AlertRuleTrigger
     """
 
@@ -891,22 +841,6 @@ def update_alert_rule_trigger(
             ]
             AlertRuleTriggerExclusion.objects.bulk_create(new_exclusions)
 
-        if actions is not None:
-            # Delete actions we don't have present in the updated data.
-            action_ids = [x["id"] for x in actions if "id" in x]
-            AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger).exclude(
-                id__in=action_ids
-            ).delete()
-
-            for action_data in actions:
-                if "id" in action_data:
-                    action_instance = AlertRuleTriggerAction.objects.get(
-                        alert_rule_trigger=trigger, id=action_data["id"]
-                    )
-                    action_data.pop("id")
-                    update_alert_rule_trigger_action(action_instance, **action_data)
-                else:
-                    create_alert_rule_trigger_action(trigger=trigger, **action_data)
     return trigger
 
 

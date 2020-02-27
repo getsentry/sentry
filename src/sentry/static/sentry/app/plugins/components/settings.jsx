@@ -23,6 +23,7 @@ class PluginSettings extends PluginComponentBase {
       // override default FormState.READY if api requests are
       // necessary to even load the form
       state: FormState.LOADING,
+      wasConfiguredOnPageLoad: false,
     });
   }
 
@@ -46,6 +47,21 @@ class PluginSettings extends PluginComponentBase {
   }
 
   onSubmit() {
+    if (!this.state.wasConfiguredOnPageLoad) {
+      //Users cannot install plugins like other integrations but we need the events for the funnel
+      //we will treat a user saving a plugin that wasn't already configured as an installation event
+      trackIntegrationEvent(
+        {
+          eventKey: 'integrations.installation_start',
+          eventName: 'Integrations: Installation Start',
+          integration: this.props.plugin.id,
+          view: 'plugin_details',
+          project_id: this.props.project.id,
+        },
+        this.props.organization
+      );
+    }
+
     let repo = this.state.formData.repo;
     repo = repo && parseRepo(repo);
     const parsedFormData = {...this.state.formData, repo};
@@ -75,6 +91,19 @@ class PluginSettings extends PluginComponentBase {
           },
           this.props.organization
         );
+
+        if (!this.state.wasConfiguredOnPageLoad) {
+          trackIntegrationEvent(
+            {
+              eventKey: 'integrations.installation_complete',
+              eventName: 'Integrations: Installation Complete',
+              integration: this.props.plugin.id,
+              view: 'plugin_details',
+              project_id: this.props.project.id,
+            },
+            this.props.organization
+          );
+        }
       }),
       error: this.onSaveError.bind(this, error => {
         this.setState({
@@ -97,17 +126,21 @@ class PluginSettings extends PluginComponentBase {
           );
           return;
         }
+        let wasConfiguredOnPageLoad = false;
         const formData = {};
         const initialData = {};
         data.config.forEach(field => {
           formData[field.name] = field.value || field.defaultValue;
           initialData[field.name] = field.value;
+          //for simplicity sake, we will consider a plugin was configured if we have any value that is stored in the DB
+          wasConfiguredOnPageLoad = wasConfiguredOnPageLoad || !!field.value;
         });
         this.setState(
           {
             fieldList: data.config,
             formData,
             initialData,
+            wasConfiguredOnPageLoad,
             // call this here to prevent FormState.READY from being
             // set before fieldList is
           },
