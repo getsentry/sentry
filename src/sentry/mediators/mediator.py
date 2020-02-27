@@ -128,17 +128,6 @@ class Mediator(object):
     # class.
     _params_prepared = False
 
-    def __new__(cls):
-        """
-        When the Mediator type is created, we turn all of it's Param
-        declarations into actual properties.
-        """
-        if sentry.mediators.mediator.Mediator in cls.__bases__ and not cls._params_prepared:
-            cls._prepare_params()
-            cls._params_prepared = True
-
-        return super(Mediator, cls).__new__(cls)
-
     @classmethod
     def _prepare_params(cls):
         params = [(k, v) for k, v in six.iteritems(cls.__dict__) if isinstance(v, Param)]
@@ -148,6 +137,10 @@ class Mediator(object):
 
     @classmethod
     def run(cls, *args, **kwargs):
+        if sentry.mediators.mediator.Mediator in cls.__bases__ and not cls._params_prepared:
+            cls._prepare_params()
+            cls._params_prepared = True
+
         with transaction.atomic():
             obj = cls(*args, **kwargs)
 
