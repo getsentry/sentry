@@ -27,7 +27,7 @@ type TimeSeriesData = {
   timeAggregatedData?: Series | {};
 };
 
-type LoadingProps = {
+type LoadingStatus = {
   loading: boolean;
   reloading: boolean;
   errored: boolean;
@@ -35,7 +35,7 @@ type LoadingProps = {
 
 type YAxisResults = {[yAxisName: string]: TimeSeriesData};
 
-type RenderProps = LoadingProps & TimeSeriesData & {results?: YAxisResults};
+type RenderProps = LoadingStatus & TimeSeriesData & {results?: YAxisResults};
 
 type DefaultProps = {
   period: any;
