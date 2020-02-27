@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {IconAdd} from 'app/icons';
 import {PanelAlert} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectAlerts';
 import {t} from 'app/locale';
@@ -93,7 +94,7 @@ class ProjectAlertSettings extends AsyncView {
                 disabled={!canEditRule}
                 priority="primary"
                 size="small"
-                icon="icon-circle-add"
+                icon={<IconAdd circle />}
               >
                 {t('New Alert Rule')}
               </Button>
