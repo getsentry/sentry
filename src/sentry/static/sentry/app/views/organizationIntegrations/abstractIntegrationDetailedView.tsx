@@ -24,7 +24,7 @@ import {
 import Alert, {Props as AlertProps} from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-import {IconClose, IconGithub} from 'app/icons';
+import {IconClose, IconGithub, IconGeneric, IconDocs} from 'app/icons';
 import IntegrationStatus from './integrationStatus';
 
 type Tab = 'overview' | 'configurations';
@@ -109,6 +109,23 @@ class AbstractIntegrationDetailedView<
   get featureData(): IntegrationFeature[] {
     // Allow children to implement this
     throw new Error('Not implemented');
+  }
+
+  getIcon(title: string) {
+    switch (title) {
+      case 'View Source':
+        return <StyledIconCode />;
+      case 'Report Issue':
+        return <StyledIconGithub />;
+      case 'Documentation':
+        return <StyledIconDocs />;
+      case 'Splunk Setup Instructions':
+        return <StyledIconDocs />;
+      case 'Trello Setup Instructions':
+        return <StyledIconDocs />;
+      default:
+        return <StyledIconGeneric />;
+    }
   }
 
   onTabChange = (value: Tab) => {
@@ -332,10 +349,9 @@ class AbstractIntegrationDetailedView<
               </div>
             )}
             {this.resourceLinks.map(({title, url}) => {
-              const icon = title === 'View Source' ? <IconCode /> : <StyledIconGithub />;
               return (
                 <ExternalLinkContainer key={url}>
-                  {icon}
+                  {this.getIcon(title)}
                   <ExternalLink href={url}>{t(title)}</ExternalLink>
                 </ExternalLinkContainer>
               );
@@ -486,14 +502,23 @@ const EmptyConfigurationBody = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-const IconCode = () => (
+const StyledIconCode = () => (
   <span className="icon-code2" style={{fontWeight: 'bold', marginRight: space(1)}} />
 );
+
 const StyledIconGithub = styled(IconGithub)`
+  margin-right: ${space(1)};
+`;
+
+const StyledIconGeneric = styled(IconGeneric)`
+  margin-right: ${space(1)};
+`;
+const StyledIconDocs = styled(IconDocs)`
   margin-right: ${space(1)};
 `;
 
 const ExternalLinkContainer = styled('div')`
   margin-bottom: ${space(2)};
+  display: flex;
 `;
 export default AbstractIntegrationDetailedView;
