@@ -263,9 +263,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    if (['query', 'timeWindow', 'aggregation'].includes(name)) {
+    if (['timeWindow', 'aggregation'].includes(name)) {
       this.setState({[name]: value});
     }
+  };
+
+  handleFilterUpdate = query => {
+    this.setState({query});
   };
 
   handleSubmit = async (
@@ -444,6 +448,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               projectSlug={params.projectId}
               organization={organization}
               disabled={!hasAccess}
+              onFilterUpdate={this.handleFilterUpdate}
             />
 
             <Triggers
