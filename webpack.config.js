@@ -323,6 +323,7 @@ let appConfig = {
     ...(!IS_CI
       ? [
           new ForkTsCheckerWebpackPlugin({
+            eslint: true,
             tsconfig: path.resolve(__dirname, './tsconfig.json'),
           }),
         ]
