@@ -205,6 +205,7 @@ matrix:
         - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         # we just need to pull the image so we don't timeout the first test, we'll start and stop Relay for each test
         - docker pull us.gcr.io/sentryio/relay:latest
+        - docker network create sentry
         - docker ps -a
 
     - python: 2.7
