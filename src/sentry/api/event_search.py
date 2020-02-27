@@ -175,8 +175,6 @@ PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 
-UNESCAPED_QUOTE_REGEX = re.compile(r'(?<!\\)"')
-
 
 class InvalidSearchQuery(Exception):
     pass
@@ -561,7 +559,12 @@ class SearchVisitor(NodeVisitor):
     def visit_value(self, node, children):
         # A properly quoted value will match the quoted value regex, so any unescaped
         # quotes are errors.
-        if UNESCAPED_QUOTE_REGEX.search(node.text):
+        idx = node.text.find('"')
+        if idx == 0:
+            raise InvalidSearchQuery(
+                u"Invalid quote at '{}': quotes must enclose text or be escaped.".format(node.text)
+            )
+        elif idx > 0 and node.text[idx - 1] != "\\":
             raise InvalidSearchQuery(
                 u"Invalid quote at '{}': quotes must enclose text or be escaped.".format(node.text)
             )
