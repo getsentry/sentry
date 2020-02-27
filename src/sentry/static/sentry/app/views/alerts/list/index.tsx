@@ -20,6 +20,7 @@ import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
@@ -66,9 +67,9 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       <IncidentPanelItem key={incident.id}>
         <TableLayout>
           <TitleAndSparkLine>
-            <Link to={`/organizations/${orgId}/alerts/${incident.identifier}/`}>
+            <TitleLink to={`/organizations/${orgId}/alerts/${incident.identifier}/`}>
               {incident.title}
-            </Link>
+            </TitleLink>
             <SparkLine incident={incident} />
           </TitleAndSparkLine>
           <Status incident={incident} />
@@ -251,6 +252,11 @@ const TitleAndSparkLine = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding-right: ${space(2)};
+  overflow: hidden;
+`;
+
+const TitleLink = styled(Link)`
+  ${overflowEllipsis}
 `;
 
 const IncidentPanelItem = styled(PanelItem)`
