@@ -400,14 +400,14 @@ class SymbolicatorSession(object):
         return self._create_task("symbolicate", json=json)
 
     def upload_minidump(self, minidump):
-        return self._request(
+        return self._create_task(
             path="minidump",
             data={"sources": json.dumps(self.sources)},
             files={"upload_file_minidump": minidump},
         )
 
     def upload_applecrashreport(self, report):
-        return self._request(
+        return self._create_task(
             path="applecrashreport",
             data={"sources": json.dumps(self.sources)},
             files={"apple_crash_report": report},
