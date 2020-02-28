@@ -30,6 +30,7 @@ from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from django.conf import settings
 from django.core.cache import cache
 
+from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.db.models.manager import BaseManager
 from sentry.signals import event_filtered, event_dropped
@@ -98,12 +99,28 @@ def _process_signal(msg):
 
     reason = msg.get("reason")
     remote_addr = msg.get("remote_addr")
+    quantity = msg.get("quantity")
+
+    category = msg.get("category")
+    if category is not None:
+        category = DataCategory(category)
 
     if outcome == Outcome.FILTERED:
-        event_filtered.send_robust(ip=remote_addr, project=project, sender=OutcomesConsumerWorker)
+        event_filtered.send_robust(
+            ip=remote_addr,
+            project=project,
+            category=category,
+            quantity=quantity,
+            sender=OutcomesConsumerWorker,
+        )
     elif outcome == Outcome.RATE_LIMITED:
         event_dropped.send_robust(
-            ip=remote_addr, project=project, reason_code=reason, sender=OutcomesConsumerWorker
+            ip=remote_addr,
+            project=project,
+            reason_code=reason,
+            category=category,
+            quantity=quantity,
+            sender=OutcomesConsumerWorker,
         )
 
     # remember that we sent the signal just in case the processor dies before

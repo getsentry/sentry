@@ -14,7 +14,6 @@ import Projects from 'app/utils/projects';
 import SelectControl from 'app/components/forms/selectControl';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 
 type Props = {
   /**
@@ -204,21 +203,6 @@ class ContextPickerModal extends React.Component<Props> {
     this.navigateIfFinish([{slug: organization}], [{slug: value}]);
   };
 
-  get headerText() {
-    const {needOrg, needProject} = this.props;
-    if (needOrg && needProject) {
-      return t('Select an organization and a project to continue');
-    }
-    if (needOrg) {
-      return t('Select an organization to continue');
-    }
-    if (needProject) {
-      return t('Select an a project to continue');
-    }
-    //if neither project nor org needs to be selected, nothing will render anyways
-    return '';
-  }
-
   render() {
     const {
       needOrg,
@@ -244,24 +228,15 @@ class ContextPickerModal extends React.Component<Props> {
       .filter(({status}) => status.id !== 'pending_deletion')
       .map(({slug}) => ({label: slug, value: slug}));
 
-    const customStyles = {
-      option: provided => ({
-        ...provided,
-        borderTop: `1px solid ${theme.gray1}`,
-      }),
-      menuList: provided => ({
-        ...provided,
-        paddingTop: '0px',
-      }),
-    };
-
     return (
       <React.Fragment>
-        <Header closeButton>{this.headerText}</Header>
+        <Header closeButton>{t('Select...')}</Header>
         <Body>
           {loading && <StyledLoadingIndicator overlay />}
+          <div>{t('Select an organization/project to continue')}</div>
           {needOrg && (
             <StyledSelectControl
+              deprecatedSelectControl
               ref={ref => {
                 this.orgSelect = ref;
                 if (shouldShowProjectSelector) {
@@ -280,6 +255,7 @@ class ContextPickerModal extends React.Component<Props> {
 
           {organization && needProject && projects && (
             <StyledSelectControl
+              deprecatedSelectControl
               ref={ref => {
                 this.projectSelect = ref;
                 this.focusProjectSelector();
@@ -290,7 +266,6 @@ class ContextPickerModal extends React.Component<Props> {
               name="project"
               value=""
               openOnFocus
-              styles={customStyles}
               options={projects.map(({slug}) => ({label: slug, value: slug}))}
               onChange={this.handleSelectProject}
             />

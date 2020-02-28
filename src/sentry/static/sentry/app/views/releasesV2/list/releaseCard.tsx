@@ -6,20 +6,21 @@ import Count from 'app/components/count';
 import Version from 'app/components/version';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import ReleaseStats from 'app/components/releaseStats';
-import {Project, AvatarProject, Release} from 'app/types';
+import {Project, AvatarProject, ProjectRelease} from 'app/types';
 import TimeSince from 'app/components/timeSince';
 import {t, tn} from 'app/locale';
 import {AvatarListWrapper} from 'app/components/avatar/avatarList';
-import ProjectList from 'app/components/avatar/projectList';
+import ProjectBadge from 'app/components/idBadge/projectBadge.jsx';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 import ReleaseHealth from './releaseHealth';
 
 type Props = {
-  release: Release;
-  projects: Project[] | AvatarProject[];
+  release: ProjectRelease;
+  project?: Project | AvatarProject;
 };
 
-const ReleaseCard = ({release, projects}: Props) => {
+const ReleaseCard = ({release, project}: Props) => {
   // TODO(releasesv2): probably makes sense at this point to split the header and data to different files (move styles to share layout file)
   return (
     <Panel>
@@ -27,12 +28,10 @@ const ReleaseCard = ({release, projects}: Props) => {
         <StyledPanelItem>
           <HeaderLayout>
             <VersionColumn>
-              <ColumnTitle>{t('Release')}</ColumnTitle>
+              <ColumnTitle>{t('Version')}</ColumnTitle>
             </VersionColumn>
             <ProjectsColumn>
-              <ColumnTitle>
-                {tn('%s project', '%s projects', projects.length)}
-              </ColumnTitle>
+              <ColumnTitle>{t('Project name')}</ColumnTitle>
             </ProjectsColumn>
             <CommitsColumn>
               {release.commitCount > 0 && (
@@ -48,26 +47,25 @@ const ReleaseCard = ({release, projects}: Props) => {
             <CreatedColumn>
               <ColumnTitle>{t('Created')}</ColumnTitle>
             </CreatedColumn>
-            <LastEventColumn>
-              <ColumnTitle>{t('Last event')}</ColumnTitle>
-            </LastEventColumn>
             <NewIssuesColumn>
               <ColumnTitle>{t('New issues')}</ColumnTitle>
             </NewIssuesColumn>
           </HeaderLayout>
           <Layout>
             <VersionColumn>
-              <Version
-                version={release.version}
-                preserveGlobalSelection
-                tooltipRawVersion
-                truncate
-              />
-              <TimeWithIcon date={release.dateReleased || release.dateCreated} />
+              <VersionWrapper>
+                <Version
+                  version={release.version}
+                  preserveGlobalSelection
+                  tooltipRawVersion
+                  truncate
+                />
+                <TimeWithIcon date={release.dateReleased || release.dateCreated} />
+              </VersionWrapper>
             </VersionColumn>
 
             <ProjectsColumn>
-              <ProjectList projects={projects} />
+              <ProjectBadge project={project} avatarSize={14} key={project?.slug} />
             </ProjectsColumn>
 
             <CommitsColumn>
@@ -82,14 +80,6 @@ const ReleaseCard = ({release, projects}: Props) => {
               )}
             </CreatedColumn>
 
-            <LastEventColumn>
-              {release.lastEvent ? (
-                <TimeSince date={release.lastEvent} />
-              ) : (
-                <span>—</span>
-              )}
-            </LastEventColumn>
-
             <NewIssuesColumn>
               <Count value={release.newGroups || 0} />
             </NewIssuesColumn>
@@ -97,8 +87,7 @@ const ReleaseCard = ({release, projects}: Props) => {
         </StyledPanelItem>
       </PanelBody>
 
-      {/*  TODO(releasesv2)if has release health data */}
-      {Math.random() > 0.6 && <ReleaseHealth release={release} />}
+      {release.healthData && <ReleaseHealth release={release} />}
     </Panel>
   );
 };
@@ -109,23 +98,23 @@ const StyledPanelItem = styled(PanelItem)`
 
 const Layout = styled('div')`
   display: grid;
-  grid-template-areas: 'version projects commits created last-event new-issues';
-  grid-template-columns: 1fr 1fr 1fr 200px 1fr 1fr;
+  grid-template-areas: 'version projects commits created new-issues';
+  grid-template-columns: 3fr minmax(230px, 2fr) 4fr 1fr 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-areas: 'version projects created last-event new-issues';
-    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    grid-template-areas: 'version projects created new-issues';
+    grid-template-columns: 2fr 1fr 1fr 1fr;
   }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-areas: 'version projects new-issues';
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: 2fr 2fr 1fr;
   }
 `;
 
 const HeaderLayout = styled(Layout)`
-  align-items: flex-start;
+  align-items: flex-end;
 `;
 
 const Column = styled('div')`
@@ -135,20 +124,25 @@ const Column = styled('div')`
   }
 `;
 
-const RightAlignedColumn = styled('div')`
-  overflow: hidden;
+const RightAlignedColumn = styled(Column)`
   text-align: right;
+`;
+
+const CenterColumn = styled(Column)`
+  text-align: center;
 `;
 
 const VersionColumn = styled(Column)`
   grid-area: version;
+  display: flex;
+  align-items: center;
 `;
 
 const ProjectsColumn = styled(Column)`
   grid-area: projects;
 `;
 
-const CommitsColumn = styled(Column)`
+const CommitsColumn = styled(CenterColumn)`
   grid-area: commits;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     display: none;
@@ -157,14 +151,7 @@ const CommitsColumn = styled(Column)`
 
 const CreatedColumn = styled(RightAlignedColumn)`
   grid-area: created;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
-  }
-`;
-
-const LastEventColumn = styled(RightAlignedColumn)`
-  grid-area: last-event;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: none;
   }
 `;
@@ -182,6 +169,13 @@ const ColumnTitle = styled('div')`
   line-height: 1.2;
 `;
 
+const VersionWrapper = styled('div')`
+  ${overflowEllipsis};
+  max-width: 100%;
+  width: auto;
+  display: inline-block;
+`;
+
 const TimeWithIcon = styled(({date, ...props}) => (
   <span {...props}>
     <ClockIcon className="icon icon-clock" />
@@ -192,7 +186,7 @@ const TimeWithIcon = styled(({date, ...props}) => (
   color: ${p => p.theme.gray2};
   font-size: ${p => p.theme.fontSizeSmall};
   display: none;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: inline-flex;
   }
 `;
