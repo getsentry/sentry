@@ -205,27 +205,27 @@ class StoreViewTest(TestCase):
         }
         resp = self.client.options(self.path)
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Allow", resp)
+        assert resp.has_header("Allow")
         self.assertEquals(resp["Allow"], "GET, POST, HEAD, OPTIONS")
-        self.assertIn("Content-Length", resp)
+        assert resp.has_header("Content-Length")
         self.assertEquals(resp["Content-Length"], "0")
 
     def test_options_with_no_origin_or_referrer(self):
         resp = self.client.options(self.path)
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "*")
 
     def test_options_response_with_valid_origin(self):
         resp = self.client.options(self.path, HTTP_ORIGIN="http://foo.com")
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "http://foo.com")
 
     def test_options_response_with_valid_referrer(self):
         resp = self.client.options(self.path, HTTP_REFERER="http://foo.com")
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "http://foo.com")
 
     def test_options_response_origin_preferred_over_referrer(self):
@@ -233,7 +233,7 @@ class StoreViewTest(TestCase):
             self.path, HTTP_REFERER="http://foo.com", HTTP_ORIGIN="http://bar.com"
         )
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "http://bar.com")
 
     @mock.patch("sentry.event_manager.is_valid_ip", mock.Mock(return_value=False))
