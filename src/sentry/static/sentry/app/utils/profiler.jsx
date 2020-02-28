@@ -19,11 +19,15 @@ export default function profiler() {
         this.finishProfile();
       }
 
-      activity = Integrations.Tracing.pushActivity(displayName, {
-        data: {},
-        op: 'react',
-        description: `<${displayName}>`,
-      });
+      activity = Integrations.Tracing.pushActivity(
+        displayName,
+        {
+          data: {},
+          op: 'react',
+          description: `<${displayName}>`,
+        },
+        500
+      );
 
       finishProfile = () => {
         if (!this.activity) {
