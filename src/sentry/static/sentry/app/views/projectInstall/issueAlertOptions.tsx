@@ -105,7 +105,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: '',
+      alertSetting: `${Actions.CREATE_ALERT_LATER}`,
       metric: MetricValues.ERRORS,
       interval: '',
       threshold: DEFAULT_THRESHOLD_VALUE,
@@ -243,7 +243,6 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
 
     if (!conditions || conditions.length === 0) {
       this.setStateAndUpdateParents({
-        alertSetting: `${Actions.CREATE_ALERT_LATER}`,
         conditions: undefined,
       });
       return;
@@ -259,7 +258,6 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
         );
       });
       this.setStateAndUpdateParents({
-        alertSetting: `${Actions.CREATE_ALERT_LATER}`,
         conditions: undefined,
       });
       return;
