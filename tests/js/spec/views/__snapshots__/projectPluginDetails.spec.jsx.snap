@@ -871,7 +871,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               URL
                             </dt>
                             <dd>
-                              <ForwardRef
+                              <ForwardRef(ExternalLink)
                                 href="https://github.com/getsentry/sentry"
                               >
                                 <a
@@ -881,7 +881,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                 >
                                   github.com/getsentry/sentry
                                 </a>
-                              </ForwardRef>
+                              </ForwardRef(ExternalLink)>
                             </dd>
                           </div>
                           <dt>

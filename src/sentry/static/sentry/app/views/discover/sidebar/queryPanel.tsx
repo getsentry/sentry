@@ -18,7 +18,7 @@ export default class QueryPanel extends React.Component<QueryPanelProps> {
         <QueryPanelTitle>
           <PageHeading>{title}</PageHeading>
 
-          <QueryPanelCloseLink onClick={onClose}>
+          <QueryPanelCloseLink to="" onClick={onClose}>
             <InlineSvg src="icon-close" height="38px" />
           </QueryPanelCloseLink>
         </QueryPanelTitle>

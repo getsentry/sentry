@@ -91,7 +91,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                     <span
                       className="css-6y2q80-StyledTextBlock ejthpj81"
                     >
-                      We recommend you 
+                      We recommend you
                       <EventSdkUpdateSuggestion
                         event={
                           Object {
@@ -183,22 +183,28 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                                   <ForwardRef
                                     href="https://docs.sentry.io/platforms/python/django/"
                                   >
-                                    <a
+                                    <ForwardRef(ExternalLink)
                                       href="https://docs.sentry.io/platforms/python/django/"
                                       rel="noreferrer noopener"
                                       target="_blank"
                                     >
-                                      enable the 'django' integration
-                                    </a>
-                                  </ForwardRef>
-                                </EventSdkUpdateSuggestion>
-                              </li>
-                            </ul>
-                          </AlertUl>
-                        </span>
-                      </EventSdkUpdateSuggestion>
-                      .
-                    </span>
+                                      <a
+                                        href="https://docs.sentry.io/platforms/python/django/"
+                                        rel="noreferrer noopener"
+                                        target="_blank"
+                                      >
+                                        enable the 'django' integration
+                                      </a>
+                                    </ForwardRef(ExternalLink)>
+                                  </EventSdkUpdateSuggestion>
+                                </li>
+                              </ul>
+                            </AlertUl>
+                          </span>
+                        </EventSdkUpdateSuggestion>
+                        .
+                      </span>
+                    </div>
                   </StyledTextBlock>
                 </div>
               </Component>
