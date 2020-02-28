@@ -1,10 +1,14 @@
 from __future__ import absolute_import
 
-from django.db.models.signals import post_save
+import pytz
+
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, IncidentTrigger
 from sentry.models.project import Project
+
+from datetime import datetime
 
 
 @receiver(post_save, sender=Project, weak=False)
@@ -19,3 +23,8 @@ def add_project_to_include_all_rules(instance, created, **kwargs):
     )
     for alert_rule in alert_rules:
         subscribe_projects_to_alert_rule(alert_rule, [instance])
+
+
+@receiver(pre_save, sender=IncidentTrigger)
+def pre_save_incident_trigger(instance, sender, *args, **kwargs):
+    instance.date_modified = datetime.utcnow().replace(tzinfo=pytz.utc)
