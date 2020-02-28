@@ -47,7 +47,7 @@ describe('DataDownload', function() {
 
   it("should render the 'Valid' view when appropriate", function() {
     const status = DownloadStatus.Valid;
-    getDataExportDetails({status, dateExpired});
+    getDataExportDetails({dateExpired, status});
     const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
     expect(wrapper.state('download')).toEqual({dateExpired, status});
     const contentWrapper = wrapper.find('ContentContainer').childAt(0);
@@ -55,10 +55,9 @@ describe('DataDownload', function() {
     expect(contentWrapper.find('h3').text()).toBe('Finally!');
     const buttonWrapper = contentWrapper.find('a[aria-label="Download CSV"]');
     expect(buttonWrapper.text()).toBe('Download CSV');
-    expect(buttonWrapper.props().href).toBe(
+    expect(buttonWrapper.prop('href')).toBe(
       `/api/0/organizations/${mockRouteParams.orgId}/data-export/${mockRouteParams.dataExportId}/?download=true`
     );
-    const dateString = d => `${d.toLocaleDateString()}, ${d.toLocaleTimeString()}`;
-    expect(contentWrapper.find('b').text()).toBe(dateString(dateExpired));
+    expect(contentWrapper.find('DateTime').prop('date')).toEqual(new Date(dateExpired));
   });
 });
