@@ -44,10 +44,11 @@ class DataExportEndpoint(OrganizationEndpoint):
         try:
             # If this user has sent a sent a request with the same payload and organization,
             # we return them the latest one that is NOT complete (i.e. don't start another)
+            query_type = ExportQueryType.from_str(data["query_type"])
             data_export, created = ExportedData.objects.get_or_create(
                 organization=organization,
                 user=request.user,
-                query_type=data["query_type"],
+                query_type=query_type,
                 query_info=data["query_info"],
                 date_finished=None,
             )
