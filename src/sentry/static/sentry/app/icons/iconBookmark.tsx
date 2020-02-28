@@ -3,17 +3,20 @@ import React from 'react';
 import {IconProps} from 'app/types/iconProps';
 import theme from 'app/utils/theme';
 
-export const IconBookmark: React.FC<IconProps> = ({
-  color: providedColor = 'currentColor',
-  size: providedSize = 'sm',
-  solid: providedSolid = false,
-  ...props
-}: IconProps) => {
+export const IconBookmark = React.forwardRef(function IconBookmark(
+  {
+    color: providedColor = 'currentColor',
+    size: providedSize = 'sm',
+    solid: providedSolid = false,
+    ...props
+  }: IconProps,
+  ref: React.Ref<SVGSVGElement>
+) {
   const color = providedColor;
   const size = theme.iconSizes[providedSize] ?? providedSize;
 
   return (
-    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props}>
+    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props} ref={ref}>
       {providedSolid === true ? (
         <path d="M14.09,16a.71.71,0,0,1-.4-.11L8,12.32,2.31,15.88a.76.76,0,0,1-.76,0,.75.75,0,0,1-.39-.66V2.4A2.38,2.38,0,0,1,3.54,0h8.92A2.38,2.38,0,0,1,14.84,2.4V15.24a.75.75,0,0,1-.39.66A.77.77,0,0,1,14.09,16Z" />
       ) : (
@@ -21,4 +24,4 @@ export const IconBookmark: React.FC<IconProps> = ({
       )}
     </svg>
   );
-};
+});

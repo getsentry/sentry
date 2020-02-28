@@ -3,17 +3,20 @@ import React from 'react';
 import {IconProps} from 'app/types/iconProps';
 import theme from 'app/utils/theme';
 
-export const IconCheckmark: React.FC<IconProps> = ({
-  color: providedColor = 'currentColor',
-  size: providedSize = 'sm',
-  circle: providedCircle = false,
-  ...props
-}: IconProps) => {
+export const IconCheckmark = React.forwardRef(function IconCheckmark(
+  {
+    color: providedColor = 'currentColor',
+    size: providedSize = 'sm',
+    circle: providedCircle = false,
+    ...props
+  }: IconProps,
+  ref: React.Ref<SVGSVGElement>
+) {
   const color = providedColor;
   const size = theme.iconSizes[providedSize] ?? providedSize;
 
   return (
-    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props}>
+    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props} ref={ref}>
       {providedCircle === true ? (
         <g>
           <path d="M7,12a.78.78,0,0,1-.57-.26L4,9.05A.76.76,0,0,1,4.07,8a.75.75,0,0,1,1.06.07l1.75,2L10.77,4.3A.75.75,0,0,1,12,5.14L7.58,11.7A.77.77,0,0,1,7,12Z" />
@@ -26,4 +29,4 @@ export const IconCheckmark: React.FC<IconProps> = ({
       )}
     </svg>
   );
-};
+});
