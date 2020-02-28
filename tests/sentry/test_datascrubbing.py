@@ -13,10 +13,13 @@ def test_path_selectors_from_diff():
 
     assert f({}, {"foo": {"bar": ["baz"]}}) == ["foo", "foo.**"]
     assert f({"foo": {"bar": ["baz"]}}, {}) == []
-    assert f({"foo": {"bar": ["bam"]}}, {"foo": {"bar": ["baz"]}}) == ["foo.bar.0"]
+    assert f({"foo": {"bar": ["bam"]}}, {"foo": {"bar": ["baz"]}}) == ["foo.bar.0", "foo.bar.0.**"]
     assert f(42, {}) == [None, "**"]
     assert f({"foo": {"bar": []}}, {"foo": {"bar": [42]}}) == ["foo.bar.0", "foo.bar.0.**"]
     assert f({"foo": {"bar": [42]}}, {"foo": {"bar": []}}) == []
+
+    # unicode vs bytes
+    assert f({"foo": {"bar": b"baz"}}, {"foo": {"bar": u"baz"}}) == []
 
 
 @pytest.mark.parametrize(
