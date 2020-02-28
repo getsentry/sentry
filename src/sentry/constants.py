@@ -495,7 +495,6 @@ class DataCategory(IntEnum):
     SECURITY = 3
     ATTACHMENT = 4
     SESSION = 5
-    CRASH = 6
 
     @classmethod
     def from_event_type(cls, event_type):
