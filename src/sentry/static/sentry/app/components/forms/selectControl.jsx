@@ -171,11 +171,12 @@ const SelectControl = props => {
     convertFromSelect2Choices(typeof choices === 'function' ? choices(props) : choices) ||
     options;
 
-  // Value is expected to be object like the options list, we map it back from
-  // the options list
+  // It's possible that `choicesOrOptions` does not exist (e.g. in the case of AsyncSelect)
   let mappedValue = value;
 
   if (choicesOrOptions) {
+    // Value is expected to be object like the options list, we map it back from
+    // the options list
     mappedValue =
       props.multiple && Array.isArray(value)
         ? value.map(val => choicesOrOptions.find(option => option.value === val))
