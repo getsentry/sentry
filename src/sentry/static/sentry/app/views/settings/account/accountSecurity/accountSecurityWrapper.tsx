@@ -1,5 +1,6 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 
 import {Authenticator, OrganizationSummary} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -15,7 +16,7 @@ type Props = {
   AsyncComponent['props'];
 
 type State = {
-  authenticators?: Authenticator[];
+  authenticators?: Authenticator[] | null;
   organizations?: OrganizationSummary[];
 } & AsyncComponent['state'];
 
@@ -25,6 +26,18 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       ['authenticators', ENDPOINT],
       ['organizations', '/organizations/'],
     ];
+  }
+
+  componentDidUpdate() {
+    if (
+      this.state.organizations &&
+      typeof this.state.organizations.filter !== 'function'
+    ) {
+      Sentry.setExtra('organizations', this.state.organizations);
+      Sentry.captureException(
+        new Error('AccountSecurityWrapper: organizations.filter is not a function')
+      );
+    }
   }
 
   handleDisable = async (auth: Authenticator) => {
