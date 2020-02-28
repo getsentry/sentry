@@ -1,7 +1,7 @@
 import {Client} from 'app/api';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {getPeriod} from 'app/utils/getPeriod';
-import {EventsStats, Organization} from 'app/types';
+import {EventsStats, Organization, YAxisEventsStats} from 'app/types';
 
 const getBaseUrl = (org: Organization) => `/organizations/${org.slug}/events-stats/`;
 
@@ -16,7 +16,7 @@ type Options = {
   includePrevious?: boolean;
   limit?: number;
   query?: string;
-  yAxis?: string;
+  yAxis?: string | string[];
   field?: string[];
   referenceEvent?: string;
 };
@@ -51,7 +51,7 @@ export const doEventsRequest = (
     field,
     referenceEvent,
   }: Options
-): Promise<EventsStats> => {
+): Promise<EventsStats | YAxisEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
   const urlQuery = Object.fromEntries(
     Object.entries({
