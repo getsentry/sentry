@@ -11,6 +11,7 @@ from django.conf import settings
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import features, reprocessing
+from sentry.constants import DataCategory
 from sentry.relay.config import get_project_config
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
@@ -488,6 +489,8 @@ def _do_save_event(
             if data is not None:
                 metric_tags["event_type"] = event_type = data.get("type") or "none"
 
+    data_category = DataCategory.from_event_type(event_type)
+
     with metrics.global_tags(event_type=event_type):
         if data is not None:
             data = CanonicalKeyDict(data)
@@ -540,6 +543,7 @@ def _do_save_event(
 
             with metrics.timer("tasks.store.do_save_event.track_outcome"):
                 # This is where we can finally say that we have accepted the event.
+                mark_signal_sent(event.project.id, event_id)
                 track_outcome(
                     event.project.organization_id,
                     event.project.id,
@@ -548,6 +552,7 @@ def _do_save_event(
                     None,
                     timestamp,
                     event_id,
+                    data_category,
                 )
 
         except HashDiscarded:
@@ -561,12 +566,12 @@ def _do_save_event(
                 pass
 
             quotas.refund(project, key=project_key, timestamp=start_time)
-            # There is no signal supposed to be sent for this particular
-            # outcome-reason combination. Prevent the outcome consumer from
-            # emitting it for now.
-            #
-            # XXX(markus): Revisit decision about signals once outcomes consumer is stable.
+
+            # This outcome corresponds to the event_discarded signal. The
+            # outcomes_consumer generically handles all FILTERED outcomes, but
+            # needs to skip this one.
             mark_signal_sent(project_id, event_id)
+
             track_outcome(
                 project.organization_id,
                 project_id,
@@ -575,6 +580,7 @@ def _do_save_event(
                 reason,
                 timestamp,
                 event_id,
+                data_category,
             )
 
         finally:

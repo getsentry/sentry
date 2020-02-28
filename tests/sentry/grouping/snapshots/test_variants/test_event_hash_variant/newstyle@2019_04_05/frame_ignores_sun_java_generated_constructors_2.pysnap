@@ -1,26 +1,26 @@
 ---
-created: '2019-03-15T11:58:33.009933Z'
+created: '2020-02-26T19:54:30.558076Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
           module* (removed codegen marker)
-            u'sun.reflect.GeneratedConstructorAccessor<auto>'
+            "sun.reflect.GeneratedConstructorAccessor<auto>"
           function*
-            u'invoke'
+            "invoke"
 --------------------------------------------------------------------------
 system:
-  hash: '09e0efcab18f545166318118ed4e0292'
+  hash: "09e0efcab18f545166318118ed4e0292"
   component:
     system*
       stacktrace*
         frame*
           module* (removed codegen marker)
-            u'sun.reflect.GeneratedConstructorAccessor<auto>'
+            "sun.reflect.GeneratedConstructorAccessor<auto>"
           function*
-            u'invoke'
+            "invoke"
