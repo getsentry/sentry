@@ -113,7 +113,11 @@ export function fetchRecentSearches(api, orgId, type, query) {
     },
   });
 
-  promise.catch(handleXhrErrorResponse('Unable to fetch recent searches'));
+  promise.catch(resp => {
+    if (resp.status !== 401 && resp.status !== 403) {
+      handleXhrErrorResponse('Unable to fetch recent searches')(resp);
+    }
+  });
 
   return promise;
 }
@@ -138,7 +142,7 @@ export function pinSearch(api, orgId, type, query) {
 
   promise.catch(handleXhrErrorResponse('Unable to pin search'));
 
-  promise.catch(err => {
+  promise.catch(() => {
     SavedSearchesActions.unpinSearch(type);
   });
 
