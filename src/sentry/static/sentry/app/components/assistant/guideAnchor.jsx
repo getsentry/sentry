@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import $ from 'jquery';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+
 import theme from 'app/utils/theme';
 import {
   registerAnchor,

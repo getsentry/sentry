@@ -1,6 +1,6 @@
 import React from 'react';
-
 import styled from '@emotion/styled';
+
 import {defined} from 'app/utils';
 import {t} from 'app/locale';
 import FrameRegistersValue from 'app/components/events/interfaces/frameRegisters/frameRegistersValue';

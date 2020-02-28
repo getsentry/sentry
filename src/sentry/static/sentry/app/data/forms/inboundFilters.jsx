@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
 

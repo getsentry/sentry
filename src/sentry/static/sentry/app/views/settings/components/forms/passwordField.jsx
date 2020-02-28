@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import InputField from 'app/views/settings/components/forms/inputField';
 import FormState from 'app/components/forms/state';
 

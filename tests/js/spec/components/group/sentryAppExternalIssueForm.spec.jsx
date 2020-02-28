@@ -1,7 +1,7 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
-
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
 

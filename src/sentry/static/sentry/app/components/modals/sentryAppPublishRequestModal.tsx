@@ -2,9 +2,9 @@ import {Body, Header} from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import intersection from 'lodash/intersection';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {SentryApp, Scope} from 'app/types';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';

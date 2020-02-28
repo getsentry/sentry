@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectEnvironments from 'app/views/settings/project/projectEnvironments';
 import recreateRoute from 'app/utils/recreateRoute';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';

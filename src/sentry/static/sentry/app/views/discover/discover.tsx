@@ -44,7 +44,6 @@ import Result from './result';
 import ResultLoading from './result/loading';
 import SavedQueryList from './sidebar/savedQueryList';
 import createResultManager from './resultManager';
-
 import {SavedQuery} from './types';
 
 type DefaultProps = {

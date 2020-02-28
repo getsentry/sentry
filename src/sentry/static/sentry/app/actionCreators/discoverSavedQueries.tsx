@@ -1,5 +1,4 @@
 import {Client} from 'app/api';
-
 import {SavedQuery, NewQuery} from 'app/types';
 import {t} from 'app/locale';
 import {addErrorMessage} from 'app/actionCreators/indicator';

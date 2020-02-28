@@ -7,7 +7,6 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {Organization, SavedQuery} from 'app/types';
 import withApi from 'app/utils/withApi';
-
 import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';

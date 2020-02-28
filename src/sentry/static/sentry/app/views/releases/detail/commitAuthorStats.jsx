@@ -5,10 +5,8 @@ import styled from '@emotion/styled';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import UserAvatar from 'app/components/avatar/userAvatar';
-
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
-
 import {t} from 'app/locale';
 import {Panel, PanelItem, PanelBody} from 'app/components/panels';
 

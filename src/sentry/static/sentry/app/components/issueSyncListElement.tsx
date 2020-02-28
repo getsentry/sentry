@@ -2,9 +2,10 @@ import {ClassNames} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
+
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
-import capitalize from 'lodash/capitalize';
 import Hovercard from 'app/components/hovercard';
 import {callIfFunction} from 'app/utils/callIfFunction';
 

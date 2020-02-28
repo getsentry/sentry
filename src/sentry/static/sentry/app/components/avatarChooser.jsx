@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import withApi from 'app/utils/withApi';
 import Well from 'app/components/well';
+
 import {Panel, PanelBody, PanelHeader} from './panels';
 import Avatar from './avatar';
 import AvatarCropper from './avatarCropper';

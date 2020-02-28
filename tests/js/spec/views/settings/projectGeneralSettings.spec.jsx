@@ -5,7 +5,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
 import ProjectsStore from 'app/stores/projectsStore';
-
 import {selectByValue} from 'sentry-test/select';
 
 jest.mock('jquery');

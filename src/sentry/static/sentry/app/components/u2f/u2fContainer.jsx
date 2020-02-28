@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {Client} from 'app/api';
+
 import U2fSign from './u2fsign';
 
 class U2fContainer extends React.Component {

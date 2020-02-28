@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import ApiTokenRow from 'app/views/settings/account/apiTokenRow';
 

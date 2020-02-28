@@ -6,7 +6,6 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import {PageContent} from 'app/styles/organization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-
 import SentryTypes from 'app/sentryTypes';
 
 const Body = styled('div')`

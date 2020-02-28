@@ -1,7 +1,7 @@
 import React from 'react';
-import InlineSvg from 'app/components/inlineSvg';
-
 import styled from '@emotion/styled';
+
+import InlineSvg from 'app/components/inlineSvg';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {t} from 'app/locale';

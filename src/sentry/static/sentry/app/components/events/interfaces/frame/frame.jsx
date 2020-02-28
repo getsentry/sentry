@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
-
 import styled from '@emotion/styled';
+
 import {defined, objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
 import TogglableAddress from 'app/components/events/interfaces/togglableAddress';

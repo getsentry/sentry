@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-
 import {t, tct} from 'app/locale';
 import {SentryApp, SentryAppInstallation} from 'app/types';
 import {IconSubtract} from 'app/icons';

@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {defined} from 'app/utils';
-
 import BooleanField from 'app/components/forms/booleanField';
 import EmailField from 'app/components/forms/emailField';
 import NumberField from 'app/components/forms/numberField';

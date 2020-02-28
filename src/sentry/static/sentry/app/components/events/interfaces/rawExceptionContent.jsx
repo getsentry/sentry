@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 import ClippedBox from 'app/components/clippedBox';
-
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';

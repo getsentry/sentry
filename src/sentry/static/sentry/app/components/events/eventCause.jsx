@@ -10,7 +10,6 @@ import {Panel} from 'app/components/panels';
 import {DataSection, CauseHeader} from 'app/components/events/styles';
 import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
-
 import {t} from 'app/locale';
 
 const ExpandButton = styled('button')`

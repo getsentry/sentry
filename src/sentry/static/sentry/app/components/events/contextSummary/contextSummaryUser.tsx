@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {Meta, EventUser} from 'app/types';
@@ -6,7 +7,6 @@ import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils'
 import UserAvatar from 'app/components/avatar/userAvatar';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
-import styled from '@emotion/styled';
 import space from 'app/styles/space';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';

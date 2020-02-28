@@ -2,7 +2,6 @@ import React from 'react';
 import moment from 'moment';
 
 import getDynamicText from 'app/utils/getDynamicText';
-
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';

@@ -1,7 +1,7 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-
 import ReleasesV2List from 'app/views/releasesV2/list/';
 
 // waiting for api to be finished

@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import {t} from 'app/locale';
 import * as Sentry from '@sentry/browser';
 
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Client} from 'app/api';
 import SentryTypes from 'app/sentryTypes';
@@ -17,8 +17,8 @@ import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {SectionHeading} from './styles';
 
+import {SectionHeading} from './styles';
 import {fetchTagFacets, Tag} from './utils';
 import EventView, {isAPIPayloadSimilar} from './eventView';
 

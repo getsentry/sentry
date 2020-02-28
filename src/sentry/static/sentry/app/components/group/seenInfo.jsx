@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import DateTime from 'app/components/dateTime';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';

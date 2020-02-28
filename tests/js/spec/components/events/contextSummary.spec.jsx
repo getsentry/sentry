@@ -1,6 +1,6 @@
 import React from 'react';
-import {shallow, mount} from 'sentry-test/enzyme';
 
+import {shallow, mount} from 'sentry-test/enzyme';
 import ContextSummary from 'app/components/events/contextSummary/contextSummary';
 import {FILTER_MASK} from 'app/constants';
 import ContextSummaryUser from 'app/components/events/contextSummary/contextSummaryUser';

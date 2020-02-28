@@ -1,6 +1,6 @@
-import {mount} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {mount} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import ConfigStore from 'app/stores/configStore';
 import GroupReleaseStats from 'app/components/group/releaseStats';

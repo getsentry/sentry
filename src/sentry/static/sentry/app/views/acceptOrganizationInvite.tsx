@@ -2,10 +2,10 @@ import React, {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import {urlEncode} from '@sentry/utils';
 
 import {logout} from 'app/actionCreators/account';
 import {t, tct} from 'app/locale';
-import {urlEncode} from '@sentry/utils';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';

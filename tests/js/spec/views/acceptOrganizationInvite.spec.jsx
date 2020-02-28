@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {logout} from 'app/actionCreators/account';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+import {logout} from 'app/actionCreators/account';
 import AcceptOrganizationInvite from 'app/views/acceptOrganizationInvite';
 
 jest.mock('app/actionCreators/account');

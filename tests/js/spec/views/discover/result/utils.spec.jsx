@@ -1,5 +1,4 @@
 import {mount} from 'sentry-test/enzyme';
-
 import {
   getChartData,
   getChartDataForWidget,

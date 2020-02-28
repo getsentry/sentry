@@ -5,6 +5,7 @@ import omit from 'lodash/omit';
 import get from 'lodash/get';
 import scrollToElement from 'scroll-to-element';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
@@ -23,12 +24,9 @@ import {
 } from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
 import routeTitleGen from 'app/utils/routeTitle';
-
 import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-
-import styled from '@emotion/styled';
 import {
   addSentryAppToken,
   removeSentryAppToken,

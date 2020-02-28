@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import TodoList from 'app/components/onboardingWizard/todoList';
 

@@ -1,16 +1,14 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
+import React from 'react';
+
 import {
   addLoadingMessage,
   addErrorMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-
-import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
-
 import {Organization, Project} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
-
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';

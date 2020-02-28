@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import DataDownload, {DownloadStatus} from 'app/views/dataExport/dataDownload';
 
 describe('DataDownload', function() {

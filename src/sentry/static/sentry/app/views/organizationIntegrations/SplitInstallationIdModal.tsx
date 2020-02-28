@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import Button from 'app/components/button';
 
+import Button from 'app/components/button';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 

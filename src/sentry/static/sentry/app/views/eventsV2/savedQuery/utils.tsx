@@ -2,7 +2,6 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {Organization, NewQuery, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-
 import {
   createSavedQuery,
   deleteSavedQuery,

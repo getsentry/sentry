@@ -8,7 +8,6 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {Project, Organization} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-
 import {openModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
 

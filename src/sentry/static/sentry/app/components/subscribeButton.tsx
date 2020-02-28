@@ -3,7 +3,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-
 import {t} from 'app/locale';
 
 type Props = {

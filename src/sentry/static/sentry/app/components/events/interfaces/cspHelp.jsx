@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import {t} from 'app/locale';
 
 // TODO: Not sure what we're going to do here re: translations. - Ben

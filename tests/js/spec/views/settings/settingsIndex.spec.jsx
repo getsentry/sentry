@@ -1,6 +1,6 @@
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 import * as OrgActions from 'app/actionCreators/organizations';
 import {SettingsIndex} from 'app/views/settings/settingsIndex';
 import ConfigStore from 'app/stores/configStore';

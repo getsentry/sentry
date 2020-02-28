@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import WrappedDataExport, {DataExport} from 'app/components/dataExport';
 
 describe('DataExport', function() {

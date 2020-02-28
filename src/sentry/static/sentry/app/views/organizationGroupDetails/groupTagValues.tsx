@@ -2,8 +2,8 @@ import sortBy from 'lodash/sortBy';
 import property from 'lodash/property';
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
-
 import styled from '@emotion/styled';
+
 import {isUrl, percent} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';

@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import ProcessingIssueHint from 'app/components/stream/processingIssueHint';
 
 describe('ProcessingIssueHint', function() {

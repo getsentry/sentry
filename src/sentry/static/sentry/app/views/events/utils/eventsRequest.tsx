@@ -6,7 +6,6 @@ import React from 'react';
 import {Organization, EventsStats, YAxisEventsStats, EventsStatsData} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import {assert, assertType} from 'app/types/utils';
-
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';

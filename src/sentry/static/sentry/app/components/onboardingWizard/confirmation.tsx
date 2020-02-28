@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {t, tct} from 'app/locale';
 
+import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
 

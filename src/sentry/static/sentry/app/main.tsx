@@ -1,8 +1,6 @@
 import {hot} from 'react-hot-loader/root'; // This needs to come before react
-
 import {CacheProvider} from '@emotion/core'; // This is needed to set "speedy" = false (for percy)
 import {cache} from 'emotion'; // eslint-disable-line emotion/no-vanilla
-
 import React from 'react';
 import {Router, browserHistory} from 'react-router';
 

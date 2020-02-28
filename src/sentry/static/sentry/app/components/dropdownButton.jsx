@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 

@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
 import OrganizationSettingsForm from 'app/views/settings/organizationGeneralSettings/organizationSettingsForm';
 

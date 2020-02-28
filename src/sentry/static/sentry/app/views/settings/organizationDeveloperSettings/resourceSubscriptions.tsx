@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import SubscriptionBox from 'app/views/settings/organizationDeveloperSettings/subscriptionBox';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
 } from 'app/views/settings/organizationDeveloperSettings/constants';
-import styled from '@emotion/styled';
 import {WebhookEvent, Permissions} from 'app/types';
 import {Context} from 'app/components/forms/form';
 

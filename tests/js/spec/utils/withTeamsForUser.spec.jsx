@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import TeamActions from 'app/actions/teamActions';
 import ProjectActions from 'app/actions/projectActions';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
