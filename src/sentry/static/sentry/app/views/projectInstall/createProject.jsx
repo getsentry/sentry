@@ -22,7 +22,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
-import {trackAdhocEvent, trackAnalyticsEvent, logExperiment} from 'app/utils/analytics';
+import {trackAnalyticsEvent, logExperiment} from 'app/utils/analytics';
 
 class CreateProject extends React.Component {
   static propTypes = {
@@ -73,8 +73,9 @@ class CreateProject extends React.Component {
       unitId: parseInt(this.props.organization.id, 10),
       param: 'exposed',
     });
-    trackAdhocEvent({
+    trackAnalyticsEvent({
       eventKey: 'new_project.visited',
+      eventName: 'New Project Page Visited',
       org_id: parseInt(this.props.organization.id, 10),
     });
   }
