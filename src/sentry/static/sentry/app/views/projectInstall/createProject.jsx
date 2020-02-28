@@ -67,7 +67,7 @@ class CreateProject extends React.Component {
   componentDidMount() {
     logExperiment({
       organization: this.props.organization,
-      key: 'AlertDefaultsExperiment',
+      key: 'AlertDefaultsExperimentTmp',
       unitName: 'org_id',
       unitId: parseInt(this.props.organization.id, 10),
       param: 'variant',

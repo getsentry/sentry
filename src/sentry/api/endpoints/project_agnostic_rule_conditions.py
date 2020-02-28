@@ -21,7 +21,7 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
             return context
 
         experiment_variant = experiments.get(
-            org=organization, experiment_name="AlertDefaultsExperiment"
+            org=organization, experiment_name="AlertDefaultsExperimentTmp"
         )
         if experiment_variant == "test3Options":
             return Response(
