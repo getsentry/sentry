@@ -313,8 +313,6 @@ class SymbolicatorSession(object):
         self.timeout = timeout
         self.session = None
 
-        self._query_params = {"timeout": timeout, "scope": project_id}
-
     def __enter__(self):
         self.open()
         return self
@@ -389,35 +387,41 @@ class SymbolicatorSession(object):
                 time.sleep(wait)
                 wait *= 2.0
 
+    def _create_task(self, path, **kwargs):
+        params = {"timeout": self.timeout, "scope": self.project_id}
+        return self._request(method="post", path=path, params=params, **kwargs)
+
     def symbolicate_stacktraces(self, stacktraces, modules, signal=None):
         json = {"sources": self.sources, "stacktraces": stacktraces, "modules": modules}
 
         if signal:
             json["signal"] = signal
 
-        return self._request("post", "symbolicate", params=self._query_params, json=json)
+        return self._create_task("symbolicate", json=json)
 
     def upload_minidump(self, minidump):
-        return self._request(
-            method="post",
+        return self._create_task(
             path="minidump",
-            params=self._query_params,
             data={"sources": json.dumps(self.sources)},
             files={"upload_file_minidump": minidump},
         )
 
     def upload_applecrashreport(self, report):
-        return self._request(
-            method="post",
+        return self._create_task(
             path="applecrashreport",
-            params=self._query_params,
             data={"sources": json.dumps(self.sources)},
             files={"apple_crash_report": report},
         )
 
     def query_task(self, task_id):
         task_url = "requests/%s" % (task_id,)
-        return self._request("get", task_url, params=self._query_params)
+
+        params = {
+            "timeout": 0,  # Only wait when creating, but not when querying tasks
+            "scope": self.project_id,
+        }
+
+        return self._request("get", task_url, params=params)
 
     def healthcheck(self):
         return self._request("get", "healthcheck")
