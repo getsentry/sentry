@@ -317,8 +317,8 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 
   const csvContent = Papa.unparse({
     fields: headings,
-    data: data.map(row => {
-      return headings.map(col => {
+    data: data.map(row =>
+      headings.map(col => {
         // alias for project doesn't match the table data name
         if (col === 'project') {
           col = 'project.name';
@@ -326,8 +326,8 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
           col = getAggregateAlias(col);
         }
         return disableMacros(row[col]);
-      });
-    }),
+      })
+    ),
   });
 
   // Need to also manually replace # since encodeURI skips them

@@ -75,9 +75,7 @@ const GuideAnchor = createReactClass({
 
   interpolate(template, variables) {
     const regex = /\${([^{]+)}/g;
-    return template.replace(regex, (_match, g1) => {
-      return variables[g1.trim()];
-    });
+    return template.replace(regex, (_match, g1) => variables[g1.trim()]);
   },
 
   /* Terminology:

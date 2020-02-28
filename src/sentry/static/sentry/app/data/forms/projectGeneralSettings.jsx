@@ -139,16 +139,13 @@ export const fields = {
         </HintPanelItem>
       );
     },
-    choices: ({groupingConfigs}) => {
-      return groupingConfigs.map(({id, hidden}) => {
-        return [
-          id.toString(),
-          <GroupingConfigItem key={id} hidden={hidden}>
-            {id}
-          </GroupingConfigItem>,
-        ];
-      });
-    },
+    choices: ({groupingConfigs}) =>
+      groupingConfigs.map(({id, hidden}) => [
+        id.toString(),
+        <GroupingConfigItem key={id} hidden={hidden}>
+          {id}
+        </GroupingConfigItem>,
+      ]),
     help: t('Sets the grouping algorithm to be used for new events.'),
     visible: ({features}) => features.has('set-grouping-config'),
   },
@@ -175,12 +172,8 @@ export const fields = {
         </HintPanelItem>
       );
     },
-    choices: ({groupingEnhancementBases}) => {
-      return groupingEnhancementBases.map(({id}) => [
-        id.toString(),
-        <code key={id}>{id}</code>,
-      ]);
-    },
+    choices: ({groupingEnhancementBases}) =>
+      groupingEnhancementBases.map(({id}) => [id.toString(), <code key={id}>{id}</code>]),
     help: t('The built-in base version of grouping enhancements.'),
     visible: ({features}) => features.has('set-grouping-config'),
   },

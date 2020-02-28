@@ -117,17 +117,15 @@ export default class ProjectServiceHooks extends AsyncView {
             Service Hooks are an early adopter preview feature and will change in the
             future.
           </PanelAlert>
-          {this.state.hookList.map(hook => {
-            return (
-              <ServiceHookRow
-                key={hook.id}
-                orgId={orgId}
-                projectId={projectId}
-                hook={hook}
-                onToggleActive={this.onToggleActive.bind(this, hook)}
-              />
-            );
-          })}
+          {this.state.hookList.map(hook => (
+            <ServiceHookRow
+              key={hook.id}
+              orgId={orgId}
+              projectId={projectId}
+              hook={hook}
+              onToggleActive={this.onToggleActive.bind(this, hook)}
+            />
+          ))}
         </PanelBody>
       </React.Fragment>
     );

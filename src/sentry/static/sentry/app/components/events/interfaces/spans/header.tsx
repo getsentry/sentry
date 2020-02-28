@@ -117,20 +117,18 @@ class TraceViewHeader extends React.Component<PropType> {
     );
   };
 
-  renderFog = (dragProps: DragManagerChildrenProps) => {
-    return (
-      <React.Fragment>
-        <Fog style={{height: '100%', width: toPercent(dragProps.viewWindowStart)}} />
-        <Fog
-          style={{
-            height: '100%',
-            width: toPercent(1 - dragProps.viewWindowEnd),
-            left: toPercent(dragProps.viewWindowEnd),
-          }}
-        />
-      </React.Fragment>
-    );
-  };
+  renderFog = (dragProps: DragManagerChildrenProps) => (
+    <React.Fragment>
+      <Fog style={{height: '100%', width: toPercent(dragProps.viewWindowStart)}} />
+      <Fog
+        style={{
+          height: '100%',
+          width: toPercent(1 - dragProps.viewWindowEnd),
+          left: toPercent(dragProps.viewWindowEnd),
+        }}
+      />
+    </React.Fragment>
+  );
 
   renderDurationGuide = ({
     showCursorGuide,
@@ -272,58 +270,56 @@ class TraceViewHeader extends React.Component<PropType> {
       <HeaderContainer>
         <ActualMinimap trace={this.props.trace} />
         <CursorGuideHandler.Consumer>
-          {({displayCursorGuide, hideCursorGuide, mouseLeft, showCursorGuide}) => {
-            return (
-              <div
-                ref={this.props.minimapInteractiveRef}
-                style={{
-                  width: '100%',
-                  height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                }}
-                onMouseEnter={event => {
-                  displayCursorGuide(event.pageX);
-                }}
-                onMouseLeave={() => {
-                  hideCursorGuide();
-                }}
-                onMouseMove={event => {
-                  displayCursorGuide(event.pageX);
-                }}
-                onMouseDown={event => {
-                  const target = event.target;
+          {({displayCursorGuide, hideCursorGuide, mouseLeft, showCursorGuide}) => (
+            <div
+              ref={this.props.minimapInteractiveRef}
+              style={{
+                width: '100%',
+                height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
+                position: 'absolute',
+                left: 0,
+                top: 0,
+              }}
+              onMouseEnter={event => {
+                displayCursorGuide(event.pageX);
+              }}
+              onMouseLeave={() => {
+                hideCursorGuide();
+              }}
+              onMouseMove={event => {
+                displayCursorGuide(event.pageX);
+              }}
+              onMouseDown={event => {
+                const target = event.target;
 
-                  if (
-                    target instanceof Element &&
-                    target.getAttribute &&
-                    target.getAttribute('data-ignore')
-                  ) {
-                    // ignore this event if we need to
-                    return;
-                  }
+                if (
+                  target instanceof Element &&
+                  target.getAttribute &&
+                  target.getAttribute('data-ignore')
+                ) {
+                  // ignore this event if we need to
+                  return;
+                }
 
-                  this.props.dragProps.onWindowSelectionDragStart(event);
-                }}
-              >
-                <MinimapContainer>
-                  {this.renderFog(this.props.dragProps)}
-                  {this.renderCursorGuide({
-                    showCursorGuide,
-                    mouseLeft,
-                    cursorGuideHeight: MINIMAP_HEIGHT,
-                  })}
-                  {this.renderViewHandles(this.props.dragProps)}
-                  {this.renderWindowSelection(this.props.dragProps)}
-                </MinimapContainer>
-                {this.renderTimeAxis({
+                this.props.dragProps.onWindowSelectionDragStart(event);
+              }}
+            >
+              <MinimapContainer>
+                {this.renderFog(this.props.dragProps)}
+                {this.renderCursorGuide({
                   showCursorGuide,
                   mouseLeft,
+                  cursorGuideHeight: MINIMAP_HEIGHT,
                 })}
-              </div>
-            );
-          }}
+                {this.renderViewHandles(this.props.dragProps)}
+                {this.renderWindowSelection(this.props.dragProps)}
+              </MinimapContainer>
+              {this.renderTimeAxis({
+                showCursorGuide,
+                mouseLeft,
+              })}
+            </div>
+          )}
         </CursorGuideHandler.Consumer>
       </HeaderContainer>
     );
@@ -648,40 +644,38 @@ const Handle = ({
   left: number;
   onMouseDown: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   isDragging: boolean;
-}) => {
-  return (
-    <ViewHandleContainer
-      style={{
-        left: toPercent(left),
-      }}
+}) => (
+  <ViewHandleContainer
+    style={{
+      left: toPercent(left),
+    }}
+  >
+    <svg
+      width={1}
+      height={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
+      fill="none"
+      style={{width: '1px', overflow: 'visible'}}
     >
-      <svg
-        width={1}
-        height={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
-        fill="none"
-        style={{width: '1px', overflow: 'visible'}}
-      >
-        <line
-          x1="0"
-          x2="0"
-          y1="0"
-          y2={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
-          strokeWidth="1"
-          strokeDasharray="5 3"
-          style={{stroke: '#302839'}}
-        />
-      </svg>
-      <ViewHandle
-        data-ignore="true"
-        onMouseDown={onMouseDown}
-        isDragging={isDragging}
-        style={{
-          height: `${VIEW_HANDLE_HEIGHT}px`,
-        }}
+      <line
+        x1="0"
+        x2="0"
+        y1="0"
+        y2={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
+        strokeWidth="1"
+        strokeDasharray="5 3"
+        style={{stroke: '#302839'}}
       />
-    </ViewHandleContainer>
-  );
-};
+    </svg>
+    <ViewHandle
+      data-ignore="true"
+      onMouseDown={onMouseDown}
+      isDragging={isDragging}
+      style={{
+        height: `${VIEW_HANDLE_HEIGHT}px`,
+      }}
+    />
+  </ViewHandleContainer>
+);
 
 const WindowSelection = styled('div')`
   position: absolute;

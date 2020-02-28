@@ -5,12 +5,10 @@ import {
   updateEnvironments,
 } from 'app/actionCreators/globalSelection';
 
-jest.mock('app/utils/localStorage', () => {
-  return {
-    getItem: () => JSON.stringify({projects: [5], environments: ['staging']}),
-    setItem: jest.fn(),
-  };
-});
+jest.mock('app/utils/localStorage', () => ({
+  getItem: () => JSON.stringify({projects: [5], environments: ['staging']}),
+  setItem: jest.fn(),
+}));
 
 describe('GlobalSelectionStore', function() {
   const organization = TestStubs.Organization({

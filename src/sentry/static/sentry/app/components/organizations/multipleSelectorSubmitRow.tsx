@@ -11,15 +11,13 @@ type Props = {
   onSubmit: () => void;
 };
 
-const MultipleSelectorSubmitRow = ({onSubmit}: Props) => {
-  return (
-    <SubmitButtonContainer>
-      <SubmitButton onClick={onSubmit} size="xsmall" priority="primary">
-        {t('Apply')}
-      </SubmitButton>
-    </SubmitButtonContainer>
-  );
-};
+const MultipleSelectorSubmitRow = ({onSubmit}: Props) => (
+  <SubmitButtonContainer>
+    <SubmitButton onClick={onSubmit} size="xsmall" priority="primary">
+      {t('Apply')}
+    </SubmitButton>
+  </SubmitButtonContainer>
+);
 
 MultipleSelectorSubmitRow.propTypes = {
   onSubmit: PropTypes.func.isRequired,

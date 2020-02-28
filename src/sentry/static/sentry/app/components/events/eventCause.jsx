@@ -115,9 +115,9 @@ class EventCause extends React.Component {
           )}
         </CauseHeader>
         <Panel>
-          {commits.slice(0, expanded ? 100 : 1).map(commit => {
-            return <CommitRow key={commit.id} commit={commit} />;
-          })}
+          {commits.slice(0, expanded ? 100 : 1).map(commit => (
+            <CommitRow key={commit.id} commit={commit} />
+          ))}
         </Panel>
       </DataSection>
     );

@@ -194,21 +194,14 @@ class AvatarCropper extends React.Component<Props, State> {
 
   // Normalize diff across dimensions so that negative diffs are always making
   // the cropper smaller and positive ones are making the cropper larger
-  getDiffNW = (yDiff: number, xDiff: number) => {
-    return (yDiff - yDiff * 2 + (xDiff - xDiff * 2)) / 2;
-  };
+  getDiffNW = (yDiff: number, xDiff: number) =>
+    (yDiff - yDiff * 2 + (xDiff - xDiff * 2)) / 2;
 
-  getDiffNE = (yDiff: number, xDiff: number) => {
-    return (yDiff - yDiff * 2 + xDiff) / 2;
-  };
+  getDiffNE = (yDiff: number, xDiff: number) => (yDiff - yDiff * 2 + xDiff) / 2;
 
-  getDiffSW = (yDiff: number, xDiff: number) => {
-    return (yDiff + (xDiff - xDiff * 2)) / 2;
-  };
+  getDiffSW = (yDiff: number, xDiff: number) => (yDiff + (xDiff - xDiff * 2)) / 2;
 
-  getDiffSE = (yDiff: number, xDiff: number) => {
-    return (yDiff + xDiff) / 2;
-  };
+  getDiffSE = (yDiff: number, xDiff: number) => (yDiff + xDiff) / 2;
 
   getNewDimensions = (container: HTMLDivElement, yDiff: number, xDiff: number) => {
     const {resizeDimensions: oldDimensions, resizeDirection} = this.state;

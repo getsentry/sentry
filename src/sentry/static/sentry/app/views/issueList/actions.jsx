@@ -48,8 +48,8 @@ const getBulkConfirmMessage = (action, queryCount) => {
   );
 };
 
-const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
-  return function(action, canBeUndone, append = '') {
+const getConfirm = (numIssues, allInQuerySelected, query, queryCount) =>
+  function(action, canBeUndone, append = '') {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(
@@ -84,10 +84,9 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
       </div>
     );
   };
-};
 
-const getLabel = (numIssues, allInQuerySelected) => {
-  return function(action, append = '') {
+const getLabel = (numIssues, allInQuerySelected) =>
+  function(action, append = '') {
     const capitalized = capitalize(action);
     const text = allInQuerySelected
       ? t(`Bulk ${action} issues`)
@@ -99,7 +98,6 @@ const getLabel = (numIssues, allInQuerySelected) => {
 
     return text + append;
   };
-};
 
 const ExtraDescription = ({all, query, queryCount}) => {
   if (!all) {

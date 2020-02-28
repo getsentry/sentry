@@ -14,9 +14,7 @@ class RouteNotFound extends React.Component {
     });
   }
 
-  getTitle = () => {
-    return 'Page Not Found';
-  };
+  getTitle = () => 'Page Not Found';
 
   render() {
     // TODO(dcramer): show additional resource links

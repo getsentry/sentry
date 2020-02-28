@@ -108,39 +108,37 @@ class AuditLogList extends React.Component {
             )}
 
             {hasEntries &&
-              entries.map(entry => {
-                return (
-                  <StyledPanelItem alignItems="center" key={entry.id}>
-                    <UserInfo>
-                      <div>
-                        {entry.actor.email && (
-                          <UserAvatar style={avatarStyle} user={entry.actor} />
-                        )}
-                      </div>
-                      <NameContainer>
-                        <Name data-test-id="actor-name">
-                          {entry.actor.isSuperuser
-                            ? t('%s (Sentry Staff)', entry.actor.name)
-                            : entry.actor.name}
-                        </Name>
-                        <Note>{entry.note}</Note>
-                      </NameContainer>
-                    </UserInfo>
-                    <div>{entry.event}</div>
+              entries.map(entry => (
+                <StyledPanelItem alignItems="center" key={entry.id}>
+                  <UserInfo>
                     <div>
-                      <Tooltip
-                        title={entry.ipAddress}
-                        disabled={entry.ipAddress && entry.ipAddress.length <= ipv4Length}
-                      >
-                        <OverflowBox>{entry.ipAddress}</OverflowBox>
-                      </Tooltip>
+                      {entry.actor.email && (
+                        <UserAvatar style={avatarStyle} user={entry.actor} />
+                      )}
                     </div>
-                    <div>
-                      <DateTime date={entry.dateCreated} />
-                    </div>
-                  </StyledPanelItem>
-                );
-              })}
+                    <NameContainer>
+                      <Name data-test-id="actor-name">
+                        {entry.actor.isSuperuser
+                          ? t('%s (Sentry Staff)', entry.actor.name)
+                          : entry.actor.name}
+                      </Name>
+                      <Note>{entry.note}</Note>
+                    </NameContainer>
+                  </UserInfo>
+                  <div>{entry.event}</div>
+                  <div>
+                    <Tooltip
+                      title={entry.ipAddress}
+                      disabled={entry.ipAddress && entry.ipAddress.length <= ipv4Length}
+                    >
+                      <OverflowBox>{entry.ipAddress}</OverflowBox>
+                    </Tooltip>
+                  </div>
+                  <div>
+                    <DateTime date={entry.dateCreated} />
+                  </div>
+                </StyledPanelItem>
+              ))}
           </PanelBody>
         </Panel>
         {pageLinks && <Pagination pageLinks={pageLinks} {...this.props} />}

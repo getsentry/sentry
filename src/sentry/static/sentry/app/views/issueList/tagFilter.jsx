@@ -15,12 +15,10 @@ class IssueListTagFilter extends React.Component {
     tagValueLoader: PropTypes.func.isRequired,
   };
 
-  static tagValueToSelectFormat = ({value}) => {
-    return {
-      value,
-      label: value,
-    };
-  };
+  static tagValueToSelectFormat = ({value}) => ({
+    value,
+    label: value,
+  });
 
   static defaultProps = {
     tag: {},

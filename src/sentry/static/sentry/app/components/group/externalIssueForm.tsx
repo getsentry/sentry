@@ -121,8 +121,8 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
     }
   };
 
-  getOptions = (field: IssueConfigField, input: string) => {
-    return new Promise((resolve, reject) => {
+  getOptions = (field: IssueConfigField, input: string) =>
+    new Promise((resolve, reject) => {
       if (!input) {
         const options = (field.choices || []).map(([value, label]) => ({value, label}));
         return resolve({options});
@@ -135,7 +135,6 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
         }
       });
     });
-  };
 
   debouncedOptionLoad = debounce(
     async (

@@ -14,9 +14,7 @@ class InactivePlugins extends React.Component {
     onEnablePlugin: PropTypes.func.isRequired,
   };
 
-  enablePlugin = plugin => {
-    return this.props.onEnablePlugin(plugin, true);
-  };
+  enablePlugin = plugin => this.props.onEnablePlugin(plugin, true);
 
   render() {
     const plugins = this.props.plugins;
@@ -29,20 +27,18 @@ class InactivePlugins extends React.Component {
 
         <PanelBody>
           <Plugins>
-            {plugins.map(plugin => {
-              return (
-                <IntegrationButton
-                  key={plugin.id}
-                  onClick={this.enablePlugin.bind(this, plugin)}
-                  className={`ref-plugin-enable-${plugin.id}`}
-                >
-                  <Label>
-                    <StyledPluginIcon pluginId={plugin.id} />
-                    <TextOverflow>{plugin.shortName || plugin.name}</TextOverflow>
-                  </Label>
-                </IntegrationButton>
-              );
-            })}
+            {plugins.map(plugin => (
+              <IntegrationButton
+                key={plugin.id}
+                onClick={this.enablePlugin.bind(this, plugin)}
+                className={`ref-plugin-enable-${plugin.id}`}
+              >
+                <Label>
+                  <StyledPluginIcon pluginId={plugin.id} />
+                  <TextOverflow>{plugin.shortName || plugin.name}</TextOverflow>
+                </Label>
+              </IntegrationButton>
+            ))}
           </Plugins>
         </PanelBody>
       </Panel>

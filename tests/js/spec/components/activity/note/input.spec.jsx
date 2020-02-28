@@ -68,9 +68,8 @@ describe('NoteInput', function() {
       teams: [],
     };
 
-    const createWrapper = props => {
-      return mountWithTheme(<NoteInput {...defaultProps} {...props} />, routerContext);
-    };
+    const createWrapper = props =>
+      mountWithTheme(<NoteInput {...defaultProps} {...props} />, routerContext);
 
     it('edits existing message', async function() {
       const onUpdate = jest.fn();

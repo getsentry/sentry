@@ -71,17 +71,17 @@ class RuleRow extends React.Component<Props, State> {
             </MatchTypeHeader>
             {data.conditions.length !== 0 && (
               <Conditions>
-                {data.conditions.map((condition, i) => {
-                  return <div key={i}>{condition.name}</div>;
-                })}
+                {data.conditions.map((condition, i) => (
+                  <div key={i}>{condition.name}</div>
+                ))}
               </Conditions>
             )}
           </div>
 
           <Actions>
-            {data.actions.map((action, i) => {
-              return <div key={i}>{action.name}</div>;
-            })}
+            {data.actions.map((action, i) => (
+              <div key={i}>{action.name}</div>
+            ))}
           </Actions>
         </TriggerAndActions>
       </RuleItem>
@@ -106,26 +106,22 @@ class RuleRow extends React.Component<Props, State> {
 
         <div>
           {data.triggers.length !== 0 &&
-            data.triggers.map((trigger, i) => {
-              return (
-                <TriggerAndActions key={i}>
-                  <Trigger>
-                    <StatusBadge>{trigger.label}</StatusBadge>
-                    <div>
-                      {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
-                      {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
-                      {trigger.alertThreshold}/{data.timeWindow}min
-                    </div>
-                  </Trigger>
-                  <Actions>
-                    {trigger.actions &&
-                      trigger.actions.map((action, j) => (
-                        <div key={j}>{action.desc}</div>
-                      ))}
-                  </Actions>
-                </TriggerAndActions>
-              );
-            })}
+            data.triggers.map((trigger, i) => (
+              <TriggerAndActions key={i}>
+                <Trigger>
+                  <StatusBadge>{trigger.label}</StatusBadge>
+                  <div>
+                    {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
+                    {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
+                    {trigger.alertThreshold}/{data.timeWindow}min
+                  </div>
+                </Trigger>
+                <Actions>
+                  {trigger.actions &&
+                    trigger.actions.map((action, j) => <div key={j}>{action.desc}</div>)}
+                </Actions>
+              </TriggerAndActions>
+            ))}
         </div>
       </RuleItem>
     );

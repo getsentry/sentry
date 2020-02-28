@@ -95,15 +95,13 @@ class Table extends React.PureComponent<TableProps, TableState> {
           return;
         }
 
-        this.setState(prevState => {
-          return {
-            isLoading: false,
-            tableFetchID: undefined,
-            error: null,
-            pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
-            tableData: data,
-          };
-        });
+        this.setState(prevState => ({
+          isLoading: false,
+          tableFetchID: undefined,
+          error: null,
+          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
+          tableData: data,
+        }));
       })
       .catch(err => {
         this.setState({

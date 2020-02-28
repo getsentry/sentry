@@ -35,47 +35,45 @@ const ReleaseList = props => {
     <div>
       <Projects orgId={orgId} slugs={projectSlugs}>
         {({projects}) =>
-          releaseList.map(release => {
-            return (
-              <ReleasePanelItem key={release.version}>
-                <Layout>
-                  <VersionColumn>
-                    <VersionWrapper>
-                      <Version
-                        version={release.version}
-                        preserveGlobalSelection
-                        tooltipRawVersion
-                        truncate
-                      />
-                    </VersionWrapper>
-                    <LatestDeployOrReleaseTime orgId={orgId} release={release} />
-                  </VersionColumn>
-                  <StatsColumn>
-                    <ReleaseStats release={release} />
-                  </StatsColumn>
-                  <ProjectsColumn>
-                    <ProjectList
-                      projects={projects.filter(project =>
-                        release.projects.map(p => p.slug).includes(project.slug)
-                      )}
-                      orgId={orgId}
+          releaseList.map(release => (
+            <ReleasePanelItem key={release.version}>
+              <Layout>
+                <VersionColumn>
+                  <VersionWrapper>
+                    <Version
                       version={release.version}
+                      preserveGlobalSelection
+                      tooltipRawVersion
+                      truncate
                     />
-                  </ProjectsColumn>
-                  <CountColumn>
-                    <Count className="release-count" value={release.newGroups || 0} />
-                  </CountColumn>
-                  <LastEventColumn>
-                    {release.lastEvent ? (
-                      <TimeSince date={release.lastEvent} />
-                    ) : (
-                      <span>—</span>
+                  </VersionWrapper>
+                  <LatestDeployOrReleaseTime orgId={orgId} release={release} />
+                </VersionColumn>
+                <StatsColumn>
+                  <ReleaseStats release={release} />
+                </StatsColumn>
+                <ProjectsColumn>
+                  <ProjectList
+                    projects={projects.filter(project =>
+                      release.projects.map(p => p.slug).includes(project.slug)
                     )}
-                  </LastEventColumn>
-                </Layout>
-              </ReleasePanelItem>
-            );
-          })
+                    orgId={orgId}
+                    version={release.version}
+                  />
+                </ProjectsColumn>
+                <CountColumn>
+                  <Count className="release-count" value={release.newGroups || 0} />
+                </CountColumn>
+                <LastEventColumn>
+                  {release.lastEvent ? (
+                    <TimeSince date={release.lastEvent} />
+                  ) : (
+                    <span>—</span>
+                  )}
+                </LastEventColumn>
+              </Layout>
+            </ReleasePanelItem>
+          ))
         }
       </Projects>
     </div>

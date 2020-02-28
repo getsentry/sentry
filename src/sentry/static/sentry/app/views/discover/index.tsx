@@ -132,9 +132,7 @@ class DiscoverContainer extends React.Component<Props, State> {
 
   private queryBuilder: any;
 
-  loadTags = () => {
-    return this.queryBuilder.load();
-  };
+  loadTags = () => this.queryBuilder.load();
 
   setGlobalSelectionDate(query: ReturnType<typeof getQueryFromQueryString> | null) {
     if (query) {

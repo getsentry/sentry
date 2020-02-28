@@ -48,12 +48,10 @@ export default class Chart extends React.PureComponent<Props> {
   render() {
     const {aggregation, data, detected, closed} = this.props;
 
-    const chartData = data.map(([ts, val]) => {
-      return [
-        ts * 1000,
-        val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
-      ];
-    });
+    const chartData = data.map(([ts, val]) => [
+      ts * 1000,
+      val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
+    ]);
 
     const detectedTs = detected && moment.utc(detected).unix();
     const closedTs = closed && moment.utc(closed).unix();

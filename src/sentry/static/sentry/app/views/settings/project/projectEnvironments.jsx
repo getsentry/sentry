@@ -145,19 +145,17 @@ class ProjectEnvironments extends React.Component {
     return (
       <React.Fragment>
         {this.renderAllEnvironmentsSystemRow()}
-        {envs.map(env => {
-          return (
-            <EnvironmentRow
-              key={env.id}
-              name={env.name}
-              environment={env}
-              isHidden={isHidden}
-              onHide={this.toggleEnv}
-              actionText={buttonText}
-              shouldShowAction
-            />
-          );
-        })}
+        {envs.map(env => (
+          <EnvironmentRow
+            key={env.id}
+            name={env.name}
+            environment={env}
+            isHidden={isHidden}
+            onHide={this.toggleEnv}
+            actionText={buttonText}
+            shouldShowAction
+          />
+        ))}
       </React.Fragment>
     );
   }

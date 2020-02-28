@@ -212,9 +212,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
       await tick();
       wrapper.update();
 
-      const optionLabelSelector = label => {
-        return `[aria-label="${label}"]`;
-      };
+      const optionLabelSelector = label => `[aria-label="${label}"]`;
 
       expect(wrapper.find(optionLabelSelector('Issue 1')).exists()).toBe(true);
       expect(wrapper.find(optionLabelSelector('Issue 2')).exists()).toBe(true);

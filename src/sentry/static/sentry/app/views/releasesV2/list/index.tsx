@@ -94,8 +94,8 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   transformToProjectRelease(releases: Release[]): ProjectRelease[] {
-    return releases.flatMap(release => {
-      return release.projects.map(project => {
+    return releases.flatMap(release =>
+      release.projects.map(project => {
         const {
           version,
           dateCreated,
@@ -118,8 +118,8 @@ class ReleasesList extends AsyncView<Props, State> {
           projectSlug: slug,
           // TODO(releasesv2): make api send also project platform
         };
-      });
-    });
+      })
+    );
   }
 
   renderInnerBody() {

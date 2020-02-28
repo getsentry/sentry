@@ -83,8 +83,8 @@ const ResponseCode = ({code}: {code: number}) => {
   );
 };
 
-const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) => {
-  return link ? (
+const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) =>
+  link ? (
     <Link to={link} target="_blank">
       <DateTime date={date} />
       <StyledInlineSvg src="icon-open" size="12px" />
@@ -92,7 +92,6 @@ const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) 
   ) : (
     <DateTime date={date} />
   );
-};
 
 type Props = AsyncComponent['props'] & {
   app: SentryApp;

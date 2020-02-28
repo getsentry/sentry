@@ -60,16 +60,14 @@ export default class SelectField extends React.Component {
       <InputField
         {...otherProps}
         alignRight={this.props.small}
-        field={({onChange, onBlur, required: _required, ...props}) => {
-          return (
-            <SelectControl
-              {...props}
-              clearable={allowClear}
-              multiple={multiple}
-              onChange={this.handleChange.bind(this, onBlur, onChange)}
-            />
-          );
-        }}
+        field={({onChange, onBlur, required: _required, ...props}) => (
+          <SelectControl
+            {...props}
+            clearable={allowClear}
+            multiple={multiple}
+            onChange={this.handleChange.bind(this, onBlur, onChange)}
+          />
+        )}
       />
     );
   }

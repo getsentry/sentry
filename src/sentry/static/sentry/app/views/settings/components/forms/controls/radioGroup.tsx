@@ -16,40 +16,38 @@ type Props = {
   onChange: (id: string, e: React.MouseEvent) => void;
 };
 
-const RadioGroup = ({value, disabled, choices, label, onChange, ...props}: Props) => {
-  return (
-    <div {...props} role="radiogroup" aria-labelledby={label}>
-      {(choices || []).map(([id, name, description], index) => {
-        const isSelected = value === id;
+const RadioGroup = ({value, disabled, choices, label, onChange, ...props}: Props) => (
+  <div {...props} role="radiogroup" aria-labelledby={label}>
+    {(choices || []).map(([id, name, description], index) => {
+      const isSelected = value === id;
 
-        return (
-          <RadioLineItem
-            key={index}
-            onClick={e => !disabled && onChange(id, e)}
-            role="radio"
-            index={index}
-            aria-checked={isSelected}
-            disabled={disabled}
-          >
-            <RadioLineButton aria-label={id} type="button" disabled={disabled}>
-              {isSelected && (
-                <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
-              )}
-            </RadioLineButton>
-            <RadioLineText disabled={disabled}>{name}</RadioLineText>
-            {description && (
-              <React.Fragment>
-                {/* If there is a description then we want to have a 2x2 grid so the first column width aligns with Radio Button */}
-                <div />
-                <Description>{description}</Description>
-              </React.Fragment>
+      return (
+        <RadioLineItem
+          key={index}
+          onClick={e => !disabled && onChange(id, e)}
+          role="radio"
+          index={index}
+          aria-checked={isSelected}
+          disabled={disabled}
+        >
+          <RadioLineButton aria-label={id} type="button" disabled={disabled}>
+            {isSelected && (
+              <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
             )}
-          </RadioLineItem>
-        );
-      })}
-    </div>
-  );
-};
+          </RadioLineButton>
+          <RadioLineText disabled={disabled}>{name}</RadioLineText>
+          {description && (
+            <React.Fragment>
+              {/* If there is a description then we want to have a 2x2 grid so the first column width aligns with Radio Button */}
+              <div />
+              <Description>{description}</Description>
+            </React.Fragment>
+          )}
+        </RadioLineItem>
+      );
+    })}
+  </div>
+);
 
 RadioGroup.propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

@@ -84,9 +84,7 @@ class TeamMembers extends React.Component {
       {
         success: () => {
           this.setState({
-            teamMemberList: this.state.teamMemberList.filter(m => {
-              return m.id !== member.id;
-            }),
+            teamMemberList: this.state.teamMemberList.filter(m => m.id !== member.id),
           });
           addSuccessMessage(t('Successfully removed member from team.'));
         },
@@ -166,9 +164,9 @@ class TeamMembers extends React.Component {
       },
       {
         success: () => {
-          const orgMember = this.state.orgMemberList.find(member => {
-            return member.id === selection.value;
-          });
+          const orgMember = this.state.orgMemberList.find(
+            member => member.id === selection.value
+          );
           this.setState({
             loading: false,
             error: false,
@@ -208,18 +206,16 @@ class TeamMembers extends React.Component {
 
     const items = (this.state.orgMemberList || [])
       .filter(m => !existingMembers.has(m.id))
-      .map(m => {
-        return {
-          searchKey: `${m.name} ${m.email}`,
-          value: m.id,
-          label: (
-            <StyledUserListElement>
-              <StyledAvatar user={m} size={24} className="avatar" />
-              <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
-            </StyledUserListElement>
-          ),
-        };
-      });
+      .map(m => ({
+        searchKey: `${m.name} ${m.email}`,
+        value: m.id,
+        label: (
+          <StyledUserListElement>
+            <StyledAvatar user={m} size={24} className="avatar" />
+            <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
+          </StyledUserListElement>
+        ),
+      }));
 
     const menuHeader = (
       <StyledMembersLabel>
@@ -261,22 +257,20 @@ class TeamMembers extends React.Component {
     );
   };
 
-  removeButton = member => {
-    return (
-      <Button
-        size="small"
-        onClick={this.removeMember.bind(this, member)}
-        label={t('Remove')}
-      >
-        <InlineSvg
-          src="icon-circle-subtract"
-          size="1.25em"
-          style={{marginRight: space(1)}}
-        />
-        {t('Remove')}
-      </Button>
-    );
-  };
+  removeButton = member => (
+    <Button
+      size="small"
+      onClick={this.removeMember.bind(this, member)}
+      label={t('Remove')}
+    >
+      <InlineSvg
+        src="icon-circle-subtract"
+        size="1.25em"
+        style={{marginRight: space(1)}}
+      />
+      {t('Remove')}
+    </Button>
+  );
 
   render() {
     if (this.state.loading) {

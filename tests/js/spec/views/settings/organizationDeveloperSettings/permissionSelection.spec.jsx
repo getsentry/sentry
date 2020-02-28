@@ -79,9 +79,7 @@ describe('PermissionSelection', () => {
   });
 
   it('stores the permissions the User has selected', () => {
-    const getStateValue = resource => {
-      return wrapper.instance().state.permissions[resource];
-    };
+    const getStateValue = resource => wrapper.instance().state.permissions[resource];
 
     selectByValue(wrapper, 'write', {name: 'Project--permission'});
     selectByValue(wrapper, 'read', {name: 'Team--permission'});

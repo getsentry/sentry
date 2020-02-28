@@ -82,13 +82,11 @@ class EventAttachments extends React.Component<Props, State> {
   }
 
   handleDelete = async (deletedAttachmentId: string) => {
-    this.setState(prevState => {
-      return {
-        attachmentList: prevState.attachmentList.filter(
-          attachment => attachment.id !== deletedAttachmentId
-        ),
-      };
-    });
+    this.setState(prevState => ({
+      attachmentList: prevState.attachmentList.filter(
+        attachment => attachment.id !== deletedAttachmentId
+      ),
+    }));
   };
 
   render() {
@@ -103,27 +101,25 @@ class EventAttachments extends React.Component<Props, State> {
       <EventDataSection type="attachments" title={title}>
         <Panel>
           <PanelBody>
-            {attachmentList.map(attachment => {
-              return (
-                <PanelItem key={attachment.id} alignItems="center">
-                  <AttachmentName>{attachment.name}</AttachmentName>
-                  <FileSizeWithGap bytes={attachment.size} />
-                  <AttachmentUrl
-                    projectId={projectId}
-                    eventId={event.id}
-                    attachment={attachment}
-                  >
-                    {url => (
-                      <EventAttachmentActions
-                        url={url}
-                        onDelete={this.handleDelete}
-                        attachmentId={attachment.id}
-                      />
-                    )}
-                  </AttachmentUrl>
-                </PanelItem>
-              );
-            })}
+            {attachmentList.map(attachment => (
+              <PanelItem key={attachment.id} alignItems="center">
+                <AttachmentName>{attachment.name}</AttachmentName>
+                <FileSizeWithGap bytes={attachment.size} />
+                <AttachmentUrl
+                  projectId={projectId}
+                  eventId={event.id}
+                  attachment={attachment}
+                >
+                  {url => (
+                    <EventAttachmentActions
+                      url={url}
+                      onDelete={this.handleDelete}
+                      attachmentId={attachment.id}
+                    />
+                  )}
+                </AttachmentUrl>
+              </PanelItem>
+            ))}
           </PanelBody>
         </Panel>
       </EventDataSection>

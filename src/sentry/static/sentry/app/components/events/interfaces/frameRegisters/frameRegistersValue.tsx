@@ -26,9 +26,7 @@ class frameRegistersValue extends React.Component<Props, State> {
     this.setState(state => ({view: (state.view + 1) % REGISTER_VIEWS.length}));
   };
 
-  tooltipTitle = () => {
-    return REGISTER_VIEWS[this.state.view];
-  };
+  tooltipTitle = () => REGISTER_VIEWS[this.state.view];
 
   formatValue = () => {
     const value = this.props.value;

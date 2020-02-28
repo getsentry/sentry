@@ -8,11 +8,9 @@ const COUNT_OBJ = {
   count: 123,
 };
 
-jest.mock('app/actionCreators/events', () => {
-  return {
-    doEventsRequest: jest.fn(),
-  };
-});
+jest.mock('app/actionCreators/events', () => ({
+  doEventsRequest: jest.fn(),
+}));
 
 describe('EventsRequest', function() {
   const project = TestStubs.Project();

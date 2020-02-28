@@ -36,22 +36,20 @@ export function renderTableModalEditColumnFactory(
       column?: TableColumn<ReactText>,
       onSuccessFromChild?: () => void,
       onErrorFromChild?: (error?: Error) => void
-    ) => {
-      return (
-        <TableModalEditColumnBodyForm
-          organization={organization}
-          indexColumnOrder={indexColumnOrder}
-          column={column}
-          tagKeys={tagKeys}
-          actions={{
-            createColumn: actions.createColumn,
-            updateColumn: actions.updateColumn,
-            onSuccess: onSuccessFromChild,
-            onError: onErrorFromChild,
-          }}
-        />
-      );
-    },
+    ) => (
+      <TableModalEditColumnBodyForm
+        organization={organization}
+        indexColumnOrder={indexColumnOrder}
+        column={column}
+        tagKeys={tagKeys}
+        actions={{
+          createColumn: actions.createColumn,
+          updateColumn: actions.updateColumn,
+          onSuccess: onSuccessFromChild,
+          onError: onErrorFromChild,
+        }}
+      />
+    ),
     renderModalFooter: () => <TableModalEditColumnFooter />,
   };
 }

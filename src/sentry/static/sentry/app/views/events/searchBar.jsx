@@ -77,9 +77,7 @@ class SearchBar extends React.PureComponent {
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
    */
-  prepareQuery = query => {
-    return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
-  };
+  prepareQuery = query => query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
 
   render() {
     return (

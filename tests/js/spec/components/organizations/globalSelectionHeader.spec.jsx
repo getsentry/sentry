@@ -23,12 +23,10 @@ const changeQuery = (routerContext, query) => ({
   },
 });
 
-jest.mock('app/utils/localStorage', () => {
-  return {
-    getItem: () => JSON.stringify({projects: [3], environments: ['staging']}),
-    setItem: jest.fn(),
-  };
-});
+jest.mock('app/utils/localStorage', () => ({
+  getItem: () => JSON.stringify({projects: [3], environments: ['staging']}),
+  setItem: jest.fn(),
+}));
 
 describe('GlobalSelectionHeader', function() {
   const {organization, router, routerContext} = initializeOrg({

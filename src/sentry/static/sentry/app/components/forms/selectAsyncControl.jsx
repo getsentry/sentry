@@ -72,8 +72,8 @@ class SelectAsyncControl extends React.Component {
       );
   }, 250);
 
-  handleLoadOptions = () => {
-    return new Promise((resolve, reject) => {
+  handleLoadOptions = () =>
+    new Promise((resolve, reject) => {
       this.doQuery((err, result) => {
         if (err) {
           reject(err);
@@ -100,7 +100,6 @@ class SelectAsyncControl extends React.Component {
         console.error(err);
       }
     );
-  };
 
   handleInputChange = query => {
     this.setState({query});

@@ -44,9 +44,7 @@ const permissionLevel = (scope: string): number => {
   return PERMISSION_LEVELS[permission];
 };
 
-const compareScopes = (a: string, b: string) => {
-  return permissionLevel(a) - permissionLevel(b);
-};
+const compareScopes = (a: string, b: string) => permissionLevel(a) - permissionLevel(b);
 
 /**
  * Return the most permissive scope for each resource.

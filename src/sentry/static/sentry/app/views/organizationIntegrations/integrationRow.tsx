@@ -104,9 +104,9 @@ const StyledLink = styled(Link)`
 
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};
 
-const PublishStatus = styled(({status, ...props}: PublishStatusProps) => {
-  return <div {...props}>{t(`${status}`)}</div>;
-})`
+const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
+  <div {...props}>{t(`${status}`)}</div>
+))`
   color: ${(props: PublishStatusProps) =>
     props.status === 'published' ? props.theme.success : props.theme.gray2};
   font-weight: light;

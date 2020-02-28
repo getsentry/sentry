@@ -141,18 +141,16 @@ const IssueListSidebar = createReactClass({
               <hr />
             </div>
 
-            {map(tags, tag => {
-              return (
-                <IssueListTagFilter
-                  value={this.state.queryObj[tag.key]}
-                  key={tag.key}
-                  tag={tag}
-                  onSelect={this.onSelectTag}
-                  orgId={orgId}
-                  tagValueLoader={tagValueLoader}
-                />
-              );
-            })}
+            {map(tags, tag => (
+              <IssueListTagFilter
+                value={this.state.queryObj[tag.key]}
+                key={tag.key}
+                tag={tag}
+                onSelect={this.onSelectTag}
+                orgId={orgId}
+                tagValueLoader={tagValueLoader}
+              />
+            ))}
           </div>
         )}
       </div>

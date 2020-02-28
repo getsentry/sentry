@@ -65,27 +65,22 @@ class BreadcrumbsInterface extends React.Component {
     });
   };
 
-  renderBreadcrumbs = crumbs => {
+  renderBreadcrumbs = crumbs =>
     // reverse array to get consistent idx between collapsed/expanded state
     // (indexes begin and increment from last breadcrumb)
-    return crumbs
+    crumbs
       .reverse()
-      .map((item, idx) => {
-        return <Breadcrumb key={idx} crumb={item} />;
-      })
+      .map((item, idx) => <Breadcrumb key={idx} crumb={item} />)
       .reverse(); // un-reverse rendered result
-  };
 
-  renderNoMatch = () => {
-    return (
-      <li className="crumb-empty">
-        <p>
-          <span className="icon icon-exclamation" />{' '}
-          {t('Sorry, no breadcrumbs match your search query.')}
-        </p>
-      </li>
-    );
-  };
+  renderNoMatch = () => (
+    <li className="crumb-empty">
+      <p>
+        <span className="icon icon-exclamation" />{' '}
+        {t('Sorry, no breadcrumbs match your search query.')}
+      </p>
+    </li>
+  );
 
   getVirtualCrumb = () => {
     const evt = this.props.event;
@@ -130,15 +125,15 @@ class BreadcrumbsInterface extends React.Component {
     });
   };
 
-  filterCrumbs = (crumbs, queryValue) => {
-    return crumbs.filter(item => {
-      // return true if any of category, message, or level contain queryValue
-      return !!['category', 'message', 'level'].find(prop => {
-        const propValue = (item[prop] || '').toLowerCase();
-        return propValue.includes(queryValue);
-      });
-    });
-  };
+  filterCrumbs = (crumbs, queryValue) =>
+    crumbs.filter(
+      item =>
+        // return true if any of category, message, or level contain queryValue
+        !!['category', 'message', 'level'].find(prop => {
+          const propValue = (item[prop] || '').toLowerCase();
+          return propValue.includes(queryValue);
+        })
+    );
 
   clearSearch = () => {
     this.setState({
@@ -147,28 +142,26 @@ class BreadcrumbsInterface extends React.Component {
     });
   };
 
-  getSearchField = () => {
-    return (
-      <div className="breadcrumb-filter">
-        <input
-          type="text"
-          className="search-input form-control"
-          placeholder={t('Search breadcrumbs...')}
-          autoComplete="off"
-          value={this.state.queryValue}
-          onChange={this.setQuery}
-        />
-        <span className="icon-search" />
-        {this.state.queryValue && (
-          <div>
-            <a className="search-clear-form" onClick={this.clearSearch}>
-              <span className="icon-circle-cross" />
-            </a>
-          </div>
-        )}
-      </div>
-    );
-  };
+  getSearchField = () => (
+    <div className="breadcrumb-filter">
+      <input
+        type="text"
+        className="search-input form-control"
+        placeholder={t('Search breadcrumbs...')}
+        autoComplete="off"
+        value={this.state.queryValue}
+        onChange={this.setQuery}
+      />
+      <span className="icon-search" />
+      {this.state.queryValue && (
+        <div>
+          <a className="search-clear-form" onClick={this.clearSearch}>
+            <span className="icon-circle-cross" />
+          </a>
+        </div>
+      )}
+    </div>
+  );
 
   render() {
     const evt = this.props.event;

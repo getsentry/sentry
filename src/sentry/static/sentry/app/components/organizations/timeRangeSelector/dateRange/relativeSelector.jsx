@@ -5,23 +5,19 @@ import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 
 import SelectorItem from './selectorItem';
 
-const RelativeSelector = ({onClick, selected, relativePeriods}) => {
-  return (
-    <React.Fragment>
-      {Object.entries(relativePeriods || DEFAULT_RELATIVE_PERIODS).map(
-        ([value, label]) => (
-          <SelectorItem
-            key={value}
-            onClick={onClick}
-            value={value}
-            label={label}
-            selected={selected === value}
-          />
-        )
-      )}
-    </React.Fragment>
-  );
-};
+const RelativeSelector = ({onClick, selected, relativePeriods}) => (
+  <React.Fragment>
+    {Object.entries(relativePeriods || DEFAULT_RELATIVE_PERIODS).map(([value, label]) => (
+      <SelectorItem
+        key={value}
+        onClick={onClick}
+        value={value}
+        label={label}
+        selected={selected === value}
+      />
+    ))}
+  </React.Fragment>
+);
 
 RelativeSelector.propTypes = {
   onClick: PropTypes.func,

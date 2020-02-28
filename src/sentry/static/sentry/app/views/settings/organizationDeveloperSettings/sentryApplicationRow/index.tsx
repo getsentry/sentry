@@ -236,13 +236,11 @@ const StatusIndicator = styled(({status, ...props}: StatusIndicatorProps) => {
 
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};
 
-const PublishStatus = styled(({status, ...props}: PublishStatusProps) => {
-  return (
-    <Flex alignItems="center">
-      <div {...props}>{t(`${status}`)}</div>
-    </Flex>
-  );
-})`
+const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
+  <Flex alignItems="center">
+    <div {...props}>{t(`${status}`)}</div>
+  </Flex>
+))`
   color: ${(props: PublishStatusProps) =>
     props.status === 'published' ? props.theme.success : props.theme.gray2};
   font-weight: light;

@@ -22,10 +22,9 @@ export default class SplitInstallationIdModal extends React.Component<Props> {
     closeModal: PropTypes.func.isRequired,
   };
 
-  onCopy = async () => {
+  onCopy = async () =>
     //This hack is needed because the normal copying methods with TextCopyInput do not work correctly
-    return await navigator.clipboard.writeText(this.props.installationId);
-  };
+    await navigator.clipboard.writeText(this.props.installationId);
 
   handleContinue = () => {
     const delay = 2000;

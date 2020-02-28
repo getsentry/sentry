@@ -19,30 +19,28 @@ type Props = {
   firstSeen: string;
 };
 
-const Times = ({lastSeen, firstSeen}: Props) => {
-  return (
-    <Container>
-      <div
-        css={css`
-          ${overflowEllipsis}
-        `}
-      >
-        {lastSeen && (
-          <React.Fragment>
-            <GroupTimeIcon src="icon-clock-sm" />
-            <TimeSince date={lastSeen} suffix={t('ago')} />
-          </React.Fragment>
-        )}
-        {firstSeen && lastSeen && (
-          <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>
-        )}
-        {firstSeen && (
-          <TimeSince date={firstSeen} suffix={t('old')} className="hidden-xs hidden-sm" />
-        )}
-      </div>
-    </Container>
-  );
-};
+const Times = ({lastSeen, firstSeen}: Props) => (
+  <Container>
+    <div
+      css={css`
+        ${overflowEllipsis}
+      `}
+    >
+      {lastSeen && (
+        <React.Fragment>
+          <GroupTimeIcon src="icon-clock-sm" />
+          <TimeSince date={lastSeen} suffix={t('ago')} />
+        </React.Fragment>
+      )}
+      {firstSeen && lastSeen && (
+        <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>
+      )}
+      {firstSeen && (
+        <TimeSince date={firstSeen} suffix={t('old')} className="hidden-xs hidden-sm" />
+      )}
+    </div>
+  </Container>
+);
 Times.propTypes = {
   lastSeen: PropTypes.string,
   firstSeen: PropTypes.string,

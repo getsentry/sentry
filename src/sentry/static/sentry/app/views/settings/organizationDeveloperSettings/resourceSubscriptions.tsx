@@ -54,9 +54,9 @@ export default class Subscriptions extends React.Component<Props> {
   componentDidUpdate() {
     const {permissions, events} = this.props;
 
-    const permittedEvents = events.filter(resource => {
-      return permissions[PERMISSIONS_MAP[resource]] !== 'no-access';
-    });
+    const permittedEvents = events.filter(
+      resource => permissions[PERMISSIONS_MAP[resource]] !== 'no-access'
+    );
 
     if (JSON.stringify(events) !== JSON.stringify(permittedEvents)) {
       this.save(permittedEvents);

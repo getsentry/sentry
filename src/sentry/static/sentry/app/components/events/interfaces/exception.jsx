@@ -30,9 +30,7 @@ class ExceptionInterface extends React.Component {
     };
   }
 
-  eventHasThreads = () => {
-    return !!this.props.event.entries.find(x => x.type === 'threads');
-  };
+  eventHasThreads = () => !!this.props.event.entries.find(x => x.type === 'threads');
 
   render() {
     const {projectId, event, data, hideGuide, type} = this.props;

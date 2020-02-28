@@ -3,9 +3,7 @@ import 'echarts/lib/component/legendScroll';
 import {truncationFormatter} from '../utils';
 
 export default function Legend({truncate, ...props} = {}) {
-  const formatter = value => {
-    return truncationFormatter(value, truncate);
-  };
+  const formatter = value => truncationFormatter(value, truncate);
 
   return {
     show: true,

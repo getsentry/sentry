@@ -25,9 +25,8 @@ export const clearAnalyticsSession = () => {
   window.sessionStorage.removeItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 };
 
-export const getAnalyticsSessionId = () => {
-  return window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
-};
+export const getAnalyticsSessionId = () =>
+  window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 
 export const isIntegrationDirectoryActive = () =>
   localStorage.getItem(USE_INTEGRATION_DIRECTORY) === '1';

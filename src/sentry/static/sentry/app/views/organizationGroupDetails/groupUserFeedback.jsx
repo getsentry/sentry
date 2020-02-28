@@ -75,16 +75,14 @@ class GroupUserFeedback extends React.Component {
       return (
         <div className="row">
           <div className="col-md-9">
-            {reportList.map((item, idx) => {
-              return (
-                <EventUserFeedback
-                  key={idx}
-                  report={item}
-                  orgId={organization.slug}
-                  issueId={group.id}
-                />
-              );
-            })}
+            {reportList.map((item, idx) => (
+              <EventUserFeedback
+                key={idx}
+                report={item}
+                orgId={organization.slug}
+                issueId={group.id}
+              />
+            ))}
             <Pagination pageLinks={this.state.pageLinks} />
           </div>
         </div>

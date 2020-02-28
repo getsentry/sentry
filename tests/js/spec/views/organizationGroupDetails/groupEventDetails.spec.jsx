@@ -333,8 +333,8 @@ describe('groupEventDetails', () => {
     let wrapper; // eslint-disable-line
     let componentsRequest;
 
-    const mountWithThemeWrapper = () => {
-      return mountWithTheme(
+    const mountWithThemeWrapper = () =>
+      mountWithTheme(
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
@@ -346,7 +346,6 @@ describe('groupEventDetails', () => {
         />,
         routerContext
       );
-    };
 
     beforeEach(() => {
       const unpublishedIntegration = TestStubs.SentryApp({status: 'unpublished'});

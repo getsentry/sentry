@@ -94,9 +94,7 @@ const hookStoreConfig: Reflux.StoreDefinition & HookStoreInterface = {
     if (isUndefined(this.hooks[hookName])) {
       return;
     }
-    this.hooks[hookName] = this.hooks[hookName]!.filter(cb => {
-      return cb !== callback;
-    });
+    this.hooks[hookName] = this.hooks[hookName]!.filter(cb => cb !== callback);
     this.trigger(hookName, this.hooks[hookName]);
   },
 

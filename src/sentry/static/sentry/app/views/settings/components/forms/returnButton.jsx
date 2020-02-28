@@ -34,16 +34,14 @@ const ClickTargetStyled = styled('div')`
   }
 `;
 
-const returnButton = props => {
-  return (
-    <ClickTargetStyled {...props}>
-      <Tooltip title={t('Save')}>
-        <SubmitButton>
-          <InlineSvg size="0.75em" src="icon-return-key" />
-        </SubmitButton>
-      </Tooltip>
-    </ClickTargetStyled>
-  );
-};
+const returnButton = props => (
+  <ClickTargetStyled {...props}>
+    <Tooltip title={t('Save')}>
+      <SubmitButton>
+        <InlineSvg size="0.75em" src="icon-return-key" />
+      </SubmitButton>
+    </Tooltip>
+  </ClickTargetStyled>
+);
 
 export default returnButton;

@@ -15,9 +15,7 @@ import TextOverflow from '../textOverflow';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
-  defaultComponent: ({children}) => {
-    return <React.Fragment>{children}</React.Fragment>;
-  },
+  defaultComponent: ({children}) => <React.Fragment>{children}</React.Fragment>,
 });
 
 class SidebarItem extends React.Component {

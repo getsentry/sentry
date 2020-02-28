@@ -256,12 +256,10 @@ class GroupingConfigSelect extends AsyncComponent {
         selectedItem={configId}
         items={this.state.data
           .filter(item => !item.hidden || item.id === eventConfigId)
-          .map(item => {
-            return {
-              value: item.id,
-              label: renderIdLabel(item.id),
-            };
-          })}
+          .map(item => ({
+            value: item.id,
+            label: renderIdLabel(item.id),
+          }))}
       >
         {({isOpen}) => (
           <Tooltip title="Click here to experiment with other grouping configs">

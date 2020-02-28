@@ -90,13 +90,11 @@ class OrganizationStatsContainer extends React.Component {
           projectMap[project.id] = project;
         });
 
-        this.setState(prevState => {
-          return {
-            pageLinks: jqxhr.getResponseHeader('Link'),
-            projectMap,
-            projectsRequestsPending: prevState.projectsRequestsPending - 1,
-          };
-        });
+        this.setState(prevState => ({
+          pageLinks: jqxhr.getResponseHeader('Link'),
+          projectMap,
+          projectsRequestsPending: prevState.projectsRequestsPending - 1,
+        }));
       },
       error: () => {
         this.setState({

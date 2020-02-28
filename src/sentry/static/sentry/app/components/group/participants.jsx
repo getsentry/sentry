@@ -14,13 +14,11 @@ const GroupParticipants = props => {
         </span>
       </h6>
       <ul className="faces">
-        {participants.map(user => {
-          return (
-            <li key={user.username}>
-              <UserAvatar size={28} user={user} hasTooltip />
-            </li>
-          );
-        })}
+        {participants.map(user => (
+          <li key={user.username}>
+            <UserAvatar size={28} user={user} hasTooltip />
+          </li>
+        ))}
       </ul>
     </div>
   );

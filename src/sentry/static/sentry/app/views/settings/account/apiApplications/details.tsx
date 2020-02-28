@@ -51,15 +51,13 @@ class ApiApplicationsDetails extends AsyncView<Props, State> {
 
             <PanelBody>
               <FormField name="clientID" label="Client ID" overflow>
-                {({value}) => {
-                  return (
-                    <div>
-                      <TextCopyInput>
-                        {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
-                      </TextCopyInput>
-                    </div>
-                  );
-                }}
+                {({value}) => (
+                  <div>
+                    <TextCopyInput>
+                      {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                    </TextCopyInput>
+                  </div>
+                )}
               </FormField>
 
               <FormField
@@ -69,15 +67,15 @@ class ApiApplicationsDetails extends AsyncView<Props, State> {
                 help={t(`Your secret is only available briefly after application creation. Make
                   sure to save this value!`)}
               >
-                {({value}) => {
-                  return value ? (
+                {({value}) =>
+                  value ? (
                     <TextCopyInput>
                       {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
                     </TextCopyInput>
                   ) : (
                     <em>hidden</em>
-                  );
-                }}
+                  )
+                }
               </FormField>
 
               <FormField name="" label="Authorization URL">

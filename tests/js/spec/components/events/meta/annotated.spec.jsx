@@ -7,8 +7,8 @@ import {withMeta} from 'app/components/events/meta/metaProxy';
 describe('Annotated', () => {
   const mock = jest.fn(() => null);
 
-  const createEvent = (value, {err, rem, chunks} = {}) => {
-    return withMeta({
+  const createEvent = (value, {err, rem, chunks} = {}) =>
+    withMeta({
       value,
       _meta: {
         value: {
@@ -20,7 +20,6 @@ describe('Annotated', () => {
         },
       },
     });
-  };
 
   beforeEach(function() {
     mock.mockClear();

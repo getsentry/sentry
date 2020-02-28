@@ -27,25 +27,23 @@ const GroupEventAttachmentsTable = ({
     <table className="table events-table">
       <thead>
         <tr>
-          {tableRowNames.map(name => {
-            return <th key={name}>{name}</th>;
-          })}
+          {tableRowNames.map(name => (
+            <th key={name}>{name}</th>
+          ))}
         </tr>
       </thead>
       <tbody>
-        {attachments.map(attachment => {
-          return (
-            <GroupEventAttachmentsTableRow
-              key={attachment.id}
-              attachment={attachment}
-              orgId={orgId}
-              projectId={projectId}
-              groupId={groupId}
-              onDelete={onDelete}
-              isDeleted={deletedAttachments.some(id => attachment.id === id)}
-            />
-          );
-        })}
+        {attachments.map(attachment => (
+          <GroupEventAttachmentsTableRow
+            key={attachment.id}
+            attachment={attachment}
+            orgId={orgId}
+            projectId={projectId}
+            groupId={groupId}
+            onDelete={onDelete}
+            isDeleted={deletedAttachments.some(id => attachment.id === id)}
+          />
+        ))}
       </tbody>
     </table>
   );

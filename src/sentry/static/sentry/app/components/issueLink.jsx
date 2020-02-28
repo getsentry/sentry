@@ -75,14 +75,12 @@ export default class IssueLink extends React.Component {
                     </Link>
                   </EventAnnotation>
                 )}
-                {issue.annotations.map((annotation, i) => {
-                  return (
-                    <EventAnnotation
-                      key={i}
-                      dangerouslySetInnerHTML={{__html: annotation}}
-                    />
-                  );
-                })}
+                {issue.annotations.map((annotation, i) => (
+                  <EventAnnotation
+                    key={i}
+                    dangerouslySetInnerHTML={{__html: annotation}}
+                  />
+                ))}
               </React.Fragment>
             }
           />

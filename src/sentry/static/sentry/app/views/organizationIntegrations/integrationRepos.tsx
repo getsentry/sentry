@@ -153,17 +153,15 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     const repositoryOptions = (this.state.integrationRepos.repos || []).filter(
       repo => !repositories.has(repo.identifier)
     );
-    const items = repositoryOptions.map(repo => {
-      return {
-        searchKey: repo.name,
-        value: repo.identifier,
-        label: (
-          <StyledListElement>
-            <StyledName>{repo.name}</StyledName>
-          </StyledListElement>
-        ),
-      };
-    });
+    const items = repositoryOptions.map(repo => ({
+      searchKey: repo.name,
+      value: repo.identifier,
+      label: (
+        <StyledListElement>
+          <StyledName>{repo.name}</StyledName>
+        </StyledListElement>
+      ),
+    }));
 
     const menuHeader = <StyledReposLabel>{t('Repositories')}</StyledReposLabel>;
     const onChange = this.state.integrationRepos.searchable
@@ -240,17 +238,15 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
                 }
               />
             )}
-            {itemList.map(repo => {
-              return (
-                <RepositoryRow
-                  key={repo.id}
-                  repository={repo}
-                  orgId={orgId}
-                  api={this.api}
-                  onRepositoryChange={this.onRepositoryChange}
-                />
-              );
-            })}
+            {itemList.map(repo => (
+              <RepositoryRow
+                key={repo.id}
+                repository={repo}
+                orgId={orgId}
+                api={this.api}
+                onRepositoryChange={this.onRepositoryChange}
+              />
+            ))}
           </PanelBody>
         </Panel>
         {itemListPageLinks && (

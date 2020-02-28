@@ -51,13 +51,11 @@ class SplitDiff extends React.Component {
                   <Line>
                     {line
                       .filter(result => !result.added)
-                      .map((result, i) => {
-                        return (
-                          <Word key={i} isRemoved={result.removed}>
-                            {result.value}
-                          </Word>
-                        );
-                      })}
+                      .map((result, i) => (
+                        <Word key={i} isRemoved={result.removed}>
+                          {result.value}
+                        </Word>
+                      ))}
                   </Line>
                 </Cell>
 
@@ -67,13 +65,11 @@ class SplitDiff extends React.Component {
                   <Line>
                     {line
                       .filter(result => !result.removed)
-                      .map((result, i) => {
-                        return (
-                          <Word key={i} isAdded={result.added}>
-                            {result.value}
-                          </Word>
-                        );
-                      })}
+                      .map((result, i) => (
+                        <Word key={i} isAdded={result.added}>
+                          {result.value}
+                        </Word>
+                      ))}
                   </Line>
                 </Cell>
               </tr>

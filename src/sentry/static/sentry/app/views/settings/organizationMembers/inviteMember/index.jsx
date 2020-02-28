@@ -104,12 +104,11 @@ class InviteMember extends React.Component {
     router.push(replaceRouterParams(pathToParentRoute, params));
   };
 
-  splitEmails = text => {
-    return text
+  splitEmails = text =>
+    text
       .split(',')
       .map(e => e.trim())
       .filter(e => e);
-  };
 
   inviteUser = email => {
     const {slug} = this.props.organization;

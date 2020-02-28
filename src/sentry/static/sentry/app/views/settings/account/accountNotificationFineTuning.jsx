@@ -122,45 +122,37 @@ class AccountNotificationsByProject extends React.Component {
     const {title, description, ...fieldConfig} = field;
 
     // Display as select box in this view regardless of the type specified in the config
-    return Object.values(projectsByOrg).map(org => {
-      return {
-        name: org.organization.name,
-        projects: org.projects.map(project => {
-          return {
-            ...fieldConfig,
-            // `name` key refers to field name
-            // we use project.id because slugs are not unique across orgs
-            name: project.id,
-            label: project.slug,
-          };
-        }),
-      };
-    });
+    return Object.values(projectsByOrg).map(org => ({
+      name: org.organization.name,
+      projects: org.projects.map(project => ({
+        ...fieldConfig,
+        // `name` key refers to field name
+        // we use project.id because slugs are not unique across orgs
+        name: project.id,
+        label: project.slug,
+      })),
+    }));
   }
 
   render() {
     const data = this.getFieldData();
 
-    return data.map(({name, projects: projectFields}) => {
-      return (
-        <div key={name}>
-          <PanelHeader>{name}</PanelHeader>
-          {projectFields.map(field => {
-            return (
-              <PanelBodyLineItem key={field.name}>
-                <SelectField
-                  deprecatedSelectControl
-                  defaultValue={field.defaultValue}
-                  name={field.name}
-                  choices={field.choices}
-                  label={field.label}
-                />
-              </PanelBodyLineItem>
-            );
-          })}
-        </div>
-      );
-    });
+    return data.map(({name, projects: projectFields}) => (
+      <div key={name}>
+        <PanelHeader>{name}</PanelHeader>
+        {projectFields.map(field => (
+          <PanelBodyLineItem key={field.name}>
+            <SelectField
+              deprecatedSelectControl
+              defaultValue={field.defaultValue}
+              name={field.name}
+              choices={field.choices}
+              label={field.label}
+            />
+          </PanelBodyLineItem>
+        ))}
+      </div>
+    ));
   }
 }
 
@@ -176,15 +168,13 @@ class AccountNotificationsByOrganization extends React.Component {
     const {title, description, ...fieldConfig} = field;
 
     // Display as select box in this view regardless of the type specified in the config
-    return organizations.map(org => {
-      return {
-        ...fieldConfig,
-        // `name` key refers to field name
-        // we use org.id to remain consistent project.id use (which is required because slugs are not unique across orgs)
-        name: org.id,
-        label: org.slug,
-      };
-    });
+    return organizations.map(org => ({
+      ...fieldConfig,
+      // `name` key refers to field name
+      // we use org.id to remain consistent project.id use (which is required because slugs are not unique across orgs)
+      name: org.id,
+      label: org.slug,
+    }));
   }
 
   render() {
@@ -192,19 +182,17 @@ class AccountNotificationsByOrganization extends React.Component {
 
     return (
       <React.Fragment>
-        {orgFields.map(field => {
-          return (
-            <PanelBodyLineItem key={field.name}>
-              <SelectField
-                deprecatedSelectControl
-                defaultValue={field.defaultValue}
-                name={field.name}
-                choices={field.choices}
-                label={field.label}
-              />
-            </PanelBodyLineItem>
-          );
-        })}
+        {orgFields.map(field => (
+          <PanelBodyLineItem key={field.name}>
+            <SelectField
+              deprecatedSelectControl
+              defaultValue={field.defaultValue}
+              name={field.name}
+              choices={field.choices}
+              label={field.label}
+            />
+          </PanelBodyLineItem>
+        ))}
       </React.Fragment>
     );
   }

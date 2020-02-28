@@ -117,15 +117,13 @@ export class ApiTokens extends AsyncView {
             )}
 
             {!isEmpty &&
-              tokenList.map(token => {
-                return (
-                  <ApiTokenRow
-                    key={token.token}
-                    token={token}
-                    onRemove={this.handleRemoveToken}
-                  />
-                );
-              })}
+              tokenList.map(token => (
+                <ApiTokenRow
+                  key={token.token}
+                  token={token}
+                  onRemove={this.handleRemoveToken}
+                />
+              ))}
           </PanelBody>
         </Panel>
       </div>

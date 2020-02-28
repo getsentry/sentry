@@ -63,14 +63,12 @@ export default class ResolutionBox extends React.Component {
     return t('This issue has been marked as resolved.');
   };
 
-  render = () => {
-    return (
-      <BannerContainer priority="default">
-        <BannerSummary>
-          <IconCheckmark color={theme.green} />
-          <span>{this.renderReason()}</span>
-        </BannerSummary>
-      </BannerContainer>
-    );
-  };
+  render = () => (
+    <BannerContainer priority="default">
+      <BannerSummary>
+        <IconCheckmark color={theme.green} />
+        <span>{this.renderReason()}</span>
+      </BannerSummary>
+    </BannerContainer>
+  );
 }

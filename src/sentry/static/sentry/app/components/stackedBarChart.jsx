@@ -106,12 +106,11 @@ class StackedBarChart extends React.Component {
     return !isEqual(this.props, nextProps);
   }
 
-  getInterval = series => {
+  getInterval = series =>
     // TODO(dcramer): not guaranteed correct
-    return series.length && series[0].data.length > 1
+    series.length && series[0].data.length > 1
       ? series[0].data[1].x - series[0].data[0].x
       : null;
-  };
 
   pointsToSeries = points => {
     const series = [];
@@ -353,13 +352,9 @@ class StackedBarChart extends React.Component {
         const p = pointIndex[k];
         return {x: p.x, y: p.y};
       })
-      .sort((a, b) => {
-        return a.x - b.x;
-      });
+      .sort((a, b) => a.x - b.x);
 
-    markers.sort((a, b) => {
-      return a.x - b.x;
-    });
+    markers.sort((a, b) => a.x - b.x);
 
     const children = [];
     const markerChildren = [];

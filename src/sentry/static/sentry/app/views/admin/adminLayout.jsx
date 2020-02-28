@@ -6,9 +6,7 @@ import ListLink from 'app/components/links/listLink';
 import Sidebar from 'app/components/sidebar';
 
 export default class AdminLayout extends React.Component {
-  getTitle = () => {
-    return 'Sentry Admin';
-  };
+  getTitle = () => 'Sentry Admin';
 
   render() {
     return (

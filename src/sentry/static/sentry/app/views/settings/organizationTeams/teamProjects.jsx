@@ -123,9 +123,7 @@ class TeamProjects extends React.Component {
   };
 
   handleProjectSelected = selection => {
-    const project = this.state.unlinkedProjects.find(p => {
-      return p.id === selection.value;
-    });
+    const project = this.state.unlinkedProjects.find(p => p.id === selection.value);
 
     this.handleLinkProject(project, 'add');
   };
@@ -179,13 +177,11 @@ class TeamProjects extends React.Component {
 
     const access = new Set(this.props.organization.access);
 
-    const otherProjects = unlinkedProjects.map(p => {
-      return {
-        value: p.id,
-        searchKey: p.slug,
-        label: <ProjectListElement>{p.slug}</ProjectListElement>,
-      };
-    });
+    const otherProjects = unlinkedProjects.map(p => ({
+      value: p.id,
+      searchKey: p.slug,
+      label: <ProjectListElement>{p.slug}</ProjectListElement>,
+    }));
 
     return (
       <React.Fragment>

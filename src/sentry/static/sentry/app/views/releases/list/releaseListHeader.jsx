@@ -12,17 +12,15 @@ import {
   StatsColumn,
 } from './layout';
 
-const ReleaseListHeader = () => {
-  return (
-    <PanelHeader>
-      <Layout>
-        <VersionColumn>{t('Version')}</VersionColumn>
-        <ProjectsColumn>{t('Project')}</ProjectsColumn>
-        <StatsColumn />
-        <CountColumn>{t('New Issues')}</CountColumn>
-        <LastEventColumn>{t('Last Event')}</LastEventColumn>
-      </Layout>
-    </PanelHeader>
-  );
-};
+const ReleaseListHeader = () => (
+  <PanelHeader>
+    <Layout>
+      <VersionColumn>{t('Version')}</VersionColumn>
+      <ProjectsColumn>{t('Project')}</ProjectsColumn>
+      <StatsColumn />
+      <CountColumn>{t('New Issues')}</CountColumn>
+      <LastEventColumn>{t('Last Event')}</LastEventColumn>
+    </Layout>
+  </PanelHeader>
+);
 export default ReleaseListHeader;

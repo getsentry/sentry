@@ -37,18 +37,16 @@ class AllTeamsList extends React.Component {
 
   render() {
     const {access, organization, urlPrefix, openMembership, useCreateModal} = this.props;
-    const teamNodes = this.props.teamList.map((team, teamIdx) => {
-      return (
-        <AllTeamsRow
-          urlPrefix={urlPrefix}
-          access={access}
-          team={team}
-          organization={organization}
-          openMembership={openMembership}
-          key={team.slug}
-        />
-      );
-    });
+    const teamNodes = this.props.teamList.map((team, teamIdx) => (
+      <AllTeamsRow
+        urlPrefix={urlPrefix}
+        access={access}
+        team={team}
+        organization={organization}
+        openMembership={openMembership}
+        key={team.slug}
+      />
+    ));
 
     if (teamNodes.length !== 0) {
       return teamNodes;

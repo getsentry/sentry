@@ -367,12 +367,12 @@ describe('OrganizationMemberDetail', function() {
     });
 
     it('can reset member 2FA', function() {
-      const deleteMocks = has2fa.user.authenticators.map(auth => {
-        return MockApiClient.addMockResponse({
+      const deleteMocks = has2fa.user.authenticators.map(auth =>
+        MockApiClient.addMockResponse({
           url: `/users/${has2fa.user.id}/authenticators/${auth.id}/`,
           method: 'DELETE',
-        });
-      });
+        })
+      );
 
       wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: has2fa.id}} />,

@@ -16,9 +16,7 @@ const getUsername = ({isManaged, username, email}) => {
   }
 };
 
-const getMemberListStoreUsernames = () => {
-  return MemberListStore.getAll().map(getUsername);
-};
+const getMemberListStoreUsernames = () => MemberListStore.getAll().map(getUsername);
 
 const TagStore = Reflux.createStore({
   listenables: TagActions,

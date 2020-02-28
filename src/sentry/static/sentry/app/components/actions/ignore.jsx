@@ -151,18 +151,16 @@ export default class IgnoreActions extends React.Component {
                 isNestedDropdown
                 alwaysRenderMenu
               >
-                {this.getIgnoreDurations().map(duration => {
-                  return (
-                    <MenuItem noAnchor key={duration}>
-                      <ActionLink
-                        {...actionLinkProps}
-                        onAction={() => this.onIgnore({ignoreDuration: duration})}
-                      >
-                        <Duration seconds={duration * 60} />
-                      </ActionLink>
-                    </MenuItem>
-                  );
-                })}
+                {this.getIgnoreDurations().map(duration => (
+                  <MenuItem noAnchor key={duration}>
+                    <ActionLink
+                      {...actionLinkProps}
+                      onAction={() => this.onIgnore({ignoreDuration: duration})}
+                    >
+                      <Duration seconds={duration * 60} />
+                    </ActionLink>
+                  </MenuItem>
+                ))}
                 <MenuItem divider />
                 <MenuItem noAnchor>
                   <a onClick={() => this.setState({modal: 'duration'})}>{t('Custom')}</a>
@@ -176,44 +174,40 @@ export default class IgnoreActions extends React.Component {
                 isNestedDropdown
                 alwaysRenderMenu
               >
-                {this.getIgnoreCounts().map(count => {
-                  return (
-                    <li className="dropdown-submenu" key={count}>
-                      <DropdownLink
-                        title={tn('one time\u2026', '%s times\u2026', count)}
-                        caret={false}
-                        isNestedDropdown
-                        alwaysRenderMenu
-                      >
-                        <MenuItem noAnchor>
+                {this.getIgnoreCounts().map(count => (
+                  <li className="dropdown-submenu" key={count}>
+                    <DropdownLink
+                      title={tn('one time\u2026', '%s times\u2026', count)}
+                      caret={false}
+                      isNestedDropdown
+                      alwaysRenderMenu
+                    >
+                      <MenuItem noAnchor>
+                        <ActionLink
+                          {...actionLinkProps}
+                          onAction={() => this.onIgnore({ignoreCount: count})}
+                        >
+                          {t('from now')}
+                        </ActionLink>
+                      </MenuItem>
+                      {this.getIgnoreWindows().map(([hours, label]) => (
+                        <MenuItem noAnchor key={hours}>
                           <ActionLink
                             {...actionLinkProps}
-                            onAction={() => this.onIgnore({ignoreCount: count})}
+                            onAction={() =>
+                              this.onIgnore({
+                                ignoreCount: count,
+                                ignoreWindow: hours,
+                              })
+                            }
                           >
-                            {t('from now')}
+                            {label}
                           </ActionLink>
                         </MenuItem>
-                        {this.getIgnoreWindows().map(([hours, label]) => {
-                          return (
-                            <MenuItem noAnchor key={hours}>
-                              <ActionLink
-                                {...actionLinkProps}
-                                onAction={() =>
-                                  this.onIgnore({
-                                    ignoreCount: count,
-                                    ignoreWindow: hours,
-                                  })
-                                }
-                              >
-                                {label}
-                              </ActionLink>
-                            </MenuItem>
-                          );
-                        })}
-                      </DropdownLink>
-                    </li>
-                  );
-                })}
+                      ))}
+                    </DropdownLink>
+                  </li>
+                ))}
                 <MenuItem divider />
                 <MenuItem noAnchor>
                   <a onClick={() => this.setState({modal: 'count'})}>{t('Custom')}</a>
@@ -227,44 +221,40 @@ export default class IgnoreActions extends React.Component {
                 isNestedDropdown
                 alwaysRenderMenu
               >
-                {this.getIgnoreCounts().map(count => {
-                  return (
-                    <li className="dropdown-submenu" key={count}>
-                      <DropdownLink
-                        title={tn('one user\u2026', '%s users\u2026', count)}
-                        caret={false}
-                        isNestedDropdown
-                        alwaysRenderMenu
-                      >
-                        <MenuItem noAnchor>
+                {this.getIgnoreCounts().map(count => (
+                  <li className="dropdown-submenu" key={count}>
+                    <DropdownLink
+                      title={tn('one user\u2026', '%s users\u2026', count)}
+                      caret={false}
+                      isNestedDropdown
+                      alwaysRenderMenu
+                    >
+                      <MenuItem noAnchor>
+                        <ActionLink
+                          {...actionLinkProps}
+                          onAction={() => this.onIgnore({ignoreUserCount: count})}
+                        >
+                          {t('from now')}
+                        </ActionLink>
+                      </MenuItem>
+                      {this.getIgnoreWindows().map(([hours, label]) => (
+                        <MenuItem noAnchor key={hours}>
                           <ActionLink
                             {...actionLinkProps}
-                            onAction={() => this.onIgnore({ignoreUserCount: count})}
+                            onAction={() =>
+                              this.onIgnore({
+                                ignoreUserCount: count,
+                                ignoreUserWindow: hours,
+                              })
+                            }
                           >
-                            {t('from now')}
+                            {label}
                           </ActionLink>
                         </MenuItem>
-                        {this.getIgnoreWindows().map(([hours, label]) => {
-                          return (
-                            <MenuItem noAnchor key={hours}>
-                              <ActionLink
-                                {...actionLinkProps}
-                                onAction={() =>
-                                  this.onIgnore({
-                                    ignoreUserCount: count,
-                                    ignoreUserWindow: hours,
-                                  })
-                                }
-                              >
-                                {label}
-                              </ActionLink>
-                            </MenuItem>
-                          );
-                        })}
-                      </DropdownLink>
-                    </li>
-                  );
-                })}
+                      ))}
+                    </DropdownLink>
+                  </li>
+                ))}
                 <MenuItem divider />
                 <MenuItem noAnchor>
                   <a onClick={() => this.setState({modal: 'users'})}>{t('Custom')}</a>

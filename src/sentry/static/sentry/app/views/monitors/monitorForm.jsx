@@ -117,9 +117,7 @@ class MonitorForm extends Component {
                   disabled={!hasAccess}
                   choices={this.props.organization.projects
                     .filter(p => p.isMember)
-                    .map(p => {
-                      return [p.slug, p.slug];
-                    })}
+                    .map(p => [p.slug, p.slug])}
                   required
                 />
                 <TextField

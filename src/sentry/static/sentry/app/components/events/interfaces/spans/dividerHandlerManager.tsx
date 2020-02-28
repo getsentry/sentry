@@ -38,12 +38,8 @@ const DividerManagerContext = React.createContext<DividerHandlerManagerChildrenP
   dividerPosition: DEFAULT_DIVIDER_POSITION,
   onDragStart: () => {},
   setHover: () => {},
-  addDividerLineRef: () => {
-    return React.createRef<HTMLDivElement>();
-  },
-  addGhostDividerLineRef: () => {
-    return React.createRef<HTMLDivElement>();
-  },
+  addDividerLineRef: () => React.createRef<HTMLDivElement>(),
+  addGhostDividerLineRef: () => React.createRef<HTMLDivElement>(),
 });
 
 type PropType = {
@@ -65,9 +61,7 @@ export class Provider extends React.Component<PropType, StateType> {
   dividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
   ghostDividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
 
-  hasInteractiveLayer = (): boolean => {
-    return !!this.props.interactiveLayerRef.current;
-  };
+  hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
 
   addDividerLineRef = () => {
     const ref = React.createRef<HTMLDivElement>();

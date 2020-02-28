@@ -114,12 +114,8 @@ class TraceView extends React.PureComponent<Props, State> {
         ]);
 
         const basicValues: string[] = Object.values(pickedSpan)
-          .filter(value => {
-            return !!value;
-          })
-          .map(value => {
-            return String(value);
-          });
+          .filter(value => !!value)
+          .map(value => String(value));
 
         indexed.push(...basicValues);
 
@@ -140,9 +136,9 @@ class TraceView extends React.PureComponent<Props, State> {
         let dataValues: string[] = [];
         if (data) {
           dataKeys = Object.keys(data);
-          dataValues = Object.values(data).map(value => {
-            return JSON.stringify(value, null, 4) || '';
-          });
+          dataValues = Object.values(data).map(
+            value => JSON.stringify(value, null, 4) || ''
+          );
         }
 
         return {
@@ -185,15 +181,13 @@ class TraceView extends React.PureComponent<Props, State> {
     });
   }
 
-  renderHeader = (dragProps: DragManagerChildrenProps, parsedTrace: ParsedTraceType) => {
-    return (
-      <TraceViewHeader
-        minimapInteractiveRef={this.minimapInteractiveRef}
-        dragProps={dragProps}
-        trace={parsedTrace}
-      />
-    );
-  };
+  renderHeader = (dragProps: DragManagerChildrenProps, parsedTrace: ParsedTraceType) => (
+    <TraceViewHeader
+      minimapInteractiveRef={this.minimapInteractiveRef}
+      dragProps={dragProps}
+      trace={parsedTrace}
+    />
+  );
 
   render() {
     const {event} = this.props;
@@ -211,24 +205,22 @@ class TraceView extends React.PureComponent<Props, State> {
 
     return (
       <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
-        {(dragProps: DragManagerChildrenProps) => {
-          return (
-            <CursorGuideHandler.Provider
-              interactiveLayerRef={this.minimapInteractiveRef}
-              dragProps={dragProps}
+        {(dragProps: DragManagerChildrenProps) => (
+          <CursorGuideHandler.Provider
+            interactiveLayerRef={this.minimapInteractiveRef}
+            dragProps={dragProps}
+            trace={parsedTrace}
+          >
+            {this.renderHeader(dragProps, parsedTrace)}
+            <SpanTree
+              eventView={eventView}
               trace={parsedTrace}
-            >
-              {this.renderHeader(dragProps, parsedTrace)}
-              <SpanTree
-                eventView={eventView}
-                trace={parsedTrace}
-                dragProps={dragProps}
-                filterSpans={this.state.filterSpans}
-                orgId={orgId}
-              />
-            </CursorGuideHandler.Provider>
-          );
-        }}
+              dragProps={dragProps}
+              filterSpans={this.state.filterSpans}
+              orgId={orgId}
+            />
+          </CursorGuideHandler.Provider>
+        )}
       </DragManager>
     );
   }

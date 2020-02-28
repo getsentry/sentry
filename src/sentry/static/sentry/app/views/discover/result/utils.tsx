@@ -21,18 +21,14 @@ const CHART_KEY = '__CHART_KEY__';
 export function getChartData(data: any[], query: any) {
   const {fields} = query;
 
-  return query.aggregations.map((aggregation: Aggregation) => {
-    return {
-      seriesName: aggregation[2],
-      animation: false,
-      data: data.map(res => {
-        return {
-          value: res[aggregation[2]],
-          name: fields.map((field: string) => `${field} ${res[field]}`).join(' '),
-        };
-      }),
-    };
-  });
+  return query.aggregations.map((aggregation: Aggregation) => ({
+    seriesName: aggregation[2],
+    animation: false,
+    data: data.map(res => ({
+      value: res[aggregation[2]],
+      name: fields.map((field: string) => `${field} ${res[field]}`).join(' '),
+    })),
+  }));
 }
 
 /**
@@ -133,12 +129,10 @@ export function getChartDataByDay(rawData: any[], query: Query, options: any = {
   });
 
   // Format for echarts
-  return Object.entries(seriesHash).map(([seriesName, series]) => {
-    return {
-      seriesName,
-      data: series,
-    };
-  });
+  return Object.entries(seriesHash).map(([seriesName, series]) => ({
+    seriesName,
+    data: series,
+  }));
 }
 
 /**
@@ -193,12 +187,10 @@ function getEmptySeriesHash(seriesSet: any, dates: number[]): any {
 }
 
 function getEmptySeries(dates: number[]) {
-  return dates.map(date => {
-    return {
-      value: 0,
-      name: date,
-    };
-  });
+  return dates.map(date => ({
+    value: 0,
+    name: date,
+  }));
 }
 
 // Get the top series ranked by latest time / largest aggregate
@@ -362,9 +354,7 @@ export function downloadAsCsv(result: SnubaResult) {
 
   const csvContent = Papa.unparse({
     fields: headings,
-    data: data.map(row => {
-      return headings.map(col => disableMacros(row[col]));
-    }),
+    data: data.map(row => headings.map(col => disableMacros(row[col]))),
   });
 
   // Need to also manually replace # since encodeURI skips them

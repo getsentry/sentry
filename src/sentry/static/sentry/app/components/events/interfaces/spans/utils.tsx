@@ -43,23 +43,19 @@ export const rectOfContent = (element: Element): Rect => {
   };
 };
 
-export const rectOfViewport = (): Rect => {
-  return {
-    x: window.pageXOffset,
-    y: window.pageYOffset,
-    width: window.document.documentElement.clientWidth,
-    height: window.document.documentElement.clientHeight,
-  };
-};
+export const rectOfViewport = (): Rect => ({
+  x: window.pageXOffset,
+  y: window.pageYOffset,
+  width: window.document.documentElement.clientWidth,
+  height: window.document.documentElement.clientHeight,
+});
 
-export const rectRelativeTo = (rect: Rect, pos = {x: 0, y: 0}): Rect => {
-  return {
-    x: rect.x - pos.x,
-    y: rect.y - pos.y,
-    width: rect.width,
-    height: rect.height,
-  };
-};
+export const rectRelativeTo = (rect: Rect, pos = {x: 0, y: 0}): Rect => ({
+  x: rect.x - pos.x,
+  y: rect.y - pos.y,
+  width: rect.width,
+  height: rect.height,
+});
 
 export const rectOfElement = (element: HTMLElement): Rect => {
   const {x, y} = getOffsetOfElement(element);
@@ -81,13 +77,10 @@ export const clamp = (value: number, min: number, max: number): number => {
   return value;
 };
 
-export const isValidSpanID = (maybeSpanID: any) => {
-  return isString(maybeSpanID) && maybeSpanID.length > 0;
-};
+export const isValidSpanID = (maybeSpanID: any) =>
+  isString(maybeSpanID) && maybeSpanID.length > 0;
 
-export const toPercent = (value: number) => {
-  return `${(value * 100).toFixed(3)}%`;
-};
+export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
 
 export type SpanBoundsType = {startTimestamp: number; endTimestamp: number};
 export type SpanGeneratedBoundsType =

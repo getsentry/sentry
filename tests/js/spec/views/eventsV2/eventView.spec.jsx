@@ -5,22 +5,16 @@ import EventView, {
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
 import {CHART_AXIS_OPTIONS} from 'app/views/eventsV2/data';
 
-const generateFields = fields => {
-  return fields.map(field => {
-    return {
-      field,
-    };
-  });
-};
+const generateFields = fields =>
+  fields.map(field => ({
+    field,
+  }));
 
-const generateSorts = sorts => {
-  return sorts.map(sortName => {
-    return {
-      field: sortName,
-      kind: 'desc',
-    };
-  });
-};
+const generateSorts = sorts =>
+  sorts.map(sortName => ({
+    field: sortName,
+    kind: 'desc',
+  }));
 
 describe('EventView constructor', function() {
   it('instantiates default values', function() {

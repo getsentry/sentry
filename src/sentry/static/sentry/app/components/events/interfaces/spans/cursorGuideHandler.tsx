@@ -45,9 +45,7 @@ export class Provider extends React.Component<PropType, StateType> {
     traceViewMouseLeft: void 0,
   };
 
-  hasInteractiveLayer = (): boolean => {
-    return !!this.props.interactiveLayerRef.current;
-  };
+  hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
 
   displayCursorGuide = (mousePageX: number) => {
     if (!this.hasInteractiveLayer()) {

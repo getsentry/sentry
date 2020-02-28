@@ -27,7 +27,5 @@ export default function getStacktraceBody(event) {
   return exc.data.values
     .filter(value => !!value.stacktrace)
     .map(value => rawStacktraceContent(value.stacktrace, event.platform, value))
-    .reduce((acc, value) => {
-      return acc.concat(value);
-    }, []);
+    .reduce((acc, value) => acc.concat(value), []);
 }

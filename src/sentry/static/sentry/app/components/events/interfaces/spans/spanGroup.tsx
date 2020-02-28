@@ -34,11 +34,9 @@ class SpanGroup extends React.Component<PropType, State> {
   };
 
   toggleSpanTree = () => {
-    this.setState(state => {
-      return {
-        showSpanTree: !state.showSpanTree,
-      };
-    });
+    this.setState(state => ({
+      showSpanTree: !state.showSpanTree,
+    }));
   };
 
   renderSpanChildren = () => {

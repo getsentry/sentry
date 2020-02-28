@@ -103,15 +103,13 @@ class AccountAuthorizations extends AsyncView {
 
             {!isEmpty && (
               <div>
-                {data.map(authorization => {
-                  return (
-                    <AuthorizationRow
-                      key={authorization.id}
-                      authorization={authorization}
-                      onRevoke={this.handleRevoke}
-                    />
-                  );
-                })}
+                {data.map(authorization => (
+                  <AuthorizationRow
+                    key={authorization.id}
+                    authorization={authorization}
+                    onRevoke={this.handleRevoke}
+                  />
+                ))}
               </div>
             )}
           </PanelBody>

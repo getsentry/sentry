@@ -222,14 +222,14 @@ class Search extends React.Component {
                         </LoadingWrapper>
                       )}
                       {!isLoading &&
-                        results.slice(0, maxResults).map((resultObj, index) => {
-                          return this.renderItem({
+                        results.slice(0, maxResults).map((resultObj, index) =>
+                          this.renderItem({
                             resultObj,
                             index,
                             highlightedIndex,
                             getItemProps,
-                          });
-                        })}
+                          })
+                        )}
                       {!isLoading && !hasAnyResults && (
                         <EmptyItem>{t('No results found')}</EmptyItem>
                       )}

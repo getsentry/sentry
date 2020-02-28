@@ -25,17 +25,15 @@ class IssueListSortOptions extends React.PureComponent {
     });
   }
 
-  getMenuItem = key => {
-    return (
-      <DropdownItem
-        onSelect={this.onSelect}
-        eventKey={key}
-        isActive={this.state.sortKey === key}
-      >
-        {this.getSortLabel(key)}
-      </DropdownItem>
-    );
-  };
+  getMenuItem = key => (
+    <DropdownItem
+      onSelect={this.onSelect}
+      eventKey={key}
+      isActive={this.state.sortKey === key}
+    >
+      {this.getSortLabel(key)}
+    </DropdownItem>
+  );
 
   onSelect = sort => {
     this.setState({sortKey: sort});

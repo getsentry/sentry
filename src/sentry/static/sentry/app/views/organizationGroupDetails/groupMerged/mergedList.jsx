@@ -22,13 +22,11 @@ class MergedList extends React.Component {
     projectId: PropTypes.string.isRequired,
   };
 
-  renderEmpty = () => {
-    return (
-      <EmptyStateWarning>
-        <p>{t("There don't seem to be any hashes for this issue.")}</p>
-      </EmptyStateWarning>
-    );
-  };
+  renderEmpty = () => (
+    <EmptyStateWarning>
+      <p>{t("There don't seem to be any hashes for this issue.")}</p>
+    </EmptyStateWarning>
+  );
 
   render() {
     const {items, pageLinks, onToggleCollapse, onUnmerge, orgId, projectId} = this.props;

@@ -86,16 +86,14 @@ class EventOrGroupExtraDetails extends React.Component {
           </LoggerAnnotation>
         )}
         {annotations &&
-          annotations.map((annotation, key) => {
-            return (
-              <AnnotationNoMargin
-                dangerouslySetInnerHTML={{
-                  __html: annotation,
-                }}
-                key={key}
-              />
-            );
-          })}
+          annotations.map((annotation, key) => (
+            <AnnotationNoMargin
+              dangerouslySetInnerHTML={{
+                __html: annotation,
+              }}
+              key={key}
+            />
+          ))}
 
         {showAssignee && assignedTo && (
           <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>

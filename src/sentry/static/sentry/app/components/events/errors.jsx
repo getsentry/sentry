@@ -33,9 +33,7 @@ class EventErrors extends React.Component {
     this.setState({isOpen: !this.state.isOpen});
   };
 
-  uniqueErrors = errors => {
-    return uniqWith(errors, isEqual);
-  };
+  uniqueErrors = errors => uniqWith(errors, isEqual);
 
   render() {
     const eventErrors = this.props.event.errors;
@@ -63,9 +61,9 @@ class EventErrors extends React.Component {
           data-test-id="event-error-details"
           style={{display: isOpen ? 'block' : 'none'}}
         >
-          {errors.map((error, errorIdx) => {
-            return <EventErrorItem key={errorIdx} error={error} />;
-          })}
+          {errors.map((error, errorIdx) => (
+            <EventErrorItem key={errorIdx} error={error} />
+          ))}
         </ErrorList>
       </StyledBanner>
     );

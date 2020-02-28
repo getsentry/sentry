@@ -32,9 +32,7 @@ const User = ({data}: Props) => {
     return null;
   }
 
-  const getKeyValueData = (val: object) => {
-    return Object.keys(val).map(key => [key, val[key]]);
-  };
+  const getKeyValueData = (val: object) => Object.keys(val).map(key => [key, val[key]]);
 
   return (
     <div className="user-widget">

@@ -204,27 +204,25 @@ class OrganizationMembersList extends AsyncView<Props, State> {
           <PanelHeader>{t('Members')}</PanelHeader>
 
           <PanelBody>
-            {members.map(member => {
-              return (
-                <OrganizationMemberRow
-                  routes={routes}
-                  params={params}
-                  key={member.id}
-                  member={member}
-                  status={this.state.invited[member.id]}
-                  orgId={params.orgId}
-                  orgName={orgName}
-                  memberCanLeave={!isOnlyOwner}
-                  currentUser={currentUser}
-                  canRemoveMembers={canRemove}
-                  canAddMembers={canAddMembers}
-                  requireLink={requireLink}
-                  onSendInvite={this.handleSendInvite}
-                  onRemove={this.handleRemove}
-                  onLeave={this.handleLeave}
-                />
-              );
-            })}
+            {members.map(member => (
+              <OrganizationMemberRow
+                routes={routes}
+                params={params}
+                key={member.id}
+                member={member}
+                status={this.state.invited[member.id]}
+                orgId={params.orgId}
+                orgName={orgName}
+                memberCanLeave={!isOnlyOwner}
+                currentUser={currentUser}
+                canRemoveMembers={canRemove}
+                canAddMembers={canAddMembers}
+                requireLink={requireLink}
+                onSendInvite={this.handleSendInvite}
+                onRemove={this.handleRemove}
+                onLeave={this.handleLeave}
+              />
+            ))}
             {members.length === 0 && (
               <EmptyMessage>{t('No members found.')}</EmptyMessage>
             )}

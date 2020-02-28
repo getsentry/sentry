@@ -55,9 +55,7 @@ const getDateTimeString = (
       return undefined;
     }
 
-    const result = maybe.find(needle => {
-      return moment.utc(needle).isValid();
-    });
+    const result = maybe.find(needle => moment.utc(needle).isValid());
 
     return normalizeDateTimeString(result);
   }
@@ -78,9 +76,7 @@ const getUtcValue = (maybe: string | string[] | undefined | null): string | unde
       return undefined;
     }
 
-    return maybe.find(needle => {
-      return !!parseUtcValue(needle);
-    });
+    return maybe.find(needle => !!parseUtcValue(needle));
   }
 
   maybe = parseUtcValue(maybe);

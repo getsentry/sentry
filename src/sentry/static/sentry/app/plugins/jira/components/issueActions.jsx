@@ -88,9 +88,7 @@ class IssueActions extends DefaultIssuePlugin.DefaultIssueActions {
             </div>
           );
         };
-        const isRequired = f => {
-          return f.required !== null ? f.required : true;
-        };
+        const isRequired = f => (f.required !== null ? f.required : true);
 
         const fields = this.state.createFieldList;
         const requiredFields = fields.filter(f => isRequired(f)).map(f => renderField(f));

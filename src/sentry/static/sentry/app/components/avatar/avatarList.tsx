@@ -65,18 +65,16 @@ export default class AvatarList extends React.Component<Props> {
             </CollapsedUsers>
           </Tooltip>
         )}
-        {visibleUsers.map(user => {
-          return (
-            <StyledAvatar
-              key={`${user.id}-${user.email}`}
-              user={user}
-              size={avatarSize}
-              renderTooltip={renderTooltip}
-              tooltipOptions={tooltipOptions}
-              hasTooltip
-            />
-          );
-        })}
+        {visibleUsers.map(user => (
+          <StyledAvatar
+            key={`${user.id}-${user.email}`}
+            user={user}
+            size={avatarSize}
+            renderTooltip={renderTooltip}
+            tooltipOptions={tooltipOptions}
+            hasTooltip
+          />
+        ))}
       </AvatarListWrapper>
     );
   }

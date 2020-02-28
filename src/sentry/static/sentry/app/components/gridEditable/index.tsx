@@ -418,9 +418,9 @@ class GridEditable<
     return (
       <GridRow>
         {prependColumns &&
-          prependColumns.map((item, i) => {
-            return <GridHeadCellStatic key={`prepend-${i}`}>{item}</GridHeadCellStatic>;
-          })}
+          prependColumns.map((item, i) => (
+            <GridHeadCellStatic key={`prepend-${i}`}>{item}</GridHeadCellStatic>
+          ))}
         {/* Note that this.onResizeMouseDown assumes GridResizer is nested
             2 levels under GridHeadCell */
         columnOrder.map((column, i) => (
@@ -481,9 +481,9 @@ class GridEditable<
     return (
       <GridRow key={row}>
         {prependColumns &&
-          prependColumns.map((item, i) => {
-            return <GridBodyCell key={`prepend-${i}`}>{item}</GridBodyCell>;
-          })}
+          prependColumns.map((item, i) => (
+            <GridBodyCell key={`prepend-${i}`}>{item}</GridBodyCell>
+          ))}
         {columnOrder.map((col, i) => (
           <GridBodyCell key={`${col.key}${i}`}>
             {grid.renderBodyCell ? grid.renderBodyCell(col, dataRow) : dataRow[col.key]}

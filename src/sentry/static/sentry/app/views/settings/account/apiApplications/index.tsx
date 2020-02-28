@@ -75,16 +75,14 @@ class ApiApplications extends AsyncView<Props, State> {
 
           <PanelBody>
             {!isEmpty ? (
-              this.state.appList.map(app => {
-                return (
-                  <Row
-                    api={this.api}
-                    key={app.id}
-                    app={app}
-                    onRemove={this.handleRemoveApplication}
-                  />
-                );
-              })
+              this.state.appList.map(app => (
+                <Row
+                  api={this.api}
+                  key={app.id}
+                  app={app}
+                  onRemove={this.handleRemoveApplication}
+                />
+              ))
             ) : (
               <EmptyMessage>
                 {t("You haven't created any applications yet.")}
