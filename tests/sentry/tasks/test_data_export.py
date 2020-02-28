@@ -51,6 +51,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de1.file is not None
         f1 = de1.file
         assert isinstance(f1, File)
+        assert f1.headers == {"Content-Type": "text/csv"}
         raw1 = f1.getfile().read()
         assert raw1 == "value,id,email,username,ip_address,times_seen,last_seen,first_seen\r\n"
         de2 = ExportedData.objects.create(
