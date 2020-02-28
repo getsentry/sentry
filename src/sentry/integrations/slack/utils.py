@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import time
+from datetime import timedelta
 
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
@@ -10,7 +11,7 @@ from sentry import http
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
-from sentry.incidents.models import IncidentStatus
+from sentry.incidents.models import IncidentStatus, IncidentTrigger
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import metrics, json
 from sentry.utils.assets import get_asset_url
@@ -293,7 +294,21 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
 def build_incident_attachment(incident):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
-    aggregates = get_incident_aggregates(incident)
+
+    incident_trigger = (
+        IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
+    )
+    if incident_trigger:
+        alert_rule_trigger = incident_trigger.alert_rule_trigger
+        # TODO: If we're relying on this and expecting possible delays between a trigger fired and this function running,
+        # then this could actually be incorrect if they changed the trigger's time window in this time period. Should we store it?
+        start = incident_trigger.date_modified - timedelta(
+            minutes=alert_rule_trigger.alert_rule.time_window
+        )
+        end = incident_trigger.date_modified
+    else:
+        start, end = None, None
+    aggregates = get_incident_aggregates(incident, start, end)
 
     if incident.status == IncidentStatus.CLOSED.value:
         status = "Resolved"
@@ -317,7 +332,7 @@ def build_incident_attachment(incident):
     text = "{} {} in the last {} minutes".format(agg_value, agg_text, time_window)
 
     if alert_rule.query != "":
-        text = text + "\Filter: {}".format(alert_rule.query)
+        text = text + "\nFilter: {}".format(alert_rule.query)
 
     ts = incident.date_started
 

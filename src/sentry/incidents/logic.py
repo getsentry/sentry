@@ -366,13 +366,13 @@ def get_alert_rule_environment_names(alert_rule):
     return [x.environment.name for x in AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)]
 
 
-def get_incident_aggregates(incident):
+def get_incident_aggregates(incident, start=None, end=None, prewindow=False):
     """
-    Calculates aggregate stats across the life of an incident.
+    Calculates aggregate stats across the life of an incident, or the provided range.
     - count: Total count of events
     - unique_users: Total number of unique users
     """
-    query_params = build_incident_query_params(incident)
+    query_params = build_incident_query_params(incident, start, end, prewindow)
     return bulk_get_incident_aggregates([query_params])[0]
 
 
