@@ -38,10 +38,7 @@ class DataExportTest(APITestCase):
             "dateCreated": data_export.date_added,
             "dateFinished": None,
             "dateExpired": None,
-            "query": {
-                "type": ExportQueryType.as_str(self.payload["query_type"]),
-                "info": self.payload["query_info"],
-            },
+            "query": {"type": self.payload["query_type"], "info": self.payload["query_info"]},
             "status": ExportStatus.Early,
         }
 
