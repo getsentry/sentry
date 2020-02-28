@@ -264,7 +264,7 @@ class OrganizationUpdateTest(APITestCase):
 
         response = self.client.put(url, data=data)
         assert response.status_code == 400
-        assert "feature" in response.content
+        assert b"feature" in response.content
 
     def test_setting_trusted_relays(self):
         org = self.create_organization(owner=self.user)

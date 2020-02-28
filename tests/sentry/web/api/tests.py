@@ -359,7 +359,7 @@ class StoreViewTest(TestCase):
 
         resp = self._postWithHeader(body, HTTP_ORIGIN="lolnope.com")
         assert resp.status_code == 403, (resp.status_code, resp.content)
-        assert "Invalid origin" in resp.content
+        assert b"Invalid origin" in resp.content
 
     def test_request_with_beginning_glob(self):
         self.project.update_option(
@@ -643,7 +643,7 @@ class CrossDomainXmlTest(TestCase):
         assert resp.status_code == 200, resp.content
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert '<allow-access-from domain="*" secure="false" />' in resp.content.decode("utf-8")
+        assert b'<allow-access-from domain="*" secure="false" />' in resp.content
 
     @mock.patch("sentry.web.api.get_origins")
     def test_output_with_whitelist(self, get_origins):
@@ -653,13 +653,8 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert '<allow-access-from domain="disqus.com" secure="false" />' in resp.content.decode(
-            "utf-8"
-        )
-        assert (
-            '<allow-access-from domain="www.disqus.com" secure="false" />'
-            in resp.content.decode("utf-8")
-        )
+        assert b'<allow-access-from domain="disqus.com" secure="false" />' in resp.content
+        assert b'<allow-access-from domain="www.disqus.com" secure="false" />' in resp.content
 
     @mock.patch("sentry.web.api.get_origins")
     def test_output_with_no_origins(self, get_origins):
@@ -669,7 +664,7 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert "<allow-access-from" not in resp.content.decode("utf-8")
+        assert b"<allow-access-from" not in resp.content
 
     def test_output_allows_x_sentry_auth(self):
         resp = self.client.get(self.path)
@@ -677,8 +672,8 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
         assert (
-            '<allow-http-request-headers-from domain="*" headers="*" secure="false" />'
-            in resp.content.decode("utf-8")
+            b'<allow-http-request-headers-from domain="*" headers="*" secure="false" />'
+            in resp.content
         )
 
 

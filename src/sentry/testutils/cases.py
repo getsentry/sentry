@@ -498,7 +498,7 @@ class TwoFactorAPITestCase(APITestCase):
         response = self.api_enable_org_2fa(organization, user)
         assert response.status_code == status_code
         if err_msg:
-            assert err_msg in response.content
+            assert err_msg.encode("utf-8") in response.content
         organization = Organization.objects.get(id=organization.id)
 
         if status_code >= 200 and status_code < 300:
@@ -745,7 +745,7 @@ class IntegrationTestCase(TestCase):
         self.save_session()
 
     def assertDialogSuccess(self, resp):
-        assert "window.opener.postMessage(" in resp.content
+        assert b"window.opener.postMessage(" in resp.content
 
 
 @pytest.mark.snuba
