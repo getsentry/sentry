@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import pytz
 import six
@@ -18,7 +18,7 @@ def floor_to_hour_epoch(value):
 
 def floor_to_10s_epoch(value):
     seconds = value.second
-    floored_second = 10 * (seconds / 10)
+    floored_second = 10 * (seconds // 10)
 
     value = value.replace(second=floored_second, microsecond=0)
     return int(to_timestamp(value))
