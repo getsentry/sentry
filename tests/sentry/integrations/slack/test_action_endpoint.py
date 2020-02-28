@@ -275,7 +275,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
 
         # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == ""
+        assert resp.content == b""
 
         data = parse_qs(responses.calls[0].request.body)
         assert data["token"][0] == self.integration.metadata["access_token"]
@@ -354,7 +354,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
 
         # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == ""
+        assert resp.content == b""
 
         data = parse_qs(responses.calls[0].request.body)
         assert data["token"][0] == self.integration.metadata["access_token"]
