@@ -173,10 +173,14 @@ const SelectControl = props => {
 
   // Value is expected to be object like the options list, we map it back from
   // the options list
-  const mappedValue =
-    props.multiple && Array.isArray(value)
-      ? value.map(val => choicesOrOptions.find(option => option.value === val))
-      : choicesOrOptions.find(opt => opt.value === value) || value;
+  let mappedValue = value;
+
+  if (choicesOrOptions) {
+    mappedValue =
+      props.multiple && Array.isArray(value)
+        ? value.map(val => choicesOrOptions.find(option => option.value === val))
+        : choicesOrOptions.find(opt => opt.value === value) || value;
+  }
 
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
