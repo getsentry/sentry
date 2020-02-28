@@ -51,10 +51,9 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       await this.api.requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'});
       this.remountComponent();
     } catch (_err) {
+      this.setState({loading: false});
       addErrorMessage(t('Error disabling %s', auth.name));
     }
-
-    this.setState({loading: false});
   };
 
   handleRegenerateBackupCodes = async () => {
