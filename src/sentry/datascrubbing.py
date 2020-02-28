@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import re
 import copy
 
 import sentry_relay
@@ -9,8 +8,6 @@ import six
 from sentry.utils import metrics
 from sentry.utils.canonical import CanonicalKeyDict
 
-_KEY_RE = re.compile(u"^[a-zA-Z0-9_-]+$")
-
 
 def _escape_key(key):
     """
@@ -18,11 +15,8 @@ def _escape_key(key):
 
     If this fails and we cannot represent the key, return None
     """
-    if _KEY_RE.match(key):
-        return key
 
-    # TODO: Quote string here once it's implemented in Relay
-    return None
+    return u"'{}'".format(key.replace("'", "''"))
 
 
 def _path_selectors_from_diff(old_data, data):
