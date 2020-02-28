@@ -97,21 +97,19 @@ class BreadcrumbDropdown extends React.Component {
         onSelect={onSelect}
         virtualizedHeight={41}
       >
-        {({getActorProps, actions, isOpen}) => {
-          return (
-            <Crumb
-              {...getActorProps({
-                hasMenu,
-                onClick: this.handleClickActor.bind(this, actions),
-                onMouseEnter: this.handleMouseEnterActor.bind(this, actions),
-                onMouseLeave: this.handleMouseLeave.bind(this, actions),
-              })}
-            >
-              <span>{name || route.name} </span>
-              <Divider isHover={hasMenu && isOpen} isLast={isLast} />
-            </Crumb>
-          );
-        }}
+        {({getActorProps, actions, isOpen}) => (
+          <Crumb
+            {...getActorProps({
+              hasMenu,
+              onClick: this.handleClickActor.bind(this, actions),
+              onMouseEnter: this.handleMouseEnterActor.bind(this, actions),
+              onMouseLeave: this.handleMouseLeave.bind(this, actions),
+            })}
+          >
+            <span>{name || route.name} </span>
+            <Divider isHover={hasMenu && isOpen} isLast={isLast} />
+          </Crumb>
+        )}
       </DropdownAutoCompleteMenu>
     );
   }

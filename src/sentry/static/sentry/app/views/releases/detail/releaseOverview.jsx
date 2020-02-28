@@ -54,15 +54,13 @@ export default class ReleaseOverview extends AsyncComponent {
             <ReleaseIssues version={version} orgId={orgId} query={query} />
             {hasRepos && (
               <div>
-                {Object.keys(filesByRepository).map((repository, i) => {
-                  return (
-                    <RepositoryFileSummary
-                      key={i}
-                      repository={repository}
-                      fileChangeSummary={filesByRepository[repository]}
-                    />
-                  );
-                })}
+                {Object.keys(filesByRepository).map((repository, i) => (
+                  <RepositoryFileSummary
+                    key={i}
+                    repository={repository}
+                    fileChangeSummary={filesByRepository[repository]}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -77,16 +75,14 @@ export default class ReleaseOverview extends AsyncComponent {
                 <ul className="nav nav-stacked">
                   {release.projects.length === 0
                     ? this.renderEmpty()
-                    : release.projects.map(project => {
-                        return (
-                          <ReleaseProjectStatSparkline
-                            key={project.slug}
-                            orgId={orgId}
-                            project={project}
-                            version={version}
-                          />
-                        );
-                      })}
+                    : release.projects.map(project => (
+                        <ReleaseProjectStatSparkline
+                          key={project.slug}
+                          orgId={orgId}
+                          project={project}
+                          version={version}
+                        />
+                      ))}
                 </ul>
               </div>
             ) : (

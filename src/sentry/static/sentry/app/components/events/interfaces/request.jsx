@@ -32,12 +32,11 @@ class RequestInterface extends React.Component {
     };
   }
 
-  isPartial = () => {
+  isPartial = () =>
     // We assume we only have a partial interface is we're missing
     // an HTTP method. This means we don't have enough information
     // to reliably construct a full HTTP request.
-    return !this.props.data.method || !this.props.data.url;
-  };
+    !this.props.data.method || !this.props.data.url;
 
   toggleView = value => {
     this.setState({

@@ -26,13 +26,11 @@ export function trackQuery(organization: Organization, query: Query) {
 
   data.conditions =
     query.conditions &&
-    query.conditions.map(condition => {
-      return [
-        condition[0],
-        condition[1],
-        typeof condition[2] === 'string' ? '[REDACTED]' : condition[2],
-      ];
-    });
+    query.conditions.map(condition => [
+      condition[0],
+      condition[1],
+      typeof condition[2] === 'string' ? '[REDACTED]' : condition[2],
+    ]);
 
   analytics('discover.query', data);
 }

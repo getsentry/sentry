@@ -47,11 +47,9 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   }
 
   handleDelete = (deletedAttachmentId: string) => {
-    this.setState(prevState => {
-      return {
-        deletedAttachments: [...prevState.deletedAttachments, deletedAttachmentId],
-      };
-    });
+    this.setState(prevState => ({
+      deletedAttachments: [...prevState.deletedAttachments, deletedAttachmentId],
+    }));
   };
 
   renderNoQueryResults() {

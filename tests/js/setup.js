@@ -78,9 +78,7 @@ jest.mock('react-virtualized', () => {
   const ActualReactVirtualized = require.requireActual('react-virtualized');
   return {
     ...ActualReactVirtualized,
-    AutoSizer: ({children}) => {
-      return children({width: 100, height: 100});
-    },
+    AutoSizer: ({children}) => children({width: 100, height: 100}),
   };
 });
 
@@ -207,8 +205,6 @@ window.TestStubs = {
     },
   }),
 
-  AllAuthenticators: () => {
-    return Object.values(fixtures.Authenticators()).map(x => x());
-  },
+  AllAuthenticators: () => Object.values(fixtures.Authenticators()).map(x => x()),
   ...fixtures,
 };

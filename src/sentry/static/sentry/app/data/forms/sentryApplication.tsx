@@ -68,9 +68,7 @@ const getPublicFormFields = (): Field[] => [
     label: 'Schema',
     autosize: true,
     help: 'Schema for your UI components',
-    getValue: (val: string) => {
-      return val === '' ? {} : JSON.parse(val);
-    },
+    getValue: (val: string) => (val === '' ? {} : JSON.parse(val)),
     setValue: (val: string) => {
       const schema = JSON.stringify(val, null, 2);
       if (schema === '{}') {

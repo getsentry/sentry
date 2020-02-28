@@ -10,27 +10,25 @@ import DateRange from 'app/components/organizations/timeRangeSelector/dateRange'
 const start = new Date(1507948680000);
 const end = new Date(1508207880000); //National Pasta Day
 
-const getSelectedRange = wrapper => {
-  return [
-    wrapper
-      .find('.rdrStartEdge')
+const getSelectedRange = wrapper => [
+  wrapper
+    .find('.rdrStartEdge')
+    .closest('DayCell')
+    .find('.rdrDayNumber span')
+    .text(),
+  ...wrapper.find('.rdrInRange').map(el =>
+    el
       .closest('DayCell')
       .find('.rdrDayNumber span')
-      .text(),
-    ...wrapper.find('.rdrInRange').map(el =>
-      el
-        .closest('DayCell')
-        .find('.rdrDayNumber span')
-        .text()
-    ),
+      .text()
+  ),
 
-    wrapper
-      .find('.rdrEndEdge')
-      .closest('DayCell')
-      .find('.rdrDayNumber span')
-      .text(),
-  ];
-};
+  wrapper
+    .find('.rdrEndEdge')
+    .closest('DayCell')
+    .find('.rdrDayNumber span')
+    .text(),
+];
 
 describe('DateRange', function() {
   let wrapper;

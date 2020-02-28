@@ -51,9 +51,7 @@ const getCurrentEventMarker = (currentEvent: Event) => {
         },
       },
       tooltip: {
-        formatter: () => {
-          return `<div>${getFormattedDate(eventTime, 'MMM D, YYYY LT')}</div>`;
-        },
+        formatter: () => `<div>${getFormattedDate(eventTime, 'MMM D, YYYY LT')}</div>`,
       },
       label: {
         show: false,
@@ -198,9 +196,7 @@ const LineGraph = (props: LineGraphProps) => {
   };
 
   const tooltip = {
-    formatAxisLabel: value => {
-      return getFormattedDate(value, 'lll', {local: !isUtc});
-    },
+    formatAxisLabel: value => getFormattedDate(value, 'lll', {local: !isUtc}),
   };
 
   const queryString = eventView.getQuery(location.query.query);

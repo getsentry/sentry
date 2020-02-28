@@ -174,11 +174,9 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     const {group, project} = this.props;
 
     return group.pluginIssues && group.pluginIssues.length
-      ? group.pluginIssues.map((plugin, i) => {
-          return (
-            <PluginActions group={group} project={project} plugin={plugin} key={i} />
-          );
-        })
+      ? group.pluginIssues.map((plugin, i) => (
+          <PluginActions group={group} project={project} plugin={plugin} key={i} />
+        ))
       : null;
   }
 
@@ -186,13 +184,11 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     const {group} = this.props;
 
     return group.pluginActions && group.pluginActions.length
-      ? group.pluginActions.map((plugin, i) => {
-          return (
-            <IssueSyncListElement externalIssueLink={plugin[1]} key={i}>
-              {plugin[0]}
-            </IssueSyncListElement>
-          );
-        })
+      ? group.pluginActions.map((plugin, i) => (
+          <IssueSyncListElement externalIssueLink={plugin[1]} key={i}>
+            {plugin[0]}
+          </IssueSyncListElement>
+        ))
       : null;
   }
 

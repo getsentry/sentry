@@ -20,77 +20,75 @@ type Props = {
   project?: Project | AvatarProject;
 };
 
-const ReleaseCard = ({release, project}: Props) => {
+const ReleaseCard = ({release, project}: Props) => (
   // TODO(releasesv2): probably makes sense at this point to split the header and data to different files (move styles to share layout file)
-  return (
-    <Panel>
-      <PanelBody>
-        <StyledPanelItem>
-          <HeaderLayout>
-            <VersionColumn>
-              <ColumnTitle>{t('Version')}</ColumnTitle>
-            </VersionColumn>
-            <ProjectsColumn>
-              <ColumnTitle>{t('Project name')}</ColumnTitle>
-            </ProjectsColumn>
-            <CommitsColumn>
-              {release.commitCount > 0 && (
-                <ColumnTitle>
-                  {[
-                    tn('%s commit', '%s commits', release.commitCount || 0),
-                    t('by'),
-                    tn('%s author', '%s authors', release.authors?.length || 0),
-                  ].join(' ')}
-                </ColumnTitle>
-              )}
-            </CommitsColumn>
-            <CreatedColumn>
-              <ColumnTitle>{t('Created')}</ColumnTitle>
-            </CreatedColumn>
-            <NewIssuesColumn>
-              <ColumnTitle>{t('New issues')}</ColumnTitle>
-            </NewIssuesColumn>
-          </HeaderLayout>
-          <Layout>
-            <VersionColumn>
-              <VersionWrapper>
-                <Version
-                  version={release.version}
-                  preserveGlobalSelection
-                  tooltipRawVersion
-                  truncate
-                />
-                <TimeWithIcon date={release.dateReleased || release.dateCreated} />
-              </VersionWrapper>
-            </VersionColumn>
+  <Panel>
+    <PanelBody>
+      <StyledPanelItem>
+        <HeaderLayout>
+          <VersionColumn>
+            <ColumnTitle>{t('Version')}</ColumnTitle>
+          </VersionColumn>
+          <ProjectsColumn>
+            <ColumnTitle>{t('Project name')}</ColumnTitle>
+          </ProjectsColumn>
+          <CommitsColumn>
+            {release.commitCount > 0 && (
+              <ColumnTitle>
+                {[
+                  tn('%s commit', '%s commits', release.commitCount || 0),
+                  t('by'),
+                  tn('%s author', '%s authors', release.authors?.length || 0),
+                ].join(' ')}
+              </ColumnTitle>
+            )}
+          </CommitsColumn>
+          <CreatedColumn>
+            <ColumnTitle>{t('Created')}</ColumnTitle>
+          </CreatedColumn>
+          <NewIssuesColumn>
+            <ColumnTitle>{t('New issues')}</ColumnTitle>
+          </NewIssuesColumn>
+        </HeaderLayout>
+        <Layout>
+          <VersionColumn>
+            <VersionWrapper>
+              <Version
+                version={release.version}
+                preserveGlobalSelection
+                tooltipRawVersion
+                truncate
+              />
+              <TimeWithIcon date={release.dateReleased || release.dateCreated} />
+            </VersionWrapper>
+          </VersionColumn>
 
-            <ProjectsColumn>
-              <ProjectBadge project={project} avatarSize={14} key={project?.slug} />
-            </ProjectsColumn>
+          <ProjectsColumn>
+            <ProjectBadge project={project} avatarSize={14} key={project?.slug} />
+          </ProjectsColumn>
 
-            <CommitsColumn>
-              <ReleaseStats release={release} withHeading={false} />
-            </CommitsColumn>
+          <CommitsColumn>
+            <ReleaseStats release={release} withHeading={false} />
+          </CommitsColumn>
 
-            <CreatedColumn>
-              {release.dateReleased || release.dateCreated ? (
-                <TimeSince date={release.dateReleased || release.dateCreated} />
-              ) : (
-                <span>-</span>
-              )}
-            </CreatedColumn>
+          <CreatedColumn>
+            {release.dateReleased || release.dateCreated ? (
+              <TimeSince date={release.dateReleased || release.dateCreated} />
+            ) : (
+              <span>-</span>
+            )}
+          </CreatedColumn>
 
-            <NewIssuesColumn>
-              <Count value={release.newGroups || 0} />
-            </NewIssuesColumn>
-          </Layout>
-        </StyledPanelItem>
-      </PanelBody>
+          <NewIssuesColumn>
+            <Count value={release.newGroups || 0} />
+          </NewIssuesColumn>
+        </Layout>
+      </StyledPanelItem>
+    </PanelBody>
 
-      {release.healthData && <ReleaseHealth release={release} />}
-    </Panel>
-  );
-};
+    {release.healthData && <ReleaseHealth release={release} />}
+  </Panel>
+);
 
 const StyledPanelItem = styled(PanelItem)`
   flex-direction: column;

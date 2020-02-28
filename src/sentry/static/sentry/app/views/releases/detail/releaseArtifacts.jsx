@@ -84,9 +84,7 @@ class ReleaseArtifacts extends React.Component {
     this.props.api.request(this.getFilesEndpoint() + `${id}/`, {
       method: 'DELETE',
       success: () => {
-        const fileList = this.state.fileList.filter(file => {
-          return file.id !== id;
-        });
+        const fileList = this.state.fileList.filter(file => file.id !== id);
 
         this.setState({
           fileList,
@@ -129,59 +127,57 @@ class ReleaseArtifacts extends React.Component {
             <Flex flex="3">{t('Size')}</Flex>
           </PanelHeader>
           <PanelBody>
-            {this.state.fileList.map(file => {
-              return (
-                <PanelItem key={file.id}>
-                  <Flex
-                    flex="7"
-                    pr={2}
-                    style={{wordWrap: 'break-word', wordBreak: 'break-all'}}
-                  >
-                    <strong>{file.name || '(empty)'}</strong>
-                  </Flex>
-                  <Flex flex="2">
-                    {file.dist || <span className="text-light">{t('None')}</span>}
-                  </Flex>
-                  <Flex flex="3" justifyContent="space-between">
-                    <FileSize bytes={file.size} />
-                    <Flex alignItems="center">
-                      {access.has('project:write') ? (
-                        <a
-                          href={
-                            this.props.api.baseUrl +
-                            this.getFilesEndpoint() +
-                            `${file.id}/?download=1`
-                          }
-                          className="btn btn-sm btn-default"
-                        >
+            {this.state.fileList.map(file => (
+              <PanelItem key={file.id}>
+                <Flex
+                  flex="7"
+                  pr={2}
+                  style={{wordWrap: 'break-word', wordBreak: 'break-all'}}
+                >
+                  <strong>{file.name || '(empty)'}</strong>
+                </Flex>
+                <Flex flex="2">
+                  {file.dist || <span className="text-light">{t('None')}</span>}
+                </Flex>
+                <Flex flex="3" justifyContent="space-between">
+                  <FileSize bytes={file.size} />
+                  <Flex alignItems="center">
+                    {access.has('project:write') ? (
+                      <a
+                        href={
+                          this.props.api.baseUrl +
+                          this.getFilesEndpoint() +
+                          `${file.id}/?download=1`
+                        }
+                        className="btn btn-sm btn-default"
+                      >
+                        <span className="icon icon-open" />
+                      </a>
+                    ) : (
+                      <Tooltip
+                        title={t(
+                          'You do not have the required permission to download this artifact.'
+                        )}
+                      >
+                        <div className="btn btn-sm btn-default disabled">
                           <span className="icon icon-open" />
-                        </a>
-                      ) : (
-                        <Tooltip
-                          title={t(
-                            'You do not have the required permission to download this artifact.'
-                          )}
-                        >
-                          <div className="btn btn-sm btn-default disabled">
-                            <span className="icon icon-open" />
-                          </div>
-                        </Tooltip>
-                      )}
-                      <div style={{marginLeft: 5}}>
-                        <LinkWithConfirmation
-                          className="btn btn-sm btn-default"
-                          title={t('Delete artifact')}
-                          message={t('Are you sure you want to remove this artifact?')}
-                          onConfirm={this.handleRemove.bind(this, file.id)}
-                        >
-                          <span className="icon icon-trash" />
-                        </LinkWithConfirmation>
-                      </div>
-                    </Flex>
+                        </div>
+                      </Tooltip>
+                    )}
+                    <div style={{marginLeft: 5}}>
+                      <LinkWithConfirmation
+                        className="btn btn-sm btn-default"
+                        title={t('Delete artifact')}
+                        message={t('Are you sure you want to remove this artifact?')}
+                        onConfirm={this.handleRemove.bind(this, file.id)}
+                      >
+                        <span className="icon icon-trash" />
+                      </LinkWithConfirmation>
+                    </div>
                   </Flex>
-                </PanelItem>
-              );
-            })}
+                </Flex>
+              </PanelItem>
+            ))}
           </PanelBody>
         </Panel>
         <Pagination pageLinks={this.state.pageLinks} />

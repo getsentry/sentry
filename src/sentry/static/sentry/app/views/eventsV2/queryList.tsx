@@ -121,15 +121,13 @@ class QueryList extends React.Component<Props> {
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
-          renderGraph={() => {
-            return (
-              <MiniGraph
-                location={location}
-                eventView={eventView}
-                organization={organization}
-              />
-            );
-          }}
+          renderGraph={() => (
+            <MiniGraph
+              location={location}
+              eventView={eventView}
+              organization={organization}
+            />
+          )}
           onEventClick={() => {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
@@ -178,33 +176,29 @@ class QueryList extends React.Component<Props> {
               query_name: eventView.name,
             });
           }}
-          renderGraph={() => {
-            return (
-              <MiniGraph
-                location={location}
-                eventView={eventView}
-                organization={organization}
-              />
-            );
-          }}
-          renderContextMenu={() => {
-            return (
-              <ContextMenu>
-                <MenuItem
-                  data-test-id="delete-query"
-                  onClick={this.handleDeleteQuery(eventView)}
-                >
-                  {t('Delete Query')}
-                </MenuItem>
-                <MenuItem
-                  data-test-id="duplicate-query"
-                  onClick={this.handleDuplicateQuery(eventView)}
-                >
-                  {t('Duplicate Query')}
-                </MenuItem>
-              </ContextMenu>
-            );
-          }}
+          renderGraph={() => (
+            <MiniGraph
+              location={location}
+              eventView={eventView}
+              organization={organization}
+            />
+          )}
+          renderContextMenu={() => (
+            <ContextMenu>
+              <MenuItem
+                data-test-id="delete-query"
+                onClick={this.handleDeleteQuery(eventView)}
+              >
+                {t('Delete Query')}
+              </MenuItem>
+              <MenuItem
+                data-test-id="duplicate-query"
+                onClick={this.handleDuplicateQuery(eventView)}
+              >
+                {t('Duplicate Query')}
+              </MenuItem>
+            </ContextMenu>
+          )}
         />
       );
     });

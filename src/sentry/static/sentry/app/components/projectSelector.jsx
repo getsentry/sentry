@@ -124,9 +124,7 @@ class ProjectSelector extends React.Component {
 
     if (multiProjects) {
       return [
-        sortArray(multiProjects, project => {
-          return [!project.isBookmarked, project.name];
-        }),
+        sortArray(multiProjects, project => [!project.isBookmarked, project.name]),
         nonMemberProjects || [],
       ];
     }
@@ -140,9 +138,7 @@ class ProjectSelector extends React.Component {
       : unfilteredProjects.filter(project => project.isMember);
 
     return [
-      sortArray(filteredProjects, project => {
-        return [!project.isBookmarked, project.name];
-      }),
+      sortArray(filteredProjects, project => [!project.isBookmarked, project.name]),
       [],
     ];
   }
