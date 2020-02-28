@@ -23,7 +23,8 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
 
         try:
             data_export = ExportedData.objects.get(id=kwargs["data_export_id"])
-            if request.GET.get("download") is not None:
+            # Ignore the download parameter unless we have a file to stream
+            if request.GET.get("download") is not None and data_export.file is not None:
                 return self.download(data_export)
             return Response(serialize(data_export, request.user))
         except ExportedData.DoesNotExist:

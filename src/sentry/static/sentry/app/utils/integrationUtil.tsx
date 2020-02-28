@@ -60,7 +60,7 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Plugin Add to Project Clicked';
   integration: string; //the slug
   already_installed?: boolean;
-  integration_tab?: 'configurations' | 'information';
+  integration_tab?: 'configurations' | 'overview';
 } & (SentryAppEvent | NonSentryAppEvent);
 
 type SentryAppEvent = {

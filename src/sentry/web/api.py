@@ -223,7 +223,9 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         metrics.incr("events.blacklisted", tags={"reason": filter_reason}, skip_internal=False)
 
         if not signals_in_consumer:
-            event_filtered.send_robust(ip=remote_addr, project=project, sender=process_event)
+            event_filtered.send_robust(
+                ip=remote_addr, project=project, category=data_category, sender=process_event
+            )
 
         # relay will no longer be able to provide information about filter
         # status so to see the impact we're adding a way to turn on relay
@@ -267,7 +269,11 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         metrics.incr("events.dropped", tags={"reason": reason or "unknown"}, skip_internal=False)
         if not signals_in_consumer:
             event_dropped.send_robust(
-                ip=remote_addr, project=project, reason_code=reason, sender=process_event
+                ip=remote_addr,
+                project=project,
+                reason_code=reason,
+                category=data_category,
+                sender=process_event,
             )
 
         if rate_limit is not None:

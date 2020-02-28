@@ -197,7 +197,10 @@ const OrganizationContext = createReactClass({
 
       // Configure scope to have organization tag
       Sentry.configureScope(scope => {
+        // XXX(dcramer): this is duplicated in sdk.py on the backend
         scope.setTag('organization', organization.id);
+        scope.setTag('organization.slug', organization.slug);
+        scope.setContext('organization', {id: organization.id, slug: organization.slug});
       });
       // Make an exception for issue details in the case where it is accessed directly (e.g. from email)
       // We do not want to load the user's last used env/project in this case, otherwise will
