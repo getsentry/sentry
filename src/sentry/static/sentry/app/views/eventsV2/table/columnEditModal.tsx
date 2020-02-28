@@ -6,6 +6,7 @@ import {DISCOVER2_DOCS_URL} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
+
 import {Column} from '../eventView';
 import ColumnEditCollection from './columnEditCollection';
 
