@@ -30,7 +30,8 @@ def get_regions():
 
 
 def track_response_metric(success):
-    # boto3's send_message doesn't return success/fail
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Queue.send_message
+    # boto3's send_message doesn't return success/fail or http codes
     # success is a boolean based on whether there was an exception or not
     metrics.incr("plugins.amazon-sqs.http_response", tags={"success": success})
 
