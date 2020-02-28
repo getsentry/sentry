@@ -1,18 +1,44 @@
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import themeObj from 'app/utils/theme';
+
+type Params = {
+  /**
+   * If this is true, will make corners blend with its opener (so no border radius)
+   */
+  blendWithActor: boolean;
+  /**
+   * If this is true, will make a single corner blended with actor (depends on anchor orientation)
+   */
+  blendCorner: boolean;
+  /**
+   * Menu alignment
+   */
+  alignMenu: 'left' | 'right';
+  /**
+   * The width of the menu
+   */
+  width: string;
+  /**
+   * enable the arrow on the menu
+   */
+  menuWithArrow: boolean;
+
+  theme: typeof themeObj;
+};
 
 /**
  * If `blendCorner` is false, then we apply border-radius to all corners
  *
  * Otherwise apply radius to opposite side of `alignMenu` *unles it is fixed width*
- *
- * @param {Object} options These are "props" that get passed down (I don't think there's a good way to define propTypes otherwise)
- * @param {Boolean} options.blendWithActor If this is true, will make corners blend with its opener (so no border radius)
- * @param {Boolean} options.blendCorner If this is true, will make a single corner blended with actor (depends on anchor orientation)
- * @param {String} options.alignMenu Can align the menu either "left" or "right"
- * @param {String} options.width The width of the menu
  */
-const getMenuBorderRadius = ({blendWithActor, blendCorner, alignMenu, width, theme}) => {
+const getMenuBorderRadius = ({
+  blendWithActor,
+  blendCorner,
+  alignMenu,
+  width,
+  theme,
+}: Params) => {
   const radius = theme.borderRadius;
   if (!blendCorner) {
     return css`
@@ -33,7 +59,7 @@ const getMenuBorderRadius = ({blendWithActor, blendCorner, alignMenu, width, the
   `;
 };
 
-const getMenuArrow = ({menuWithArrow, alignMenu}) => {
+const getMenuArrow = ({menuWithArrow, alignMenu}: Params) => {
   if (!menuWithArrow) {
     return '';
   }
@@ -76,15 +102,12 @@ const getMenuArrow = ({menuWithArrow, alignMenu}) => {
   `;
 };
 
-const DropdownBubble = styled('div')`
+const DropdownBubble = styled('div')<Params>`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: calc(100% - 1px);
   ${p => (p.width ? `width: ${p.width}` : '')};
-  z-index: ${p =>
-    p.theme.zIndex.dropdownAutocomplete
-      .menu}; /* This is needed to be able to cover e.g. pagination buttons, but also be below dropdown actor button's zindex */
   right: 0;
   box-shadow: ${p => p.theme.dropShadowLight};
   overflow: hidden;
@@ -93,6 +116,10 @@ const DropdownBubble = styled('div')`
   ${({alignMenu}) => (alignMenu === 'left' ? 'left: 0;' : '')};
 
   ${getMenuArrow};
+
+  /* This is needed to be able to cover e.g. pagination buttons, but also be
+   * below dropdown actor button's zindex */
+  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
 `;
 
 export default DropdownBubble;
