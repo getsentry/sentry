@@ -1,6 +1,7 @@
 import groupBy from 'lodash/groupBy';
 import debounce from 'lodash/debounce';
 import React from 'react';
+import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {
@@ -16,7 +17,7 @@ import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
 } from 'app/utils/integrationUtil';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -25,6 +26,8 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import space from 'app/styles/space';
+
 import IntegrationRow from './integrationRow';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
@@ -349,11 +352,38 @@ export class OrganizationIntegrations extends AsyncComponent<
 
         <PermissionAlert access={['org:integrations']} />
         <Panel>
-          <PanelBody>{displayedList.map(this.renderIntegration)}</PanelBody>
+          <PanelBody>
+            {displayedList.length ? (
+              displayedList.map(this.renderIntegration)
+            ) : (
+              <EmptyResultsContainer>
+                <EmptyResultsBody>
+                  {tct('No Integrations found for "[searchTerm]".', {
+                    searchTerm: this.state.searchInput,
+                  })}
+                </EmptyResultsBody>
+              </EmptyResultsContainer>
+            )}
+          </PanelBody>
         </Panel>
       </React.Fragment>
     );
   }
 }
+
+const EmptyResultsContainer = styled('div')`
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
+
+const EmptyResultsBody = styled('div')`
+  font-size: 16px;
+  line-height: 28px;
+  color: ${p => p.theme.gray2};
+  padding-bottom: ${space(2)};
+`;
 
 export default withOrganization(OrganizationIntegrations);

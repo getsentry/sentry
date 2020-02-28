@@ -200,30 +200,39 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const {configurations} = this.state;
     const {organization} = this.props;
     const provider = this.provider;
-    return (
-      <div>
-        {configurations.map(integration => (
-          <InstallWrapper key={integration.id}>
-            <InstalledIntegration
-              organization={organization}
-              provider={provider}
-              integration={integration}
-              onRemove={this.onRemove}
-              onDisable={this.onDisable}
-              onReinstallIntegration={this.onInstall}
-              data-test-id={integration.id}
-              trackIntegrationEvent={this.trackIntegrationEvent}
-            />
-          </InstallWrapper>
-        ))}
-      </div>
-    );
+    if (configurations.length) {
+      return (
+        <div>
+          {configurations.map(integration => (
+            <InstallWrapper key={integration.id}>
+              <InstalledIntegration
+                organization={organization}
+                provider={provider}
+                integration={integration}
+                onRemove={this.onRemove}
+                onDisable={this.onDisable}
+                onReinstallIntegration={this.onInstall}
+                data-test-id={integration.id}
+                trackIntegrationEvent={this.trackIntegrationEvent}
+              />
+            </InstallWrapper>
+          ))}
+        </div>
+      );
+    }
+    return this.renderEmptyConfigurations();
   }
 }
 
 const InstallWrapper = styled('div')`
   padding: ${space(2)};
   border: 1px solid ${p => p.theme.borderLight};
+  border-bottom: none;
+  background-color: white;
+
+  &:last-child {
+    border-bottom: 1px solid ${p => p.theme.borderLight};
+  }
 `;
 
 export default withOrganization(IntegrationDetailedView);

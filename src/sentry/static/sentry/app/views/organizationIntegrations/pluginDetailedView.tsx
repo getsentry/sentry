@@ -79,7 +79,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     });
   };
 
-  handleEnablePlugin = (projectId: string) => {
+  handlePluginEnableStatus = (projectId: string, enable: boolean = true) => {
     //make a copy of our project list
     const projectList = this.plugin.projectList.slice();
     //find the index of the project
@@ -92,7 +92,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     //update item in array
     projectList[index] = {
       ...projectList[index],
-      enabled: true,
+      enabled: enable,
     };
 
     //update state
@@ -131,7 +131,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     if (tab === 'configurations') {
       return 'project configurations';
     }
-    return tab;
+    return 'overview';
   }
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
@@ -151,21 +151,24 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   renderConfigurations() {
     const plugin = this.plugin;
     const {organization} = this.props;
-    return (
-      <div>
-        {plugin.projectList.map((projectItem: PluginProjectItem) => (
-          <InstalledPlugin
-            key={projectItem.projectId}
-            organization={organization}
-            plugin={plugin}
-            projectItem={projectItem}
-            onResetConfiguration={this.handleResetConfiguration}
-            onEnablePlugin={this.handleEnablePlugin}
-            trackIntegrationEvent={this.trackIntegrationEvent}
-          />
-        ))}
-      </div>
-    );
+    if (plugin.projectList.length) {
+      return (
+        <div>
+          {plugin.projectList.map((projectItem: PluginProjectItem) => (
+            <InstalledPlugin
+              key={projectItem.projectId}
+              organization={organization}
+              plugin={plugin}
+              projectItem={projectItem}
+              onResetConfiguration={this.handleResetConfiguration}
+              onPluginEnableStatusChange={this.handlePluginEnableStatus}
+              trackIntegrationEvent={this.trackIntegrationEvent}
+            />
+          ))}
+        </div>
+      );
+    }
+    return this.renderEmptyConfigurations();
   }
 }
 
