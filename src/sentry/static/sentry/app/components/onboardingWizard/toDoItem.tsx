@@ -72,7 +72,7 @@ class TodoItem extends React.Component<Props, State> {
     }
 
     if (task.actionType === 'app') {
-      navigateTo(task.location, router);
+      navigateTo(`${task.location}?onboardingTask`, router);
     }
   };
 

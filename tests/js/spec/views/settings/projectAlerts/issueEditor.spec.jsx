@@ -6,8 +6,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 import ProjectAlerts from 'app/views/settings/projectAlerts';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
+import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 
 jest.unmock('app/utils/recreateRoute');
+jest.mock('app/actionCreators/onboardingTasks');
 
 describe('ProjectAlerts -> IssueEditor', function() {
   const projectAlertRuleDetailsRoutes = [
@@ -142,6 +144,13 @@ describe('ProjectAlerts -> IssueEditor', function() {
           data: expect.objectContaining({environment: '__all_environments__'}),
         })
       );
+    });
+
+    it('updates the alert onboarding task', async function() {
+      const {wrapper} = createWrapper();
+      wrapper.find('form').simulate('submit');
+
+      expect(updateOnboardingTask).toHaveBeenCalled();
     });
   });
 });
