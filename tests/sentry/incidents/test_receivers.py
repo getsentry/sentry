@@ -69,4 +69,5 @@ class PreSaveIncidentTriggerTest(TestCase):
         date_modified = incident_trigger.date_modified
         incident_trigger.status = TriggerStatus.RESOLVED.value
         incident_trigger.save()
-        assert date_modified != incident_trigger.date_modified
+        incident_trigger.refresh_from_db()
+        assert date_modified < incident_trigger.date_modified
