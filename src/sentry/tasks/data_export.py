@@ -26,13 +26,15 @@ def assemble_download(data_export):
         with tempfile.TemporaryFile() as tf:
             # Process the query based on its type
             if data_export.query_type == ExportQueryType.DISCOVER_V2:
-                process_discover_v2(data_export, tf)
-                return
+                file_name = process_discover_v2(data_export, tf)
             elif data_export.query_type == ExportQueryType.BILLING_REPORT:
-                process_billing_report(data_export, tf)
-                return
+                file_name = process_billing_report(data_export, tf)
             elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
                 file_name = process_issue_by_tag(data_export, tf)
+            else:
+                raise NotImplementedError(
+                    u"Unknown query_type of {}".format(data_export.query_type)
+                )
             # Create a new File object and attach it to the ExportedData
             tf.seek(0)
             try:
@@ -48,6 +50,9 @@ def assemble_download(data_export):
     except DataExportError as error:
         # TODO(Leander): Implement logging
         return data_export.email_failure(message=error)
+    except NotImplementedError as error:
+        # TODO(Leander): Implement logging
+        return data_export.email_failure(message=error)
     except BaseException as error:
         # TODO(Leander): Implement logging
         sentry_sdk.capture_exception(error)
@@ -56,12 +61,12 @@ def assemble_download(data_export):
 
 def process_discover_v2(data_export, file):
     # TODO(Leander): Implement processing for Discover V2
-    return
+    raise NotImplementedError("Discover V2 processing has not been implemented yet")
 
 
 def process_billing_report(data_export, file):
     # TODO(Leander): Implement processing for Billing Reports
-    return
+    raise NotImplementedError("Billing report processing has not been implemented yet")
 
 
 def process_issue_by_tag(data_export, file, limit=None):
