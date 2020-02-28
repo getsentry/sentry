@@ -1,6 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 
 import {Authenticator, OrganizationSummary} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -28,18 +27,6 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
     ];
   }
 
-  componentDidUpdate() {
-    if (
-      this.state.organizations &&
-      typeof this.state.organizations.filter !== 'function'
-    ) {
-      Sentry.setExtra('organizations', this.state.organizations);
-      Sentry.captureException(
-        new Error('AccountSecurityWrapper: organizations.filter is not a function')
-      );
-    }
-  }
-
   handleDisable = async (auth: Authenticator) => {
     if (!auth || !auth.authId) {
       return;
@@ -65,10 +52,9 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       });
       this.remountComponent();
     } catch (_err) {
+      this.setState({loading: false});
       addErrorMessage(t('Error regenerating backup codes'));
     }
-
-    this.setState({loading: false});
   };
 
   renderBody() {
