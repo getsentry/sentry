@@ -2,51 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
+import {action} from '@storybook/addon-actions';
 
-import ColumnEditCollection from 'app/views/eventsV2/table/columnEditCollection';
-
-/**
- * Fake modal container. Later on this will be a stateful
- * container that will update the EventView column edits
- * are submitted.
- */
-class FakeModal extends React.Component {
-  static propTypes = {
-    organization: PropTypes.object,
-    tagKeys: PropTypes.arrayOf(PropTypes.string),
-  };
-
-  state = {
-    columns: [
-      {
-        field: 'event.type',
-      },
-      {
-        field: 'browser.name',
-      },
-      {
-        field: 'id',
-        aggregation: 'count',
-      },
-    ],
-  };
-
-  handleChange = columns => {
-    this.setState({columns});
-  };
-
-  render() {
-    const {tagKeys, organization} = this.props;
-    return (
-      <ColumnEditCollection
-        organization={organization}
-        columns={this.state.columns}
-        tagKeys={tagKeys}
-        onChange={this.handleChange}
-      />
-    );
-  }
-}
+import {openModal} from 'app/actionCreators/modal';
+import Button from 'app/components/button';
+import GlobalModal from 'app/components/globalModal';
+import ColumnEditModal from 'app/views/eventsV2/table/columnEditModal';
 
 storiesOf('Discover|ColumnEditor', module).add(
   'all',
@@ -58,10 +19,35 @@ storiesOf('Discover|ColumnEditor', module).add(
       features: ['transaction-events'],
     };
     const tags = ['browser.name', 'custom-field'];
+    const columns = [
+      {
+        field: 'event.type',
+      },
+      {
+        field: 'browser.name',
+      },
+      {
+        field: 'id',
+        aggregation: 'count',
+      },
+    ];
+
+    const showModal = () => {
+      openModal(modalProps => (
+        <ColumnEditModal
+          {...modalProps}
+          organization={organization}
+          tagKeys={tags}
+          columns={columns}
+          onApply={action('onApply')}
+        />
+      ));
+    };
 
     return (
       <div>
-        <FakeModal organization={organization} tagKeys={tags} />
+        <Button onClick={showModal}>Edit columns</Button>
+        <GlobalModal />
       </div>
     );
   })
