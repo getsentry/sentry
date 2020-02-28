@@ -28,8 +28,15 @@ export const clearAnalyticsSession = () => {
 export const getAnalyticsSessionId = () =>
   window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 
-export const isIntegrationDirectoryActive = () =>
-  localStorage.getItem(USE_INTEGRATION_DIRECTORY) === '1';
+export const isIntegrationDirectoryActive = variant => {
+  if (localStorage.getItem(USE_INTEGRATION_DIRECTORY) === '1') {
+    return true;
+  } else if (localStorage.getItem(USE_INTEGRATION_DIRECTORY) === '0') {
+    return false;
+  } else {
+    return variant && variant === '1';
+  }
+};
 
 export type SingleIntegrationEvent = {
   eventKey:
@@ -127,7 +134,9 @@ export const trackIntegrationEvent = (
     analytics_session_id: sessionId,
     organization_id: org?.id,
     role: org?.role,
-    integration_directory_active: isIntegrationDirectoryActive(),
+    integration_directory_active: isIntegrationDirectoryActive(
+      org?.experiments?.IntegrationDirectoryExperiment
+    ),
     ...analyticsParams,
   };
 
