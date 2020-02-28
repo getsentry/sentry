@@ -67,24 +67,22 @@ class DropdownControl extends React.Component {
     return (
       <Container>
         <DropdownMenu alwaysRenderMenu={alwaysRenderMenu}>
-          {({isOpen, getMenuProps, getActorProps}) => {
-            return (
-              <React.Fragment>
-                {this.renderButton(isOpen, getActorProps)}
-                <MenuContainer
-                  {...getMenuProps()}
-                  alignMenu={alignRight ? 'right' : 'left'}
-                  width={menuWidth}
-                  menuOffset={menuOffset}
-                  isOpen={isOpen}
-                  blendCorner
-                  blendWithActor={blendWithActor}
-                >
-                  {children}
-                </MenuContainer>
-              </React.Fragment>
-            );
-          }}
+          {({isOpen, getMenuProps, getActorProps}) => (
+            <React.Fragment>
+              {this.renderButton(isOpen, getActorProps)}
+              <MenuContainer
+                {...getMenuProps()}
+                alignMenu={alignRight ? 'right' : 'left'}
+                width={menuWidth}
+                menuOffset={menuOffset}
+                isOpen={isOpen}
+                blendCorner
+                blendWithActor={blendWithActor}
+              >
+                {children}
+              </MenuContainer>
+            </React.Fragment>
+          )}
         </DropdownMenu>
       </Container>
     );
@@ -112,19 +110,25 @@ const DropdownItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray2};
 
-  & a {
+  & a,
+  & .menu-target {
     color: ${p => p.theme.foreground};
     display: block;
     padding: ${space(0.5)} ${space(2)};
   }
-  & a:hover {
+  & a:hover,
+  & .menu-target:hover {
     background: ${p => p.theme.offWhite};
   }
-  & a:focus {
+  & a:focus,
+  & .menu-target:focus {
     outline: none;
   }
+
   &.active a,
-  &.active a:hover {
+  &.active a:hover,
+  &.active .menu-target,
+  &.active .menu-target:hover {
     color: ${p => p.theme.white};
     background: ${p => p.theme.purple};
   }
