@@ -200,20 +200,20 @@ class ApiClient(object):
             )
             resp.raise_for_status()
         except ConnectionError as e:
-            self.track_response_data(self.integration_name, "connection_error", e.message)
+            self.track_response_data(self.integration_name, "connection_error", six.text_type(e))
             raise ApiHostError.from_exception(e)
         except Timeout as e:
-            self.track_response_data(self.integration_name, "timeout", e.message)
+            self.track_response_data(self.integration_name, "timeout", six.text_type(e))
             raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
-                self.track_response_data(self.integration_name, "unknown", e.message)
+                self.track_response_data(self.integration_name, "unknown", six.text_type(e))
                 self.logger.exception(
                     "request.error", extra={"integration": self.integration_name, "url": full_url}
                 )
                 raise ApiError("Internal Error")
-            self.track_response_data(self.integration_name, resp.status_code, e.message)
+            self.track_response_data(self.integration_name, resp.status_code, six.text_type(e))
             raise ApiError.from_response(resp)
 
         self.track_response_data(self.integration_name, resp.status_code)
