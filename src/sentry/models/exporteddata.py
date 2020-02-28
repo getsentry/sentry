@@ -58,16 +58,18 @@ class ExportedData(Model):
             return ExportStatus.Valid
 
     @property
-    def date_expired_string(self):
-        if self.date_expired is None:
-            return None
-        return self.date_expired.strftime("%-I:%M %p on %B %d, %Y (%Z)")
-
-    @property
     def payload(self):
         payload = self.query_info.copy()
         payload["export_type"] = ExportQueryType.as_str(self.query_type)
         return payload
+
+    def get_date_string(self, date_field):
+        if not hasattr(self, date_field):
+            raise ValueError(u"Unrecognized field {} on ExportedData object".format(date_field))
+        if getattr(self, date_field) is None:
+            return None
+        else:
+            return getattr(self, date_field).strftime("%-I:%M %p on %B %d, %Y (%Z)")
 
     def delete_file(self):
         if self.file:
@@ -91,14 +93,13 @@ class ExportedData(Model):
         if self.date_finished is None or self.date_expired is None or self.file is None:
             # TODO(Leander): Implement logging here
             return
+        url = absolute_uri(
+            reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
+        )
         msg = MessageBuilder(
             subject="Your Download is Ready!",
-            context={
-                "url": absolute_uri(
-                    reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
-                ),
-                "expiration": self.date_expired_string,
-            },
+            context={"url": url, "expiration": self.get_date_string("date_expired")},
+            type="organization.export-data",
             template="sentry/emails/data-export-success.txt",
             html_template="sentry/emails/data-export-success.html",
         )
@@ -110,6 +111,7 @@ class ExportedData(Model):
         msg = MessageBuilder(
             subject="Unable to Export Data",
             context={
+                "creation": self.get_date_string("date_added"),
                 "error_message": message,
                 "payload": json.dumps(self.payload, indent=2, sort_keys=True),
             },
