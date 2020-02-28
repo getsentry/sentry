@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import get from 'lodash/get';
 
 import space from 'app/styles/space';
-import get from 'lodash/get';
 
 import {
   rectOfContent,

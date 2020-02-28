@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import FileChange from 'app/components/fileChange';
 import {t, tn} from 'app/locale';
 

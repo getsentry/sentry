@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {
   DESCRIPTIONS,
   EVENT_CHOICES,
 } from 'app/views/settings/organizationDeveloperSettings/constants';
-import styled from '@emotion/styled';
 import Checkbox from 'app/components/checkbox';
 import Tooltip from 'app/components/tooltip';
 import withOrganization from 'app/utils/withOrganization';

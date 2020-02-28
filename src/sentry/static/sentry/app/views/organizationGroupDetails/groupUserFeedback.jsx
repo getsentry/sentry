@@ -9,6 +9,7 @@ import {Panel} from 'app/components/panels';
 import Pagination from 'app/components/pagination';
 import withOrganization from 'app/utils/withOrganization';
 import UserFeedbackEmpty from 'app/views/userFeedback/userFeedbackEmpty';
+
 import {fetchGroupUserReports} from './utils';
 
 class GroupUserFeedback extends React.Component {

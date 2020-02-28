@@ -5,11 +5,9 @@ import styled from '@emotion/styled';
 import {Client} from 'app/api';
 import {Event, EventAttachment} from 'app/types';
 import {t} from 'app/locale';
-
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
 import EventDataSection from 'app/components/events/eventDataSection';
-
 import FileSize from 'app/components/fileSize';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
