@@ -8,7 +8,7 @@ from django.db import transaction, IntegrityError
 
 from sentry import tagstore
 from sentry.constants import ExportQueryType
-from sentry.models import EventUser, File, Group, Project, get_group_with_redirect
+from sentry.models import EventUser, ExportedData, File, Group, Project, get_group_with_redirect
 from sentry.tasks.base import instrumented_task
 from sentry.utils import snuba
 
@@ -20,7 +20,13 @@ class DataExportError(Exception):
 
 
 @instrumented_task(name="sentry.tasks.data_export.assemble_download", queue="data_export")
-def assemble_download(data_export):
+def assemble_download(data_export_id):
+    # Extract the ExportedData object
+    try:
+        data_export = ExportedData.objects.get(id=data_export_id)
+    except ExportedData.DoesNotExist as error:
+        return sentry_sdk.capture_exception(error)
+
     # Create a temporary file
     try:
         with tempfile.TemporaryFile() as tf:
@@ -31,10 +37,6 @@ def assemble_download(data_export):
                 file_name = process_billing_report(data_export, tf)
             elif data_export.query_type == ExportQueryType.ISSUE_BY_TAG:
                 file_name = process_issue_by_tag(data_export, tf)
-            else:
-                raise NotImplementedError(
-                    u"Unknown query_type of {}".format(data_export.query_type)
-                )
             # Create a new File object and attach it to the ExportedData
             tf.seek(0)
             try:

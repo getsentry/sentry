@@ -54,7 +54,7 @@ class DataExportEndpoint(OrganizationEndpoint):
             )
             status = 200
             if created:
-                assemble_download.delay(data_export=data_export)
+                assemble_download.delay(data_export_id=data_export.id)
                 status = 201
         except ValidationError as e:
             # This will handle invalid JSON requests
