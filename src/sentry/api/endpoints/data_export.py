@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.serializers import serialize
 from sentry.constants import ExportQueryType
 from sentry.models import ExportedData
@@ -21,7 +21,7 @@ class ExportedDataSerializer(serializers.Serializer):
 
 
 class DataExportEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationEventPermission,)
+    permission_classes = (OrganizationDataExportPermission,)
 
     def post(self, request, organization):
         """
