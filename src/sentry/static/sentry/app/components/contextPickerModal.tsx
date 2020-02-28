@@ -65,12 +65,6 @@ type Props = {
    * Callback for when organization is selected
    */
   onSelectOrganization: (orgSlug: string) => void;
-
-  /**
-   * Id of the project (most likely from the URL)
-   * on which the modal was opened
-   */
-  comingFromProjectId?: string;
 };
 
 class ContextPickerModal extends React.Component<Props> {
@@ -169,21 +163,6 @@ class ContextPickerModal extends React.Component<Props> {
     this.doFocus(this.orgSelect);
   };
 
-  focusProjectOption = (projectId: string, projects: Project[]) => {
-    if (!this.projectSelect || this.props.loading) {
-      return;
-    }
-
-    const projectToBeFocused = projects.find(({id}) => id === projectId);
-
-    if (projectToBeFocused) {
-      (this.projectSelect as SelectControl).focusOption({
-        label: projectToBeFocused.slug,
-        value: projectToBeFocused.slug,
-      });
-    }
-  };
-
   handleSelectOrganization = ({value}: {value: string}) => {
     // If we do not need to select a project, we can early return after selecting an org
     // No need to fetch org details
@@ -229,7 +208,6 @@ class ContextPickerModal extends React.Component<Props> {
       loading,
       Header,
       Body,
-      comingFromProjectId,
     } = this.props;
 
     const shouldShowPicker = needOrg || needProject;
@@ -283,8 +261,6 @@ class ContextPickerModal extends React.Component<Props> {
               ref={ref => {
                 this.projectSelect = ref;
                 this.focusProjectSelector();
-                comingFromProjectId &&
-                  this.focusProjectOption(comingFromProjectId, projects);
               }}
               placeholder={t('Select a Project')}
               name="project"

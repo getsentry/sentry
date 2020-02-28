@@ -1,5 +1,4 @@
 import React from 'react';
-import get from 'lodash/get';
 import {InjectedRouter} from 'react-router/lib/Router';
 
 import {openModal} from 'app/actionCreators/modal';
@@ -10,7 +9,6 @@ export function navigateTo(to: string, router: InjectedRouter) {
   // Check for placeholder params
   const needOrg = to.indexOf(':orgId') > -1;
   const needProject = to.indexOf(':projectId') > -1;
-  const comingFromProjectId = get(router, 'location.query.project');
 
   if (needOrg || needProject) {
     openModal(
@@ -21,7 +19,6 @@ export function navigateTo(to: string, router: InjectedRouter) {
           nextPath={to}
           needOrg={needOrg}
           needProject={needProject}
-          comingFromProjectId={comingFromProjectId}
           onFinish={path => {
             closeModal();
             setTimeout(() => router.push(path), 0);
