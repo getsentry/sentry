@@ -3,14 +3,16 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
-import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
-import {IntegrationProvider, Integration, Organization} from 'app/types';
+import {IntegrationProvider, Integration, Organization, ObjectStatus} from 'app/types';
 import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
+import CircleIndicator from 'app/components/circleIndicator';
+import theme from 'app/utils/theme';
+import space from 'app/styles/space';
 
 const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
@@ -134,19 +136,10 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
         {({hasAccess}) => (
           <IntegrationFlex key={integration.id} className={className}>
             <IntegrationItemBox>
-              <IntegrationItem compact integration={integration} />
+              <IntegrationItem integration={integration} />
             </IntegrationItemBox>
             <div>
-              {integration.status === 'disabled' && (
-                <AddIntegrationButton
-                  size="xsmall"
-                  priority="success"
-                  provider={provider}
-                  onAddIntegration={this.reinstallIntegration}
-                  reinstall
-                />
-              )}
-              {integration.status === 'active' && (
+              {
                 <Tooltip
                   disabled={this.hasConfiguration()}
                   position="left"
@@ -155,14 +148,18 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
                   <StyledButton
                     borderless
                     icon="icon-settings"
-                    disabled={!this.hasConfiguration() || !hasAccess}
+                    disabled={
+                      !this.hasConfiguration() ||
+                      !hasAccess ||
+                      integration.status !== 'active'
+                    }
                     to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                     data-test-id="integration-configure-button"
                   >
                     Configure
                   </StyledButton>
                 </Tooltip>
-              )}
+              }
             </div>
             <div>
               <Confirm
@@ -181,6 +178,8 @@ export default class InstalledIntegrationInDirectory extends React.Component<Pro
                 </StyledButton>
               </Confirm>
             </div>
+
+            <IntegrationStatus status={integration.status} />
           </IntegrationFlex>
         )}
       </Access>
@@ -199,4 +198,41 @@ const IntegrationFlex = styled('div')`
 
 const IntegrationItemBox = styled('div')`
   flex: 1;
+`;
+
+const IntegrationStatus = styled(
+  (props: React.HTMLAttributes<HTMLElement> & {status: ObjectStatus}) => {
+    const {status, ...p} = props;
+    const color = status === 'active' ? theme.success : theme.gray2;
+    const titleText =
+      status === 'active'
+        ? t('This Integration can be disabled by clicking the Uninstall button')
+        : t('This Integration has been disconnected from the external provider');
+    return (
+      <Tooltip title={titleText}>
+        <div {...p}>
+          <CircleIndicator size={6} color={color} />
+          <IntegrationStatusText>{`${
+            status === 'active' ? t('enabled') : t('disabled')
+          }`}</IntegrationStatusText>
+        </div>
+      </Tooltip>
+    );
+  }
+)`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.gray2};
+  font-weight: light;
+  text-transform: capitalize;
+  &:before {
+    content: '|';
+    color: ${p => p.theme.gray1};
+    margin-right: ${space(1)};
+    font-weight: normal;
+  }
+`;
+
+const IntegrationStatusText = styled('div')`
+  margin: 0 ${space(0.75)} 0 ${space(0.5)};
 `;

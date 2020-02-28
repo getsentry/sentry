@@ -24,10 +24,10 @@ import {
 import Alert, {Props as AlertProps} from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-import {IconClose} from 'app/icons';
+import {IconClose, IconGithub, IconGeneric, IconDocs} from 'app/icons';
 import IntegrationStatus from './integrationStatus';
 
-type Tab = 'information' | 'configurations';
+type Tab = 'overview' | 'configurations';
 
 type AlertType = AlertProps & {
   text: string;
@@ -46,12 +46,11 @@ class AbstractIntegrationDetailedView<
   P extends Props = Props,
   S extends State = State
 > extends AsyncComponent<P, S> {
-  tabs: Tab[] = ['information', 'configurations'];
+  tabs: Tab[] = ['overview', 'configurations'];
 
   componentDidMount() {
     const {location} = this.props;
-    const value =
-      location.query.tab === 'configurations' ? 'configurations' : 'information';
+    const value = location.query.tab === 'configurations' ? 'configurations' : 'overview';
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({tab: value});
   }
@@ -89,7 +88,7 @@ class AbstractIntegrationDetailedView<
     return [];
   }
 
-  //Returns a list of the resources displayed at the bottom of the information card
+  //Returns a list of the resources displayed at the bottom of the overview card
   get resourceLinks(): Array<{title: string; url: string}> {
     // Allow children to implement this
     throw new Error('Not implemented');
@@ -110,6 +109,23 @@ class AbstractIntegrationDetailedView<
   get featureData(): IntegrationFeature[] {
     // Allow children to implement this
     throw new Error('Not implemented');
+  }
+
+  getIcon(title: string) {
+    switch (title) {
+      case 'View Source':
+        return <StyledIconCode />;
+      case 'Report Issue':
+        return <StyledIconGithub />;
+      case 'Documentation':
+        return <StyledIconDocs />;
+      case 'Splunk Setup Instructions':
+        return <StyledIconDocs />;
+      case 'Trello Setup Instructions':
+        return <StyledIconDocs />;
+      default:
+        return <StyledIconGeneric />;
+    }
   }
 
   onTabChange = (value: Tab) => {
@@ -140,6 +156,19 @@ class AbstractIntegrationDetailedView<
   renderPermissions(): React.ReactElement | null {
     //default is don't render permissions
     return null;
+  }
+
+  renderEmptyConfigurations() {
+    return (
+      <EmptyConfigurationContainer>
+        <EmptyConfigurationTitle>You haven't set anything up yet</EmptyConfigurationTitle>
+        <EmptyConfigurationBody>
+          But that doesn’t have to be the case for long! Add an installation to get
+          started.
+        </EmptyConfigurationBody>
+        <div>{this.renderAddInstallButton(true)}</div>
+      </EmptyConfigurationContainer>
+    );
   }
 
   //Returns the list of configurations for the integration
@@ -208,12 +237,41 @@ class AbstractIntegrationDetailedView<
     );
   }
 
+  renderAddInstallButton(hideButtonIfDisabled = false) {
+    const {organization} = this.props;
+    const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
+
+    return (
+      <IntegrationDirectoryFeatures {...this.featureProps}>
+        {({disabled, disabledReason}) => (
+          <DisableWrapper>
+            <Access organization={organization} access={['org:integrations']}>
+              {({hasAccess}) => (
+                <Tooltip
+                  title={t(
+                    'You must be an organization owner, manager or admin to install this.'
+                  )}
+                  disabled={hasAccess}
+                >
+                  {!hideButtonIfDisabled && disabled ? (
+                    <div />
+                  ) : (
+                    this.renderTopButton(disabled, hasAccess)
+                  )}
+                </Tooltip>
+              )}
+            </Access>
+            {disabled && <DisabledNotice reason={disabledReason} />}
+          </DisableWrapper>
+        )}
+      </IntegrationDirectoryFeatures>
+    );
+  }
+
   //Returns the content shown in the top section of the integration detail
   renderTopSection() {
-    const {organization} = this.props;
-
-    const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
     const tags = this.cleanTags();
+
     return (
       <Flex>
         <PluginIcon pluginId={this.integrationSlug} size={50} />
@@ -230,25 +288,7 @@ class AbstractIntegrationDetailedView<
             ))}
           </Flex>
         </NameContainer>
-        <IntegrationDirectoryFeatures {...this.featureProps}>
-          {({disabled, disabledReason}) => (
-            <DisableWrapper>
-              <Access organization={organization} access={['org:integrations']}>
-                {({hasAccess}) => (
-                  <Tooltip
-                    title={t(
-                      'You must be an organization owner, manager or admin to install this.'
-                    )}
-                    disabled={hasAccess}
-                  >
-                    {this.renderTopButton(disabled, hasAccess)}
-                  </Tooltip>
-                )}
-              </Access>
-              {disabled && <DisabledNotice reason={disabledReason} />}
-            </DisableWrapper>
-          )}
-        </IntegrationDirectoryFeatures>
+        {this.renderAddInstallButton()}
       </Flex>
     );
   }
@@ -300,11 +340,14 @@ class AbstractIntegrationDetailedView<
                 <AuthorName>{this.author}</AuthorName>
               </div>
             )}
-            {this.resourceLinks.map(({title, url}) => (
-              <ExternalLink key={url} href={url}>
-                {t(title)}
-              </ExternalLink>
-            ))}
+            {this.resourceLinks.map(({title, url}) => {
+              return (
+                <ExternalLinkContainer key={url}>
+                  {this.getIcon(title)}
+                  <ExternalLink href={url}>{t(title)}</ExternalLink>
+                </ExternalLinkContainer>
+              );
+            })}
           </Metadata>
         </Flex>
       </React.Fragment>
@@ -316,7 +359,7 @@ class AbstractIntegrationDetailedView<
       <React.Fragment>
         {this.renderTopSection()}
         {this.renderTabs()}
-        {this.state.tab === 'information'
+        {this.state.tab === 'overview'
           ? this.renderInformationCard()
           : this.renderConfigurations()}
       </React.Fragment>
@@ -333,7 +376,7 @@ const FlexContainer = styled('div')`
 `;
 
 const CapitalizedLink = styled('a')`
-  text-transform: 'capitalize';
+  text-transform: capitalize;
 `;
 
 const StyledTag = styled(Tag)`
@@ -397,10 +440,6 @@ const Metadata = styled(Flex)`
   font-size: 0.9em;
   margin-left: ${space(4)};
   margin-right: 100px;
-
-  a {
-    margin-bottom: ${space(2)};
-  }
 `;
 
 const AuthorName = styled('div')`
@@ -427,5 +466,51 @@ const CreatedContainer = styled('div')`
   color: ${p => p.theme.gray2};
   font-weight: 600;
   font-size: 12px;
+`;
+
+const EmptyConfigurationContainer = styled('div')`
+  height: 200px;
+  background: #ffffff;
+  border: 1px solid #c6becf;
+  box-sizing: border-box;
+  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
+
+const EmptyConfigurationTitle = styled('div')`
+  font-size: 22px;
+  line-height: 31px;
+  padding-bottom: ${space(2)};
+`;
+
+const EmptyConfigurationBody = styled('div')`
+  font-size: 16px;
+  line-height: 28px;
+  color: ${p => p.theme.gray2};
+  padding-bottom: ${space(2)};
+`;
+
+const StyledIconCode = () => (
+  <span className="icon-code2" style={{fontWeight: 'bold', marginRight: space(1)}} />
+);
+
+const StyledIconGithub = styled(IconGithub)`
+  margin-right: ${space(1)};
+`;
+
+const StyledIconGeneric = styled(IconGeneric)`
+  margin-right: ${space(1)};
+`;
+const StyledIconDocs = styled(IconDocs)`
+  margin-right: ${space(1)};
+`;
+
+const ExternalLinkContainer = styled('div')`
+  margin-bottom: ${space(2)};
+  display: flex;
 `;
 export default AbstractIntegrationDetailedView;
