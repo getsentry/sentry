@@ -128,7 +128,7 @@ describe('AccountSecurity', function() {
 
     expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(false);
 
-    // still has another 2fa method
+    // No enrolled authenticators
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
