@@ -72,8 +72,6 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                     [Function],
                     ";position:absolute;top:calc(100% - 1px);",
                     [Function],
-                    ";z-index:",
-                    [Function],
                     ";right:0;box-shadow:",
                     [Function],
                     ";overflow:hidden;",
@@ -81,6 +79,8 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                     ";",
                     [Function],
                     ";",
+                    [Function],
+                    ";z-index:",
                     [Function],
                     ";",
                     "label:BubbleWithMinWidth;",
@@ -110,7 +110,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                 onMouseLeave={[Function]}
               >
                 <div
-                  className="css-bb39f2-DropdownBubble-BubbleWithMinWidth ejumqxq11"
+                  className="css-1q3f0gl-DropdownBubble-BubbleWithMinWidth ejumqxq11"
                   onClick={[Function]}
                   onMouseDown={[Function]}
                   onMouseEnter={[Function]}
@@ -286,8 +286,6 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                     [Function],
                     ";position:absolute;top:calc(100% - 1px);",
                     [Function],
-                    ";z-index:",
-                    [Function],
                     ";right:0;box-shadow:",
                     [Function],
                     ";overflow:hidden;",
@@ -295,6 +293,8 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                     ";",
                     [Function],
                     ";",
+                    [Function],
+                    ";z-index:",
                     [Function],
                     ";",
                     "label:BubbleWithMinWidth;",
@@ -324,7 +324,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                 onMouseLeave={[Function]}
               >
                 <div
-                  className="css-bb39f2-DropdownBubble-BubbleWithMinWidth ejumqxq11"
+                  className="css-1q3f0gl-DropdownBubble-BubbleWithMinWidth ejumqxq11"
                   onClick={[Function]}
                   onMouseDown={[Function]}
                   onMouseEnter={[Function]}
