@@ -29,6 +29,12 @@ def get_regions():
     return public_region_list + cn_region_list
 
 
+def track_response_metric(success):
+    # boto3's send_message doesn't return success/fail
+    # success is a boolean based on whether there was an exception or not
+    metrics.incr("plugins.amazon-sqs.http_response", tags={"success": success})
+
+
 class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
     title = "Amazon SQS"
     slug = "amazon-sqs"
@@ -109,7 +115,6 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 # if content based de-duplication is not enabled, we need to provide a
                 # MessageDeduplicationId
                 message["MessageDeduplicationId"] = uuid4().hex
-
             client.send_message(**message)
         except ClientError as e:
             if six.text_type(e).startswith("An error occurred (AccessDenied)"):
@@ -154,7 +159,8 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                         "organization_id": event.project.organization_id,
                     },
                 )
+                track_response_metric(False)
                 return False
             raise
-
+        track_response_metric(True)
         return True
