@@ -29,11 +29,20 @@ def get_regions():
     return public_region_list + cn_region_list
 
 
-def track_response_metric(success):
+def track_response_metric(fn):
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Queue.send_message
     # boto3's send_message doesn't return success/fail or http codes
     # success is a boolean based on whether there was an exception or not
-    metrics.incr("plugins.amazon-sqs.http_response", tags={"success": success})
+    def wrapper(*args, **kwargs):
+        try:
+            success = fn(*args, **kwargs)
+            metrics.incr("plugins.amazon-sqs.http_response", tags={"success": success})
+        except Exception:
+            metrics.incr("plugins.amazon-sqs.http_response", tags={"success": False})
+            raise
+        return success
+
+    return wrapper
 
 
 class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
@@ -80,6 +89,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             },
         ]
 
+    @track_response_metric
     def forward_event(self, event, payload):
         queue_url = self.get_option("queue_url", event.project)
         access_key = self.get_option("access_key", event.project)
@@ -160,8 +170,6 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                         "organization_id": event.project.organization_id,
                     },
                 )
-                track_response_metric(False)
                 return False
             raise
-        track_response_metric(True)
         return True
