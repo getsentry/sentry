@@ -15,23 +15,21 @@ from sentry.rules.actions.base import EventAction
 # from sentry.utils.safe import safe_execute
 
 # Mail import
-# import itertools
+import itertools
 import logging
 import six
 
 # from enum import Enum
 
-import sentry
-
 # from django.core.urlresolvers import reverse
-# from django.utils import dateformat
+from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from sentry import options
 from sentry.models import ProjectOwnership, User, Team
 
-# from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
+from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils import metrics
@@ -94,44 +92,17 @@ class NotifyEmailAction(EventAction):
             )
         )
 
-    # def get_sentry_app_services(self):
-    #     apps = SentryApp.objects.filter(
-    #         installations__organization_id=self.project.organization_id, is_alertable=True
-    #     ).distinct()
-    #     results = [SentryAppService(app) for app in apps]
-    #     return results
-
-    # def get_plugins(self):
-    #     from sentry.plugins.bases.notify import NotificationPlugin
-    #
-    #     results = []
-    #     for plugin in plugins.for_project(self.project, version=1):
-    #         if not isinstance(plugin, NotificationPlugin):
-    #             continue
-    #         results.append(PluginService(plugin))
-    #
-    #     for plugin in plugins.for_project(self.project, version=2):
-    #         for notifier in safe_execute(plugin.get_notifiers, _with_transaction=False) or ():
-    #             results.append(PluginService(notifier))
-    #
-    #     return results
-
-    # def get_services(self):
-    #     services = self.get_plugins()
-    #     services += self.get_sentry_app_services()
-    #     return services
-
     def get_form_instance(self):
         return self.form_cls(self.data)
 
 
 class MailPlugin(NotificationPlugin):
-    title = "Mail"
+    # title = "Mail"
     conf_key = "mail"
-    slug = "mail"
-    version = sentry.VERSION
-    author = "Sentry Team"
-    author_url = "https://github.com/getsentry/sentry"
+    # slug = "mail"
+    # version = sentry.VERSION
+    # author = "Sentry Team"
+    # author_url = "https://github.com/getsentry/sentry"
     project_default_enabled = True
     project_conf_form = None
     subject_prefix = None
@@ -263,21 +234,26 @@ class MailPlugin(NotificationPlugin):
 
         This result may come from cached data.
         """
+
+        def return_set(xs):
+            return set(xs) if xs or xs == 0 else set()
+
         if not (project and project.teams.exists()):
             logger.debug("Tried to send notification to invalid project: %r", project)
-            return []
+            return set()
         # TODO(jeff): check if notification.event can be None
 
         if not event:
-            return self.get_send_to_all_in_project(project)
+            return return_set(self.get_send_to_all_in_project(project))
 
+        send_to = []
         if target_type == "Owners":
-            return self.get_send_to_owners(event, project)
+            send_to = self.get_send_to_owners(event, project)
         elif target_type == "Member":
-            return self.get_send_to_member(project, target_identifier)
+            send_to = self.get_send_to_member(project, target_identifier)
         elif target_type == "Team":
-            return self.get_send_to_team(target_identifier)
-        return []
+            send_to = self.get_send_to_team(target_identifier)
+        return return_set(send_to)
 
     def get_send_to_owners(self, event, project):
         owners, _ = ProjectOwnership.get_owners(project.id, event.data)
@@ -288,7 +264,7 @@ class MailPlugin(NotificationPlugin):
                     tags={"organization": project.organization_id, "outcome": "empty"},
                     skip_internal=True,
                 )
-                return []
+                return set()
 
             metrics.incr(
                 "features.owners.send_to",
@@ -466,57 +442,59 @@ class MailPlugin(NotificationPlugin):
                 send_to=[user_id],
             )
 
-    # def get_digest_subject(self, group, counts, date):
-    #     return u"{short_id} - {count} new {noun} since {date}".format(
-    #         short_id=group.qualified_short_id,
-    #         count=len(counts),
-    #         noun="alert" if len(counts) == 1 else "alerts",
-    #         date=dateformat.format(date, "N j, Y, P e"),
-    #     )
+    def get_digest_subject(self, group, counts, date):
+        return u"{short_id} - {count} new {noun} since {date}".format(
+            short_id=group.qualified_short_id,
+            count=len(counts),
+            noun="alert" if len(counts) == 1 else "alerts",
+            date=dateformat.format(date, "N j, Y, P e"),
+        )
+
     # TODO(Jeff): Not required, but there is a dependency on mail plugin due to the way we send digests (sent key will
     #  be used to instantiate the MailPlugin to handle the notifyDigest call)
-    # def notify_digest(self, project, digest):
-    #     user_ids = self.get_send_to(project)
-    #     for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
-    #         start, end, counts = get_digest_metadata(digest)
-    #
-    #         # If there is only one group in this digest (regardless of how many
-    #         # rules it appears in), we should just render this using the single
-    #         # notification template. If there is more than one record for a group,
-    #         # just choose the most recent one.
-    #         if len(counts) == 1:
-    #             group = six.next(iter(counts))
-    #             record = max(
-    #                 itertools.chain.from_iterable(
-    #                     groups.get(group, []) for groups in six.itervalues(digest)
-    #                 ),
-    #                 key=lambda record: record.timestamp,
-    #             )
-    #             notification = Notification(record.value.event, rules=record.value.rules)
-    #             return self.notify(notification)
-    #
-    #         context = {
-    #             "start": start,
-    #             "end": end,
-    #             "project": project,
-    #             "digest": digest,
-    #             "counts": counts,
-    #         }
-    #
-    #         headers = {"X-Sentry-Project": project.slug}
-    #
-    #         group = six.next(iter(counts))
-    #         subject = self.get_digest_subject(group, counts, start)
-    #
-    #         self.add_unsubscribe_link(context, user_id, project, "alert_digest")
-    #         self._send_mail(
-    #             subject=subject,
-    #             template="sentry/emails/digests/body.txt",
-    #             html_template="sentry/emails/digests/body.html",
-    #             project=project,
-    #             reference=project,
-    #             headers=headers,
-    #             type="notify.digest",
-    #             context=context,
-    #             send_to=[user_id],
-    #         )
+    # TODO(Jeff): How do we supply the additional argument (target_id) to digest?
+    def notify_digest(self, project, digest):
+        user_ids = self.get_send_to(project)
+        for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
+            start, end, counts = get_digest_metadata(digest)
+
+            # If there is only one group in this digest (regardless of how many
+            # rules it appears in), we should just render this using the single
+            # notification template. If there is more than one record for a group,
+            # just choose the most recent one.
+            if len(counts) == 1:
+                group = six.next(iter(counts))
+                record = max(
+                    itertools.chain.from_iterable(
+                        groups.get(group, []) for groups in six.itervalues(digest)
+                    ),
+                    key=lambda record: record.timestamp,
+                )
+                notification = Notification(record.value.event, rules=record.value.rules)
+                return self.notify(notification)
+
+            context = {
+                "start": start,
+                "end": end,
+                "project": project,
+                "digest": digest,
+                "counts": counts,
+            }
+
+            headers = {"X-Sentry-Project": project.slug}
+
+            group = six.next(iter(counts))
+            subject = self.get_digest_subject(group, counts, start)
+
+            self.add_unsubscribe_link(context, user_id, project, "alert_digest")
+            self._send_mail(
+                subject=subject,
+                template="sentry/emails/digests/body.txt",
+                html_template="sentry/emails/digests/body.html",
+                project=project,
+                reference=project,
+                headers=headers,
+                type="notify.digest",
+                context=context,
+                send_to=[user_id],
+            )
