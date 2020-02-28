@@ -453,6 +453,10 @@ class ExportQueryType(object):
         )
 
     @classmethod
+    def as_str_choices(cls):
+        return [cls.DISCOVER_V2_STR, cls.BILLING_REPORT_STR, cls.ISSUE_BY_TAG_STR]
+
+    @classmethod
     def as_str(cls, integer):
         if integer == cls.DISCOVER_V2:
             return cls.DISCOVER_V2_STR
@@ -468,7 +472,7 @@ class ExportQueryType(object):
         elif string == cls.BILLING_REPORT_STR:
             return cls.BILLING_REPORT
         elif string == cls.ISSUE_BY_TAG_STR:
-            return cls.ISSUE_BY_TAG_STR
+            return cls.ISSUE_BY_TAG
 
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))

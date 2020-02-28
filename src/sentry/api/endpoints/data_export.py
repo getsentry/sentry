@@ -14,10 +14,10 @@ from sentry.tasks.data_export import assemble_download
 
 
 class ExportedDataSerializer(serializers.Serializer):
-    max_value = len(ExportQueryType.as_choices()) - 1
-    query_type = serializers.IntegerField(required=True, min_value=0, max_value=max_value)
-    query_info = serializers.JSONField(required=True)
+
+    query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
     # TODO(Leander): Implement query_info validation with jsonschema
+    query_info = serializers.JSONField(required=True)
 
 
 class DataExportEndpoint(OrganizationEndpoint):
@@ -45,10 +45,6 @@ class DataExportEndpoint(OrganizationEndpoint):
             # If this user has sent a sent a request with the same payload and organization,
             # we return them the latest one that is NOT complete (i.e. don't start another)
             query_type = ExportQueryType.from_str(data["query_type"])
-            if query_type is None:
-                raise ValidationError(
-                    u"Provided query_type '{}' is not recognized".format(query_type)
-                )
             data_export, created = ExportedData.objects.get_or_create(
                 organization=organization,
                 user=request.user,
@@ -61,6 +57,6 @@ class DataExportEndpoint(OrganizationEndpoint):
                 assemble_download.delay(data_export=data_export)
                 status = 201
         except ValidationError as e:
-            # This will handle invalid JSON requests and bad query_types
+            # This will handle invalid JSON requests
             return Response({"detail": six.text_type(e)}, status=400)
         return Response(serialize(data_export, request.user), status=status)
