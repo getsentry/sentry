@@ -13,11 +13,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 };
 
 function IntegrationViewController(props: Props) {
-  if (
-    isIntegrationDirectoryActive(
-      props.organization?.experiments?.IntegrationDirectoryExperiment
-    )
-  ) {
+  if (isIntegrationDirectoryActive(props.organization)) {
     return <Test {...props} />;
   }
   return <Control {...props} />;
