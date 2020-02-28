@@ -135,7 +135,6 @@ class ActionsPanel extends React.PureComponent<Props> {
 
                   {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
                     <SelectControl
-                      deprecatedSelectControl
                       disabled={disabled || loading}
                       value={action.targetType}
                       options={
