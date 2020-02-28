@@ -21,7 +21,6 @@ from sentry.tasks.store import RetrySymbolication
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
-SYMBOLICATOR_TIMEOUT = 5
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +108,7 @@ class Symbolicator(object):
             url=base_url,
             project_id=six.text_type(project.id),
             event_id=six.text_type(event_id),
-            timeout=SYMBOLICATOR_TIMEOUT,
+            timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
         )
 
