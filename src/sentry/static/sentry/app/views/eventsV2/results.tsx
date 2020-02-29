@@ -7,7 +7,6 @@ import uniqBy from 'lodash/uniqBy';
 import isEqual from 'lodash/isEqual';
 
 import {Organization, GlobalSelection} from 'app/types';
-
 import {Client} from 'app/api';
 import {Panel} from 'app/components/panels';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -15,13 +14,10 @@ import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
-
 import SearchBar from 'app/views/events/searchBar';
 import EventsChart from 'app/views/events/eventsChart';
-
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';

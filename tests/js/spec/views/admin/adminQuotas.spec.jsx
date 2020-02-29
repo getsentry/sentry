@@ -1,6 +1,6 @@
 import React from 'react';
-import {shallow} from 'sentry-test/enzyme';
 
+import {shallow} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import AdminQuotas from 'app/views/admin/adminQuotas';
 

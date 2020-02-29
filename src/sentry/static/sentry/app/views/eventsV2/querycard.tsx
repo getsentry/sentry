@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
+
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
-
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
 

@@ -7,9 +7,7 @@ import styled from '@emotion/styled';
 import CommitRow from 'app/components/commitRow';
 import InlineSvg from 'app/components/inlineSvg';
 import withApi from 'app/utils/withApi';
-
 import {t} from 'app/locale';
-
 import {Panel} from 'app/components/panels';
 
 const ExpandButton = styled('span')`

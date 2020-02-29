@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
@@ -7,7 +8,6 @@ import {getFullUrl, getCurlCommand} from 'app/components/events/interfaces/utils
 import {isUrl} from 'app/utils';
 import {t} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
-
 import Truncate from 'app/components/truncate';
 
 class RequestInterface extends React.Component {

@@ -2,8 +2,8 @@ import {Params} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-
 import {Location} from 'history';
+
 import {Organization} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';

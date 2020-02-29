@@ -5,8 +5,8 @@ import * as ReactRouter from 'react-router';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import styled from '@emotion/styled';
-
 import {Location} from 'history';
+
 import {Organization, SavedQuery} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';

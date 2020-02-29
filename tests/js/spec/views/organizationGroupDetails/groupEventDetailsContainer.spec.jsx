@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
 import GroupEventDetailsContainer from 'app/views/organizationGroupDetails/groupEventDetails';
 

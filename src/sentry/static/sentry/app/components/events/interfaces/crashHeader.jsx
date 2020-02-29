@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';

@@ -1,4 +1,5 @@
 import Reflux from 'reflux';
+
 import PreferencesActions from '../actions/preferencesActions';
 
 /**

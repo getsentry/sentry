@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {defined} from 'app/utils';
-
 import InputField from 'app/components/forms/inputField';
 import Tooltip from 'app/components/tooltip';
 
