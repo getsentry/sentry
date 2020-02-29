@@ -5,7 +5,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {t, tct} from 'app/locale';
 import {SentryApp, SentryAppInstallation} from 'app/types';
-import {IconSubtract} from 'app/icons';
+import {IconAdd, IconSubtract} from 'app/icons';
 import space from 'app/styles/space';
 
 type UninstallButtonProps = {
@@ -48,7 +48,7 @@ export const InstallButton = ({onClickInstall}: InstallButtonProps) => (
   <Button
     onClick={onClickInstall}
     size="small"
-    icon="icon-circle-add"
+    icon={<IconAdd size="xs" circle />}
     className="btn btn-default"
   >
     {t('Install')}

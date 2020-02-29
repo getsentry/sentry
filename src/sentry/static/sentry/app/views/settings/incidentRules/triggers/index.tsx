@@ -12,6 +12,7 @@ import CircleIndicator from 'app/components/circleIndicator';
 import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
+import {IconAdd} from 'app/icons/iconAdd';
 
 import {Trigger} from '../types';
 
@@ -150,7 +151,7 @@ class Triggers extends React.Component<Props> {
               disabled={disabled}
               type="button"
               size="small"
-              icon="icon-circle-add"
+              icon={<IconAdd size="xs" circle />}
               onClick={onAdd}
             >
               {t('Add Warning Trigger')}
