@@ -3,16 +3,17 @@ from __future__ import absolute_import
 from collections import namedtuple
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import IntegrityError, models, transaction
+from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from enum import Enum
 
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes
 from sentry.db.models import ArrayField, sane_repr
-from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
-from sentry.snuba.models import QueryAggregations
+from sentry.snuba.models import QueryAggregations, QuerySubscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -83,7 +84,6 @@ class IncidentManager(BaseManager):
 
 class IncidentType(Enum):
     DETECTED = 0
-    CREATED = 1
     ALERT_TRIGGERED = 2
 
 
@@ -110,7 +110,7 @@ class Incident(Model):
     # Identifier used to match incoming events from the detection algorithm
     detection_uuid = UUIDField(null=True, db_index=True)
     status = models.PositiveSmallIntegerField(default=IncidentStatus.OPEN.value)
-    type = models.PositiveSmallIntegerField(default=IncidentType.CREATED.value)
+    type = models.PositiveSmallIntegerField()
     aggregation = models.PositiveSmallIntegerField(default=QueryAggregations.TOTAL.value)
     title = models.TextField()
     # Query used to fetch events related to an incident
@@ -179,7 +179,6 @@ class TimeSeriesSnapshot(Model):
 
 
 class IncidentActivityType(Enum):
-    CREATED = 0
     DETECTED = 1
     STATUS_CHANGE = 2
     COMMENT = 3
@@ -194,7 +193,6 @@ class IncidentActivity(Model):
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)
     comment = models.TextField(null=True)
-    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -217,19 +215,6 @@ class IncidentSubscription(Model):
     __repr__ = sane_repr("incident_id", "user_id")
 
 
-class IncidentSuspectCommit(Model):
-    __core__ = True
-
-    incident = BoundedBigIntegerField(db_column="incident_id")
-    commit = BoundedBigIntegerField(db_column="commit_id", db_index=True)
-    order = models.SmallIntegerField()
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidentsuspectcommit"
-        unique_together = (("incident", "commit"),)
-
-
 class AlertRuleStatus(Enum):
     PENDING = 0
     TRIGGERED = 1
@@ -246,6 +231,8 @@ class AlertRuleManager(BaseManager):
     """
     A manager that excludes all rows that are pending deletion.
     """
+
+    CACHE_SUBSCRIPTION_KEY = "alert_rule:subscription:%s"
 
     def get_queryset(self):
         return (
@@ -264,6 +251,49 @@ class AlertRuleManager(BaseManager):
 
     def fetch_for_project(self, project):
         return self.filter(query_subscriptions__project=project)
+
+    @classmethod
+    def __build_subscription_cache_key(self, subscription_id):
+        return self.CACHE_SUBSCRIPTION_KEY % subscription_id
+
+    def get_for_subscription(self, subscription):
+        """
+        Fetches the AlertRule associated with a Subscription. Attempts to fetch from
+        cache then hits the database
+        """
+        cache_key = self.__build_subscription_cache_key(subscription.id)
+        alert_rule = cache.get(cache_key)
+        if alert_rule is None:
+            alert_rule = AlertRule.objects.get(query_subscriptions=subscription)
+            cache.set(cache_key, alert_rule, 3600)
+
+        return alert_rule
+
+    @classmethod
+    def clear_subscription_cache(cls, instance, **kwargs):
+        cache.delete(cls.__build_subscription_cache_key(instance.id))
+
+    @classmethod
+    def clear_alert_rule_subscription_caches(cls, instance, **kwargs):
+        subscription_ids = AlertRuleQuerySubscription.objects.filter(
+            alert_rule=instance
+        ).values_list("query_subscription_id", flat=True)
+        if subscription_ids:
+            cache.delete_many(
+                cls.__build_subscription_cache_key(sub_id) for sub_id in subscription_ids
+            )
+
+
+class AlertRuleEnvironment(Model):
+    __core__ = True
+
+    environment = FlexibleForeignKey("sentry.Environment")
+    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleenvironment"
+        unique_together = (("alert_rule", "environment"),)
 
 
 class AlertRuleQuerySubscription(Model):
@@ -307,6 +337,9 @@ class AlertRule(Model):
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     dataset = models.TextField()
     query = models.TextField()
+    environment = models.ManyToManyField(
+        "sentry.Environment", related_name="alert_rule_environment", through=AlertRuleEnvironment
+    )
     # Determines whether we include all current and future projects from this
     # organization in this rule.
     include_all_projects = models.BooleanField(default=False)
@@ -335,12 +368,41 @@ class IncidentTrigger(Model):
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
     status = models.SmallIntegerField()
+    date_modified = models.DateTimeField(default=timezone.now, null=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_incidenttrigger"
         unique_together = (("incident", "alert_rule_trigger"),)
+
+
+class AlertRuleTriggerManager(BaseManager):
+    CACHE_KEY = "alert_rule_triggers:alert_rule:%s"
+
+    @classmethod
+    def _build_trigger_cache_key(self, alert_rule_id):
+        return self.CACHE_KEY % alert_rule_id
+
+    def get_for_alert_rule(self, alert_rule):
+        """
+        Fetches the AlertRuleTriggers associated with an AlertRule. Attempts to fetch
+        from cache then hits the database
+        """
+        cache_key = self._build_trigger_cache_key(alert_rule.id)
+        triggers = cache.get(cache_key)
+        if triggers is None:
+            triggers = list(AlertRuleTrigger.objects.filter(alert_rule=alert_rule))
+            cache.set(cache_key, triggers, 3600)
+        return triggers
+
+    @classmethod
+    def clear_trigger_cache(cls, instance, **kwargs):
+        cache.delete(cls._build_trigger_cache_key(instance.alert_rule_id))
+
+    @classmethod
+    def clear_alert_rule_trigger_cache(cls, instance, **kwargs):
+        cache.delete(cls._build_trigger_cache_key(instance.id))
 
 
 class AlertRuleTrigger(Model):
@@ -355,6 +417,8 @@ class AlertRuleTrigger(Model):
         "sentry.Incident", related_name="triggers", through=IncidentTrigger
     )
     date_added = models.DateTimeField(default=timezone.now)
+
+    objects = AlertRuleTriggerManager()
 
     class Meta:
         app_label = "sentry"
@@ -483,3 +547,14 @@ class AlertRuleTriggerAction(Model):
     @classmethod
     def get_registered_types(cls):
         return cls._type_registrations.values()
+
+
+post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
+post_save.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
+post_save.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
+post_delete.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
+
+post_delete.connect(AlertRuleTriggerManager.clear_alert_rule_trigger_cache, sender=AlertRule)
+post_save.connect(AlertRuleTriggerManager.clear_alert_rule_trigger_cache, sender=AlertRule)
+post_save.connect(AlertRuleTriggerManager.clear_trigger_cache, sender=AlertRuleTrigger)
+post_delete.connect(AlertRuleTriggerManager.clear_trigger_cache, sender=AlertRuleTrigger)

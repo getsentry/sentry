@@ -155,10 +155,9 @@ describe('decodeColumnOrder', function() {
   });
 
   it('can decode aggregate functions with no arguments', function() {
-    const results = decodeColumnOrder([{field: 'count()', width: 123}]);
+    let results = decodeColumnOrder([{field: 'count()', width: 123}]);
 
     expect(Array.isArray(results)).toBeTruthy();
-
     expect(results[0]).toEqual({
       key: 'count()',
       name: 'count()',
@@ -173,6 +172,12 @@ describe('decodeColumnOrder', function() {
       isSortable: true,
       type: 'number',
     });
+
+    results = decodeColumnOrder([{field: 'p75()', width: 123}]);
+    expect(results[0].type).toEqual('duration');
+
+    results = decodeColumnOrder([{field: 'p99()', width: 123}]);
+    expect(results[0].type).toEqual('duration');
   });
 
   it('can decode elements with aggregate functions with arguments', function() {
@@ -189,7 +194,7 @@ describe('decodeColumnOrder', function() {
       eventViewField: {field: 'avg(transaction.duration)'},
       isDragging: false,
       isSortable: true,
-      type: 'number',
+      type: 'duration',
     });
   });
 });
@@ -305,20 +310,19 @@ describe('getExpandedResults()', function() {
     environment: ['staging'],
   };
 
-  it('preserve aggregated fields', () => {
+  it('preserves aggregated fields', () => {
     let view = new EventView(state);
     let result = getExpandedResults(view, {}, {});
 
     expect(result.fields).toEqual([
-      {field: 'id', width: 300}, // expect count() to be converted to id
-      {field: 'timestamp', width: 300},
+      {field: 'id', width: -1}, // expect count() to be converted to id
+      {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
     ]);
     expect(result.query).toEqual('event.type:error');
 
     // de-duplicate transformed columns
-
     view = new EventView({
       ...state,
       fields: [
@@ -333,14 +337,13 @@ describe('getExpandedResults()', function() {
     result = getExpandedResults(view, {}, {});
 
     expect(result.fields).toEqual([
-      {field: 'id', width: 300}, // expect count() to be converted to id
-      {field: 'timestamp', width: 300},
+      {field: 'id', width: -1}, // expect count() to be converted to id
+      {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
     ]);
 
     // transform aliased fields, & de-duplicate any transforms
-
     view = new EventView({
       ...state,
       fields: [
@@ -367,10 +370,10 @@ describe('getExpandedResults()', function() {
     result = getExpandedResults(view, {}, {});
 
     expect(result.fields).toEqual([
-      {field: 'timestamp', width: 300},
-      {field: 'id', width: 300},
+      {field: 'timestamp', width: -1},
+      {field: 'id', width: -1},
       {field: 'title'},
-      {field: 'transaction.duration', width: 300},
+      {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
       {field: 'title'},
     ]);
@@ -387,7 +390,7 @@ describe('getExpandedResults()', function() {
 
     // appends to existing conditions
     result = getExpandedResults(view, {'event.type': 'csp'}, {});
-    expect(result.query).toEqual('event.type:error event.type:csp');
+    expect(result.query).toEqual('event.type:csp');
   });
 
   it('removes any aggregates in either search conditions or extra conditions', () => {
@@ -432,6 +435,53 @@ describe('getExpandedResults()', function() {
     expect(result.query).toEqual('event.type:error');
     expect(result.environment).toEqual(['staging', 'dev']);
   });
+
+  it('applies tags that overlap globalselection state', () => {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'project'}, {field: 'environment'}, {field: 'title'}],
+    });
+    const event = {
+      title: 'something bad',
+      timestamp: '2020-02-13T17:05:46+00:00',
+      tags: [
+        {key: 'project', value: '12345'},
+        {key: 'environment', value: 'earth'},
+      ],
+    };
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual(
+      'event.type:error tags[project]:12345 tags[environment]:earth title:"something bad"'
+    );
+    expect(result.project).toEqual([42]);
+    expect(result.environment).toEqual(['staging']);
+  });
+
+  it('normalizes the timestamp field', () => {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'timestamp'}],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+    });
+    const event = {
+      type: 'error',
+      timestamp: '2020-02-13T17:05:46+00:00',
+    };
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('event.type:error timestamp:2020-02-13T17:05:46');
+  });
+
+  it('does not duplicate conditions', () => {
+    const view = new EventView({
+      ...state,
+      query: 'event.type:error title:bogus',
+    });
+    const event = {
+      title: 'bogus',
+    };
+    const result = getExpandedResults(view, {trace: 'abc123'}, event);
+    expect(result.query).toEqual('event.type:error title:bogus trace:abc123');
+  });
 });
 
 describe('getDiscoverLandingUrl', function() {
@@ -451,7 +501,7 @@ describe('explodeField', function() {
     expect(explodeField({field: 'foobar'})).toEqual({
       aggregation: '',
       field: 'foobar',
-      width: 300,
+      width: -1,
     });
 
     // has width

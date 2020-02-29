@@ -11,13 +11,16 @@ import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import {Team} from 'app/types';
 
-type Props = {
+type DefaultProps = {
+  avatarSize: TeamAvatar['props']['size'];
+  // If true, will use default max-width, or specify one as a string
+  hideOverflow: boolean | string;
+  hideAvatar: boolean;
+};
+
+type Props = DefaultProps & {
   team: Team;
   className?: string;
-  avatarSize?: TeamAvatar['props']['size'];
-  // If true, will use default max-width, or specify one as a string
-  hideOverflow?: boolean | string;
-  hideAvatar?: boolean;
 };
 
 class TeamBadge extends React.Component<Props> {
@@ -29,7 +32,7 @@ class TeamBadge extends React.Component<Props> {
     hideAvatar: PropTypes.bool,
   };
 
-  static defaultProps: Partial<Props> = {
+  static defaultProps: DefaultProps = {
     avatarSize: 24,
     hideOverflow: true,
     hideAvatar: false,

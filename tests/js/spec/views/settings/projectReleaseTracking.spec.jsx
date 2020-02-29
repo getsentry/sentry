@@ -7,7 +7,7 @@ import ProjectReleaseTrackingContainer, {
 import {fetchPlugins} from 'app/actionCreators/plugins';
 
 jest.mock('app/actionCreators/plugins', () => ({
-  fetchPlugins: jest.fn(),
+  fetchPlugins: jest.fn().mockResolvedValue([]),
 }));
 
 describe('ProjectReleaseTracking', function() {

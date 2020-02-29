@@ -103,7 +103,12 @@ class Project(Model, PendingDeletionMixin):
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
     flags = BitField(
-        flags=(("has_releases", "This Project has sent release data"),), default=0, null=True
+        flags=(
+            ("has_releases", "This Project has sent release data"),
+            ("has_sourcemaps", "This Project has processed source maps"),
+        ),
+        default=0,
+        null=True,
     )
 
     objects = ProjectManager(cache_fields=["pk", "slug"])

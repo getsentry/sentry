@@ -78,7 +78,7 @@ export default class GenericField extends React.Component {
         if (props.has_autocomplete) {
           return <SelectAsyncField deprecatedSelectControl {...props} />;
         }
-        return <SelectField {...props} />;
+        return <SelectField deprecatedSelectControl {...props} />;
       default:
         return null;
     }

@@ -372,7 +372,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             response = self.client.get(self.url, format="json", data={"query": "\n\n\n\n"})
         assert response.status_code == 400, response.content
         assert response.data == {
-            "detail": "Parse error: 'search' (column 1). This is commonly caused by unmatched-parentheses. Enclose any text in double quotes."
+            "detail": "Parse error at '\n\n\n\n' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         }
 
     def test_environment(self):

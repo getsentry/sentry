@@ -62,7 +62,6 @@ class Filter(object):
 class EventStorage(Service):
     __all__ = (
         "minimal_columns",
-        "full_columns",
         "create_event",
         "get_event_by_id",
         "get_events",
@@ -80,33 +79,8 @@ class EventStorage(Service):
     # avoid duplicated work.
     minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
 
-    # A list of all useful columns we can get from snuba.
-    full_columns = minimal_columns + [
-        Columns.CULPRIT,
-        Columns.LOCATION,
-        Columns.MESSAGE,
-        Columns.PLATFORM,
-        Columns.TITLE,
-        Columns.TYPE,
-        Columns.TRANSACTION,
-        # Required to provide snuba-only tags
-        Columns.TAGS_KEY,
-        Columns.TAGS_VALUE,
-        # Required to provide snuba-only 'user' interface
-        Columns.USER_EMAIL,
-        Columns.USER_IP_ADDRESS,
-        Columns.USER_ID,
-        Columns.USER_USERNAME,
-    ]
-
     def get_events(
-        self,
-        filter,
-        additional_columns=None,
-        orderby=None,
-        limit=100,
-        offset=0,
-        referrer="eventstore.get_events",
+        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_events"  # NOQA
     ):
         """
         Fetches a list of events given a set of criteria.
@@ -121,7 +95,7 @@ class EventStorage(Service):
         raise NotImplementedError
 
     def get_unfetched_events(
-        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_unfetched_events"
+        self, filter, orderby=None, limit=100, offset=0, referrer="eventstore.get_unfetched_events"  # NOQA
     ):
         """
         Same as get_events but returns events without their node datas loaded.
@@ -151,7 +125,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_next_event_id(self, event, filter):
+    def get_next_event_id(self, event, filter):  # NOQA
         """
         Gets the next event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -162,7 +136,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_prev_event_id(self, event, filter):
+    def get_prev_event_id(self, event, filter):  # NOQA
         """
         Gets the previous event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -173,7 +147,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_earliest_event_id(self, event, filter):
+    def get_earliest_event_id(self, event, filter):  # NOQA
         """
         Gets the earliest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -184,7 +158,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_latest_event_id(self, event, filter):
+    def get_latest_event_id(self, event, filter):  # NOQA
         """
         Gets the latest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
@@ -211,12 +185,8 @@ class EventStorage(Service):
         It's not necessary to bind a single Event object since data will be lazily
         fetched on any attempt to access a property.
         """
-        # Temporarily make bind_nodes noop to prevent unnecessary additional calls
-        # to nodestore by the event serializer.
-        unfetched_object_list = [i for i in object_list if not getattr(i, node_name)._node_data]
-
         object_node_list = [
-            (i, getattr(i, node_name)) for i in unfetched_object_list if getattr(i, node_name).id
+            (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
         ]
 
         node_ids = [n.id for _, n in object_node_list]

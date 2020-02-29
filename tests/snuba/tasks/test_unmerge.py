@@ -31,6 +31,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.tasks.merge import merge_groups
 
 from six.moves import xrange
+from sentry.utils.compat import map
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
@@ -169,7 +170,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         }
 
     def test_unmerge(self):
-        now = before_now(seconds=20).replace(microsecond=0, tzinfo=pytz.utc)
+        now = before_now(minutes=5).replace(microsecond=0, tzinfo=pytz.utc)
 
         def time_from_now(offset=0):
             return now + timedelta(seconds=offset)

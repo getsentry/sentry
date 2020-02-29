@@ -30,7 +30,7 @@ from sentry.signals import (
 from sentry.utils.javascript import has_sourcemap
 
 
-def check_for_onboarding_complete(organization_id):
+def try_mark_onboarding_complete(organization_id):
     if OrganizationOption.objects.filter(
         organization_id=organization_id, key="onboarding:complete"
     ).exists():
@@ -42,7 +42,7 @@ def check_for_onboarding_complete(organization_id):
             & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
         ).values_list("task", flat=True)
     )
-    if completed >= OnboardingTask.REQUIRED_ONBOARDING_TASKS:
+    if completed >= OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS:
         try:
             with transaction.atomic():
                 OrganizationOption.objects.create(
@@ -204,7 +204,7 @@ def record_member_joined(member, organization, **kwargs):
         },
     )
     if created or rows_affected:
-        check_for_onboarding_complete(member.organization_id)
+        try_mark_onboarding_complete(member.organization_id)
 
 
 @event_processed.connect(weak=False)
@@ -226,7 +226,7 @@ def record_release_received(project, event, **kwargs):
             project_id=project.id,
             organization_id=project.organization_id,
         )
-        check_for_onboarding_complete(project.organization_id)
+        try_mark_onboarding_complete(project.organization_id)
 
 
 @event_processed.connect(weak=False)
@@ -252,7 +252,7 @@ def record_user_context_received(project, event, **kwargs):
                 organization_id=project.organization_id,
                 project_id=project.id,
             )
-            check_for_onboarding_complete(project.organization_id)
+            try_mark_onboarding_complete(project.organization_id)
 
 
 @event_processed.connect(weak=False)
@@ -274,7 +274,7 @@ def record_sourcemaps_received(project, event, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
         )
-        check_for_onboarding_complete(project.organization_id)
+        try_mark_onboarding_complete(project.organization_id)
 
 
 @plugin_enabled.connect(weak=False)
@@ -283,7 +283,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         task = OnboardingTask.ISSUE_TRACKER
         status = OnboardingTaskStatus.PENDING
     elif isinstance(plugin, NotificationPlugin):
-        task = OnboardingTask.NOTIFICATION_SERVICE
+        task = OnboardingTask.ALERT_RULE
         status = OnboardingTaskStatus.COMPLETE
     else:
         return
@@ -297,7 +297,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         data={"plugin": plugin.slug},
     )
     if success:
-        check_for_onboarding_complete(project.organization_id)
+        try_mark_onboarding_complete(project.organization_id)
 
     analytics.record(
         "plugin.enabled",
@@ -324,7 +324,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
     )
 
     if rows_affected or created:
-        check_for_onboarding_complete(project.organization_id)
+        try_mark_onboarding_complete(project.organization_id)
 
     if user and user.is_authenticated():
         user_id = default_user_id = user.id

@@ -14,6 +14,9 @@ import TagStore from 'app/stores/tagStore';
 jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
 jest.mock('app/views/issueList/actions', () => jest.fn(() => null));
 jest.mock('app/components/stream/group', () => jest.fn(() => null));
+jest.mock('app/views/issueList/noGroupsHandler/congratsRobots', () =>
+  jest.fn(() => null)
+);
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -477,7 +480,7 @@ describe('IssueList,', function() {
 
       wrapper.find('IssueListSortOptions DropdownButton').simulate('click');
       wrapper
-        .find('IssueListSortOptions MenuItem a')
+        .find('IssueListSortOptions MenuItem span')
         .at(3)
         .simulate('click');
 
@@ -572,6 +575,8 @@ describe('IssueList,', function() {
         })
       );
 
+      await tick();
+
       wrapper.setProps({
         location: {
           ...router.location,
@@ -664,6 +669,8 @@ describe('IssueList,', function() {
         .find('SavedSearchSelector MenuItem a')
         .first()
         .simulate('click');
+
+      await tick();
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -817,6 +824,8 @@ describe('IssueList,', function() {
         .simulate('change', {target: {value: 'assigned:me level:fatal'}});
       wrapper.find('SmartSearchBar form').simulate('submit');
 
+      await tick();
+
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
@@ -899,6 +908,7 @@ describe('IssueList,', function() {
       let pushArgs;
       createWrapper();
       await tick();
+      await tick();
       wrapper.update();
 
       expect(
@@ -923,6 +933,9 @@ describe('IssueList,', function() {
         .find('Pagination a')
         .last()
         .simulate('click');
+
+      await tick();
+
       pushArgs = {
         pathname: '/organizations/org-slug/issues/',
         query: {
@@ -937,7 +950,6 @@ describe('IssueList,', function() {
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
       wrapper.setContext({location: pushArgs});
-      wrapper.update();
 
       expect(
         wrapper
@@ -952,6 +964,9 @@ describe('IssueList,', function() {
         .find('Pagination a')
         .last()
         .simulate('click');
+
+      await tick();
+
       pushArgs = {
         pathname: '/organizations/org-slug/issues/',
         query: {
@@ -966,13 +981,15 @@ describe('IssueList,', function() {
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
       wrapper.setContext({location: pushArgs});
-      wrapper.update();
 
       // Click previous
       wrapper
         .find('Pagination a')
         .first()
         .simulate('click');
+
+      await tick();
+
       pushArgs = {
         pathname: '/organizations/org-slug/issues/',
         query: {
@@ -987,13 +1004,13 @@ describe('IssueList,', function() {
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
       wrapper.setContext({location: pushArgs});
-      wrapper.update();
 
       // Click previous back to initial page
       wrapper
         .find('Pagination a')
         .first()
         .simulate('click');
+      await tick();
 
       // cursor is undefined because "prev" cursor is === initial "next" cursor
       expect(browserHistory.push).toHaveBeenLastCalledWith({
@@ -1377,7 +1394,7 @@ describe('IssueList,', function() {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('CongratsRobots').exists()).toBe(true);
+      expect(wrapper.find('NoUnresolvedIssues').exists()).toBe(true);
     });
 
     it('displays an empty resultset with is:unresolved and level:error query', async function() {

@@ -29,6 +29,7 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
 from sentry.web.helpers import render_to_string
+from sentry.utils.compat import map
 
 # The maximum amount of recipients to display in human format.
 MAX_RECIPIENTS = 5
@@ -224,7 +225,7 @@ class ListResolver(object):
                 u"Cannot generate mailing list identifier for {!r}".format(instance)
             )
 
-        label = ".".join(map(six.binary_type, handler(instance)))
+        label = ".".join(map(six.text_type, handler(instance)))
         assert is_valid_dot_atom(label)
 
         return u"{}.{}".format(label, self.__namespace)

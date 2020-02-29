@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 import six
 
+
 from collections import defaultdict
 from django.db.models import Sum
-from itertools import izip
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -19,6 +19,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
+from sentry.utils.compat import zip
 
 
 def get_users_for_authors(organization_id, authors, user=None):
@@ -107,7 +108,7 @@ class ReleaseSerializer(Serializer):
         commit_ids = set((o.last_commit_id for o in item_list if o.last_commit_id))
         if commit_ids:
             commit_list = list(Commit.objects.filter(id__in=commit_ids).select_related("author"))
-            commits = {c.id: d for c, d in izip(commit_list, serialize(commit_list, user))}
+            commits = {c.id: d for c, d in zip(commit_list, serialize(commit_list, user))}
         else:
             commits = {}
 
@@ -143,7 +144,7 @@ class ReleaseSerializer(Serializer):
         deploy_ids = set((o.last_deploy_id for o in item_list if o.last_deploy_id))
         if deploy_ids:
             deploy_list = list(Deploy.objects.filter(id__in=deploy_ids))
-            deploys = {d.id: c for d, c in izip(deploy_list, serialize(deploy_list, user))}
+            deploys = {d.id: c for d, c in zip(deploy_list, serialize(deploy_list, user))}
         else:
             deploys = {}
 
@@ -251,9 +252,31 @@ class ReleaseSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        def expose_version_info(info):
+            if info is None:
+                return None
+            version = {"raw": info["version_raw"]}
+            if info["version_parsed"]:
+                version.update(
+                    {
+                        "major": info["version_parsed"]["major"],
+                        "minor": info["version_parsed"]["minor"],
+                        "patch": info["version_parsed"]["patch"],
+                        "pre": info["version_parsed"]["pre"],
+                        "buildCode": info["version_parsed"]["build_code"],
+                    }
+                )
+            return {
+                "package": info["package"],
+                "version": version,
+                "description": info["description"],
+                "buildHash": info["build_hash"],
+            }
+
         d = {
             "version": obj.version,
             "shortVersion": obj.version,
+            "versionInfo": expose_version_info(obj.version_info),
             "ref": obj.ref,
             "url": obj.url,
             "dateReleased": obj.date_released,

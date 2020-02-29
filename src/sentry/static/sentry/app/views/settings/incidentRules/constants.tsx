@@ -22,8 +22,9 @@ export function createDefaultRule(): UnsavedIncidentRule {
     aggregation: DEFAULT_METRIC,
     aggregations: [DEFAULT_METRIC],
     query: '',
-    timeWindow: 60,
+    timeWindow: 1,
     triggers: [createDefaultTrigger()],
     projects: [],
+    environment: [],
   };
 }

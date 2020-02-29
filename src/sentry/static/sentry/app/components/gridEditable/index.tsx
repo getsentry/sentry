@@ -8,6 +8,8 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconEdit, IconWarning} from 'app/icons';
+import theme from 'app/utils/theme';
 
 import {
   GridColumn,
@@ -29,23 +31,12 @@ import {
   GridBody,
   GridBodyCell,
   GridBodyCellStatus,
-  GridStatusErrorAlert,
   GridResizer,
 } from './styles';
 import GridHeadCell from './gridHeadCell';
 import GridModalEditColumn from './gridModalEditColumn';
-import {
-  COL_WIDTH_UNDEFINED,
-  COL_WIDTH_MIN,
-  COL_WIDTH_DEFAULT,
-  COL_WIDTH_BOOLEAN,
-  COL_WIDTH_DATETIME,
-  COL_WIDTH_NUMBER,
-  COL_WIDTH_STRING,
-  COL_WIDTH_STRING_LONG,
-  COL_WIDTH_STRING_SHORT,
-  ColResizeMetadata,
-} from './utils';
+
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED, ColResizeMetadata} from './utils';
 
 type GridEditableProps<DataRow, ColumnKey> = {
   onToggleEdit?: (nextValue: boolean) => void;
@@ -296,14 +287,10 @@ class GridEditable<
     const nextColumnOrder = [...this.props.columnOrder];
     nextColumnOrder[metadata.columnIndex] = {
       ...nextColumnOrder[metadata.columnIndex],
-      width: metadata.columnWidth + widthChange,
+      width: Math.max(metadata.columnWidth + widthChange, 0),
     };
 
-    this.setGridTemplateColumns(
-      this.props.columnOrder,
-      metadata.columnIndex,
-      metadata.columnWidth + e.clientX - metadata.cursorX
-    );
+    this.setGridTemplateColumns(nextColumnOrder);
   }
 
   /**
@@ -316,42 +303,24 @@ class GridEditable<
   /**
    * Set the CSS for Grid Column
    */
-  setGridTemplateColumns(
-    columnOrder: GridColumnOrder[],
-    columnIndex: number = -1,
-    columnWidth: number = 0
-  ) {
+  setGridTemplateColumns(columnOrder: GridColumnOrder[]) {
     const grid = this.refGrid.current;
     if (!grid) {
       return;
     }
-
     const prependColumns = this.props.grid.prependColumnWidths || [];
-    let sumWidth = prependColumns.reduce((acc, item) => acc + parseInt(item, 10), 0);
+    const prepend = prependColumns.join(' ');
+    const widths = columnOrder.map(item => {
+      if (item.width === COL_WIDTH_UNDEFINED) {
+        return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
+      }
+      if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
+        return `${item.width}px`;
+      }
+      return `${COL_WIDTH_MINIMUM}px`;
+    });
 
-    const columnWidths = prependColumns.concat(
-      columnOrder.map((c, i) => {
-        let width =
-          i === columnIndex // Case 1: Resize, then draw a specific column
-            ? columnWidth
-            : !c.width || isNaN(c.width) // Case 2: Draw a column with no width
-            ? COL_WIDTH_DEFAULT
-            : c.width; // Case 3: Draw a column with width
-
-        width = Math.max(COL_WIDTH_MIN, width);
-        sumWidth += width;
-
-        return `${width}px`;
-      })
-    );
-
-    // If columns are smaller than grid, let the last column fill the remaining
-    // blank space on the right of the grid
-    if (sumWidth < grid.offsetWidth) {
-      columnWidths[columnWidths.length - 1] = '1fr';
-    }
-
-    grid.style.gridTemplateColumns = columnWidths.join(' ');
+    grid.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
   }
 
   renderHeaderButtons() {
@@ -423,7 +392,7 @@ class GridEditable<
           onClick={onClick}
           data-test-id="grid-edit-enable"
         >
-          <InlineSvg src="icon-edit-pencil" />
+          <IconEdit size="xs" />
           {t('Edit Columns')}
         </HeaderButton>
       );
@@ -458,7 +427,7 @@ class GridEditable<
         columnOrder.map((column, i) => (
           <GridHeadCell
             openModalAddColumnAt={this.openModalAddColumnAt}
-            isLast={columnOrder.length - 1 === i}
+            isFirst={i === 0}
             key={`${i}.${column.key}`}
             isColumnDragging={this.props.isColumnDragging}
             isEditing={isEditing}
@@ -526,14 +495,10 @@ class GridEditable<
   };
 
   renderError() {
-    const {error} = this.props;
-
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <GridStatusErrorAlert type="error" icon="icon-circle-exclamation">
-            {error}
-          </GridStatusErrorAlert>
+          <IconWarning color={theme.gray2} size="lg" />
         </GridBodyCellStatus>
       </GridRow>
     );
@@ -583,14 +548,6 @@ class GridEditable<
 export default GridEditable;
 export {
   COL_WIDTH_UNDEFINED,
-  COL_WIDTH_MIN,
-  COL_WIDTH_DEFAULT,
-  COL_WIDTH_BOOLEAN,
-  COL_WIDTH_DATETIME,
-  COL_WIDTH_NUMBER,
-  COL_WIDTH_STRING,
-  COL_WIDTH_STRING_LONG,
-  COL_WIDTH_STRING_SHORT,
   GridColumn,
   GridColumnHeader,
   GridColumnOrder,

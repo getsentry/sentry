@@ -279,4 +279,5 @@ const HovercardArrow = styled('span')`
   }
 `;
 
+export {Hovercard, Body};
 export default Hovercard;

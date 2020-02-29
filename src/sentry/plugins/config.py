@@ -165,3 +165,13 @@ class PluginConfigMixin(ProviderMixin):
 
     def setup(self, bindings):
         pass
+
+    @staticmethod
+    def feature_flag_name(f):
+        """
+        For the time being, we want the features for plugins to be treated separately than integrations
+        (integration features prefix with integrations-). This is because in Saas Sentry,
+        users can install the Trello and Asana plugins but not Jira even though both utilize issue-commits.
+        By not prefixing, we can avoid making new feature flags for data-forwarding which are restricted.
+        """
+        return f

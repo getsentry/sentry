@@ -23,6 +23,7 @@ from sentry.models import (
     AuditLogEntryEvent,
 )
 from sentry.testutils import APITestCase
+from sentry.utils.compat import zip
 
 
 class ProjectDetailsTest(APITestCase):

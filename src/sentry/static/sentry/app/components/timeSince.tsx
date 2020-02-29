@@ -11,19 +11,19 @@ const ONE_MINUTE_IN_MS = 60000;
 
 type RelaxedDateType = string | number | Date;
 
-type Props = {
-  /**
-   * The date value, can be string, number (e.g. timestamp), or instance of Date
-   */
-  date: RelaxedDateType;
-
+type DefaultProps = {
   /**
    * Suffix after elapsed time
    * e.g. "ago" in "5 minutes ago"
    */
+  suffix: string;
+};
 
-  // TODO(ts): This should be "required", but emotion doesn't seem to like its defaultProps
-  suffix?: string;
+type Props = DefaultProps & {
+  /**
+   * The date value, can be string, number (e.g. timestamp), or instance of Date
+   */
+  date: RelaxedDateType;
 
   className?: string;
 };
@@ -38,7 +38,7 @@ class TimeSince extends React.PureComponent<Props, State> {
     suffix: PropTypes.string,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     suffix: 'ago',
   };
 

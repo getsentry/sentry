@@ -3,11 +3,16 @@ import logging
 from json import loads
 
 import jsonschema
+import pytz
+import sentry_sdk
+from sentry_sdk.tracing import Span
 from confluent_kafka import Consumer, KafkaException, TopicPartition
+from dateutil.parser import parse as parse_date
 from django.conf import settings
 
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QueryDatasets, QuerySubscription
+from sentry.snuba.subscriptions import _delete_from_snuba
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -40,6 +45,8 @@ class QuerySubscriptionConsumer(object):
     a related subscription id and the latest values related to the subscribed query.
     These values are passed along to a callback associated with the subscription.
     """
+
+    topic_to_dataset = {settings.KAFKA_SNUBA_QUERY_SUBSCRIPTIONS: QueryDatasets.EVENTS}
 
     def __init__(
         self, group_id, topic=None, commit_batch_size=100, initial_offset_reset="earliest"
@@ -89,7 +96,14 @@ class QuerySubscriptionConsumer(object):
 
                 i = i + 1
 
-                self.handle_message(message)
+                with sentry_sdk.start_span(
+                    Span(
+                        op="handle_message",
+                        transaction="query_subscription_consumer_process_message",
+                        sampled=True,
+                    )
+                ):
+                    self.handle_message(message)
 
                 # Track latest completed message here, for use in `shutdown` handler.
                 self.offsets[message.partition()] = message.offset() + 1
@@ -124,52 +138,76 @@ class QuerySubscriptionConsumer(object):
         :param message:
         :return:
         """
-        try:
-            contents = self.parse_message_value(message.value())
-        except InvalidMessageError:
-            # If the message is in an invalid format, just log the error
-            # and continue
-            logger.exception(
-                "Subscription update could not be parsed",
+        with sentry_sdk.push_scope() as scope:
+            try:
+                contents = self.parse_message_value(message.value())
+            except InvalidMessageError:
+                # If the message is in an invalid format, just log the error
+                # and continue
+                logger.exception(
+                    "Subscription update could not be parsed",
+                    extra={
+                        "offset": message.offset(),
+                        "partition": message.partition(),
+                        "value": message.value(),
+                    },
+                )
+                return
+            scope.set_tag("query_subscription_id", contents["subscription_id"])
+
+            try:
+                subscription = QuerySubscription.objects.get_from_cache(
+                    subscription_id=contents["subscription_id"]
+                )
+            except QuerySubscription.DoesNotExist:
+                metrics.incr("snuba_query_subscriber.subscription_doesnt_exist")
+                logger.error(
+                    "Received subscription update, but subscription does not exist",
+                    extra={
+                        "offset": message.offset(),
+                        "partition": message.partition(),
+                        "value": message.value(),
+                    },
+                )
+                try:
+                    _delete_from_snuba(
+                        self.topic_to_dataset[message.topic()], contents["subscription_id"]
+                    )
+                except Exception:
+                    logger.exception("Failed to delete unused subscription from snuba.")
+
+                return
+
+            if subscription.type not in subscriber_registry:
+                metrics.incr("snuba_query_subscriber.subscription_type_not_registered")
+                logger.error(
+                    "Received subscription update, but no subscription handler registered",
+                    extra={
+                        "offset": message.offset(),
+                        "partition": message.partition(),
+                        "value": message.value(),
+                    },
+                )
+                return
+
+            logger.info(
+                "query-subscription-consumer.handle_message",
                 extra={
+                    "timestamp": contents["timestamp"],
+                    "query_subscription_id": contents["subscription_id"],
+                    "contents": contents,
                     "offset": message.offset(),
                     "partition": message.partition(),
                     "value": message.value(),
                 },
             )
-            return
 
-        try:
-            subscription = QuerySubscription.objects.get(
-                subscription_id=contents["subscription_id"]
-            )
-        except QuerySubscription.DoesNotExist:
-            metrics.incr("snuba_query_subscriber.subscription_doesnt_exist")
-            logger.error(
-                "Received subscription update, but subscription does not exist",
-                extra={
-                    "offset": message.offset(),
-                    "partition": message.partition(),
-                    "value": message.value(),
-                },
-            )
-            return
-
-        if subscription.type not in subscriber_registry:
-            metrics.incr("snuba_query_subscriber.subscription_type_not_registered")
-            logger.error(
-                "Received subscription update, but no subscription handler registered",
-                extra={
-                    "offset": message.offset(),
-                    "partition": message.partition(),
-                    "value": message.value(),
-                },
-            )
-            return
-
-        callback = subscriber_registry[subscription.type]
-        with metrics.timer("snuba_query_subscriber.callback.duration", instance=subscription.type):
-            callback(contents, subscription)
+            callback = subscriber_registry[subscription.type]
+            with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
+                "snuba_query_subscriber.callback.duration", instance=subscription.type
+            ):
+                span.set_data("payload", contents)
+                callback(contents, subscription)
 
     def parse_message_value(self, value):
         """
@@ -197,4 +235,5 @@ class QuerySubscriptionConsumer(object):
             metrics.incr("snuba_query_subscriber.message_payload_invalid")
             raise InvalidSchemaError("Message payload does not match schema")
 
+        payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
         return payload

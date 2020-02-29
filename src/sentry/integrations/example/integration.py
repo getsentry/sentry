@@ -183,3 +183,8 @@ class AliasedIntegrationProvider(ExampleIntegrationProvider):
     key = "aliased"
     integration_key = "example"
     name = "Integration Key Example"
+
+
+class ServerExampleProvider(ExampleIntegrationProvider):
+    key = "example_server"
+    name = "Example Server"

@@ -1,6 +1,6 @@
-import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
+import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
@@ -11,14 +11,14 @@ import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
 import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
-import SelectControl from 'app/components/forms/selectControl';
 import ProjectsStore from 'app/stores/projectsStore';
+import SelectControl from 'app/components/forms/selectControl';
 import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 
-const getSearchKeyForUser = user =>
+const getSearchKeyForUser = (user: User) =>
   `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
 
 type Actor<T> = {
@@ -44,6 +44,8 @@ type UnmentionableTeam = MentionableTeam & Unmentionable;
 type MentionableUser = Mentionable<'user'>;
 type UnmentionableUser = MentionableUser & Unmentionable;
 
+type AllMentionable = (MentionableUser | MentionableTeam) & Partial<Unmentionable>;
+
 type Props = {
   api: Client;
   project?: Project;
@@ -56,10 +58,22 @@ type Props = {
   placeholder?: string;
 };
 
+type State = {
+  loading: boolean;
+  inputValue: string;
+  options: AllMentionable[] | null;
+};
+
+type FilterOption<T> = {
+  value: string;
+  label: React.ReactNode;
+  data: T;
+};
+
 /**
  * A component that allows you to select either members and/or teams
  */
-class SelectMembers extends React.Component<Props> {
+class SelectMembers extends React.Component<Props, State> {
   static propTypes = {
     project: SentryTypes.Project,
     organization: SentryTypes.Organization,
@@ -69,9 +83,10 @@ class SelectMembers extends React.Component<Props> {
     disabled: PropTypes.bool,
   };
 
-  state = {
+  state: State = {
     loading: false,
     inputValue: '',
+    options: null,
   };
 
   componentWillUnmount() {
@@ -91,7 +106,7 @@ class SelectMembers extends React.Component<Props> {
     return <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />;
   };
 
-  createMentionableUser = user => {
+  createMentionableUser = (user: User) => {
     return {
       value: user.id,
       label: this.renderUserBadge(user),
@@ -274,16 +289,16 @@ class SelectMembers extends React.Component<Props> {
       );
   }, 250);
 
-  handleLoadOptions = (): Promise<{options: any[]}> => {
+  handleLoadOptions = (): Promise<AllMentionable[]> => {
     const usersInProject = this.getMentionableUsers();
     const teamsInProject = this.getMentionableTeams();
     const teamsNotInProject = this.getTeamsNotInProject(teamsInProject);
     const usersInProjectById = usersInProject.map(({actor}) => actor.id);
 
     if (this.props.showTeam) {
-      return Promise.resolve({
-        options: [...teamsInProject, ...teamsNotInProject],
-      });
+      const options = [...teamsInProject, ...teamsNotInProject];
+      this.setState({options});
+      return Promise.resolve(options);
     }
 
     // Return a promise for `react-select`
@@ -306,9 +321,9 @@ class SelectMembers extends React.Component<Props> {
           : []) as UnmentionableUser[];
       })
       .then((members: UnmentionableUser[]) => {
-        return {
-          options: [...usersInProject, ...members],
-        };
+        const options = [...usersInProject, ...members];
+        this.setState({options});
+        return options;
       });
   };
 
@@ -317,26 +332,26 @@ class SelectMembers extends React.Component<Props> {
 
     return (
       <StyledSelectControl
-        deprecatedSelectControl
         ref={this.selectRef}
-        filterOptions={(options, filterText) =>
-          options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1)
+        filterOption={(option: FilterOption<AllMentionable>, filterText: string) =>
+          option?.data?.searchKey?.indexOf(filterText) > -1
         }
         loadOptions={this.handleLoadOptions}
         defaultOptions
         async
-        disabled={this.props.disabled}
+        isDisabled={this.props.disabled}
         cache={false}
         placeholder={placeholder}
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
-        value={this.props.value}
+        value={this.state.options?.find(({value}) => value === this.props.value)}
       />
     );
   }
 }
 
 const DisabledLabel = styled('div')`
+  display: flex;
   opacity: 0.5;
   overflow: hidden; /* Needed so that "Add to team" button can fit */
 `;

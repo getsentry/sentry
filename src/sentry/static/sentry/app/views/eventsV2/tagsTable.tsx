@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
@@ -7,6 +8,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Event, OrganizationSummary} from 'app/types';
+import Version from 'app/components/version';
 
 import EventView from './eventView';
 import {getExpandedResults} from './utils';
@@ -27,8 +29,16 @@ const TagsTable = (props: Props) => {
       <StyledTable>
         <tbody>
           {tags.map(tag => {
-            let target;
+            let target: LocationDescriptor | undefined;
             const tagInQuery = eventView.query.includes(`${tag.key}:`);
+            const renderTagValue = () => {
+              switch (tag.key) {
+                case 'release':
+                  return <Version version={tag.value} anchor={false} withPackage />;
+                default:
+                  return tag.value;
+              }
+            };
             if (!tagInQuery) {
               const nextView = getExpandedResults(
                 eventView,
@@ -37,16 +47,17 @@ const TagsTable = (props: Props) => {
               );
               target = nextView.getResultsViewUrlTarget(organization.slug);
             }
+
             return (
               <StyledTr key={tag.key}>
                 <TagKey>{tag.key}</TagKey>
                 <TagValue>
                   {tagInQuery ? (
                     <Tooltip title={t('This tag is in the current filter conditions')}>
-                      <span>{tag.value}</span>
+                      <span>{renderTagValue()}</span>
                     </Tooltip>
                   ) : (
-                    <Link to={target}>{tag.value}</Link>
+                    <Link to={target}>{renderTagValue()}</Link>
                   )}
                 </TagValue>
               </StyledTr>
@@ -70,7 +81,7 @@ const StyledTable = styled('table')`
 
 const StyledTr = styled('tr')`
   &:nth-child(2n + 1) td {
-    background: #f4f2f7;
+    background-color: ${p => p.theme.offWhite};
   }
 `;
 

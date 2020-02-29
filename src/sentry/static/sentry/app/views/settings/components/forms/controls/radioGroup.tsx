@@ -10,20 +10,13 @@ type Props = {
   value: string | number | null;
 
   // An array of [id, name, description]
-  choices: [string, string, string?][];
+  choices: [string, React.ReactNode, React.ReactNode?][];
   disabled?: boolean;
   label: string;
   onChange: (id: string, e: React.MouseEvent) => void;
 };
 
-const RadioGroup: React.FC<Props> = ({
-  value,
-  disabled,
-  choices,
-  label,
-  onChange,
-  ...props
-}) => {
+const RadioGroup = ({value, disabled, choices, label, onChange, ...props}: Props) => {
   return (
     <div {...props} role="radiogroup" aria-labelledby={label}>
       {(choices || []).map(([id, name, description], index) => {
@@ -38,7 +31,7 @@ const RadioGroup: React.FC<Props> = ({
             aria-checked={isSelected}
             disabled={disabled}
           >
-            <RadioLineButton type="button" disabled={disabled}>
+            <RadioLineButton aria-label={id} type="button" disabled={disabled}>
               {isSelected && (
                 <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
               )}

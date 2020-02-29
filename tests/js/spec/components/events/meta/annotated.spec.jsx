@@ -32,7 +32,7 @@ describe('Annotated', () => {
         value: 'foo',
       };
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
@@ -43,7 +43,7 @@ describe('Annotated', () => {
       const obj = {
         value: 'foo',
       };
-      mount(<Annotated object={obj} prop="invalid" />);
+      mount(<Annotated object={obj} objectKey="invalid" />);
     });
 
     it('renders a number', () => {
@@ -51,7 +51,7 @@ describe('Annotated', () => {
         value: 0,
       };
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
@@ -63,7 +63,7 @@ describe('Annotated', () => {
         value: false,
       };
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
@@ -84,7 +84,7 @@ describe('Annotated', () => {
         },
       });
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
@@ -95,7 +95,7 @@ describe('Annotated', () => {
       const obj = createEvent(null, {});
 
       mount(
-        <Annotated object={obj} prop="value" required>
+        <Annotated object={obj} objectKey="value" required>
           {mock}
         </Annotated>
       );
@@ -109,7 +109,7 @@ describe('Annotated', () => {
       const obj = createEvent('foo', {err: ['something']});
 
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
@@ -128,7 +128,7 @@ describe('Annotated', () => {
       const obj = createEvent('foo', {rem: [{type: 't'}], chunks: [{text: 'foo'}]});
 
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );
@@ -147,7 +147,7 @@ describe('Annotated', () => {
       const obj = createEvent(null, {err: ['something']});
 
       mount(
-        <Annotated object={obj} prop="value">
+        <Annotated object={obj} objectKey="value">
           {mock}
         </Annotated>
       );

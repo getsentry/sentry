@@ -1,10 +1,13 @@
 import React from 'react';
 import classNames from 'classnames';
 
-type Props = {
+type DefaultProps = {
   query: string;
   defaultQuery: string;
   onSearch: (query: string) => void;
+};
+
+type Props = DefaultProps & {
   placeholder?: string;
   className?: string;
 };
@@ -15,7 +18,7 @@ type State = {
 };
 
 class SearchBar extends React.PureComponent<Props, State> {
-  static defaultProps: Partial<Props> = {
+  static defaultProps: DefaultProps = {
     query: '',
     defaultQuery: '',
     onSearch: function() {},
@@ -26,7 +29,7 @@ class SearchBar extends React.PureComponent<Props, State> {
     dropdownVisible: false,
   };
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (nextProps.query !== this.props.query) {
       this.setState({
         query: nextProps.query,

@@ -182,10 +182,12 @@ def register_extensions():
 
     from sentry import integrations
     from sentry.integrations.bitbucket import BitbucketIntegrationProvider
+    from sentry.integrations.bitbucket_server import BitbucketServerIntegrationProvider
     from sentry.integrations.example import (
         ExampleIntegrationProvider,
         AliasedIntegrationProvider,
         ExampleRepositoryProvider,
+        ServerExampleProvider,
     )
     from sentry.integrations.github import GitHubIntegrationProvider
     from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
@@ -198,8 +200,10 @@ def register_extensions():
     from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 
     integrations.register(BitbucketIntegrationProvider)
+    integrations.register(BitbucketServerIntegrationProvider)
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)
+    integrations.register(ServerExampleProvider)
     integrations.register(GitHubIntegrationProvider)
     integrations.register(GitHubEnterpriseIntegrationProvider)
     integrations.register(GitlabIntegrationProvider)

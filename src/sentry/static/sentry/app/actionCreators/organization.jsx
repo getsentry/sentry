@@ -1,10 +1,14 @@
-import {setActiveOrganization} from 'app/actionCreators/organizations';
+import * as Sentry from '@sentry/browser';
+
 import {Client} from 'app/api';
+import {setActiveOrganization} from 'app/actionCreators/organizations';
+import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 import OrganizationActions from 'app/actions/organizationActions';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamActions from 'app/actions/teamActions';
 import TeamStore from 'app/stores/teamStore';
+
 /**
  * Fetches an organization's details with an option for the detailed representation
  * with teams and projects
@@ -20,6 +24,7 @@ export async function fetchOrganizationDetails(api, slug, detailed, silent) {
   if (!silent) {
     OrganizationActions.fetchOrg();
     ProjectActions.reset();
+    GlobalSelectionActions.reset();
   }
 
   try {
@@ -32,7 +37,7 @@ export async function fetchOrganizationDetails(api, slug, detailed, silent) {
       return;
     }
 
-    OrganizationActions.update(org);
+    OrganizationActions.update(org, {replace: true});
     setActiveOrganization(org);
 
     if (detailed) {
@@ -57,5 +62,6 @@ export async function fetchOrganizationDetails(api, slug, detailed, silent) {
     }
   } catch (err) {
     OrganizationActions.fetchOrgError(err);
+    Sentry.captureException(err);
   }
 }

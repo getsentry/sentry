@@ -4,7 +4,7 @@ import logging
 import operator
 from copy import deepcopy
 from datetime import timedelta
-from itertools import izip
+
 
 from django.conf import settings
 from django.db import transaction
@@ -15,6 +15,7 @@ from sentry.snuba.subscriptions import query_aggregation_to_snuba
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
+    AlertRuleTrigger,
     Incident,
     IncidentStatus,
     IncidentTrigger,
@@ -24,7 +25,8 @@ from sentry.incidents.models import (
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.snuba.models import QueryAggregations
 from sentry.utils import metrics, redis
-from sentry.utils.dates import to_datetime
+from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.compat import zip
 
 
 logger = logging.getLogger(__name__)
@@ -53,11 +55,12 @@ class SubscriptionProcessor(object):
     def __init__(self, subscription):
         self.subscription = subscription
         try:
-            self.alert_rule = AlertRule.objects.get(query_subscriptions=subscription)
+            self.alert_rule = AlertRule.objects.get_for_subscription(subscription)
         except AlertRule.DoesNotExist:
             return
 
-        self.triggers = list(self.alert_rule.alertruletrigger_set.all().order_by("alert_threshold"))
+        self.triggers = AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
+        self.triggers.sort(key=lambda trigger: trigger.alert_threshold)
 
         self.last_update, self.trigger_alert_counts, self.trigger_resolve_counts = get_alert_rule_stats(
             self.alert_rule, self.subscription, self.triggers
@@ -129,7 +132,17 @@ class SubscriptionProcessor(object):
 
         aggregation = QueryAggregations(self.alert_rule.aggregation)
         aggregation_name = query_aggregation_to_snuba[aggregation][2]
-        aggregation_value = subscription_update["values"][aggregation_name]
+        if len(subscription_update["values"]["data"]) > 1:
+            logger.warning(
+                "Subscription returned more than 1 row of data",
+                extra={
+                    "subscription_id": self.subscription.id,
+                    "dataset": self.subscription.dataset,
+                    "snuba_subscription_id": self.subscription.subscription_id,
+                    "result": subscription_update,
+                },
+            )
+        aggregation_value = subscription_update["values"]["data"][0][aggregation_name]
 
         for trigger in self.triggers:
             alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
@@ -172,7 +185,7 @@ class SubscriptionProcessor(object):
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
-                detected_at = to_datetime(self.last_update)
+                detected_at = self.last_update
                 self.active_incident = create_incident(
                     self.alert_rule.organization,
                     IncidentType.ALERT_TRIGGERED,
@@ -336,7 +349,7 @@ def partition(iterable, n):
     """
     assert len(iterable) % n == 0
     args = [iter(iterable)] * n
-    return izip(*args)
+    return zip(*args)
 
 
 def get_alert_rule_stats(alert_rule, subscription, triggers):
@@ -356,7 +369,7 @@ def get_alert_rule_stats(alert_rule, subscription, triggers):
     trigger_keys = build_trigger_stat_keys(alert_rule, subscription, triggers)
     results = get_redis_client().mget(alert_rule_keys + trigger_keys)
     results = tuple(0 if result is None else int(result) for result in results)
-    last_update = results[0]
+    last_update = to_datetime(results[0])
     trigger_results = results[1:]
     trigger_alert_counts = {}
     trigger_resolve_counts = {}
@@ -387,7 +400,7 @@ def update_alert_rule_stats(alert_rule, subscription, last_update, alert_counts,
             )
 
     last_update_key = build_alert_rule_stat_keys(alert_rule, subscription)[0]
-    pipeline.set(last_update_key, last_update, ex=REDIS_TTL)
+    pipeline.set(last_update_key, int(to_timestamp(last_update)), ex=REDIS_TTL)
     pipeline.execute()
 
 

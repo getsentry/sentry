@@ -48,7 +48,8 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
                 "event_id": event_id,
                 "project_id": project_id,
                 "remote_addr": "127.0.0.1",
-            }
+            },
+            projects={default_project.id: default_project},
         )
 
     kwargs, = preprocess_event
@@ -76,7 +77,8 @@ def test_with_attachments(default_project, task_runner, preprocess_event):
             "project_id": project_id,
             "id": attachment_id,
             "chunk_index": 0,
-        }
+        },
+        projects={default_project.id: default_project},
     )
 
     process_attachment_chunk(
@@ -86,7 +88,8 @@ def test_with_attachments(default_project, task_runner, preprocess_event):
             "project_id": project_id,
             "id": attachment_id,
             "chunk_index": 1,
-        }
+        },
+        projects={default_project.id: default_project},
     )
 
     process_event(
@@ -105,7 +108,8 @@ def test_with_attachments(default_project, task_runner, preprocess_event):
                     "chunks": 2,
                 }
             ],
-        }
+        },
+        projects={default_project.id: default_project},
     )
 
     kwargs, = preprocess_event
@@ -147,7 +151,8 @@ def test_individual_attachments(default_project, monkeypatch, event_attachments,
                 "project_id": project_id,
                 "id": attachment_id,
                 "chunk_index": i,
-            }
+            },
+            projects={default_project.id: default_project},
         )
 
     process_individual_attachment(
@@ -162,7 +167,8 @@ def test_individual_attachments(default_project, monkeypatch, event_attachments,
             },
             "event_id": event_id,
             "project_id": project_id,
-        }
+        },
+        projects={default_project.id: default_project},
     )
 
     attachments = list(
@@ -215,7 +221,8 @@ def test_userreport(default_project, monkeypatch):
                 }
             ),
             "project_id": default_project.id,
-        }
+        },
+        projects={default_project.id: default_project},
     )
 
     report, = UserReport.objects.all()
@@ -248,7 +255,8 @@ def test_userreport_reverse_order(default_project, monkeypatch):
                 }
             ),
             "project_id": default_project.id,
-        }
+        },
+        projects={default_project.id: default_project},
     )
 
     mgr = EventManager(data={"event_id": event_id, "user": {"email": "markus+dontatme@sentry.io"}})

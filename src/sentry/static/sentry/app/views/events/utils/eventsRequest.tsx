@@ -3,8 +3,9 @@ import omitBy from 'lodash/omitBy';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Organization, EventsStats, EventsStatsData} from 'app/types';
+import {Organization, EventsStats, YAxisEventsStats, EventsStatsData} from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
+import {assert, assertType} from 'app/types/utils';
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
@@ -14,40 +15,48 @@ import SentryTypes from 'app/sentryTypes';
 
 import LoadingPanel from '../loadingPanel';
 
-type RenderProps = {
-  loading: boolean;
-  reloading: boolean;
-
+type TimeSeriesData = {
   // timeseries data
   timeseriesData?: Series[];
   allTimeseriesData?: EventsStatsData;
   originalTimeseriesData?: EventsStatsData;
-  timeseriesTotals?: object;
+  timeseriesTotals?: {count: number};
   originalPreviousTimeseriesData?: EventsStatsData | null;
   previousTimeseriesData?: Series | null;
   timeAggregatedData?: Series | {};
 };
 
+type LoadingStatus = {
+  loading: boolean;
+  reloading: boolean;
+  errored: boolean;
+};
+
+type YAxisResults = {[yAxisName: string]: TimeSeriesData};
+
+type RenderProps = LoadingStatus & TimeSeriesData & {results?: YAxisResults};
+
+type DefaultProps = {
+  period: any;
+  start: any;
+  end: any;
+  interval: string;
+  limit: number;
+  query: string;
+  includePrevious: boolean;
+  includeTransformedData: boolean;
+};
+
 type EventsRequestPartialProps = {
   api: Client;
   organization: Organization;
-
   project?: number[];
   environment?: string[];
-  period?: string;
-  start?: any;
-  end?: any;
-  interval?: string;
   field?: string[];
   referenceEvent?: string;
-
-  limit?: number;
-  query?: string;
-  includePrevious?: boolean;
-  includeTransformedData?: boolean;
   loading?: boolean;
   showLoading?: boolean;
-  yAxis?: string;
+  yAxis?: string | string[];
   children: (renderProps: RenderProps) => React.ReactNode;
 };
 
@@ -55,11 +64,12 @@ type TimeAggregationProps =
   | {includeTimeAggregation: true; timeAggregationSeriesName: string}
   | {includeTimeAggregation?: false; timeAggregationSeriesName?: undefined};
 
-type EventsRequestProps = TimeAggregationProps & EventsRequestPartialProps;
+type EventsRequestProps = DefaultProps & TimeAggregationProps & EventsRequestPartialProps;
 
 type EventsRequestState = {
   reloading: boolean;
-  timeseriesData: null | EventsStats;
+  errored: boolean;
+  timeseriesData: null | EventsStats | YAxisEventsStats;
 };
 
 const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
@@ -148,6 +158,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     loading: PropTypes.bool,
 
     /**
+     * Whether there was an error retrieving data
+     */
+    errored: PropTypes.bool,
+
+    /**
      * Should loading be shown.
      */
     showLoading: PropTypes.bool,
@@ -155,13 +170,13 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     /**
      * The yAxis being plotted
      */
-    yAxis: PropTypes.string,
+    yAxis: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
 
     field: PropTypes.arrayOf(PropTypes.string),
     referenceEvent: PropTypes.string,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     period: null,
     start: null,
     end: null,
@@ -173,8 +188,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     includeTransformedData: true,
   };
 
-  state = {
+  state: EventsRequestState = {
     reloading: !!this.props.loading,
+    errored: false,
     timeseriesData: null,
   };
 
@@ -197,10 +213,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
   fetchData = async () => {
     const {api, ...props} = this.props;
-    let timeseriesData: EventsStats | null = null;
+    let timeseriesData: EventsStats | YAxisEventsStats | null = null;
 
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
+      errored: false,
     }));
 
     try {
@@ -211,6 +228,9 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       } else {
         addErrorMessage(t('Error loading chart data'));
       }
+      this.setState({
+        errored: true,
+      });
     }
 
     if (this.unmounting) {
@@ -274,7 +294,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     }
 
     return {
-      seriesName: 'Previous Period',
+      seriesName: 'Previous',
       data: this.calculateTotalsPerTimestamp(
         previous,
         (_timestamp, _countArray, i) => current[i][0] * 1000
@@ -295,10 +315,10 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   /**
    * Transforms query response into timeseries data to be used in a chart
    */
-  transformTimeseriesData(data: EventsStatsData): [Series] {
+  transformTimeseriesData(data: EventsStatsData): Series[] {
     return [
       {
-        seriesName: 'Current Period',
+        seriesName: 'Current',
         data: data.map(([timestamp, countsForTimestamp]) => ({
           name: timestamp * 1000,
           value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
@@ -341,13 +361,62 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
   render() {
     const {children, showLoading, ...props} = this.props;
-    const {timeseriesData, reloading} = this.state;
+    const {timeseriesData, reloading, errored} = this.state;
     // Is "loading" if data is null
     const loading = this.props.loading || timeseriesData === null;
 
     if (showLoading && loading) {
       return <LoadingPanel data-test-id="events-request-loading" />;
     }
+
+    assert(timeseriesData);
+
+    if (Array.isArray(props.yAxis) && timeseriesData) {
+      // if yAxis is an array, then the API endpoint will return multiple sets of data
+      // in the form of a map: {[yAxisName: string]: EventsStats}
+
+      assertType<YAxisEventsStats>(timeseriesData);
+
+      const results: YAxisResults = Object.fromEntries(
+        props.yAxis.map((yAxisName: string): [string, TimeSeriesData] => {
+          const {
+            data: transformedTimeseriesData,
+            allData: allTimeseriesData,
+            originalData: originalTimeseriesData,
+            totals: timeseriesTotals,
+            originalPreviousData: originalPreviousTimeseriesData,
+            previousData: previousTimeseriesData,
+            timeAggregatedData,
+          } = this.processData(timeseriesData[yAxisName]);
+
+          // timeseries data
+          return [
+            yAxisName,
+            {
+              timeseriesData: transformedTimeseriesData,
+              allTimeseriesData,
+              originalTimeseriesData,
+              timeseriesTotals,
+              originalPreviousTimeseriesData,
+              previousTimeseriesData,
+              timeAggregatedData,
+            },
+          ];
+        })
+      );
+
+      return children({
+        loading,
+        reloading,
+        errored,
+        // timeseries data
+        results,
+        // sometimes we want to reference props that were given to EventsRequest
+        ...props,
+      });
+    }
+
+    assertType<EventsStats>(timeseriesData);
 
     const {
       data: transformedTimeseriesData,
@@ -362,6 +431,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     return children({
       loading,
       reloading,
+      errored,
       // timeseries data
       timeseriesData: transformedTimeseriesData,
       allTimeseriesData,

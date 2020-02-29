@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
+
 from django.conf import settings
 from django.db.models import Min, Q
 from django.utils import timezone
@@ -17,6 +18,7 @@ from sentry.api.fields.actor import Actor
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
+    ApiToken,
     Commit,
     Environment,
     Group,
@@ -33,6 +35,7 @@ from sentry.models import (
     GroupSubscription,
     GroupSubscriptionReason,
     Integration,
+    SentryAppInstallationToken,
     User,
     UserOption,
     UserOptionValue,
@@ -40,6 +43,7 @@ from sentry.models import (
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
+from sentry.utils.compat import map, zip
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",
@@ -105,7 +109,7 @@ class GroupSerializerBase(Serializer):
             for subscription in GroupSubscription.objects.filter(
                 group__in=list(
                     itertools.chain.from_iterable(
-                        itertools.imap(
+                        map(
                             lambda project__groups: project__groups[1]
                             if not options.get(project__groups[0].id, options.get(None))
                             == UserOptionValue.no_conversations
@@ -200,8 +204,7 @@ class GroupSerializerBase(Serializer):
                 )
             )
             commit_resolutions = {
-                i.group_id: d
-                for i, d in itertools.izip(commit_results, serialize(commit_results, user))
+                i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))
             }
         else:
             release_resolutions = {}
@@ -211,7 +214,7 @@ class GroupSerializerBase(Serializer):
         actor_ids.update(r.actor_id for r in six.itervalues(ignore_items))
         if actor_ids:
             users = list(User.objects.filter(id__in=actor_ids, is_active=True))
-            actors = {u.id: d for u, d in itertools.izip(users, serialize(users, user))}
+            actors = {u.id: d for u, d in zip(users, serialize(users, user))}
         else:
             actors = {}
 
@@ -347,8 +350,24 @@ class GroupSerializerBase(Serializer):
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
         is_superuser = request and is_active_superuser(request) and request.user == user
-        if is_superuser or (
-            user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists()
+
+        # If user is a sentry_app then it's a proxy user meaning we can't do a org lookup via `get_orgs()`
+        # because the user isn't an org member. Instead we can use the auth token and the installation
+        # it's associated with to find out what organization the token has access to.
+        is_valid_sentryapp = False
+        if (
+            request
+            and getattr(request.user, "is_sentry_app", False)
+            and isinstance(request.auth, ApiToken)
+        ):
+            is_valid_sentryapp = SentryAppInstallationToken.has_organization_access(
+                request.auth, obj.organization
+            )
+
+        if (
+            is_superuser
+            or (user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists())
+            or is_valid_sentryapp
         ):
             permalink = obj.get_absolute_url()
         else:

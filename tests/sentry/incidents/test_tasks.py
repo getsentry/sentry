@@ -26,7 +26,6 @@ from sentry.incidents.tasks import (
     send_subscriber_notifications,
 )
 from sentry.testutils import TestCase
-from sentry.utils.linksign import generate_signed_link
 from sentry.utils.http import absolute_uri
 
 
@@ -64,11 +63,11 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
         ).exists()
 
     def test_invalid_types(self):
-        for activity_type in (IncidentActivityType.CREATED, IncidentActivityType.DETECTED):
-            activity = create_incident_activity(self.incident, activity_type)
-            send_subscriber_notifications(activity.id)
-            self.send_async.assert_not_called()  # NOQA
-            self.send_async.reset_mock()
+        activity_type = IncidentActivityType.DETECTED
+        activity = create_incident_activity(self.incident, activity_type)
+        send_subscriber_notifications(activity.id)
+        self.send_async.assert_not_called()  # NOQA
+        self.send_async.reset_mock()
 
 
 class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
@@ -103,7 +102,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             context["link"]
             == absolute_uri(
                 reverse(
-                    "sentry-incident",
+                    "sentry-metric-alert",
                     kwargs={
                         "organization_slug": incident.organization.slug,
                         "incident_id": incident.identifier,
@@ -113,11 +112,6 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             + "?referrer=incident_activity_email"
         )
         assert context["comment"] == expected_comment
-        assert context["unsubscribe_link"] == generate_signed_link(
-            expected_recipient,
-            "sentry-account-email-unsubscribe-incident",
-            kwargs={"incident_id": incident.id},
-        )
 
     @freeze_time()
     def test_simple(self):

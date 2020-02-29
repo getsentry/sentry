@@ -24,7 +24,7 @@ type Props = {
   busy?: boolean;
   to?: string | object;
   href?: string;
-  icon?: string;
+  icon?: string | React.ReactNode;
   iconSize?: string;
   title?: string;
   external?: boolean;
@@ -56,7 +56,7 @@ class Button extends React.Component<ButtonProps, {}> {
     /**
      * Path to an icon svg that will be displayed to left of button label
      */
-    icon: PropTypes.string,
+    icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
     /**
      * Tooltip text
      */
@@ -99,6 +99,8 @@ class Button extends React.Component<ButtonProps, {}> {
 
     // Don't allow clicks when disabled or busy
     if (disabled || busy) {
+      e.preventDefault();
+      e.stopPropagation();
       return;
     }
 
@@ -163,16 +165,20 @@ class Button extends React.Component<ButtonProps, {}> {
         >
           {icon && (
             <Icon size={size} hasChildren={!!children}>
-              <StyledInlineSvg
-                src={icon}
-                size={
-                  iconSize
-                    ? iconSize
-                    : (size && size.endsWith('small')) || size === 'micro'
-                    ? '12px'
-                    : '14px'
-                }
-              />
+              {typeof icon === 'string' ? (
+                <StyledInlineSvg
+                  src={icon}
+                  size={
+                    iconSize
+                      ? iconSize
+                      : (size && size.endsWith('small')) || size === 'micro'
+                      ? '12px'
+                      : '14px'
+                  }
+                />
+              ) : (
+                icon
+              )}
             </Icon>
           )}
           {children}
@@ -272,7 +278,7 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
 };
 
 const StyledButton = styled(
-  ({forwardRef, ...props}) => {
+  ({forwardRef, external, ...props}) => {
     // Get component to use based on existence of `to` or `href` properties
     // Can be react-router `Link`, `a`, or `button`
     if (props.to) {
@@ -283,7 +289,7 @@ const StyledButton = styled(
       return <button ref={forwardRef} {...props} />;
     }
 
-    if (props.external && props.href) {
+    if (external && props.href) {
       return <ExternalLink ref={forwardRef} {...props} />;
     }
 
@@ -291,7 +297,9 @@ const StyledButton = styled(
   },
   {
     shouldForwardProp: prop =>
-      prop === 'forwardRef' || (isPropValid(prop) && prop !== 'disabled'),
+      prop === 'forwardRef' ||
+      prop === 'external' ||
+      (isPropValid(prop) && prop !== 'disabled'),
   }
 )<Props>`
   display: inline-block;

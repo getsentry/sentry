@@ -15,10 +15,13 @@ import {Organization} from 'app/types';
 
 type Resource = typeof EVENT_CHOICES[number];
 
-type Props = {
+type DefaultProps = {
+  webhookDisabled: boolean;
+};
+
+type Props = DefaultProps & {
   resource: Resource;
   disabledFromPermissions: boolean;
-  webhookDisabled: boolean;
   checked: boolean;
   onChange: (resource: Resource, checked: boolean) => void;
   organization: Organization;
@@ -34,7 +37,7 @@ export class SubscriptionBox extends React.Component<Props> {
     organization: SentryTypes.Organization,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     webhookDisabled: false,
   };
 

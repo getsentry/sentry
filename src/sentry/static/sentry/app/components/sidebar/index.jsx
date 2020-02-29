@@ -16,8 +16,21 @@ import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import HookStore from 'app/stores/hookStore';
-import InlineSvg from 'app/components/inlineSvg';
-import {IconSettings} from 'app/icons';
+import {
+  IconActivity,
+  IconChevron,
+  IconGraph,
+  IconIssues,
+  IconLab,
+  IconProject,
+  IconReleases,
+  IconSettings,
+  IconSiren,
+  IconStack,
+  IconStats,
+  IconSupport,
+  IconTelescope,
+} from 'app/icons';
 import PreferencesStore from 'app/stores/preferencesStore';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -68,7 +81,7 @@ class Sidebar extends React.Component {
     this.doCollapse(this.props.collapsed);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const {collapsed, location} = this.props;
     const nextLocation = nextProps.location;
 
@@ -168,6 +181,8 @@ class Sidebar extends React.Component {
       'releases',
       'user-feedback',
       'discover',
+      'discover/queries',
+      'discover/results',
       'releasesv2',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
 
@@ -225,7 +240,7 @@ class Sidebar extends React.Component {
     };
 
     // Bail as we can't do any more checks.
-    if (!organization) {
+    if (!organization || !organization.features) {
       return sidebarState;
     }
     const optState = localStorage.getItem('discover:version');
@@ -253,9 +268,11 @@ class Sidebar extends React.Component {
       sidebarState.events = true;
     }
 
-    // TODO(mark) Once discover2 is on for all accounts if an organization
-    // doesn't have events, or discover-basic sidebarState.discover2 should = true
-    // so that we can show an upsell.
+    // If an organization doesn't have events, or discover-basic
+    // Enable the tab so we can show an upsell state in saas.
+    if (!sidebarState.events) {
+      sidebarState.discover2 = true;
+    }
 
     return sidebarState;
   }
@@ -300,7 +317,7 @@ class Sidebar extends React.Component {
                     {...sidebarItemProps}
                     index
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-projects" />}
+                    icon={<IconProject size="md" />}
                     label={t('Projects')}
                     to={`/organizations/${organization.slug}/projects/`}
                   />
@@ -312,7 +329,7 @@ class Sidebar extends React.Component {
                         evt
                       )
                     }
-                    icon={<InlineSvg src="icon-issues" />}
+                    icon={<IconIssues size="md" />}
                     label={t('Issues')}
                     to={`/organizations/${organization.slug}/issues/`}
                     id="issues"
@@ -332,7 +349,7 @@ class Sidebar extends React.Component {
                             evt
                           )
                         }
-                        icon={<InlineSvg src="icon-stack" />}
+                        icon={<IconStack size="md" />}
                         label={t('Events')}
                         to={`/organizations/${organization.slug}/events/`}
                         id="events"
@@ -355,7 +372,7 @@ class Sidebar extends React.Component {
                               evt
                             )
                           }
-                          icon={<InlineSvg src="icon-telescope" />}
+                          icon={<IconTelescope size="md" />}
                           label={t('Discover')}
                           to={getDiscoverLandingUrl(organization)}
                           id="discover-v2"
@@ -374,7 +391,7 @@ class Sidebar extends React.Component {
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-siren" size="22" />}
+                      icon={<IconSiren size="md" />}
                       label={t('Alerts')}
                       to={`/organizations/${organization.slug}/alerts/`}
                       id="alerts"
@@ -389,7 +406,7 @@ class Sidebar extends React.Component {
                         evt
                       )
                     }
-                    icon={<InlineSvg src="icon-releases" />}
+                    icon={<IconReleases size="md" />}
                     label={t('Releases')}
                     to={`/organizations/${organization.slug}/releases/`}
                     id="releases"
@@ -402,7 +419,7 @@ class Sidebar extends React.Component {
                         evt
                       )
                     }
-                    icon={<InlineSvg src="icon-support" size="22" />}
+                    icon={<IconSupport size="md" />}
                     label={t('User Feedback')}
                     to={`/organizations/${organization.slug}/user-feedback/`}
                     id="user-feedback"
@@ -415,7 +432,7 @@ class Sidebar extends React.Component {
                       {...sidebarItemProps}
                       index
                       onClick={this.hidePanel}
-                      icon={<InlineSvg src="icon-health" />}
+                      icon={<IconGraph size="md" />}
                       label={t('Dashboards')}
                       to={`/organizations/${organization.slug}/dashboards/`}
                       id="customizable-dashboards"
@@ -431,7 +448,7 @@ class Sidebar extends React.Component {
                       <SidebarItem
                         {...sidebarItemProps}
                         onClick={this.hidePanel}
-                        icon={<InlineSvg src="icon-discover" />}
+                        icon={<IconTelescope size="md" />}
                         label={t('Discover')}
                         to={`/organizations/${organization.slug}/discover/`}
                         id="discover"
@@ -447,7 +464,7 @@ class Sidebar extends React.Component {
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-labs" />}
+                      icon={<IconLab size="md" />}
                       label={t('Monitors')}
                       to={`/organizations/${organization.slug}/monitors/`}
                       id="monitors"
@@ -462,7 +479,7 @@ class Sidebar extends React.Component {
                           evt
                         )
                       }
-                      icon={<InlineSvg src="icon-releases" />}
+                      icon={<IconReleases size="md" />}
                       label={t('Releases v2')}
                       to={`/organizations/${organization.slug}/releases-v2/`}
                       id="releasesv2"
@@ -474,7 +491,7 @@ class Sidebar extends React.Component {
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-activity" size="22px" />}
+                    icon={<IconActivity size="md" />}
                     label={t('Activity')}
                     to={`/organizations/${organization.slug}/activity/`}
                     id="activity"
@@ -482,7 +499,7 @@ class Sidebar extends React.Component {
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-stats" />}
+                    icon={<IconStats size="md" />}
                     label={t('Stats')}
                     to={`/organizations/${organization.slug}/stats/`}
                     id="stats"
@@ -555,7 +572,7 @@ class Sidebar extends React.Component {
                 <SidebarCollapseItem
                   data-test-id="sidebar-collapse"
                   {...sidebarItemProps}
-                  icon={<StyledInlineSvg src="icon-collapse" collapsed={collapsed} />}
+                  icon={<StyledIconChevron collapsed={collapsed} />}
                   label={collapsed ? t('Expand') : t('Collapse')}
                   onClick={this.toggleSidebar}
                 />
@@ -700,13 +717,19 @@ const SidebarSection = styled(SidebarSectionGroup)`
 
 const ExpandedIcon = css`
   transition: 0.3s transform ease;
-  transform: rotate(0deg);
+  transform: rotate(270deg);
 `;
 const CollapsedIcon = css`
-  transform: rotate(180deg);
+  transform: rotate(90deg);
 `;
-const StyledInlineSvg = styled(({collapsed, ...props}) => (
-  <InlineSvg css={[ExpandedIcon, collapsed && CollapsedIcon]} {...props} />
+const StyledIconChevron = styled(({collapsed, ...props}) => (
+  <IconChevron
+    direction="left"
+    size="md"
+    circle
+    css={[ExpandedIcon, collapsed && CollapsedIcon]}
+    {...props}
+  />
 ))``;
 
 const SidebarCollapseItem = styled(SidebarItem)`

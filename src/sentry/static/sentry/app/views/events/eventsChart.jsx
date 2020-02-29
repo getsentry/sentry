@@ -1,6 +1,6 @@
-import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
+import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
 
 import {getInterval} from 'app/components/charts/utils';
@@ -12,10 +12,10 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import {IconWarning} from 'app/icons';
+import theme from 'app/utils/theme';
 
 import EventsRequest from './utils/eventsRequest';
-import YAxisSelector from './yAxisSelector';
 
 class EventsAreaChart extends React.Component {
   static propTypes = {
@@ -60,12 +60,17 @@ class EventsAreaChart extends React.Component {
       right: 16,
       top: 16,
       selectedMode: false,
-      icon: 'line',
+      icon: 'circle',
+      itemHeight: 8,
+      itemWidth: 8,
+      itemGap: 12,
+      align: 'left',
       textStyle: {
-        fontSize: '11',
+        verticalAlign: 'top',
+        fontSize: 11,
         fontFamily: 'Rubik',
       },
-      data: ['Current Period', 'Previous Period'],
+      data: ['Current', 'Previous'],
     };
 
     return (
@@ -89,6 +94,93 @@ class EventsAreaChart extends React.Component {
   }
 }
 
+class TransitionChart extends React.Component {
+  static propTypes = {
+    reloading: PropTypes.bool,
+    loading: PropTypes.bool,
+  };
+
+  state = {
+    prevReloading: this.props.reloading,
+    prevLoading: this.props.loading,
+    key: 1,
+  };
+
+  static getDerivedStateFromProps(props, state) {
+    // Transitions are controlled using variables called:
+    // - loading and,
+    // - reloading (also called pending in other apps)
+    //
+    // This component remounts the chart to ensure the stable transition
+    // from one data set to the next.
+
+    const prevReloading = state.prevReloading;
+    const nextReloading = props.reloading;
+
+    const prevLoading = state.prevLoading;
+    const nextLoading = props.loading;
+
+    // whenever loading changes, we explicitly remount the children by updating
+    // the key prop; regardless of what state reloading is in
+    if (prevLoading !== nextLoading) {
+      return {
+        prevReloading: nextReloading,
+        prevLoading: nextLoading,
+        key: state.key + 1,
+      };
+    }
+
+    // invariant: prevLoading === nextLoading
+
+    // if loading is true, and hasn't changed from the previous re-render,
+    // do not remount the children.
+    if (nextLoading) {
+      return {
+        prevReloading: nextReloading,
+        prevLoading: nextLoading,
+        key: state.key,
+      };
+    }
+
+    // invariant: loading is false
+
+    // whenever the chart is transitioning from the reloading (pending) state to a non-loading state,
+    // remount the children
+    if (prevReloading && !nextReloading) {
+      return {
+        prevReloading: nextReloading,
+        prevLoading: nextLoading,
+        key: state.key + 1,
+      };
+    }
+
+    // do not remount the children in these remaining cases:
+    // !prevReloading && !nextReloading (re-render with no prop change)
+    // prevReloading && nextReloading (re-render with no prop change)
+    // !prevReloading && nextReloading (from loaded to pending state)
+
+    return {
+      prevReloading: nextReloading,
+      prevLoading: nextLoading,
+      key: state.key,
+    };
+  }
+
+  render() {
+    const {loading, reloading} = this.props;
+
+    if (loading && !reloading) {
+      return <LoadingPanel data-test-id="events-request-loading" />;
+    }
+
+    // We make use of the key prop to explicitly remount the children
+    // https://reactjs.org/docs/lists-and-keys.html#keys
+    return (
+      <React.Fragment key={String(this.state.key)}>{this.props.children}</React.Fragment>
+    );
+  }
+}
+
 class EventsChart extends React.Component {
   static propTypes = {
     api: PropTypes.object,
@@ -101,27 +193,8 @@ class EventsChart extends React.Component {
     utc: PropTypes.bool,
     router: PropTypes.object,
     showLegend: PropTypes.bool,
-    yAxisOptions: PropTypes.array,
-    yAxisValue: PropTypes.string,
-    onYAxisChange: PropTypes.func,
+    yAxis: PropTypes.string,
   };
-
-  handleYAxisChange = value => {
-    const {onYAxisChange} = this.props;
-    callIfFunction(onYAxisChange, value);
-  };
-
-  getYAxisValue() {
-    const {yAxisValue, yAxisOptions} = this.props;
-    if (yAxisValue) {
-      return yAxisValue;
-    }
-    if (yAxisOptions && yAxisOptions.length) {
-      return yAxisOptions[0].value;
-    }
-
-    return undefined;
-  }
 
   render() {
     const {
@@ -135,12 +208,11 @@ class EventsChart extends React.Component {
       projects,
       environments,
       showLegend,
-      yAxisOptions,
+      yAxis,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !start && !end;
-    const yAxis = this.getYAxisValue();
 
     return (
       <ChartZoom
@@ -160,41 +232,40 @@ class EventsChart extends React.Component {
             environment={environments}
             start={start}
             end={end}
-            interval={getInterval(this.props, true)}
+            interval={router?.location?.query?.interval || getInterval(this.props, true)}
             showLoading={false}
             query={query}
             includePrevious={includePrevious}
             yAxis={yAxis}
           >
-            {({loading, reloading, timeseriesData, previousTimeseriesData}) => {
+            {({loading, reloading, errored, timeseriesData, previousTimeseriesData}) => {
               return (
                 <ReleaseSeries utc={utc} api={api} projects={projects}>
                   {({releaseSeries}) => {
-                    if (loading && !reloading) {
-                      return <LoadingPanel data-test-id="events-request-loading" />;
+                    if (errored) {
+                      return (
+                        <ErrorPanel>
+                          <IconWarning color={theme.gray2} size="lg" />
+                        </ErrorPanel>
+                      );
                     }
 
                     return (
-                      <React.Fragment>
-                        <TransparentLoadingMask visible={reloading} />
-                        <EventsAreaChart
-                          {...zoomRenderProps}
-                          loading={loading}
-                          reloading={reloading}
-                          utc={utc}
-                          showLegend={showLegend}
-                          releaseSeries={releaseSeries}
-                          timeseriesData={timeseriesData}
-                          previousTimeseriesData={previousTimeseriesData}
-                        />
-                        {yAxisOptions && (
-                          <YAxisSelector
-                            selected={yAxis}
-                            options={yAxisOptions}
-                            onChange={this.handleYAxisChange}
+                      <TransitionChart loading={loading} reloading={reloading}>
+                        <React.Fragment>
+                          <TransparentLoadingMask visible={reloading} />
+                          <EventsAreaChart
+                            {...zoomRenderProps}
+                            loading={loading}
+                            reloading={reloading}
+                            utc={utc}
+                            showLegend={showLegend}
+                            releaseSeries={releaseSeries}
+                            timeseriesData={timeseriesData}
+                            previousTimeseriesData={previousTimeseriesData}
                           />
-                        )}
-                      </React.Fragment>
+                        </React.Fragment>
+                      </TransitionChart>
                     );
                   }}
                 </ReleaseSeries>
@@ -238,4 +309,18 @@ const TransparentLoadingMask = styled(LoadingMask)`
   ${p => !p.visible && 'display: none;'};
   opacity: 0.4;
   z-index: 1;
+`;
+
+const ErrorPanel = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  flex: 1;
+  flex-shrink: 0;
+  overflow: hidden;
+  height: 200px;
+  position: relative;
+  border-color: transparent;
+  margin-bottom: 0;
 `;

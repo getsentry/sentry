@@ -14,6 +14,7 @@ const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const CopyPlugin = require('copy-webpack-plugin');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const babelConfig = require('./babel.config');
 
@@ -30,6 +31,8 @@ const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
 const USE_HOT_MODULE_RELOAD =
   !IS_PRODUCTION && SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROXY_PORT;
 const NO_DEV_SERVER = env.NO_DEV_SERVER;
+const FORCE_WEBPACK_DEV_SERVER = env.FORCE_WEBPACK_DEV_SERVER;
+const IS_CI = !!env.CI || !!env.TRAVIS;
 
 // Deploy previews are built using netlify. We can check if we're in netlifys
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -183,6 +186,14 @@ const cacheGroups = {
 };
 
 const babelOptions = {...babelConfig, cacheDirectory: true};
+const babelLoaderConfig = {
+  loader: 'babel-loader',
+  options: babelOptions,
+};
+
+const tsLoaderConfig = {
+  loader: 'ts-loader',
+};
 
 /**
  * Main Webpack config for Sentry React SPA.
@@ -214,27 +225,15 @@ let appConfig = {
         test: /\.jsx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-        use: {
-          loader: 'babel-loader',
-          options: babelOptions,
-        },
+        use: babelLoaderConfig,
       },
       {
         test: /\.tsx?$/,
         include: [staticPrefix],
         exclude: /(vendor|node_modules|dist)/,
-        use: [
-          {
-            loader: 'babel-loader',
-            options: babelOptions,
-          },
-          {
-            loader: 'ts-loader',
-            options: {
-              transpileOnly: false,
-            },
-          },
-        ],
+        // Make sure we typecheck in CI, but not for local dev since that is run with
+        // the fork-ts plugin
+        use: !IS_CI ? babelLoaderConfig : [babelLoaderConfig, tsLoaderConfig],
       },
       {
         test: /\.po$/,
@@ -266,7 +265,7 @@ let appConfig = {
           {
             loader: 'file-loader',
             options: {
-              name: '[name].[ext]',
+              name: '[name].[hash:6].[ext]',
             },
           },
         ],
@@ -277,6 +276,7 @@ let appConfig = {
       /dist\/jquery\.js/,
       /jed\/jed\.js/,
       /marked\/lib\/marked\.js/,
+      /terser\/dist\/bundle\.min\.js/,
     ],
   },
   plugins: [
@@ -319,6 +319,14 @@ let appConfig = {
     new FixStyleOnlyEntriesPlugin(),
 
     new SentryInstrumentation(),
+
+    ...(!IS_CI
+      ? [
+          new ForkTsCheckerWebpackPlugin({
+            tsconfig: path.resolve(__dirname, './tsconfig.json'),
+          }),
+        ]
+      : []),
 
     ...localeRestrictionPlugins,
   ],
@@ -390,7 +398,7 @@ if (!IS_PRODUCTION) {
 }
 
 // Dev only! Hot module reloading
-if (USE_HOT_MODULE_RELOAD && !NO_DEV_SERVER) {
+if (FORCE_WEBPACK_DEV_SERVER || (USE_HOT_MODULE_RELOAD && !NO_DEV_SERVER)) {
   const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
 
   appConfig.plugins.push(new webpack.HotModuleReplacementPlugin());

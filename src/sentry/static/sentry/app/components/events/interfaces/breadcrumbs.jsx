@@ -49,8 +49,6 @@ class BreadcrumbsInterface extends React.Component {
     project: SentryTypes.Project,
   };
 
-  static MAX_CRUMBS_WHEN_COLLAPSED = 10;
-
   constructor(...args) {
     super(...args);
     this.state = {
@@ -58,6 +56,8 @@ class BreadcrumbsInterface extends React.Component {
       queryValue: '',
     };
   }
+
+  static MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
   onCollapseToggle = () => {
     this.setState({
@@ -175,14 +175,9 @@ class BreadcrumbsInterface extends React.Component {
     const data = this.props.data;
 
     const title = (
-      <div>
-        <GuideAnchor target="breadcrumbs" position="top">
-          <h3>
-            <strong>{t('Breadcrumbs')}</strong>
-          </h3>
-        </GuideAnchor>
-        {this.getSearchField()}
-      </div>
+      <GuideAnchor target="breadcrumbs" position="top">
+        <h3>{t('Breadcrumbs')}</h3>
+      </GuideAnchor>
     );
 
     let all = data.values;
@@ -219,6 +214,7 @@ class BreadcrumbsInterface extends React.Component {
         event={evt}
         type={this.props.type}
         title={title}
+        actions={this.getSearchField()}
         wrapTitle={false}
       >
         <PlatformContext.Provider value={evt.platform}>

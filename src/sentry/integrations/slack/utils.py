@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import time
 
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
@@ -10,7 +11,8 @@ from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus
-from sentry.utils import json
+from sentry.snuba.models import QueryAggregations
+from sentry.utils import metrics, json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -41,6 +43,17 @@ LEVEL_TO_COLOR = {
 MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
+SLACK_DEFAULT_TIMEOUT = 10
+QUERY_AGGREGATION_DISPLAY = ["events", "users affected"]
+SLACK_DATADOG_METRIC = "integrations.slack.http_response"
+
+
+def track_response_code(status_code, is_ok):
+    metrics.incr(
+        SLACK_DATADOG_METRIC,
+        sample_rate=1.0,
+        tags={"ok": False if is_ok is False else True, "status": status_code},
+    )
 
 
 def format_actor_option(actor):
@@ -109,7 +122,7 @@ def build_attachment_text(group, event=None):
 
 
 def build_assigned_text(group, identity, assignee):
-    actor = Actor.from_actor_id(assignee)
+    actor = Actor.from_actor_identifier(assignee)
 
     try:
         assigned_actor = actor.resolve()
@@ -240,7 +253,7 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
             )
 
     if actions:
-        action_texts = filter(None, [build_action_text(group, identity, a) for a in actions])
+        action_texts = [_f for _f in [build_action_text(group, identity, a) for a in actions] if _f]
         text += "\n" + "\n".join(action_texts)
 
         color = ACTIONED_ISSUE_COLOR
@@ -279,40 +292,51 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
 
 def build_incident_attachment(incident):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-
+    alert_rule = incident.alert_rule
     aggregates = get_incident_aggregates(incident)
 
     if incident.status == IncidentStatus.CLOSED.value:
         status = "Resolved"
         color = RESOLVED_COLOR
-    else:
-        status = "Fired"
-        color = LEVEL_TO_COLOR["error"]
+    elif incident.status == IncidentStatus.WARNING.value:
+        status = "Warning"
+        color = LEVEL_TO_COLOR["warning"]
+    elif incident.status == IncidentStatus.CRITICAL.value:
+        status = "Critical"
+        color = LEVEL_TO_COLOR["fatal"]
 
-    fields = [
-        {"title": "Status", "value": status, "short": True},
-        {"title": "Events", "value": aggregates["count"], "short": True},
-        {"title": "Users", "value": aggregates["unique_users"], "short": True},
-    ]
+    agg_text = QUERY_AGGREGATION_DISPLAY[alert_rule.aggregation]
+
+    agg_value = (
+        aggregates["count"]
+        if alert_rule.aggregation == QueryAggregations.TOTAL.value
+        else aggregates["unique_users"]
+    )
+    time_window = alert_rule.time_window
+
+    text = "{} {} in the last {} minutes".format(agg_value, agg_text, time_window)
+
+    if alert_rule.query != "":
+        text = text + "\Filter: {}".format(alert_rule.query)
 
     ts = incident.date_started
 
-    title = u"INCIDENT: {} (#{})".format(incident.title, incident.identifier)
+    title = u"{}: {}".format(status, alert_rule.name)
 
     return {
         "fallback": title,
         "title": title,
         "title_link": absolute_uri(
             reverse(
-                "sentry-incident",
+                "sentry-metric-alert",
                 kwargs={
                     "organization_slug": incident.organization.slug,
                     "incident_id": incident.identifier,
                 },
             )
         ),
-        "text": " ",
-        "fields": fields,
+        "text": text,
+        "fields": [],
         "mrkdwn_in": ["text"],
         "footer_icon": logo_url,
         "footer": "Sentry Incident",
@@ -336,13 +360,6 @@ def strip_channel_name(name):
 
 
 def get_channel_id(organization, integration_id, name):
-    """
-    Fetches the internal slack id of a channel.
-    :param organization: The organization that is using this integration
-    :param integration_id: The integration id of this slack integration
-    :param name: The name of the channel
-    :return:
-    """
     name = strip_channel_name(name)
     try:
         integration = Integration.objects.get(
@@ -351,37 +368,68 @@ def get_channel_id(organization, integration_id, name):
     except Integration.DoesNotExist:
         return None
 
+    # XXX(meredith): For large accounts that have many, many channels it's
+    # possible for us to timeout while attempting to paginate through to find the channel id
+    # This means some users are unable to create/update alert rules. To avoid this, we attempt
+    # to find the channel id asynchronously if it takes longer than a certain amount of time,
+    # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
+    return get_channel_id_with_timeout(integration, name, SLACK_DEFAULT_TIMEOUT)
+
+
+def get_channel_id_with_timeout(integration, name, timeout):
+    """
+    Fetches the internal slack id of a channel.
+    :param organization: The organization that is using this integration
+    :param integration_id: The integration id of this slack integration
+    :param name: The name of the channel
+    :return: a tuple of three values
+        1. prefix: string (`"#"` or `"@"`)
+        2. channel_id: string or `None`
+        3. timed_out: boolean (whether we hit our self-imposed time limit)
+    """
+
     token_payload = {"token": integration.metadata["access_token"]}
 
     # Look for channel ID
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
+    time_to_quit = time.time() + timeout
     session = http.build_session()
     for list_type, result_name, prefix in LIST_TYPES:
-        # Slack limits the response of `<list_type>.list` to 1000 channels, paginate if
-        # needed
         cursor = ""
-        while cursor is not None:
+        while True:
             items = session.get(
                 "https://slack.com/api/%s.list" % list_type,
-                params=dict(payload, **{"cursor": cursor}),
+                # Slack limits the response of `<list_type>.list` to 1000 channels
+                params=dict(payload, cursor=cursor, limit=1000),
             )
+            status_code = items.status_code
             items = items.json()
+            track_response_code(status_code, items.get("ok"))
             if not items.get("ok"):
                 logger.info(
                     "rule.slack.%s_list_failed" % list_type, extra={"error": items.get("error")}
                 )
-                return None
+                return (prefix, None, False)
 
-            cursor = items.get("response_metadata", {}).get("next_cursor", None)
             item_id = {c["name"]: c["id"] for c in items[result_name]}.get(name)
             if item_id:
-                return prefix, item_id
+                return (prefix, item_id, False)
+
+            cursor = items.get("response_metadata", {}).get("next_cursor", None)
+            if time.time() > time_to_quit:
+                return (prefix, None, True)
+
+            if not cursor:
+                break
+
+    return (prefix, None, False)
 
 
-def send_incident_alert_notification(integration, incident, channel):
+def send_incident_alert_notification(action, incident):
+    channel = action.target_identifier
+    integration = action.integration
     attachment = build_incident_attachment(incident)
-
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,
@@ -390,7 +438,9 @@ def send_incident_alert_notification(integration, incident, channel):
 
     session = http.build_session()
     resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
+    status_code = resp.status_code
+    response = resp.json()
+    track_response_code(status_code, response.get("ok"))
     resp.raise_for_status()
-    resp = resp.json()
-    if not resp.get("ok"):
-        logger.info("rule.fail.slack_post", extra={"error": resp.get("error")})
+    if not response.get("ok"):
+        logger.info("rule.fail.slack_post", extra={"error": response.get("error")})

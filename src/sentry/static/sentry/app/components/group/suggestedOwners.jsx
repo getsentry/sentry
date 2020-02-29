@@ -1,5 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+import {ClassNames} from '@emotion/core';
+import space from 'app/styles/space';
 
 import {assignToUser, assignToActor} from 'app/actionCreators/group';
 import {openCreateOwnershipRule} from 'app/actionCreators/modal';
@@ -12,6 +15,8 @@ import SentryTypes from 'app/sentryTypes';
 import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import Hovercard from 'app/components/hovercard';
+import {IconInfo} from 'app/icons/iconInfo';
 
 class SuggestedOwners extends React.Component {
   static propTypes = {
@@ -35,7 +40,7 @@ class SuggestedOwners extends React.Component {
     this.fetchData(this.props.event);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (this.props.event && nextProps.event) {
       if (this.props.event.id !== nextProps.event.id) {
         //two events, with different IDs
@@ -151,6 +156,21 @@ class SuggestedOwners extends React.Component {
     return owners;
   }
 
+  getInfoHovercardBody() {
+    return (
+      <HelpfulBody>
+        <p>
+          {t(
+            'Ownership rules allow you to associate file paths and URLs to specific teams or users, so alerts can be routed to the right people.'
+          )}
+        </p>
+        <Button href="https://docs.sentry.io/workflow/issue-owners/" priority="primary">
+          {t('Learn more')}
+        </Button>
+      </HelpfulBody>
+    );
+  }
+
   render() {
     const {group, organization, project} = this.props;
     const owners = this.getOwnerList();
@@ -188,9 +208,22 @@ class SuggestedOwners extends React.Component {
         <Access access={['project:write']}>
           <div className="m-b-1">
             <GuideAnchor target="owners">
-              <h6>
+              <OwnerRuleHeading>
                 <span>{t('Ownership Rules')}</span>
-              </h6>
+                <ClassNames>
+                  {({css}) => (
+                    <Hovercard
+                      containerClassName={css`
+                        display: inline-flex;
+                        padding: 0 !important;
+                      `}
+                      body={this.getInfoHovercardBody()}
+                    >
+                      <IconInfo size="xs" />
+                    </Hovercard>
+                  )}
+                </ClassNames>
+              </OwnerRuleHeading>
             </GuideAnchor>
             <Button
               onClick={() =>
@@ -230,3 +263,13 @@ function findMatchedRules(rules, owner) {
     .filter(([_, ruleActors]) => ruleActors.find(actorHasOwner))
     .map(([rule]) => rule);
 }
+
+const HelpfulBody = styled('div')`
+  padding: ${space(1)};
+  text-align: center;
+`;
+
+const OwnerRuleHeading = styled('h6')`
+  display: flex;
+  align-items: center;
+`;

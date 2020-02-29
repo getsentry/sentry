@@ -25,11 +25,13 @@ describe('HttpRenderer', function() {
       expect(summaryLineWrapper.find('strong').text()).toEqual('POST ');
       expect(
         summaryLineWrapper
-          .find('a')
+          .find('[data-test-id="http-renderer-external-link"]')
           .text()
           .trim()
       ).toEqual('http://example.com/foo');
-      expect(summaryLineWrapper.find('span').text()).toEqual(' [0]');
+      expect(
+        summaryLineWrapper.find('[data-test-id="http-renderer-status-code"]').text()
+      ).toEqual(' [0]');
     });
 
     it("shouldn't blow up if crumb.data is missing", function() {

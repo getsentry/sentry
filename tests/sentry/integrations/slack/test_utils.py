@@ -9,7 +9,7 @@ from sentry.integrations.slack.utils import (
     build_incident_attachment,
     CHANNEL_PREFIX,
     get_channel_id,
-    LEVEL_TO_COLOR,
+    RESOLVED_COLOR,
     MEMBER_PREFIX,
 )
 from sentry.models import Integration
@@ -58,54 +58,50 @@ class GetChannelIdTest(TestCase):
             body=json.dumps({"ok": "true", result_name: channels}),
         )
 
-    def run_valid_test(self, channel, expected_prefix, expected_id):
-        assert (expected_prefix, expected_id) == get_channel_id(
+    def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
+        assert (expected_prefix, expected_id, timed_out) == get_channel_id(
             self.organization, self.integration.id, channel
         )
 
     def test_valid_channel_selected(self):
-        self.run_valid_test("#my-channel", CHANNEL_PREFIX, "m-c")
+        self.run_valid_test("#my-channel", CHANNEL_PREFIX, "m-c", False)
 
     def test_valid_private_channel_selected(self):
-        self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c")
+        self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
 
     def test_valid_member_selected(self):
-        self.run_valid_test("@morty", MEMBER_PREFIX, "m")
+        self.run_valid_test("@morty", MEMBER_PREFIX, "m", False)
 
     def test_invalid_channel_selected(self):
-        assert get_channel_id(self.organization, self.integration.id, "#fake-channel") is None
-        assert get_channel_id(self.organization, self.integration.id, "@fake-user") is None
+        assert get_channel_id(self.organization, self.integration.id, "#fake-channel")[1] is None
+        assert get_channel_id(self.organization, self.integration.id, "@fake-user")[1] is None
 
 
 class BuildIncidentAttachmentTest(TestCase):
     def test_simple(self):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-
-        incident = self.create_incident()
-        title = "INCIDENT: {} (#{})".format(incident.title, incident.identifier)
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=2)
+        title = u"{}: {}".format("Resolved", alert_rule.name)
         assert build_incident_attachment(incident) == {
             "fallback": title,
             "title": title,
             "title_link": absolute_uri(
                 reverse(
-                    "sentry-incident",
+                    "sentry-metric-alert",
                     kwargs={
                         "organization_slug": incident.organization.slug,
                         "incident_id": incident.identifier,
                     },
                 )
             ),
-            "text": " ",
-            "fields": [
-                {"title": "Status", "value": "Fired", "short": True},
-                {"title": "Events", "value": 0, "short": True},
-                {"title": "Users", "value": 0, "short": True},
-            ],
+            "text": "0 events in the last 10 minutes\\Filter: level:error",
+            "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
             "footer": "Sentry Incident",
             "ts": to_timestamp(incident.date_started),
-            "color": LEVEL_TO_COLOR["error"],
+            "color": RESOLVED_COLOR,
             "actions": [],
         }
 

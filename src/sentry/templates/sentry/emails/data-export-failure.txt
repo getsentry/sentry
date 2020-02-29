@@ -1,0 +1,14 @@
+Unable to Export Data
+---------------------
+
+We were unable to generate your data export due to an error:
+
+    {{error_message}}
+
+We received the following payload:
+
+    {{payload}}
+
+Troubleshooting & References:
+ - https://docs.sentry.io/ (Documentation)
+ - https://help.sentry.io/ (FAQs)

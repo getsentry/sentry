@@ -52,8 +52,6 @@ export function isOpen(incident: Incident): boolean {
   switch (incident.status) {
     case IncidentStatus.CLOSED:
       return false;
-    case IncidentStatus.DETECTED:
-    case IncidentStatus.CREATED:
     default:
       return true;
   }

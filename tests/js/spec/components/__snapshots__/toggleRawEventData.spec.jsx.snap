@@ -1,26 +1,25 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`EventDataSection renders formatted 1`] = `
-<div
-  className=" box"
+<DataSection
+  className=""
 >
-  <div
-    className="box-header"
+  <SectionHeader
     id="extra"
   >
-    <a
+    <Permalink
       className="permalink"
       href="#extra"
     >
       <em
         className="icon-anchor"
       />
-    </a>
+    </Permalink>
     <h3>
       Additional Data
     </h3>
     <div
-      className="btn-group pull-right"
+      className="btn-group"
     >
       <a
         className="active btn btn-default btn-sm"
@@ -35,34 +34,31 @@ exports[`EventDataSection renders formatted 1`] = `
         Raw
       </a>
     </div>
-  </div>
-  <div
-    className="box-content with-padding"
-  />
-</div>
+  </SectionHeader>
+  <SectionContents />
+</DataSection>
 `;
 
 exports[`EventDataSection renders raw 1`] = `
-<div
-  className=" box"
+<DataSection
+  className=""
 >
-  <div
-    className="box-header"
+  <SectionHeader
     id="extra"
   >
-    <a
+    <Permalink
       className="permalink"
       href="#extra"
     >
       <em
         className="icon-anchor"
       />
-    </a>
+    </Permalink>
     <h3>
       Additional Data
     </h3>
     <div
-      className="btn-group pull-right"
+      className="btn-group"
     >
       <a
         className=" btn btn-default btn-sm"
@@ -77,11 +73,9 @@ exports[`EventDataSection renders raw 1`] = `
         Raw
       </a>
     </div>
-  </div>
-  <div
-    className="box-content with-padding"
-  />
-</div>
+  </SectionHeader>
+  <SectionContents />
+</DataSection>
 `;
 
 exports[`KeyValueList renders formatted 1`] = `
@@ -103,6 +97,7 @@ exports[`KeyValueList renders formatted 1`] = `
       >
         <ContextData
           data={0}
+          withAnnotatedText={false}
         />
       </td>
     </tr>
@@ -120,6 +115,7 @@ exports[`KeyValueList renders formatted 1`] = `
       >
         <ContextData
           data="here"
+          withAnnotatedText={false}
         />
       </td>
     </tr>
@@ -141,6 +137,7 @@ exports[`KeyValueList renders formatted 1`] = `
               "andsomeotherstuff": "here",
             }
           }
+          withAnnotatedText={false}
         />
       </td>
     </tr>
@@ -167,6 +164,7 @@ exports[`KeyValueList renders raw 1`] = `
       >
         <ContextData
           data="0"
+          withAnnotatedText={false}
         />
       </td>
     </tr>
@@ -184,6 +182,7 @@ exports[`KeyValueList renders raw 1`] = `
       >
         <ContextData
           data="\\"here\\""
+          withAnnotatedText={false}
         />
       </td>
     </tr>
@@ -201,6 +200,7 @@ exports[`KeyValueList renders raw 1`] = `
       >
         <ContextData
           data="{\\"andsomeotherstuff\\":\\"here\\"}"
+          withAnnotatedText={false}
         />
       </td>
     </tr>

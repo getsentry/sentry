@@ -19,13 +19,17 @@ export type UnsavedTrigger = {
   label: string;
   thresholdType: AlertRuleThresholdType;
   alertThreshold: number;
-  resolveThreshold: number | '';
+  resolveThreshold: number | '' | null;
   actions: Action[];
 };
 
 export type ThresholdControlValue = {
   thresholdType: AlertRuleThresholdType;
-  threshold: number | '';
+
+  /**
+   * Resolve threshold is optional, so it can be null
+   */
+  threshold: number | '' | null;
 };
 
 export type SavedTrigger = UnsavedTrigger & {
@@ -39,6 +43,7 @@ export type UnsavedIncidentRule = {
   aggregation: AlertRuleAggregations;
   aggregations: AlertRuleAggregations[];
   projects: string[];
+  environment: string[];
   query: string;
   timeWindow: number;
   triggers: Trigger[];
@@ -56,15 +61,15 @@ export type SavedIncidentRule = UnsavedIncidentRule & {
 export type IncidentRule = Partial<SavedIncidentRule> & UnsavedIncidentRule;
 
 export enum TimeWindow {
-  ONE_MINUTE = 60,
-  FIVE_MINUTES = 300,
-  TEN_MINUTES = 600,
-  FIFTEEN_MINUTES = 900,
-  THIRTY_MINUTES = 1800,
-  ONE_HOUR = 3600,
-  TWO_HOURS = 7200,
-  FOUR_HOURS = 14400,
-  ONE_DAY = 86400,
+  ONE_MINUTE = 1,
+  FIVE_MINUTES = 5,
+  TEN_MINUTES = 10,
+  FIFTEEN_MINUTES = 15,
+  THIRTY_MINUTES = 30,
+  ONE_HOUR = 60,
+  TWO_HOURS = 120,
+  FOUR_HOURS = 240,
+  ONE_DAY = 1440,
 }
 
 export type ProjectSelectOption = {

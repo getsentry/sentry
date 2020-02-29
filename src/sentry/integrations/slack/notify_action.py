@@ -8,7 +8,7 @@ from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics, json
 from sentry.models import Integration
 
-from .utils import build_group_attachment, get_channel_id, strip_channel_name
+from .utils import build_group_attachment, get_channel_id, strip_channel_name, track_response_code
 
 
 class SlackNotifyServiceForm(forms.Form):
@@ -30,14 +30,24 @@ class SlackNotifyServiceForm(forms.Form):
         self.fields["workspace"].choices = workspace_list
         self.fields["workspace"].widget.choices = self.fields["workspace"].choices
 
+        # XXX(meredith): When this gets set to True, it lets the RuleSerializer
+        # know to only save if and when we have the channel_id. The rule will get saved
+        # in the task (integrations/slack/tasks.py) if the channel_id is found.
+        self._pending_save = False
+
     def clean(self):
         cleaned_data = super(SlackNotifyServiceForm, self).clean()
 
         workspace = cleaned_data.get("workspace")
         channel = cleaned_data.get("channel", "")
 
-        channel_id = self.channel_transformer(workspace, channel)
+        channel_prefix, channel_id, timed_out = self.channel_transformer(workspace, channel)
         channel = strip_channel_name(channel)
+
+        if channel_id is None and timed_out:
+            cleaned_data["channel"] = channel_prefix + channel
+            self._pending_save = True
+            return cleaned_data
 
         if channel_id is None and workspace is not None:
             params = {
@@ -53,7 +63,6 @@ class SlackNotifyServiceForm(forms.Form):
                 params=params,
             )
 
-        channel_prefix, channel_id = channel_id
         cleaned_data["channel"] = channel_prefix + channel
         cleaned_data["channel_id"] = channel_id
 
@@ -79,7 +88,7 @@ class SlackNotifyServiceAction(EventAction):
         return self.get_integrations().exists()
 
     def after(self, event, state):
-        if event.group.is_ignored():
+        if not event.group.is_unresolved():
             return
 
         integration_id = self.get_option("workspace")
@@ -101,15 +110,25 @@ class SlackNotifyServiceAction(EventAction):
             payload = {
                 "token": integration.metadata["access_token"],
                 "channel": channel,
+                "link_names": 1,
                 "attachments": json.dumps([attachment]),
             }
 
             session = http.build_session()
             resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
+            status_code = resp.status_code
+            response = resp.json()
+            track_response_code(status_code, response.get("ok"))
             resp.raise_for_status()
-            resp = resp.json()
-            if not resp.get("ok"):
-                self.logger.info("rule.fail.slack_post", extra={"error": resp.get("error")})
+            if not response.get("ok"):
+                self.logger.info(
+                    "rule.fail.slack_post",
+                    extra={
+                        "error": response.get("error"),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                    },
+                )
 
         key = u"slack:{}:{}".format(integration_id, channel)
 
