@@ -28,12 +28,9 @@ type Props = {
   position?: string;
 };
 
-type InitialState = {
+type State = {
   active: boolean;
   orgId: string | null;
-};
-
-type State = InitialState & {
   currentGuide?: Guide;
   step?: number;
 };
@@ -52,7 +49,7 @@ const GuideAnchor = createReactClass<Props, State>({
 
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
 
-  getInitialState(): InitialState {
+  getInitialState() {
     return {
       active: false,
       orgId: null,
