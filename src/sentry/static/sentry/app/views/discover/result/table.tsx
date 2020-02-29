@@ -1,6 +1,7 @@
 import React from 'react';
 import {MultiGrid, AutoSizer} from 'react-virtualized';
 import styled from '@emotion/styled';
+
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';

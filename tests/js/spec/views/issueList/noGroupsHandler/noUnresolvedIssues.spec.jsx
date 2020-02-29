@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import NoUnresolvedIssues from 'app/views/issueList/noGroupsHandler/noUnresolvedIssues';
 import CongratsRobotsVideo from 'app/views/issueList/noGroupsHandler/congratsRobots';
 

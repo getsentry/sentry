@@ -1,5 +1,4 @@
 import React, {ReactElement} from 'react';
-
 import * as Sentry from '@sentry/browser';
 import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';

@@ -1,8 +1,8 @@
 import React from 'react';
 import isEmpty from 'lodash/isEmpty';
 import {Location} from 'history';
-
 import styled from '@emotion/styled';
+
 import {Event} from 'app/types';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {generateQueryWithTag} from 'app/utils';

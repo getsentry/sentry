@@ -16,6 +16,7 @@ import {openSentryAppDetailsModal, openModal} from 'app/actionCreators/modal';
 import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
 import theme from 'app/utils/theme';
+
 import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 
 const INSTALLED = 'Installed';
