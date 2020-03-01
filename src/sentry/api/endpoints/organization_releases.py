@@ -91,6 +91,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         """
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
+        flatten = request.GET.get("flatten") == "1"
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -99,13 +100,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         except OrganizationEventsError as e:
             return Response({"detail": six.text_type(e)}, status=400)
 
-        queryset = (
-            Release.objects.filter(
-                organization=organization, projects__id__in=filter_params["project_id"]
-            )
-            .select_related("owner")
-            .distinct()
-        )
+        queryset = Release.objects.filter(
+            organization=organization, projects__id__in=filter_params["project_id"]
+        ).select_related("owner")
 
         if "environment" in filter_params:
             queryset = queryset.filter(
@@ -117,12 +114,22 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             queryset = queryset.filter(version__istartswith=query)
 
         sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
-        queryset = queryset.extra(select={"sort": sort_query})
+        select_extra = {"sort": sort_query}
+
+        if flatten:
+            select_extra["_for_project_id"] = "sentry_release_project.project_id"
+        else:
+            queryset = queryset.distinct()
+
+        queryset = queryset.extra(select=select_extra)
         if filter_params["start"] and filter_params["end"]:
             queryset = queryset.extra(
                 where=["%s BETWEEN %%s and %%s" % sort_query],
                 params=[filter_params["start"], filter_params["end"]],
             )
+
+        def on_results(results):
+            return serialize(results, request.user, serializer=serializer)
 
         serializer = ReleaseSerializer(with_health_data=with_health)
         return self.paginate(
@@ -130,7 +137,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             queryset=queryset,
             order_by="-sort",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: [serialize(r, request.user, serializer=serializer) for r in x],
+            on_results=on_results,
         )
 
     @attach_scenarios([create_new_org_release_ref_scenario, create_new_org_release_commit_scenario])

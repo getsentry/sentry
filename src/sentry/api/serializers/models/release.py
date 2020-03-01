@@ -246,7 +246,11 @@ class ReleaseSerializer(Serializer):
             health_data = None
 
         for pr in project_releases:
-            pr_rv = {"slug": pr["project__slug"], "name": pr["project__name"]}
+            pr_rv = {
+                "id": pr["project__id"],
+                "slug": pr["project__slug"],
+                "name": pr["project__name"],
+            }
             if health_data is not None:
                 pr_rv["healthData"] = health_data.get((pr["project__id"], pr["release__version"]))
             release_projects[pr["release_id"]].append(pr_rv)
@@ -260,6 +264,14 @@ class ReleaseSerializer(Serializer):
                 "first_seen": first_seen.get(item.version),
                 "last_seen": last_seen.get(item.version),
             }
+
+            # If we're using specialized releases make sure we only return a
+            # single project.
+            if hasattr(item, "_for_project_id"):
+                result[item]["projects"] = [
+                    x for x in result[item]["projects"] if x["id"] == item._for_project_id
+                ]
+
             result[item].update(release_metadata_attrs[item])
             result[item].update(deploy_metadata_attrs[item])
         return result
