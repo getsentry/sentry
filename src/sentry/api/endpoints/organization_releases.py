@@ -128,16 +128,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 params=[filter_params["start"], filter_params["end"]],
             )
 
-        def on_results(results):
-            return serialize(results, request.user, serializer=serializer)
-
         serializer = ReleaseSerializer(with_health_data=with_health)
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-sort",
             paginator_cls=OffsetPaginator,
-            on_results=on_results,
+            on_results=lambda x: serialize(x, request.user, serializer=serializer),
         )
 
     @attach_scenarios([create_new_org_release_ref_scenario, create_new_org_release_commit_scenario])
