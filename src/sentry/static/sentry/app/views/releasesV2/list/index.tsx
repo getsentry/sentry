@@ -56,6 +56,7 @@ class ReleasesList extends AsyncView<Props, State> {
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor', 'query', 'sort']),
       per_page: 50,
       health: 1,
+      flatten: 1,
     };
 
     return [['releases', `/organizations/${organization.slug}/releases/`, {query}]];
