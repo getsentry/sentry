@@ -231,9 +231,26 @@ def test_hash_discarded_raised(default_project, mock_refund, mock_incr, register
         )
 
 
+@pytest.fixture(params=["org", "project"])
+def options_model(request, default_organization, default_project):
+    if request.param == "org":
+        return default_organization
+    elif request.param == "project":
+        return default_project
+    else:
+        raise ValueError(request.param)
+
+
 @pytest.mark.django_db
+@pytest.mark.parametrize("setting_method", ["datascrubbers", "piiconfig"])
 def test_scrubbing_after_processing(
-    default_project, default_organization, mock_save_event, register_plugin, mock_default_cache
+    default_project,
+    default_organization,
+    mock_save_event,
+    register_plugin,
+    mock_default_cache,
+    setting_method,
+    options_model,
 ):
     @register_plugin
     class TestPlugin(Plugin2):
@@ -256,8 +273,15 @@ def test_scrubbing_after_processing(
         def is_enabled(self, project=None):
             return True
 
-    default_project.update_option("sentry:sensitive_fields", ["a"])
-    default_project.update_option("sentry:scrub_data", True)
+    if setting_method == "datascrubbers":
+        options_model.update_option("sentry:sensitive_fields", ["a"])
+        options_model.update_option("sentry:scrub_data", True)
+    elif setting_method == "piiconfig":
+        options_model.update_option(
+            "sentry:relay_pii_config", '{"applications": {"extra.new_aaa": ["@anything:replace"]}}'
+        )
+    else:
+        raise ValueError(setting_method)
 
     data = {
         "project": default_project.id,
@@ -276,7 +300,7 @@ def test_scrubbing_after_processing(
     assert key == "e:1"
     assert event["extra"] == {
         u"aaa": u"do not remove me",
-        u"new_aaa": u"[Filtered]",
+        u"new_aaa": u"[Filtered]" if setting_method == "datascrubbers" else u"[redacted]",
         u"new_aaa2": u"event preprocessor",
     }
     assert duration == 3600
