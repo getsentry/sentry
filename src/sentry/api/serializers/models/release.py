@@ -4,7 +4,6 @@ import six
 from six.moves import zip
 
 from collections import defaultdict
-from django.db.models import Sum
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -157,15 +156,34 @@ class ReleaseSerializer(Serializer):
             result[item] = {"last_deploy": deploys.get(item.last_deploy_id)}
         return result
 
-    def __get_release_data_no_environment(self, project, item_list):
-        if project is not None:
-            project_ids = [project.id]
-        else:
-            project_ids = list(
+    def __get_project_id_list(self, item_list):
+        project_ids = set()
+        need_fallback = False
+
+        for release in item_list:
+            if release._for_project_id is not None:
+                project_ids.add(release._for_project_id)
+            else:
+                need_fallback = True
+
+        if not need_fallback:
+            return sorted(project_ids), True
+
+        return (
+            list(
                 ReleaseProject.objects.filter(release__in=item_list)
                 .values_list("project_id", flat=True)
                 .distinct()
-            )
+            ),
+            False,
+        )
+
+    def __get_release_data_no_environment(self, project, item_list):
+        if project is not None:
+            project_ids = [project.id]
+            specialized = True
+        else:
+            project_ids, specialized = self.__get_project_id_list(item_list)
 
         first_seen = {}
         last_seen = {}
@@ -179,20 +197,17 @@ class ReleaseSerializer(Serializer):
             last_seen[tv.value] = max(tv.last_seen, last_val) if last_val else tv.last_seen
 
         if project is not None:
-            group_counts_by_release = dict(
-                ReleaseProject.objects.filter(project=project, release__in=item_list).values_list(
-                    "release_id", "new_groups"
-                )
-            )
+            group_counts_by_release = {}
+            for release_id, new_groups in ReleaseProject.objects.filter(
+                project=project, release__in=item_list
+            ).values_list("release_id", "new_groups"):
+                group_counts_by_release[release_id] = {project.id: new_groups}
         else:
-            # assume it should be a sum across release
-            # if no particular project specified
-            group_counts_by_release = dict(
-                ReleaseProject.objects.filter(release__in=item_list, new_groups__isnull=False)
-                .values("release_id")
-                .annotate(new_groups=Sum("new_groups"))
-                .values_list("release_id", "new_groups")
-            )
+            group_counts_by_release = {}
+            for project_id, release_id, new_groups in ReleaseProject.objects.filter(
+                release__in=item_list, new_groups__isnull=False
+            ).values_list("project_id", "release_id", "new_groups"):
+                group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
         return first_seen, last_seen, group_counts_by_release
 
     def __get_release_data_with_environment(self, project, item_list, environment):
@@ -207,12 +222,13 @@ class ReleaseSerializer(Serializer):
             first_seen[release_project_env.release.version] = release_project_env.first_seen
             last_seen[release_project_env.release.version] = release_project_env.last_seen
 
-        issue_counts_by_release = dict(
-            release_project_envs.values("release_id")
-            .annotate(new_issues_count=Sum("new_issues_count"))
-            .values_list("release_id", "new_issues_count")
-        )
-        return first_seen, last_seen, issue_counts_by_release
+        group_counts_by_release = {}
+        for project_id, release_id, new_groups in release_project_envs.values(
+            "project_id", "release_id", "new_issues_count"
+        ):
+            group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
+
+        return first_seen, last_seen, group_counts_by_release
 
     def get_attrs(self, item_list, user, **kwargs):
         project = kwargs.get("project")
@@ -257,23 +273,30 @@ class ReleaseSerializer(Serializer):
 
         result = {}
         for item in item_list:
-            result[item] = {
+            single_release_projects = release_projects.get(item.id, [])
+
+            if item._for_project_id is not None:
+                single_release_projects = [
+                    x for x in single_release_projects if x["id"] == item._for_project_id
+                ]
+                release_new_groups = (issue_counts_by_release.get(item.id) or {}).get(
+                    item._for_project_id
+                ) or 0
+            else:
+                release_new_groups = sum((issue_counts_by_release.get(item.id) or {}).values())
+
+            p = {
                 "owner": owners[six.text_type(item.owner_id)] if item.owner_id else None,
-                "new_groups": issue_counts_by_release.get(item.id) or 0,
-                "projects": release_projects.get(item.id, []),
+                "new_groups": release_new_groups,
+                "projects": single_release_projects,
                 "first_seen": first_seen.get(item.version),
                 "last_seen": last_seen.get(item.version),
             }
 
-            # If we're using specialized releases make sure we only return a
-            # single project.
-            if hasattr(item, "_for_project_id"):
-                result[item]["projects"] = [
-                    x for x in result[item]["projects"] if x["id"] == item._for_project_id
-                ]
+            p.update(release_metadata_attrs[item])
+            p.update(deploy_metadata_attrs[item])
 
-            result[item].update(release_metadata_attrs[item])
-            result[item].update(deploy_metadata_attrs[item])
+            result[item] = p
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):

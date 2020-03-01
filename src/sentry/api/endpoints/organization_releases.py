@@ -91,7 +91,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         """
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
-        flatten = request.GET.get("flatten") == "1"
+        flatten = request.GET.get("flatten") == "1" or True
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
