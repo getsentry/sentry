@@ -85,7 +85,7 @@ class ProjectKeyCredentials extends React.Component<Props, State> {
               <StyledField
                 label={null}
                 help={t(
-                  "Deprecated DSN includes the secret which is no longer required by Sentry' newer versions of SDKs. If you are unsure which to use, follow installation instructions for your language."
+                  'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
                 )}
                 inline={false}
                 flexibleControlStateSize
@@ -106,7 +106,7 @@ class ProjectKeyCredentials extends React.Component<Props, State> {
           <Field
             label={t('DSN (Deprecated)')}
             help={t(
-              "This DSN includes the secret which is no longer required by Sentry' newer versions of SDKs. If you are unsure which to use, follow installation instructions for your language."
+              'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
             )}
             inline={false}
             flexibleControlStateSize
