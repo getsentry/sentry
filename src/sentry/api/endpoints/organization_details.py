@@ -82,6 +82,7 @@ ORG_OPTIONS = (
         bool,
         org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ),
+    ("relayPiiConfig", "sentry:relay_pii_config", six.text_type, None),
     ("trustedRelays", "sentry:trusted-relays", list, org_serializers.TRUSTED_RELAYS_DEFAULT),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
 )
