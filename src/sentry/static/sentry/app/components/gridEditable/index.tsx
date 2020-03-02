@@ -181,8 +181,27 @@ class GridEditable<
     });
   }
 
+  onResetColumnSize = (e: React.MouseEvent, i: number) => {
+    e.stopPropagation();
+
+    const nextColumnOrder = [...this.props.columnOrder];
+    nextColumnOrder[i] = {
+      ...nextColumnOrder[i],
+      width: COL_WIDTH_UNDEFINED,
+    };
+    this.setGridTemplateColumns(nextColumnOrder);
+
+    const onResizeColumn = this.props.grid.onResizeColumn;
+    if (onResizeColumn) {
+      onResizeColumn(i, {
+        ...nextColumnOrder[i],
+        width: COL_WIDTH_UNDEFINED,
+      });
+    }
+  };
+
   onResizeMouseDown = (e: React.MouseEvent, i: number = -1) => {
-    e.preventDefault();
+    e.stopPropagation();
 
     // Block right-click and other funky stuff
     if (i === -1 || e.type === 'contextmenu') {
@@ -307,6 +326,7 @@ class GridEditable<
     if (!grid) {
       return;
     }
+
     const prependColumns = this.props.grid.prependColumnWidths || [];
     const prepend = prependColumns.join(' ');
     const widths = columnOrder.map(item => {
@@ -318,6 +338,10 @@ class GridEditable<
       }
       return `${COL_WIDTH_MINIMUM}px`;
     });
+
+    // The last column has no resizer and should always be a flexible column
+    // to prevent underflows.
+    widths[widths.length - 1] = `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
 
     grid.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
   }
@@ -442,12 +466,14 @@ class GridEditable<
             }}
           >
             {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-            <GridResizer
-              isLast={i === numColumn - 1}
-              dataRows={!error && !isLoading && data ? data.length : 0}
-              onMouseDown={e => this.onResizeMouseDown(e, i)}
-              onContextMenu={this.onResizeMouseDown}
-            />
+            {i !== numColumn - 1 && (
+              <GridResizer
+                dataRows={!error && !isLoading && data ? data.length : 0}
+                onMouseDown={e => this.onResizeMouseDown(e, i)}
+                onDoubleClick={e => this.onResetColumnSize(e, i)}
+                onContextMenu={this.onResizeMouseDown}
+              />
+            )}
           </GridHeadCell>
         ))}
       </GridRow>

@@ -320,14 +320,13 @@ export const GridBodyCellStatus = props => (
  * We have a fat GridResizer and we use the ::after pseudo-element to draw
  * a thin 1px border.
  *
- * The right-most GridResizer has a width of 2px and no right padding to make it
- * more obvious as it is usually sitting next to the border for <Panel>
+ * The right most cell does not have a resizer as resizing from that side does strange things.
  */
-export const GridResizer = styled('div')<{dataRows: number; isLast?: boolean}>`
+export const GridResizer = styled('div')<{dataRows: number}>`
   position: absolute;
   top: 0px;
-  right: ${p => (p.isLast ? '0px' : '-5px')};
-  width: ${p => (p.isLast ? '6px' : '9px')};
+  right: -6px;
+  width: 11px;
 
   height: ${p => {
     const numOfRows = p.dataRows;
@@ -341,8 +340,8 @@ export const GridResizer = styled('div')<{dataRows: number; isLast?: boolean}>`
     return height;
   }}px;
 
-  padding-left: 4px;
-  padding-right: ${p => (p.isLast ? '0px' : '4px')};
+  padding-left: 5px;
+  padding-right: 5px;
 
   cursor: col-resize;
   z-index: ${Z_INDEX_GRID_RESIZER};
