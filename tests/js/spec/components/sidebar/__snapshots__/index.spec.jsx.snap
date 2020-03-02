@@ -1233,7 +1233,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
             onClick={[Function]}
             size="lg"
           >
-            <IconClose
+            <ForwardRef(IconClose)
               className="css-7jb8pb-PanelClose e1aybls63"
               onClick={[Function]}
               size="lg"
@@ -1255,7 +1255,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                   />
                 </g>
               </svg>
-            </IconClose>
+            </ForwardRef(IconClose)>
           </PanelClose>
         </div>
       </SidebarPanelHeader>

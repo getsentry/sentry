@@ -95,7 +95,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             ),
-            "text": "0 events in the last 10 minutes\\Filter: level:error",
+            "text": "0 events in the last 10 minutes\nFilter: level:error",
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,

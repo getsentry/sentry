@@ -1,6 +1,6 @@
-import {mount} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {mount} from 'sentry-test/enzyme';
 import {doEventsRequest} from 'app/actionCreators/events';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 
@@ -8,11 +8,9 @@ const COUNT_OBJ = {
   count: 123,
 };
 
-jest.mock('app/actionCreators/events', () => {
-  return {
-    doEventsRequest: jest.fn(),
-  };
-});
+jest.mock('app/actionCreators/events', () => ({
+  doEventsRequest: jest.fn(),
+}));
 
 describe('EventsRequest', function() {
   const project = TestStubs.Project();

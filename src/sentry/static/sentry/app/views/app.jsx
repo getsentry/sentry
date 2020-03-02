@@ -4,7 +4,6 @@ import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import get from 'lodash/get';
 import {Global, css} from '@emotion/core';
-
 import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';

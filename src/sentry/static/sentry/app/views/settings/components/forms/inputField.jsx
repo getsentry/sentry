@@ -26,11 +26,11 @@ export default class InputField extends React.Component {
 
     return (
       <FormField className={className} {...this.props}>
-        {({children, ...formFieldProps}) => {
-          return field({
+        {({children, ...formFieldProps}) =>
+          field({
             ...formFieldProps,
-          });
-        }}
+          })
+        }
       </FormField>
     );
   }

@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import styled from '@emotion/styled';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
-import {Environment, Organization, Project} from 'app/types';
+import {Environment, Organization, Project, OnboardingTaskKey} from 'app/types';
 import {
   IssueAlertRule,
   IssueAlertRuleActionTemplate,
@@ -35,6 +35,7 @@ import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
+import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 
 import RuleNodeList from './ruleNodeList';
 
@@ -139,16 +140,24 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         data: rule,
       });
       this.setState({detailedError: null, rule: resp});
-
-      addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
-      browserHistory.replace(recreateRoute('', {...this.props, stepBack: -2}));
     } catch (err) {
       this.setState({
         detailedError: err.responseJSON || {__all__: 'Unknown error'},
         loading: false,
       });
       addErrorMessage(t('An error occurred'));
+      return;
     }
+
+    // The onboarding task will be completed on the server side when the alert
+    // is created
+    updateOnboardingTask(null, organization, {
+      task: OnboardingTaskKey.ALERT_RULE,
+      status: 'complete',
+    });
+
+    addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
+    browserHistory.replace(recreateRoute('', {...this.props, stepBack: -2}));
   };
 
   handleDeleteRule = async () => {

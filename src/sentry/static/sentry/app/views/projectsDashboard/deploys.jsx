@@ -21,11 +21,9 @@ export default class Deploys extends React.Component {
   render() {
     const {project, organization} = this.props;
 
-    const flattenedDeploys = Object.entries(project.latestDeploys || {}).map(
-      ([environment, value]) => {
-        return {environment, ...value};
-      }
-    );
+    const flattenedDeploys = Object.entries(
+      project.latestDeploys || {}
+    ).map(([environment, value]) => ({environment, ...value}));
 
     const deploys = (flattenedDeploys || [])
       .sort((a, b) => new Date(b.dateFinished) - new Date(a.dateFinished))

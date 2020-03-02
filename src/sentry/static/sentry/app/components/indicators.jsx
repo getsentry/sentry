@@ -43,19 +43,13 @@ class Indicators extends React.Component {
 
     return (
       <Toasts {...props}>
-        {items.map((indicator, i) => {
+        {items.map((indicator, i) => (
           // We purposefully use `i` as key here because of transitions
           // Toasts can now queue up, so when we change from [firstToast] -> [secondToast],
           // we don't want to  animate `firstToast` out and `secondToast` in, rather we want
           // to replace `firstToast` with `secondToast`
-          return (
-            <ToastIndicator
-              onDismiss={this.handleDismiss}
-              indicator={indicator}
-              key={i}
-            />
-          );
-        })}
+          <ToastIndicator onDismiss={this.handleDismiss} indicator={indicator} key={i} />
+        ))}
       </Toasts>
     );
   }

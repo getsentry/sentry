@@ -96,13 +96,11 @@ class EventSdkUpdateSuggestion extends React.Component {
         {title}
         {t(' so you can')}
         <AlertUl>
-          {suggestion.enables.map((suggestion2, i) => {
-            return (
-              <li key={getSuggestionComponentKey(suggestion2)}>
-                <EventSdkUpdateSuggestion event={event} suggestion={suggestion2} />
-              </li>
-            );
-          })}
+          {suggestion.enables.map((suggestion2, i) => (
+            <li key={getSuggestionComponentKey(suggestion2)}>
+              <EventSdkUpdateSuggestion event={event} suggestion={suggestion2} />
+            </li>
+          ))}
         </AlertUl>
       </span>
     );
@@ -120,18 +118,16 @@ class EventSdkUpdates extends React.Component {
 
     return (
       <EventDataSection title={null} type="sdk-updates">
-        {data.map(suggestion => {
-          return (
-            <Alert
-              type="info"
-              icon="icon-upgrade"
-              key={getSuggestionComponentKey(suggestion)}
-            >
-              {t('We recommend you ')}
-              <EventSdkUpdateSuggestion event={event} suggestion={suggestion} />
-            </Alert>
-          );
-        })}
+        {data.map(suggestion => (
+          <Alert
+            type="info"
+            icon="icon-upgrade"
+            key={getSuggestionComponentKey(suggestion)}
+          >
+            {t('We recommend you ')}
+            <EventSdkUpdateSuggestion event={event} suggestion={suggestion} />
+          </Alert>
+        ))}
       </EventDataSection>
     );
   }

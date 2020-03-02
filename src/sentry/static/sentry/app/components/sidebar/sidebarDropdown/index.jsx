@@ -73,95 +73,93 @@ const SidebarDropdown = withApi(
 
       return (
         <DropdownMenu>
-          {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-            return (
-              <SidebarDropdownRoot {...getRootProps()}>
-                <SidebarDropdownActor
-                  type="button"
-                  data-test-id="sidebar-dropdown"
-                  {...getActorProps()}
-                >
-                  {avatar}
-                  {!collapsed && orientation !== 'top' && (
-                    <OrgAndUserWrapper>
-                      <OrgOrUserName>
-                        {hasOrganization ? org.name : user.name}{' '}
-                        <i className="icon-arrow-down" />
-                      </OrgOrUserName>
-                      <UserNameOrEmail>
-                        {hasOrganization ? user.name : user.email}
-                      </UserNameOrEmail>
-                    </OrgAndUserWrapper>
-                  )}
-                </SidebarDropdownActor>
-
-                {isOpen && (
-                  <OrgAndUserMenu {...getMenuProps()}>
-                    {hasOrganization && (
-                      <React.Fragment>
-                        <SidebarOrgSummary organization={org} />
-                        {hasOrgRead && (
-                          <SidebarMenuItem to={`/settings/${org.slug}/`}>
-                            {t('Organization settings')}
-                          </SidebarMenuItem>
-                        )}
-                        {hasMemberRead && (
-                          <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
-                            {t('Members')}
-                          </SidebarMenuItem>
-                        )}
-
-                        {hasTeamRead && (
-                          <SidebarMenuItem to={`/settings/${org.slug}/teams/`}>
-                            {t('Teams')}
-                          </SidebarMenuItem>
-                        )}
-
-                        <Hook
-                          name="sidebar:organization-dropdown-menu"
-                          organization={org}
-                        />
-
-                        {!config.singleOrganization && (
-                          <SidebarMenuItem>
-                            <SwitchOrganization canCreateOrganization={canCreateOrg} />
-                          </SidebarMenuItem>
-                        )}
-
-                        <Divider />
-                      </React.Fragment>
-                    )}
-
-                    {!!user && (
-                      <React.Fragment>
-                        <UserSummary to="/settings/account/details/">
-                          <UserBadgeNoOverflow user={user} avatarSize={32} />
-                        </UserSummary>
-
-                        <div>
-                          <SidebarMenuItem to="/settings/account/">
-                            {t('User settings')}
-                          </SidebarMenuItem>
-                          <SidebarMenuItem to="/settings/account/api/">
-                            {t('API keys')}
-                          </SidebarMenuItem>
-                          {user.isSuperuser && (
-                            <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
-                          )}
-                          <SidebarMenuItem
-                            data-test-id="sidebarSignout"
-                            onClick={this.handleLogout}
-                          >
-                            {t('Sign out')}
-                          </SidebarMenuItem>
-                        </div>
-                      </React.Fragment>
-                    )}
-                  </OrgAndUserMenu>
+          {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
+            <SidebarDropdownRoot {...getRootProps()}>
+              <SidebarDropdownActor
+                type="button"
+                data-test-id="sidebar-dropdown"
+                {...getActorProps()}
+              >
+                {avatar}
+                {!collapsed && orientation !== 'top' && (
+                  <OrgAndUserWrapper>
+                    <OrgOrUserName>
+                      {hasOrganization ? org.name : user.name}{' '}
+                      <i className="icon-arrow-down" />
+                    </OrgOrUserName>
+                    <UserNameOrEmail>
+                      {hasOrganization ? user.name : user.email}
+                    </UserNameOrEmail>
+                  </OrgAndUserWrapper>
                 )}
-              </SidebarDropdownRoot>
-            );
-          }}
+              </SidebarDropdownActor>
+
+              {isOpen && (
+                <OrgAndUserMenu {...getMenuProps()}>
+                  {hasOrganization && (
+                    <React.Fragment>
+                      <SidebarOrgSummary organization={org} />
+                      {hasOrgRead && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/`}>
+                          {t('Organization settings')}
+                        </SidebarMenuItem>
+                      )}
+                      {hasMemberRead && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
+                          {t('Members')}
+                        </SidebarMenuItem>
+                      )}
+
+                      {hasTeamRead && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/teams/`}>
+                          {t('Teams')}
+                        </SidebarMenuItem>
+                      )}
+
+                      <Hook
+                        name="sidebar:organization-dropdown-menu"
+                        organization={org}
+                      />
+
+                      {!config.singleOrganization && (
+                        <SidebarMenuItem>
+                          <SwitchOrganization canCreateOrganization={canCreateOrg} />
+                        </SidebarMenuItem>
+                      )}
+
+                      <Divider />
+                    </React.Fragment>
+                  )}
+
+                  {!!user && (
+                    <React.Fragment>
+                      <UserSummary to="/settings/account/details/">
+                        <UserBadgeNoOverflow user={user} avatarSize={32} />
+                      </UserSummary>
+
+                      <div>
+                        <SidebarMenuItem to="/settings/account/">
+                          {t('User settings')}
+                        </SidebarMenuItem>
+                        <SidebarMenuItem to="/settings/account/api/">
+                          {t('API keys')}
+                        </SidebarMenuItem>
+                        {user.isSuperuser && (
+                          <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
+                        )}
+                        <SidebarMenuItem
+                          data-test-id="sidebarSignout"
+                          onClick={this.handleLogout}
+                        >
+                          {t('Sign out')}
+                        </SidebarMenuItem>
+                      </div>
+                    </React.Fragment>
+                  )}
+                </OrgAndUserMenu>
+              )}
+            </SidebarDropdownRoot>
+          )}
         </DropdownMenu>
       );
     }

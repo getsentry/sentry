@@ -9,6 +9,7 @@ import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin'
 import * as modal from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
+
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {

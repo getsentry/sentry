@@ -4,7 +4,6 @@ import moment from 'moment-timezone';
 import memoize from 'lodash/memoize';
 
 import AsyncComponent from 'app/components/asyncComponent';
-
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import DateTime from 'app/components/dateTime';
@@ -16,7 +15,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Checkbox from 'app/components/checkbox';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
-
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {SentryApp, SentryAppWebhookRequest, SentryAppSchemaIssueLink} from 'app/types';
@@ -85,8 +83,8 @@ const ResponseCode = ({code}: {code: number}) => {
   );
 };
 
-const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) => {
-  return link ? (
+const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) =>
+  link ? (
     <Link to={link} target="_blank">
       <DateTime date={date} />
       <StyledInlineSvg src="icon-open" size="12px" />
@@ -94,7 +92,6 @@ const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) 
   ) : (
     <DateTime date={date} />
   );
-};
 
 type Props = AsyncComponent['props'] & {
   app: SentryApp;

@@ -1,5 +1,4 @@
 import React, {ReactElement} from 'react';
-
 import * as Sentry from '@sentry/browser';
 import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
@@ -20,8 +19,8 @@ enum MetricValues {
 }
 enum Actions {
   ALERT_ON_EVERY_ISSUE,
-  CREATE_ALERT_LATER,
   CUSTOMIZED_ALERTS,
+  CREATE_ALERT_LATER,
 }
 
 const UNIQUE_USER_FREQUENCY_CONDITION: string =
@@ -105,7 +104,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: `${Actions.CUSTOMIZED_ALERTS}`,
+      alertSetting: `${Actions.CREATE_ALERT_LATER}`,
       metric: MetricValues.ERRORS,
       interval: '',
       threshold: DEFAULT_THRESHOLD_VALUE,
@@ -128,8 +127,8 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     hasProperlyLoadedConditions: boolean
   ): [string, string | ReactElement][] {
     const options: [string, React.ReactNode][] = [
-      [`${Actions.ALERT_ON_EVERY_ISSUE}`, t('Alert me on every new issue')],
       [`${Actions.CREATE_ALERT_LATER}`, t("I'll create my own alerts later")],
+      [`${Actions.ALERT_ON_EVERY_ISSUE}`, t('Alert me on every new issue')],
     ];
     if (hasProperlyLoadedConditions) {
       options.unshift([
@@ -242,7 +241,9 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     );
 
     if (!conditions || conditions.length === 0) {
-      this.setStateAndUpdateParents({conditions: undefined});
+      this.setStateAndUpdateParents({
+        conditions: undefined,
+      });
       return;
     }
 
@@ -255,11 +256,14 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
           new Error('Interval choices or sent from API endpoint is inconsistent or empty')
         );
       });
-      this.setStateAndUpdateParents({conditions: undefined});
+      this.setStateAndUpdateParents({
+        conditions: undefined,
+      });
       return;
     }
 
     this.setStateAndUpdateParents({
+      alertSetting: `${Actions.CUSTOMIZED_ALERTS}`,
       conditions,
       intervalChoices,
       interval,

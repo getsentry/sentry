@@ -4,9 +4,11 @@ import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
 import debounce from 'lodash/debounce';
 import map from 'lodash/map';
+
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {queryToObj, objToQuery} from 'app/utils/stream';
 import {t} from 'app/locale';
+
 import IssueListTagFilter from './tagFilter';
 
 const TEXT_FILTER_DEBOUNCE_IN_MS = 300;
@@ -139,18 +141,16 @@ const IssueListSidebar = createReactClass({
               <hr />
             </div>
 
-            {map(tags, tag => {
-              return (
-                <IssueListTagFilter
-                  value={this.state.queryObj[tag.key]}
-                  key={tag.key}
-                  tag={tag}
-                  onSelect={this.onSelectTag}
-                  orgId={orgId}
-                  tagValueLoader={tagValueLoader}
-                />
-              );
-            })}
+            {map(tags, tag => (
+              <IssueListTagFilter
+                value={this.state.queryObj[tag.key]}
+                key={tag.key}
+                tag={tag}
+                onSelect={this.onSelectTag}
+                orgId={orgId}
+                tagValueLoader={tagValueLoader}
+              />
+            ))}
           </div>
         )}
       </div>

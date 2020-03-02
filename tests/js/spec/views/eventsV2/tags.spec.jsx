@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import {Tags} from 'app/views/eventsV2/tags';
 import EventView from 'app/views/eventsV2/eventView';
@@ -97,9 +97,7 @@ describe('Tags', function() {
 
     const environmentFacetMap = wrapper
       .find('TagDistributionMeter')
-      .filterWhere(component => {
-        return component.props().title === 'environment';
-      })
+      .filterWhere(component => component.props().title === 'environment')
       .first();
 
     const clickable = environmentFacetMap.find('Segment').first();

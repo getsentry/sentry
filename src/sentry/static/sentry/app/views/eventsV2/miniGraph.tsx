@@ -101,18 +101,16 @@ class MiniGraph extends React.Component<Props> {
             );
           }
 
-          const data = (timeseriesData || []).map(series => {
-            return {
-              ...series,
-              areaStyle: {
-                opacity: 0.4,
-              },
-              lineStyle: {
-                opacity: 0,
-              },
-              smooth: true,
-            };
-          });
+          const data = (timeseriesData || []).map(series => ({
+            ...series,
+            areaStyle: {
+              opacity: 0.4,
+            },
+            lineStyle: {
+              opacity: 0,
+            },
+            smooth: true,
+          }));
 
           return (
             <AreaChart
@@ -152,9 +150,9 @@ class MiniGraph extends React.Component<Props> {
   }
 }
 
-const StyledGraphContainer = styled(props => {
-  return <LoadingContainer {...props} maskBackgroundColor="transparent" />;
-})`
+const StyledGraphContainer = styled(props => (
+  <LoadingContainer {...props} maskBackgroundColor="transparent" />
+))`
   height: 100px;
 
   display: flex;

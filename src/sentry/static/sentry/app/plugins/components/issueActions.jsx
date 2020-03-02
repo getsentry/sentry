@@ -440,13 +440,11 @@ class IssueActions extends PluginComponentBase {
               </p>
               <p>The following settings must be configured:</p>
               <ul>
-                {error.required_auth_settings.map((setting, i) => {
-                  return (
-                    <li key={i}>
-                      <code>{setting}</code>
-                    </li>
-                  );
-                })}
+                {error.required_auth_settings.map((setting, i) => (
+                  <li key={i}>
+                    <code>{setting}</code>
+                  </li>
+                ))}
               </ul>
             </div>
           ) : (

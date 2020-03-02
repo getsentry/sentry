@@ -50,11 +50,10 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
     addErrorMessage(t('Unable to %s %s issue.', action, appName));
   };
 
-  getOptions = (field: Field, input: string) => {
-    return new Promise(resolve => {
+  getOptions = (field: Field, input: string) =>
+    new Promise(resolve => {
       this.debouncedOptionLoad(field, input, resolve);
     });
-  };
 
   debouncedOptionLoad = debounce(
     // debounce is used to prevent making a request for every input change and
@@ -80,8 +79,8 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
     {trailing: true}
   );
 
-  fieldProps = field => {
-    return field.uri
+  fieldProps = field =>
+    field.uri
       ? {
           loadOptions: (input: string) => this.getOptions(field, input),
           async: true,
@@ -92,7 +91,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
           autoload: false,
         }
       : {};
-  };
 
   getStacktrace() {
     const evt = this.props.event;
@@ -161,9 +159,9 @@ export class SentryAppExternalIssueForm extends React.Component<Props> {
         onSubmitSuccess={this.onSubmitSuccess}
         onSubmitError={this.onSubmitError}
       >
-        {metaFields.map(field => {
-          return <FieldFromConfig key={field.name} field={field} />;
-        })}
+        {metaFields.map(field => (
+          <FieldFromConfig key={field.name} field={field} />
+        ))}
 
         {requiredFields.map(field => {
           field = Object.assign({}, field, {

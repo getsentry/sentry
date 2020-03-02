@@ -1,4 +1,5 @@
 import React from 'react';
+
 import GuideStore from 'app/stores/guideStore';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ConfigStore from 'app/stores/configStore';

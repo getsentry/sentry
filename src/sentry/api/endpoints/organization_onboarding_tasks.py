@@ -30,8 +30,10 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
             organization=organization,
             user=request.user,
             task=task_id,
-            values={"status": OnboardingTaskStatus.SKIPPED, "date_completed": timezone.now()},
+            values={"status": status, "date_completed": timezone.now()},
         )
+
         if rows_affected or created:
             try_mark_onboarding_complete(organization.id)
+
         return Response(status=204)

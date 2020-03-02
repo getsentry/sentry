@@ -39,11 +39,8 @@ export default class StacktraceContent extends React.Component {
     return <li {...props}>{text}</li>;
   };
 
-  frameIsVisible = (frame, nextFrame) => {
-    return (
-      this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp)
-    );
-  };
+  frameIsVisible = (frame, nextFrame) =>
+    this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp);
 
   findImageForAddress(address) {
     const images = get(

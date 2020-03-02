@@ -96,9 +96,9 @@ class ReleaseCommits extends React.Component {
       <Panel key={repo}>
         <PanelHeader>{repo}</PanelHeader>
         <PanelBody>
-          {activeCommits.map(commit => {
-            return <CommitRow key={commit.id} commit={commit} />;
-          })}
+          {activeCommits.map(commit => (
+            <CommitRow key={commit.id} commit={commit} />
+          ))}
         </PanelBody>
       </Panel>
     );
@@ -136,20 +136,18 @@ class ReleaseCommits extends React.Component {
                   >
                     <a>{t('All Repositories')}</a>
                   </MenuItem>
-                  {Object.keys(commitsByRepository).map(repository => {
-                    return (
-                      <MenuItem
-                        key={commitsByRepository[repository].id}
-                        noAnchor
-                        onClick={() => {
-                          this.setActiveRepo(repository);
-                        }}
-                        isActive={this.state.activeRepo === repository}
-                      >
-                        <a>{repository}</a>
-                      </MenuItem>
-                    );
-                  })}
+                  {Object.keys(commitsByRepository).map(repository => (
+                    <MenuItem
+                      key={commitsByRepository[repository].id}
+                      noAnchor
+                      onClick={() => {
+                        this.setActiveRepo(repository);
+                      }}
+                      isActive={this.state.activeRepo === repository}
+                    >
+                      <a>{repository}</a>
+                    </MenuItem>
+                  ))}
                 </DropdownLink>
               </div>
             </div>
@@ -157,9 +155,9 @@ class ReleaseCommits extends React.Component {
         </div>
         {activeRepo
           ? this.renderCommitsForRepo(activeRepo)
-          : Object.keys(commitsByRepository).map(repository => {
-              return this.renderCommitsForRepo(repository);
-            })}
+          : Object.keys(commitsByRepository).map(repository =>
+              this.renderCommitsForRepo(repository)
+            )}
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
+
 import GuideActions from 'app/actions/guideActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
 import ProjectActions from 'app/actions/projectActions';
@@ -76,9 +77,9 @@ const GuideStore = Reflux.createStore({
   onCloseGuide() {
     const {currentGuide} = this.state;
     this.state.guides[
-      Object.keys(this.state.guides).find(key => {
-        return this.state.guides[key].id === currentGuide.id;
-      })
+      Object.keys(this.state.guides).find(
+        key => this.state.guides[key].id === currentGuide.id
+      )
     ].seen = true;
     // Don't continue to force show if the user dismissed the guide.
     this.state.forceShow = false;
@@ -135,11 +136,11 @@ const GuideStore = Reflux.createStore({
     // sort() so that we pick a guide deterministically every time this function is called.
     let guideKeys = Object.keys(this.state.guides)
       .sort()
-      .filter(key => {
-        return this.state.guides[key].required_targets.every(
+      .filter(key =>
+        this.state.guides[key].required_targets.every(
           t => availableTargets.indexOf(t) >= 0
-        );
-      });
+        )
+      );
 
     if (!this.state.forceShow) {
       const user = ConfigStore.get('user');

@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentActivity from 'app/views/alerts/details/activity';
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
