@@ -269,14 +269,14 @@ class ColumnEditCollection extends React.Component<Props, State> {
     };
     const ghost = (
       <Ghost ref={this.dragGhostRef} style={style}>
-        {this.renderItem(col, index, true)}
+        {this.renderItem(col, index, true, true)}
       </Ghost>
     );
 
     return ReactDOM.createPortal(ghost, this.portal);
   }
 
-  renderItem(col: Column, i: number, isGhost = false) {
+  renderItem(col: Column, i: number, canDelete: boolean, isGhost: boolean = false) {
     const {isDragging, draggingTargetIndex, fieldOptions} = this.state;
 
     // Replace the dragged row with a placeholder.
@@ -286,12 +286,16 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     return (
       <RowContainer key={`container-${i}`}>
-        <IconButton
-          aria-label={t('Drag to reorder columns')}
-          onMouseDown={event => this.startDrag(event, i)}
-        >
-          <IconGrabbable size="sm" />
-        </IconButton>
+        {canDelete ? (
+          <IconButton
+            aria-label={t('Drag to reorder columns')}
+            onMouseDown={event => this.startDrag(event, i)}
+          >
+            <IconGrabbable size="sm" />
+          </IconButton>
+        ) : (
+          <span />
+        )}
         <ColumnEditRow
           className={DRAG_CLASS}
           fieldOptions={fieldOptions}
@@ -299,15 +303,23 @@ class ColumnEditCollection extends React.Component<Props, State> {
           parentIndex={i}
           onChange={this.handleUpdateColumn}
         />
-        <IconButton aria-label={t('Remove column')} onClick={() => this.removeColumn(i)}>
-          <IconClose size="sm" />
-        </IconButton>
+        {canDelete ? (
+          <IconButton
+            aria-label={t('Remove column')}
+            onClick={() => this.removeColumn(i)}
+          >
+            <IconClose size="sm" />
+          </IconButton>
+        ) : (
+          <span />
+        )}
       </RowContainer>
     );
   }
 
   render() {
     const {columns} = this.props;
+    const canDelete = columns.length > 1;
     return (
       <div>
         {this.renderGhost()}
@@ -317,7 +329,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <strong>{t('Field Parameter')}</strong>
           </Heading>
         </RowContainer>
-        {columns.map((col: Column, i: number) => this.renderItem(col, i))}
+        {columns.map((col: Column, i: number) => this.renderItem(col, i, canDelete))}
         <RowContainer>
           <Actions>
             <Button size="xsmall" onClick={this.handleAddColumn}>
@@ -347,7 +359,7 @@ const Ghost = styled('div')`
   padding: 4px;
   border: 4px solid ${p => p.theme.borderLight};
   border-radius: 4px;
-  width: 400px;
+  width: 450px;
   opacity: 0.8;
   cursor: grabbing;
 
