@@ -245,13 +245,11 @@ class SpanDetail extends React.Component<Props, State> {
               {String(!!span.same_process_as_parent)}
             </Row>
             <Tags span={span} />
-            {map(get(span, 'data', {}), (value, key) => {
-              return (
-                <Row title={key} key={key}>
-                  {JSON.stringify(value, null, 4) || ''}
-                </Row>
-              );
-            })}
+            {map(get(span, 'data', {}), (value, key) => (
+              <Row title={key} key={key}>
+                {JSON.stringify(value, null, 4) || ''}
+              </Row>
+            ))}
           </tbody>
         </table>
       </SpanDetailContainer>
@@ -321,9 +319,9 @@ const Tags = ({span}: {span: RawSpanType}) => {
       <td className="key">Tags</td>
       <td className="value">
         <Pills style={{padding: '8px'}}>
-          {keys.map((key, index) => {
-            return <Pill key={index} name={key} value={String(tags[key]) || ''} />;
-          })}
+          {keys.map((key, index) => (
+            <Pill key={index} name={key} value={String(tags[key]) || ''} />
+          ))}
         </Pills>
       </td>
     </tr>

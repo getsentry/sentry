@@ -94,9 +94,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
   previousUserSelect: UserSelectValues | null = null;
 
-  hasInteractiveLayer = (): boolean => {
-    return !!this.props.interactiveLayerRef.current;
-  };
+  hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
 
   onDragStart = (viewHandle: ViewHandleType) => (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>
@@ -203,27 +201,23 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
     switch (this.state.currentDraggingHandle) {
       case ViewHandleType.Left: {
-        this.setState(state => {
-          return {
-            isDragging: false,
-            currentDraggingHandle: void 0,
+        this.setState(state => ({
+          isDragging: false,
+          currentDraggingHandle: void 0,
 
-            // commit leftHandlePosition to be viewWindowStart
-            viewWindowStart: state.leftHandlePosition,
-          };
-        });
+          // commit leftHandlePosition to be viewWindowStart
+          viewWindowStart: state.leftHandlePosition,
+        }));
         return;
       }
       case ViewHandleType.Right: {
-        this.setState(state => {
-          return {
-            isDragging: false,
-            currentDraggingHandle: void 0,
+        this.setState(state => ({
+          isDragging: false,
+          currentDraggingHandle: void 0,
 
-            // commit rightHandlePosition to be viewWindowEnd
-            viewWindowEnd: state.rightHandlePosition,
-          };
-        });
+          // commit rightHandlePosition to be viewWindowEnd
+          viewWindowEnd: state.rightHandlePosition,
+        }));
         return;
       }
       default: {

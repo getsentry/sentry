@@ -341,14 +341,12 @@ class AbstractIntegrationDetailedView<
                 <AuthorName>{this.author}</AuthorName>
               </div>
             )}
-            {this.resourceLinks.map(({title, url}) => {
-              return (
-                <ExternalLinkContainer key={url}>
-                  {this.getIcon(title)}
-                  <ExternalLink href={url}>{t(title)}</ExternalLink>
-                </ExternalLinkContainer>
-              );
-            })}
+            {this.resourceLinks.map(({title, url}) => (
+              <ExternalLinkContainer key={url}>
+                {this.getIcon(title)}
+                <ExternalLink href={url}>{t(title)}</ExternalLink>
+              </ExternalLinkContainer>
+            ))}
           </Metadata>
         </Flex>
       </React.Fragment>

@@ -43,9 +43,7 @@ class SelectControlLegacy extends React.Component {
     height: 36,
   };
 
-  renderArrow = () => {
-    return <span className="icon-arrow-down" />;
-  };
+  renderArrow = () => <span className="icon-arrow-down" />;
 
   render() {
     const {async, creatable, options, choices, clearable, noMenu, ...props} = this.props;

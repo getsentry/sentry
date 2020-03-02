@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
 import copy
-
 import sentry_relay
 import six
 
 from sentry.utils import metrics
-from sentry.utils.canonical import CanonicalKeyDict
 
 
 def _escape_key(key):
@@ -19,71 +17,6 @@ def _escape_key(key):
     return u"'{}'".format(key.replace("'", "''"))
 
 
-def _path_selectors_from_diff(old_data, data):
-    """
-    Datascrubbing is not idempotent, so scrubbing the same value
-    twice might cause weird glitches. When data scrubbing after
-    processing, we can still limit the likelihood of such glitches
-    by constraining data scrubbing to fields we saw change.
-
-    This function takes two events and yields a list of path selectors of
-    fields that changed.
-    """
-
-    dict_types = (CanonicalKeyDict, dict)
-
-    if isinstance(old_data, dict_types) and isinstance(data, dict_types):
-        for key, value in six.iteritems(data):
-            old_value = old_data.get(key)
-            key = _escape_key(key)
-            if key is None:
-                continue
-
-            for selector in _path_selectors_from_diff(old_value, value):
-                if selector is not None:
-                    yield u"{}.{}".format(key, selector)
-                else:
-                    yield key
-
-    elif isinstance(old_data, list) and isinstance(data, list):
-        for i, value in enumerate(data):
-            old_value = old_data[i] if len(old_data) > i else None
-            for selector in _path_selectors_from_diff(old_value, value):
-                if selector is not None:
-                    yield u"{}.{}".format(i, selector)
-                else:
-                    yield six.text_type(i)
-
-    elif old_data != data:
-        # If the values are not equal we yield out both
-        #
-        # * the specific selector (for changes from null <-> int|string)
-        # * the deep-wildcard one (for changes array|dict <-> null)
-        yield None
-        yield u"**"
-
-
-def _narrow_pii_config_for_processing(config, old_event, event):
-    if not config.get("applications"):
-        return config
-
-    additional_selectors = u"|".join(_path_selectors_from_diff(old_event, event))
-
-    metrics.timing("datascrubbing.config.additional_selectors.size", len(additional_selectors))
-
-    if not additional_selectors:
-        # No new data has been added, so we must not scrub
-        return {}
-
-    config = copy.deepcopy(config)
-
-    for selector in list(config["applications"]):
-        new_selector = u"(({})&{})".format(additional_selectors, selector)
-        config["applications"][new_selector] = config["applications"].pop(selector)
-
-    return config
-
-
 def get_all_pii_configs(project_config):
     # Note: This logic is duplicated in Relay store.
     pii_config = project_config.config["piiConfig"]
@@ -93,7 +26,7 @@ def get_all_pii_configs(project_config):
     yield sentry_relay.convert_datascrubbing_config(project_config.config["datascrubbingSettings"])
 
 
-def scrub_data(project_config, event, in_processing=False, old_event=None):
+def scrub_data(project_config, event):
     for config in get_all_pii_configs(project_config):
         metrics.timing(
             "datascrubbing.config.num_applications", len(config.get("applications") or ())
@@ -106,10 +39,61 @@ def scrub_data(project_config, event, in_processing=False, old_event=None):
 
         metrics.timing("datascrubbing.config.rules.size", total_rules)
 
-        if in_processing:
-            assert old_event is not None
-            config = _narrow_pii_config_for_processing(config, old_event, event)
-
         event = sentry_relay.pii_strip_event(config, event)
 
     return event
+
+
+def merge_pii_configs(prefixes_and_configs):
+    """
+    Merge two PII configs into one, prefixing all custom rules with a prefix in the name.
+
+    This is used to apply organization and project configs at once,
+    and still get unique references to rule names.
+    """
+    merged_config = {}
+
+    for prefix, partial_config in prefixes_and_configs:
+        if not partial_config:
+            continue
+
+        rules = partial_config.get("rules") or {}
+        for rule_name, rule in six.iteritems(rules):
+            prefixed_rule_name = "{}{}".format(prefix, rule_name)
+            merged_config.setdefault("rules", {})[
+                prefixed_rule_name
+            ] = _prefix_rule_references_in_rule(rules, rule, prefix)
+
+        for selector, applications in six.iteritems(partial_config.get("applications") or {}):
+            merged_applications = merged_config.setdefault("applications", {}).setdefault(
+                selector, []
+            )
+
+            for application in applications:
+                if application in rules:
+                    prefixed_rule_name = "{}{}".format(prefix, application)
+                    merged_applications.append(prefixed_rule_name)
+                else:
+                    merged_applications.append(application)
+
+    return merged_config
+
+
+def _prefix_rule_references_in_rule(custom_rules, rule_def, prefix):
+    if not isinstance(rule_def, dict):
+        return rule_def
+
+    if rule_def.get("type") == "multiple" and rule_def.get("rules"):
+        rule_def = copy.deepcopy(rule_def)
+        rule_def["rules"] = list(
+            "{}{}".format(prefix, x) if x in custom_rules else x for x in rule_def["rules"]
+        )
+    elif (
+        rule_def.get("type") == "multiple"
+        and rule_def.get("rule")
+        and rule_def["rule"] in custom_rules
+    ):
+        rule_def = copy.deepcopy(rule_def)
+        rule_def["rule"] = "{}{}".format(prefix, rule_def["rule"])
+
+    return rule_def

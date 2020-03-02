@@ -108,15 +108,13 @@ class GroupTombstones extends AsyncComponent {
 
     return tombstones.length ? (
       <Panel>
-        {tombstones.map(data => {
-          return (
-            <GroupTombstoneRow
-              key={data.id}
-              data={data}
-              onUndiscard={this.handleUndiscard}
-            />
-          );
-        })}
+        {tombstones.map(data => (
+          <GroupTombstoneRow
+            key={data.id}
+            data={data}
+            onUndiscard={this.handleUndiscard}
+          />
+        ))}
       </Panel>
     ) : (
       this.renderEmpty()

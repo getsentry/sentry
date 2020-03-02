@@ -86,23 +86,21 @@ class Monitors extends AsyncView {
         </PageHeader>
         <Panel>
           <PanelBody>
-            {this.state.monitorList.map(monitor => {
-              return (
-                <PanelItemCentered key={monitor.id}>
-                  <MonitorIcon status={monitor.status} size={16} />
-                  <StyledLink
-                    to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
-                  >
-                    {monitor.name}
-                  </StyledLink>
-                  {monitor.nextCheckIn ? (
-                    <TimeSince date={monitor.lastCheckIn} />
-                  ) : (
-                    t('n/a')
-                  )}
-                </PanelItemCentered>
-              );
-            })}
+            {this.state.monitorList.map(monitor => (
+              <PanelItemCentered key={monitor.id}>
+                <MonitorIcon status={monitor.status} size={16} />
+                <StyledLink
+                  to={`/organizations/${organization.slug}/monitors/${monitor.id}/`}
+                >
+                  {monitor.name}
+                </StyledLink>
+                {monitor.nextCheckIn ? (
+                  <TimeSince date={monitor.lastCheckIn} />
+                ) : (
+                  t('n/a')
+                )}
+              </PanelItemCentered>
+            ))}
           </PanelBody>
         </Panel>
         {monitorListPageLinks && (

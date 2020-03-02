@@ -21,19 +21,17 @@ const EventMessage = ({
   levelIndicatorSize,
   message,
   annotations,
-}: Props) => {
-  return (
-    <div className={className}>
-      {level && (
-        <StyledErrorLevel size={levelIndicatorSize} level={level}>
-          {level}
-        </StyledErrorLevel>
-      )}
-      {message && <Message>{message}</Message>}
-      {annotations}
-    </div>
-  );
-};
+}: Props) => (
+  <div className={className}>
+    {level && (
+      <StyledErrorLevel size={levelIndicatorSize} level={level}>
+        {level}
+      </StyledErrorLevel>
+    )}
+    {message && <Message>{message}</Message>}
+    {annotations}
+  </div>
+);
 
 EventMessage.propTypes = {
   level: PropTypes.oneOf(['error', 'fatal', 'info', 'warning', 'sample']),
