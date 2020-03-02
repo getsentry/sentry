@@ -277,7 +277,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     return (
       <React.Fragment>
         <PageHeadingWithTopMargins withMargins>
-          {t('Create an alert')}
+          {t('Set your default alert settings')}
         </PageHeadingWithTopMargins>
         <RadioGroupWithPadding
           choices={issueAlertOptionsChoices}
