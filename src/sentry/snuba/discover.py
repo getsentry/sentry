@@ -302,6 +302,33 @@ def transform_deprecated_functions_in_columns(columns):
     return new_list, translations
 
 
+def transform_deprecated_functions_in_orderby(orderby):
+    if not orderby:
+        return
+
+    orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+    new_orderby = []
+    for order in orderby:
+        has_negative = False
+        column = order
+        if order.startswith("-"):
+            has_negative = True
+            column = order.strip("-")
+
+        new_column = column
+        if column in OLD_FUNCTIONS_TO_NEW:
+            new_column = get_function_alias(OLD_FUNCTIONS_TO_NEW[column])
+        elif column.replace("()", "") in OLD_FUNCTIONS_TO_NEW:
+            new_column = get_function_alias(OLD_FUNCTIONS_TO_NEW[column.replace("()", "")])
+
+        if has_negative:
+            new_column = "-" + new_column
+
+        new_orderby.append(new_column)
+
+    return new_orderby
+
+
 def transform_deprecated_functions_in_query(query):
     if query is None:
         return query
@@ -310,7 +337,7 @@ def transform_deprecated_functions_in_query(query):
         if old_function + "()" in query:
             replacement = OLD_FUNCTIONS_TO_NEW[old_function]
             query = query.replace(old_function + "()", replacement)
-        if old_function in query:
+        elif old_function in query:
             replacement = OLD_FUNCTIONS_TO_NEW[old_function]
             query = query.replace(old_function, replacement)
 
@@ -358,6 +385,7 @@ def query(
     selected_columns, function_translations = transform_deprecated_functions_in_columns(
         selected_columns
     )
+    orderby = transform_deprecated_functions_in_orderby(orderby)
     query = transform_deprecated_functions_in_query(query)
 
     snuba_filter = get_filter(query, params)

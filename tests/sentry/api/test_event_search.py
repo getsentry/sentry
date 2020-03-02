@@ -1126,6 +1126,14 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("percentile(transaction.duration, 0.75):>100")
         assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
 
+    def test_function_with_float_arguments(self):
+        result = get_filter("apdex(transaction.duration, 300):>0.5")
+        assert result.having == [["apdex_transaction_duration_300", ">", 0.5]]
+
+    def test_function_with_negative_arguments(self):
+        result = get_filter("apdex(transaction.duration, 300):>-0.5")
+        assert result.having == [["apdex_transaction_duration_300", ">", -0.5]]
+
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
         result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))

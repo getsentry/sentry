@@ -129,7 +129,7 @@ function_key         = key space? open_paren space? closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
-numeric_value        = ~r"[0-9]+(?=\s|$)"
+numeric_value        = ~r"[-]?[0-9\.]+(?=\s|$)"
 quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key                  = ~r"[a-zA-Z0-9_\.-]+"
 function_arg         = space? key? comma? space?
@@ -392,7 +392,7 @@ class SearchVisitor(NodeVisitor):
         operator = operator[0] if not isinstance(operator, Node) else "="
 
         try:
-            search_value = SearchValue(int(search_value.text))
+            search_value = SearchValue(float(search_value.text))
         except ValueError:
             raise InvalidSearchQuery(u"Invalid aggregate query condition: {}".format(search_key))
         return AggregateFilter(search_key, operator, search_value)
@@ -1026,7 +1026,7 @@ FUNCTIONS = {
     "sum": {
         "name": "sum",
         "args": [DurationColumnNoLookup("column")],
-        "aggregate": ["duration", u"{column}", None],
+        "aggregate": ["sum", u"{column}", None],
     },
 }
 
