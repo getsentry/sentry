@@ -559,15 +559,23 @@ class SearchVisitor(NodeVisitor):
     def visit_value(self, node, children):
         # A properly quoted value will match the quoted value regex, so any unescaped
         # quotes are errors.
-        idx = node.text.find('"')
+        value = node.text
+        idx = value.find('"')
         if idx == 0:
             raise InvalidSearchQuery(
                 u"Invalid quote at '{}': quotes must enclose text or be escaped.".format(node.text)
             )
-        elif idx > 0 and node.text[idx - 1] != "\\":
-            raise InvalidSearchQuery(
-                u"Invalid quote at '{}': quotes must enclose text or be escaped.".format(node.text)
-            )
+
+        while idx != -1:
+            if value[idx - 1] != "\\":
+                raise InvalidSearchQuery(
+                    u"Invalid quote at '{}': quotes must enclose text or be escaped.".format(
+                        node.text
+                    )
+                )
+
+            value = value[idx + 1 :]
+            idx = value.find('"')
 
         return node.text.replace('\\"', '"')
 
