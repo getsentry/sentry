@@ -257,9 +257,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_date_formats(self):
         invalid_queries = ["first_seen:hello", "first_seen:123", "first_seen:2018-01-01T00:01ZZ"]
         for invalid_query in invalid_queries:
-            with self.assertRaises(
-                InvalidSearchQuery, expected_regex="Invalid format for numeric search"
-            ):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date search"):
                 parse_search_query(invalid_query)
 
     def test_specific_time_filter(self):
@@ -414,10 +412,49 @@ class ParseSearchQueryTest(unittest.TestCase):
                 key=SearchKey(name="device.family"), operator="=", value=SearchValue(raw_value="")
             )
         ]
-        with self.assertRaises(
-            InvalidSearchQuery, expected_regex="Invalid format for numeric search"
-        ):
+        with self.assertRaisesRegexp(InvalidSearchQuery, "Empty string after 'device.family:'"):
             parse_search_query("device.family:")
+
+    def test_escaped_quote_value(self):
+        assert parse_search_query('device.family:\\"') == [
+            SearchFilter(
+                key=SearchKey(name="device.family"), operator="=", value=SearchValue(raw_value='"')
+            )
+        ]
+
+        assert parse_search_query('device.family:te\\"st') == [
+            SearchFilter(
+                key=SearchKey(name="device.family"),
+                operator="=",
+                value=SearchValue(raw_value='te"st'),
+            )
+        ]
+
+        # This is a weird case. I think this should be an error, but it doesn't seem trivial to rewrite
+        # the grammar to handle that.
+        assert parse_search_query('url:"te"st') == [
+            SearchFilter(
+                key=SearchKey(name="url"), operator="=", value=SearchValue(raw_value="te")
+            ),
+            SearchFilter(
+                key=SearchKey(name="message"), operator="=", value=SearchValue(raw_value="st")
+            ),
+        ]
+
+    def test_trailing_quote_value(self):
+        tests = [
+            ('"test', "device.family:{}"),
+            ('test"', "url:{}"),
+            ('"test', "url:{} transaction:abadcafe"),
+            ('te"st', "url:{} transaction:abadcafe"),
+        ]
+
+        for test in tests:
+            with self.assertRaisesRegexp(
+                InvalidSearchQuery,
+                "Invalid quote at '{}': quotes must enclose text or be escaped.".format(test[0]),
+            ):
+                parse_search_query(test[1].format(test[0]))
 
     def test_custom_tag(self):
         assert parse_search_query("fruit:apple release:1.2.1") == [
@@ -477,8 +514,8 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_is_query_unsupported(self):
-        with self.assertRaises(
-            InvalidSearchQuery, expected_regex="queries are only supported in issue search"
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, ".*queries are only supported in issue search.*"
         ):
             parse_search_query("is:unassigned")
 
@@ -512,9 +549,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
-            with self.assertRaises(
-                InvalidSearchQuery, expected_regex="Invalid format for numeric search"
-            ):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric search"):
                 parse_search_query(invalid_query)
 
     def test_quotes_filtered_on_raw(self):
