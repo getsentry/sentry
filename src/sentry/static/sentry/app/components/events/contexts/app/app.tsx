@@ -1,13 +1,12 @@
 import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlockV2';
-import {defined} from 'app/utils';
 
 import getAppKnownData from './getAppKnownData';
 import {AppData, AppKnownDataType} from './types';
 
 type Props = {
-  data?: AppData;
+  data: AppData;
 };
 
 const appKnownDataValues = [
@@ -20,13 +19,9 @@ const appKnownDataValues = [
   AppKnownDataType.BUILD,
 ];
 
-const App = ({data}: Props) => {
-  if (!defined(data)) {
-    return null;
-  }
-
-  return <ContextBlock knownData={getAppKnownData(data, appKnownDataValues)} />;
-};
+const App = ({data}: Props) => (
+  <ContextBlock knownData={getAppKnownData(data, appKnownDataValues)} />
+);
 
 App.getTitle = () => 'App';
 

@@ -123,14 +123,16 @@ class ContextChunk extends React.Component {
     }
 
     const evt = this.props.event;
-    const {type, alias, value} = this.props;
+    const {type, alias, value = {}} = this.props;
     const Component =
       type === 'default'
         ? getContextComponent(alias) || getContextComponent(type)
         : getContextComponent(type);
 
+    const isObjectValueEmpty = Object.values(value).filter(v => defined(v)).length === 0;
+
     // this can happen if the component does not exist
-    if (!Component) {
+    if (!Component || isObjectValueEmpty) {
       return null;
     }
 
