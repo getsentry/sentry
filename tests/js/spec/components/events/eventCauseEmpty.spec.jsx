@@ -1,7 +1,7 @@
 import React from 'react';
 import moment from 'moment';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
 

@@ -282,7 +282,9 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
 
 class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
     def run_test(self, incidents, expected_results_list, start=None, end=None):
-        query_params_list = bulk_build_incident_query_params(incidents, start=start, end=end)
+        query_params_list = bulk_build_incident_query_params(
+            incidents, start=start, end=end, prewindow=True
+        )
         results = bulk_get_incident_event_stats(incidents, query_params_list, data_points=20)
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
             # Duration of 300s / 20 data points

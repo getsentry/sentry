@@ -9,6 +9,7 @@ import DropdownMenu from 'app/components/dropdownMenu';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import Hook from 'app/components/hook';
 import {IconQuestion} from 'app/icons/iconQuestion';
+
 import SidebarMenuItem from './sidebarMenuItem';
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 
@@ -31,37 +32,35 @@ class SidebarHelp extends React.Component {
   render() {
     return (
       <DropdownMenu>
-        {({isOpen, getActorProps, getMenuProps}) => {
-          return (
-            <HelpRoot>
-              <HelpActor {...getActorProps({onClick: this.handleActorClick})}>
-                <SidebarItem
-                  orientation={this.props.orientation}
-                  collapsed={this.props.collapsed}
-                  hasPanel={false}
-                  icon={<IconQuestion size="md" />}
-                  label={t('Help')}
-                  id="help"
-                />
-              </HelpActor>
+        {({isOpen, getActorProps, getMenuProps}) => (
+          <HelpRoot>
+            <HelpActor {...getActorProps({onClick: this.handleActorClick})}>
+              <SidebarItem
+                orientation={this.props.orientation}
+                collapsed={this.props.collapsed}
+                hasPanel={false}
+                icon={<IconQuestion size="md" />}
+                label={t('Help')}
+                id="help"
+              />
+            </HelpActor>
 
-              {isOpen && (
-                <HelpMenu {...getMenuProps()}>
-                  <Hook name="sidebar:help-menu" organization={this.props.organization} />
-                  <SidebarMenuItem onClick={this.handleSearchClick}>
-                    {t('Search Docs and FAQs')}
-                  </SidebarMenuItem>
-                  <SidebarMenuItem href="https://forum.sentry.io/" target="_blank">
-                    {t('Community Discussions')}
-                  </SidebarMenuItem>
-                  <SidebarMenuItem href="https://status.sentry.io/" target="_blank">
-                    {t('Service Status')}
-                  </SidebarMenuItem>
-                </HelpMenu>
-              )}
-            </HelpRoot>
-          );
-        }}
+            {isOpen && (
+              <HelpMenu {...getMenuProps()}>
+                <Hook name="sidebar:help-menu" organization={this.props.organization} />
+                <SidebarMenuItem onClick={this.handleSearchClick}>
+                  {t('Search Docs and FAQs')}
+                </SidebarMenuItem>
+                <SidebarMenuItem href="https://forum.sentry.io/" target="_blank">
+                  {t('Community Discussions')}
+                </SidebarMenuItem>
+                <SidebarMenuItem href="https://status.sentry.io/" target="_blank">
+                  {t('Service Status')}
+                </SidebarMenuItem>
+              </HelpMenu>
+            )}
+          </HelpRoot>
+        )}
       </DropdownMenu>
     );
   }

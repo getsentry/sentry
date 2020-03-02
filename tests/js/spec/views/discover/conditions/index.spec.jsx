@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import Conditions from 'app/views/discover/conditions';
 
 describe('Conditions', function() {

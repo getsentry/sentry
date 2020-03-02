@@ -13,6 +13,7 @@ import ShortId from 'app/components/shortId';
 import Times from 'app/components/group/times';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
+
 import {SectionHeading} from '../styles';
 
 type Props = {

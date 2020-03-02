@@ -1,0 +1,19 @@
+
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Unable to Export Data</h3>
+    <p>We were unable to generate your data export due to an error:</p>
+    <code><pre>{{error_message}}</pre></code>
+    <p>We received the following payload:</p>
+    <code>
+        <pre>{{payload}}</pre>
+    </code>
+    <p><strong>Troubleshooting &amp; References</strong></p>
+    <ul>
+        <li><a href="https://docs.sentry.io/">Documentation</a></li>
+        <li><a href="https://help.sentry.io/">FAQs</a></li>
+    </ul>
+{% endblock %}

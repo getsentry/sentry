@@ -200,9 +200,8 @@ class SmartSearchBar extends React.Component {
    *
    * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
    */
-  static getQueryTerms = (query, cursor) => {
-    return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
-  };
+  static getQueryTerms = (query, cursor) =>
+    query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
 
   static defaultProps = {
     defaultQuery: '',

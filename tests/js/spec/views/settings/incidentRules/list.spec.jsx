@@ -1,6 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentRulesList from 'app/views/settings/incidentRules/list';
 

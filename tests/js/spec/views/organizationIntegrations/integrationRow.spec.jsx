@@ -34,7 +34,7 @@ describe('IntegrationRow', function() {
         'My Headband Washer'
       );
       expect(wrapper.find('IntegrationName').props().to).toEqual(
-        `/settings/${org.slug}/sentry-apps/my-headband-washer-289499/`
+        `/settings/${org.slug}/developer-settings/my-headband-washer-289499/`
       );
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
       expect(wrapper.find('PublishStatus').props().status).toEqual('internal');

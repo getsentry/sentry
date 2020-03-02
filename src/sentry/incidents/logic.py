@@ -269,11 +269,13 @@ def create_event_stat_snapshot(incident, start, end):
     )
 
 
-def build_incident_query_params(incident, start=None, end=None):
-    return bulk_build_incident_query_params([incident], start=start, end=end)[0]
+def build_incident_query_params(incident, start=None, end=None, prewindow=False):
+    return bulk_build_incident_query_params([incident], start=start, end=end, prewindow=prewindow)[
+        0
+    ]
 
 
-def bulk_build_incident_query_params(incidents, start=None, end=None):
+def bulk_build_incident_query_params(incidents, start=None, end=None, prewindow=False):
     incident_groups = defaultdict(list)
     for incident_id, group_id in IncidentGroup.objects.filter(incident__in=incidents).values_list(
         "incident_id", "group_id"
@@ -291,8 +293,9 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
             "start": incident.date_started if start is None else start,
             "end": incident.current_end_date if end is None else end,
         }
-        prewindow_time_range = calculate_incident_prewindow(params["start"], params["end"])
-        params["start"] = params["start"] - prewindow_time_range
+        if prewindow:
+            prewindow_time_range = calculate_incident_prewindow(params["start"], params["end"])
+            params["start"] = params["start"] - prewindow_time_range
         group_ids = incident_groups[incident.id]
         if group_ids:
             params["group_ids"] = group_ids
@@ -328,7 +331,9 @@ def get_incident_event_stats(incident, start=None, end=None, data_points=50):
     Gets event stats for an incident. If start/end are provided, uses that time
     period, otherwise uses the incident start/current_end.
     """
-    query_params = bulk_build_incident_query_params([incident], start=start, end=end)
+    query_params = bulk_build_incident_query_params(
+        [incident], start=start, end=end, prewindow=True
+    )
     return bulk_get_incident_event_stats([incident], query_params, data_points=data_points)[0]
 
 
@@ -361,13 +366,13 @@ def get_alert_rule_environment_names(alert_rule):
     return [x.environment.name for x in AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)]
 
 
-def get_incident_aggregates(incident):
+def get_incident_aggregates(incident, start=None, end=None, prewindow=False):
     """
-    Calculates aggregate stats across the life of an incident.
+    Calculates aggregate stats across the life of an incident, or the provided range.
     - count: Total count of events
     - unique_users: Total number of unique users
     """
-    query_params = build_incident_query_params(incident)
+    query_params = build_incident_query_params(incident, start, end, prewindow)
     return bulk_get_incident_aggregates([query_params])[0]
 
 
@@ -404,7 +409,7 @@ def bulk_get_incident_stats(incidents):
 
     to_fetch = [i for i in incidents if i.id not in incident_stats]
     if to_fetch:
-        query_params_list = bulk_build_incident_query_params(to_fetch)
+        query_params_list = bulk_build_incident_query_params(to_fetch, prewindow=True)
         all_event_stats = bulk_get_incident_event_stats(to_fetch, query_params_list)
         all_aggregates = bulk_get_incident_aggregates(query_params_list)
         for incident, event_stats, aggregates in zip(to_fetch, all_event_stats, all_aggregates):
@@ -700,7 +705,7 @@ def delete_alert_rule(alert_rule):
         alert_rule.update(
             # Randomize the name here so that we don't get unique constraint issues
             # while waiting for the deletion to process
-            name=uuid4().get_hex(),
+            name=uuid4().hex,
             status=AlertRuleStatus.PENDING_DELETION.value,
         )
         bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))

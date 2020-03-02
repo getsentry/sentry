@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
+
 import {t} from 'app/locale';
 import CustomResolutionModal from 'app/components/customResolutionModal';
 import MenuItem from 'app/components/menuItem';
@@ -180,17 +181,15 @@ class ResolveActions extends React.Component<Props, State> {
                     <ActionLink
                       {...actionLinkProps}
                       title={t('The next release')}
-                      onAction={() => {
-                        return (
-                          hasRelease &&
-                          onUpdate({
-                            status: ResolutionStatus.RESOLVED,
-                            statusDetails: {
-                              inNextRelease: true,
-                            },
-                          })
-                        );
-                      }}
+                      onAction={() =>
+                        hasRelease &&
+                        onUpdate({
+                          status: ResolutionStatus.RESOLVED,
+                          statusDetails: {
+                            inNextRelease: true,
+                          },
+                        })
+                      }
                     >
                       {t('The next release')}
                     </ActionLink>
@@ -199,17 +198,15 @@ class ResolveActions extends React.Component<Props, State> {
                     <ActionLink
                       {...actionLinkProps}
                       title={t('The current release')}
-                      onAction={() => {
-                        return (
-                          hasRelease &&
-                          onUpdate({
-                            status: ResolutionStatus.RESOLVED,
-                            statusDetails: {
-                              inRelease: latestRelease ? latestRelease.version : 'latest',
-                            },
-                          })
-                        );
-                      }}
+                      onAction={() =>
+                        hasRelease &&
+                        onUpdate({
+                          status: ResolutionStatus.RESOLVED,
+                          statusDetails: {
+                            inRelease: latestRelease ? latestRelease.version : 'latest',
+                          },
+                        })
+                      }
                     >
                       {latestRelease
                         ? t(

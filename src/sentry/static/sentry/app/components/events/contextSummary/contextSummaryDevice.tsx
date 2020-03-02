@@ -1,12 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {Meta} from 'app/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import DeviceName from 'app/components/deviceName';
-import styled from '@emotion/styled';
 import space from 'app/styles/space';
 
 import generateClassName from './generateClassName';

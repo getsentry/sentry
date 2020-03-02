@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 
 describe('DropdownAutoComplete', function() {

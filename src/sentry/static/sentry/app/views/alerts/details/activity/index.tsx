@@ -17,6 +17,7 @@ import withApi from 'app/utils/withApi';
 import {
   ActivityType,
   ActivityTypeDraft,
+  Incident,
   IncidentActivityType,
   IncidentStatus,
   NoteType,
@@ -31,6 +32,7 @@ type Activities = Array<ActivityType | ActivityType>;
 
 type Props = {
   api: Client;
+  incident?: Incident;
   incidentStatus: IncidentStatus | null;
   params: Params;
 };
@@ -203,7 +205,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {api, params, ...props} = this.props;
+    const {api, params, incident, ...props} = this.props;
     const {alertId} = params;
     const me = ConfigStore.get('user');
 
@@ -214,6 +216,8 @@ class ActivityContainer extends React.PureComponent<Props, State> {
         me={me}
         api={api}
         {...this.state}
+        loading={this.state.loading || !incident}
+        incident={incident}
         onCreateNote={this.handleCreateNote}
         onUpdateNote={this.handleUpdateNote}
         onDeleteNote={this.handleDeleteNote}

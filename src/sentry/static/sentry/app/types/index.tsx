@@ -68,7 +68,7 @@ export type LightWeightOrganization = OrganizationSummary & {
     maxRate: number | null;
   };
   defaultRole: string;
-  experiments: ActiveExperiments;
+  experiments: Partial<ActiveExperiments>;
   allowJoinRequests: boolean;
   scrapeJavaScript: boolean;
   isDefault: boolean;
@@ -114,6 +114,30 @@ export type Project = {
   plugins: Plugin[];
   processingIssues: number;
 } & AvatarProject;
+
+export type ProjectRelease = {
+  version: string;
+  dateCreated: string;
+  dateReleased: string | null;
+  commitCount: number;
+  authors: User[];
+  newGroups: number;
+  healthData: Health | null;
+  projectSlug: string;
+};
+
+export type Health = {
+  crash_free_users: number | null;
+  total_users: number;
+  crash_free_sessions: number | null;
+  stats: HealthGraphData;
+  crashes: number;
+  errors: number;
+  adoption: number | null;
+};
+export type HealthGraphData = {
+  [key: string]: [number, number][];
+};
 
 export type Team = {
   id: string;
@@ -232,6 +256,10 @@ export type EventsStatsData = [number, {count: number}[]][];
 export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
+};
+
+export type YAxisEventsStats = {
+  [yAxisName: string]: EventsStats;
 };
 
 // Avatars are a more primitive version of User.
@@ -748,7 +776,7 @@ export type Release = {
   authors: User[];
   owner?: any; // TODO(ts)
   newGroups: number;
-  projects: {slug: string; name: string}[];
+  projects: {slug: string; name: string; healthData?: Health | null}[];
 } & BaseRelease;
 
 export type BaseRelease = {
@@ -861,8 +889,21 @@ export type IntegrationIssueConfig = {
   icon: string[];
 };
 
+export enum OnboardingTaskKey {
+  FIRST_PROJECT = 'create_project',
+  FIRST_EVENT = 'send_first_event',
+  INVITE_MEMBER = 'invite_member',
+  SECOND_PLATFORM = 'setup_second_platform',
+  USER_CONTEXT = 'setup_user_context',
+  RELEASE_TRACKING = 'setup_release_tracking',
+  SOURCEMAPS = 'setup_sourcemaps',
+  USER_REPORTS = 'setup_user_reports',
+  ISSUE_TRACKER = 'setup_issue_tracker',
+  ALERT_RULE = 'setup_alert_rules',
+}
+
 export type OnboardingTaskDescriptor = {
-  task: number;
+  task: OnboardingTaskKey;
   title: string;
   description: string;
   detailedDescription?: string;
@@ -881,11 +922,11 @@ export type OnboardingTaskDescriptor = {
 );
 
 export type OnboardingTaskStatus = {
-  task: number;
+  task: OnboardingTaskKey;
   status: 'skipped' | 'pending' | 'complete';
-  user: string | null;
-  dateCompleted: string;
-  data: object;
+  user?: string | null;
+  dateCompleted?: string;
+  data?: object;
 };
 
 export type OnboardingTask = OnboardingTaskStatus & OnboardingTaskDescriptor;

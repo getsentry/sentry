@@ -1,7 +1,7 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import Results from 'app/views/eventsV2/results';
 
@@ -20,11 +20,9 @@ const FIELDS = [
   },
 ];
 
-const generateFields = () => {
-  return {
-    field: FIELDS.map(i => i.field),
-  };
-};
+const generateFields = () => ({
+  field: FIELDS.map(i => i.field),
+});
 
 describe('EventsV2 > Results', function() {
   const eventTitle = 'Oh no something bad';

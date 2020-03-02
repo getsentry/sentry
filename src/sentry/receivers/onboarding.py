@@ -26,6 +26,7 @@ from sentry.signals import (
     member_joined,
     plugin_enabled,
     project_created,
+    alert_rule_created,
 )
 from sentry.utils.javascript import has_sourcemap
 
@@ -42,7 +43,7 @@ def try_mark_onboarding_complete(organization_id):
             & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
         ).values_list("task", flat=True)
     )
-    if completed >= OnboardingTask.REQUIRED_ONBOARDING_TASKS:
+    if completed >= OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS:
         try:
             with transaction.atomic():
                 OrganizationOption.objects.create(
@@ -283,7 +284,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         task = OnboardingTask.ISSUE_TRACKER
         status = OnboardingTaskStatus.PENDING
     elif isinstance(plugin, NotificationPlugin):
-        task = OnboardingTask.NOTIFICATION_SERVICE
+        task = OnboardingTask.ALERT_RULE
         status = OnboardingTaskStatus.COMPLETE
     else:
         return
@@ -306,6 +307,23 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         project_id=project.id,
         plugin=plugin.slug,
     )
+
+
+@alert_rule_created.connect(weak=False)
+def record_alert_rule_created(user, project, rule, **kwargs):
+    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
+        organization_id=project.organization_id,
+        task=OnboardingTask.ALERT_RULE,
+        values={
+            "status": OnboardingTaskStatus.COMPLETE,
+            "user": user,
+            "project_id": project.id,
+            "date_completed": timezone.now(),
+        },
+    )
+
+    if rows_affected or created:
+        try_mark_onboarding_complete(project.organization_id)
 
 
 @issue_tracker_used.connect(weak=False)
