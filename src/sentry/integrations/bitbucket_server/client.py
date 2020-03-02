@@ -152,7 +152,6 @@ class BitbucketServer(ApiClient):
             params={"merges": "exclude", "limit": limit},
         )
 
-
     def get_changelist(self, project, repo, commit):
         return self.get(
             BitbucketServerAPIPath.commit_changes.format(project=project, repo=repo, commit=commit),

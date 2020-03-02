@@ -12,6 +12,7 @@ from sentry.utils.http import absolute_uri
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.hashlib import md5_text
 
+
 class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
     name = "Bitbucket Server"
 
@@ -163,4 +164,3 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
                 changes.append({"path": change["srcPath"]["toString"], "type": "D"})
                 changes.append({"path": change["path"]["toString"], "type": "A"})
         return changes
-
