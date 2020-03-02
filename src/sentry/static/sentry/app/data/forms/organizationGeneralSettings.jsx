@@ -1,5 +1,7 @@
+import React from 'react';
+
 import {extractMultilineFields} from 'app/utils';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import slugify from 'app/utils/slugify';
 import {
   STORE_CRASH_REPORTS_VALUES,
@@ -183,6 +185,33 @@ const formGroups = [
           false: t(
             'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
           ),
+        },
+      },
+      {
+        name: 'relayPiiConfig',
+        type: 'string',
+        label: t('Advanced datascrubber configuration'),
+        placeholder: t('Paste a JSON configuration here.'),
+        multiline: true,
+        autosize: true,
+        maxRows: 20,
+        help: tct(
+          'Advanced JSON-based configuration for datascrubbing. Applied in addition to the settings above. This list of rules can be extended on a per-project level, but never overridden. [learn_more:Learn more]',
+          {
+            learn_more: <a href="https://getsentry.github.io/relay/pii-config/" />,
+          }
+        ),
+        visible: ({features}) => features.has('datascrubbers-v2'),
+        validate: ({id, form}) => {
+          if (form[id] === '') {
+            return [];
+          }
+          try {
+            JSON.parse(form[id]);
+          } catch (e) {
+            return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
+          }
+          return [];
         },
       },
       {

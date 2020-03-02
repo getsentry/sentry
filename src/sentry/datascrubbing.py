@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import copy
 import sentry_relay
 import six
 
@@ -41,3 +42,58 @@ def scrub_data(project_config, event):
         event = sentry_relay.pii_strip_event(config, event)
 
     return event
+
+
+def merge_pii_configs(prefixes_and_configs):
+    """
+    Merge two PII configs into one, prefixing all custom rules with a prefix in the name.
+
+    This is used to apply organization and project configs at once,
+    and still get unique references to rule names.
+    """
+    merged_config = {}
+
+    for prefix, partial_config in prefixes_and_configs:
+        if not partial_config:
+            continue
+
+        rules = partial_config.get("rules") or {}
+        for rule_name, rule in six.iteritems(rules):
+            prefixed_rule_name = "{}{}".format(prefix, rule_name)
+            merged_config.setdefault("rules", {})[
+                prefixed_rule_name
+            ] = _prefix_rule_references_in_rule(rules, rule, prefix)
+
+        for selector, applications in six.iteritems(partial_config.get("applications") or {}):
+            merged_applications = merged_config.setdefault("applications", {}).setdefault(
+                selector, []
+            )
+
+            for application in applications:
+                if application in rules:
+                    prefixed_rule_name = "{}{}".format(prefix, application)
+                    merged_applications.append(prefixed_rule_name)
+                else:
+                    merged_applications.append(application)
+
+    return merged_config
+
+
+def _prefix_rule_references_in_rule(custom_rules, rule_def, prefix):
+    if not isinstance(rule_def, dict):
+        return rule_def
+
+    if rule_def.get("type") == "multiple" and rule_def.get("rules"):
+        rule_def = copy.deepcopy(rule_def)
+        rule_def["rules"] = list(
+            "{}{}".format(prefix, x) if x in custom_rules else x for x in rule_def["rules"]
+        )
+    elif (
+        rule_def.get("type") == "multiple"
+        and rule_def.get("rule")
+        and rule_def["rule"] in custom_rules
+    ):
+        rule_def = copy.deepcopy(rule_def)
+        rule_def["rule"] = "{}{}".format(prefix, rule_def["rule"])
+
+    return rule_def
