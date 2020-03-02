@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import six
-
 from datetime import datetime, timedelta
 
 from sentry.utils.snuba import raw_query, parse_snuba_datetime
@@ -15,8 +13,22 @@ def _get_conditions(project_releases, environments):
     return conditions
 
 
-def get_changed_release_model_materializations(project_ids):
+def get_changed_project_release_model_materializations(project_ids):
+    """This returns data for project-release model materializations that
+    should be added to the `ProjectRelease` model.  This does not take
+    environments into account.
+    """
+    user_totals = {}
     rv = []
+
+    for x in raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=["project_id", "uniq_users"],
+        groupby=["project_id"],
+        rollup=24 * 60 * 60,
+        filter_keys={"project_id": project_ids},
+    )["data"]:
+        user_totals[x["project_id"]] = x["uniq_users"]
 
     for x in raw_query(
         dataset=Dataset.Sessions,
@@ -27,23 +39,29 @@ def get_changed_release_model_materializations(project_ids):
             "uniq_users",
             "uniq_sessions",
             "uniq_sessions_crashed",
+            "uniq_sessions_crashed",
         ],
-        groupby=["release", "project_id", "environment"],
+        groupby=["release", "project_id"],
         rollup=24 * 60 * 60,
         filter_keys={"project_id": project_ids},
     )["data"]:
+        totals = float(user_totals.get(x["project_id"]))
         rv.append(
             {
                 "date": parse_snuba_datetime(x["started"]),
                 "project_id": x["project_id"],
                 "release": x["release"],
-                "environment": x["environment"],
-                "uniq_users": x["uniq_users"],
                 "uniq_sessions": x["uniq_sessions"],
+                "crash_free_sessions": (
+                    100 - x["uniq_sessions_crashed"] / float(x["uniq_sessions"]) * 100
+                    if x["uniq_sessions"]
+                    else None
+                ),
+                "adoption": x["uniq_users"] / totals * 100 if totals else None,
             }
         )
 
-    return rv
+    return rv, user_totals
 
 
 def get_release_health_data_overview(project_releases, environments=None):

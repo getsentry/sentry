@@ -20,9 +20,6 @@ class ReleaseProjectEnvironment(Model):
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     last_deploy_id = BoundedPositiveIntegerField(null=True, db_index=True)
 
-    # health stats
-    adoption = BoundedPositiveIntegerField(null=True)
-
     class Meta:
         app_label = "sentry"
         db_table = "sentry_releaseprojectenvironment"
