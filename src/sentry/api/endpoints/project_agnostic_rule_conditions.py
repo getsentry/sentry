@@ -20,14 +20,18 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
                 context["formFields"] = rule_cls.form_fields
             return context
 
-        # TODO(Jeff): Rename to `AlertDefaultsExperiment` on real experiment run
-        if experiments.get(org=organization, experiment_name="AlertDefaultsExperimentTmp") != 1:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-        return Response(
-            [
-                info_extractor(rule_cls)
-                for rule_type, rule_cls in rules
-                if rule_type.startswith("condition/")
-            ]
+        experiment_variant = experiments.get(
+            org=organization, experiment_name="AlertDefaultsExperimentTmp"
         )
+        if experiment_variant == "test3Options":
+            return Response(
+                [
+                    info_extractor(rule_cls)
+                    for rule_type, rule_cls in rules
+                    if rule_type.startswith("condition/")
+                ]
+            )
+        elif experiment_variant == "test2Options":
+            return Response(status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
