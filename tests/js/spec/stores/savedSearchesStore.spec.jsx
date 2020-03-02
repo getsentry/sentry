@@ -53,6 +53,18 @@ describe('SavedSearchesStore', function() {
     expect(SavedSearchesStore.get().isLoading).toBe(false);
   });
 
+  it('failed fetches do not corrupt store', async function() {
+    Client.addMockResponse({
+      url: '/organizations/org-1/searches/',
+      body: '',
+    });
+    await fetchSavedSearches(api, 'org-1', {});
+    await tick();
+
+    expect(SavedSearchesStore.get().savedSearches).toHaveLength(0);
+    expect(SavedSearchesStore.get().isLoading).toBe(false);
+  });
+
   it('creates a new pin search', async function() {
     await fetchSavedSearches(api, 'org-1', {});
     await tick();
