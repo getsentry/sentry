@@ -109,6 +109,7 @@ export type Project = {
   isBookmarked: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  firstEvent: 'string' | null;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
