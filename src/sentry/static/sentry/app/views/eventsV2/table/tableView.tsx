@@ -13,7 +13,6 @@ import Tooltip from 'app/components/tooltip';
 
 import {
   downloadAsCsv,
-  getAggregateAlias,
   getFieldRenderer,
   getExpandedResults,
   pushEventViewToLocation,
@@ -21,10 +20,10 @@ import {
   MetaType,
 } from '../utils';
 import EventView, {pickRelevantLocationQueryStrings} from '../eventView';
-import SortLink, {Alignments} from '../sortLink';
+import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
-import {ColumnValueType} from '../eventQueryParams';
+import HeaderCell from './headerCell';
 import DraggableColumns, {
   DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER,
 } from './draggableColumns';
@@ -249,32 +248,23 @@ class TableView extends React.Component<TableViewProps> {
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
-    const field = column.eventViewField;
-
-    // establish alignment based on the type
-    const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer'];
-    let align: Alignments = alignedTypes.includes(column.type) ? 'right' : 'left';
-
-    if (column.type === 'never' || column.type === '*') {
-      // fallback to align the column based on the table metadata
-      const maybeType =
-        tableData && tableData.meta
-          ? tableData.meta[getAggregateAlias(field.field)]
-          : undefined;
-
-      if (maybeType === 'integer' || maybeType === 'number') {
-        align = 'right';
-      }
-    }
 
     return (
-      <SortLink
-        align={align}
-        field={field}
-        location={location}
-        eventView={eventView}
-        tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
-      />
+      <HeaderCell column={column} tableData={tableData}>
+        {({align}) => {
+          const field = column.eventViewField;
+
+          return (
+            <SortLink
+              align={align}
+              field={field}
+              location={location}
+              eventView={eventView}
+              tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
+            />
+          );
+        }}
+      </HeaderCell>
     );
   };
 
