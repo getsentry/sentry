@@ -339,10 +339,7 @@ def build_saml_config(provider_config, org):
         "signatureAlgorithm": avd.get("signature_algorithm", OneLogin_Saml2_Constants.RSA_SHA256),
         "digestAlgorithm": avd.get("digest_algorithm", OneLogin_Saml2_Constants.SHA256),
         "wantNameId": False,
-        "requestedAuthnContext": [
-            "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
-            "urn:federation:authentication:windows",
-        ],
+        "requestedAuthnContext": False,
     }
 
     # TODO(epurkhiser): This is also available in the helper and should probably come from there.
