@@ -6,7 +6,7 @@ from mock import patch
 from sentry.testutils import APITestCase
 
 
-class ProjectAgnosticRuleConfigurationsTest(APITestCase):
+class ProjectAgnosticRuleConditionsTest(APITestCase):
     @patch("sentry.experiments.get", return_value="test3Options")
     def test_simple(self, mocked_experiment):
         self.login_as(user=self.user)
