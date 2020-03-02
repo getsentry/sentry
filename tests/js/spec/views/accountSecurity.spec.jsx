@@ -11,11 +11,17 @@ const AUTH_ENDPOINT = '/auth/';
 
 describe('AccountSecurity', function() {
   beforeEach(function() {
+    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
+
     Client.clearMockResponses();
     Client.addMockResponse({
       url: ORG_ENDPOINT,
       body: TestStubs.Organizations(),
     });
+  });
+
+  afterEach(function() {
+    window.location.assign.mockRestore();
   });
 
   it('renders empty', function() {
@@ -65,7 +71,7 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
   });
 
-  it('can delete enrolled authenticator', function() {
+  it('can delete enrolled authenticator', async function() {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
@@ -91,22 +97,39 @@ describe('AccountSecurity', function() {
     );
     expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
 
+    // next authenticators request should have totp disabled
+    const authenticatorsMock = Client.addMockResponse({
+      url: ENDPOINT,
+      body: [
+        TestStubs.Authenticators().Totp({
+          isEnrolled: false,
+          authId: '15',
+          configureButton: 'Info',
+        }),
+      ],
+    });
+
     // This will open confirm modal
     wrapper.find('Button[icon="icon-trash"]').simulate('click');
+
     // Confirm
     wrapper
       .find('Modal Button')
       .last()
       .simulate('click');
 
+    await tick();
+    wrapper.update();
+
     expect(deleteMock).toHaveBeenCalled();
 
-    setTimeout(() => {
-      wrapper.update();
-      expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(false);
-    }, 1);
-    // still has another 2fa method
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
+    // Should only have been called once
+    expect(authenticatorsMock).toHaveBeenCalledTimes(1);
+
+    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(false);
+
+    // No enrolled authenticators
+    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
   it('can remove one of multiple 2fa methods when org requires 2fa', function() {
@@ -360,7 +383,7 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
-  it('can expire all sessions', function() {
+  it('can expire all sessions', async function() {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
@@ -381,6 +404,8 @@ describe('AccountSecurity', function() {
 
     wrapper.find('Button[data-test-id="signoutAll"]').simulate('click');
 
+    await tick();
+    expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
     expect(mock).toHaveBeenCalled();
   });
 });

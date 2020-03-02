@@ -1,8 +1,10 @@
-import PropTypes from 'prop-types';
+import * as ReactRouter from 'react-router';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Authenticator, OrganizationSummary} from 'app/types';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
@@ -20,18 +22,19 @@ import TwoFactorRequired from 'app/views/settings/account/accountSecurity/compon
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 
+type Props = {
+  authenticators: Authenticator[] | null;
+  orgsRequire2fa: OrganizationSummary[];
+  countEnrolled: number;
+  deleteDisabled: boolean;
+  onDisable: (auth: Authenticator) => void;
+} & AsyncView['props'] &
+  ReactRouter.WithRouterProps;
+
 /**
  * Lists 2fa devices + password change form
  */
-class AccountSecurity extends AsyncView {
-  static PropTypes = {
-    authenticators: PropTypes.arrayOf(PropTypes.object).isRequired,
-    orgsRequire2fa: PropTypes.arrayOf(PropTypes.object).isRequired,
-    countEnrolled: PropTypes.number.isRequired,
-    deleteDisabled: PropTypes.bool.isRequired,
-    onDisable: PropTypes.func.isRequired,
-  };
-
+class AccountSecurity extends AsyncView<Props> {
   getTitle() {
     return t('Security');
   }
@@ -40,14 +43,17 @@ class AccountSecurity extends AsyncView {
     return [];
   }
 
-  handleSessionClose = () => {
-    this.api.request('/auth/', {
-      method: 'DELETE',
-      data: {all: true},
-      success: () => {
-        window.location = '/auth/login/';
-      },
-    });
+  handleSessionClose = async () => {
+    try {
+      await this.api.requestPromise('/auth/', {
+        method: 'DELETE',
+        data: {all: true},
+      });
+      window.location.assign('/auth/login/');
+    } catch (err) {
+      addErrorMessage(t('There was a problem closing all sessions'));
+      throw err;
+    }
   };
 
   formatOrgSlugs = () => {
@@ -61,12 +67,12 @@ class AccountSecurity extends AsyncView {
 
   renderBody() {
     const {authenticators, countEnrolled, deleteDisabled, onDisable} = this.props;
-    const isEmpty = !authenticators.length;
+    const isEmpty = !authenticators?.length;
 
     return (
       <div>
         <SettingsPageHeader
-          title="Security"
+          title={t('Security')}
           tabs={
             <NavTabs underlined>
               <ListLink to={recreateRoute('', this.props)} index>
@@ -110,7 +116,7 @@ class AccountSecurity extends AsyncView {
 
           <PanelBody>
             {!isEmpty &&
-              authenticators.map(auth => {
+              authenticators?.map(auth => {
                 const {
                   id,
                   authId,
