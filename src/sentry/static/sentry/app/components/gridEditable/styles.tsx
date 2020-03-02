@@ -136,7 +136,6 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
   background-color: ${p => p.theme.offWhite};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
 
   &:first-child {
     border-top-left-radius: ${p => p.theme.borderRadius};
@@ -207,7 +206,6 @@ export const GridHeadCellStatic = styled('th')`
   align-items: center;
   padding: ${space(2)};
   background-color: ${p => p.theme.offWhite};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
@@ -263,8 +261,8 @@ export const GridHeadCellButtonHoverDraggable = styled(InlineSvg)`
 export const GridBody = styled('tbody')`
   display: contents;
 
-  > tr:last-child td {
-    border-bottom: none;
+  > tr:first-child td {
+    border-top: 1px solid ${p => p.theme.borderDark};
   }
 `;
 export const GridBodyCell = styled('td')`
@@ -278,7 +276,7 @@ export const GridBodyCell = styled('td')`
   padding: ${space(1)} ${space(2)};
 
   background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.borderLight};
 
   font-size: ${p => p.theme.fontSizeMedium};
 
