@@ -420,11 +420,8 @@ describe('getExpandedResults()', function() {
 
   it('applies project condition to project property', () => {
     const view = new EventView(state);
-    let result = getExpandedResults(view, {project: 1});
-    expect(result.query).toEqual('event.type:error');
-    expect(result.project).toEqual([42, 1]);
 
-    result = getExpandedResults(view, {'project.id': 1});
+    const result = getExpandedResults(view, {'project.id': 1});
     expect(result.query).toEqual('event.type:error');
     expect(result.project).toEqual([42, 1]);
   });
