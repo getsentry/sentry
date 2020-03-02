@@ -2,13 +2,14 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import SentryTypes from 'app/sentryTypes';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel} from 'app/components/panels';
 import Pagination from 'app/components/pagination';
+import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
-import UserFeedbackEmpty from 'app/views/userFeedback/userFeedbackEmpty';
 
 import {fetchGroupUserReports} from './utils';
 
@@ -91,7 +92,9 @@ class GroupUserFeedback extends React.Component {
 
     return (
       <Panel>
-        <UserFeedbackEmpty projectIds={[group.project.id]} />
+        <EmptyStateWarning>
+          <p>{t('No user reports have been collected.')}</p>
+        </EmptyStateWarning>
       </Panel>
     );
   }

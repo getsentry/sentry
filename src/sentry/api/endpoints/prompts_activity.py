@@ -14,7 +14,7 @@ from sentry.utils.compat import zip
 
 PROMPTS = {
     "releases": {"required_fields": ["organization_id", "project_id"]},
-    "suspect_commits": {"required_fields": ["organization_id", "project_id"]},
+    "suspect_commits": {"required_fields": ["organization_id"]},
 }
 
 VALID_STATUSES = frozenset(("snoozed", "dismissed"))

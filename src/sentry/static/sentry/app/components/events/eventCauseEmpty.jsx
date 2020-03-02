@@ -65,11 +65,10 @@ class EventCauseEmpty extends React.Component {
   }
 
   async fetchData() {
-    const {api, project, organization} = this.props;
+    const {api, organization} = this.props;
 
     const data = await api.requestPromise('/promptsactivity/', {
       query: {
-        project_id: project.id,
         organization_id: organization.id,
         feature: 'suspect_commits',
       },
@@ -157,7 +156,6 @@ class EventCauseEmpty extends React.Component {
                   {t('Snooze')}
                 </SnoozeButton>
                 <DismissButton
-                  title={t('Dismiss for this project')}
                   size="small"
                   onClick={() =>
                     this.handleClick({
