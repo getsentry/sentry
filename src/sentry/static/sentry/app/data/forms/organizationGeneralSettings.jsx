@@ -1,3 +1,5 @@
+import React from 'react';
+
 import {extractMultilineFields} from 'app/utils';
 import {t, tct} from 'app/locale';
 import slugify from 'app/utils/slugify';
