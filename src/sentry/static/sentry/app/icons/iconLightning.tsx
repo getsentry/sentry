@@ -3,17 +3,20 @@ import React from 'react';
 import {IconProps} from 'app/types/iconProps';
 import theme from 'app/utils/theme';
 
-export const IconLightning: React.FC<IconProps> = ({
-  color: providedColor = 'currentColor',
-  size: providedSize = 'sm',
-  solid: providedSolid = false,
-  ...props
-}: IconProps) => {
+export const IconLightning = React.forwardRef(function IconLightning(
+  {
+    color: providedColor = 'currentColor',
+    size: providedSize = 'sm',
+    solid: providedSolid = false,
+    ...props
+  }: IconProps,
+  ref: React.Ref<SVGSVGElement>
+) {
   const color = providedColor;
   const size = theme.iconSizes[providedSize] ?? providedSize;
 
   return (
-    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props}>
+    <svg viewBox="0 0 16 16" fill={color} height={size} width={size} {...props} ref={ref}>
       {providedSolid === true ? (
         <g>
           <path d="M3.81,16a1.21,1.21,0,0,1-.74-.26,1.19,1.19,0,0,1-.33-1.45L4.79,10,2.32,8.39a1,1,0,0,1-.07-1.58L10.67.26a1.19,1.19,0,0,1,1.8,1.46L10.41,6,12.9,7.64a1,1,0,0,1,.44.78,1,1,0,0,1-.38.8L4.54,15.74A1.15,1.15,0,0,1,3.81,16Z" />
@@ -26,4 +29,4 @@ export const IconLightning: React.FC<IconProps> = ({
       )}
     </svg>
   );
-};
+});

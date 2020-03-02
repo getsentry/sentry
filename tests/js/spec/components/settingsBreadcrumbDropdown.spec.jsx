@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
 jest.useFakeTimers();

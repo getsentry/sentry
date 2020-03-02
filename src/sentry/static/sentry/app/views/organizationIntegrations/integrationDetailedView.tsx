@@ -6,13 +6,13 @@ import {Integration, IntegrationProvider} from 'app/types';
 import {RequestOptions} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import space from 'app/styles/space';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Button from 'app/components/button';
-import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
+import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegrationInDirectory';
 import withOrganization from 'app/utils/withOrganization';
 import {sortArray} from 'app/utils';
+
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {
@@ -38,6 +38,10 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     ];
 
     return baseEndpoints;
+  }
+
+  get integrationType() {
+    return 'first_party' as const;
   }
 
   get provider() {
@@ -140,17 +144,10 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   };
 
   handleExternalInstall = () => {
-    const {organization} = this.props;
-    const provider = this.provider;
-    trackIntegrationEvent(
-      {
-        eventKey: 'integrations.installation_start',
-        eventName: 'Integrations: Installation Start',
-        integration: provider.key,
-        integration_type: 'first_party',
-      },
-      organization
-    );
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.installation_start',
+      eventName: 'Integrations: Installation Start',
+    });
   };
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
@@ -175,6 +172,10 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         <AddIntegrationButton
           provider={provider}
           onAddIntegration={this.onInstall}
+          analyticsParams={{
+            view: 'integrations_directory_integration_detail',
+            already_installed: this.installationStatus !== 'Not Installed',
+          }}
           {...buttonProps}
         />
       );
@@ -200,29 +201,39 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const {configurations} = this.state;
     const {organization} = this.props;
     const provider = this.provider;
-    return (
-      <div>
-        {configurations.map(integration => (
-          <InstallWrapper key={integration.id}>
-            <InstalledIntegration
-              organization={organization}
-              provider={provider}
-              integration={integration}
-              onRemove={this.onRemove}
-              onDisable={this.onDisable}
-              onReinstallIntegration={this.onInstall}
-              data-test-id={integration.id}
-            />
-          </InstallWrapper>
-        ))}
-      </div>
-    );
+    if (configurations.length) {
+      return (
+        <div>
+          {configurations.map(integration => (
+            <InstallWrapper key={integration.id}>
+              <InstalledIntegration
+                organization={organization}
+                provider={provider}
+                integration={integration}
+                onRemove={this.onRemove}
+                onDisable={this.onDisable}
+                onReinstallIntegration={this.onInstall}
+                data-test-id={integration.id}
+                trackIntegrationEvent={this.trackIntegrationEvent}
+              />
+            </InstallWrapper>
+          ))}
+        </div>
+      );
+    }
+    return this.renderEmptyConfigurations();
   }
 }
 
 const InstallWrapper = styled('div')`
   padding: ${space(2)};
   border: 1px solid ${p => p.theme.borderLight};
+  border-bottom: none;
+  background-color: white;
+
+  &:last-child {
+    border-bottom: 1px solid ${p => p.theme.borderLight};
+  }
 `;
 
 export default withOrganization(IntegrationDetailedView);

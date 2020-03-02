@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+import io
 import os
 import six
-from six.moves import zip
+import zlib
 import base64
 import msgpack
 import inspect
@@ -18,6 +19,7 @@ from sentry.grouping.utils import get_rule_bool
 from sentry.utils.compat import implements_to_string
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
+from sentry.utils.compat import zip
 
 
 # Grammar is defined in EBNF syntax.
@@ -147,7 +149,7 @@ class Match(object):
 
     def _to_config_structure(self):
         if self.key == "family":
-            arg = "".join(filter(None, [FAMILIES.get(x) for x in self.pattern.split(",")]))
+            arg = "".join([_f for _f in [FAMILIES.get(x) for x in self.pattern.split(",")] if _f])
         elif self.key == "app":
             arg = {True: "1", False: "0"}.get(get_rule_bool(self.pattern), "")
         else:
@@ -158,7 +160,7 @@ class Match(object):
     def _from_config_structure(cls, obj):
         key = SHORT_MATCH_KEYS[obj[0]]
         if key == "family":
-            arg = ",".join(filter(None, [REVERSE_FAMILIES.get(x) for x in obj[1:]]))
+            arg = ",".join([_f for _f in [REVERSE_FAMILIES.get(x) for x in obj[1:]] if _f])
         else:
             arg = obj[1:]
         return cls(key, arg)
@@ -388,9 +390,11 @@ class Enhancements(object):
         return [self.version, self.bases, [x._to_config_structure() for x in self.rules]]
 
     def dumps(self):
-        return base64.urlsafe_b64encode(
-            msgpack.dumps(self._to_config_structure()).encode("zlib")
-        ).strip("=")
+        return (
+            base64.urlsafe_b64encode(zlib.compress(msgpack.dumps(self._to_config_structure())))
+            .decode("ascii")
+            .strip(u"=")
+        )
 
     def iter_rules(self):
         for base in self.bases:
@@ -412,12 +416,12 @@ class Enhancements(object):
 
     @classmethod
     def loads(cls, data):
-        if six.PY2 and isinstance(data, six.text_type):
+        if isinstance(data, six.text_type):
             data = data.encode("ascii", "ignore")
         padded = data + b"=" * (4 - (len(data) % 4))
         try:
             return cls._from_config_structure(
-                msgpack.loads(base64.urlsafe_b64decode(padded).decode("zlib"))
+                msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)))
             )
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid grouping enhancement config: %s" % e)
@@ -575,11 +579,11 @@ def _load_configs():
     base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for fn in os.listdir(base):
         if fn.endswith(".txt"):
-            with open(os.path.join(base, fn)) as f:
+            with io.open(os.path.join(base, fn), "rt", encoding="utf-8") as f:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 fn = fn.replace("@", ":")
-                rv[fn[:-4]] = Enhancements.from_config_string(f.read().decode("utf-8"), id=fn[:-4])
+                rv[fn[:-4]] = Enhancements.from_config_string(f.read(), id=fn[:-4])
     return rv
 
 

@@ -14,6 +14,10 @@ type Props = {
   buttonText?: string;
   reinstall?: boolean;
   organization?: Organization; //for analytics
+  analyticsParams?: {
+    view: 'integrations_directory_integration_detail' | 'integrations_directory';
+    already_installed: boolean;
+  };
 } & React.ComponentProps<typeof Button>;
 
 export default class AddIntegrationButton extends React.Component<Props> {
@@ -32,6 +36,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
       onAddIntegration,
       organization,
       reinstall,
+      analyticsParams,
       ...buttonProps
     } = this.props;
 
@@ -47,6 +52,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
           provider={provider}
           onInstall={onAddIntegration}
           organization={organization}
+          analyticsParams={analyticsParams}
         >
           {onClick => (
             <Button

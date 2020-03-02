@@ -13,4 +13,5 @@ HIDDEN_PLUGINS = (
     "campfire",
     "youtrack",
     "clubhouse",
+    "pagerduty",
 )

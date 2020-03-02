@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 
 import SentryTypes from 'app/sentryTypes';
 import LastCommit from 'app/components/lastCommit';
-
 import RepositoryFileSummary from 'app/components/repositoryFileSummary';
 import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
@@ -55,15 +54,13 @@ export default class ReleaseOverview extends AsyncComponent {
             <ReleaseIssues version={version} orgId={orgId} query={query} />
             {hasRepos && (
               <div>
-                {Object.keys(filesByRepository).map((repository, i) => {
-                  return (
-                    <RepositoryFileSummary
-                      key={i}
-                      repository={repository}
-                      fileChangeSummary={filesByRepository[repository]}
-                    />
-                  );
-                })}
+                {Object.keys(filesByRepository).map((repository, i) => (
+                  <RepositoryFileSummary
+                    key={i}
+                    repository={repository}
+                    fileChangeSummary={filesByRepository[repository]}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -78,16 +75,14 @@ export default class ReleaseOverview extends AsyncComponent {
                 <ul className="nav nav-stacked">
                   {release.projects.length === 0
                     ? this.renderEmpty()
-                    : release.projects.map(project => {
-                        return (
-                          <ReleaseProjectStatSparkline
-                            key={project.slug}
-                            orgId={orgId}
-                            project={project}
-                            version={version}
-                          />
-                        );
-                      })}
+                    : release.projects.map(project => (
+                        <ReleaseProjectStatSparkline
+                          key={project.slug}
+                          orgId={orgId}
+                          project={project}
+                          version={version}
+                        />
+                      ))}
                 </ul>
               </div>
             ) : (

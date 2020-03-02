@@ -54,6 +54,7 @@ class MiniGraph extends React.Component<Props> {
       period,
       project: eventView.project,
       environment: eventView.environment,
+      yAxis: eventView.getYAxis(),
     };
   }
 
@@ -67,6 +68,7 @@ class MiniGraph extends React.Component<Props> {
       organization,
       project,
       environment,
+      yAxis,
     } = this.getRefreshProps(this.props);
 
     return (
@@ -81,6 +83,7 @@ class MiniGraph extends React.Component<Props> {
         project={project as number[]}
         environment={environment as string[]}
         includePrevious={false}
+        yAxis={yAxis}
       >
         {({loading, timeseriesData, errored}) => {
           if (errored) {
@@ -98,18 +101,16 @@ class MiniGraph extends React.Component<Props> {
             );
           }
 
-          const data = (timeseriesData || []).map(series => {
-            return {
-              ...series,
-              areaStyle: {
-                opacity: 0.4,
-              },
-              lineStyle: {
-                opacity: 0,
-              },
-              smooth: true,
-            };
-          });
+          const data = (timeseriesData || []).map(series => ({
+            ...series,
+            areaStyle: {
+              opacity: 0.4,
+            },
+            lineStyle: {
+              opacity: 0,
+            },
+            smooth: true,
+          }));
 
           return (
             <AreaChart
@@ -149,9 +150,9 @@ class MiniGraph extends React.Component<Props> {
   }
 }
 
-const StyledGraphContainer = styled(props => {
-  return <LoadingContainer {...props} maskBackgroundColor="transparent" />;
-})`
+const StyledGraphContainer = styled(props => (
+  <LoadingContainer {...props} maskBackgroundColor="transparent" />
+))`
   height: 100px;
 
   display: flex;

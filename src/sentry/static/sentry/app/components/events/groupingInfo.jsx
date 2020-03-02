@@ -2,18 +2,17 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import isObject from 'lodash/isObject';
+
 import AsyncComponent from 'app/components/asyncComponent';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import Tooltip from 'app/components/tooltip';
 import BetaTag from 'app/components/betaTag';
-
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import space from 'app/styles/space';
-
 import withOrganization from 'app/utils/withOrganization';
 
 export const GroupingConfigItem = styled(
@@ -257,12 +256,10 @@ class GroupingConfigSelect extends AsyncComponent {
         selectedItem={configId}
         items={this.state.data
           .filter(item => !item.hidden || item.id === eventConfigId)
-          .map(item => {
-            return {
-              value: item.id,
-              label: renderIdLabel(item.id),
-            };
-          })}
+          .map(item => ({
+            value: item.id,
+            label: renderIdLabel(item.id),
+          }))}
       >
         {({isOpen}) => (
           <Tooltip title="Click here to experiment with other grouping configs">

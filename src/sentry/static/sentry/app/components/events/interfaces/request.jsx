@@ -4,14 +4,13 @@ import styled from '@emotion/styled';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
-import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
+import RichHttpContent from 'app/components/events/interfaces/richHttpContent/richHttpContent';
 import {getFullUrl, getCurlCommand} from 'app/components/events/interfaces/utils';
 import {isUrl} from 'app/utils';
 import {t} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconOpen} from 'app/icons';
 import space from 'app/styles/space';
-
 import Truncate from 'app/components/truncate';
 
 class RequestInterface extends React.Component {
@@ -33,12 +32,11 @@ class RequestInterface extends React.Component {
     };
   }
 
-  isPartial = () => {
+  isPartial = () =>
     // We assume we only have a partial interface is we're missing
     // an HTTP method. This means we don't have enough information
     // to reliably construct a full HTTP request.
-    return !this.props.data.method || !this.props.data.url;
-  };
+    !this.props.data.method || !this.props.data.url;
 
   toggleView = value => {
     this.setState({

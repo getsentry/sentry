@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 
 from django.utils.functional import empty
+from sentry.utils.compat import zip
 
 
 def extract_lazy_object(lo):

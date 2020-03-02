@@ -121,15 +121,13 @@ class QueryList extends React.Component<Props> {
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
-          renderGraph={() => {
-            return (
-              <MiniGraph
-                location={location}
-                eventView={eventView}
-                organization={organization}
-              />
-            );
-          }}
+          renderGraph={() => (
+            <MiniGraph
+              location={location}
+              eventView={eventView}
+              organization={organization}
+            />
+          )}
           onEventClick={() => {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
@@ -178,33 +176,29 @@ class QueryList extends React.Component<Props> {
               query_name: eventView.name,
             });
           }}
-          renderGraph={() => {
-            return (
-              <MiniGraph
-                location={location}
-                eventView={eventView}
-                organization={organization}
-              />
-            );
-          }}
-          renderContextMenu={() => {
-            return (
-              <ContextMenu>
-                <MenuItem
-                  href="#delete-query"
-                  onClick={this.handleDeleteQuery(eventView)}
-                >
-                  {t('Delete Query')}
-                </MenuItem>
-                <MenuItem
-                  href="#duplicate-query"
-                  onClick={this.handleDuplicateQuery(eventView)}
-                >
-                  {t('Duplicate Query')}
-                </MenuItem>
-              </ContextMenu>
-            );
-          }}
+          renderGraph={() => (
+            <MiniGraph
+              location={location}
+              eventView={eventView}
+              organization={organization}
+            />
+          )}
+          renderContextMenu={() => (
+            <ContextMenu>
+              <MenuItem
+                data-test-id="delete-query"
+                onClick={this.handleDeleteQuery(eventView)}
+              >
+                {t('Delete Query')}
+              </MenuItem>
+              <MenuItem
+                data-test-id="duplicate-query"
+                onClick={this.handleDuplicateQuery(eventView)}
+              >
+                {t('Duplicate Query')}
+              </MenuItem>
+            </ContextMenu>
+          )}
         />
       );
     });
@@ -252,51 +246,46 @@ const QueryGrid = styled('div')`
   }
 `;
 
-class ContextMenu extends React.Component {
-  render() {
-    const {children} = this.props;
+const ContextMenu = ({children}) => (
+  <DropdownMenu>
+    {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+      const topLevelCx = classNames('dropdown', {
+        'anchor-right': true,
+        open: isOpen,
+      });
 
-    return (
-      <DropdownMenu>
-        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-          const topLevelCx = classNames('dropdown', {
-            'anchor-right': true,
-            open: isOpen,
-          });
-
-          return (
-            <MoreOptions
-              {...getRootProps({
-                className: topLevelCx,
-              })}
-            >
-              <IconEllipsis
-                data-test-id="context-menu"
-                size="md"
-                {...(getActorProps({
-                  onClick: (event: MouseEvent) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                  },
-                }) as any)}
-              />
-              {isOpen && (
-                <ul
-                  {...(getMenuProps({}) as any)}
-                  className={classNames('dropdown-menu')}
-                >
-                  {children}
-                </ul>
-              )}
-            </MoreOptions>
-          );
-        }}
-      </DropdownMenu>
-    );
-  }
-}
+      return (
+        <MoreOptions
+          {...getRootProps({
+            className: topLevelCx,
+          })}
+        >
+          <DropdownTarget
+            {...getActorProps({
+              onClick: (event: MouseEvent) => {
+                event.stopPropagation();
+                event.preventDefault();
+              },
+            })}
+          >
+            <IconEllipsis data-test-id="context-menu" size="md" />
+          </DropdownTarget>
+          {isOpen && (
+            <ul {...getMenuProps({})} className={classNames('dropdown-menu')}>
+              {children}
+            </ul>
+          )}
+        </MoreOptions>
+      );
+    }}
+  </DropdownMenu>
+);
 
 const MoreOptions = styled('span')`
+  display: flex;
+`;
+
+const DropdownTarget = styled('div')`
   display: flex;
 `;
 

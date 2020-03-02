@@ -48,6 +48,7 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger_action,
     update_alert_rule_trigger,
     update_incident_status,
+    calculate_incident_prewindow,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -70,6 +71,7 @@ from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscript
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils.compat import zip
 
 
 class CreateIncidentTest(TestCase):
@@ -262,7 +264,9 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         assert result.rollup == 15
         expected_start = start if start else incident.date_started
         expected_end = end if end else incident.current_end_date
-        expected_start = expected_start - (expected_end - expected_start) / 5
+        expected_start = expected_start - calculate_incident_prewindow(
+            expected_start, expected_end, incident
+        )
         assert result.start == expected_start
         assert result.end == expected_end
         assert [r["count"] for r in result.data["data"]] == expected_results
@@ -278,14 +282,18 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
 
 class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
     def run_test(self, incidents, expected_results_list, start=None, end=None):
-        query_params_list = bulk_build_incident_query_params(incidents, start=start, end=end)
+        query_params_list = bulk_build_incident_query_params(
+            incidents, start=start, end=end, prewindow=True
+        )
         results = bulk_get_incident_event_stats(incidents, query_params_list, data_points=20)
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
             # Duration of 300s / 20 data points
             assert result.rollup == 15
             expected_start = start if start else incident.date_started
             expected_end = end if end else incident.current_end_date
-            expected_start = expected_start - (expected_end - expected_start) / 5
+            expected_start = expected_start - calculate_incident_prewindow(
+                expected_start, expected_end, incident
+            )
             assert result.start == expected_start
             assert result.end == expected_end
             assert [r["count"] for r in result.data["data"]] == expected_results
@@ -557,7 +565,9 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
             expected_start = incident_stats["event_stats"].start
             expected_end = incident_stats["event_stats"].end
             if not changed:
-                expected_start = expected_start - (expected_end - expected_start) / 5
+                expected_start = expected_start - calculate_incident_prewindow(
+                    expected_start, expected_end, incident
+                )
                 changed = True
             assert event_stats.start == expected_start
             assert event_stats.end == expected_end

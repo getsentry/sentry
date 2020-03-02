@@ -1,9 +1,9 @@
 import React from 'react';
 
 import Access from 'app/components/acl/access';
-
 import {t} from 'app/locale';
 import {Organization, SentryApp, SentryAppInstallation} from 'app/types';
+
 import ActionButtons from './actionButtons';
 import {InstallButton, UninstallButton} from './installButtons';
 

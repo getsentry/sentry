@@ -1,9 +1,13 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
 
-import ColumnEditRow from 'app/views/eventsV2/table/columnEditRow';
+import {openModal} from 'app/actionCreators/modal';
+import Button from 'app/components/button';
+import GlobalModal from 'app/components/globalModal';
+import ColumnEditModal from 'app/views/eventsV2/table/columnEditModal';
 
 storiesOf('Discover|ColumnEditor', module).add(
   'all',
@@ -15,46 +19,35 @@ storiesOf('Discover|ColumnEditor', module).add(
       features: ['transaction-events'],
     };
     const tags = ['browser.name', 'custom-field'];
+    const columns = [
+      {
+        field: 'event.type',
+      },
+      {
+        field: 'browser.name',
+      },
+      {
+        field: 'id',
+        aggregation: 'count',
+      },
+    ];
 
-    const simple = {
-      field: 'event.type',
-    };
-    const simpleTag = {
-      field: 'browser.name',
-    };
-    const aggregateField = {
-      field: 'id',
-      aggregation: 'count',
+    const showModal = () => {
+      openModal(modalProps => (
+        <ColumnEditModal
+          {...modalProps}
+          organization={organization}
+          tagKeys={tags}
+          columns={columns}
+          onApply={action('onApply')}
+        />
+      ));
     };
 
     return (
       <div>
-        <h3>Basic field</h3>
-        <ColumnEditRow
-          organization={organization}
-          column={simple}
-          tagKeys={tags}
-          onChange={action('onchange')}
-          parentIndex={0}
-        />
-
-        <h3>Tag field</h3>
-        <ColumnEditRow
-          organization={organization}
-          column={simpleTag}
-          tagKeys={tags}
-          onChange={action('onchange')}
-          parentIndex={0}
-        />
-
-        <h3>Aggregate field</h3>
-        <ColumnEditRow
-          organization={organization}
-          column={aggregateField}
-          tagKeys={tags}
-          onChange={action('onchange')}
-          parentIndex={0}
-        />
+        <Button onClick={showModal}>Edit columns</Button>
+        <GlobalModal />
       </div>
     );
   })

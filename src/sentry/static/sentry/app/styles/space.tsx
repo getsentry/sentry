@@ -10,7 +10,7 @@ const SPACES = {
   4: '30px',
 } as const;
 
-type ValidSize = keyof typeof SPACES;
+export type ValidSize = keyof typeof SPACES;
 
 const space = (size: ValidSize): typeof SPACES[ValidSize] => SPACES[size];
 

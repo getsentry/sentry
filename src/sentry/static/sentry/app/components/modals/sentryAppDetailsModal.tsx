@@ -9,7 +9,6 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
-
 import AsyncComponent from 'app/components/asyncComponent';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import InlineSvg from 'app/components/inlineSvg';
@@ -88,7 +87,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
   }
 
-  featureTags(features: IntegrationFeature[]) {
+  featureTags(features: Pick<IntegrationFeature, 'featureGate'>[]) {
     return features.map(feature => {
       const feat = feature.featureGate.replace(/integrations/g, '');
       return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;

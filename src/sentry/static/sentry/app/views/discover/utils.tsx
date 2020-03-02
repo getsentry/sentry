@@ -1,8 +1,9 @@
-import {Client} from 'app/api';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import moment from 'moment';
 import qs from 'query-string';
+
+import {Client} from 'app/api';
 
 import {isValidAggregation} from './aggregations/utils';
 import {NON_SNUBA_FIELDS} from './data';

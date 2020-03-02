@@ -1,10 +1,10 @@
 ---
-created: '2019-04-03T22:37:15.346805Z'
+created: '2020-02-26T19:54:28.472520Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       chained-exception (ignored because hash matches system variant)
@@ -12,27 +12,27 @@ app:
           stacktrace*
             frame* (frame considered in-app because no frame is in-app)
               filename*
-                u'foo/baz.py'
+                "foo/baz.py"
               lineno*
                 1
           type*
-            u'ValueError'
+            "ValueError"
           value (stacktrace and type take precedence)
-            u'hello world'
+            "hello world"
         exception*
           stacktrace*
             frame* (frame considered in-app because no frame is in-app)
               filename*
-                u'foo/baz.py'
+                "foo/baz.py"
               lineno*
                 1
           type*
-            u'ValueError'
+            "ValueError"
           value (stacktrace and type take precedence)
-            u'hello world'
+            "hello world"
 --------------------------------------------------------------------------
 system:
-  hash: '9aef9026a457d312531c07644b271314'
+  hash: "9aef9026a457d312531c07644b271314"
   component:
     system*
       chained-exception*
@@ -40,21 +40,21 @@ system:
           stacktrace*
             frame*
               filename*
-                u'foo/baz.py'
+                "foo/baz.py"
               lineno*
                 1
           type*
-            u'ValueError'
+            "ValueError"
           value (stacktrace and type take precedence)
-            u'hello world'
+            "hello world"
         exception*
           stacktrace*
             frame*
               filename*
-                u'foo/baz.py'
+                "foo/baz.py"
               lineno*
                 1
           type*
-            u'ValueError'
+            "ValueError"
           value (stacktrace and type take precedence)
-            u'hello world'
+            "hello world"

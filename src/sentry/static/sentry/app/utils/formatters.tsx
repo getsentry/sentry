@@ -19,7 +19,7 @@ export function userDisplayName(user: User | CommitAuthor): string {
   return displayName;
 }
 
-export const formatVersion = (rawVersion: string, withPackage: boolean | undefined) => {
+export const formatVersion = (rawVersion: string, withPackage = false) => {
   try {
     const parsedVersion = new Release(rawVersion);
 

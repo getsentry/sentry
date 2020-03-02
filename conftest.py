@@ -4,6 +4,7 @@ import os
 import sys
 from hashlib import md5
 
+import six
 import pytest
 
 pytest_plugins = ["sentry.utils.pytest"]
@@ -50,7 +51,10 @@ def install_sentry_plugins():
 def pytest_collection_modifyitems(config, items):
     for item in items:
         total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
-        group_num = int(md5(item.location[0]).hexdigest(), 16) % total_groups
+        # TODO(joshuarli): six 1.12.0 adds ensure_binary: six.ensure_binary(item.location[0])
+        group_num = (
+            int(md5(six.text_type(item.location[0]).encode("utf-8")).hexdigest(), 16) % total_groups
+        )
         marker = "group_%s" % group_num
         config.addinivalue_line("markers", marker)
         item.add_marker(getattr(pytest.mark, marker))

@@ -1,6 +1,6 @@
-import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import EventView from 'app/views/eventsV2/eventView';
 import {
@@ -310,7 +310,7 @@ describe('getExpandedResults()', function() {
     environment: ['staging'],
   };
 
-  it('preserve aggregated fields', () => {
+  it('preserves aggregated fields', () => {
     let view = new EventView(state);
     let result = getExpandedResults(view, {}, {});
 
@@ -323,7 +323,6 @@ describe('getExpandedResults()', function() {
     expect(result.query).toEqual('event.type:error');
 
     // de-duplicate transformed columns
-
     view = new EventView({
       ...state,
       fields: [
@@ -345,7 +344,6 @@ describe('getExpandedResults()', function() {
     ]);
 
     // transform aliased fields, & de-duplicate any transforms
-
     view = new EventView({
       ...state,
       fields: [
@@ -392,7 +390,7 @@ describe('getExpandedResults()', function() {
 
     // appends to existing conditions
     result = getExpandedResults(view, {'event.type': 'csp'}, {});
-    expect(result.query).toEqual('event.type:error event.type:csp');
+    expect(result.query).toEqual('event.type:csp');
   });
 
   it('removes any aggregates in either search conditions or extra conditions', () => {
@@ -438,6 +436,27 @@ describe('getExpandedResults()', function() {
     expect(result.environment).toEqual(['staging', 'dev']);
   });
 
+  it('applies tags that overlap globalselection state', () => {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'project'}, {field: 'environment'}, {field: 'title'}],
+    });
+    const event = {
+      title: 'something bad',
+      timestamp: '2020-02-13T17:05:46+00:00',
+      tags: [
+        {key: 'project', value: '12345'},
+        {key: 'environment', value: 'earth'},
+      ],
+    };
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual(
+      'event.type:error tags[project]:12345 tags[environment]:earth title:"something bad"'
+    );
+    expect(result.project).toEqual([42]);
+    expect(result.environment).toEqual(['staging']);
+  });
+
   it('normalizes the timestamp field', () => {
     const view = new EventView({
       ...state,
@@ -450,6 +469,18 @@ describe('getExpandedResults()', function() {
     };
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('event.type:error timestamp:2020-02-13T17:05:46');
+  });
+
+  it('does not duplicate conditions', () => {
+    const view = new EventView({
+      ...state,
+      query: 'event.type:error title:bogus',
+    });
+    const event = {
+      title: 'bogus',
+    };
+    const result = getExpandedResults(view, {trace: 'abc123'}, event);
+    expect(result.query).toEqual('event.type:error title:bogus trace:abc123');
   });
 });
 

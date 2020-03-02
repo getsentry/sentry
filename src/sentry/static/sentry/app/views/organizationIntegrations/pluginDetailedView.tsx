@@ -9,8 +9,8 @@ import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin'
 import * as modal from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
+
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
-import {legacyIds} from './constants';
 
 type State = {
   plugins: PluginWithProjectList[];
@@ -27,6 +27,10 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     return [
       ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${integrationSlug}`],
     ];
+  }
+
+  get integrationType() {
+    return 'plugin' as const;
   }
 
   get plugin() {
@@ -50,7 +54,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get integrationName() {
-    const isLegacy = legacyIds.includes(this.plugin.id);
+    const isLegacy = this.plugin.isHidden;
     const displayName = `${this.plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
     return displayName;
   }
@@ -76,7 +80,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     });
   };
 
-  handleEnablePlugin = (projectId: string) => {
+  handlePluginEnableStatus = (projectId: string, enable: boolean = true) => {
     //make a copy of our project list
     const projectList = this.plugin.projectList.slice();
     //find the index of the project
@@ -89,7 +93,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     //update item in array
     projectList[index] = {
       ...projectList[index],
-      enabled: true,
+      enabled: enable,
     };
 
     //update state
@@ -101,6 +105,10 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   handleAddToProject = () => {
     const plugin = this.plugin;
     const {organization, router} = this.props;
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.plugin_add_to_project_clicked',
+      eventName: 'Integrations: Plugin Add to Project Clicked',
+    });
     modal.openModal(
       ({closeModal, Header, Body}) => (
         <ContextPickerModal
@@ -124,7 +132,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     if (tab === 'configurations') {
       return 'project configurations';
     }
-    return tab;
+    return 'overview';
   }
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
@@ -144,20 +152,24 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   renderConfigurations() {
     const plugin = this.plugin;
     const {organization} = this.props;
-    return (
-      <div>
-        {plugin.projectList.map((projectItem: PluginProjectItem) => (
-          <InstalledPlugin
-            key={projectItem.projectId}
-            organization={organization}
-            plugin={plugin}
-            projectItem={projectItem}
-            onResetConfiguration={this.handleResetConfiguration}
-            onEnablePlugin={this.handleEnablePlugin}
-          />
-        ))}
-      </div>
-    );
+    if (plugin.projectList.length) {
+      return (
+        <div>
+          {plugin.projectList.map((projectItem: PluginProjectItem) => (
+            <InstalledPlugin
+              key={projectItem.projectId}
+              organization={organization}
+              plugin={plugin}
+              projectItem={projectItem}
+              onResetConfiguration={this.handleResetConfiguration}
+              onPluginEnableStatusChange={this.handlePluginEnableStatus}
+              trackIntegrationEvent={this.trackIntegrationEvent}
+            />
+          ))}
+        </div>
+      );
+    }
+    return this.renderEmptyConfigurations();
   }
 }
 

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import re
 import copy
 
 import sentry_relay
@@ -9,8 +8,6 @@ import six
 from sentry.utils import metrics
 from sentry.utils.canonical import CanonicalKeyDict
 
-_KEY_RE = re.compile(u"^[a-zA-Z0-9_-]+$")
-
 
 def _escape_key(key):
     """
@@ -18,11 +15,8 @@ def _escape_key(key):
 
     If this fails and we cannot represent the key, return None
     """
-    if _KEY_RE.match(key):
-        return key
 
-    # TODO: Quote string here once it's implemented in Relay
-    return None
+    return u"'{}'".format(key.replace("'", "''"))
 
 
 def _path_selectors_from_diff(old_data, data):
@@ -36,11 +30,9 @@ def _path_selectors_from_diff(old_data, data):
     fields that changed.
     """
 
-    if type(old_data) != type(data):
-        yield None
-        yield u"**"
+    dict_types = (CanonicalKeyDict, dict)
 
-    elif isinstance(data, (CanonicalKeyDict, dict)):
+    if isinstance(old_data, dict_types) and isinstance(data, dict_types):
         for key, value in six.iteritems(data):
             old_value = old_data.get(key)
             key = _escape_key(key)
@@ -53,7 +45,7 @@ def _path_selectors_from_diff(old_data, data):
                 else:
                     yield key
 
-    elif isinstance(data, list):
+    elif isinstance(old_data, list) and isinstance(data, list):
         for i, value in enumerate(data):
             old_value = old_data[i] if len(old_data) > i else None
             for selector in _path_selectors_from_diff(old_value, value):
@@ -63,7 +55,12 @@ def _path_selectors_from_diff(old_data, data):
                     yield six.text_type(i)
 
     elif old_data != data:
+        # If the values are not equal we yield out both
+        #
+        # * the specific selector (for changes from null <-> int|string)
+        # * the deep-wildcard one (for changes array|dict <-> null)
         yield None
+        yield u"**"
 
 
 def _narrow_pii_config_for_processing(config, old_event, event):
@@ -112,6 +109,7 @@ def scrub_data(project_config, event, in_processing=False, old_event=None):
         if in_processing:
             assert old_event is not None
             config = _narrow_pii_config_for_processing(config, old_event, event)
+
         event = sentry_relay.pii_strip_event(config, event)
 
     return event

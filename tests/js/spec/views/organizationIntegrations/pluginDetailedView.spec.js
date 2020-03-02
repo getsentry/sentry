@@ -6,12 +6,12 @@ import PluginDetailedView from 'app/views/organizationIntegrations/pluginDetaile
 import * as modal from 'app/actionCreators/modal';
 
 const mockResponse = mocks => {
-  mocks.forEach(([url, body]) => {
-    return Client.addMockResponse({
+  mocks.forEach(([url, body]) =>
+    Client.addMockResponse({
       url,
       body,
-    });
-  });
+    })
+  );
 };
 
 describe('PluginDetailedView', function() {
@@ -30,7 +30,7 @@ describe('PluginDetailedView', function() {
             status: 'unknown',
             description: 'Send alerts to PagerDuty.',
             isTestable: true,
-            isHidden: false,
+            isHidden: true,
             hasConfiguration: true,
             features: [],
             shortName: 'PagerDuty',

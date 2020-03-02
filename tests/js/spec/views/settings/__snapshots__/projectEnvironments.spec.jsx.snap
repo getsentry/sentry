@@ -315,13 +315,11 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             </div>
           </PanelHeader>
           <PanelBody
-            direction="column"
-            disablePadding={true}
-            flex={false}
+            flexible={false}
+            withPadding={false}
           >
             <FlexBox
-              disablePadding={true}
-              flex={false}
+              withPadding={false}
             >
               <div
                 className="css-1ehogmz-FlexBox e1vnwt6f0"
@@ -671,13 +669,11 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             </div>
           </PanelHeader>
           <PanelBody
-            direction="column"
-            disablePadding={true}
-            flex={false}
+            flexible={false}
+            withPadding={false}
           >
             <FlexBox
-              disablePadding={true}
-              flex={false}
+              withPadding={false}
             >
               <div
                 className="css-1ehogmz-FlexBox e1vnwt6f0"
@@ -1027,13 +1023,11 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             </div>
           </PanelHeader>
           <PanelBody
-            direction="column"
-            disablePadding={true}
-            flex={false}
+            flexible={false}
+            withPadding={false}
           >
             <FlexBox
-              disablePadding={true}
-              flex={false}
+              withPadding={false}
             >
               <div
                 className="css-1ehogmz-FlexBox e1vnwt6f0"

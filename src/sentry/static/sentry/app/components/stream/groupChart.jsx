@@ -31,9 +31,7 @@ class GroupChart extends React.Component {
       return null;
     }
     const {height} = this.props;
-    const chartData = stats.map(point => {
-      return {x: point[0], y: point[1]};
-    });
+    const chartData = stats.map(point => ({x: point[0], y: point[1]}));
 
     return (
       <LazyLoad debounce={50} height={height}>

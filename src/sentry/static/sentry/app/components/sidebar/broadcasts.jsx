@@ -160,18 +160,16 @@ class Broadcasts extends React.Component {
                 {t('No recent updates from the Sentry team.')}
               </SidebarPanelEmpty>
             ) : (
-              broadcasts.map(item => {
-                return (
-                  <SidebarPanelItem
-                    key={item.id}
-                    hasSeen={item.hasSeen}
-                    title={item.title}
-                    message={item.message}
-                    link={item.link}
-                    cta={item.cta}
-                  />
-                );
-              })
+              broadcasts.map(item => (
+                <SidebarPanelItem
+                  key={item.id}
+                  hasSeen={item.hasSeen}
+                  title={item.title}
+                  message={item.message}
+                  link={item.link}
+                  cta={item.cta}
+                />
+              ))
             )}
           </SidebarPanel>
         )}

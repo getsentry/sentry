@@ -5,7 +5,6 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
-from six.moves import zip
 
 from django.conf import settings
 from django.db.models import Min, Q
@@ -44,6 +43,7 @@ from sentry.models import (
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
+from sentry.utils.compat import map, zip
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",
@@ -109,7 +109,7 @@ class GroupSerializerBase(Serializer):
             for subscription in GroupSubscription.objects.filter(
                 group__in=list(
                     itertools.chain.from_iterable(
-                        itertools.imap(
+                        map(
                             lambda project__groups: project__groups[1]
                             if not options.get(project__groups[0].id, options.get(None))
                             == UserOptionValue.no_conversations

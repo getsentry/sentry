@@ -1,5 +1,7 @@
 import groupBy from 'lodash/groupBy';
+import debounce from 'lodash/debounce';
 import React from 'react';
+import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {
@@ -15,7 +17,7 @@ import {
   trackIntegrationEvent,
   getSentryAppInstallStatus,
 } from 'app/utils/integrationUtil';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -24,8 +26,9 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import withOrganization from 'app/utils/withOrganization';
 import SearchInput from 'app/components/forms/searchInput';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import space from 'app/styles/space';
+
 import IntegrationRow from './integrationRow';
-import {legacyIds} from './constants';
 
 type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | PluginWithProjectList;
 
@@ -57,6 +60,8 @@ function isPlugin(
 ): integration is PluginWithProjectList {
   return integration.hasOwnProperty('shortName');
 }
+
+const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
 
 export class OrganizationIntegrations extends AsyncComponent<
   Props & AsyncComponent['props'],
@@ -90,9 +95,9 @@ export class OrganizationIntegrations extends AsyncComponent<
 
     // we dont want the app to render twice if its the org that created
     // the published app.
-    const orgOwned = orgOwnedApps.filter(app => {
-      return !published.find(p => p.slug === app.slug);
-    });
+    const orgOwned = orgOwnedApps.filter(
+      app => !published.find(p => p.slug === app.slug)
+    );
 
     /**
      * We should have three sections:
@@ -115,7 +120,7 @@ export class OrganizationIntegrations extends AsyncComponent<
   trackPageViewed() {
     //count the number of installed apps
 
-    const {integrations, publishedApps} = this.state;
+    const {integrations, publishedApps, plugins} = this.state;
     const integrationsInstalled = new Set();
     //add installed integrations
     integrations.forEach((integration: Integration) => {
@@ -125,12 +130,18 @@ export class OrganizationIntegrations extends AsyncComponent<
     publishedApps.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
       integrationsInstalled.add(sentryApp.slug);
     });
+    //add plugins
+    plugins.forEach((plugin: PluginWithProjectList) => {
+      if (plugin.projectList.length) {
+        integrationsInstalled.add(plugin.slug);
+      }
+    });
     trackIntegrationEvent(
       {
         eventKey: 'integrations.index_viewed',
         eventName: 'Integrations: Index Page Viewed',
         integrations_installed: integrationsInstalled.size,
-        view: 'integrations_page',
+        view: 'integrations_directory',
       },
       this.props.organization,
       {startSession: true}
@@ -171,9 +182,8 @@ export class OrganizationIntegrations extends AsyncComponent<
     return this.state.config.providers;
   }
 
-  getAppInstall = (app: SentryApp) => {
-    return this.state.appInstalls.find(i => i.app.slug === app.slug);
-  };
+  getAppInstall = (app: SentryApp) =>
+    this.state.appInstalls.find(i => i.app.slug === app.slug);
 
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
@@ -214,12 +224,26 @@ export class OrganizationIntegrations extends AsyncComponent<
     });
   }
 
+  debouncedTrackIntegrationSearch = debounce((search: string, numResults: number) => {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.directory_item_searched',
+        eventName: 'Integrations: Directory Item Searched',
+        view: 'integrations_directory',
+        search_term: search,
+        num_results: numResults,
+      },
+      this.props.organization
+    );
+  }, TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS);
+
   onSearchChange = async ({target}) => {
     this.setState({searchInput: target.value}, () => {
       if (!target.value) {
         return this.setState({displayedList: this.state.list});
       }
       const result = this.state.fuzzy && this.state.fuzzy.search(target.value);
+      this.debouncedTrackIntegrationSearch(target.value, result.length);
       return this.setState({
         displayedList: this.sortIntegrations(result.map(i => i.item)),
       });
@@ -252,7 +276,7 @@ export class OrganizationIntegrations extends AsyncComponent<
   renderPlugin = (plugin: PluginWithProjectList) => {
     const {organization} = this.props;
 
-    const isLegacy = legacyIds.includes(plugin.id);
+    const isLegacy = plugin.isHidden;
     const displayName = `${plugin.name} ${!!isLegacy ? '(Legacy)' : ''}`;
     //hide legacy integrations if we don't have any projects with them
     if (isLegacy && !plugin.projectList.length) {
@@ -327,11 +351,38 @@ export class OrganizationIntegrations extends AsyncComponent<
 
         <PermissionAlert access={['org:integrations']} />
         <Panel>
-          <PanelBody>{displayedList.map(this.renderIntegration)}</PanelBody>
+          <PanelBody>
+            {displayedList.length ? (
+              displayedList.map(this.renderIntegration)
+            ) : (
+              <EmptyResultsContainer>
+                <EmptyResultsBody>
+                  {tct('No Integrations found for "[searchTerm]".', {
+                    searchTerm: this.state.searchInput,
+                  })}
+                </EmptyResultsBody>
+              </EmptyResultsContainer>
+            )}
+          </PanelBody>
         </Panel>
       </React.Fragment>
     );
   }
 }
+
+const EmptyResultsContainer = styled('div')`
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
+
+const EmptyResultsBody = styled('div')`
+  font-size: 16px;
+  line-height: 28px;
+  color: ${p => p.theme.gray2};
+  padding-bottom: ${space(2)};
+`;
 
 export default withOrganization(OrganizationIntegrations);

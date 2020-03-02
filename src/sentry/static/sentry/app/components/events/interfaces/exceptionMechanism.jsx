@@ -3,6 +3,7 @@ import forOwn from 'lodash/forOwn';
 import isObject from 'lodash/isObject';
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import Hovercard from 'app/components/hovercard';

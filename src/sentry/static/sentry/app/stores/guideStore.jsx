@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
+
 import GuideActions from 'app/actions/guideActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
 import ProjectActions from 'app/actions/projectActions';
@@ -76,9 +77,9 @@ const GuideStore = Reflux.createStore({
   onCloseGuide() {
     const {currentGuide} = this.state;
     this.state.guides[
-      Object.keys(this.state.guides).find(key => {
-        return this.state.guides[key].id === currentGuide.id;
-      })
+      Object.keys(this.state.guides).find(
+        key => this.state.guides[key].id === currentGuide.id
+      )
     ].seen = true;
     // Don't continue to force show if the user dismissed the guide.
     this.state.forceShow = false;
@@ -135,11 +136,11 @@ const GuideStore = Reflux.createStore({
     // sort() so that we pick a guide deterministically every time this function is called.
     let guideKeys = Object.keys(this.state.guides)
       .sort()
-      .filter(key => {
-        return this.state.guides[key].required_targets.every(
+      .filter(key =>
+        this.state.guides[key].required_targets.every(
           t => availableTargets.indexOf(t) >= 0
-        );
-      });
+        )
+      );
 
     if (!this.state.forceShow) {
       const user = ConfigStore.get('user');
@@ -147,19 +148,20 @@ const GuideStore = Reflux.createStore({
       // Don't show guides to users who signed up way before these changes were implemented
       const assistantThreshold = new Date(2019, 6, 1);
       // Spam existing users about the discover tab, but not new signups.
-      const discoverDate = new Date(2020, 2, 6);
+      const discoverDate = new Date(2020, 1, 6);
+      const userDateJoined = new Date(user?.dateJoined);
 
       guideKeys = guideKeys.filter(key => {
         if (this.state.guides[key].seen) {
           return false;
         }
-        if (
-          key === 'discover_sidebar' &&
-          (user.isSuperuser || new Date(user.dateJoined) < discoverDate)
-        ) {
+        if (user?.isSuperuser) {
           return true;
         }
-        return user.isSuperuser || new Date(user.dateJoined) > assistantThreshold;
+        if (key === 'discover_sidebar' && userDateJoined >= discoverDate) {
+          return false;
+        }
+        return userDateJoined > assistantThreshold;
       });
     }
 

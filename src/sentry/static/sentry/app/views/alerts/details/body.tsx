@@ -188,6 +188,7 @@ export default class DetailsBody extends React.Component<Props> {
               </SeenByTab>
             </StyledNavTabs>
             <Activity
+              incident={incident}
               params={params}
               incidentStatus={!!incident ? incident.status : null}
             />
@@ -201,7 +202,7 @@ export default class DetailsBody extends React.Component<Props> {
 
                     <SideHeaderLink
                       to={{
-                        pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts-v2/metric-rules/${incident?.alertRule.id}/`,
+                        pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule.id}/`,
                       }}
                     >
                       <IconEdit />

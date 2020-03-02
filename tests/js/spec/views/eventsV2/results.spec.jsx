@@ -1,7 +1,7 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import Results from 'app/views/eventsV2/results';
 
@@ -20,11 +20,9 @@ const FIELDS = [
   },
 ];
 
-const generateFields = () => {
-  return {
-    field: FIELDS.map(i => i.field),
-  };
-};
+const generateFields = () => ({
+  field: FIELDS.map(i => i.field),
+});
 
 describe('EventsV2 > Results', function() {
   const eventTitle = 'Oh no something bad';
@@ -103,6 +101,19 @@ describe('EventsV2 > Results', function() {
         ],
         tags: [{key: 'browser', value: 'Firefox'}],
       },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-facets/',
+      body: [
+        {
+          key: 'release',
+          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+        },
+        {
+          key: 'environment',
+          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+        },
+      ],
     });
   });
 
@@ -223,7 +234,7 @@ describe('EventsV2 > Results', function() {
 
     // Click one of the options.
     selector
-      .find('DropdownMenu MenuItem a')
+      .find('DropdownMenu MenuItem span')
       .first()
       .simulate('click');
     wrapper.update();

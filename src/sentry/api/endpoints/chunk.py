@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import six
-from six.moves import zip
+
 from io import BytesIO
 from gzip import GzipFile
 from rest_framework import status
@@ -15,6 +15,7 @@ from sentry import options
 from sentry.models import FileBlob
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.utils.files import get_max_file_size
+from sentry.utils.compat import zip
 
 
 # The blob size must be a power of two

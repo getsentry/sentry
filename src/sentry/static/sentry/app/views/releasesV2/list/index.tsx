@@ -2,8 +2,6 @@ import React from 'react';
 import {Location} from 'history';
 import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
-import uniq from 'lodash/uniq';
-import flatten from 'lodash/flatten';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -11,7 +9,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import AsyncView from 'app/views/asyncView';
 import BetaTag from 'app/components/betaTag';
-import {Organization, Release} from 'app/types';
+import {Organization, Release, ProjectRelease} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
@@ -79,7 +77,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
     router.push({
       ...location,
-      query: {...location.query, query},
+      query: {...location.query, cursor: undefined, query},
     });
   };
 
@@ -88,12 +86,41 @@ class ReleasesList extends AsyncView<Props, State> {
 
     router.push({
       ...location,
-      query: {...location.query, sort},
+      query: {...location.query, cursor: undefined, sort},
     });
   };
 
   renderLoading() {
     return this.renderBody();
+  }
+
+  transformToProjectRelease(releases: Release[]): ProjectRelease[] {
+    return releases.flatMap(release =>
+      release.projects.map(project => {
+        const {
+          version,
+          dateCreated,
+          dateReleased,
+          commitCount,
+          authors,
+          lastEvent,
+          newGroups,
+        } = release;
+        const {slug, healthData} = project;
+        return {
+          version,
+          dateCreated,
+          dateReleased,
+          commitCount,
+          authors,
+          lastEvent,
+          newGroups,
+          healthData: healthData!,
+          projectSlug: slug,
+          // TODO(releasesv2): make api send also project platform
+        };
+      })
+    );
   }
 
   renderInnerBody() {
@@ -108,20 +135,16 @@ class ReleasesList extends AsyncView<Props, State> {
       return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
     }
 
-    const projectSlugs: string[] = uniq(
-      flatten(releases.map((r: Release) => r.projects.map(p => p.slug)))
-    );
+    const projectReleases = this.transformToProjectRelease(releases);
 
     return (
-      <Projects orgId={organization.slug} slugs={projectSlugs}>
+      <Projects orgId={organization.slug} slugs={projectReleases.map(r => r.projectSlug)}>
         {({projects}) =>
-          releases.map((release: Release) => (
+          projectReleases.map((release: ProjectRelease) => (
             <ReleaseCard
-              key={release.version}
+              key={`${release.version}-${release.dateCreated}`}
               release={release}
-              projects={projects.filter(project =>
-                release.projects.map(p => p.slug).includes(project.slug)
-              )}
+              project={projects.find(p => p.slug === release.projectSlug)}
             />
           ))
         }
@@ -143,13 +166,12 @@ class ReleasesList extends AsyncView<Props, State> {
                 {t('Releases v2')} <BetaTag />
               </PageHeading>
               <SortAndFilterWrapper>
-                {/* TODO(releasesv2): sorting hidden for now
                 <ReleaseListSortOptions
                   selected={this.getSort()}
                   onSelect={this.handleSort}
-                /> */}
+                />
                 <SearchBar
-                  placeholder={t('Search for a release')}
+                  placeholder={t('Search')}
                   onSearch={this.handleSearch}
                   defaultQuery={this.getQuery()}
                 />
@@ -176,12 +198,10 @@ const StyledPageHeader = styled(PageHeader)`
   }
 `;
 const SortAndFilterWrapper = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-column-gap: ${space(2)};
   margin-bottom: ${space(2)};
-
-  & > *:not(:last-child) {
-    margin-right: ${space(1)};
-  }
 `;
 
 export default withOrganization(ReleasesList);

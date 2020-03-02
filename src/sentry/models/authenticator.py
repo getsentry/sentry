@@ -5,6 +5,7 @@ import hmac
 import time
 import base64
 import hashlib
+from binascii import hexlify
 import six
 
 from u2flib_server import u2f
@@ -291,11 +292,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         return rv
 
     def generate_new_config(self):
-        if six.PY3:
-            salt = int(os.urandom(16).decode("utf-8"), 16)
-        else:
-            salt = os.urandom(16).encode("hex")
-
+        salt = hexlify(os.urandom(16))
         return {"salt": salt, "used": 0}
 
     def regenerate_codes(self, save=True):

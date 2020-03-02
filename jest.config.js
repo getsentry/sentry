@@ -10,7 +10,7 @@ module.exports = {
   snapshotSerializers: ['enzyme-to-json/serializer'],
   moduleNameMapper: {
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
-    '\\.(css|less|png|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
+    '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
     'integration-docs-platforms':
       '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
@@ -23,7 +23,7 @@ module.exports = {
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.js'],
-  testMatch: ['<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)'],
+  testMatch: ['<rootDir>/tests/js/**/*(*.)@(spec|test).js?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',

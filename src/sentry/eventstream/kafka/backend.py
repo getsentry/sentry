@@ -60,7 +60,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 key=key.encode("utf-8"),
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
                 on_delivery=self.delivery_callback,
-                headers=[(k, v.encode('utf-8')) for k, v in headers.items()],
+                headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
             )
         except Exception as error:
             logger.error("Could not publish message: %s", error, exc_info=True)
@@ -99,7 +99,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         def commit(partitions):
             results = consumer.commit(offsets=partitions, asynchronous=False)
 
-            errors = filter(lambda i: i.error is not None, results)
+            errors = [i for i in results if i.error is not None]
             if errors:
                 raise Exception(
                     "Failed to commit %s/%s partitions: %r" % (len(errors), len(partitions), errors)

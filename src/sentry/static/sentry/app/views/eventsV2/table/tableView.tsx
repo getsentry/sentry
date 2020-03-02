@@ -5,9 +5,9 @@ import {Location} from 'history';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
+import {IconEvent, IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import {assert} from 'app/types/utils';
-import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 
@@ -220,8 +220,14 @@ class TableView extends React.Component<TableViewProps> {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] => {
+    const {eventView} = this.props;
+    const hasAggregates = eventView.getAggregateFields().length > 0;
     if (isHeader) {
-      return [<StyledIconStack key="header-icon" src="icon-stack" size="14px" />];
+      return [
+        <HeaderIcon key="header-icon">
+          {hasAggregates ? <IconStack size="sm" /> : <IconEvent size="sm" />}
+        </HeaderIcon>,
+      ];
     }
     const {organization, location} = this.props;
     const eventSlug = generateEventSlug(dataRow);
@@ -236,9 +242,9 @@ class TableView extends React.Component<TableViewProps> {
 
     return [
       <Tooltip key={`eventlink${rowIndex}`} title={t('View Details')}>
-        <Link to={target} data-test-id="view-events">
-          <InlineSvg src="icon-stack" size="14px" />
-        </Link>
+        <IconLink to={target} data-test-id="view-events">
+          {hasAggregates ? <IconStack size="sm" /> : <IconEvent size="sm" />}
+        </IconLink>
       </Tooltip>,
     ];
   };
@@ -417,42 +423,40 @@ class TableView extends React.Component<TableViewProps> {
           startColumnDrag,
           draggingColumnIndex,
           destinationColumnIndex,
-        }) => {
-          return (
-            <GridEditable
-              editFeatures={['organizations:discover-query']}
-              noEditMessage={t('Requires discover query feature.')}
-              onToggleEdit={this.onToggleEdit}
-              isColumnDragging={isColumnDragging}
-              gridHeadCellButtonProps={{className: DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER}}
-              isLoading={isLoading}
-              error={error}
-              data={tableData ? tableData.data : []}
-              columnOrder={this.generateColumnOrder({
-                initialColumnIndex: draggingColumnIndex,
-                destinationColumnIndex,
-              })}
-              columnSortBy={columnSortBy}
-              grid={{
-                renderHeadCell: this._renderGridHeaderCell as any,
-                renderBodyCell: this._renderGridBodyCell as any,
-                onResizeColumn: this._updateColumn as any,
-                renderPrependColumns: this._renderPrependColumns as any,
-                prependColumnWidths: ['40px'],
-              }}
-              modalEditColumn={{
-                renderBodyWithForm: renderModalBodyWithForm as any,
-                renderFooter: renderModalFooter,
-              }}
-              actions={{
-                deleteColumn: this._deleteColumn,
-                moveColumnCommit: this._moveColumnCommit,
-                onDragStart: startColumnDrag,
-                downloadAsCsv: () => downloadAsCsv(tableData, columnOrder, title),
-              }}
-            />
-          );
-        }}
+        }) => (
+          <GridEditable
+            editFeatures={['organizations:discover-query']}
+            noEditMessage={t('Requires discover query feature.')}
+            onToggleEdit={this.onToggleEdit}
+            isColumnDragging={isColumnDragging}
+            gridHeadCellButtonProps={{className: DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER}}
+            isLoading={isLoading}
+            error={error}
+            data={tableData ? tableData.data : []}
+            columnOrder={this.generateColumnOrder({
+              initialColumnIndex: draggingColumnIndex,
+              destinationColumnIndex,
+            })}
+            columnSortBy={columnSortBy}
+            grid={{
+              renderHeadCell: this._renderGridHeaderCell as any,
+              renderBodyCell: this._renderGridBodyCell as any,
+              onResizeColumn: this._updateColumn as any,
+              renderPrependColumns: this._renderPrependColumns as any,
+              prependColumnWidths: ['40px'],
+            }}
+            modalEditColumn={{
+              renderBodyWithForm: renderModalBodyWithForm as any,
+              renderFooter: renderModalFooter,
+            }}
+            actions={{
+              deleteColumn: this._deleteColumn,
+              moveColumnCommit: this._moveColumnCommit,
+              onDragStart: startColumnDrag,
+              downloadAsCsv: () => downloadAsCsv(tableData, columnOrder, title),
+            }}
+          />
+        )}
       </DraggableColumns>
     );
   }
@@ -486,9 +490,18 @@ const ExpandAggregateRow = (props: {
   return <React.Fragment>{children({willExpand: false})}</React.Fragment>;
 };
 
-const StyledIconStack = styled(InlineSvg)`
-  vertical-align: top;
-  color: ${p => p.theme.gray3};
+const HeaderIcon = styled('span')`
+  & > svg {
+    vertical-align: top;
+    color: ${p => p.theme.gray3};
+  }
+`;
+
+// Fudge the icon down so it is center aligned with the table contents.
+const IconLink = styled(Link)`
+  position: relative;
+  display: inline-block;
+  top: 3px;
 `;
 
 export default TableView;

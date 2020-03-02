@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import StackedBarChart from 'app/components/stackedBarChart';
 
 class BarChart extends React.Component {
@@ -29,9 +30,7 @@ class BarChart extends React.Component {
   };
 
   render() {
-    const points = this.props.points.map(point => {
-      return {x: point.x, y: [point.y]};
-    });
+    const points = this.props.points.map(point => ({x: point.x, y: [point.y]}));
     const props = Object.assign({}, this.props, {points});
     return <StackedBarChart {...props} />;
   }

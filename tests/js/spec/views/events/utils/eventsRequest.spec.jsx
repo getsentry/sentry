@@ -1,6 +1,6 @@
-import {mount} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {mount} from 'sentry-test/enzyme';
 import {doEventsRequest} from 'app/actionCreators/events';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 
@@ -8,11 +8,9 @@ const COUNT_OBJ = {
   count: 123,
 };
 
-jest.mock('app/actionCreators/events', () => {
-  return {
-    doEventsRequest: jest.fn(),
-  };
-});
+jest.mock('app/actionCreators/events', () => ({
+  doEventsRequest: jest.fn(),
+}));
 
 describe('EventsRequest', function() {
   const project = TestStubs.Project();
@@ -274,6 +272,180 @@ describe('EventsRequest', function() {
           timeAggregatedData: {
             seriesName: 'aggregated series',
             data: [{name: expect.anything(), value: 223}],
+          },
+        })
+      );
+    });
+  });
+
+  describe('yAxis', function() {
+    beforeEach(function() {
+      doEventsRequest.mockClear();
+    });
+
+    it('supports yAxis', async function() {
+      doEventsRequest.mockImplementation(() =>
+        Promise.resolve({
+          data: [
+            [
+              new Date(),
+              [
+                {...COUNT_OBJ, count: 321},
+                {...COUNT_OBJ, count: 79},
+              ],
+            ],
+            [new Date(), [COUNT_OBJ]],
+          ],
+        })
+      );
+
+      wrapper = mount(
+        <EventsRequest {...DEFAULTS} includePrevious yAxis="apdex()">
+          {mock}
+        </EventsRequest>
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          loading: false,
+          allTimeseriesData: [
+            [
+              expect.anything(),
+              [
+                expect.objectContaining({count: 321}),
+                expect.objectContaining({count: 79}),
+              ],
+            ],
+            [expect.anything(), [expect.objectContaining({count: 123})]],
+          ],
+          timeseriesData: [
+            {
+              seriesName: expect.anything(),
+              data: [
+                expect.objectContaining({
+                  name: expect.anything(),
+                  value: 123,
+                }),
+              ],
+            },
+          ],
+          previousTimeseriesData: {
+            seriesName: 'Previous',
+            data: [
+              expect.objectContaining({
+                name: expect.anything(),
+                value: 400,
+              }),
+            ],
+          },
+
+          originalTimeseriesData: [
+            [expect.anything(), [expect.objectContaining({count: 123})]],
+          ],
+
+          originalPreviousTimeseriesData: [
+            [
+              expect.anything(),
+              [
+                expect.objectContaining({count: 321}),
+                expect.objectContaining({count: 79}),
+              ],
+            ],
+          ],
+        })
+      );
+    });
+
+    it('supports multiple yAxis', async function() {
+      doEventsRequest.mockImplementation(() =>
+        Promise.resolve({
+          'rpm()': {
+            data: [
+              [
+                new Date(),
+                [
+                  {...COUNT_OBJ, count: 321},
+                  {...COUNT_OBJ, count: 79},
+                ],
+              ],
+              [new Date(), [COUNT_OBJ]],
+            ],
+          },
+          'apdex()': {
+            data: [
+              [
+                new Date(),
+                [
+                  {...COUNT_OBJ, count: 321},
+                  {...COUNT_OBJ, count: 79},
+                ],
+              ],
+              [new Date(), [COUNT_OBJ]],
+            ],
+          },
+        })
+      );
+
+      wrapper = mount(
+        <EventsRequest {...DEFAULTS} includePrevious yAxis={['apdex()', 'rpm()']}>
+          {mock}
+        </EventsRequest>
+      );
+
+      await tick();
+      wrapper.update();
+
+      const expectedDataResponse = {
+        allTimeseriesData: [
+          [
+            expect.anything(),
+            [expect.objectContaining({count: 321}), expect.objectContaining({count: 79})],
+          ],
+          [expect.anything(), [expect.objectContaining({count: 123})]],
+        ],
+        timeseriesData: [
+          {
+            seriesName: expect.anything(),
+            data: [
+              expect.objectContaining({
+                name: expect.anything(),
+                value: 123,
+              }),
+            ],
+          },
+        ],
+        previousTimeseriesData: {
+          seriesName: 'Previous',
+          data: [
+            expect.objectContaining({
+              name: expect.anything(),
+              value: 400,
+            }),
+          ],
+        },
+
+        originalTimeseriesData: [
+          [expect.anything(), [expect.objectContaining({count: 123})]],
+        ],
+
+        originalPreviousTimeseriesData: [
+          [
+            expect.anything(),
+            [expect.objectContaining({count: 321}), expect.objectContaining({count: 79})],
+          ],
+        ],
+      };
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          loading: false,
+
+          results: {
+            'apdex()': expect.objectContaining(expectedDataResponse),
+            'rpm()': expect.objectContaining(expectedDataResponse),
           },
         })
       );

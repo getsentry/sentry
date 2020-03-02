@@ -8,6 +8,7 @@ import logging
 import os.path
 import six
 from datetime import timedelta
+from enum import IntEnum, unique
 
 from collections import OrderedDict, namedtuple
 from django.conf import settings
@@ -484,3 +485,26 @@ DEFAULT_STORE_NORMALIZER_ARGS = dict(
 INTERNAL_INTEGRATION_TOKEN_COUNT_MAX = 20
 
 ALL_ACCESS_PROJECTS = {-1}
+
+
+@unique
+class DataCategory(IntEnum):
+    DEFAULT = 0
+    ERROR = 1
+    TRANSACTION = 2
+    SECURITY = 3
+    ATTACHMENT = 4
+    SESSION = 5
+
+    @classmethod
+    def from_event_type(cls, event_type):
+        if event_type == "error":
+            return DataCategory.ERROR
+        elif event_type == "transaction":
+            return DataCategory.TRANSACTION
+        elif event_type in ("csp", "hpkp", "expectct", "expectstaple"):
+            return DataCategory.SECURITY
+        return DataCategory.DEFAULT
+
+    def api_name(self):
+        return self.name.lower()

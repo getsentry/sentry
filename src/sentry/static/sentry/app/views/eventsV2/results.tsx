@@ -14,11 +14,8 @@ import {loadOrganizationTags} from 'app/actionCreators/tags';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-
 import space from 'app/styles/space';
-
 import SearchBar from 'app/views/events/searchBar';
-
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -202,7 +199,7 @@ class Results extends React.Component<Props, State> {
   };
 
   render() {
-    const {organization, location, router} = this.props;
+    const {organization, location, router, api} = this.props;
     const {eventView, error, totalValues} = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
@@ -228,6 +225,7 @@ class Results extends React.Component<Props, State> {
                     onSearch={this.handleSearch}
                   />
                   <ResultsChart
+                    api={api}
                     router={router}
                     organization={organization}
                     eventView={eventView}

@@ -48,7 +48,7 @@ class SnubaEventStorage(EventStorage):
 
     def get_events(
         self,
-        filter,
+        filter,  # NOQA
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
@@ -58,7 +58,7 @@ class SnubaEventStorage(EventStorage):
         Get events from Snuba, with node data loaded.
         """
         return self.__get_events(
-            filter,
+            filter,  # NOQA
             orderby=orderby,
             limit=limit,
             offset=offset,
@@ -68,7 +68,7 @@ class SnubaEventStorage(EventStorage):
 
     def get_unfetched_events(
         self,
-        filter,
+        filter,  # NOQA
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
@@ -78,7 +78,7 @@ class SnubaEventStorage(EventStorage):
         Get events from Snuba, without node data loaded.
         """
         return self.__get_events(
-            filter,
+            filter,  # NOQA
             orderby=orderby,
             limit=limit,
             offset=offset,
@@ -88,14 +88,14 @@ class SnubaEventStorage(EventStorage):
 
     def __get_events(
         self,
-        filter,
+        filter,  # NOQA
         orderby=None,
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer=None,
         should_bind_nodes=False,
     ):
-        assert filter, "You must provide a filter"
+        assert filter, "You must provide a filter"  # NOQA
         cols = self.__get_columns()
         orderby = orderby or DESC_ORDERING
 
@@ -210,60 +210,60 @@ class SnubaEventStorage(EventStorage):
 
         return event
 
-    def get_earliest_event_id(self, event, filter):
-        filter = deepcopy(filter)
+    def get_earliest_event_id(self, event, filter):  # NOQA
+        filter = deepcopy(filter)  # NOQA
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_before_event_condition(event))
         filter.end = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
+        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)  # NOQA
 
-    def get_latest_event_id(self, event, filter):
-        filter = deepcopy(filter)
+    def get_latest_event_id(self, event, filter):  # NOQA
+        filter = deepcopy(filter)  # NOQA
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
+        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)  # NOQA
 
-    def get_next_event_id(self, event, filter):
+    def get_next_event_id(self, event, filter):  # NOQA
         """
         Returns (project_id, event_id) of a next event given a current event
         and any filters/conditions. Returns None if no next event is found.
         """
-        assert filter, "You must provide a filter"
+        assert filter, "You must provide a filter"  # NOQA
 
         if not event:
             return None
 
-        filter = deepcopy(filter)
+        filter = deepcopy(filter)  # NOQA
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
+        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)  # NOQA
 
-    def get_prev_event_id(self, event, filter):
+    def get_prev_event_id(self, event, filter):  # NOQA
         """
         Returns (project_id, event_id) of a previous event given a current event
         and a filter. Returns None if no previous event is found.
         """
-        assert filter, "You must provide a filter"
+        assert filter, "You must provide a filter"  # NOQA
 
         if not event:
             return None
 
-        filter = deepcopy(filter)
+        filter = deepcopy(filter)  # NOQA
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_before_event_condition(event))
         filter.end = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
+        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)  # NOQA
 
     def __get_columns(self):
         return [col.value.event_name for col in EventStorage.minimal_columns]
 
-    def __get_event_id_from_filter(self, filter=None, orderby=None):
+    def __get_event_id_from_filter(self, filter=None, orderby=None):  # NOQA
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
 
         try:

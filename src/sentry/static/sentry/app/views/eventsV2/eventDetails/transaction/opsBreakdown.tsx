@@ -13,6 +13,7 @@ import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import {TraceContextType} from 'app/components/events/interfaces/spans/traceView';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+
 import {SectionHeading} from '../../styles';
 
 type OpStats = {percentage: number; totalDuration: number};
@@ -116,13 +117,11 @@ class OpsBreakdown extends React.Component<Props> {
       {}
     );
 
-    const ops = Object.keys(aggregateByOp).map(opName => {
-      return {
-        name: opName,
-        percentage: aggregateByOp[opName].totalDuration / cumulativeDuration,
-        totalDuration: aggregateByOp[opName].totalDuration,
-      };
-    });
+    const ops = Object.keys(aggregateByOp).map(opName => ({
+      name: opName,
+      percentage: aggregateByOp[opName].totalDuration / cumulativeDuration,
+      totalDuration: aggregateByOp[opName].totalDuration,
+    }));
 
     ops.sort((firstOp, secondOp) => {
       // sort in descending order based on total duration

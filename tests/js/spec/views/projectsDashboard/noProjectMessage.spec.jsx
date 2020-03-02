@@ -1,6 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import NoProjectMessage from 'app/components/noProjectMessage';
 
 describe('NoProjectMessage', function() {

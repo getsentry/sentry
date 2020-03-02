@@ -1,14 +1,15 @@
 import 'echarts/lib/component/tooltip';
 
 import get from 'lodash/get';
+
 import {getFormattedDate} from 'app/utils/dates';
+
 import {truncationFormatter} from '../utils';
 
 function defaultFormatAxisLabel(value, isTimestamp, utc, showTimeInTooltip) {
   if (!isTimestamp) {
     return value;
   }
-
   const format = `MMM D, YYYY${showTimeInTooltip ? ' LT' : ''}`;
 
   return getFormattedDate(value, format, {local: !utc});

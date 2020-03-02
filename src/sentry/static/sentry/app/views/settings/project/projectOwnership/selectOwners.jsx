@@ -82,52 +82,46 @@ export default class SelectOwners extends React.Component {
     }
   }
 
-  renderUserBadge = user => {
-    return <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />;
-  };
+  renderUserBadge = user => (
+    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
+  );
 
-  createMentionableUser = user => {
-    return {
-      value: buildUserId(user.id),
-      label: this.renderUserBadge(user),
-      searchKey: getSearchKeyForUser(user),
-      actor: {
-        type: 'user',
-        id: user.id,
-        name: user.name,
-      },
-    };
-  };
+  createMentionableUser = user => ({
+    value: buildUserId(user.id),
+    label: this.renderUserBadge(user),
+    searchKey: getSearchKeyForUser(user),
+    actor: {
+      type: 'user',
+      id: user.id,
+      name: user.name,
+    },
+  });
 
-  createUnmentionableUser = ({user}) => {
-    return {
-      ...this.createMentionableUser(user),
-      disabled: true,
-      label: (
-        <DisabledLabel>
-          <Tooltip
-            position="left"
-            title={t('%s is not a member of project', user.name || user.email)}
-          >
-            {this.renderUserBadge(user)}
-          </Tooltip>
-        </DisabledLabel>
-      ),
-    };
-  };
+  createUnmentionableUser = ({user}) => ({
+    ...this.createMentionableUser(user),
+    disabled: true,
+    label: (
+      <DisabledLabel>
+        <Tooltip
+          position="left"
+          title={t('%s is not a member of project', user.name || user.email)}
+        >
+          {this.renderUserBadge(user)}
+        </Tooltip>
+      </DisabledLabel>
+    ),
+  });
 
-  createMentionableTeam = team => {
-    return {
-      value: buildTeamId(team.id),
-      label: <IdBadge team={team} />,
-      searchKey: `#${team.slug}`,
-      actor: {
-        type: 'team',
-        id: team.id,
-        name: team.slug,
-      },
-    };
-  };
+  createMentionableTeam = team => ({
+    value: buildTeamId(team.id),
+    label: <IdBadge team={team} />,
+    searchKey: `#${team.slug}`,
+    actor: {
+      type: 'team',
+      id: team.id,
+      name: team.slug,
+    },
+  });
 
   createUnmentionableTeam = team => {
     const {organization} = this.props;
@@ -282,34 +276,27 @@ export default class SelectOwners extends React.Component {
         }
       });
     })
-      .then(members => {
+      .then(members =>
         // Be careful here as we actually want the `users` object, otherwise it means user
         // has not registered for sentry yet, but has been invited
-        return members
+        members
           ? members
               .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
               .map(this.createUnmentionableUser)
-          : [];
-      })
-      .then(members => {
-        return {
-          options: [
-            ...usersInProject,
-            ...teamsInProject,
-            ...teamsNotInProject,
-            ...members,
-          ],
-        };
-      });
+          : []
+      )
+      .then(members => ({
+        options: [...usersInProject, ...teamsInProject, ...teamsNotInProject, ...members],
+      }));
   };
 
   render() {
     return (
       <MultiSelectControl
         deprecatedSelectControl
-        filterOptions={(options, filterText) => {
-          return options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1);
-        }}
+        filterOptions={(options, filterText) =>
+          options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1)
+        }
         ref={ref => (this.selectRef = ref)}
         loadOptions={this.handleLoadOptions}
         defaultOptions

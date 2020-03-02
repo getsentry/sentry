@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {t} from 'app/locale';
-
 import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 

@@ -1,8 +1,7 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
-
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
-
 import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
 import localStorage from 'app/utils/localStorage';
 
@@ -18,12 +17,8 @@ describe('NoteInputWithStorage', function() {
   };
   const routerContext = TestStubs.routerContext();
 
-  const createWrapper = props => {
-    return mountWithTheme(
-      <NoteInputWithStorage {...defaultProps} {...props} />,
-      routerContext
-    );
-  };
+  const createWrapper = props =>
+    mountWithTheme(<NoteInputWithStorage {...defaultProps} {...props} />, routerContext);
 
   it('loads draft item from local storage when mounting', function() {
     localStorage.getItem.mockImplementation(() => JSON.stringify({item1: 'saved item'}));

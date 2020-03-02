@@ -3,11 +3,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
+import {BannerContainer, BannerSummary} from 'app/components/events/styles';
 import CommitLink from 'app/components/commitLink';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
+import {IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.gray2};
@@ -60,17 +63,12 @@ export default class ResolutionBox extends React.Component {
     return t('This issue has been marked as resolved.');
   };
 
-  render = () => {
-    return (
-      <div
-        className="box"
-        style={{display: 'flex', alignItems: 'center', flex: 1, paddingBottom: 15}}
-      >
-        <span className="icon icon-checkmark" style={{position: 'static', top: 0}} />
-        <p className="truncate break-all" style={{paddingBottom: 0, paddingLeft: 16}}>
-          {this.renderReason()}
-        </p>
-      </div>
-    );
-  };
+  render = () => (
+    <BannerContainer priority="default">
+      <BannerSummary>
+        <IconCheckmark color={theme.green} />
+        <span>{this.renderReason()}</span>
+      </BannerSummary>
+    </BannerContainer>
+  );
 }
