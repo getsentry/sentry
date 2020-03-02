@@ -12,6 +12,7 @@ export function generateEventDetailsRoute({
 
 export function generateEventSlug(eventData: EventData): string {
   const id = eventData.id || eventData.latest_event;
+  const projectSlug = eventData.project || eventData['project.name'];
 
-  return `${eventData['project.name']}:${id}`;
+  return `${projectSlug}:${id}`;
 }
