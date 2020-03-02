@@ -505,7 +505,7 @@ class ChunkedFileBlobIndexWrapper(object):
 
         # Zero out the file
         f.seek(size - 1)
-        f.write("\x00")
+        f.write(b"\x00")
         f.flush()
 
         mem = mmap.mmap(f.fileno(), size)

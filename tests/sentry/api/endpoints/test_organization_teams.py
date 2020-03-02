@@ -88,7 +88,7 @@ class OrganizationTeamsCreateTest(APITestCase):
         self.login_as(user=self.user)
         resp = self.client.post(self.path)
         assert resp.status_code == 400
-        assert "Name or slug is required" in resp.content
+        assert b"Name or slug is required" in resp.content
 
     def test_valid_params(self):
         self.login_as(user=self.user)

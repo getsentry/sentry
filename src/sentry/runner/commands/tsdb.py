@@ -108,6 +108,6 @@ def organizations(metrics, since, until):
 
             stdout.write(
                 u"{} {} {}\n".format(
-                    instance.id, instance.slug, " ".join(map(six.binary_type, values))
+                    instance.id, instance.slug, " ".join(map(six.text_type, values))
                 )
             )

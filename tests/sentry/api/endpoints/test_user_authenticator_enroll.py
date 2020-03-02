@@ -192,7 +192,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     def _assert_pending_invite_cookie_set(self, response, om):
         invite_link = om.get_invite_link()
         invite_data = dict(parse_qsl(response.client.cookies["pending-invite"].value))
-        self.assertIn(invite_data.get("url"), invite_link)
+        assert invite_data.get("url") in invite_link
 
     def create_existing_om(self):
         OrganizationMember.objects.create(

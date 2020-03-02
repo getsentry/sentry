@@ -180,7 +180,7 @@ class JSONFieldTest(TestCase):
     def test_invalid_json(self):
         obj = JSONFieldTestModel()
         obj.json = '{"foo": 2}'
-        self.assertIn("foo", obj.json)
+        assert "foo" in obj.json
         with self.assertRaises(forms.ValidationError):
             obj.json = '{"foo"}'
 

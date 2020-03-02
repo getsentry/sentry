@@ -169,7 +169,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
     def assert_account_selection(self, response, account_id=None):
         account_id = account_id or self.vsts_account_id
         assert response.status_code == 200
-        assert u'<option value="{}"'.format(account_id) in response.content
+        assert u'<option value="{}"'.format(account_id).encode("utf-8") in response.content
 
     def assert_installation(self):
         # Initial request to the installation URL for VSTS

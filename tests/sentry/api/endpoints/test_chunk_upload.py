@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 from hashlib import sha1
 
@@ -118,7 +118,7 @@ class ChunkUploadTest(APITestCase):
 
         # Exactly the limit
         for x in range(0, MAX_CHUNKS_PER_REQUEST):
-            content = "x" * (MAX_REQUEST_SIZE / MAX_CHUNKS_PER_REQUEST)
+            content = "x" * (MAX_REQUEST_SIZE // MAX_CHUNKS_PER_REQUEST)
             files.append(SimpleUploadedFile(sha1(content).hexdigest(), content))
 
         response = self.client.post(
