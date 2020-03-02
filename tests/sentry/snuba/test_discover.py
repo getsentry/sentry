@@ -1006,7 +1006,13 @@ class QueryTransformTest(TestCase):
                 ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
-                ["transform(projectid, [39], ['bar'], '')", None, "project.name"],
+                [
+                    "transform(projectid, [{}], ['{}'], '')".format(
+                        six.text_type(self.project.id), six.text_type(self.project.slug)
+                    ),
+                    None,
+                    "project.name",
+                ],
             ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
