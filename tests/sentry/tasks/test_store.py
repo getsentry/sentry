@@ -256,7 +256,7 @@ def test_scrubbing_after_processing(
     class TestPlugin(Plugin2):
         def get_event_enhancers(self, data):
             def more_extra(data):
-                data["extra"]["new_aaa"] = "remove me"
+                data["extra"]["aaa"] = "remove me"
                 return data
 
             return [more_extra]
@@ -265,7 +265,7 @@ def test_scrubbing_after_processing(
             # Right now we do not scrub data from event preprocessors, only
             # from event enhancers.
             def more_extra(data):
-                data["extra"]["new_aaa2"] = "event preprocessor"
+                data["extra"]["aaa2"] = "event preprocessor"
                 return data
 
             return [more_extra]
@@ -288,7 +288,7 @@ def test_scrubbing_after_processing(
         "platform": "python",
         "logentry": {"formatted": "test"},
         "event_id": EVENT_ID,
-        "extra": {"aaa": "do not remove me"},
+        "extra": {},
     }
 
     mock_default_cache.get.return_value = data
@@ -298,11 +298,7 @@ def test_scrubbing_after_processing(
 
     (_, (key, event, duration), _), = mock_default_cache.set.mock_calls
     assert key == "e:1"
-    assert event["extra"] == {
-        u"aaa": u"do not remove me",
-        u"new_aaa": u"[Filtered]" if setting_method == "datascrubbers" else u"[redacted]",
-        u"new_aaa2": u"event preprocessor",
-    }
+    assert event["extra"] == {u"aaa": u"[Filtered]", u"aaa2": u"event preprocessor"}
     assert duration == 3600
 
     mock_save_event.delay.assert_called_once_with(
