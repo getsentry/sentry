@@ -30,10 +30,10 @@ from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import memoize
 
-ERR_DEFAULT_ORG = "You cannot remove the default organization."
-ERR_NO_USER = "This request requires an authenticated user."
-ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
-ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
+ERR_DEFAULT_ORG = u"You cannot remove the default organization."
+ERR_NO_USER = u"This request requires an authenticated user."
+ERR_NO_2FA = u"Cannot require two-factor authentication without personal two-factor enabled."
+ERR_SSO_ENABLED = u"Cannot require two-factor authentication with SSO enabled"
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value

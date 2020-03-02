@@ -26,7 +26,7 @@ import os.path
 import pytest
 import requests
 import six
-import types
+import inspect
 from sentry.utils.compat import mock
 
 from click.testing import CliRunner
@@ -498,7 +498,7 @@ class TwoFactorAPITestCase(APITestCase):
         response = self.api_enable_org_2fa(organization, user)
         assert response.status_code == status_code
         if err_msg:
-            assert err_msg in response.content
+            assert err_msg.encode("utf-8") in response.content
         organization = Organization.objects.get(id=organization.id)
 
         if status_code >= 200 and status_code < 300:
@@ -654,7 +654,7 @@ class PluginTestCase(TestCase):
 
         # Old plugins, plugin is a class, new plugins, it's an instance
         # New plugins don't need to be registered
-        if isinstance(self.plugin, (type, types.ClassType)):
+        if inspect.isclass(self.plugin):
             plugins.register(self.plugin)
             self.addCleanup(plugins.unregister, self.plugin)
 
@@ -745,7 +745,7 @@ class IntegrationTestCase(TestCase):
         self.save_session()
 
     def assertDialogSuccess(self, resp):
-        assert "window.opener.postMessage(" in resp.content
+        assert b"window.opener.postMessage(" in resp.content
 
 
 @pytest.mark.snuba

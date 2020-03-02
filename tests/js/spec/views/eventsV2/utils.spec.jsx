@@ -61,7 +61,7 @@ describe('getFieldRenderer', function() {
       createdAt: new Date(2019, 9, 3, 12, 13, 14),
       url: '/example',
       latest_event: 'deadbeef',
-      'project.name': project.slug,
+      project: project.slug,
     };
   });
 
@@ -112,7 +112,7 @@ describe('getFieldRenderer', function() {
   });
 
   it('can render project as an avatar', function() {
-    const renderer = getFieldRenderer('project', {'project.name': 'string'});
+    const renderer = getFieldRenderer('project', {project: 'string'});
     expect(renderer).toBeInstanceOf(Function);
     const wrapper = mountWithTheme(
       renderer(data, {location, organization}),
