@@ -36,9 +36,13 @@ def track_response_metric(fn):
     def wrapper(*args, **kwargs):
         try:
             success = fn(*args, **kwargs)
-            metrics.incr("plugins.amazon-sqs.http_response", tags={"success": success})
+            metrics.incr(
+                "data-forwarding.http_response", tags={"plugin": "amazon-sqs", "success": success}
+            )
         except Exception:
-            metrics.incr("plugins.amazon-sqs.http_response", tags={"success": False})
+            metrics.incr(
+                "data-forwarding.http_response", tags={"plugin": "amazon-sqs", "success": False}
+            )
             raise
         return success
 
