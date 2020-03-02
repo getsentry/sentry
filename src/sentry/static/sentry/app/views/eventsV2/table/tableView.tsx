@@ -490,8 +490,11 @@ const ExpandAggregateRow = (props: {
 
   // count_unique(column) drilldown
   if (aggregation === 'count_unique') {
-    // TODO: update this
-    const nextView = getExpandedResults(eventView, {}, dataRow);
+    // Drilldown into each distinct value and get a count() for each value.
+    const nextView = getExpandedResults(eventView, {}, dataRow).withNewColumn({
+      field: '',
+      aggregation: 'count',
+    });
 
     const target = {
       pathname: location.pathname,
