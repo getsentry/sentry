@@ -1445,6 +1445,45 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_histogram_function(self):
+        fields = ["histogram(transaction.duration, 10, 1000)", "count()"]
+        result = resolve_field_list(fields, {})
+        assert result["selected_columns"] == [
+            [
+                "multiply",
+                [["floor", [["divide", ["transaction.duration", 1000]]]], 1000],
+                "histogram_transaction_duration_10_1000",
+            ]
+        ]
+        assert result["aggregations"] == [
+            ["count", None, "count"],
+            ["argMax", ["id", "timestamp"], "latest_event"],
+            ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
+        ]
+        assert result["groupby"] == ["histogram_transaction_duration_10_1000"]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["histogram(stack.colno, 10, 1000)"]
+            resolve_field_list(fields, {})
+        assert (
+            "histogram(stack.colno, 10, 1000): column argument invalid: stack.colno is not a duration column"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["histogram(transaction.duration, 10)"]
+            resolve_field_list(fields, {})
+        assert "histogram(transaction.duration, 10): expected 3 arguments" in six.text_type(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["histogram(transaction.duration, 1000, 1000)"]
+            resolve_field_list(fields, {})
+        assert (
+            "histogram(transaction.duration, 1000, 1000): num_buckets argument invalid: 1000 must be less than 500"
+            in six.text_type(err)
+        )
+
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]

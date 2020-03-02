@@ -1027,6 +1027,102 @@ class QueryTransformTest(TestCase):
             referrer=None,
         )
 
+    @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_translations(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 10000}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "data": [{"histogram_transaction_duration_10_1000": 1000, "count": 1123}],
+            },
+        ]
+        discover.query(
+            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+        mock_query.assert_called_with(
+            selected_columns=[
+                [
+                    "multiply",
+                    [["floor", [["divide", ["duration", 1000]]]], 1000],
+                    "histogram_transaction_duration_10_1000",
+                ]
+            ],
+            aggregations=[
+                ["count", None, "count"],
+                ["argMax", ["event_id", "timestamp"], "latest_event"],
+                ["argMax", ["project_id", "timestamp"], "projectid"],
+                [
+                    "transform(projectid, array({}), array('{}'), '')".format(
+                        six.text_type(self.project.id), six.text_type(self.project.slug)
+                    ),
+                    None,
+                    "project.name",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["histogram_transaction_duration_10_1000"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_bad_histogram_translations(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 10000}]},
+            {
+                "meta": [{"name": "histogram_transaction_duration_10_1000"}, {"name": "count"}],
+                "data": [{"histogram_transaction_duration_10_1000": 1000, "count": 1123}],
+            },
+        ]
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.query(
+                selected_columns=["histogram(transaction.duration)", "count()"],
+                query="",
+                params={"project_id": [self.project.id]},
+                auto_fields=True,
+                use_aggregate_conditions=False,
+            )
+        assert "histogram(...) expects 2 column arguments, received 1 arguments" in six.text_type(
+            err
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.query(
+                selected_columns=["histogram(stack.colno, 10)", "count()"],
+                query="",
+                params={"project_id": [self.project.id]},
+                auto_fields=True,
+                use_aggregate_conditions=False,
+            )
+        assert (
+            "histogram(...) can only be used with the transaction.duration column"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.query(
+                selected_columns=["histogram(transaction.duration, 1000)", "count()"],
+                query="",
+                params={"project_id": [self.project.id]},
+                auto_fields=True,
+                use_aggregate_conditions=False,
+            )
+        assert (
+            "histogram(...) requires a bucket value between 1 and 500, not 1000"
+            in six.text_type(err)
+        )
+
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):
     def setUp(self):

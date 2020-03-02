@@ -1,7 +1,12 @@
 from __future__ import absolute_import
 
+<<<<<<< HEAD
 import six
 import pytest
+=======
+import random
+from datetime import timedelta
+>>>>>>> 1c8adc3c4c... feat(discover) Add histogram function
 
 from django.core.urlresolvers import reverse
 
@@ -1825,7 +1830,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 format="json",
                 data={
                     "field": ["event.type", "percentile(transaction.duration, 0.99)"],
-                    "sort": "-percentile(transaction.duration, 0.99)",
+                    "sort": "-percentile_transaction_duration_0_99",
                     "query": "event.type:transaction",
                 },
             )
@@ -1932,10 +1937,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 },
             )
 
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 1
-            assert data[0]["count_unique_issue"] == 2
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["count_unique_issue"] == 2
 
     def test_deleted_issue_in_results(self):
         self.login_as(user=self.user)
@@ -1958,11 +1963,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url, format="json", data={"field": ["issue", "count()"], "sort": "issue"}
             )
 
-            assert response.status_code == 200, response.content
-            data = response.data["data"]
-            assert len(data) == 2
-            assert data[0]["issue"] == event1.group.qualified_short_id
-            assert data[1]["issue"] == "unknown"
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["issue"] == event1.group.qualified_short_id
+        assert data[1]["issue"] == "unknown"
 
     def test_context_fields(self):
         self.login_as(user=self.user)
@@ -2091,4 +2096,46 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 expected = "{:.1f}".format(expected)
 
             assert results[0][field] == expected
+
         assert results[0]["count"] == 1
+
+    def test_histogram_function(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        start = before_now(minutes=2).replace(microsecond=0)
+        latencies = [
+            (1, 999, 5),
+            (1000, 1999, 4),
+            (3000, 3999, 3),
+            (6000, 6999, 2),
+            (10000, 10000, 1),  # just to make the math easy
+        ]
+        for bucket in latencies:
+            for i in range(bucket[2]):
+                milliseconds = random.randint(bucket[0], bucket[1])
+                data = load_data("transaction")
+                data["transaction"] = "/error_rate/{}".format(milliseconds)
+                data["timestamp"] = iso_format(start)
+                data["start_timestamp"] = iso_format(start - timedelta(milliseconds=milliseconds))
+                self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["histogram(transaction.duration, 10)", "count()"],
+                    "query": "event.type:transaction",
+                    "sort": "histogram_transaction_duration_10",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 5
+        expected = [(1000, 5), (2000, 4), (4000, 3), (7000, 2), (10000, 1)]
+        for idx, datum in enumerate(data):
+            assert datum["histogram_transaction_duration_10"] == expected[idx][0]
+            assert datum["count"] == expected[idx][1]

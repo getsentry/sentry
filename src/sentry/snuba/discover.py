@@ -136,6 +136,61 @@ def create_reference_event_conditions(reference_event):
     return conditions
 
 
+# TODO (evanh) This whole function is here because we are using the max value to
+# calculate the entire bucket width. If we could do that in a smarter way,
+# we could avoid this whole calculation.
+def find_histogram_buckets(field, params):
+    match = is_function(field)
+    if not match:
+        raise InvalidSearchQuery(u"received {}, expected histogram function".format(field))
+
+    columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
+
+    if len(columns) != 2:
+        raise InvalidSearchQuery(
+            u"histogram(...) expects 2 column arguments, received {:g} arguments".format(
+                len(columns)
+            )
+        )
+
+    column = columns[0]
+    # TODO evanh: This can be expanded to more fields at a later date, for now keep this limited.
+    if column != "transaction.duration":
+        raise InvalidSearchQuery(
+            "histogram(...) can only be used with the transaction.duration column"
+        )
+
+    try:
+        num_buckets = int(columns[1])
+        if num_buckets < 1 or num_buckets > 500:
+            raise Exception()
+    except Exception:
+        raise InvalidSearchQuery(
+            u"histogram(...) requires a bucket value between 1 and 500, not {}".format(columns[1])
+        )
+
+    alias = u"max_{}".format(column)
+
+    results = raw_query(
+        filter_keys={"project_id": params.get("project_id")},
+        start=params.get("start"),
+        end=params.get("end"),
+        dataset=Dataset.Discover,
+        conditions=[["type", "=", "transaction"]],
+        aggregations=[["max", "duration", alias]],
+    )
+    if "error" in results or len(results["data"]) != 1:
+        raise InvalidSearchQuery("Invalid histogram bucket call")
+
+    bucket_max = results["data"][0][alias]
+    if bucket_max == 0:
+        raise InvalidSearchQuery(u"Cannot calculate histogram for {}".format(field))
+
+    bucket_number = bucket_max / float(num_buckets)
+
+    return "histogram({}, {:g}, {:g})".format(column, num_buckets, bucket_number)
+
+
 def resolve_column(col):
     """
     Used as a column resolver in discover queries.
@@ -145,16 +200,32 @@ def resolve_column(col):
     """
     if col is None:
         return col
+    elif isinstance(col, (list, tuple)):
+        return col
     # Whilst project_id is not part of the public schema we convert
     # the project.name field into project_id way before we get here.
     if col == "project_id":
         return col
     if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
         return col
+
     return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))
 
 
-def resolve_discover_aliases(snuba_args):
+# TODO (evanh) Since we are assuming that all string values are columns,
+# this will get tricky if we every have complex columns where there are
+# string arguments to the functions that aren't columns
+def resolve_complex_column(col):
+    args = col[1]
+
+    for i in range(len(args)):
+        if isinstance(args[i], (list, tuple)):
+            resolve_complex_column(args[i])
+        elif isinstance(args[i], six.string_types):
+            args[i] = resolve_column(args[i])
+
+
+def resolve_discover_aliases(snuba_args, function_translations=None):
     """
     Resolve the public schema aliases to the discover dataset.
 
@@ -165,23 +236,33 @@ def resolve_discover_aliases(snuba_args):
     resolved = deepcopy(snuba_args)
     translated_columns = {}
     derived_columns = set()
+    if function_translations:
+        for snuba_name, sentry_name in six.iteritems(function_translations):
+            derived_columns.add(snuba_name)
+            translated_columns[snuba_name] = sentry_name
 
     selected_columns = resolved.get("selected_columns")
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
-                raise ValueError("discover selected_columns should only be str. got %s" % col)
-            name = resolve_column(col)
-            selected_columns[idx] = name
-            translated_columns[name] = col
+                resolve_complex_column(col)
+            else:
+                name = resolve_column(col)
+                selected_columns[idx] = name
+                translated_columns[name] = col
+
         resolved["selected_columns"] = selected_columns
 
     groupby = resolved.get("groupby")
     if groupby:
         for (idx, col) in enumerate(groupby):
             name = col
-            if col not in derived_columns:
+            if isinstance(col, (list, tuple)):
+                if len(col) == 3:
+                    name = col[2]
+            elif col not in derived_columns:
                 name = resolve_column(col)
+
             groupby[idx] = name
         resolved["groupby"] = groupby
 
@@ -200,8 +281,6 @@ def resolve_discover_aliases(snuba_args):
             replacement = resolve_condition(condition, resolve_column)
             conditions[i] = replacement
         resolved["conditions"] = [c for c in conditions if c]
-
-    # TODO add support for extracting having conditions.
 
     orderby = resolved.get("orderby")
     if orderby:
@@ -302,33 +381,6 @@ def transform_deprecated_functions_in_columns(columns):
     return new_list, translations
 
 
-def transform_deprecated_functions_in_orderby(orderby):
-    if not orderby:
-        return
-
-    orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-    new_orderby = []
-    for order in orderby:
-        has_negative = False
-        column = order
-        if order.startswith("-"):
-            has_negative = True
-            column = order.strip("-")
-
-        new_column = column
-        if column in OLD_FUNCTIONS_TO_NEW:
-            new_column = get_function_alias(OLD_FUNCTIONS_TO_NEW[column])
-        elif column.replace("()", "") in OLD_FUNCTIONS_TO_NEW:
-            new_column = get_function_alias(OLD_FUNCTIONS_TO_NEW[column.replace("()", "")])
-
-        if has_negative:
-            new_column = "-" + new_column
-
-        new_orderby.append(new_column)
-
-    return new_orderby
-
-
 def transform_deprecated_functions_in_query(query):
     if query is None:
         return query
@@ -385,7 +437,6 @@ def query(
     selected_columns, function_translations = transform_deprecated_functions_in_columns(
         selected_columns
     )
-    orderby = transform_deprecated_functions_in_orderby(orderby)
     query = transform_deprecated_functions_in_query(query)
 
     snuba_filter = get_filter(query, params)
@@ -405,6 +456,36 @@ def query(
     if use_aggregate_conditions:
         snuba_args["having"] = snuba_filter.having
 
+    # We need to run a separate query to be able to properly bucket the values for the histogram
+    # Do that here, and format the bucket number in to the columns before passing it through
+    # to event search.
+    idx = 0
+    for col in selected_columns:
+        if col.startswith("histogram("):
+            histogram_column = find_histogram_buckets(col, params)
+            selected_columns[idx] = histogram_column
+            function_translations[get_function_alias(histogram_column)] = get_function_alias(col)
+            break
+
+        idx += 1
+
+    # Check to see if we are ordering by any functions and convert the orderby to be the correct alias.
+    if orderby:
+        orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+        new_orderby = []
+        for ordering in orderby:
+            is_reversed = ordering.startswith("-")
+            ordering = ordering.lstrip("-")
+            for snuba_name, sentry_name in six.iteritems(function_translations):
+                if sentry_name == ordering:
+                    ordering = snuba_name
+                    break
+
+            ordering = "{}{}".format("-" if is_reversed else "", ordering)
+            new_orderby.append(ordering)
+
+        snuba_args["orderby"] = new_orderby
+
     snuba_args.update(
         resolve_field_list(selected_columns, snuba_args, params=params, auto_fields=auto_fields)
     )
@@ -415,9 +496,7 @@ def query(
             snuba_args["conditions"].extend(ref_conditions)
 
     # Resolve the public aliases into the discover dataset names.
-    snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
-    for snuba_name, sentry_name in six.iteritems(function_translations):
-        translated_columns[snuba_name] = sentry_name
+    snuba_args, translated_columns = resolve_discover_aliases(snuba_args, function_translations)
 
     # Make sure that any aggregate conditions are also in the selected columns
     for having_clause in snuba_args.get("having"):
