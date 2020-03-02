@@ -1,7 +1,8 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
+
 import {isIntegrationDirectoryActive} from 'app/utils/integrationUtil.tsx';
 import withOrganization from 'app/utils/withOrganization';
-import {RouteComponentProps} from 'react-router/lib/Router';
 import {Organization} from 'app/types';
 
 import Control from './index';
