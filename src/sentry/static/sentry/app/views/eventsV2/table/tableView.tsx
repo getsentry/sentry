@@ -273,8 +273,6 @@ class TableView extends React.Component<TableViewProps> {
         field={field}
         location={location}
         eventView={eventView}
-        /* TODO(leedongwei): Verbosity is due to error in Prettier, fix after
-           upgrade to v1.19.1 */
         tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
       />
     );
