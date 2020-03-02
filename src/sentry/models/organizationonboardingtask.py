@@ -7,7 +7,6 @@ from django.utils import timezone
 
 from sentry.db.models import (
     BaseManager,
-    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
@@ -138,7 +137,7 @@ class OrganizationOnboardingTask(Model):
     task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
     status = BoundedPositiveIntegerField(choices=STATUS_CHOICES)
     date_completed = models.DateTimeField(default=timezone.now)
-    project_id = BoundedBigIntegerField(blank=True, null=True)
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
     data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
 
     objects = OrganizationOnboardingTaskManager()
