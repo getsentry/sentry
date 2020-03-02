@@ -85,7 +85,7 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     # Some structure similar to what the live_server fixture returns
     server_info = {
-        "url": "http://localhost:{}".format(_relay_port),
+        "url": "http://127.0.0.1:{}".format(_relay_port),
         "is_started": False,
         "options": options,
     }
