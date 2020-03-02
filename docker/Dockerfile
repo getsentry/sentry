@@ -10,9 +10,7 @@ LABEL org.opencontainers.image.authors="oss@sentry.io"
 
 # Sane defaults for pip
 ENV PIP_NO_CACHE_DIR=off \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    # Webpack needs to know this is CI/headless env
-    CI=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Needed for GPG

@@ -1,14 +1,10 @@
 /*eslint-env node*/
 /*eslint import/no-nodejs-modules:0 */
-const path = require('path');
 const fs = require('fs');
 
+const path = require('path');
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
-const LastBuiltPlugin = require('./build-utils/last-built-plugin');
-const SentryInstrumentation = require('./build-utils/sentry-instrumentation');
-const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
-const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -16,6 +12,10 @@ const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const CopyPlugin = require('copy-webpack-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
+const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
+const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
+const SentryInstrumentation = require('./build-utils/sentry-instrumentation');
+const LastBuiltPlugin = require('./build-utils/last-built-plugin');
 const babelConfig = require('./babel.config');
 
 const {env} = process;
@@ -33,6 +33,10 @@ const USE_HOT_MODULE_RELOAD =
 const NO_DEV_SERVER = env.NO_DEV_SERVER;
 const FORCE_WEBPACK_DEV_SERVER = env.FORCE_WEBPACK_DEV_SERVER;
 const IS_CI = !!env.CI || !!env.TRAVIS;
+
+const DEV_MODE = !(IS_PRODUCTION || IS_CI);
+const SHOULD_FORK_TS = DEV_MODE && !Boolean(env.NO_TS_FORK);
+const TS_FORK_WITH_ESLINT = Boolean(env.TS_FORK_WITH_ESLINT);
 
 // Deploy previews are built using netlify. We can check if we're in netlifys
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -233,7 +237,7 @@ let appConfig = {
         exclude: /(vendor|node_modules|dist)/,
         // Make sure we typecheck in CI, but not for local dev since that is run with
         // the fork-ts plugin
-        use: !IS_CI ? babelLoaderConfig : [babelLoaderConfig, tsLoaderConfig],
+        use: SHOULD_FORK_TS ? [babelLoaderConfig, tsLoaderConfig] : babelLoaderConfig,
       },
       {
         test: /\.po$/,
@@ -320,10 +324,10 @@ let appConfig = {
 
     new SentryInstrumentation(),
 
-    ...(!IS_CI
+    ...(SHOULD_FORK_TS
       ? [
           new ForkTsCheckerWebpackPlugin({
-            eslint: true,
+            eslint: TS_FORK_WITH_ESLINT,
             tsconfig: path.resolve(__dirname, './tsconfig.json'),
           }),
         ]
