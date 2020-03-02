@@ -13,21 +13,17 @@ export default class NewIssues extends React.Component {
 
   issueListRef = React.createRef();
 
-  getEndpoint = () => {
-    return `/organizations/${this.props.params.orgId}/issues/new/`;
-  };
+  getEndpoint = () => `/organizations/${this.props.params.orgId}/issues/new/`;
 
-  renderEmpty = () => {
-    return (
-      <Panel>
-        <PanelBody>
-          <PanelItem justifyContent="center">
-            {t('No new issues have been seen in the last week.')}
-          </PanelItem>
-        </PanelBody>
-      </Panel>
-    );
-  };
+  renderEmpty = () => (
+    <Panel>
+      <PanelBody>
+        <PanelItem justifyContent="center">
+          {t('No new issues have been seen in the last week.')}
+        </PanelItem>
+      </PanelBody>
+    </Panel>
+  );
 
   refresh = () => {
     this.issueListRef.current.remountComponent();

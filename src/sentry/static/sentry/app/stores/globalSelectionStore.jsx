@@ -16,18 +16,16 @@ import localStorage from 'app/utils/localStorage';
 
 const DEFAULT_PARAMS = getParams({});
 
-const getDefaultSelection = () => {
-  return {
-    projects: [],
-    environments: [],
-    datetime: {
-      [DATE_TIME.START]: DEFAULT_PARAMS.start || null,
-      [DATE_TIME.END]: DEFAULT_PARAMS.end || null,
-      [DATE_TIME.PERIOD]: DEFAULT_PARAMS.statsPeriod || null,
-      [DATE_TIME.UTC]: DEFAULT_PARAMS.utc || null,
-    },
-  };
-};
+const getDefaultSelection = () => ({
+  projects: [],
+  environments: [],
+  datetime: {
+    [DATE_TIME.START]: DEFAULT_PARAMS.start || null,
+    [DATE_TIME.END]: DEFAULT_PARAMS.end || null,
+    [DATE_TIME.PERIOD]: DEFAULT_PARAMS.statsPeriod || null,
+    [DATE_TIME.UTC]: DEFAULT_PARAMS.utc || null,
+  },
+});
 
 const getProjectsByIds = async (organization, projectIds, api) => {
   const query = {};

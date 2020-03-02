@@ -76,9 +76,7 @@ class TeamSelect extends React.Component {
       options = [];
     } else {
       options = teams
-        .filter(team => {
-          return !selectedTeams.includes(team.slug);
-        })
+        .filter(team => !selectedTeams.includes(team.slug))
         .map(team => ({
           value: team.slug,
           searchKey: team.slug,
@@ -125,18 +123,16 @@ class TeamSelect extends React.Component {
         ? confirmLastTeamRemoveMessage
         : null;
 
-    return selectedTeams.map(team => {
-      return (
-        <TeamRow
-          key={team}
-          orgId={organization.slug}
-          team={team}
-          onRemove={this.handleRemove}
-          disabled={disabled}
-          confirmMessage={confirmMessage}
-        />
-      );
-    });
+    return selectedTeams.map(team => (
+      <TeamRow
+        key={team}
+        orgId={organization.slug}
+        team={team}
+        onRemove={this.handleRemove}
+        disabled={disabled}
+        confirmMessage={confirmMessage}
+      />
+    ));
   }
 
   render() {

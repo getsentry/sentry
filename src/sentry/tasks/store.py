@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import copy
 import logging
 from datetime import datetime
 
@@ -194,14 +193,6 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
 
     project = Project.objects.get_from_cache(id=project_id)
 
-    with_datascrubbing = features.has(
-        "organizations:datascrubbers-v2", project.organization, actor=None
-    )
-
-    if with_datascrubbing:
-        with metrics.timer("tasks.store.datascrubbers.data_bak"):
-            data_bak = copy.deepcopy(data.data)
-
     with configure_scope() as scope:
         scope.set_tag("project", project_id)
 
@@ -266,18 +257,16 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     # XXX(markus): Javascript event error translation is happening after this block
     # because it uses `get_event_preprocessors` instead of
     # `get_event_enhancers`, possibly move?
-    if has_changed and with_datascrubbing:
+    if has_changed and features.has(
+        "organizations:datascrubbers-v2", project.organization, actor=None
+    ):
         with metrics.timer("tasks.store.datascrubbers.scrub"):
             project_config = get_project_config(project)
 
-            new_data = safe_execute(
-                scrub_data,
-                project_config=project_config,
-                event=data.data,
-                in_processing=True,
-                old_event=data_bak,
-            )
+            new_data = safe_execute(scrub_data, project_config=project_config, event=data.data)
 
+            # XXX(markus): When datascrubbing is finally "totally stable", we might want
+            # to drop the event if it crashes to avoid saving PII
             if new_data is not None:
                 data.data = new_data
 

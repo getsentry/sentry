@@ -40,9 +40,9 @@ class ScoreBar extends React.Component {
 
     return (
       <div className={className}>
-        {[...Array(scoreInBounds)].map((j, i) => {
-          return <Bar {...barProps} key={i} color={palette[paletteIndex]} />;
-        })}
+        {[...Array(scoreInBounds)].map((j, i) => (
+          <Bar {...barProps} key={i} color={palette[paletteIndex]} />
+        ))}
         {[...Array(maxScore - scoreInBounds)].map((j, i) => (
           <Bar key={`empty-${i}`} {...barProps} empty />
         ))}

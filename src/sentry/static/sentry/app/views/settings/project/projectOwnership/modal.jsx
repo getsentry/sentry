@@ -25,10 +25,9 @@ class ProjectOwnershipModal extends AsyncComponent {
         `/issues/${issueId}/tags/url/`,
         {},
         {
-          allowError: error => {
+          allowError: error =>
             // Allow for 404s
-            return error.status === 404;
-          },
+            error.status === 404,
         },
       ],
       ['eventData', `/issues/${issueId}/events/latest/`],

@@ -11,18 +11,16 @@ describe('DropdownMenu', function() {
   beforeEach(function() {
     wrapper = mount(
       <DropdownMenu>
-        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
-          return (
-            <span {...getRootProps({})}>
-              <button {...getActorProps({})}>Open Dropdown</button>
-              {isOpen && (
-                <ul {...getMenuProps({})}>
-                  <li>Dropdown Menu Item 1</li>
-                </ul>
-              )}
-            </span>
-          );
-        }}
+        {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
+          <span {...getRootProps({})}>
+            <button {...getActorProps({})}>Open Dropdown</button>
+            {isOpen && (
+              <ul {...getMenuProps({})}>
+                <li>Dropdown Menu Item 1</li>
+              </ul>
+            )}
+          </span>
+        )}
       </DropdownMenu>
     );
   });
@@ -72,18 +70,16 @@ describe('DropdownMenu', function() {
   it('ignores "Escape" key if `closeOnEscape` is false', function() {
     wrapper = mount(
       <DropdownMenu closeOnEscape={false}>
-        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
-          return (
-            <span {...getRootProps({})}>
-              <button {...getActorProps({})}>Open Dropdown</button>
-              {isOpen && (
-                <ul {...getMenuProps({})}>
-                  <li>Dropdown Menu Item 1</li>
-                </ul>
-              )}
-            </span>
-          );
-        }}
+        {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
+          <span {...getRootProps({})}>
+            <button {...getActorProps({})}>Open Dropdown</button>
+            {isOpen && (
+              <ul {...getMenuProps({})}>
+                <li>Dropdown Menu Item 1</li>
+              </ul>
+            )}
+          </span>
+        )}
       </DropdownMenu>
     );
 
@@ -97,18 +93,16 @@ describe('DropdownMenu', function() {
   it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', function() {
     wrapper = mount(
       <DropdownMenu keepMenuOpen>
-        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
-          return (
-            <span {...getRootProps({})}>
-              <button {...getActorProps({})}>Open Dropdown</button>
-              {isOpen && (
-                <ul {...getMenuProps({})}>
-                  <li>Dropdown Menu Item 1</li>
-                </ul>
-              )}
-            </span>
-          );
-        }}
+        {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
+          <span {...getRootProps({})}>
+            <button {...getActorProps({})}>Open Dropdown</button>
+            {isOpen && (
+              <ul {...getMenuProps({})}>
+                <li>Dropdown Menu Item 1</li>
+              </ul>
+            )}
+          </span>
+        )}
       </DropdownMenu>
     );
 
@@ -127,35 +121,33 @@ describe('DropdownMenu', function() {
 
     wrapper = mount(
       <DropdownMenu keepMenuOpen>
-        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
-          return (
-            <span
-              {...getRootProps({
-                className: 'root',
-                onClick: rootClick,
+        {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
+          <span
+            {...getRootProps({
+              className: 'root',
+              onClick: rootClick,
+            })}
+          >
+            <button
+              {...getActorProps({
+                className: 'actor',
+                onClick: actorClick,
               })}
             >
-              <button
-                {...getActorProps({
-                  className: 'actor',
-                  onClick: actorClick,
+              Open Dropdown
+            </button>
+            {isOpen && (
+              <ul
+                {...getMenuProps({
+                  className: 'menu',
+                  onClick: menuClick,
                 })}
               >
-                Open Dropdown
-              </button>
-              {isOpen && (
-                <ul
-                  {...getMenuProps({
-                    className: 'menu',
-                    onClick: menuClick,
-                  })}
-                >
-                  <li>Dropdown Menu Item 1</li>
-                </ul>
-              )}
-            </span>
-          );
-        }}
+                <li>Dropdown Menu Item 1</li>
+              </ul>
+            )}
+          </span>
+        )}
       </DropdownMenu>
     );
 
@@ -186,30 +178,28 @@ describe('DropdownMenu', function() {
 
     wrapper = mount(
       <DropdownMenu alwaysRenderMenu>
-        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
-          return (
-            <span
-              {...getRootProps({
-                className: 'root',
+        {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
+          <span
+            {...getRootProps({
+              className: 'root',
+            })}
+          >
+            <button
+              {...getActorProps({
+                className: 'actor',
               })}
             >
-              <button
-                {...getActorProps({
-                  className: 'actor',
-                })}
-              >
-                Open Dropdown
-              </button>
-              <ul
-                {...getMenuProps({
-                  className: 'menu',
-                })}
-              >
-                <li>Dropdown Menu Item 1</li>
-              </ul>
-            </span>
-          );
-        }}
+              Open Dropdown
+            </button>
+            <ul
+              {...getMenuProps({
+                className: 'menu',
+              })}
+            >
+              <li>Dropdown Menu Item 1</li>
+            </ul>
+          </span>
+        )}
       </DropdownMenu>
     );
 

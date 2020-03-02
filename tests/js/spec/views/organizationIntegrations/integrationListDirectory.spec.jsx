@@ -5,12 +5,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import IntegrationListDirectory from 'app/views/organizationIntegrations/integrationListDirectory';
 
 const mockResponse = mocks => {
-  mocks.forEach(([url, body]) => {
-    return Client.addMockResponse({
+  mocks.forEach(([url, body]) =>
+    Client.addMockResponse({
       url,
       body,
-    });
-  });
+    })
+  );
 };
 
 describe('IntegrationListDirectory', function() {
@@ -319,9 +319,9 @@ describe('IntegrationListDirectory', function() {
     });
 
     it('shows legacy plugin that has a First Party Integration if installed', async function() {
-      const legacyPluginRow = wrapper.find('IntegrationRow').filterWhere(node => {
-        return node.props().displayName === 'PagerDuty (Legacy)';
-      });
+      const legacyPluginRow = wrapper
+        .find('IntegrationRow')
+        .filterWhere(node => node.props().displayName === 'PagerDuty (Legacy)');
 
       expect(legacyPluginRow).toHaveLength(1);
     });

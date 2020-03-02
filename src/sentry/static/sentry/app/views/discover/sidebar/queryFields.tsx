@@ -49,14 +49,12 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
     return <PlaceholderText>{text}</PlaceholderText>;
   };
 
-  optionRenderer = ({label, isTag}: ReactSelectOption) => {
-    return (
-      <Option>
-        {label}
-        {isTag && <Badge text="tag" />}
-      </Option>
-    );
-  };
+  optionRenderer = ({label, isTag}: ReactSelectOption) => (
+    <Option>
+      {label}
+      {isTag && <Badge text="tag" />}
+    </Option>
+  );
 
   render() {
     const {

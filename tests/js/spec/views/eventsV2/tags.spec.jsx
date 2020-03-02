@@ -97,9 +97,7 @@ describe('Tags', function() {
 
     const environmentFacetMap = wrapper
       .find('TagDistributionMeter')
-      .filterWhere(component => {
-        return component.props().title === 'environment';
-      })
+      .filterWhere(component => component.props().title === 'environment')
       .first();
 
     const clickable = environmentFacetMap.find('Segment').first();

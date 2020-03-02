@@ -212,11 +212,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   _mounted: boolean = false;
 
   toggleDisplayDetail = () => {
-    this.setState(state => {
-      return {
-        showDetail: !state.showDetail,
-      };
-    });
+    this.setState(state => ({
+      showDetail: !state.showDetail,
+    }));
   };
 
   renderDetail = ({isVisible}: {isVisible: boolean}) => {
@@ -576,31 +574,29 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
   };
 
-  renderCursorGuide = () => {
-    return (
-      <CursorGuideHandler.Consumer>
-        {({
-          showCursorGuide,
-          traceViewMouseLeft,
-        }: {
-          showCursorGuide: boolean;
-          traceViewMouseLeft: number | undefined;
-        }) => {
-          if (!showCursorGuide || !traceViewMouseLeft) {
-            return null;
-          }
+  renderCursorGuide = () => (
+    <CursorGuideHandler.Consumer>
+      {({
+        showCursorGuide,
+        traceViewMouseLeft,
+      }: {
+        showCursorGuide: boolean;
+        traceViewMouseLeft: number | undefined;
+      }) => {
+        if (!showCursorGuide || !traceViewMouseLeft) {
+          return null;
+        }
 
-          return (
-            <CursorGuide
-              style={{
-                left: toPercent(traceViewMouseLeft),
-              }}
-            />
-          );
-        }}
-      </CursorGuideHandler.Consumer>
-    );
-  };
+        return (
+          <CursorGuide
+            style={{
+              left: toPercent(traceViewMouseLeft),
+            }}
+          />
+        );
+      }}
+    </CursorGuideHandler.Consumer>
+  );
 
   renderDivider = (
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
@@ -752,9 +748,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <DividerHandlerManager.Consumer>
           {(
             dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-          ) => {
-            return this.renderHeader(dividerHandlerChildrenProps);
-          }}
+          ) => this.renderHeader(dividerHandlerChildrenProps)}
         </DividerHandlerManager.Consumer>
         {this.renderDetail({isVisible: isSpanVisible})}
       </SpanRow>
