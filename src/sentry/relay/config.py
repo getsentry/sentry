@@ -14,10 +14,12 @@ from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.message_filters import get_all_filters
 from sentry.models.organizationoption import OrganizationOption
+from sentry.utils.safe import safe_execute
 from sentry.utils.data_filters import FilterTypes, FilterStatKeys, get_filter_key
 from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
 from sentry.relay.utils import to_camel_case_name
+from sentry.datascrubbing import merge_pii_configs
 
 
 def get_project_key_config(project_key):
@@ -256,12 +258,28 @@ class ProjectConfig(_ConfigBase):
 
 
 def _get_pii_config(project):
-    value = project.get_option("sentry:relay_pii_config")
-    if value is not None:
-        try:
-            return utils.json.loads(value)
-        except (TypeError, ValueError):
-            return None
+    def _decode(value):
+        if value is not None:
+            return safe_execute(utils.json.loads, value)
+
+    # Order of merging is important here. We want to apply organization rules
+    # before project rules. For example:
+    #
+    # * Organization rule: remove substrings "mypassword"
+    # * Project rule: remove substrings "my"
+    #
+    # If we were to apply project rules before organization rules, "password"
+    # would leak. We effectively disabled an organization rule using a project rule.
+    #
+    # Of course organization rules can also break project rules the same way,
+    # but we communicate in the UI that organization options take precedence
+    # here.
+    return merge_pii_configs(
+        [
+            ("organization:", _decode(project.organization.get_option("sentry:relay_pii_config"))),
+            ("project:", _decode(project.get_option("sentry:relay_pii_config"))),
+        ]
+    )
 
 
 def _get_datascrubbing_settings(project, org_options):
