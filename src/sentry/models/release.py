@@ -45,6 +45,9 @@ class ReleaseProject(Model):
     release = FlexibleForeignKey("sentry.Release")
     new_groups = BoundedPositiveIntegerField(null=True, default=0)
 
+    # health stats
+    adoption = BoundedPositiveIntegerField(null=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_release_project"
@@ -298,6 +301,25 @@ class Release(Model):
         try:
             with transaction.atomic():
                 ReleaseProject.objects.create(project=project, release=self)
+                if not project.flags.has_releases:
+                    project.flags.has_releases = True
+                    project.update(flags=F("flags").bitor(Project.flags.has_releases))
+        except IntegrityError:
+            return False
+        else:
+            return True
+
+    def update_project_health_data(self, project, adoption):
+        """Adds a project to the release if missing and updates the materialized
+        health data on it.
+        """
+        from sentry.models import Project
+
+        try:
+            with transaction.atomic():
+                ReleaseProject.objects.update_or_create(
+                    project=project, release=self, defaults={"adoption": adoption}
+                )
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
                     project.update(flags=F("flags").bitor(Project.flags.has_releases))

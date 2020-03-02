@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from datetime import datetime, timedelta
 
 from sentry.utils.snuba import raw_query, parse_snuba_datetime
@@ -13,17 +15,35 @@ def _get_conditions(project_releases, environments):
     return conditions
 
 
-def get_changed_release_model_materializations(project_ids, environments):
-    total_users_24h = {}
+def get_changed_release_model_materializations(project_ids):
+    rv = []
+
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["release", "uniq_users", "uniq_sessions", "uniq_sessions_crashed"],
+        selected_columns=[
+            "project_id",
+            "started",
+            "release",
+            "uniq_users",
+            "uniq_sessions",
+            "uniq_sessions_crashed",
+        ],
         groupby=["release", "project_id", "environment"],
         rollup=24 * 60 * 60,
-        conditions=[["environment", "IN", list(environments)]],
         filter_keys={"project_id": project_ids},
     )["data"]:
-        total_users_24h[x["project_id"]] = x["uniq_users"]
+        rv.append(
+            {
+                "date": parse_snuba_datetime(x["started"]),
+                "project_id": x["project_id"],
+                "release": x["release"],
+                "environment": x["environment"],
+                "uniq_users": x["uniq_users"],
+                "uniq_sessions": x["uniq_sessions"],
+            }
+        )
+
+    return rv
 
 
 def get_release_health_data_overview(project_releases, environments=None):
