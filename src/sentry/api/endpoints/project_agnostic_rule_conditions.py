@@ -23,7 +23,7 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
         experiment_variant = experiments.get(
             org=organization, experiment_name="AlertDefaultsExperiment"
         )
-        if experiment_variant == "test3Options":
+        if experiment_variant == "3OptionsV1":
             return Response(
                 [
                     info_extractor(rule_cls)
@@ -31,7 +31,7 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
                     if rule_type.startswith("condition/")
                 ]
             )
-        elif experiment_variant == "test2Options":
+        elif experiment_variant == "2OptionsV1":
             return Response(status=status.HTTP_200_OK)
 
         return Response(status=status.HTTP_404_NOT_FOUND)

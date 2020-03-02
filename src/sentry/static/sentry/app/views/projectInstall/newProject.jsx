@@ -13,9 +13,9 @@ const NewProject = ({organization}) => (
       <Content>
         <DocumentTitle title="Sentry" />
         <CreateProject
-          hasIssueAlertOptionsEnabled={['test2Options', 'test3Options'].includes(
-            organization.experiments?.AlertDefaultsExperiment
-          )}
+          hasIssueAlertOptionsEnabled={['2Options', '3Options']
+            .map(variant => variant.concat('V1'))
+            .includes(organization.experiments?.AlertDefaultsExperiment)}
         />
       </Content>
     </div>
