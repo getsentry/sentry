@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 

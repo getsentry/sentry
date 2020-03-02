@@ -135,13 +135,11 @@ class Dashboard extends React.Component {
   }
 }
 
-const OrganizationDashboard = props => {
-  return (
-    <OrganizationDashboardWrapper>
-      <Dashboard {...props} />
-    </OrganizationDashboardWrapper>
-  );
-};
+const OrganizationDashboard = props => (
+  <OrganizationDashboardWrapper>
+    <Dashboard {...props} />
+  </OrganizationDashboardWrapper>
+);
 
 const TeamLink = styled(Link)`
   display: flex;

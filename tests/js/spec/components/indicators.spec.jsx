@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import Indicators from 'app/components/indicators';
 import IndicatorStore from 'app/stores/indicatorStore';
 import {

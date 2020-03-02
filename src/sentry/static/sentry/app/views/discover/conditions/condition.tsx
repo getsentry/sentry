@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Value} from 'react-select-legacy';
+
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-
 import SelectControl from 'app/components/forms/selectControl';
 
 import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';

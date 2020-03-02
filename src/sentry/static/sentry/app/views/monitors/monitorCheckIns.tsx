@@ -45,21 +45,17 @@ export default class MonitorCheckIns extends AsyncComponent<Props, State> {
   renderBody() {
     return (
       <PanelBody>
-        {this.state.checkInList.map(checkIn => {
-          return (
-            <PanelItem key={checkIn.id}>
-              <CheckInIconWrapper>
-                <CheckInIcon status={checkIn.status} size={16} />
-              </CheckInIconWrapper>
-              <TimeSinceWrapper>
-                <TimeSince date={checkIn.dateCreated} />
-              </TimeSinceWrapper>
-              <div>
-                {checkIn.duration && <Duration seconds={checkIn.duration / 100} />}
-              </div>
-            </PanelItem>
-          );
-        })}
+        {this.state.checkInList.map(checkIn => (
+          <PanelItem key={checkIn.id}>
+            <CheckInIconWrapper>
+              <CheckInIcon status={checkIn.status} size={16} />
+            </CheckInIconWrapper>
+            <TimeSinceWrapper>
+              <TimeSince date={checkIn.dateCreated} />
+            </TimeSinceWrapper>
+            <div>{checkIn.duration && <Duration seconds={checkIn.duration / 100} />}</div>
+          </PanelItem>
+        ))}
       </PanelBody>
     );
   }

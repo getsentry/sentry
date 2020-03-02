@@ -5,6 +5,7 @@ import omit from 'lodash/omit';
 import get from 'lodash/get';
 import scrollToElement from 'scroll-to-element';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelItem, PanelBody, PanelHeader} from 'app/components/panels';
@@ -23,12 +24,9 @@ import {
 } from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
 import routeTitleGen from 'app/utils/routeTitle';
-
 import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-
-import styled from '@emotion/styled';
 import {
   addSentryAppToken,
   removeSentryAppToken,
@@ -235,44 +233,42 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
   renderTokens = () => {
     const {tokens} = this.state;
     if (tokens.length > 0) {
-      return tokens.map(token => {
-        return (
-          <StyledPanelItem key={token.token}>
-            <TokenItem>
-              <Tooltip
-                disabled={this.showAuthInfo}
-                position="right"
-                containerDisplayMode="inline"
-                title={t(
-                  'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
-                )}
-              >
-                <TextCopyInput>
-                  {getDynamicText({value: token.token, fixed: 'xxxxxx'})}
-                </TextCopyInput>
-              </Tooltip>
-            </TokenItem>
-            <CreatedDate>
-              <CreatedTitle>Created:</CreatedTitle>
-              <DateTime
-                date={getDynamicText({
-                  value: token.dateCreated,
-                  fixed: new Date(1508208080000),
-                })}
-              />
-            </CreatedDate>
-            <Button
-              onClick={this.onRemoveToken.bind(this, token)}
-              size="small"
-              icon="icon-trash"
-              data-test-id="token-delete"
-              type="button"
+      return tokens.map(token => (
+        <StyledPanelItem key={token.token}>
+          <TokenItem>
+            <Tooltip
+              disabled={this.showAuthInfo}
+              position="right"
+              containerDisplayMode="inline"
+              title={t(
+                'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
+              )}
             >
-              {t('Revoke')}
-            </Button>
-          </StyledPanelItem>
-        );
-      });
+              <TextCopyInput>
+                {getDynamicText({value: token.token, fixed: 'xxxxxx'})}
+              </TextCopyInput>
+            </Tooltip>
+          </TokenItem>
+          <CreatedDate>
+            <CreatedTitle>Created:</CreatedTitle>
+            <DateTime
+              date={getDynamicText({
+                value: token.dateCreated,
+                fixed: new Date(1508208080000),
+              })}
+            />
+          </CreatedDate>
+          <Button
+            onClick={this.onRemoveToken.bind(this, token)}
+            size="small"
+            icon="icon-trash"
+            data-test-id="token-delete"
+            type="button"
+          >
+            {t('Revoke')}
+          </Button>
+        </StyledPanelItem>
+      ));
     } else {
       return <EmptyMessage description={t('No tokens created yet.')} />;
     }
@@ -371,18 +367,16 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               <PanelBody>
                 {app.status !== 'internal' && (
                   <FormField name="clientId" label="Client ID" overflow>
-                    {({value}) => {
-                      return (
-                        <TextCopyInput>
-                          {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
-                        </TextCopyInput>
-                      );
-                    }}
+                    {({value}) => (
+                      <TextCopyInput>
+                        {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                      </TextCopyInput>
+                    )}
                   </FormField>
                 )}
                 <FormField overflow name="clientSecret" label="Client Secret">
-                  {({value}) => {
-                    return value ? (
+                  {({value}) =>
+                    value ? (
                       <Tooltip
                         disabled={this.showAuthInfo}
                         position="right"
@@ -397,8 +391,8 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
                       </Tooltip>
                     ) : (
                       <em>hidden</em>
-                    );
-                  }}
+                    )
+                  }
                 </FormField>
               </PanelBody>
             </Panel>

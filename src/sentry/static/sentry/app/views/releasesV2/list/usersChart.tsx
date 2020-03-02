@@ -38,9 +38,7 @@ class UsersChart extends React.Component<Props> {
       return null;
     }
 
-    const chartData = stats.map(point => {
-      return {x: point[0], y: point[1]};
-    });
+    const chartData = stats.map(point => ({x: point[0], y: point[1]}));
 
     return (
       <LazyLoad debounce={50} height={height}>

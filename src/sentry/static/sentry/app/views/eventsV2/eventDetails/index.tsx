@@ -2,8 +2,8 @@ import {Params} from 'react-router/lib/Router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-
 import {Location} from 'history';
+
 import {Organization} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
@@ -44,11 +44,10 @@ class EventDetails extends React.Component<Props> {
     return EventView.fromLocation(location);
   };
 
-  getDocumentTitle = (name: string | undefined): Array<string> => {
-    return typeof name === 'string' && String(name).trim().length > 0
+  getDocumentTitle = (name: string | undefined): Array<string> =>
+    typeof name === 'string' && String(name).trim().length > 0
       ? [String(name).trim(), t('Discover')]
       : [t('Discover')];
-  };
 
   render() {
     const {organization, location, params} = this.props;

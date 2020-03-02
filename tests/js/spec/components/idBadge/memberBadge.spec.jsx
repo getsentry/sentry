@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount, shallow} from 'sentry-test/enzyme';
 
+import {mount, shallow} from 'sentry-test/enzyme';
 import MemberBadge from 'app/components/idBadge/memberBadge';
 
 describe('MemberBadge', function() {

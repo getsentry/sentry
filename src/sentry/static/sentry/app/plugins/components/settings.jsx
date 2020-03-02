@@ -203,15 +203,15 @@ class PluginSettings extends PluginComponentBase {
               </ul>
             </div>
           )}
-          {this.state.fieldList.map(f => {
-            return this.renderField({
+          {this.state.fieldList.map(f =>
+            this.renderField({
               key: f.name,
               config: f,
               formData: this.state.formData,
               formErrors: this.state.errors,
               onChange: this.changeField.bind(this, f.name),
-            });
-          })}
+            })
+          )}
         </Flex>
       </Form>
     );

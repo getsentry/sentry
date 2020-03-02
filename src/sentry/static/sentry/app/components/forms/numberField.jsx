@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+
 import InputField from 'app/components/forms/inputField';
 
 export default class NumberField extends InputField {

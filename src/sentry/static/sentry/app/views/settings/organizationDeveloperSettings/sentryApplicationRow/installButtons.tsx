@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-
 import {t, tct} from 'app/locale';
 import {SentryApp, SentryAppInstallation} from 'app/types';
 import {IconSubtract} from 'app/icons';
@@ -45,18 +44,16 @@ export const UninstallButton = ({
 type InstallButtonProps = {
   onClickInstall?: () => void;
 };
-export const InstallButton = ({onClickInstall}: InstallButtonProps) => {
-  return (
-    <Button
-      onClick={onClickInstall}
-      size="small"
-      icon="icon-circle-add"
-      className="btn btn-default"
-    >
-      {t('Install')}
-    </Button>
-  );
-};
+export const InstallButton = ({onClickInstall}: InstallButtonProps) => (
+  <Button
+    onClick={onClickInstall}
+    size="small"
+    icon="icon-circle-add"
+    className="btn btn-default"
+  >
+    {t('Install')}
+  </Button>
+);
 
 const StyledButton = styled(Button)`
   color: ${p => p.theme.gray2};

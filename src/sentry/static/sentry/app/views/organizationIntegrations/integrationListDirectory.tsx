@@ -95,9 +95,9 @@ export class OrganizationIntegrations extends AsyncComponent<
 
     // we dont want the app to render twice if its the org that created
     // the published app.
-    const orgOwned = orgOwnedApps.filter(app => {
-      return !published.find(p => p.slug === app.slug);
-    });
+    const orgOwned = orgOwnedApps.filter(
+      app => !published.find(p => p.slug === app.slug)
+    );
 
     /**
      * We should have three sections:
@@ -182,9 +182,8 @@ export class OrganizationIntegrations extends AsyncComponent<
     return this.state.config.providers;
   }
 
-  getAppInstall = (app: SentryApp) => {
-    return this.state.appInstalls.find(i => i.app.slug === app.slug);
-  };
+  getAppInstall = (app: SentryApp) =>
+    this.state.appInstalls.find(i => i.app.slug === app.slug);
 
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
