@@ -40,8 +40,12 @@ def parse_status_value(value):
     raise ValueError("Invalid status value")
 
 
-def parse_duration(value, interval, granularity=0.01):
-    value = float(value)
+def parse_duration(value, interval):
+    try:
+        value = float(value)
+    except ValueError:
+        raise InvalidQuery(u"{} is not a valid duration value".format(value))
+
     if interval == "ms":
         delta = timedelta(milliseconds=value)
     elif interval == "s":
