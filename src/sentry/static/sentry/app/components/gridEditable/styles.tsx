@@ -165,7 +165,7 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   text-transform: uppercase;
   user-select: none;
 
-  background-color: ${p => {
+  background: ${p => {
     if (p.isDragging) {
       return p.theme.purple;
     }
@@ -189,7 +189,8 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
     return p.theme.gray3;
   }};
 
-  a {
+  a,
+  div {
     color: inherit;
     white-space: nowrap;
     text-overflow: ellipsis;
