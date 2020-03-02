@@ -5,6 +5,7 @@ import pytest
 from os import path
 import six
 from six.moves.urllib.parse import urlparse
+import sys
 import datetime
 import shutil
 
@@ -43,15 +44,20 @@ def relay_server_setup(live_server, tmpdir_factory):
     config_path = tmpdir_factory.mktemp(prefix)
     config_path = six.text_type(config_path)
 
-    template_path = _get_template_dir()
-
-    sources = ["config.yml", "credentials.json"]
-
     upstream_url = urlparse(live_server.url)
+    if upstream_url.port is not None:
+        port = six.text_type(upstream_url.port)
+    else:
+        port = "80"
 
-    port = "{}".format(upstream_url.port) if upstream_url.port is not None else "80"
+    if sys.platform.startswith("linux"):
+        upstream = "http://127.0.0.1:%s/" % port
+    else:
+        upstream = "http://host.docker.internal:%s/" % port
 
-    env_vars = [("SENTRY_PORT", port)]
+    template_path = _get_template_dir()
+    sources = ["config.yml", "credentials.json"]
+    env_vars = [("SENTRY_HOST", upstream)]
 
     for source in sources:
         source_path = path.join(template_path, source)
@@ -60,8 +66,7 @@ def relay_server_setup(live_server, tmpdir_factory):
             content = input.read()
 
         for var_name, var_val in env_vars:
-            name = "${{{}}}".format(var_name)
-            content = content.replace(name, var_val)
+            content = content.replace("${%s}" % var_name, var_val)
 
         with open(dest_path, "wt") as output:
             output.write(content)

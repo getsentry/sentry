@@ -47,7 +47,7 @@ base_install: &before_install_default |-
   [ "$TRAVIS_PULL_REQUEST" != "false" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1
 
 # start the containers used by sentry
-dev_services_containers_start : &dev_services_containers_start
+dev_services_containers_start: &dev_services_containers_start
   - pip install --no-cache-dir "pip>=20.0.2"
   - docker network create sentry
   - docker pull us.gcr.io/sentryio/relay:latest # pull relay we'll run and kill it for each test
@@ -55,14 +55,14 @@ dev_services_containers_start : &dev_services_containers_start
   - > # zookeeper
     docker run
     --name sentry_zookeeper
-    -d --network sentry
+    -d --network host
     -e ZOOKEEPER_CLIENT_PORT=2181
     confluentinc/cp-zookeeper:4.1.0
 
   - > # kafka
     docker run
     --name sentry_kafka
-    -d --network sentry
+    -d --network host
     -p 127.0.0.1:9092:9092/tcp
     -v sentry_kafka:/var/lib/kafka
     -e KAFKA_ZOOKEEPER_CONNECT=sentry_zookeeper:2181
@@ -76,7 +76,7 @@ dev_services_containers_start : &dev_services_containers_start
   - > # clickhouse
     docker run
     --name sentry_clickhouse
-    -d --network sentry
+    -d --network host
     -p 127.0.0.1:9000:9000/tcp
     -p 127.0.0.1:9009:9009/tcp
     -p 127.0.0.1:8123:8123/tcp
@@ -88,7 +88,7 @@ dev_services_containers_start : &dev_services_containers_start
   - > # snuba
     docker run
     --name sentry_snuba
-    -d --network sentry
+    -d --network host
     -p 127.0.0.1:1218:1218/tcp
     -e PYTHONUNBUFFERED=1
     -e SNUBA_SETTINGS=docker
@@ -105,7 +105,6 @@ dev_services_containers_start : &dev_services_containers_start
 
   - > # careful quote with ' if you inline
     [ "$TRAVIS_PULL_REQUEST" != "false" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1
-
 
 script:
   # certain commands require sentry init to be run, but this is only true for
