@@ -9,16 +9,6 @@ import getGuidesContent from 'app/components/assistant/getGuidesContent';
 import GuideActions from 'app/actions/guideActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
 
-const defaultState: GuideStoreState = {
-  guides: [],
-  anchors: new Set(),
-  currentGuide: null,
-  currentStep: 0,
-  orgId: null,
-  forceShow: false,
-  prevGuide: null,
-};
-
 const guidesContent: GuidesContent = getGuidesContent();
 
 type GuideStoreState = {
@@ -50,6 +40,16 @@ type GuideStoreState = {
    * The previously shown guide
    */
   prevGuide: Guide | null;
+};
+
+const defaultState: GuideStoreState = {
+  guides: [],
+  anchors: new Set(),
+  currentGuide: null,
+  currentStep: 0,
+  orgId: null,
+  forceShow: false,
+  prevGuide: null,
 };
 
 type GuideStoreInterface = {
