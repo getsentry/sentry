@@ -6,7 +6,6 @@ import six
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.backends import default_backend
 from django import forms
-from django.core.validators import URLValidator
 from django.views.decorators.csrf import csrf_exempt
 from sentry.integrations import (
     IntegrationFeatures,
@@ -77,7 +76,6 @@ class InstallationForm(forms.Form):
             "The base URL for your Bitbucket Server instance, including the host and protocol."
         ),
         widget=forms.TextInput(attrs={"placeholder": "https://bitbucket.example.com"}),
-        validators=[URLValidator()],
     )
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
