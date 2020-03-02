@@ -866,6 +866,10 @@ export type SelectValue<T> = {
   value: T;
 };
 
+export type StringMap<T> = {
+  [key: string]: T;
+};
+
 /**
  * The issue config form fields we get are basically the form fields we use in
  * the UI but with some extra information. Some fields marked optional in the
