@@ -34,6 +34,28 @@ COMPARE_COMMITS_EXAMPLE = {
     ]
 }
 
+COMMIT_CHANGELIST_EXAMPLE = {
+    "values": [
+        {
+            "path": {
+                "components": ["a.txt"],
+                "parent": "",
+                "name": "a.txt",
+                "extension": "txt",
+                "toString": "a.txt"
+            },
+            "executable": False,
+            "percentUnchanged": -1,
+            "type": "MODIFY",
+            "nodeType": "FILE",
+            "srcExecutable": False,
+            "properties": {
+                "gitChangeType": "MODIFY"
+            }
+        }
+    ]
+}
+
 REPO = {
     u"slug": u"helloworld",
     u"id": 72,
