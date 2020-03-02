@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import csv
+import logging
 import tempfile
 from contextlib import contextmanager
 from django.db import transaction, IntegrityError
@@ -14,6 +15,8 @@ from sentry.utils.sdk import capture_exception
 
 SNUBA_MAX_RESULTS = 1000
 
+logger = logging.getLogger(__name__)
+
 
 class DataExportError(Exception):
     pass
@@ -24,6 +27,7 @@ def assemble_download(data_export_id):
     # Extract the ExportedData object
     try:
         data_export = ExportedData.objects.get(id=data_export_id)
+        logger.info("dataexport.start", extra={"id": data_export_id})
     except ExportedData.DoesNotExist as error:
         return capture_exception(error)
 
@@ -44,21 +48,27 @@ def assemble_download(data_export_id):
                     file = File.objects.create(
                         name=file_name, type="export.csv", headers={"Content-Type": "text/csv"}
                     )
-                    file.putfile(tf)
+                    file.putfile(tf, logger=logger)
+                    logger.info("dataexport.end", extra={"id": data_export_id})
                     data_export.finalize_upload(file=file)
             except IntegrityError as error:
+                logger.error(
+                    u"dataexport.error: {}".format(error),
+                    extra={"query": data_export.payload, "org": data_export.organization_id},
+                )
                 capture_exception(error)
                 raise DataExportError("Failed to save the assembled file")
     except DataExportError as error:
-        # TODO(Leander): Implement logging
         metrics.incr("dataexport.error", instance="handled")
         return data_export.email_failure(message=error)
     except NotImplementedError as error:
-        # TODO(Leander): Implement logging
         metrics.incr("dataexport.error", instance="handled")
         return data_export.email_failure(message=error)
     except BaseException as error:
-        # TODO(Leander): Implement logging
+        logger.error(
+            u"dataexport.error: {}".format(error),
+            extra={"query": data_export.payload, "org": data_export.organization_id},
+        )
         metrics.incr("dataexport.error", instance="unhandled", skip_internal=False)
         capture_exception(error)
         return data_export.email_failure(message="Internal processing failure")
@@ -175,6 +185,7 @@ def snuba_error_handler():
     except snuba.QueryIllegalTypeOfArgument:
         raise DataExportError("Invalid query. Argument to function is wrong type.")
     except snuba.SnubaError as error:
+        logger.error(u"dataexport.error: {}".format(error))
         message = "Internal error. Please try again."
         if isinstance(
             error,
