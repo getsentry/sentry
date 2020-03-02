@@ -7,13 +7,13 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {Organization, SavedQuery} from 'app/types';
 import withApi from 'app/utils/withApi';
-
 import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
-import InlineSvg from 'app/components/inlineSvg';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
+import {IconBookmark, IconDelete} from 'app/icons';
 
 import EventView from '../eventView';
 import {getDiscoverLandingUrl} from '../utils';
@@ -208,11 +208,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             showChevron={false}
             disabled={disabled}
           >
-            <ButtonSaveIcon
-              isNewQuery={isNewQuery}
-              src="icon-star-small-filled"
-              size="14"
-            />
+            <StyledIconBookmark size="xs" color={theme.gray2} />
             {t('Save as...')}
           </ButtonSaveAs>
         )}
@@ -250,7 +246,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     return (
       <ButtonSaved disabled={this.props.disabled}>
-        <ButtonSaveIcon isNewQuery={isNewQuery} src="icon-star-small-filled" size="14" />
+        <StyledIconBookmark solid size="xs" color={theme.yellow} />
         {t('Saved query')}
       </ButtonSaved>
     );
@@ -269,7 +265,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         data-test-id="discover2-savedquery-button-update"
         disabled={this.props.disabled}
       >
-        <ButtonUpdateIcon />
+        <IconUpdate />
         {t('Update query')}
       </Button>
     );
@@ -285,10 +281,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     return (
       <Button
         data-test-id="discover2-savedquery-button-delete"
-        icon="icon-trash"
         onClick={this.handleDeleteQuery}
         disabled={this.props.disabled}
-      />
+      >
+        <IconDelete size="xs" color={theme.gray4} />
+      </Button>
     );
   }
 
@@ -325,12 +322,6 @@ const ButtonSaveAs = styled(DropdownButton)`
 const ButtonSaved = styled(Button)`
   cursor: not-allowed;
 `;
-const ButtonSaveIcon = styled(InlineSvg)<{isNewQuery?: boolean}>`
-  margin-top: -3px; /* Align SVG vertically to text */
-  margin-right: ${space(0.75)};
-
-  color: ${p => (p.isNewQuery ? p.theme.gray1 : p.theme.yellow)};
-`;
 const ButtonSaveDropDown = styled('li')`
   padding: ${space(1)};
 `;
@@ -339,7 +330,11 @@ const ButtonSaveInput = styled(Input)`
   margin-bottom: ${space(1)};
 `;
 
-const ButtonUpdateIcon = styled('div')`
+const StyledIconBookmark = styled(IconBookmark)`
+  margin-right: ${space(1)};
+`;
+
+const IconUpdate = styled('div')`
   display: inline-block;
   width: 10px;
   height: 10px;

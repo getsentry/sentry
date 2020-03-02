@@ -1,15 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
-
 import {RouteComponentProps} from 'react-router/lib/Router';
+
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-
 import Button from 'app/components/button';
 
-enum DownloadStatus {
+export enum DownloadStatus {
   Early = 'EARLY',
   Valid = 'VALID',
   Expired = 'EXPIRED',
@@ -30,7 +29,6 @@ type Download = {
   dateCreated: string;
   dateFinished?: string;
   dateExpired?: string;
-  storageUrl?: string;
   query: {
     type: number;
     info: object;
@@ -52,10 +50,6 @@ class DataDownload extends AsyncView<Props, State> {
   getEndpoints(): [string, string][] {
     const {orgId, dataExportId} = this.props.params;
     return [['download', `/organizations/${orgId}/data-export/${dataExportId}/`]];
-  }
-
-  handleDownload(): void {
-    // TODO(Leander): Implement direct download from Google Cloud Storage
   }
 
   renderExpired(): React.ReactNode {
@@ -86,8 +80,11 @@ class DataDownload extends AsyncView<Props, State> {
 
   renderValid(): React.ReactNode {
     const {download} = this.state;
-    // TODO(Leander): Fix this default fallback behavior
-    const d = new Date(download.dateExpired || '');
+    const {orgId, dataExportId} = this.props.params;
+    if (!download.dateExpired) {
+      return null;
+    }
+    const d = new Date(download.dateExpired);
     return (
       <React.Fragment>
         <h3>{t('Finally!')}</h3>
@@ -101,7 +98,7 @@ class DataDownload extends AsyncView<Props, State> {
           icon="icon-download"
           size="large"
           borderless
-          onClick={() => this.handleDownload()}
+          href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
         >
           {t('Download CSV')}
         </Button>
@@ -138,7 +135,6 @@ class DataDownload extends AsyncView<Props, State> {
 const ContentContainer = styled('div')`
   text-align: center;
   margin: ${space(4)} auto;
-  /* TODO(Leander): Responsive sizing */
   width: 350px;
   padding: ${space(4)};
   background: ${p => p.theme.whiteDark};

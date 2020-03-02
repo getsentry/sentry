@@ -15,12 +15,10 @@ class IssueListTagFilter extends React.Component {
     tagValueLoader: PropTypes.func.isRequired,
   };
 
-  static tagValueToSelectFormat = ({value}) => {
-    return {
-      value,
-      label: value,
-    };
-  };
+  static tagValueToSelectFormat = ({value}) => ({
+    value,
+    label: value,
+  });
 
   static defaultProps = {
     tag: {},
@@ -38,7 +36,7 @@ class IssueListTagFilter extends React.Component {
     this.api = new Client();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.value !== this.state.value) {
       this.setState({
         value: nextProps.value,

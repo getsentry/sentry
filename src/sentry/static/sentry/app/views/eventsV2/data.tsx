@@ -11,8 +11,15 @@ import {Organization, NewQuery} from 'app/types';
 import Duration from 'app/components/duration';
 import ShortId from 'app/components/shortId';
 import floatFormat from 'app/utils/floatFormat';
+import Version from 'app/components/version';
 
-import {Container, NumberContainer, OverflowLink, StyledDateTime} from './styles';
+import {
+  Container,
+  NumberContainer,
+  OverflowLink,
+  StyledDateTime,
+  VersionContainer,
+} from './styles';
 
 export const PIN_ICON = `image://${pinIcon}`;
 export const AGGREGATE_ALIASES = [
@@ -23,7 +30,14 @@ export const AGGREGATE_ALIASES = [
   'p99',
   'last_seen',
   'latest_event',
-] as const;
+  'error_rate',
+];
+
+// default list of yAxis options
+export const CHART_AXIS_OPTIONS = [
+  {label: 'count(id)', value: 'count(id)'},
+  {label: 'count_unique(users)', value: 'count_unique(user)'},
+];
 
 export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   id: undefined,
@@ -197,6 +211,7 @@ type SpecialFields = {
   last_seen: SpecialField;
   'issue.id': SpecialField;
   issue: SpecialField;
+  release: SpecialField;
 };
 
 /**
@@ -264,17 +279,24 @@ export const SPECIAL_FIELDS: SpecialFields = {
   },
   last_seen: {
     sortField: 'last_seen',
-    renderFunc: data => {
-      return (
-        <Container>
-          {data.last_seen
-            ? getDynamicText({
-                value: <StyledDateTime date={data.last_seen} />,
-                fixed: 'time',
-              })
-            : emptyValue}
-        </Container>
-      );
-    },
+    renderFunc: data => (
+      <Container>
+        {data.last_seen
+          ? getDynamicText({
+              value: <StyledDateTime date={data.last_seen} />,
+              fixed: 'time',
+            })
+          : emptyValue}
+      </Container>
+    ),
+  },
+  release: {
+    sortField: 'release',
+    renderFunc: data =>
+      data.release && (
+        <VersionContainer>
+          <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+        </VersionContainer>
+      ),
   },
 };

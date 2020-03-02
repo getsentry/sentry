@@ -67,17 +67,15 @@ class ProcessingIssueList extends React.Component {
 
     return (
       <React.Fragment>
-        {issues.map((p, idx) => {
-          return (
-            <ProcessingIssueHint
-              key={idx}
-              issue={p}
-              projectId={p.project}
-              orgId={organization.slug}
-              showProject={showProject}
-            />
-          );
-        })}
+        {issues.map((p, idx) => (
+          <ProcessingIssueHint
+            key={idx}
+            issue={p}
+            projectId={p.project}
+            orgId={organization.slug}
+            showProject={showProject}
+          />
+        ))}
       </React.Fragment>
     );
   }

@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentActivity from 'app/views/alerts/details/activity';
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
@@ -26,6 +26,7 @@ describe('IncidentDetails -> Activity', function() {
     mountWithTheme(
       <IncidentActivity
         params={{alertId: incident.identifier, orgId: organization.slug}}
+        incident={incident}
         {...props}
       />,
       routerContext

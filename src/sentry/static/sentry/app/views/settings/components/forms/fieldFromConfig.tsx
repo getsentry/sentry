@@ -17,7 +17,6 @@ import InputField from './inputField';
 import ChoiceMapperField from './choiceMapperField';
 import RichListField from './richListField';
 import FieldSeparator from './fieldSeparator';
-
 import {Field} from './type';
 
 type Props = {
@@ -92,7 +91,7 @@ export default class FieldFromConfig extends React.Component<Props> {
 
     switch (field.type) {
       case 'separator':
-        return <FieldSeparator {...props} />;
+        return <FieldSeparator />;
       case 'secret':
         return <InputField {...props} type="password" />;
       case 'range':

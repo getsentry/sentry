@@ -13,39 +13,37 @@ interface Props {
   version: string;
   culture: string;
   publicKeyToken: string;
-  filePath: string;
+  filePath: string | null;
 }
 
-const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => {
-  return (
-    <AssemblyWrapper>
-      <Icon src="icon-return-key" />
-      <AssemblyInfo>
-        <Caption>Assembly:</Caption>
-        {name || '-'}
-      </AssemblyInfo>
-      <AssemblyInfo>
-        <Caption>{t('Version')}:</Caption>
-        {version || '-'}
-      </AssemblyInfo>
-      <AssemblyInfo>
-        <Caption>{t('Culture')}:</Caption>
-        {culture || '-'}
-      </AssemblyInfo>
-      <AssemblyInfo>
-        <Caption>PublicKeyToken:</Caption>
-        {publicKeyToken || '-'}
-      </AssemblyInfo>
+const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => (
+  <AssemblyWrapper>
+    <Icon src="icon-return-key" />
+    <AssemblyInfo>
+      <Caption>Assembly:</Caption>
+      {name || '-'}
+    </AssemblyInfo>
+    <AssemblyInfo>
+      <Caption>{t('Version')}:</Caption>
+      {version || '-'}
+    </AssemblyInfo>
+    <AssemblyInfo>
+      <Caption>{t('Culture')}:</Caption>
+      {culture || '-'}
+    </AssemblyInfo>
+    <AssemblyInfo>
+      <Caption>PublicKeyToken:</Caption>
+      {publicKeyToken || '-'}
+    </AssemblyInfo>
 
-      {filePath && (
-        <FilePathInfo>
-          <Caption>{t('Path')}:</Caption>
-          <TextCopyInput>{filePath}</TextCopyInput>
-        </FilePathInfo>
-      )}
-    </AssemblyWrapper>
-  );
-};
+    {filePath && (
+      <FilePathInfo>
+        <Caption>{t('Path')}:</Caption>
+        <TextCopyInput>{filePath}</TextCopyInput>
+      </FilePathInfo>
+    )}
+  </AssemblyWrapper>
+);
 
 // TODO(ts): we should be able to delete these after disabling react/prop-types rule in tsx functional components
 Assembly.propTypes = {
@@ -53,7 +51,7 @@ Assembly.propTypes = {
   version: PropTypes.string.isRequired,
   culture: PropTypes.string.isRequired,
   publicKeyToken: PropTypes.string.isRequired,
-  filePath: PropTypes.string.isRequired,
+  filePath: PropTypes.string,
 };
 
 const AssemblyWrapper = styled('div')`

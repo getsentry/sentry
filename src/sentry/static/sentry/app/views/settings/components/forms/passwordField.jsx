@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import InputField from 'app/views/settings/components/forms/inputField';
 import FormState from 'app/components/forms/state';
 
@@ -24,7 +25,7 @@ export default class PasswordField extends InputField {
     this.state.editing = false;
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // close edit mode after successful save
     // TODO(dcramer): this needs to work with this.context.form
     if (

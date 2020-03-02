@@ -8,6 +8,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Environment, Project, Team
 from sentry.utils.apidocs import attach_scenarios, scenario
+from sentry.utils.compat import map
 
 
 @scenario("RetrieveEventCountsOrganization")

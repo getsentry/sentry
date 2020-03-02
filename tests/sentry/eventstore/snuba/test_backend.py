@@ -133,11 +133,11 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def test_get_next_prev_event_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
 
-        filter = Filter(project_ids=[self.project1.id, self.project2.id])
+        _filter = Filter(project_ids=[self.project1.id, self.project2.id])
 
-        prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
 
-        next_event = self.eventstore.get_next_event_id(event, filter=filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
 
         assert prev_event == (six.text_type(self.project1.id), "a" * 32)
 
@@ -145,40 +145,40 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert next_event == (six.text_type(self.project2.id), "c" * 32)
 
         # Returns None if no event
-        assert self.eventstore.get_prev_event_id(None, filter=filter) is None
-        assert self.eventstore.get_next_event_id(None, filter=filter) is None
+        assert self.eventstore.get_prev_event_id(None, filter=_filter) is None
+        assert self.eventstore.get_next_event_id(None, filter=_filter) is None
 
     def test_get_latest_or_oldest_event_id(self):
         # Returns a latest/oldest event
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
-        filter = Filter(project_ids=[self.project1.id, self.project2.id])
-        oldest_event = self.eventstore.get_earliest_event_id(event, filter=filter)
-        latest_event = self.eventstore.get_latest_event_id(event, filter=filter)
+        _filter = Filter(project_ids=[self.project1.id, self.project2.id])
+        oldest_event = self.eventstore.get_earliest_event_id(event, filter=_filter)
+        latest_event = self.eventstore.get_latest_event_id(event, filter=_filter)
         assert oldest_event == (six.text_type(self.project1.id), "a" * 32)
         assert latest_event == (six.text_type(self.project2.id), "e" * 32)
 
         # Returns none when no latest/oldest event that meets conditions
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
-        filter = Filter(project_ids=[self.project1.id], group_ids=[self.event2.group_id])
-        oldest_event = self.eventstore.get_earliest_event_id(event, filter=filter)
-        latest_event = self.eventstore.get_latest_event_id(event, filter=filter)
+        _filter = Filter(project_ids=[self.project1.id], group_ids=[self.event2.group_id])
+        oldest_event = self.eventstore.get_earliest_event_id(event, filter=_filter)
+        latest_event = self.eventstore.get_latest_event_id(event, filter=_filter)
         assert oldest_event is None
         assert latest_event is None
 
     def test_transaction_get_next_prev_event_id(self):
-        filter = Filter(
+        _filter = Filter(
             project_ids=[self.project1.id, self.project2.id],
             conditions=[["type", "=", "transaction"]],
         )
 
         event = self.eventstore.get_event_by_id(self.project2.id, "e" * 32)
-        prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
-        next_event = self.eventstore.get_next_event_id(event, filter=filter)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
         assert prev_event == (six.text_type(self.project2.id), "d" * 32)
         assert next_event is None
 
         event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
-        prev_event = self.eventstore.get_prev_event_id(event, filter=filter)
-        next_event = self.eventstore.get_next_event_id(event, filter=filter)
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
         assert prev_event is None
         assert next_event == (six.text_type(self.project2.id), "e" * 32)

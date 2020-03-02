@@ -1,62 +1,66 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {
-  Organization,
-  PluginWithProjectList,
-  PluginNoProject,
-  PluginProjectItem,
-} from 'app/types';
+import {PluginWithProjectList, PluginProjectItem} from 'app/types';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import AsyncComponent from 'app/components/asyncComponent';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import Tag from 'app/views/settings/components/tag';
-import Access from 'app/components/acl/access';
-import Tooltip from 'app/components/tooltip';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
-import ExternalLink from 'app/components/links/externalLink';
 import InstalledPlugin from 'app/views/organizationIntegrations/installedPlugin';
-import {openModal} from 'app/actionCreators/modal';
+import * as modal from 'app/actionCreators/modal';
 import ContextPickerModal from 'app/components/contextPickerModal';
-import {getIntegrationFeatureGate} from 'app/utils/integrationUtil';
 import {t} from 'app/locale';
 
-type Tab = 'information' | 'configurations';
-const tabs: Tab[] = ['information', 'configurations'];
+import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 
 type State = {
   plugins: PluginWithProjectList[];
-  tab: Tab;
 };
 
-type Props = {
-  organization: Organization;
-} & RouteComponentProps<{orgId: string; pluginSlug: string}, {}>;
+type Tab = AbstractIntegrationDetailedView['state']['tab'];
 
-class PluginDetailedView extends AsyncComponent<
-  Props & AsyncComponent['props'],
-  State & AsyncComponent['state']
+class PluginDetailedView extends AbstractIntegrationDetailedView<
+  AbstractIntegrationDetailedView['props'],
+  State & AbstractIntegrationDetailedView['state']
 > {
-  componentDidMount() {
-    const {location} = this.props;
-    const value =
-      location.query.tab === 'configurations' ? 'configurations' : 'information';
-
-    // eslint-disable-next-line react/no-did-mount-set-state
-    this.setState({tab: value});
-  }
-
   getEndpoints(): ([string, string, any] | [string, string])[] {
-    const {orgId, pluginSlug} = this.props.params;
+    const {orgId, integrationSlug} = this.props.params;
     return [
-      ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${pluginSlug}`],
+      ['plugins', `/organizations/${orgId}/plugins/configs/?plugins=${integrationSlug}`],
     ];
   }
+
+  get integrationType() {
+    return 'plugin' as const;
+  }
+
   get plugin() {
     return this.state.plugins[0];
+  }
+
+  get description() {
+    return this.plugin.description || '';
+  }
+
+  get author() {
+    return this.plugin.author?.name;
+  }
+
+  get resourceLinks() {
+    return this.plugin.resourceLinks || [];
+  }
+
+  get installationStatus() {
+    return this.plugin.projectList.length > 0 ? 'Installed' : 'Not Installed';
+  }
+
+  get integrationName() {
+    const isLegacy = this.plugin.isHidden;
+    const displayName = `${this.plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
+    return displayName;
+  }
+
+  get featureData() {
+    return this.plugin.featureDescriptions;
   }
 
   handleResetConfiguration = (projectId: string) => {
@@ -76,7 +80,7 @@ class PluginDetailedView extends AsyncComponent<
     });
   };
 
-  handleEnablePlugin = (projectId: string) => {
+  handlePluginEnableStatus = (projectId: string, enable: boolean = true) => {
     //make a copy of our project list
     const projectList = this.plugin.projectList.slice();
     //find the index of the project
@@ -89,7 +93,7 @@ class PluginDetailedView extends AsyncComponent<
     //update item in array
     projectList[index] = {
       ...projectList[index],
-      enabled: true,
+      enabled: enable,
     };
 
     //update state
@@ -101,7 +105,11 @@ class PluginDetailedView extends AsyncComponent<
   handleAddToProject = () => {
     const plugin = this.plugin;
     const {organization, router} = this.props;
-    openModal(
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.plugin_add_to_project_clicked',
+      eventName: 'Integrations: Plugin Add to Project Clicked',
+    });
+    modal.openModal(
       ({closeModal, Header, Body}) => (
         <ContextPickerModal
           Header={Header}
@@ -119,216 +127,54 @@ class PluginDetailedView extends AsyncComponent<
     );
   };
 
-  onTabChange = (value: Tab) => {
-    this.setState({tab: value});
-  };
-
-  featureTags() {
-    return this.plugin.features.map(feature => (
-      <StyledTag key={feature}>{feature.replace(/-/g, ' ')}</StyledTag>
-    ));
-  }
-
-  mapPluginToProvider() {
-    const plugin = this.plugin;
-    return {
-      key: plugin.slug,
-    };
-  }
-
   getTabDiplay(tab: Tab) {
     //we want to show project configurations to make it more clear
     if (tab === 'configurations') {
       return 'project configurations';
     }
-    return tab;
+    return 'overview';
   }
 
-  renderBody() {
-    const plugin = this.plugin;
-    const {tab} = this.state;
-    const {organization} = this.props;
-
-    // Prepare the features list
-    const features = plugin.featureDescriptions.map(f => ({
-      featureGate: f.featureGate,
-      description: <FeatureListItem>{f.description}</FeatureListItem>,
-    }));
-
-    const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
-    const featureProps = {organization, features};
-
+  renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     return (
-      <React.Fragment>
-        <Flex>
-          <PluginIcon size={60} pluginId={plugin.slug} />
-          <TitleContainer>
-            <Title>{plugin.name}</Title>
-            <Flex>{this.featureTags()}</Flex>
-          </TitleContainer>
-          <IntegrationFeatures {...featureProps}>
-            {({disabled, disabledReason}) => (
-              <div
-                style={{
-                  marginLeft: 'auto',
-                  alignSelf: 'center',
-                }}
-              >
-                {disabled && <DisabledNotice reason={disabledReason} />}
-                <Access organization={organization} access={['org:integrations']}>
-                  {({hasAccess}) => (
-                    <Tooltip
-                      title={t(
-                        'You must be an organization owner, manager or admin to install this.'
-                      )}
-                      disabled={hasAccess}
-                    >
-                      <AddButton
-                        data-test-id="add-button"
-                        disabled={disabled || !hasAccess}
-                        onClick={this.handleAddToProject}
-                        size="small"
-                        priority="primary"
-                      >
-                        {t('Add to Project')}
-                      </AddButton>
-                    </Tooltip>
-                  )}
-                </Access>
-              </div>
-            )}
-          </IntegrationFeatures>
-        </Flex>
-        <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
-          {tabs.map(tabName => (
-            <li
-              key={tabName}
-              className={tab === tabName ? 'active' : ''}
-              onClick={() => this.onTabChange(tabName)}
-            >
-              <a style={{textTransform: 'capitalize'}}>{t(this.getTabDiplay(tabName))}</a>
-            </li>
-          ))}
-        </ul>
-        {tab === 'information' ? (
-          <InformationCard plugin={plugin}>
-            <FeatureList {...featureProps} provider={this.mapPluginToProvider()} />
-          </InformationCard>
-        ) : (
-          <div>
-            {plugin.projectList.map((projectItem: PluginProjectItem) => (
-              <InstalledPlugin
-                key={projectItem.projectId}
-                organization={organization}
-                plugin={plugin}
-                projectItem={projectItem}
-                onResetConfiguration={this.handleResetConfiguration}
-                onEnablePlugin={this.handleEnablePlugin}
-              />
-            ))}
-          </div>
-        )}
-      </React.Fragment>
+      <AddButton
+        data-test-id="add-button"
+        disabled={disabledFromFeatures || !userHasAccess}
+        onClick={this.handleAddToProject}
+        size="small"
+        priority="primary"
+      >
+        {t('Add to Project')}
+      </AddButton>
     );
   }
+
+  renderConfigurations() {
+    const plugin = this.plugin;
+    const {organization} = this.props;
+    if (plugin.projectList.length) {
+      return (
+        <div>
+          {plugin.projectList.map((projectItem: PluginProjectItem) => (
+            <InstalledPlugin
+              key={projectItem.projectId}
+              organization={organization}
+              plugin={plugin}
+              projectItem={projectItem}
+              onResetConfiguration={this.handleResetConfiguration}
+              onPluginEnableStatusChange={this.handlePluginEnableStatus}
+              trackIntegrationEvent={this.trackIntegrationEvent}
+            />
+          ))}
+        </div>
+      );
+    }
+    return this.renderEmptyConfigurations();
+  }
 }
-
-const Flex = styled('div')`
-  display: flex;
-`;
-
-const Title = styled('div')`
-  font-weight: bold;
-  font-size: 1.4em;
-  margin-bottom: ${space(1)};
-`;
-
-const TitleContainer = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  justify-content: center;
-  padding-left: ${space(2)};
-`;
-
-const StyledTag = styled(Tag)`
-  &:not(:first-child) {
-    margin-left: ${space(0.5)};
-  }
-`;
-
-const Description = styled('div')`
-  font-size: 1.5rem;
-  line-height: 2.1rem;
-  margin-bottom: ${space(2)};
-
-  li {
-    margin-bottom: 6px;
-  }
-`;
-
-const Metadata = styled(Flex)`
-  font-size: 0.9em;
-  margin-bottom: ${space(2)};
-
-  a {
-    margin-left: ${space(1)};
-  }
-`;
-
-const AuthorName = styled('div')`
-  color: ${p => p.theme.gray2};
-  flex: 1;
-`;
-
-const FeatureListItem = styled('span')`
-  line-height: 24px;
-`;
 
 const AddButton = styled(Button)`
   margin-left: ${space(1)};
 `;
-
-const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
-  <div
-    style={{
-      flex: 1,
-      alignItems: 'center',
-    }}
-    {...p}
-  >
-    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
-    <div style={{marginLeft: `${space(1)}`}}>{reason}</div>
-  </div>
-))`
-  color: ${p => p.theme.red};
-  font-size: 0.9em;
-`;
-
-type InformationCardProps = {
-  children: React.ReactNode;
-  plugin: PluginNoProject;
-};
-
-const InformationCard = ({children, plugin}: InformationCardProps) => {
-  return (
-    <React.Fragment>
-      <Description>{plugin.description}</Description>
-      {children}
-      <Metadata>
-        {plugin.author && <AuthorName>{t('By %s', plugin.author.name)}</AuthorName>}
-        <div>
-          {/** TODO: May want to make resource links have same title as global integrations */}
-          {plugin.resourceLinks &&
-            plugin.resourceLinks.map(({title, url}) => (
-              <ExternalLink key={url} href={url}>
-                {title}
-              </ExternalLink>
-            ))}
-        </div>
-      </Metadata>
-    </React.Fragment>
-  );
-};
 
 export default withOrganization(PluginDetailedView);

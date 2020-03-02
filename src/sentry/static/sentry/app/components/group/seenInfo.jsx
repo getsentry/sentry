@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import DateTime from 'app/components/dateTime';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
@@ -99,7 +100,7 @@ class SeenInfo extends React.Component {
               projectId={projectId}
               version={release.version}
             >
-              <Version orgId={orgId} version={release.version} className="truncate" />
+              <Version version={release.version} truncate />
             </VersionHoverCard>
           </dd>
         ) : !this.props.hasRelease ? (

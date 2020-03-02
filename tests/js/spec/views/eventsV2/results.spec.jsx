@@ -1,7 +1,7 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {browserHistory} from 'react-router';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import Results from 'app/views/eventsV2/results';
 
@@ -15,13 +15,14 @@ const FIELDS = [
   {
     field: 'user',
   },
+  {
+    field: 'count(user)',
+  },
 ];
 
-const generateFields = () => {
-  return {
-    field: FIELDS.map(i => i.field),
-  };
-};
+const generateFields = () => ({
+  field: FIELDS.map(i => i.field),
+});
 
 describe('EventsV2 > Results', function() {
   const eventTitle = 'Oh no something bad';
@@ -100,6 +101,19 @@ describe('EventsV2 > Results', function() {
         ],
         tags: [{key: 'browser', value: 'Firefox'}],
       },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-facets/',
+      body: [
+        {
+          key: 'release',
+          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+        },
+        {
+          key: 'environment',
+          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+        },
+      ],
     });
   });
 
@@ -200,7 +214,7 @@ describe('EventsV2 > Results', function() {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {...generateFields(), yAxis: 'count_id'}},
+        location: {query: {...generateFields(), yAxis: 'count(user)'}},
       },
     });
 
@@ -220,12 +234,12 @@ describe('EventsV2 > Results', function() {
 
     // Click one of the options.
     selector
-      .find('DropdownMenu MenuItem a')
+      .find('DropdownMenu MenuItem span')
       .first()
       .simulate('click');
     wrapper.update();
 
     const eventsRequest = wrapper.find('EventsChart');
-    expect(eventsRequest.props().yAxis).toEqual('count_id');
+    expect(eventsRequest.props().yAxis).toEqual('count(user)');
   });
 });

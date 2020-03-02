@@ -5,10 +5,14 @@ from datetime import datetime
 
 from time import time
 from django.utils import timezone
+from django.conf import settings
 
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import features, reprocessing
+from sentry.constants import DataCategory
+from sentry.relay.config import get_project_config
+from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
@@ -38,6 +42,7 @@ class RetrySymbolication(Exception):
         self.retry_after = retry_after
 
 
+@metrics.wraps("should_process")
 def should_process(data):
     """Quick check if processing is needed at all."""
     from sentry.plugins.base import plugins
@@ -182,7 +187,11 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
         return
 
     data = CanonicalKeyDict(data)
+
     project_id = data["project"]
+    event_id = data["event_id"]
+
+    project = Project.objects.get_from_cache(id=project_id)
 
     with configure_scope() as scope:
         scope.set_tag("project", project_id)
@@ -208,10 +217,18 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
             has_changed = True
             data = new_data
     except RetrySymbolication as e:
-        if start_time and (time() - start_time) > 3600:
+        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
+            error_logger.warning(
+                "process.slow", extra={"project_id": project_id, "event_id": event_id}
+            )
+
+        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             # Do not drop event but actually continue with rest of pipeline
             # (persisting unsymbolicated event)
-            error_logger.exception("process.failed.infinite_retry")
+            error_logger.exception(
+                "process.failed.infinite_retry",
+                extra={"project_id": project_id, "event_id": event_id},
+            )
         else:
             retry_process_event.apply_async(
                 args=(),
@@ -227,6 +244,32 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
             )
             return
 
+    # Second round of datascrubbing after stacktrace and language-specific
+    # processing. First round happened as part of ingest.
+    #
+    # We assume that all potential PII is produced as part of stacktrace
+    # processors and event enhancers.
+    #
+    # We assume that plugins for eg sessionstack (running via
+    # `plugin.get_event_preprocessors`) are not producing data that should be
+    # PII-stripped, ever.
+    #
+    # XXX(markus): Javascript event error translation is happening after this block
+    # because it uses `get_event_preprocessors` instead of
+    # `get_event_enhancers`, possibly move?
+    if has_changed and features.has(
+        "organizations:datascrubbers-v2", project.organization, actor=None
+    ):
+        with metrics.timer("tasks.store.datascrubbers.scrub"):
+            project_config = get_project_config(project)
+
+            new_data = safe_execute(scrub_data, project_config=project_config, event=data.data)
+
+            # XXX(markus): When datascrubbing is finally "totally stable", we might want
+            # to drop the event if it crashes to avoid saving PII
+            if new_data is not None:
+                data.data = new_data
+
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
     for plugin in plugins.all(version=2):
@@ -239,8 +282,7 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
                 data = result
                 has_changed = True
 
-    assert data["project"] == project_id, "Project cannot be mutated by preprocessor"
-    project = Project.objects.get_from_cache(id=project_id)
+    assert data["project"] == project_id, "Project cannot be mutated by plugins"
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
@@ -436,6 +478,8 @@ def _do_save_event(
             if data is not None:
                 metric_tags["event_type"] = event_type = data.get("type") or "none"
 
+    data_category = DataCategory.from_event_type(event_type)
+
     with metrics.global_tags(event_type=event_type):
         if data is not None:
             data = CanonicalKeyDict(data)
@@ -488,6 +532,7 @@ def _do_save_event(
 
             with metrics.timer("tasks.store.do_save_event.track_outcome"):
                 # This is where we can finally say that we have accepted the event.
+                mark_signal_sent(event.project.id, event_id)
                 track_outcome(
                     event.project.organization_id,
                     event.project.id,
@@ -496,6 +541,7 @@ def _do_save_event(
                     None,
                     timestamp,
                     event_id,
+                    data_category,
                 )
 
         except HashDiscarded:
@@ -509,12 +555,12 @@ def _do_save_event(
                 pass
 
             quotas.refund(project, key=project_key, timestamp=start_time)
-            # There is no signal supposed to be sent for this particular
-            # outcome-reason combination. Prevent the outcome consumer from
-            # emitting it for now.
-            #
-            # XXX(markus): Revisit decision about signals once outcomes consumer is stable.
+
+            # This outcome corresponds to the event_discarded signal. The
+            # outcomes_consumer generically handles all FILTERED outcomes, but
+            # needs to skip this one.
             mark_signal_sent(project_id, event_id)
+
             track_outcome(
                 project.organization_id,
                 project_id,
@@ -523,6 +569,7 @@ def _do_save_event(
                 reason,
                 timestamp,
                 event_id,
+                data_category,
             )
 
         finally:

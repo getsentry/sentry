@@ -40,6 +40,7 @@ describe('EventsErrors', function() {
         pathname: '/organizations/org-slug/events/',
         query: {},
       },
+      params: {orgId: 'org-slug'},
     },
   });
 
@@ -87,9 +88,7 @@ describe('EventsErrors', function() {
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: (_url, opts) => {
-        return TestStubs.EventsStats(opts.query);
-      },
+      body: (_url, opts) => TestStubs.EventsStats(opts.query),
     });
     eventsMetaMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-meta/',
@@ -315,6 +314,7 @@ describe('EventsContainer', function() {
         pathname: '/organizations/org-slug/events/',
         query: {},
       },
+      params: {orgId: 'org-slug'},
     },
   });
 
@@ -341,9 +341,7 @@ describe('EventsContainer', function() {
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: (_url, opts) => {
-        return TestStubs.EventsStats(opts.query);
-      },
+      body: (_url, opts) => TestStubs.EventsStats(opts.query),
     });
     eventsMetaMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-meta/',

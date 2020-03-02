@@ -2,17 +2,17 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import isObject from 'lodash/isObject';
+
 import AsyncComponent from 'app/components/asyncComponent';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import Tooltip from 'app/components/tooltip';
 import BetaTag from 'app/components/betaTag';
-
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
-
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
 export const GroupingConfigItem = styled(
@@ -34,8 +34,11 @@ const GroupVariantListItem = styled(({contributes: _contributes, ...props}) => (
   <li {...props} />
 ))`
   padding: 15px 0 20px 0;
-  margin-top: 15px;
   ${p => (p.contributes ? '' : 'color:' + p.theme.gray6)};
+
+  & + li {
+    margin-top: 15px;
+  }
 `;
 
 const GroupVariantTitle = styled('h5')`
@@ -73,6 +76,20 @@ const GroupingValue = styled('code')`
   font-size: 12px;
   padding: 1px 2px;
   color: inherit;
+`;
+
+const Toggle = styled('a')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 700;
+  color: ${p => p.theme.foreground};
+`;
+
+const SubHeading = styled('small')`
+  text-transform: none;
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.foreground};
+  margin-left: ${space(1)};
 `;
 
 class GroupingComponent extends React.Component {
@@ -239,12 +256,10 @@ class GroupingConfigSelect extends AsyncComponent {
         selectedItem={configId}
         items={this.state.data
           .filter(item => !item.hidden || item.id === eventConfigId)
-          .map(item => {
-            return {
-              value: item.id,
-              label: renderIdLabel(item.id),
-            };
-          })}
+          .map(item => ({
+            value: item.id,
+            label: renderIdLabel(item.id),
+          }))}
       >
         {({isOpen}) => (
           <Tooltip title="Click here to experiment with other grouping configs">
@@ -312,12 +327,7 @@ class EventGroupingInfo extends AsyncComponent {
     }
     variants.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
-    return (
-      <React.Fragment>
-        {' '}
-        <small>{`(grouped by ${variants.join(', ') || 'nothing'})`}</small>
-      </React.Fragment>
-    );
+    return <SubHeading>{`(grouped by ${variants.join(', ') || 'nothing'})`}</SubHeading>;
   }
 
   renderGroupInfo() {
@@ -363,21 +373,26 @@ class EventGroupingInfo extends AsyncComponent {
 
   renderBody() {
     const isOpen = this.state.isOpen;
+    const title = (
+      <React.Fragment>
+        {t('Event Grouping Information')}
+        {!isOpen && this.renderGroupInfoSummary()}
+      </React.Fragment>
+    );
+    const actions = (
+      <Toggle onClick={this.toggle}>
+        {isOpen ? t('Hide Details') : t('Show Details')} <BetaTag />
+      </Toggle>
+    );
+
     return (
       <EventDataSection
         event={this.props.event}
         type="grouping-info"
         className="grouping-info"
+        title={title}
+        actions={actions}
       >
-        <div className="box-header">
-          <a className="pull-right grouping-info-toggle" onClick={this.toggle}>
-            {isOpen ? t('Hide Details') : t('Show Details')} <BetaTag />
-          </a>
-          <h3>
-            {t('Event Grouping Information')}
-            {!isOpen && this.renderGroupInfoSummary()}
-          </h3>
-        </div>
         <div style={{display: isOpen ? 'block' : 'none'}}>
           {this.state.groupInfo !== null && isOpen && this.renderGroupInfo()}
         </div>

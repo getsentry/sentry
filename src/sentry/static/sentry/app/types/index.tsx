@@ -1,6 +1,18 @@
 import {SpanEntry} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
+import {
+  INSTALLED,
+  NOT_INSTALLED,
+  PENDING,
+} from 'app/views/organizationIntegrations/constants';
+
+export type IntegrationInstallationStatus =
+  | typeof INSTALLED
+  | typeof NOT_INSTALLED
+  | typeof PENDING;
+
+export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
 
 export type ObjectStatus =
   | 'active'
@@ -56,7 +68,7 @@ export type LightWeightOrganization = OrganizationSummary & {
     maxRate: number | null;
   };
   defaultRole: string;
-  experiments: ActiveExperiments;
+  experiments: Partial<ActiveExperiments>;
   allowJoinRequests: boolean;
   scrapeJavaScript: boolean;
   isDefault: boolean;
@@ -70,13 +82,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   dataScrubberDefaults: boolean;
   dataScrubber: boolean;
   role?: string;
-  onboardingTasks: Array<{
-    status: string;
-    dateCompleted: string;
-    task: number;
-    data: object;
-    user: string | null;
-  }>;
+  onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: string[];
 };
 
@@ -108,6 +114,30 @@ export type Project = {
   plugins: Plugin[];
   processingIssues: number;
 } & AvatarProject;
+
+export type ProjectRelease = {
+  version: string;
+  dateCreated: string;
+  dateReleased: string | null;
+  commitCount: number;
+  authors: User[];
+  newGroups: number;
+  healthData: Health | null;
+  projectSlug: string;
+};
+
+export type Health = {
+  crash_free_users: number | null;
+  total_users: number;
+  crash_free_sessions: number | null;
+  stats: HealthGraphData;
+  crashes: number;
+  errors: number;
+  adoption: number | null;
+};
+export type HealthGraphData = {
+  [key: string]: [number, number][];
+};
 
 export type Team = {
   id: string;
@@ -151,7 +181,7 @@ type EntryType = {
 
 export type EventTag = {key: string; value: string};
 
-type EventUser = {
+export type EventUser = {
   username?: string;
   name?: string;
   ip_address?: string;
@@ -228,6 +258,10 @@ export type EventsStats = {
   totals?: {count: number};
 };
 
+export type YAxisEventsStats = {
+  [yAxisName: string]: EventsStats;
+};
+
 // Avatars are a more primitive version of User.
 export type AvatarUser = {
   id: string;
@@ -245,6 +279,16 @@ export type AvatarUser = {
   lastSeen?: string;
 };
 
+/**
+ * This is an authenticator that a user is enrolled in
+ */
+type UserEnrolledAuthenticator = {
+  dateUsed: EnrolledAuthenticator['lastUsedAt'];
+  dateCreated: EnrolledAuthenticator['createdAt'];
+  type: Authenticator['id'];
+  id: EnrolledAuthenticator['authId'];
+};
+
 export type User = AvatarUser & {
   lastLogin: string;
   isSuperuser: boolean;
@@ -260,7 +304,7 @@ export type User = AvatarUser & {
   isActive: boolean;
   has2fa: boolean;
   canReset2fa: boolean;
-  authenticators: Authenticator[];
+  authenticators: UserEnrolledAuthenticator[];
   dateJoined: string;
   options: {
     timezone: string;
@@ -308,10 +352,7 @@ export type PluginNoProject = {
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
   features: string[];
-  featureDescriptions: Array<{
-    description: string;
-    featureGate: string;
-  }>;
+  featureDescriptions: IntegrationFeature[];
 };
 
 export type Plugin = PluginNoProject & {
@@ -343,12 +384,59 @@ export type GlobalSelection = {
   };
 };
 
-type Authenticator = {
-  dateUsed: string | null;
-  dateCreated: string;
-  type: string; // i.e. 'u2f'
-  id: string;
+export type Authenticator = {
+  /**
+   * String used to display on button for user as CTA to enroll
+   */
+  enrollButton: string;
+
+  /**
+   * Display name for the authenticator
+   */
   name: string;
+
+  /**
+   * Allows multiple enrollments to authenticator
+   */
+  allowMultiEnrollment: boolean;
+
+  /**
+   * String to display on button for user to remove authenticator
+   */
+  removeButton: string | null;
+
+  canValidateOtp: boolean;
+
+  /**
+   * Is user enrolled to this authenticator
+   */
+  isEnrolled: boolean;
+
+  /**
+   * String to display on button for additional information about authenticator
+   */
+  configureButton: string;
+
+  /**
+   * Type of authenticator
+   */
+  id: string;
+
+  /**
+   * Is this used as a backup interface?
+   */
+  isBackupInterface: boolean;
+
+  /**
+   * Description of the authenticator
+   */
+  description: string;
+} & Partial<EnrolledAuthenticator>;
+
+export type EnrolledAuthenticator = {
+  lastUsedAt: string | null;
+  createdAt: string;
+  authId: string;
 };
 
 export type Config = {
@@ -386,24 +474,14 @@ export type Config = {
   distPrefix: string;
 };
 
-type Metadata = {
-  value: string;
-  message: string;
-  directive: string;
-  type: string;
-  title: string;
-  uri: string;
-};
-
-type EventOrGroupType = [
-  'error',
-  'csp',
-  'hpkp',
-  'expectct',
-  'expectstaple',
-  'default',
-  'transaction'
-];
+export type EventOrGroupType =
+  | 'error'
+  | 'csp'
+  | 'hpkp'
+  | 'expectct'
+  | 'expectstaple'
+  | 'default'
+  | 'transaction';
 
 // TODO(ts): incomplete
 export type Group = {
@@ -424,7 +502,7 @@ export type Group = {
   lastSeen: string;
   level: string;
   logger: string;
-  metadata: Metadata;
+  metadata: EventMetadata;
   numComments: number;
   participants: any[]; // TODO(ts)
   permalink: string;
@@ -445,6 +523,9 @@ export type Group = {
   userReportCount: number;
 };
 
+/**
+ * Returned from /organizations/org/users/
+ */
 export type Member = {
   dateCreated: string;
   email: string;
@@ -460,9 +541,10 @@ export type Member = {
   isOnlyOwner: boolean;
   name: string;
   pending: boolean | undefined;
+  projects: string[];
   role: string;
   roleName: string;
-  roles: MemberRole[];
+  roles: MemberRole[]; // TODO(ts): This is not present from API call
   teams: string[];
   user: User;
 };
@@ -491,19 +573,30 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
-export type IntegrationProvider = {
+type BaseIntegrationProvider = {
   key: string;
+  slug: string;
   name: string;
   canAdd: boolean;
   canDisable: boolean;
   features: string[];
-  aspects: any; //TODO(ts)
+};
+
+export type IntegrationProvider = BaseIntegrationProvider & {
   setupDialog: {url: string; width: number; height: number};
-  metadata: any; //TODO(ts)
+  metadata: {
+    description: string;
+    features: IntegrationFeature[];
+    author: string;
+    noun: string;
+    issue_url: string;
+    source_url: string;
+    aspects: any; //TODO(ts)
+  };
 };
 
 export type IntegrationFeature = {
-  description: React.ReactNode;
+  description: string;
   featureGate: string;
 };
 
@@ -535,7 +628,7 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  status: 'unpublished' | 'published' | 'internal';
+  status: SentryAppStatus;
   scopes: Scope[];
   isAlertable: boolean;
   verifyInstall: boolean;
@@ -568,7 +661,7 @@ export type Integration = {
   domainName: string;
   accountType: string;
   status: ObjectStatus;
-  provider: IntegrationProvider;
+  provider: BaseIntegrationProvider & {aspects: any};
   configOrganization: Field[];
   //TODO(ts): This includes the initial data that is passed into the integration's configuration form
   configData: object;
@@ -683,7 +776,7 @@ export type Release = {
   authors: User[];
   owner?: any; // TODO(ts)
   newGroups: number;
-  projects: {slug: string; name: string}[];
+  projects: {slug: string; name: string; healthData?: Health | null}[];
 } & BaseRelease;
 
 export type BaseRelease = {
@@ -774,10 +867,10 @@ export type SelectValue<T> = {
 };
 
 /**
- * The issue config form fields we get are basically the form fields we use in the UI but with some extra information.
- * Some fields marked optional in the form field are guaranteed to exist so we can mark them as required here
+ * The issue config form fields we get are basically the form fields we use in
+ * the UI but with some extra information. Some fields marked optional in the
+ * form field are guaranteed to exist so we can mark them as required here
  */
-
 export type IssueConfigField = Field & {
   name: string;
   default?: string;
@@ -796,17 +889,47 @@ export type IntegrationIssueConfig = {
   icon: string[];
 };
 
-export type OnboardingTask = {
-  task: number;
+export enum OnboardingTaskKey {
+  FIRST_PROJECT = 'create_project',
+  FIRST_EVENT = 'send_first_event',
+  INVITE_MEMBER = 'invite_member',
+  SECOND_PLATFORM = 'setup_second_platform',
+  USER_CONTEXT = 'setup_user_context',
+  RELEASE_TRACKING = 'setup_release_tracking',
+  SOURCEMAPS = 'setup_sourcemaps',
+  USER_REPORTS = 'setup_user_reports',
+  ISSUE_TRACKER = 'setup_issue_tracker',
+  ALERT_RULE = 'setup_alert_rules',
+}
+
+export type OnboardingTaskDescriptor = {
+  task: OnboardingTaskKey;
   title: string;
   description: string;
   detailedDescription?: string;
   skippable: boolean;
   prereq: number[];
-  featureLocation: string;
-  location: string | (() => void);
   display: boolean;
+} & (
+  | {
+      actionType: 'app' | 'external';
+      location: string;
+    }
+  | {
+      actionType: 'action';
+      action: () => void;
+    }
+);
+
+export type OnboardingTaskStatus = {
+  task: OnboardingTaskKey;
+  status: 'skipped' | 'pending' | 'complete';
+  user?: string | null;
+  dateCompleted?: string;
+  data?: object;
 };
+
+export type OnboardingTask = OnboardingTaskStatus & OnboardingTaskDescriptor;
 
 export type Tag = {
   name: string;
@@ -816,4 +939,45 @@ export type Tag = {
   predefined?: boolean;
 };
 
+export type TagValue = {
+  count: number;
+  name: string;
+  value: string;
+  lastSeen: string;
+  key: string;
+  firstSeen: string;
+  query?: string;
+  email?: string;
+  username?: string;
+  identifier?: string;
+  ipAddress?: string;
+} & AvatarUser;
+
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
+
+export type Meta = {
+  chunks: Array<Chunks>;
+  len: number;
+  rem: Array<Array<string | number>>;
+  err: Array<any>;
+};
+
+export type Chunks = {
+  text: string;
+  type: string;
+  remark?: string;
+  rule_id?: string;
+};
+
+export enum ResolutionStatus {
+  RESOLVED = 'resolved',
+  UNRESOLVED = 'unresolved',
+}
+export type ResolutionStatusDetails = {
+  inRelease?: string;
+  inNextRelease?: boolean;
+};
+export type UpdateResolutionStatus = {
+  status: ResolutionStatus;
+  statusDetails?: ResolutionStatusDetails;
+};

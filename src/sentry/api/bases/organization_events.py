@@ -7,6 +7,7 @@ from sentry.api.bases import OrganizationEndpoint, OrganizationEventsError
 from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.snuba.discover import ReferenceEvent
+from sentry.utils.compat import map
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -44,7 +45,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             # Instead of using this parameter clients should use `issue.id`
             # in their query string.
             try:
-                group_ids = set(map(int, filter(None, group_ids)))
+                group_ids = set(map(int, [_f for _f in group_ids if _f]))
             except ValueError:
                 raise OrganizationEventsError("Invalid group parameter. Values must be numbers")
 

@@ -21,17 +21,23 @@ type FormField = {
 };
 
 type Props = {
+  index: number;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
   data?: IssueAlertRuleAction | IssueAlertRuleCondition;
-  onDelete: () => void;
-  onPropertyChange: (name: string, value: string) => void;
+  onDelete: (rowIndex: number) => void;
+  onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
 class RuleNode extends React.Component<Props> {
+  handleDelete = () => {
+    const {index, onDelete} = this.props;
+    onDelete(index);
+  };
+
   getChoiceField = (name: string, fieldConfig: FormField) => {
     // Select the first item on this list
     // If it's not yet defined, call onPropertyChange to make sure the value is set on state
-    const {data, onPropertyChange} = this.props;
+    const {data, index, onPropertyChange} = this.props;
     let initialVal;
 
     if (data) {
@@ -41,57 +47,64 @@ class RuleNode extends React.Component<Props> {
         } else {
           initialVal = fieldConfig.choices[0][0];
         }
-        onPropertyChange(name, initialVal);
       } else {
         initialVal = data[name];
       }
     }
 
+    // Cast `key` to string, this problem pops up because of react-select v3 where
+    // `value` requires the `option` object (e.g. {label, object}) - we have
+    // helpers in `SelectControl` to filter `choices` to produce the value object
+    //
+    // However there are integrations that give the form field choices with the value as number, but
+    // when the integration configuration gets saved, it gets saved and returned as a string
+    const choices = fieldConfig.choices.map(([key, value]) => [`${key}`, value]);
+
     return (
-      <SelectControl
-        deprecatedSelectControl
-        clearable={false}
-        placeholder={t('Select integration')}
-        noResultsText={t('No integrations available')}
-        height="35"
+      <InlineSelectControl
+        isClearable={false}
         name={name}
         value={initialVal}
-        choices={fieldConfig.choices}
-        key={name}
-        onChange={val => this.props.onPropertyChange(name, val)}
+        styles={{
+          control: provided => ({
+            ...provided,
+            minHeight: '28px',
+            height: '28px',
+          }),
+        }}
+        choices={choices}
+        onChange={({value}) => onPropertyChange(index, name, value)}
       />
     );
   };
 
   getTextField = (name: string, fieldConfig: FormField) => {
-    const {data, onPropertyChange} = this.props;
+    const {data, index, onPropertyChange} = this.props;
 
     return (
       <InlineInput
         type="text"
         name={name}
-        value={data && data[name]}
+        value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
-        key={name}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          onPropertyChange(name, e.target.value)
+          onPropertyChange(index, name, e.target.value)
         }
       />
     );
   };
 
   getNumberField = (name: string, fieldConfig: FormField) => {
-    const {data, onPropertyChange} = this.props;
+    const {data, index, onPropertyChange} = this.props;
 
     return (
       <InlineInput
         type="number"
         name={name}
-        value={data && data[name]}
+        value={(data && data[name]) ?? ''}
         placeholder={`${fieldConfig.placeholder}`}
-        key={name}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-          onPropertyChange(name, e.target.value)
+          onPropertyChange(index, name, e.target.value)
         }
       />
     );
@@ -115,9 +128,9 @@ class RuleNode extends React.Component<Props> {
 
     const {label, formFields} = node;
 
-    const parts = label.split(/({\w+})/).map(part => {
+    const parts = label.split(/({\w+})/).map((part, i) => {
       if (!/^{\w+}$/.test(part)) {
-        return part;
+        return <Separator key={i}>{part}</Separator>;
       }
 
       const key = part.slice(1, -1);
@@ -128,31 +141,41 @@ class RuleNode extends React.Component<Props> {
         return null;
       }
 
-      return formFields && formFields.hasOwnProperty(key)
-        ? this.getField(key, formFields[key])
-        : part;
+      return (
+        <Separator key={key}>
+          {formFields && formFields.hasOwnProperty(key)
+            ? this.getField(key, formFields[key])
+            : part}
+        </Separator>
+      );
     });
 
     const [title, ...inputs] = parts;
 
     // We return this so that it can be a grid
     return (
-      <React.Fragment>
-        <div>{title}</div>
-        <RuleNodeForm>{inputs}</RuleNodeForm>
-      </React.Fragment>
+      <Rule>
+        {title}
+        {inputs}
+      </Rule>
     );
   }
 
   render() {
-    const {data, onDelete} = this.props;
+    const {data} = this.props;
 
     return (
-      <React.Fragment>
+      <RuleRow>
         {data && <input type="hidden" name="id" value={data.id} />}
         {this.renderRow()}
-        <DeleteButton onClick={onDelete} type="button" size="small" icon="icon-trash" />
-      </React.Fragment>
+        <DeleteButton
+          label={t('Delete Node')}
+          onClick={this.handleDelete}
+          type="button"
+          size="small"
+          icon="icon-trash"
+        />
+      </RuleRow>
     );
   }
 }
@@ -161,16 +184,36 @@ export default RuleNode;
 
 const InlineInput = styled(Input)`
   width: auto;
+  height: 28px;
 `;
 
-const RuleNodeForm = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+const InlineSelectControl = styled(SelectControl)`
+  width: 180px;
+`;
+
+const Separator = styled('span')`
+  margin-right: ${space(1)};
+  padding-top: ${space(0.5)};
+  padding-bottom: ${space(0.5)};
+`;
+
+const RuleRow = styled('div')`
+  display: flex;
   align-items: center;
-  white-space: nowrap;
+  padding: ${space(1)};
+
+  &:nth-child(odd) {
+    background-color: ${p => p.theme.offWhite};
+  }
+`;
+
+const Rule = styled('div')`
+  display: flex;
+  align-items: center;
+  flex: 1;
+  flex-wrap: wrap;
 `;
 
 const DeleteButton = styled(Button)`
-  height: 36px;
+  flex-shrink: 0;
 `;

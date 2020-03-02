@@ -8,11 +8,7 @@ import ErrorRenderer from 'app/components/events/interfaces/breadcrumbs/errorRen
 import DefaultRenderer from 'app/components/events/interfaces/breadcrumbs/defaultRenderer';
 import ErrorBoundary from 'app/components/errorBoundary';
 import Tooltip from 'app/components/tooltip';
-
-const CUSTOM_RENDERERS = {
-  http: HttpRenderer,
-  error: ErrorRenderer,
-};
+import getDynamicText from 'app/utils/getDynamicText';
 
 class Breadcrumb extends React.Component {
   static propTypes = {
@@ -30,15 +26,24 @@ class Breadcrumb extends React.Component {
       classes.add('crumb-' + crumb.type.replace(/[\s_]+/g, '-').toLowerCase());
     }
 
-    // special case for 'ui.' category breadcrumbs
+    // special case for 'ui.' and `sentry.` category breadcrumbs
     // TODO: find a better way to customize UI around non-schema data
-    if (crumb.category && crumb.category.slice(0, 3) === 'ui.') {
-      classes.add('crumb-user');
+    const isDotSeparatedCategory = /.+\..+/.test(crumb.category);
+    if (isDotSeparatedCategory) {
+      const [category, subcategory] = crumb.category.split('.');
+      if (category === 'ui') {
+        classes.add('crumb-user');
+      } else if (category === 'sentry' && subcategory === 'transaction') {
+        // Warning has a precedence over other icons, so we want to force it.
+        classes.delete('crumb-warning');
+        classes.add('crumb-navigation');
+      }
     }
 
     if (crumb.last) {
       classes.add('crumb-last');
     }
+
     return [...classes].join(' ');
   };
 
@@ -51,8 +56,14 @@ class Breadcrumb extends React.Component {
 
   renderType = () => {
     const {crumb} = this.props;
-    const Renderer = CUSTOM_RENDERERS[crumb.type] || DefaultRenderer;
-    return <Renderer crumb={crumb} />;
+    switch (crumb.type) {
+      case 'error':
+        return <ErrorRenderer crumb={crumb} />;
+      case 'http':
+        return <HttpRenderer crumb={crumb} />;
+      default:
+        return <DefaultRenderer crumb={crumb} />;
+    }
   };
 
   render() {
@@ -65,7 +76,12 @@ class Breadcrumb extends React.Component {
           </span>
           {defined(crumb.timestamp) ? (
             <Tooltip title={this.getTooltipTitle()}>
-              <span className="dt">{moment(crumb.timestamp).format('HH:mm:ss')}</span>
+              <span className="dt">
+                {getDynamicText({
+                  value: moment(crumb.timestamp).format('HH:mm:ss'),
+                  fixed: '00:00:00',
+                })}
+              </span>
             </Tooltip>
           ) : (
             <span className="dt" />

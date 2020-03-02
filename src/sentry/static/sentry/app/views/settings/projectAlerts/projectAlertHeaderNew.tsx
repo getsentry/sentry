@@ -9,19 +9,19 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import OnboardingHovercard from 'app/views/settings/projectAlerts/onboardingHovercard';
 
 type Props = {
   organization: Organization;
-} & Pick<RouteComponentProps<{projectId: string}, {}>, 'params'>;
+  canEditRule: boolean;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 class ProjectAlertHeader extends React.Component<Props> {
   render() {
-    const {params, organization} = this.props;
+    const {canEditRule, params, organization, location} = this.props;
     const {projectId} = params;
 
-    const canEditRule = organization.access.includes('project:write');
-
-    const basePath = `/settings/${organization.slug}/projects/${projectId}/alerts-v2/`;
+    const basePath = `/settings/${organization.slug}/projects/${projectId}/alerts/`;
 
     return (
       <SettingsPageHeader
@@ -31,20 +31,22 @@ class ProjectAlertHeader extends React.Component<Props> {
             <Button to={`${basePath}settings/`} size="small" icon="icon-settings">
               {t('Settings')}
             </Button>
-            <Tooltip
-              disabled={canEditRule}
-              title={t('You do not have permission to edit alert rules.')}
-            >
-              <Button
-                to={`${basePath}new/`}
-                disabled={!canEditRule}
-                priority="primary"
-                size="small"
-                icon="icon-circle-add"
+            <OnboardingHovercard organization={organization} location={location}>
+              <Tooltip
+                disabled={canEditRule}
+                title={t('You do not have permission to edit alert rules.')}
               >
-                {t('New Alert Rule')}
-              </Button>
-            </Tooltip>
+                <Button
+                  to={`${basePath}new/`}
+                  disabled={!canEditRule}
+                  priority="primary"
+                  size="small"
+                  icon="icon-circle-add"
+                >
+                  {t('New Alert Rule')}
+                </Button>
+              </Tooltip>
+            </OnboardingHovercard>
           </Actions>
         }
       />

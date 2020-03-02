@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
-import {trimPackage} from 'app/components/events/interfaces/frame';
+import {trimPackage} from 'app/components/events/interfaces/frame/utils';
 import InlineSvg from 'app/components/inlineSvg';
 import {PackageStatusIcon} from 'app/components/events/interfaces/packageStatus';
 
@@ -54,24 +54,24 @@ const Package = styled('a')<Partial<Props>>`
   max-width: 100%;
   display: flex;
   align-items: center;
-  flex-basis: 137px;
   flex-grow: 0;
   flex-shrink: 0;
   padding: 0 0 0 ${space(0.5)};
   color: ${p => p.theme.foreground};
   cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
-
   &:hover {
     color: ${p => p.theme.foreground};
-
     ${LinkChevron} {
       opacity: 1;
       transform: translateX(${space(0.5)});
     }
-
     &:hover ${PackageStatusIcon} {
       opacity: 1;
     }
+  }
+  flex-basis: auto;
+  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+    flex-basis: 137px;
   }
 `;
 

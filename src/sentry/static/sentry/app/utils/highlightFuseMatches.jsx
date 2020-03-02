@@ -65,8 +65,8 @@ const getFuseMatches = ({value, indices}) => {
 /**
  * Given a match object from fuse.js, returns an array of components with "highlighted" (bold) substrings.
  */
-const highlightFuseMatches = (matchObj, Marker = 'mark') => {
-  return getFuseMatches(matchObj).map(({highlight, text}, index) => {
+const highlightFuseMatches = (matchObj, Marker = 'mark') =>
+  getFuseMatches(matchObj).map(({highlight, text}, index) => {
     if (!text) {
       return null;
     }
@@ -76,7 +76,6 @@ const highlightFuseMatches = (matchObj, Marker = 'mark') => {
 
     return <span key={index}>{text}</span>;
   });
-};
 
 export {getFuseMatches};
 export default highlightFuseMatches;

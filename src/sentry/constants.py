@@ -8,6 +8,7 @@ import logging
 import os.path
 import six
 from datetime import timedelta
+from enum import IntEnum, unique
 
 from collections import OrderedDict, namedtuple
 from django.conf import settings
@@ -436,11 +437,11 @@ class SentryAppInstallationStatus(object):
 
 
 class ExportQueryType(object):
-    DISCOVER_V1 = 0
+    DISCOVER_V2 = 0
     BILLING_REPORT = 1
     ISSUE_BY_TAG = 2
     # Add additional query types here...
-    DISCOVER_V1_STR = "DISCOVER_V1"
+    DISCOVER_V2_STR = "DISCOVER_V2"
     BILLING_REPORT_STR = "BILLING_REPORT"
     ISSUE_BY_TAG_STR = "ISSUE_BY_TAG"
     # Add their corresponding strings (sent from browser) here...
@@ -448,15 +449,15 @@ class ExportQueryType(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.DISCOVER_V1, cls.DISCOVER_V1_STR),
+            (cls.DISCOVER_V2, cls.DISCOVER_V2_STR),
             (cls.BILLING_REPORT, cls.BILLING_REPORT_STR),
             (cls.ISSUE_BY_TAG, cls.ISSUE_BY_TAG_STR),
         )
 
     @classmethod
     def as_str(cls, status):
-        if status == cls.DISCOVER_V1:
-            return cls.DISCOVER_V1_STR
+        if status == cls.DISCOVER_V2:
+            return cls.DISCOVER_V2_STR
         elif status == cls.BILLING_REPORT:
             return cls.BILLING_REPORT_STR
         elif status == cls.ISSUE_BY_TAG:
@@ -484,3 +485,26 @@ DEFAULT_STORE_NORMALIZER_ARGS = dict(
 INTERNAL_INTEGRATION_TOKEN_COUNT_MAX = 20
 
 ALL_ACCESS_PROJECTS = {-1}
+
+
+@unique
+class DataCategory(IntEnum):
+    DEFAULT = 0
+    ERROR = 1
+    TRANSACTION = 2
+    SECURITY = 3
+    ATTACHMENT = 4
+    SESSION = 5
+
+    @classmethod
+    def from_event_type(cls, event_type):
+        if event_type == "error":
+            return DataCategory.ERROR
+        elif event_type == "transaction":
+            return DataCategory.TRANSACTION
+        elif event_type in ("csp", "hpkp", "expectct", "expectstaple"):
+            return DataCategory.SECURITY
+        return DataCategory.DEFAULT
+
+    def api_name(self):
+        return self.name.lower()

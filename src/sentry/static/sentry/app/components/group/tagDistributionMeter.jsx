@@ -3,7 +3,6 @@ import React from 'react';
 
 import {deviceNameMapper, loadDeviceListModule} from 'app/components/deviceName';
 import SentryTypes from 'app/sentryTypes';
-
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 
 class GroupTagDistributionMeter extends React.Component {
@@ -21,7 +20,7 @@ class GroupTagDistributionMeter extends React.Component {
     error: false,
   };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchData();
   }
 

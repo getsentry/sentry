@@ -3,6 +3,7 @@ import {Params} from 'react-router/lib/Router';
 import React from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
+import isPropValid from '@emotion/is-prop-valid';
 
 import {PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
@@ -18,7 +19,6 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Projects from 'app/utils/projects';
 import SubscribeButton from 'app/components/subscribeButton';
 import getDynamicText from 'app/utils/getDynamicText';
-import isPropValid from '@emotion/is-prop-valid';
 import space from 'app/styles/space';
 
 import {Incident} from '../types';
@@ -40,26 +40,27 @@ export default class DetailsHeader extends React.Component<Props> {
     const {incident, onStatusChange} = this.props;
 
     const isIncidentOpen = incident && isOpen(incident);
+    const statusLabel = incident ? <Status isSmall incident={incident} /> : null;
 
     return (
-      <Access
-        access={['org:write']}
-        renderNoAccessMessage={() =>
-          incident ? <Status isSmall incident={incident} /> : null
+      <Access access={['org:write']}>
+        {({hasAccess}) =>
+          hasAccess && isIncidentOpen ? (
+            <DropdownControl
+              data-test-id="status-dropdown"
+              label={statusLabel}
+              menuWidth="180px"
+              alignRight
+              buttonProps={{size: 'small', disabled: !incident}}
+            >
+              <StyledMenuItem onSelect={onStatusChange}>
+                <ResolveIcon src="icon-circle-check" /> {t('Resolve this incident')}
+              </StyledMenuItem>
+            </DropdownControl>
+          ) : (
+            statusLabel
+          )
         }
-      >
-        <DropdownControl
-          data-test-id="status-dropdown"
-          label={incident && <Status isSmall incident={incident} />}
-          menuWidth="180px"
-          alignRight
-          disabled={!isIncidentOpen}
-          buttonProps={{size: 'small', disabled: !incident}}
-        >
-          <StyledMenuItem onSelect={onStatusChange}>
-            <ResolveIcon src="icon-circle-check" /> {t('Resolve this incident')}
-          </StyledMenuItem>
-        </DropdownControl>
       </Access>
     );
   }

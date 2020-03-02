@@ -120,6 +120,11 @@ class GlobalSelectionHeader extends React.Component {
      */
     showRelative: PropTypes.bool,
 
+    /**
+     * Allow user to clear the time range selection
+     */
+    allowClearTimeRange: PropTypes.bool,
+
     // Callbacks //
     onChangeProjects: PropTypes.func,
     onUpdateProjects: PropTypes.func,
@@ -156,6 +161,10 @@ class GlobalSelectionHeader extends React.Component {
     } = this.props;
 
     const hasMultipleProjectFeature = this.hasMultipleProjectSelection();
+
+    if (organization?.slug && organization?.slug !== params?.orgId) {
+      return;
+    }
 
     const stateFromRouter = getStateFromQuery(location.query);
     // We should update store if there are any relevant URL parameters when component is mounted
@@ -206,6 +215,13 @@ class GlobalSelectionHeader extends React.Component {
       return true;
     }
 
+    if (
+      nextProps.organization?.slug &&
+      nextProps.organization?.slug !== nextProps.params?.orgId
+    ) {
+      return false;
+    }
+
     // Update if `forceProject` changes or loading state changes
     if (
       this.props.forceProject !== nextProps.forceProject ||
@@ -243,6 +259,10 @@ class GlobalSelectionHeader extends React.Component {
 
     // Update if `forceUrlSync` changes
     if (!this.props.forceUrlSync && nextProps.forceUrlSync) {
+      return true;
+    }
+
+    if (this.props.organization !== nextProps.organization) {
       return true;
     }
 
@@ -314,9 +334,8 @@ class GlobalSelectionHeader extends React.Component {
     this.updateStoreIfChange(prevProps, this.props);
   }
 
-  hasMultipleProjectSelection = () => {
-    return new Set(this.props.organization.features).has('global-views');
-  };
+  hasMultipleProjectSelection = () =>
+    new Set(this.props.organization.features).has('global-views');
 
   /**
    * If user does not have access to `global-views` (e.g. multi project select), then
@@ -335,14 +354,13 @@ class GlobalSelectionHeader extends React.Component {
       return;
     }
 
-    const {organization, params} = this.props;
     if (forceProject) {
       // this takes precendence over the other options
       newProject = [getProjectIdFromProject(forceProject)];
     } else if (requestedProjects && requestedProjects.length > 0) {
       // If there is a list of projects from URL params, select first project from that list
       newProject = [requestedProjects[0]];
-    } else if (organization?.slug && organization?.slug === params?.orgId) {
+    } else {
       // When we have finished loading the organization into the props,  i.e. the organization slug is consistent with
       // the URL param--Sentry will get the first project from the organization that the user is a member of.
       newProject = this.getFirstProject();
@@ -491,11 +509,10 @@ class GlobalSelectionHeader extends React.Component {
     return [memberProjects, []];
   };
 
-  getFirstProject = () => {
-    return flatten(this.getProjects())
+  getFirstProject = () =>
+    flatten(this.getProjects())
       .map(getProjectIdFromProject)
       .slice(0, 1);
-  };
 
   getBackButton = () => {
     const {organization, location} = this.props;
@@ -545,6 +562,7 @@ class GlobalSelectionHeader extends React.Component {
       showRelative,
       showDateSelector,
       showEnvironmentSelector,
+      allowClearTimeRange,
     } = this.props;
     const {period, start, end, utc} = this.props.selection.datetime || {};
 
@@ -631,6 +649,7 @@ class GlobalSelectionHeader extends React.Component {
                 onChange={this.handleChangeTime}
                 onUpdate={this.handleUpdateTime}
                 organization={organization}
+                allowClearTimeRange={allowClearTimeRange}
               />
             </HeaderItemPosition>
           </React.Fragment>

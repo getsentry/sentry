@@ -4,14 +4,15 @@ import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import uniqBy from 'lodash/uniqBy';
 import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
-import {SavedQuery, NewQuery} from 'app/types';
+import {SavedQuery, NewQuery, SelectValue} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
-import {SPECIAL_FIELDS, FIELD_FORMATTERS} from './data';
+import {SPECIAL_FIELDS, FIELD_FORMATTERS, CHART_AXIS_OPTIONS} from './data';
 import {
   MetaType,
   EventQuery,
@@ -42,12 +43,10 @@ export type Sort = {
   field: string;
 };
 
-const reverseSort = (sort: Sort): Sort => {
-  return {
-    kind: sort.kind === 'desc' ? 'asc' : 'desc',
-    field: sort.field,
-  };
-};
+const reverseSort = (sort: Sort): Sort => ({
+  kind: sort.kind === 'desc' ? 'asc' : 'desc',
+  field: sort.field,
+});
 
 export type Field = {
   field: string;
@@ -204,9 +203,8 @@ const encodeSort = (sort: Sort): string => {
   }
 };
 
-const encodeSorts = (sorts: Readonly<Array<Sort>>): Array<string> => {
-  return sorts.map(encodeSort);
-};
+const encodeSorts = (sorts: Readonly<Array<Sort>>): Array<string> =>
+  sorts.map(encodeSort);
 
 const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
   const needle = query[key];
@@ -297,16 +295,10 @@ class EventView {
 
     // only include sort keys that are included in the fields
     const sortKeys = fields
-      .map(field => {
-        return getSortKeyFromField(field, undefined);
-      })
-      .filter((sortKey): sortKey is string => {
-        return !!sortKey;
-      });
+      .map(field => getSortKeyFromField(field, undefined))
+      .filter((sortKey): sortKey is string => !!sortKey);
 
-    const sort = sorts.find(currentSort => {
-      return sortKeys.includes(currentSort.field);
-    });
+    const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
 
     sorts = sort ? [sort] : [];
 
@@ -479,13 +471,19 @@ class EventView {
     return newQuery;
   }
 
-  getGlobalSelection() {
+  getGlobalSelection(): {
+    start: string | undefined;
+    end: string | undefined;
+    statsPeriod: string | undefined;
+    environment: string[];
+    project: number[];
+  } {
     return {
       start: this.start,
       end: this.end,
       statsPeriod: this.statsPeriod,
-      project: this.project,
-      environment: this.environment,
+      project: this.project as number[],
+      environment: this.environment as string[],
     };
   }
 
@@ -630,9 +628,9 @@ class EventView {
 
     // if the updated column is one of the sorted columns, we may need to remove
     // it from the list of sorts
-    const needleSortIndex = this.sorts.findIndex(sort => {
-      return isSortEqualToField(sort, columnToBeUpdated, tableMeta);
-    });
+    const needleSortIndex = this.sorts.findIndex(sort =>
+      isSortEqualToField(sort, columnToBeUpdated, tableMeta)
+    );
 
     if (needleSortIndex >= 0) {
       const needleSort = this.sorts[needleSortIndex];
@@ -677,9 +675,9 @@ class EventView {
 
           newEventView.sorts = [sort];
         } else {
-          const sortableFieldIndex = newEventView.fields.findIndex(currentField => {
-            return isFieldSortable(currentField, tableMeta);
-          });
+          const sortableFieldIndex = newEventView.fields.findIndex(currentField =>
+            isFieldSortable(currentField, tableMeta)
+          );
           if (sortableFieldIndex >= 0) {
             const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
             const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
@@ -717,9 +715,9 @@ class EventView {
     // if the deleted column is one of the sorted columns, we need to remove
     // it from the list of sorts
     const columnToBeDeleted = this.fields[columnIndex];
-    const needleSortIndex = this.sorts.findIndex(sort => {
-      return isSortEqualToField(sort, columnToBeDeleted, tableMeta);
-    });
+    const needleSortIndex = this.sorts.findIndex(sort =>
+      isSortEqualToField(sort, columnToBeDeleted, tableMeta)
+    );
 
     if (needleSortIndex >= 0) {
       const needleSort = this.sorts[needleSortIndex];
@@ -741,9 +739,9 @@ class EventView {
 
         if (newEventView.sorts.length <= 0 && newEventView.fields.length > 0) {
           // establish a default sort by finding the first sortable field
-          const sortableFieldIndex = newEventView.fields.findIndex(field => {
-            return isFieldSortable(field, tableMeta);
-          });
+          const sortableFieldIndex = newEventView.fields.findIndex(field =>
+            isFieldSortable(field, tableMeta)
+          );
 
           if (sortableFieldIndex >= 0) {
             const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
@@ -773,12 +771,13 @@ class EventView {
   }
 
   getSorts(): TableColumnSort<React.ReactText>[] {
-    return this.sorts.map(sort => {
-      return {
-        key: sort.field,
-        order: sort.kind,
-      } as TableColumnSort<string>;
-    });
+    return this.sorts.map(
+      sort =>
+        ({
+          key: sort.field,
+          order: sort.kind,
+        } as TableColumnSort<string>)
+    );
   }
 
   // returns query input for the search
@@ -871,9 +870,7 @@ class EventView {
   }
 
   isFieldSorted(field: Field, tableMeta: MetaType): Sort | undefined {
-    const needle = this.sorts.find(sort => {
-      return isSortEqualToField(sort, field, tableMeta);
-    });
+    const needle = this.sorts.find(sort => isSortEqualToField(sort, field, tableMeta));
 
     return needle;
   }
@@ -884,9 +881,9 @@ class EventView {
       return this;
     }
 
-    const needleIndex = this.sorts.findIndex(sort => {
-      return isSortEqualToField(sort, field, tableMeta);
-    });
+    const needleIndex = this.sorts.findIndex(sort =>
+      isSortEqualToField(sort, field, tableMeta)
+    );
 
     if (needleIndex >= 0) {
       const newEventView = this.clone();
@@ -910,6 +907,43 @@ class EventView {
     newEventView.sorts = [sort];
 
     return newEventView;
+  }
+
+  getYAxisOptions(): SelectValue<string>[] {
+    // Make option set and add the default options in.
+    return uniqBy(
+      this.getAggregateFields()
+        // Exclude last_seen and latest_event as they don't produce useful graphs.
+        .filter(
+          (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
+        )
+        .map((field: Field) => ({label: field.field, value: field.field}))
+        .concat(CHART_AXIS_OPTIONS),
+      'value'
+    );
+  }
+
+  getYAxis(): string {
+    const yAxisOptions = this.getYAxisOptions();
+
+    const yAxis = this.yAxis;
+
+    const defaultOption = yAxisOptions[0].value;
+
+    if (!yAxis) {
+      return defaultOption;
+    }
+
+    // ensure current selected yAxis is one of the items in yAxisOptions
+    const result = yAxisOptions.findIndex(
+      (option: SelectValue<string>) => option.value === yAxis
+    );
+
+    if (result >= 0) {
+      return yAxis;
+    }
+
+    return defaultOption;
   }
 }
 

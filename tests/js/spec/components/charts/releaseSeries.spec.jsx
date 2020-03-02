@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 
@@ -75,8 +75,8 @@ describe('ReleaseSeries', function() {
             markLine: expect.objectContaining({
               data: [
                 expect.objectContaining({
-                  name: '92eccef',
-                  value: '92eccef',
+                  name: '92eccef279d9',
+                  value: '92eccef279d9',
                   xAxis: 1530206345000,
                 }),
               ],

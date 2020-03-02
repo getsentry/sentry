@@ -22,10 +22,9 @@ type Props = {
   // Placeholder for select control
   placeholder: string;
 
-  onPropertyChange: (ruleIndex: number) => (prop: string, val: string) => void;
+  onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
 
-  // TODO(ts): Type value
-  onAddRow: (value: unknown) => void;
+  onAddRow: (value: string) => void;
 
   onDeleteRow: (ruleIndex: number) => void;
 };
@@ -65,22 +64,21 @@ class RuleNodeList extends React.Component<Props> {
       <React.Fragment>
         {items && !!items.length && (
           <RuleNodes>
-            {items.map((item, idx) => {
-              return (
-                <RuleNode
-                  key={idx}
-                  node={this.getNode(item.id)}
-                  onDelete={() => onDeleteRow(idx)}
-                  data={item}
-                  onPropertyChange={onPropertyChange(idx)}
-                />
-              );
-            })}
+            {items.map((item, idx) => (
+              <RuleNode
+                key={idx}
+                index={idx}
+                node={this.getNode(item.id)}
+                onDelete={onDeleteRow}
+                data={item}
+                onPropertyChange={onPropertyChange}
+              />
+            ))}
           </RuleNodes>
         )}
         <StyledSelectControl
-          deprecatedSelectControl
           placeholder={placeholder}
+          value={null}
           onChange={obj => onAddRow(obj ? obj.value : obj)}
           options={options}
         />
@@ -97,14 +95,10 @@ const StyledSelectControl = styled(SelectControl)`
 
 const RuleNodes = styled('div')`
   display: grid;
-  grid-template-columns: max-content auto max-content;
-  grid-template-rows: repeat(2, auto);
-  align-items: center;
   margin-bottom: ${space(2)};
   grid-gap: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: none;
     grid-auto-flow: row;
   }
 `;

@@ -11,7 +11,7 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Pa
 
 
 def default_uuid():
-    return six.binary_type(uuid.uuid4())
+    return six.text_type(uuid.uuid4())
 
 
 class SentryAppInstallationToken(Model):
@@ -24,6 +24,17 @@ class SentryAppInstallationToken(Model):
         app_label = "sentry"
         db_table = "sentry_sentryappinstallationtoken"
         unique_together = (("sentry_app_installation", "api_token"),)
+
+    @classmethod
+    def has_organization_access(cls, token, organization):
+        try:
+            install_token = cls.objects.select_related("sentry_app_installation").get(
+                api_token=token
+            )
+        except cls.DoesNotExist:
+            return False
+
+        return install_token.sentry_app_installation.organization_id == organization.id
 
 
 class SentryAppInstallation(ParanoidModel):

@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 

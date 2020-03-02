@@ -19,6 +19,7 @@ import MarkLine from 'app/components/charts/components/markLine';
 import {Panel} from 'app/components/panels';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
 import {Event, Organization, GlobalSelection} from 'app/types';
 
@@ -50,9 +51,7 @@ const getCurrentEventMarker = (currentEvent: Event) => {
         },
       },
       tooltip: {
-        formatter: () => {
-          return `<div>${getFormattedDate(eventTime, 'MMM D, YYYY LT')}</div>`;
-        },
+        formatter: () => `<div>${getFormattedDate(eventTime, 'MMM D, YYYY LT')}</div>`,
       },
       label: {
         show: false,
@@ -65,6 +64,17 @@ const getCurrentEventMarker = (currentEvent: Event) => {
       ],
     }),
   };
+};
+
+type ClickHandlerOptions = {
+  api: Client;
+  currentEvent: Event;
+  organization: Organization;
+  queryString: string;
+  field: string[];
+  interval: string;
+  selection: GlobalSelection;
+  eventView: EventView;
 };
 
 /**
@@ -86,16 +96,7 @@ const handleClick = async function(
     interval,
     selection,
     eventView,
-  }: {
-    api: Client;
-    currentEvent: Event;
-    organization: Organization;
-    queryString: string;
-    field: string[];
-    interval: string;
-    selection: GlobalSelection;
-    eventView: EventView;
-  }
+  }: ClickHandlerOptions
 ) {
   // Get the timestamp that was clicked.
   const value = series.value[0];
@@ -109,17 +110,30 @@ const handleClick = async function(
     ? 'last_seen'
     : null;
 
+  const endValue = getUtcDateString(value + intervalToMilliseconds(interval));
+  const startValue = getUtcDateString(value);
+
+  // Remove and replace any timestamp conditions from the existing query.
+  const newQuery = tokenizeSearch(queryString);
+  newQuery.timestamp = [`>${startValue}`, `<=${endValue}`];
+
   // Get events that match the clicked timestamp
   // taking into account the group and current environment & query
   const query: any = {
     environment: selection.environments,
-    start: getUtcDateString(value),
-    end: getUtcDateString(value + intervalToMilliseconds(interval)),
     limit: 1,
     referenceEvent: `${currentEvent.projectSlug}:${currentEvent.eventID}`,
-    query: queryString,
+    query: stringifyQueryObject(newQuery),
     field,
   };
+
+  // Perserve the current query window
+  if (selection.datetime.period) {
+    query.statsPeriod = selection.datetime.period;
+  } else {
+    query.start = selection.datetime.start;
+    query.end = selection.datetime.end;
+  }
   if (sortField !== null) {
     query.sort = sortField;
   }
@@ -182,9 +196,7 @@ const LineGraph = (props: LineGraphProps) => {
   };
 
   const tooltip = {
-    formatAxisLabel: value => {
-      return getFormattedDate(value, 'lll', {local: !isUtc});
-    },
+    formatAxisLabel: value => getFormattedDate(value, 'lll', {local: !isUtc}),
   };
 
   const queryString = eventView.getQuery(location.query.query);

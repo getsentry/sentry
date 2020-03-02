@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -18,23 +19,21 @@ class IssueListSortOptions extends React.PureComponent {
     };
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     this.setState({
       sortKey: nextProps.sort || 'date',
     });
   }
 
-  getMenuItem = key => {
-    return (
-      <DropdownItem
-        onSelect={this.onSelect}
-        eventKey={key}
-        isActive={this.state.sortKey === key}
-      >
-        {this.getSortLabel(key)}
-      </DropdownItem>
-    );
-  };
+  getMenuItem = key => (
+    <DropdownItem
+      onSelect={this.onSelect}
+      eventKey={key}
+      isActive={this.state.sortKey === key}
+    >
+      {this.getSortLabel(key)}
+    </DropdownItem>
+  );
 
   onSelect = sort => {
     this.setState({sortKey: sort});

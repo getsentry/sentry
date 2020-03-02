@@ -44,7 +44,6 @@ import Result from './result';
 import ResultLoading from './result/loading';
 import SavedQueryList from './sidebar/savedQueryList';
 import createResultManager from './resultManager';
-
 import {SavedQuery} from './types';
 
 type DefaultProps = {
@@ -92,7 +91,7 @@ export default class Discover extends React.Component<Props, State> {
     };
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     const {
       queryBuilder,
       location: {search},

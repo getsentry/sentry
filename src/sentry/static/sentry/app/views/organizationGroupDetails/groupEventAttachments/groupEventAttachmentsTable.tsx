@@ -13,45 +13,40 @@ type Props = {
   deletedAttachments: string[];
 };
 
-class GroupEventAttachmentsTable extends React.Component<Props> {
-  render() {
-    const {
-      attachments,
-      orgId,
-      projectId,
-      groupId,
-      onDelete,
-      deletedAttachments,
-    } = this.props;
-    const tableRowNames = [t('Name'), t('Type'), t('Size'), t('Actions')];
+const GroupEventAttachmentsTable = ({
+  attachments,
+  orgId,
+  projectId,
+  groupId,
+  onDelete,
+  deletedAttachments,
+}: Props) => {
+  const tableRowNames = [t('Name'), t('Type'), t('Size'), t('Actions')];
 
-    return (
-      <table className="table events-table">
-        <thead>
-          <tr>
-            {tableRowNames.map(name => {
-              return <th key={name}>{name}</th>;
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {attachments.map(attachment => {
-            return (
-              <GroupEventAttachmentsTableRow
-                key={attachment.id}
-                attachment={attachment}
-                orgId={orgId}
-                projectId={projectId}
-                groupId={groupId}
-                onDelete={onDelete}
-                isDeleted={deletedAttachments.some(id => attachment.id === id)}
-              />
-            );
-          })}
-        </tbody>
-      </table>
-    );
-  }
-}
+  return (
+    <table className="table events-table">
+      <thead>
+        <tr>
+          {tableRowNames.map(name => (
+            <th key={name}>{name}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {attachments.map(attachment => (
+          <GroupEventAttachmentsTableRow
+            key={attachment.id}
+            attachment={attachment}
+            orgId={orgId}
+            projectId={projectId}
+            groupId={groupId}
+            onDelete={onDelete}
+            isDeleted={deletedAttachments.some(id => attachment.id === id)}
+          />
+        ))}
+      </tbody>
+    </table>
+  );
+};
 
 export default GroupEventAttachmentsTable;

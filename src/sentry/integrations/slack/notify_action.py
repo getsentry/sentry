@@ -8,7 +8,7 @@ from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics, json
 from sentry.models import Integration
 
-from .utils import build_group_attachment, get_channel_id, strip_channel_name
+from .utils import build_group_attachment, get_channel_id, strip_channel_name, track_response_code
 
 
 class SlackNotifyServiceForm(forms.Form):
@@ -110,18 +110,21 @@ class SlackNotifyServiceAction(EventAction):
             payload = {
                 "token": integration.metadata["access_token"],
                 "channel": channel,
+                "link_names": 1,
                 "attachments": json.dumps([attachment]),
             }
 
             session = http.build_session()
             resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
+            status_code = resp.status_code
+            response = resp.json()
+            track_response_code(status_code, response.get("ok"))
             resp.raise_for_status()
-            resp = resp.json()
-            if not resp.get("ok"):
+            if not response.get("ok"):
                 self.logger.info(
                     "rule.fail.slack_post",
                     extra={
-                        "error": resp.get("error"),
+                        "error": response.get("error"),
                         "project_id": event.project_id,
                         "event_id": event.event_id,
                     },

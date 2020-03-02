@@ -1,7 +1,7 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-
 import EventDetails from 'app/views/eventsV2/eventDetails';
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'app/views/eventsV2/data';
 import EventView from 'app/views/eventsV2/eventView';
@@ -75,6 +75,12 @@ describe('EventsV2 > EventDetails', function() {
         ],
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1234/committers/',
+      method: 'GET',
+      statusCode: 404,
+      body: {},
+    });
 
     // Missing event
     MockApiClient.addMockResponse({
@@ -83,78 +89,6 @@ describe('EventsV2 > EventDetails', function() {
       statusCode: 404,
       body: {},
     });
-
-    // Error event
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/events/latest/',
-        method: 'GET',
-        body: {
-          id: '5678',
-          size: 1200,
-          projectSlug: 'project-slug',
-          eventID: 'deadbeef',
-          groupID: '123',
-          type: 'error',
-          title: 'Oh no something bad',
-          message: 'It was not good',
-          dateCreated: '2019-05-23T22:12:48+00:00',
-          previousEventID: 'beefbeef',
-          metadata: {
-            type: 'Oh no something bad',
-          },
-          entries: [
-            {
-              type: 'message',
-              message: 'bad stuff',
-              data: {},
-            },
-          ],
-          tags: [{key: 'browser', value: 'Firefox'}],
-        },
-      },
-      {
-        predicate: (_, options) => {
-          const query = options.query.query;
-          return (
-            query && (query.includes('event.type:error') || query.includes('issue.id'))
-          );
-        },
-      }
-    );
-
-    // Transaction event
-    MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/events/latest/',
-        method: 'GET',
-        body: {
-          id: '5678',
-          size: 1200,
-          projectSlug: 'project-slug',
-          eventID: 'deadbeef',
-          type: 'transaction',
-          title: 'Oh no something bad',
-          location: '/users/login',
-          message: 'It was not good',
-          startTimestamp: 1564153693.2419,
-          endTimestamp: 1564153694.4191,
-          previousEventID: 'beefbeef',
-          entries: [
-            {
-              type: 'spans',
-              data: [],
-            },
-          ],
-          tags: [{key: 'browser', value: 'Firefox'}],
-        },
-      },
-      {
-        predicate: (_, options) => {
-          return options.query.query && options.query.query.includes('transaction');
-        },
-      }
-    );
   });
 
   it('renders', function() {

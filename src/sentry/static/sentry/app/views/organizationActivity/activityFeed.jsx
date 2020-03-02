@@ -38,11 +38,11 @@ class ActivityFeed extends React.Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const location = this.props.location;
     const nextLocation = nextProps.location;
     if (
@@ -95,17 +95,15 @@ class ActivityFeed extends React.Component {
     } else if (this.state.itemList.length > 0) {
       body = (
         <div data-test-id="activity-feed-list" className="activity">
-          {this.state.itemList.map(item => {
-            return (
-              <ErrorBoundary
-                mini
-                css={{marginBottom: space(1), borderRadius: 0}}
-                key={item.id}
-              >
-                <ActivityFeedItem organization={this.props.organization} item={item} />
-              </ErrorBoundary>
-            );
-          })}
+          {this.state.itemList.map(item => (
+            <ErrorBoundary
+              mini
+              css={{marginBottom: space(1), borderRadius: 0}}
+              key={item.id}
+            >
+              <ActivityFeedItem organization={this.props.organization} item={item} />
+            </ErrorBoundary>
+          ))}
         </div>
       );
     } else {

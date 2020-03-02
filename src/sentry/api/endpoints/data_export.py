@@ -10,7 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEven
 from sentry.api.serializers import serialize
 from sentry.constants import ExportQueryType
 from sentry.models import ExportedData
-from sentry.tasks.data_export import compile_data
+from sentry.tasks.data_export import assemble_download
 
 
 class ExportedDataSerializer(serializers.Serializer):
@@ -42,16 +42,20 @@ class DataExportEndpoint(OrganizationEndpoint):
         data = serializer.validated_data
 
         try:
-            # TODO(Leander): Prevent repeated requests for identical queries per organization, if one is in progress
-            data_export = ExportedData.objects.create(
+            # If this user has sent a sent a request with the same payload and organization,
+            # we return them the latest one that is NOT complete (i.e. don't start another)
+            data_export, created = ExportedData.objects.get_or_create(
                 organization=organization,
                 user=request.user,
                 query_type=data["query_type"],
                 query_info=data["query_info"],
+                date_finished=None,
             )
+            status = 200
+            if created:
+                assemble_download.delay(data_export=data_export)
+                status = 201
         except ValidationError as e:
             # This will handle invalid JSON requests
             return Response({"detail": six.text_type(e)}, status=400)
-
-        compile_data.delay(data_export=data_export)
-        return Response(serialize(data_export, request.user), status=201)
+        return Response(serialize(data_export, request.user), status=status)

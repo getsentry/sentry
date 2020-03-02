@@ -9,14 +9,15 @@ import petname
 import random
 import six
 import warnings
+from binascii import hexlify
+from hashlib import sha1
+from uuid import uuid4
 from importlib import import_module
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
-from hashlib import sha1
-from uuid import uuid4
 
 from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
@@ -29,10 +30,11 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
+    IncidentActivity,
     IncidentGroup,
     IncidentProject,
     IncidentSeen,
-    IncidentActivity,
+    IncidentType,
 )
 from sentry.mediators import (
     sentry_apps,
@@ -301,7 +303,7 @@ class Factories(object):
     @staticmethod
     def create_release(project, user=None, version=None, date_added=None):
         if version is None:
-            version = os.urandom(20).encode("hex")
+            version = hexlify(os.urandom(20))
 
         if date_added is None:
             date_added = timezone.now()
@@ -748,6 +750,7 @@ class Factories(object):
         date_closed=None,
         groups=None,
         seen_by=None,
+        alert_rule=None,
     ):
         if not title:
             title = petname.Generate(2, " ", letters=10).title()
@@ -758,9 +761,11 @@ class Factories(object):
             status=status,
             title=title,
             query=query,
+            alert_rule=alert_rule,
             date_started=date_started or timezone.now(),
             date_detected=date_detected or timezone.now(),
             date_closed=date_closed or timezone.now(),
+            type=IncidentType.ALERT_TRIGGERED.value,
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
@@ -788,6 +793,7 @@ class Factories(object):
         time_window=10,
         threshold_period=1,
         include_all_projects=False,
+        environment=None,
         excluded_projects=None,
         date_added=None,
     ):
@@ -802,6 +808,7 @@ class Factories(object):
             aggregation,
             time_window,
             threshold_period,
+            environment=environment,
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
         )

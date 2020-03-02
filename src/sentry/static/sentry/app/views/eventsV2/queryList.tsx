@@ -10,10 +10,10 @@ import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
-import InlineSvg from 'app/components/inlineSvg';
 import DropdownMenu from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
+import {IconEllipsis} from 'app/icons/iconEllipsis';
 import withApi from 'app/utils/withApi';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 
@@ -121,15 +121,13 @@ class QueryList extends React.Component<Props> {
           title={eventView.name}
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
-          renderGraph={() => {
-            return (
-              <MiniGraph
-                location={location}
-                eventView={eventView}
-                organization={organization}
-              />
-            );
-          }}
+          renderGraph={() => (
+            <MiniGraph
+              location={location}
+              eventView={eventView}
+              organization={organization}
+            />
+          )}
           onEventClick={() => {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
@@ -178,33 +176,29 @@ class QueryList extends React.Component<Props> {
               query_name: eventView.name,
             });
           }}
-          renderGraph={() => {
-            return (
-              <MiniGraph
-                location={location}
-                eventView={eventView}
-                organization={organization}
-              />
-            );
-          }}
-          renderContextMenu={() => {
-            return (
-              <ContextMenu>
-                <MenuItem
-                  href="#delete-query"
-                  onClick={this.handleDeleteQuery(eventView)}
-                >
-                  {t('Delete Query')}
-                </MenuItem>
-                <MenuItem
-                  href="#duplicate-query"
-                  onClick={this.handleDuplicateQuery(eventView)}
-                >
-                  {t('Duplicate Query')}
-                </MenuItem>
-              </ContextMenu>
-            );
-          }}
+          renderGraph={() => (
+            <MiniGraph
+              location={location}
+              eventView={eventView}
+              organization={organization}
+            />
+          )}
+          renderContextMenu={() => (
+            <ContextMenu>
+              <MenuItem
+                data-test-id="delete-query"
+                onClick={this.handleDeleteQuery(eventView)}
+              >
+                {t('Delete Query')}
+              </MenuItem>
+              <MenuItem
+                data-test-id="duplicate-query"
+                onClick={this.handleDuplicateQuery(eventView)}
+              >
+                {t('Duplicate Query')}
+              </MenuItem>
+            </ContextMenu>
+          )}
         />
       );
     });
@@ -252,62 +246,47 @@ const QueryGrid = styled('div')`
   }
 `;
 
-class ContextMenu extends React.Component {
-  render() {
-    const {children} = this.props;
+const ContextMenu = ({children}) => (
+  <DropdownMenu>
+    {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+      const topLevelCx = classNames('dropdown', {
+        'anchor-right': true,
+        open: isOpen,
+      });
 
-    return (
-      <DropdownMenu>
-        {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-          const topLevelCx = classNames('dropdown', {
-            'pull-right': true,
-            'anchor-right': true,
-            open: isOpen,
-          });
+      return (
+        <MoreOptions
+          {...getRootProps({
+            className: topLevelCx,
+          })}
+        >
+          <DropdownTarget
+            {...getActorProps({
+              onClick: (event: MouseEvent) => {
+                event.stopPropagation();
+                event.preventDefault();
+              },
+            })}
+          >
+            <IconEllipsis data-test-id="context-menu" size="md" />
+          </DropdownTarget>
+          {isOpen && (
+            <ul {...getMenuProps({})} className={classNames('dropdown-menu')}>
+              {children}
+            </ul>
+          )}
+        </MoreOptions>
+      );
+    }}
+  </DropdownMenu>
+);
 
-          return (
-            <span
-              {...getRootProps({
-                className: topLevelCx,
-              })}
-            >
-              <ContextMenuButton
-                data-test-id="context-menu"
-                {...(getActorProps({
-                  onClick: (event: MouseEvent) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                  },
-                }) as any)}
-              >
-                <InlineSvg src="icon-ellipsis-filled" />
-              </ContextMenuButton>
+const MoreOptions = styled('span')`
+  display: flex;
+`;
 
-              {isOpen && (
-                <ul
-                  {...(getMenuProps({}) as any)}
-                  className={classNames('dropdown-menu')}
-                >
-                  {children}
-                </ul>
-              )}
-            </span>
-          );
-        }}
-      </DropdownMenu>
-    );
-  }
-}
-
-const ContextMenuButton = styled('div')`
-  border-radius: 3px;
-  background-color: ${p => p.theme.offWhite};
-  padding-left: 8px;
-  padding-right: 8px;
-
-  &:hover {
-    background-color: ${p => p.theme.offWhite2};
-  }
+const DropdownTarget = styled('div')`
+  display: flex;
 `;
 
 export default withApi(QueryList);

@@ -1,6 +1,7 @@
 import isNil from 'lodash/isNil';
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import {t} from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
@@ -9,6 +10,7 @@ import CrashHeader from 'app/components/events/interfaces/crashHeader';
 import CrashContent from 'app/components/events/interfaces/crashContent';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
+import {defined} from 'app/utils';
 
 import ThreadsSelector from './threadsSelector';
 import getThreadStacktrace from './getThreadStacktrace';
@@ -41,21 +43,19 @@ class Thread extends React.Component {
     stacktrace: PropTypes.object,
   };
 
-  renderMissingStacktrace = () => {
-    return (
-      <div className="traceback missing-traceback">
-        <ul>
-          <li className="frame missing-frame">
-            <div className="title">
-              <span className="informal">
-                {this.props.data.crashed ? 'Thread Crashed' : 'No or unknown stacktrace'}
-              </span>
-            </div>
-          </li>
-        </ul>
-      </div>
-    );
-  };
+  renderMissingStacktrace = () => (
+    <div className="traceback missing-traceback">
+      <ul>
+        <li className="frame missing-frame">
+          <div className="title">
+            <span className="informal">
+              {this.props.data.crashed ? 'Thread Crashed' : 'No or unknown stacktrace'}
+            </span>
+          </div>
+        </li>
+      </ul>
+    </div>
+  );
 
   hasMissingStacktrace = () => {
     const {exception, stacktrace} = this.props;
@@ -122,11 +122,13 @@ class ThreadsInterface extends React.Component {
 
   constructor(props) {
     super(props);
-    const thread = findBestThread(props.data.values);
+    const thread = defined(props.data.values)
+      ? findBestThread(props.data.values)
+      : undefined;
 
     this.state = {
       activeThread: thread,
-      stackView: getIntendedStackView(thread, props.event),
+      stackView: thread ? getIntendedStackView(thread, props.event) : undefined,
       stackType: 'original',
       newestFirst: isStacktraceNewestFirst(),
     };
@@ -138,17 +140,14 @@ class ThreadsInterface extends React.Component {
     });
   };
 
-  getStacktrace = () => {
-    return getThreadStacktrace(
+  getStacktrace = () =>
+    getThreadStacktrace(
       this.state.activeThread,
       this.props.event,
       this.state.stackType !== 'original'
     );
-  };
 
-  getException = () => {
-    return getThreadException(this.state.activeThread, this.props.event);
-  };
+  getException = () => getThreadException(this.state.activeThread, this.props.event);
 
   onSelectNewThread = thread => {
     let newStackView = this.state.stackView;
@@ -163,13 +162,17 @@ class ThreadsInterface extends React.Component {
   };
 
   render() {
+    const threads = this.props.data.values || [];
+
+    if (threads.length === 0) {
+      return null;
+    }
+
     const evt = this.props.event;
     const {projectId, hideGuide} = this.props;
     const {stackView, stackType, newestFirst, activeThread} = this.state;
     const exception = this.getException();
     const stacktrace = this.getStacktrace();
-
-    const threads = this.props.data.values || [];
 
     const titleProps = {
       platform: evt.platform,

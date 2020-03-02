@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/browser';
 import scrollToElement from 'scroll-to-element';
+import {Location} from 'history';
 
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
-import {Location} from 'history';
 
 import {FieldObject, JsonFormObject} from './type';
 import FieldFromConfig from './fieldFromConfig';
@@ -97,7 +97,7 @@ class JsonForm extends React.Component<Props, State> {
     this.scrollToHash();
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (
       getLocation(this.props, this.context).hash !==
       getLocation(nextProps, this.context).hash

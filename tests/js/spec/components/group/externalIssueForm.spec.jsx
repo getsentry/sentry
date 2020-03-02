@@ -1,23 +1,21 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import ExternalIssueForm from 'app/components/group/externalIssueForm';
 
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
-  const mockDebounce = (fn, timeout) => {
-    return (...args) => {
-      if (debounceMap.has(fn)) {
-        clearTimeout(debounceMap.get(fn));
-      }
-      debounceMap.set(
-        fn,
-        setTimeout(() => {
-          fn.apply(fn, args);
-          debounceMap.delete(fn);
-        }, timeout)
-      );
-    };
+  const mockDebounce = (fn, timeout) => (...args) => {
+    if (debounceMap.has(fn)) {
+      clearTimeout(debounceMap.get(fn));
+    }
+    debounceMap.set(
+      fn,
+      setTimeout(() => {
+        fn.apply(fn, args);
+        debounceMap.delete(fn);
+      }, timeout)
+    );
   };
   return mockDebounce;
 });

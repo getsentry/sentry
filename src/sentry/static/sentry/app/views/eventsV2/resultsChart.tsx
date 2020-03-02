@@ -2,91 +2,131 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
-import uniqBy from 'lodash/uniqBy';
+import isEqual from 'lodash/isEqual';
 
-import {Organization, SelectValue} from 'app/types';
-
+import {Organization} from 'app/types';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {Client} from 'app/api';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
 import getDynamicText from 'app/utils/getDynamicText';
-import EventsChart from 'app/views/events/eventsChart';
+import {EventsChart} from 'app/views/events/eventsChart';
 
-import ChartFooter, {TooltipData} from './chartFooter';
-import EventView, {Field} from './eventView';
+import ChartFooter from './chartFooter';
+import EventView from './eventView';
 
-const defaultTooltip: TooltipData = {
-  values: [],
-  timestamp: 0,
-};
-
-type Props = {
+type ResultsChartProps = {
+  api: Client;
   router: ReactRouter.InjectedRouter;
   organization: Organization;
   eventView: EventView;
   location: Location;
-
-  total: number | null;
-  onAxisChange: (value: string) => void;
 };
 
-type State = {
-  tooltipData: TooltipData;
-};
+class ResultsChart extends React.Component<ResultsChartProps> {
+  shouldComponentUpdate(nextProps: ResultsChartProps) {
+    const {eventView, ...restProps} = this.props;
+    const {eventView: nextEventView, ...restNextProps} = nextProps;
 
-const CHART_AXIS_OPTIONS = [
-  {label: 'count(id)', value: 'count(id)'},
-  {label: 'count_unique(users)', value: 'count_unique(user)'},
-];
+    if (!eventView.isEqualTo(nextEventView)) {
+      return true;
+    }
 
-export default class ResultsChart extends React.Component<Props, State> {
-  state = {
-    tooltipData: defaultTooltip,
-  };
-
-  handleTooltipUpdate = (state: TooltipData) => {
-    this.setState({tooltipData: state});
-  };
+    return !isEqual(restProps, restNextProps);
+  }
 
   render() {
-    const {eventView, location, organization, router, total, onAxisChange} = this.props;
+    const {api, eventView, location, organization, router} = this.props;
 
-    // Make option set and add the default options in.
-    const yAxisOptions: SelectValue<string>[] = uniqBy(
-      eventView
-        .getAggregateFields()
-        // Exclude last_seen and latest_event as they don't produce useful graphs.
-        .filter(
-          (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
-        )
-        .map((field: Field) => {
-          return {label: field.field, value: field.field};
-        })
-        .concat(CHART_AXIS_OPTIONS),
-      'value'
-    );
-    const yAxisValue = eventView.yAxis || yAxisOptions[0].value;
+    const yAxisValue = eventView.getYAxis();
+
+    const globalSelection = eventView.getGlobalSelection();
+    const start = globalSelection.start
+      ? getUtcToLocalDateObject(globalSelection.start)
+      : undefined;
+
+    const end = globalSelection.end
+      ? getUtcToLocalDateObject(globalSelection.end)
+      : undefined;
+
+    const {utc} = getParams(location.query);
 
     return (
-      <StyledPanel onMouseLeave={() => this.handleTooltipUpdate(defaultTooltip)}>
+      <React.Fragment>
         {getDynamicText({
           value: (
             <EventsChart
+              api={api}
               router={router}
               query={eventView.getEventsAPIPayload(location).query}
               organization={organization}
               showLegend
               yAxis={yAxisValue}
-              project={eventView.project as number[]}
-              environment={eventView.environment as string[]}
-              onTooltipUpdate={this.handleTooltipUpdate}
+              projects={globalSelection.project}
+              environments={globalSelection.environment}
+              start={start}
+              end={end}
+              period={globalSelection.statsPeriod}
+              utc={utc === 'true'}
             />
           ),
           fixed: 'events chart',
         })}
+      </React.Fragment>
+    );
+  }
+}
+
+type ResultsChartContainerProps = {
+  api: Client;
+  router: ReactRouter.InjectedRouter;
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+
+  // chart footer props
+  total: number | null;
+  onAxisChange: (value: string) => void;
+};
+
+class ResultsChartContainer extends React.Component<ResultsChartContainerProps> {
+  shouldComponentUpdate(nextProps: ResultsChartContainerProps) {
+    const {eventView, ...restProps} = this.props;
+    const {eventView: nextEventView, ...restNextProps} = nextProps;
+
+    if (!eventView.isEqualTo(nextEventView)) {
+      return true;
+    }
+
+    return !isEqual(restProps, restNextProps);
+  }
+
+  render() {
+    const {
+      api,
+      eventView,
+      location,
+      router,
+      total,
+      onAxisChange,
+      organization,
+    } = this.props;
+
+    const yAxisValue = eventView.getYAxis();
+
+    return (
+      <StyledPanel>
+        <ResultsChart
+          api={api}
+          eventView={eventView}
+          location={location}
+          organization={organization}
+          router={router}
+        />
         <ChartFooter
-          hoverState={this.state.tooltipData}
           total={total}
           yAxisValue={yAxisValue}
-          yAxisOptions={yAxisOptions}
+          yAxisOptions={eventView.getYAxisOptions()}
           onChange={onAxisChange}
         />
       </StyledPanel>
@@ -94,10 +134,10 @@ export default class ResultsChart extends React.Component<Props, State> {
   }
 }
 
-export const StyledPanel = styled(Panel)`
-  margin: 0;
+export default ResultsChartContainer;
 
-  .echarts-for-react div:first-child {
-    width: 100% !important;
+export const StyledPanel = styled(Panel)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin: 0;
   }
 `;

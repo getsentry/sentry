@@ -42,7 +42,7 @@ class RuleRow extends React.Component<Props, State> {
 
   renderIssueRule(data: IssueAlertRule) {
     const {params, routes, location, canEdit} = this.props;
-    const editLink = recreateRoute(`issue-rules/${data.id}/`, {
+    const editLink = recreateRoute(`rules/${data.id}/`, {
       params,
       routes,
       location,
@@ -71,18 +71,18 @@ class RuleRow extends React.Component<Props, State> {
             </MatchTypeHeader>
             {data.conditions.length !== 0 && (
               <Conditions>
-                {data.conditions.map((condition, i) => {
-                  return <div key={i}>{condition.name}</div>;
-                })}
+                {data.conditions.map((condition, i) => (
+                  <div key={i}>{condition.name}</div>
+                ))}
               </Conditions>
             )}
           </div>
 
-          <div>
-            {data.actions.map((action, i) => {
-              return <div key={i}>{action.name}</div>;
-            })}
-          </div>
+          <Actions>
+            {data.actions.map((action, i) => (
+              <div key={i}>{action.name}</div>
+            ))}
+          </Actions>
         </TriggerAndActions>
       </RuleItem>
     );
@@ -106,26 +106,22 @@ class RuleRow extends React.Component<Props, State> {
 
         <div>
           {data.triggers.length !== 0 &&
-            data.triggers.map((trigger, i) => {
-              return (
-                <TriggerAndActions key={i}>
-                  <Trigger>
-                    <StatusBadge>{trigger.label}</StatusBadge>
-                    <div>
-                      {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
-                      {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
-                      {trigger.alertThreshold}/{data.timeWindow}s
-                    </div>
-                  </Trigger>
+            data.triggers.map((trigger, i) => (
+              <TriggerAndActions key={i}>
+                <Trigger>
+                  <StatusBadge>{trigger.label}</StatusBadge>
                   <div>
-                    {trigger.actions &&
-                      trigger.actions.map((action, j) => (
-                        <div key={j}>{action.desc}</div>
-                      ))}
+                    {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
+                    {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
+                    {trigger.alertThreshold}/{data.timeWindow}min
                   </div>
-                </TriggerAndActions>
-              );
-            })}
+                </Trigger>
+                <Actions>
+                  {trigger.actions &&
+                    trigger.actions.map((action, j) => <div key={j}>{action.desc}</div>)}
+                </Actions>
+              </TriggerAndActions>
+            ))}
         </div>
       </RuleItem>
     );
@@ -164,6 +160,9 @@ const Conditions = styled('div')`
   justify-content: space-between;
   height: 100%;
 `;
+
+// For tests
+const Actions = styled('div')``;
 
 const TriggerAndActions = styled('div')`
   display: grid;

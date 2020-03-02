@@ -356,66 +356,71 @@ exports[`ProjectCard renders 1`] = `
                                       }
                                       size={18}
                                     >
-                                      <PlatformList
-                                        className="css-1neg7x4-StyledAvatar e165dl3i1"
-                                        consistentWidth={false}
-                                        direction="right"
-                                        hasTooltip={false}
-                                        max={1}
-                                        platforms={
-                                          Array [
-                                            "javascript",
-                                          ]
-                                        }
-                                        size={18}
+                                      <Tooltip
+                                        containerDisplayMode="inline-block"
+                                        disabled={true}
+                                        position="top"
                                       >
-                                        <PlatformIcons
+                                        <PlatformList
                                           className="css-1neg7x4-StyledAvatar e165dl3i1"
                                           consistentWidth={false}
                                           direction="right"
                                           max={1}
+                                          platforms={
+                                            Array [
+                                              "javascript",
+                                            ]
+                                          }
                                           size={18}
                                         >
-                                          <div
-                                            className="e165dl3i1 css-corue1-PlatformIcons-StyledAvatar ezvce7z0"
+                                          <PlatformIcons
+                                            className="css-1neg7x4-StyledAvatar e165dl3i1"
+                                            consistentWidth={false}
                                             direction="right"
                                             max={1}
                                             size={18}
                                           >
-                                            <StyledPlatformIcon
-                                              key="javascript"
-                                              platform="javascript"
+                                            <div
+                                              className="e165dl3i1 css-corue1-PlatformIcons-StyledAvatar ezvce7z0"
+                                              direction="right"
+                                              max={1}
                                               size={18}
                                             >
-                                              <Component
-                                                className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                              <StyledPlatformIcon
+                                                key="javascript"
                                                 platform="javascript"
                                                 size={18}
                                               >
-                                                <PlatformIcon
+                                                <Component
                                                   className="css-d510pr-StyledPlatformIcon ezvce7z1"
                                                   platform="javascript"
-                                                  size="18px"
+                                                  size={18}
                                                 >
-                                                  <img
+                                                  <PlatformIcon
                                                     className="css-d510pr-StyledPlatformIcon ezvce7z1"
-                                                    height="18px"
-                                                    src={
-                                                      Object {
-                                                        "default": Object {
-                                                          "id": "test",
-                                                          "viewBox": Object {},
-                                                        },
+                                                    platform="javascript"
+                                                    size="18px"
+                                                  >
+                                                    <img
+                                                      className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                                      height="18px"
+                                                      src={
+                                                        Object {
+                                                          "default": Object {
+                                                            "id": "test",
+                                                            "viewBox": Object {},
+                                                          },
+                                                        }
                                                       }
-                                                    }
-                                                    width="18px"
-                                                  />
-                                                </PlatformIcon>
-                                              </Component>
-                                            </StyledPlatformIcon>
-                                          </div>
-                                        </PlatformIcons>
-                                      </PlatformList>
+                                                      width="18px"
+                                                    />
+                                                  </PlatformIcon>
+                                                </Component>
+                                              </StyledPlatformIcon>
+                                            </div>
+                                          </PlatformIcons>
+                                        </PlatformList>
+                                      </Tooltip>
                                     </ProjectAvatar>
                                   </Avatar>
                                 </StyledAvatar>
@@ -948,14 +953,14 @@ exports[`ProjectCard renders 1`] = `
                 p={2}
               >
                 <div
-                  className="css-d9a0z6-DeployBox elff1ar5"
+                  className="css-d9a0z6-DeployBox elff1ar4"
                 >
                   <Background
                     alignItems="center"
                     justifyContent="center"
                   >
                     <div
-                      className="css-4zyp61-Background elff1ar6"
+                      className="css-4zyp61-Background elff1ar5"
                     >
                       <forwardRef<Button>
                         external={true}
@@ -985,13 +990,14 @@ exports[`ProjectCard renders 1`] = `
                               aria-disabled={false}
                               aria-label="Track deploys"
                               className="css-12ogwys-StyledButton edwq9my0"
+                              external={true}
                               forwardRef={null}
                               href="https://docs.sentry.io/learn/releases/"
                               onClick={[Function]}
                               role="button"
                               size="xsmall"
                             >
-                              <a
+                              <ForwardRef
                                 aria-disabled={false}
                                 aria-label="Track deploys"
                                 className="css-12ogwys-StyledButton edwq9my0"
@@ -1000,23 +1006,35 @@ exports[`ProjectCard renders 1`] = `
                                 role="button"
                                 size="xsmall"
                               >
-                                <ButtonLabel
-                                  align="center"
+                                <a
+                                  aria-disabled={false}
+                                  aria-label="Track deploys"
+                                  className="css-12ogwys-StyledButton edwq9my0"
+                                  href="https://docs.sentry.io/learn/releases/"
+                                  onClick={[Function]}
+                                  rel="noreferrer noopener"
+                                  role="button"
                                   size="xsmall"
+                                  target="_blank"
                                 >
-                                  <Component
+                                  <ButtonLabel
                                     align="center"
-                                    className="css-cmi7y3-ButtonLabel edwq9my1"
                                     size="xsmall"
                                   >
-                                    <span
+                                    <Component
+                                      align="center"
                                       className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      size="xsmall"
                                     >
-                                      Track deploys
-                                    </span>
-                                  </Component>
-                                </ButtonLabel>
-                              </a>
+                                      <span
+                                        className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      >
+                                        Track deploys
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </a>
+                              </ForwardRef>
                             </Component>
                           </StyledButton>
                         </Button>

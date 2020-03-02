@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+
 import Button from 'app/components/button';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
@@ -10,15 +11,13 @@ type Props = {
   onSubmit: () => void;
 };
 
-const MultipleSelectorSubmitRow = ({onSubmit}: Props) => {
-  return (
-    <SubmitButtonContainer>
-      <SubmitButton onClick={onSubmit} size="xsmall" priority="primary">
-        {t('Apply')}
-      </SubmitButton>
-    </SubmitButtonContainer>
-  );
-};
+const MultipleSelectorSubmitRow = ({onSubmit}: Props) => (
+  <SubmitButtonContainer>
+    <SubmitButton onClick={onSubmit} size="xsmall" priority="primary">
+      {t('Apply')}
+    </SubmitButton>
+  </SubmitButtonContainer>
+);
 
 MultipleSelectorSubmitRow.propTypes = {
   onSubmit: PropTypes.func.isRequired,

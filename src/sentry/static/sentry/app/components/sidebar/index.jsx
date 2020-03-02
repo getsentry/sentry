@@ -81,7 +81,7 @@ class Sidebar extends React.Component {
     this.doCollapse(this.props.collapsed);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     const {collapsed, location} = this.props;
     const nextLocation = nextProps.location;
 
@@ -240,7 +240,7 @@ class Sidebar extends React.Component {
     };
 
     // Bail as we can't do any more checks.
-    if (!organization) {
+    if (!organization || !organization.features) {
       return sidebarState;
     }
     const optState = localStorage.getItem('discover:version');
@@ -268,9 +268,11 @@ class Sidebar extends React.Component {
       sidebarState.events = true;
     }
 
-    // TODO(mark) Once discover2 is on for all accounts if an organization
-    // doesn't have events, or discover-basic sidebarState.discover2 should = true
-    // so that we can show an upsell.
+    // If an organization doesn't have events, or discover-basic
+    // Enable the tab so we can show an upsell state in saas.
+    if (!sidebarState.events) {
+      sidebarState.discover2 = true;
+    }
 
     return sidebarState;
   }

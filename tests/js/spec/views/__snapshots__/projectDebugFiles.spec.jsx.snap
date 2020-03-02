@@ -201,13 +201,11 @@ exports[`ProjectDebugFiles renders 1`] = `
           </div>
         </PanelHeader>
         <PanelBody
-          direction="column"
-          disablePadding={true}
-          flex={false}
+          flexible={false}
+          withPadding={false}
         >
           <FlexBox
-            disablePadding={true}
-            flex={false}
+            withPadding={false}
           >
             <div
               className="css-1ehogmz-FlexBox e1vnwt6f0"
@@ -321,9 +319,8 @@ exports[`ProjectDebugFiles renders empty 1`] = `
       </Styled(div)>
     </PanelHeader>
     <PanelBody
-      direction="column"
-      disablePadding={true}
-      flex={false}
+      flexible={false}
+      withPadding={false}
     >
       <EmptyStateWarning>
         <p>

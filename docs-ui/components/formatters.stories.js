@@ -8,7 +8,7 @@ import FileSize from 'app/components/fileSize';
 import Duration from 'app/components/duration';
 import DateTime from 'app/components/dateTime';
 import Count from 'app/components/count';
-import Version from 'app/components/versionV2';
+import Version from 'app/components/version';
 
 storiesOf('Utility|Formatters', module)
   .add(
@@ -107,20 +107,24 @@ storiesOf('Utility|Formatters', module)
     'Version',
     withInfo('Formats release version')(() => {
       const version = text('version', 'foo.bar.Baz@1.0.0+20200101');
-      const orgId = text('orgId', 'sentry');
       const anchor = boolean('anchor', true);
       const preserveGlobalSelection = boolean('preserveGlobalSelection', false);
       const tooltipRawVersion = boolean('tooltipRawVersion', true);
+      const withPackage = boolean('withPackage', false);
+      const truncate = boolean('truncate', false);
+      const projectId = text('projectId', '');
       const className = text('className', 'asdsad');
       return (
         <div>
           {version} =
           <Version
             version={version}
-            orgId={orgId}
             anchor={anchor}
             preserveGlobalSelection={preserveGlobalSelection}
             tooltipRawVersion={tooltipRawVersion}
+            withPackage={withPackage}
+            projectId={projectId}
+            truncate={truncate}
             className={className}
           />
         </div>

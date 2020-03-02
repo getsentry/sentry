@@ -119,7 +119,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             organization_id=self.organization_id, provider="github"
         )
 
-        return filter(lambda repo: repo.name not in accessible_repo_names, existing_repos)
+        return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
 
     def reinstall(self):
         self.reinstall_repositories()

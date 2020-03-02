@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import {Client} from 'app/api';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
@@ -18,7 +19,7 @@ class SetupWizard extends React.Component {
     this.state = this.getDefaultState();
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.api = new Client();
     this.pollFinished();
   }

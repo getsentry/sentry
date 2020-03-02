@@ -2,12 +2,9 @@ from __future__ import absolute_import
 
 from collections import defaultdict
 from datetime import timedelta
-from rest_framework import serializers
 from uuid import uuid4
 
-import pytz
 import six
-from dateutil.parser import parse as parse_date
 from django.db import transaction
 from django.utils import timezone
 
@@ -16,6 +13,7 @@ from sentry.api.event_search import get_filter
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
+    AlertRuleEnvironment,
     AlertRuleExcludedProjects,
     AlertRuleQuerySubscription,
     AlertRuleStatus,
@@ -31,11 +29,10 @@ from sentry.incidents.models import (
     IncidentSeen,
     IncidentStatus,
     IncidentSubscription,
-    IncidentType,
     TimeSeriesSnapshot,
 )
-from sentry.snuba.discover import zerofill
 from sentry.models import Integration, Project
+from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -43,13 +40,8 @@ from sentry.snuba.subscriptions import (
     bulk_update_snuba_subscriptions,
     query_aggregation_to_snuba,
 )
-from sentry.utils.snuba import bulk_raw_query, raw_query, SnubaQueryParams, SnubaTSResult
-
-MAX_INITIAL_INCIDENT_PERIOD = timedelta(days=7)
-
-
-class StatusAlreadyChangedError(Exception):
-    pass
+from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
+from sentry.utils.compat import zip
 
 
 class AlreadyDeletedError(Exception):
@@ -66,7 +58,7 @@ def create_incident(
     title,
     query,
     aggregation,
-    date_started=None,
+    date_started,
     date_detected=None,
     # TODO: Probably remove detection_uuid?
     detection_uuid=None,
@@ -80,9 +72,6 @@ def create_incident(
         if projects is None:
             projects = []
         projects = list(set(projects + group_projects))
-
-    if date_started is None:
-        date_started = calculate_incident_start(query, projects, groups)
 
     if date_detected is None:
         date_detected = date_started
@@ -109,15 +98,7 @@ def create_incident(
                 [IncidentGroup(incident=incident, group=group) for group in groups]
             )
 
-        if type == IncidentType.CREATED:
-            activity_status = IncidentActivityType.CREATED
-        else:
-            activity_status = IncidentActivityType.DETECTED
-
-        event_stats_snapshot = create_initial_event_stats_snapshot(incident)
-        create_incident_activity(
-            incident, activity_status, event_stats_snapshot=event_stats_snapshot, user=user
-        )
+        create_incident_activity(incident, IncidentActivityType.DETECTED, user=user)
         analytics.record(
             "incident.created",
             incident_id=incident.id,
@@ -128,110 +109,6 @@ def create_incident(
     return incident
 
 
-INCIDENT_START_PERIOD = timedelta(days=14)
-INCIDENT_START_ROLLUP = timedelta(minutes=15)
-
-
-def calculate_incident_start(query, projects, groups):
-    """
-    Attempts to automatically calculate the date that an incident began at based
-    on the events related to the incident.
-    """
-    params = {}
-    if groups:
-        params["group_ids"] = [g.id for g in groups]
-        end = max(g.last_seen for g in groups) + timedelta(seconds=1)
-    else:
-        end = timezone.now()
-
-    params["start"] = end - INCIDENT_START_PERIOD
-    params["end"] = end
-
-    if projects:
-        params["project_id"] = [p.id for p in projects]
-
-    filter = get_filter(query, params)
-    rollup = int(INCIDENT_START_ROLLUP.total_seconds())
-
-    result = raw_query(
-        aggregations=[("count()", "", "count"), ("min", "timestamp", "first_seen")],
-        orderby="time",
-        groupby=["time"],
-        rollup=rollup,
-        referrer="incidents.calculate_incident_start",
-        limit=10000,
-        start=filter.start,
-        end=filter.end,
-        conditions=filter.conditions,
-        filter_keys=filter.filter_keys,
-    )["data"]
-    # TODO: Start could be the period before the first period we find
-    result = zerofill(result, params["start"], params["end"], rollup, "time")
-
-    # We want to linearly scale scores from 100% value at the most recent to
-    # 50% at the oldest. This gives a bias towards newer results.
-    negative_weight = (1.0 / len(result)) / 2
-    multiplier = 1.0
-    cur_spike_max_count = -1
-    cur_spike_start = None
-    cur_spike_end = None
-    max_height = 0
-    incident_start = None
-    cur_height = 0
-    prev_count = 0
-
-    def get_row_first_seen(row, default=None):
-        first_seen = default
-        if "first_seen" in row:
-            first_seen = parse_date(row["first_seen"]).replace(tzinfo=pytz.utc)
-        return first_seen
-
-    def calculate_start(spike_start, spike_end):
-        """
-        We arbitrarily choose a date about 1/3 into the incident period. We
-        could potentially improve this if we want by analyzing the period in
-        more detail and choosing a date that most closely fits with being 1/3
-        up the spike.
-        """
-        spike_length = spike_end - spike_start
-        return spike_start + (spike_length / 3)
-
-    for row in reversed(result):
-        cur_count = row.get("count", 0)
-        if cur_count < prev_count or cur_count > 0 and cur_count == prev_count:
-            cur_height = cur_spike_max_count - cur_count
-        elif cur_count > 0 or prev_count > 0 or cur_height > 0:
-            # Now we've got the height of the current spike, compare it to the
-            # current max. We decrease the value by `multiplier` so that we
-            # favour newer results
-            cur_height *= multiplier
-            if cur_height > max_height:
-                # If we detect that we have a new highest peak, then set a new
-                # incident start date
-                incident_start = calculate_start(cur_spike_start, cur_spike_end)
-                max_height = cur_height
-
-            cur_height = 0
-            cur_spike_max_count = cur_count
-            cur_spike_end = get_row_first_seen(row)
-
-        # We attempt to get the first_seen value from the row here. If the row
-        # doesn't have it (because it's a zerofilled row), then just use the
-        # previous value. This allows us to have the start of a spike always be
-        # a bucket that contains at least one element.
-        cur_spike_start = get_row_first_seen(row, cur_spike_start)
-        prev_count = cur_count
-        multiplier -= negative_weight
-
-    if (cur_height > max_height or not incident_start) and cur_spike_start:
-        incident_start = calculate_start(cur_spike_start, cur_spike_end)
-
-    if not incident_start:
-        incident_start = timezone.now()
-
-    return incident_start
-
-
 def update_incident_status(incident, status, user=None, comment=None):
     """
     Updates the status of an Incident and write an IncidentActivity row to log
@@ -240,7 +117,7 @@ def update_incident_status(incident, status, user=None, comment=None):
     """
     if incident.status == status.value:
         # If the status isn't actually changing just no-op.
-        raise StatusAlreadyChangedError()
+        return incident
     with transaction.atomic():
         create_incident_activity(
             incident,
@@ -293,18 +170,6 @@ def set_incident_seen(incident, user=None):
     return incident_seen
 
 
-def create_initial_event_stats_snapshot(incident):
-    """
-    Creates an event snapshot representing the state at the beginning of
-    an incident. It's intended to capture the history of the events involved in
-    the incident, the spike and a short period of time after that.
-    """
-    initial_period_length = min(timezone.now() - incident.date_started, MAX_INITIAL_INCIDENT_PERIOD)
-    end = incident.date_started + initial_period_length
-    start = end - (initial_period_length * 4)
-    return create_event_stat_snapshot(incident, start, end)
-
-
 @transaction.atomic
 def create_incident_activity(
     incident,
@@ -313,7 +178,6 @@ def create_incident_activity(
     value=None,
     previous_value=None,
     comment=None,
-    event_stats_snapshot=None,
     mentioned_user_ids=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
@@ -327,7 +191,6 @@ def create_incident_activity(
         value=value,
         previous_value=previous_value,
         comment=comment,
-        event_stats_snapshot=event_stats_snapshot,
     )
 
     if mentioned_user_ids:
@@ -406,11 +269,13 @@ def create_event_stat_snapshot(incident, start, end):
     )
 
 
-def build_incident_query_params(incident, start=None, end=None):
-    return bulk_build_incident_query_params([incident], start=start, end=end)[0]
+def build_incident_query_params(incident, start=None, end=None, prewindow=False):
+    return bulk_build_incident_query_params([incident], start=start, end=end, prewindow=prewindow)[
+        0
+    ]
 
 
-def bulk_build_incident_query_params(incidents, start=None, end=None):
+def bulk_build_incident_query_params(incidents, start=None, end=None, prewindow=False):
     incident_groups = defaultdict(list)
     for incident_id, group_id in IncidentGroup.objects.filter(incident__in=incidents).values_list(
         "incident_id", "group_id"
@@ -428,6 +293,9 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
             "start": incident.date_started if start is None else start,
             "end": incident.current_end_date if end is None else end,
         }
+        if prewindow:
+            prewindow_time_range = calculate_incident_prewindow(params["start"], params["end"])
+            params["start"] = params["start"] - prewindow_time_range
         group_ids = incident_groups[incident.id]
         if group_ids:
             params["group_ids"] = group_ids
@@ -435,18 +303,27 @@ def bulk_build_incident_query_params(incidents, start=None, end=None):
         if project_ids:
             params["project_id"] = project_ids
 
-        filter = get_filter(incident.query, params)
-
-        query_args_list.append(
-            {
-                "start": filter.start,
-                "end": filter.end,
-                "conditions": filter.conditions,
-                "filter_keys": filter.filter_keys,
-            }
-        )
+        snuba_filter = get_filter(incident.query, params)
+        snuba_args = {
+            "start": snuba_filter.start,
+            "end": snuba_filter.end,
+            "conditions": snuba_filter.conditions,
+            "filter_keys": snuba_filter.filter_keys,
+            "having": [],
+        }
+        snuba_args["conditions"] = resolve_discover_aliases(snuba_args)[0]["conditions"]
+        query_args_list.append(snuba_args)
 
     return query_args_list
+
+
+def calculate_incident_prewindow(start, end, incident=None):
+    # Make the a bit earlier to show more relevant data from before the incident started:
+    prewindow = (end - start) / 5
+    if incident and incident.alert_rule is not None:
+        alert_rule_time_window = incident.alert_rule.time_window
+        prewindow = max(alert_rule_time_window, prewindow)
+    return prewindow
 
 
 def get_incident_event_stats(incident, start=None, end=None, data_points=50):
@@ -454,7 +331,9 @@ def get_incident_event_stats(incident, start=None, end=None, data_points=50):
     Gets event stats for an incident. If start/end are provided, uses that time
     period, otherwise uses the incident start/current_end.
     """
-    query_params = bulk_build_incident_query_params([incident], start=start, end=end)
+    query_params = bulk_build_incident_query_params(
+        [incident], start=start, end=end, prewindow=True
+    )
     return bulk_get_incident_event_stats([incident], query_params, data_points=data_points)[0]
 
 
@@ -483,13 +362,17 @@ def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
     ]
 
 
-def get_incident_aggregates(incident):
+def get_alert_rule_environment_names(alert_rule):
+    return [x.environment.name for x in AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)]
+
+
+def get_incident_aggregates(incident, start=None, end=None, prewindow=False):
     """
-    Calculates aggregate stats across the life of an incident.
+    Calculates aggregate stats across the life of an incident, or the provided range.
     - count: Total count of events
     - unique_users: Total number of unique users
     """
-    query_params = build_incident_query_params(incident)
+    query_params = build_incident_query_params(incident, start, end, prewindow)
     return bulk_get_incident_aggregates([query_params])[0]
 
 
@@ -526,7 +409,7 @@ def bulk_get_incident_stats(incidents):
 
     to_fetch = [i for i in incidents if i.id not in incident_stats]
     if to_fetch:
-        query_params_list = bulk_build_incident_query_params(to_fetch)
+        query_params_list = bulk_build_incident_query_params(to_fetch, prewindow=True)
         all_event_stats = bulk_get_incident_event_stats(to_fetch, query_params_list)
         all_aggregates = bulk_get_incident_aggregates(query_params_list)
         for incident, event_stats, aggregates in zip(to_fetch, all_event_stats, all_aggregates):
@@ -552,9 +435,7 @@ def get_incident_subscribers(incident):
 
 
 def get_incident_activity(incident):
-    return IncidentActivity.objects.filter(incident=incident).select_related(
-        "user", "event_stats_snapshot", "incident"
-    )
+    return IncidentActivity.objects.filter(incident=incident).select_related("user", "incident")
 
 
 class AlertRuleNameAlreadyUsedError(Exception):
@@ -572,9 +453,9 @@ def create_alert_rule(
     aggregation,
     time_window,
     threshold_period,
+    environment=None,
     include_all_projects=False,
     excluded_projects=None,
-    triggers=None,
 ):
     """
     Creates an alert rule for an organization.
@@ -587,13 +468,13 @@ def create_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: A QueryAggregation to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes
+    :param environment: List of environments that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`.
-    :param actions: A list of alert rule triggers for this for this rule
 
     :return: The created `AlertRule`
     """
@@ -614,6 +495,7 @@ def create_alert_rule(
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
         )
+
         if include_all_projects:
             excluded_projects = excluded_projects if excluded_projects else []
             projects = Project.objects.filter(organization=organization).exclude(
@@ -625,11 +507,11 @@ def create_alert_rule(
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
-        subscribe_projects_to_alert_rule(alert_rule, projects)
+        if environment:
+            for e in environment:
+                AlertRuleEnvironment.objects.create(alert_rule=alert_rule, environment=e)
 
-        if triggers:
-            for trigger_data in triggers:
-                create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
+        subscribe_projects_to_alert_rule(alert_rule, projects)
 
     return alert_rule
 
@@ -641,10 +523,10 @@ def update_alert_rule(
     query=None,
     aggregation=None,
     time_window=None,
+    environment=None,
     threshold_period=None,
     include_all_projects=None,
     excluded_projects=None,
-    triggers=None,
 ):
     """
     Updates an alert rule.
@@ -657,6 +539,7 @@ def update_alert_rule(
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregation: An AlertRuleAggregation that we want to fetch for this alert rule
     :param time_window: Time period to aggregate over, in minutes.
+    :param environment: List of environments that this rule applies to
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -757,6 +640,16 @@ def update_alert_rule(
             # values
             existing_subs = [sub for sub in existing_subs if sub.id]
 
+        if environment:
+            # Delete rows we don't have present in the updated data.
+            AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).exclude(
+                environment__in=environment
+            ).delete()
+            for e in environment:
+                AlertRuleEnvironment.objects.get_or_create(alert_rule=alert_rule, environment=e)
+        else:
+            AlertRuleEnvironment.objects.filter(alert_rule=alert_rule).delete()
+
         if existing_subs and (
             query is not None or aggregation is not None or time_window is not None
         ):
@@ -768,29 +661,8 @@ def update_alert_rule(
                 QueryAggregations(alert_rule.aggregation),
                 timedelta(minutes=alert_rule.time_window),
                 timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
+                get_alert_rule_environment_names(alert_rule),
             )
-
-        if triggers is not None:
-            # Delete triggers we don't have present in the updated data.
-            trigger_ids = [x["id"] for x in triggers if "id" in x]
-            AlertRuleTrigger.objects.filter(alert_rule=alert_rule).exclude(
-                id__in=trigger_ids
-            ).delete()
-
-            for trigger_data in triggers:
-                try:
-                    if "id" in trigger_data:
-                        trigger_instance = AlertRuleTrigger.objects.get(
-                            alert_rule=alert_rule, id=trigger_data["id"]
-                        )
-                        trigger_data.pop("id")
-                        update_alert_rule_trigger(trigger_instance, **trigger_data)
-                    else:
-                        create_alert_rule_trigger(alert_rule=alert_rule, **trigger_data)
-                except AlertRuleTriggerLabelAlreadyUsedError:
-                    raise serializers.ValidationError(
-                        "This trigger label is already in use for this alert rule"
-                    )
 
     return alert_rule
 
@@ -808,6 +680,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
         QueryAggregations(alert_rule.aggregation),
         timedelta(minutes=alert_rule.time_window),
         timedelta(minutes=alert_rule.resolution),
+        get_alert_rule_environment_names(alert_rule),
     )
     subscription_links = [
         AlertRuleQuerySubscription(query_subscription=subscription, alert_rule=alert_rule)
@@ -832,7 +705,7 @@ def delete_alert_rule(alert_rule):
         alert_rule.update(
             # Randomize the name here so that we don't get unique constraint issues
             # while waiting for the deletion to process
-            name=uuid4().get_hex(),
+            name=uuid4().hex,
             status=AlertRuleStatus.PENDING_DELETION.value,
         )
         bulk_delete_snuba_subscriptions(list(alert_rule.query_subscriptions.all()))
@@ -866,7 +739,6 @@ def create_alert_rule_trigger(
     alert_threshold,
     resolve_threshold=None,
     excluded_projects=None,
-    actions=None,
 ):
     """
     Creates a new AlertRuleTrigger
@@ -879,7 +751,6 @@ def create_alert_rule_trigger(
     resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
-    :param actions: A list of alert rule trigger actions for this trigger
     :return: The created AlertRuleTrigger
     """
     if AlertRuleTrigger.objects.filter(alert_rule=alert_rule, label=label).exists():
@@ -904,10 +775,6 @@ def create_alert_rule_trigger(
             ]
             AlertRuleTriggerExclusion.objects.bulk_create(new_exclusions)
 
-        if actions:
-            for action_data in actions:
-                create_alert_rule_trigger_action(trigger=trigger, **action_data)
-
     return trigger
 
 
@@ -918,7 +785,6 @@ def update_alert_rule_trigger(
     alert_threshold=None,
     resolve_threshold=None,
     excluded_projects=None,
-    actions=None,
 ):
     """
     :param trigger: The AlertRuleTrigger to update
@@ -930,7 +796,6 @@ def update_alert_rule_trigger(
     resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
-    :param actions: A list of alert rule trigger actions for this trigger
     :return: The updated AlertRuleTrigger
     """
 
@@ -981,22 +846,6 @@ def update_alert_rule_trigger(
             ]
             AlertRuleTriggerExclusion.objects.bulk_create(new_exclusions)
 
-        if actions is not None:
-            # Delete actions we don't have present in the updated data.
-            action_ids = [x["id"] for x in actions if "id" in x]
-            AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger).exclude(
-                id__in=action_ids
-            ).delete()
-
-            for action_data in actions:
-                if "id" in action_data:
-                    action_instance = AlertRuleTriggerAction.objects.get(
-                        alert_rule_trigger=trigger, id=action_data["id"]
-                    )
-                    action_data.pop("id")
-                    update_alert_rule_trigger_action(action_instance, **action_data)
-                else:
-                    create_alert_rule_trigger_action(trigger=trigger, **action_data)
     return trigger
 
 

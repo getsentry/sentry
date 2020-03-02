@@ -95,6 +95,7 @@ class IntegrationFeatures(Enum):
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
     SESSION_REPLAY = "session-replay"
+    DEPLOYMENT = "deployment"
 
 
 class IntegrationProvider(PipelineProvider):

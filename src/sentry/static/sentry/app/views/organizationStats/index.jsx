@@ -38,11 +38,11 @@ class OrganizationStatsContainer extends React.Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // If query string changes, it will be due to pagination.
     // Intentionally only fetch projects since stats are fetched for a fixed period during
     // the initial payload
@@ -90,13 +90,11 @@ class OrganizationStatsContainer extends React.Component {
           projectMap[project.id] = project;
         });
 
-        this.setState(prevState => {
-          return {
-            pageLinks: jqxhr.getResponseHeader('Link'),
-            projectMap,
-            projectsRequestsPending: prevState.projectsRequestsPending - 1,
-          };
-        });
+        this.setState(prevState => ({
+          pageLinks: jqxhr.getResponseHeader('Link'),
+          projectMap,
+          projectsRequestsPending: prevState.projectsRequestsPending - 1,
+        }));
       },
       error: () => {
         this.setState({

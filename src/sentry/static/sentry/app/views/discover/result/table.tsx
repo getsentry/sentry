@@ -1,6 +1,7 @@
 import React from 'react';
 import {MultiGrid, AutoSizer} from 'react-virtualized';
 import styled from '@emotion/styled';
+
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import Link from 'app/components/links/link';
@@ -190,9 +191,9 @@ class ResultTable extends React.Component<Props> {
     }
 
     const row = data[rowIndex - 1]; // -1 offset due to header row
-    const colWidths = columnsToCheck.map(col => {
-      return this.measureText(getDisplayText(row[col]), false);
-    });
+    const colWidths = columnsToCheck.map(col =>
+      this.measureText(getDisplayText(row[col]), false)
+    );
     const maxColWidth = Math.max(...colWidths, 0);
 
     // Number of rows to be rendered based on text content divided by cell width

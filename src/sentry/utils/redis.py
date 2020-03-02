@@ -20,6 +20,7 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 from sentry.utils.versioning import Version, check_versions
+from sentry.utils.compat import map
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,8 @@ class _RedisCluster(object):
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
         hosts = config.get("hosts")
-        hosts = hosts.values() if isinstance(hosts, dict) else hosts
+        # TODO(joshuarli): modernize dict_six fixer
+        hosts = list(hosts.values()) if isinstance(hosts, dict) else hosts
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.

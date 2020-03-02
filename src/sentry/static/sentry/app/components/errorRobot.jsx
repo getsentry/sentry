@@ -29,7 +29,7 @@ class ErrorRobot extends React.Component {
     sampleIssueId: this.props.sampleIssueId,
   };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchData();
   }
 

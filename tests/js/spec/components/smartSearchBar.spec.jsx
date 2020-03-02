@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
-
 import {Client} from 'app/api';
 import {SmartSearchBar, addSpace, removeSpace} from 'app/components/smartSearchBar';
 import TagStore from 'app/stores/tagStore';
@@ -243,7 +242,7 @@ describe('SmartSearchBar', function() {
       searchBar.state.dropdownVisible = true;
 
       jest.useFakeTimers();
-      searchBar.onQueryBlur();
+      searchBar.onQueryBlur({target: {value: 'test'}});
       jest.advanceTimersByTime(201); // doesn't close until 200ms
 
       expect(searchBar.state.dropdownVisible).toBe(false);
