@@ -1187,7 +1187,7 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, {})
         assert result["selected_columns"] == ["event.type", "message", "id", "project.id"]
         assert result["aggregations"] == [
-            ["transform(project_id, [], [], '')", None, "project.name"]
+            ["transform(project_id, array(), array(), '')", None, "project.name"]
         ]
         assert result["groupby"] == ["event.type", "message", "id", "project.id"]
 
@@ -1200,7 +1200,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["max", "timestamp", "last_seen"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, [], [], '')", None, "project.name"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == ["title"]
 
@@ -1232,7 +1232,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["quantile(0.95)(duration)", None, "percentile_transaction_duration_0_95"],
             ["quantile(0.99)(duration)", None, "percentile_transaction_duration_0_99"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, [], [], '')", None, "project.name"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1252,7 +1252,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["aggregations"] == [
             ["max", "timestamp", "last_seen"],
             ["argMax", ["id", "timestamp"], "latest_event"],
-            ["transform(project_id, [], [], '')", None, "project"],
+            ["transform(project_id, array(), array(), '')", None, "project"],
         ]
         assert result["groupby"] == [
             "title",
@@ -1276,7 +1276,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["min", "timestamp", "min_timestamp"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, [], [], '')", None, "project.name"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1291,7 +1291,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["count", None, "count_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, [], [], '')", None, "project.name"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1302,7 +1302,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["uniq", "user.id", "count_unique_user_id"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, [], [], '')", None, "project.name"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
 
     def test_aggregate_function_invalid_name(self):
@@ -1335,7 +1335,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, [], [], '')", None, "project.name"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1381,7 +1381,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), divide(3600, 60))", None, "rpm_3600"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, [], [], '')", None, "project.name"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1414,7 +1414,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), divide(3600, 60))", None, "rpm"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, [], [], '')", None, "project.name"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1427,7 +1427,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), 3600)", None, "rps_3600"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, [], [], '')", None, "project.name"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1476,7 +1476,7 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, snuba_args)
         assert result["selected_columns"] == ["message", "id", "project.id"]
         assert result["aggregations"] == [
-            ["transform(project_id, [], [], '')", None, "project.name"]
+            ["transform(project_id, array(), array(), '')", None, "project.name"]
         ]
         assert result["groupby"] == ["message", "id", "project.id"]
 
@@ -1489,7 +1489,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["max", "timestamp", "last_seen"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, [], [], '')", None, "project.name"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1503,7 +1503,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["uniq", "user", "count_unique_user"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
-            ["transform(projectid, [], [], '')", None, "project.name"],
+            ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1512,5 +1512,7 @@ class ResolveFieldListTest(unittest.TestCase):
         snuba_args = {"orderby": "-project"}
         result = resolve_field_list(fields, snuba_args)
         assert result["orderby"] == ["-project"]
-        assert result["aggregations"] == [["transform(project_id, [], [], '')", None, "project"]]
+        assert result["aggregations"] == [
+            ["transform(project_id, array(), array(), '')", None, "project"]
+        ]
         assert result["groupby"] == ["project.id", "id"]
