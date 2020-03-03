@@ -39,12 +39,14 @@ def test_get_project_config(default_project, insta_snapshot, full):
     cfg = cfg.to_dict()
 
     # Remove keys that change everytime
-    del cfg["lastChange"]
-    del cfg["lastFetch"]
-    del cfg["rev"]
+    cfg.pop("lastChange")
+    cfg.pop("lastFetch")
+    cfg.pop("rev")
 
     # public keys change every time
-    assert len(cfg["publicKeys"]) == len(keys)
-    del cfg["publicKeys"]
+    assert cfg.pop("projectId") == default_project.id
+    assert len(cfg.pop("publicKeys")) == len(keys)
+    if full:
+        assert cfg.pop("organizationId") == default_project.organization.id
 
     insta_snapshot(cfg)
