@@ -325,7 +325,7 @@ def calculate_incident_prewindow(start, end, incident=None):
     # Make the a bit earlier to show more relevant data from before the incident started:
     prewindow = (end - start) / 5
     if incident and incident.alert_rule is not None:
-        alert_rule_time_window = incident.alert_rule.time_window
+        alert_rule_time_window = timedelta(minutes=incident.alert_rule.time_window)
         prewindow = max(alert_rule_time_window, prewindow)
     return prewindow
 
