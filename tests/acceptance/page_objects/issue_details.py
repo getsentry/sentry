@@ -69,14 +69,14 @@ class IssueDetailsPage(BasePage):
         res = self.client.put(
             "/api/0/assistant/",
             content_type="application/json",
-            data=json.dumps({"guide_id": 1, "status": "viewed", "useful": True}),
+            data=json.dumps({"guide": "issue_details", "status": "viewed", "useful": True}),
         )
         assert res.status_code == 201
 
         res = self.client.put(
             "/api/0/assistant/",
             content_type="application/json",
-            data=json.dumps({"guide_id": 3, "status": "viewed", "useful": True}),
+            data=json.dumps({"guide": "issue_details", "status": "viewed", "useful": True}),
         )
         assert res.status_code == 201
 
