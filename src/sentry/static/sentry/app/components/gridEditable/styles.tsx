@@ -376,10 +376,10 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   &:hover::before {
     position: absolute;
     top: 0;
-    right: 1px;
+    left: 3px;
     content: ' ';
     display: block;
-    width: 4px;
+    width: 5px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
     background-color: ${p => p.theme.purpleLight};
   }
