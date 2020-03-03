@@ -60,7 +60,7 @@ class RedisQuota(Quota):
         interval = quota.window
         return u"{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
 
-    def get_quotas(self, project, key=None):
+    def get_quotas(self, project, key=None, keys=None):
         if key:
             key.project = project
 
@@ -92,7 +92,12 @@ class RedisQuota(Quota):
                 )
             )
 
-        if key:
+        if key and not keys:
+            keys = [key]
+        elif not keys:
+            keys = []
+
+        for key in keys:
             kquota = self.get_key_quota(key)
             if kquota[0] is not None:
                 results.append(
