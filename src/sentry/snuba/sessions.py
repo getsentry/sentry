@@ -23,12 +23,12 @@ def get_changed_project_release_model_materializations(project_ids):
 
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", "uniq_users"],
+        selected_columns=["project_id", "users"],
         groupby=["project_id"],
         rollup=24 * 60 * 60,
         filter_keys={"project_id": project_ids},
     )["data"]:
-        user_totals[x["project_id"]] = x["uniq_users"]
+        user_totals[x["project_id"]] = x["users"]
 
     for x in raw_query(
         dataset=Dataset.Sessions,
@@ -36,10 +36,10 @@ def get_changed_project_release_model_materializations(project_ids):
             "project_id",
             "started",
             "release",
-            "uniq_users",
-            "uniq_sessions",
-            "uniq_sessions_crashed",
-            "uniq_sessions_crashed",
+            "users",
+            "sessions",
+            "sessions_crashed",
+            "sessions_crashed",
         ],
         groupby=["release", "project_id"],
         rollup=24 * 60 * 60,
@@ -51,13 +51,13 @@ def get_changed_project_release_model_materializations(project_ids):
                 "date": parse_snuba_datetime(x["started"]),
                 "project_id": x["project_id"],
                 "release": x["release"],
-                "uniq_sessions": x["uniq_sessions"],
+                "sessions": x["sessions"],
                 "crash_free_sessions": (
-                    100 - x["uniq_sessions_crashed"] / float(x["uniq_sessions"]) * 100
-                    if x["uniq_sessions"]
+                    100 - x["sessions_crashed"] / float(x["sessions"]) * 100
+                    if x["sessions"]
                     else None
                 ),
-                "adoption": x["uniq_users"] / totals * 100 if totals else None,
+                "adoption": x["users"] / totals * 100 if totals else None,
             }
         )
 
@@ -80,13 +80,13 @@ def get_release_health_data_overview(project_releases, environments=None):
     total_users_24h = {}
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["release", "uniq_users"],
+        selected_columns=["release", "users"],
         groupby=["release", "project_id"],
         rollup=24 * 60 * 60,
         conditions=conditions,
         filter_keys={"project_id": list(x[0] for x in project_releases)},
     )["data"]:
-        total_users_24h[x["project_id"]] = x["uniq_users"]
+        total_users_24h[x["project_id"]] = x["users"]
 
     rv = {}
     for x in raw_query(
@@ -95,10 +95,10 @@ def get_release_health_data_overview(project_releases, environments=None):
             "release",
             "project_id",
             "duration",
-            "uniq_users",
-            "uniq_sessions",
-            "uniq_sessions_crashed",
-            "uniq_users_crashed",
+            "users",
+            "sessions",
+            "sessions_crashed",
+            "users_crashed",
         ],
         groupby=["release", "project_id", "started"],
         rollup=24 * 60 * 60,
@@ -107,29 +107,23 @@ def get_release_health_data_overview(project_releases, environments=None):
     )["data"]:
         total_users = total_users_24h.get(x["project_id"])
         rv[x["project_id"], x["release"]] = {
-            "duration_p50": _nan_as_none(x["duration"][0]),
-            "duration_p90": _nan_as_none(x["duration"][1]),
+            "duration_p50": _nan_as_none(x["duration_quantiles"][0]),
+            "duration_p90": _nan_as_none(x["duration_quantiles"][1]),
             "crash_free_users": (
-                100 - x["uniq_users_crashed"] / float(x["uniq_users"]) * 100
-                if x["uniq_users"]
-                else None
+                100 - x["users_crashed"] / float(x["users"]) * 100 if x["users"] else None
             ),
             "crash_free_sessions": (
-                100 - x["uniq_sessions_crashed"] / float(x["uniq_sessions"]) * 100
-                if x["uniq_sessions"]
-                else None
+                100 - x["sessions_crashed"] / float(x["sessions"]) * 100 if x["sessions"] else None
             ),
-            "total_users": x["uniq_users"],
-            "total_sessions": x["uniq_sessions"],
-            "adoption": x["uniq_users"] / total_users * 100
-            if total_users and x["uniq_users"]
-            else None,
+            "total_users": x["users"],
+            "total_sessions": x["sessions"],
+            "adoption": x["users"] / total_users * 100 if total_users and x["users"] else None,
             "stats": {"24h": [0] * 24},
         }
 
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["release", "project_id", "started", "uniq_sessions"],
+        selected_columns=["release", "project_id", "started", "sessions"],
         groupby=["release", "project_id", "started"],
         rollup=60 * 60,
         start=yesterday,
@@ -137,6 +131,6 @@ def get_release_health_data_overview(project_releases, environments=None):
         filter_keys={"project_id": list(x[0] for x in project_releases)},
     )["data"]:
         time_bucket = int((parse_snuba_datetime(x["started"]) - yesterday).total_seconds() / 3600)
-        rv[x["project_id"], x["release"]]["stats"]["24h"][time_bucket] = x["uniq_sessions"]
+        rv[x["project_id"], x["release"]]["stats"]["24h"][time_bucket] = x["sessions"]
 
     return rv
