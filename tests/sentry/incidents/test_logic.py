@@ -570,7 +570,7 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
 
 @freeze_time()
 class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
-    def test_meow(self):
+    def test(self):
         closed_incident = create_incident(
             self.organization,
             IncidentType.ALERT_TRIGGERED,
@@ -591,20 +591,7 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
             date_started=timezone.now() - timedelta(days=30),
         )
         incidents = [closed_incident, open_incident]
-        # for incident, incident_stats in zip(incidents, bulk_get_incident_stats(incidents)):
-        #     event_stats = get_incident_event_stats(incident)
-        #     assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
-        #     expected_start = incident_stats["event_stats"].start
-        #     expected_end = incident_stats["event_stats"].end
-        #     assert event_stats.start == expected_start
-        #     assert event_stats.end == expected_end
-        #     assert incident_stats["event_stats"].rollup == event_stats.rollup
-
-        #     aggregates = get_incident_aggregates(incident)
-        #     assert incident_stats["total_events"] == aggregates["count"]
-        #     assert incident_stats["unique_users"] == aggregates["unique_users"]
-
-        # Prewindow version of the same test:
+        # Note: Closing an incident above uses a prewindow in the snapshot by default, so without prewindows this test fails.
         for incident, incident_stats in zip(
             incidents, bulk_get_incident_stats(incidents, prewindow=True)
         ):

@@ -266,7 +266,7 @@ def create_event_stat_snapshot(incident, start, end, prewindow):
 
     event_stats = get_incident_event_stats(incident, start, end)
     return TimeSeriesSnapshot.objects.create(
-        start=start - calculate_incident_prewindow(start, end, incident),
+        start=start,
         end=end,
         values=[[row["time"], row["count"]] for row in event_stats.data["data"]],
         period=event_stats.rollup,
