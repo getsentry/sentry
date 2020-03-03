@@ -339,7 +339,6 @@ class MailPlugin(NotificationPlugin):
             kwargs={"project_id": project.id},
         )
 
-    # TODO(jeff): Yeet this method
     def notify(self, notification, target_type, target_identifier=None, **kwargs):
         from sentry.models import Commit, Release
 
@@ -453,8 +452,8 @@ class MailPlugin(NotificationPlugin):
     # TODO(Jeff): Not required, but there is a dependency on mail plugin due to the way we send digests (sent key will
     #  be used to instantiate the MailPlugin to handle the notifyDigest call)
     # TODO(Jeff): How do we supply the additional argument (target_id) to digest?
-    def notify_digest(self, project, digest):
-        user_ids = self.get_send_to(project)
+    def notify_digest(self, project, digest, target_type, target_identifier=None):
+        user_ids = self.get_send_to(project, target_type, target_identifier)
         for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
             start, end, counts = get_digest_metadata(digest)
 
@@ -471,7 +470,7 @@ class MailPlugin(NotificationPlugin):
                     key=lambda record: record.timestamp,
                 )
                 notification = Notification(record.value.event, rules=record.value.rules)
-                return self.notify(notification)
+                return self.notify(notification, target_type, target_identifier)
 
             context = {
                 "start": start,
