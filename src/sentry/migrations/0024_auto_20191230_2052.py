@@ -86,7 +86,8 @@ def backfill_eventstream(apps, schema_editor):
                 is_regression=False,
                 is_new_group_environment=False,
                 primary_hash=primary_hash,
-                recieved_timestamp=float(event.datetime.strftime("%s"))
+                recieved_timestamp=event.data.get("received")
+                or float(event.datetime.strftime("%s")),
                 skip_consume=True,
             )
             processed += 1
