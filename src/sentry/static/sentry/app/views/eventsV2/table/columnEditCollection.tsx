@@ -322,7 +322,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         >
           {canDelete ? (
             <IconButton
-              aria-label={t('Drag to reorder columns')}
+              aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
             >
               <IconGrabbable size="sm" />
@@ -367,7 +367,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
         {columns.map((col: Column, i: number) => this.renderItem(col, i, {canDelete}))}
         <RowContainer>
           <Actions>
-            <Button size="xsmall" onClick={this.handleAddColumn}>
+            <Button
+              label={t('Add a Column')}
+              size="xsmall"
+              onClick={this.handleAddColumn}
+            >
               <StyledIconAdd circle size="sm" />
               {t('Add a Column')}
             </Button>
