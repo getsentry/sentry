@@ -8,12 +8,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
-from sentry.api.event_search import (
-    resolve_field_list,
-    InvalidSearchQuery,
-    get_aggregate_alias,
-    AGGREGATE_PATTERN,
-)
+from sentry.api.event_search import resolve_field_list, InvalidSearchQuery, get_function_alias
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.discover.utils import transform_aliases_and_query
 from sentry.snuba import discover
@@ -64,9 +59,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         if len(columns) > 1:
             # Return with requested yAxis as the key
             data = {
-                column: serializer.serialize(
-                    result, get_aggregate_alias(AGGREGATE_PATTERN.search(query_column))
-                )
+                column: serializer.serialize(result, get_function_alias(query_column))
                 for column, query_column in zip(columns, query_columns)
             }
         else:
@@ -78,11 +71,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         if interval is None:
             interval = timedelta(hours=1)
 
-        date_range = params['end'] - params['start']
+        date_range = params["end"] - params["start"]
         if date_range.total_seconds() / interval.total_seconds() > MAX_POINTS:
             raise InvalidSearchQuery(
-                'Your interval and date range would create too many results. '
-                'Use a larger interval, or a smaller date range.'
+                "Your interval and date range would create too many results. "
+                "Use a larger interval, or a smaller date range."
             )
 
         return int(interval.total_seconds())

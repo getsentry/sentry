@@ -9,12 +9,13 @@ from datetime import timedelta
 from sentry import options
 from sentry.api.event_search import (
     get_filter,
+    get_function_alias,
+    is_function,
     resolve_field_list,
     InvalidSearchQuery,
-    AGGREGATE_PATTERN,
     FIELD_ALIASES,
-    VALID_AGGREGATES,
 )
+
 from sentry import eventstore
 
 from sentry.models import Project, ProjectStatus
@@ -56,11 +57,10 @@ def is_real_column(col):
     Return true if col corresponds to an actual column to be fetched
     (not an aggregate function or field alias)
     """
-    if col in FIELD_ALIASES or col.strip("()") in FIELD_ALIASES:
+    if is_function(col):
         return False
 
-    match = AGGREGATE_PATTERN.search(col)
-    if match and match.group("function") in VALID_AGGREGATES:
+    if col in FIELD_ALIASES:
         return False
 
     return True
@@ -271,6 +271,79 @@ def transform_results(result, translated_columns, snuba_args):
     return result
 
 
+# TODO(evanh) This is only here for backwards compatibilty with old queries using these deprecated
+# aliases. Once we migrate the queries these can go away.
+OLD_FUNCTIONS_TO_NEW = {
+    "p75": "percentile(transaction.duration, 0.75)",
+    "p95": "percentile(transaction.duration, 0.95)",
+    "p99": "percentile(transaction.duration, 0.99)",
+    "last_seen": "last_seen()",
+    "latest_event": "latest_event()",
+    "apdex": "apdex(transaction.duration, 300)",
+    "impact": "impact(transaction.duration, 300)",
+}
+
+
+def transform_deprecated_functions_in_columns(columns):
+    new_list = []
+    translations = {}
+    for column in columns:
+        if column in OLD_FUNCTIONS_TO_NEW:
+            new_column = OLD_FUNCTIONS_TO_NEW[column]
+            translations[get_function_alias(new_column)] = column
+            new_list.append(new_column)
+        elif column.replace("()", "") in OLD_FUNCTIONS_TO_NEW:
+            new_column = OLD_FUNCTIONS_TO_NEW[column.replace("()", "")]
+            translations[get_function_alias(new_column)] = column.replace("()", "")
+            new_list.append(new_column)
+        else:
+            new_list.append(column)
+
+    return new_list, translations
+
+
+def transform_deprecated_functions_in_orderby(orderby):
+    if not orderby:
+        return
+
+    orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+    new_orderby = []
+    for order in orderby:
+        has_negative = False
+        column = order
+        if order.startswith("-"):
+            has_negative = True
+            column = order.strip("-")
+
+        new_column = column
+        if column in OLD_FUNCTIONS_TO_NEW:
+            new_column = get_function_alias(OLD_FUNCTIONS_TO_NEW[column])
+        elif column.replace("()", "") in OLD_FUNCTIONS_TO_NEW:
+            new_column = get_function_alias(OLD_FUNCTIONS_TO_NEW[column.replace("()", "")])
+
+        if has_negative:
+            new_column = "-" + new_column
+
+        new_orderby.append(new_column)
+
+    return new_orderby
+
+
+def transform_deprecated_functions_in_query(query):
+    if query is None:
+        return query
+
+    for old_function in OLD_FUNCTIONS_TO_NEW:
+        if old_function + "()" in query:
+            replacement = OLD_FUNCTIONS_TO_NEW[old_function]
+            query = query.replace(old_function + "()", replacement)
+        elif old_function in query:
+            replacement = OLD_FUNCTIONS_TO_NEW[old_function]
+            query = query.replace(old_function, replacement)
+
+    return query
+
+
 def query(
     selected_columns,
     query,
@@ -307,6 +380,14 @@ def query(
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
+    # TODO(evanh): These can be removed once we migrate the frontend / saved queries
+    # to use the new function values
+    selected_columns, function_translations = transform_deprecated_functions_in_columns(
+        selected_columns
+    )
+    orderby = transform_deprecated_functions_in_orderby(orderby)
+    query = transform_deprecated_functions_in_query(query)
+
     snuba_filter = get_filter(query, params)
 
     # TODO(mark) Refactor the need for this translation shim once all of
@@ -335,6 +416,8 @@ def query(
 
     # Resolve the public aliases into the discover dataset names.
     snuba_args, translated_columns = resolve_discover_aliases(snuba_args)
+    for snuba_name, sentry_name in six.iteritems(function_translations):
+        translated_columns[snuba_name] = sentry_name
 
     # Make sure that any aggregate conditions are also in the selected columns
     for having_clause in snuba_args.get("having"):
@@ -389,6 +472,11 @@ def timeseries_query(selected_columns, query, params, rollup, reference_event=No
                     conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
+    # TODO(evanh): These can be removed once we migrate the frontend / saved queries
+    # to use the new function values
+    selected_columns, _ = transform_deprecated_functions_in_columns(selected_columns)
+    query = transform_deprecated_functions_in_query(query)
+
     snuba_filter = get_filter(query, params)
     snuba_args = {
         "start": snuba_filter.start,
@@ -453,6 +541,10 @@ def get_pagination_ids(event, query, params, organization, reference_event=None,
                                     conditions based on the provided reference.
     referrer (str|None) A referrer string to help locate the origin of this query.
     """
+    # TODO(evanh): This can be removed once we migrate the frontend / saved queries
+    # to use the new function values
+    query = transform_deprecated_functions_in_query(query)
+
     snuba_filter = get_filter(query, params)
 
     if reference_event:
@@ -509,6 +601,10 @@ def get_facets(query, params, limit=10, referrer=None):
 
     Returns Sequence[FacetResult]
     """
+    # TODO(evanh): This can be removed once we migrate the frontend / saved queries
+    # to use the new function values
+    query = transform_deprecated_functions_in_query(query)
+
     snuba_filter = get_filter(query, params)
 
     # TODO(mark) Refactor the need for this translation shim.
