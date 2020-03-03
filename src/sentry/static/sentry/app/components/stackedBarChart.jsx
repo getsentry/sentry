@@ -183,7 +183,8 @@ class StackedBarChart extends React.Component {
 
   timeLabelAsFull(point) {
     const timeMoment = moment(point.x * 1000);
-    return timeMoment.format('lll');
+    const format = this.use24Hours() ? 'MMM D, YYYY HH:mm' : 'lll';
+    return timeMoment.format(format);
   }
 
   getTimeLabel(point) {
@@ -209,7 +210,7 @@ class StackedBarChart extends React.Component {
   }
 
   renderMarker(marker, index, pointWidth) {
-    const timeLabel = moment(marker.x * 1000).format('lll');
+    const timeLabel = this.timeLabelAsFull(marker);
     const title = (
       <div style={{width: '130px'}}>
         {marker.label}
