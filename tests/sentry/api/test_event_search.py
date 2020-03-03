@@ -257,9 +257,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_date_formats(self):
         invalid_queries = ["first_seen:hello", "first_seen:123", "first_seen:2018-01-01T00:01ZZ"]
         for invalid_query in invalid_queries:
-            with self.assertRaises(
-                InvalidSearchQuery, expected_regex="Invalid format for numeric search"
-            ):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for date search"):
                 parse_search_query(invalid_query)
 
     def test_specific_time_filter(self):
@@ -414,10 +412,49 @@ class ParseSearchQueryTest(unittest.TestCase):
                 key=SearchKey(name="device.family"), operator="=", value=SearchValue(raw_value="")
             )
         ]
-        with self.assertRaises(
-            InvalidSearchQuery, expected_regex="Invalid format for numeric search"
-        ):
+        with self.assertRaisesRegexp(InvalidSearchQuery, "Empty string after 'device.family:'"):
             parse_search_query("device.family:")
+
+    def test_escaped_quote_value(self):
+        assert parse_search_query('device.family:\\"') == [
+            SearchFilter(
+                key=SearchKey(name="device.family"), operator="=", value=SearchValue(raw_value='"')
+            )
+        ]
+
+        assert parse_search_query('device.family:te\\"st') == [
+            SearchFilter(
+                key=SearchKey(name="device.family"),
+                operator="=",
+                value=SearchValue(raw_value='te"st'),
+            )
+        ]
+
+        # This is a weird case. I think this should be an error, but it doesn't seem trivial to rewrite
+        # the grammar to handle that.
+        assert parse_search_query('url:"te"st') == [
+            SearchFilter(
+                key=SearchKey(name="url"), operator="=", value=SearchValue(raw_value="te")
+            ),
+            SearchFilter(
+                key=SearchKey(name="message"), operator="=", value=SearchValue(raw_value="st")
+            ),
+        ]
+
+    def test_trailing_quote_value(self):
+        tests = [
+            ('"test', "device.family:{}"),
+            ('test"', "url:{}"),
+            ('"test', "url:{} transaction:abadcafe"),
+            ('te"st', "url:{} transaction:abadcafe"),
+        ]
+
+        for test in tests:
+            with self.assertRaisesRegexp(
+                InvalidSearchQuery,
+                "Invalid quote at '{}': quotes must enclose text or be escaped.".format(test[0]),
+            ):
+                parse_search_query(test[1].format(test[0]))
 
     def test_custom_tag(self):
         assert parse_search_query("fruit:apple release:1.2.1") == [
@@ -477,8 +514,8 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_is_query_unsupported(self):
-        with self.assertRaises(
-            InvalidSearchQuery, expected_regex="queries are only supported in issue search"
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, ".*queries are only supported in issue search.*"
         ):
             parse_search_query("is:unassigned")
 
@@ -512,9 +549,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_invalid_numeric_fields(self):
         invalid_queries = ["project.id:one", "issue.id:two", "transaction.duration:>hotdog"]
         for invalid_query in invalid_queries:
-            with self.assertRaises(
-                InvalidSearchQuery, expected_regex="Invalid format for numeric search"
-            ):
+            with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid format for numeric search"):
                 parse_search_query(invalid_query)
 
     def test_quotes_filtered_on_raw(self):
@@ -1146,8 +1181,10 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["event.type", "message"]
         result = resolve_field_list(fields, {})
         assert result["selected_columns"] == ["event.type", "message", "id", "project.id"]
-        assert result["aggregations"] == []
-        assert result["groupby"] == []
+        assert result["aggregations"] == [
+            ["transform(project_id, [], [], '')", None, "project.name"]
+        ]
+        assert result["groupby"] == ["event.type", "message", "id", "project.id"]
 
     def test_automatic_fields_with_aggregate_aliases(self):
         fields = ["title", "last_seen"]
@@ -1158,6 +1195,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["max", "timestamp", "last_seen"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
         assert result["groupby"] == ["title"]
 
@@ -1178,6 +1216,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["quantile(0.99)(duration)", None, "p99"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1209,6 +1248,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["quantile(0.95)(duration)", None, "p95"],
             ["quantile(0.99)(duration)", None, "p99"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1217,27 +1257,28 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, {})
         assert result["selected_columns"] == [
             "title",
-            "project.id",
             "issue.id",
             "user.id",
             "user.username",
             "user.email",
             "user.ip",
             "message",
+            "project.id",
         ]
         assert result["aggregations"] == [
             ["max", "timestamp", "last_seen"],
             ["argMax", ["id", "timestamp"], "latest_event"],
+            ["transform(project_id, [], [], '')", None, "project"],
         ]
         assert result["groupby"] == [
             "title",
-            "project.id",
             "issue.id",
             "user.id",
             "user.username",
             "user.email",
             "user.ip",
             "message",
+            "project.id",
         ]
 
     def test_aggregate_function_expansion(self):
@@ -1251,6 +1292,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["min", "timestamp", "min_timestamp"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1265,6 +1307,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["count", None, "count_transaction_duration"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1275,6 +1318,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["uniq", "user.id", "count_unique_user_id"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
 
     def test_aggregate_function_invalid_name(self):
@@ -1304,6 +1348,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1349,6 +1394,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), divide(3600, 60))", None, "rpm_3600"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1381,6 +1427,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), divide(3600, 60))", None, "rpm"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1393,6 +1440,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), 3600)", None, "rps_3600"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1440,8 +1488,10 @@ class ResolveFieldListTest(unittest.TestCase):
         snuba_args = {"orderby": "-message"}
         result = resolve_field_list(fields, snuba_args)
         assert result["selected_columns"] == ["message", "id", "project.id"]
-        assert result["aggregations"] == []
-        assert result["groupby"] == []
+        assert result["aggregations"] == [
+            ["transform(project_id, [], [], '')", None, "project.name"]
+        ]
+        assert result["groupby"] == ["message", "id", "project.id"]
 
     def test_orderby_field_alias(self):
         fields = ["last_seen"]
@@ -1452,6 +1502,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["max", "timestamp", "last_seen"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
@@ -1465,5 +1516,14 @@ class ResolveFieldListTest(unittest.TestCase):
             ["uniq", "user", "count_unique_user"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
+            ["transform(projectid, [], [], '')", None, "project.name"],
         ]
         assert result["groupby"] == []
+
+    def test_orderby_project(self):
+        fields = ["project"]
+        snuba_args = {"orderby": "-project"}
+        result = resolve_field_list(fields, snuba_args)
+        assert result["orderby"] == ["-project"]
+        assert result["aggregations"] == [["transform(project_id, [], [], '')", None, "project"]]
+        assert result["groupby"] == ["project.id", "id"]

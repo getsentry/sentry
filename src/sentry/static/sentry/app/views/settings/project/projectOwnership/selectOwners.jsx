@@ -18,7 +18,7 @@ import MultiSelectControl from 'app/components/forms/multiSelectControl';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconAdd} from 'app/icons/iconAdd';
 import Tooltip from 'app/components/tooltip';
 
 class ValueComponent extends React.Component {
@@ -152,9 +152,8 @@ export default class SelectOwners extends React.Component {
               borderless
               disabled={!canAddTeam}
               onClick={this.handleAddTeamToProject.bind(this, team)}
-            >
-              <InlineSvg src="icon-circle-add" />
-            </AddToProjectButton>
+              icon={<IconAdd circle />}
+            />
           </Tooltip>
         </Flex>
       ),

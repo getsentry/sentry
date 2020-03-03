@@ -11,11 +11,11 @@ from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
 
 
-PERMISSIONS_WARNING = "You must be an organization owner or manager in Sentry to complete setup."
-REFRESH_REQUIRED = "This page has expired, please refresh to configure your Sentry integration"
-LOGIN_REQUIRED = "Please login to your Sentry account to access the Sentry Add-on configuration"
-ORGANIZATIONS_FORM = "Enabled Sentry Organizations"
-COMPLETED = "Saved!"
+PERMISSIONS_WARNING = b"You must be an organization owner or manager in Sentry to complete setup."
+REFRESH_REQUIRED = b"This page has expired, please refresh to configure your Sentry integration"
+LOGIN_REQUIRED = b"Please login to your Sentry account to access the Sentry Add-on configuration"
+ORGANIZATIONS_FORM = b"Enabled Sentry Organizations"
+COMPLETED = b"Saved!"
 
 
 class JiraConfigureViewTestCase(APITestCase):
@@ -58,7 +58,7 @@ class JiraConfigureViewErrorsTest(JiraConfigureViewTestCase):
 
         assert response.status_code == 200
         assert LOGIN_REQUIRED in response.content
-        assert absolute_uri(reverse("sentry-login")) in response.content
+        assert absolute_uri(reverse("sentry-login")).encode("utf-8") in response.content
 
     @patch(
         "sentry.integrations.jira.configure.get_integration_from_request",
@@ -84,7 +84,7 @@ class JiraConfigureViewErrorsTest(JiraConfigureViewTestCase):
         response = self.client.post(self.path)
         assert response.status_code == 200
         assert LOGIN_REQUIRED in response.content
-        assert absolute_uri(reverse("sentry-login")) in response.content
+        assert absolute_uri(reverse("sentry-login")).encode("utf-8") in response.content
 
 
 class JiraConfigureViewTest(JiraConfigureViewTestCase):

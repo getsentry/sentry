@@ -85,7 +85,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             assemble_download(de1)
         error = emailer.call_args[1]["message"]
         assert isinstance(error, DataExportError)
-        assert six.binary_type(error) == "Requested project does not exist"
+        assert six.text_type(error) == u"Requested project does not exist"
         de2 = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
@@ -96,4 +96,4 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             assemble_download(de2)
         error = emailer.call_args[1]["message"]
         assert isinstance(error, DataExportError)
-        assert six.binary_type(error) == "Requested issue does not exist"
+        assert six.text_type(error) == u"Requested issue does not exist"

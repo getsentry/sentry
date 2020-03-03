@@ -111,9 +111,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
           ExternalIssueStore.load(data);
           this.setState({externalIssues: data});
         })
-        .catch(_error => {
-          return;
-        });
+        .catch(_error => {});
     }
   }
 
