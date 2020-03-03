@@ -7,6 +7,7 @@ import Form from 'app/views/settings/components/forms/form';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import RangeField from 'app/views/settings/components/forms/rangeField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import space from 'app/styles/space';
 
 const getRateLimitValues = () => {
   const steps = [];
@@ -77,7 +78,7 @@ export default class OrganizationRateLimit extends React.Component {
                 help={t(
                   'The maximum number of events to accept across this entire organization.'
                 )}
-                placeholder="e.g. 500"
+                placeholder={t('e.g. 500')}
                 formatLabel={value =>
                   !value
                     ? t('No Limit')
@@ -116,5 +117,5 @@ export default class OrganizationRateLimit extends React.Component {
 const Box = styled('div')`
   display: flex;
   flex: 1;
-  padding: 0 2px;
+  padding: 0 ${space(2)};
 `;
