@@ -18,7 +18,7 @@ class IntegrationViewController extends React.Component<Props> {
   componentDidMount() {
     logExperiment({
       organization: this.props.organization,
-      key: 'IntegrationsDirectoryExperiment',
+      key: 'IntegrationDirectoryExperiment',
       unitName: 'org_id',
       unitId: parseInt(this.props.organization.id, 10),
       param: 'variant',
