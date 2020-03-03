@@ -17,6 +17,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
 # Arbitrary, subject to change
@@ -101,6 +102,7 @@ class ExportedData(Model):
             html_template="sentry/emails/data-export-success.html",
         )
         msg.send_async([self.user.email])
+        metrics.incr("dataexport.end", instance="success")
 
     def email_failure(self, message):
         from sentry.utils.email import MessageBuilder
@@ -117,6 +119,7 @@ class ExportedData(Model):
             html_template="sentry/emails/data-export-failure.html",
         )
         msg.send_async([self.user.email])
+        metrics.incr("dataexport.end", instance="failure")
         self.delete()
 
     class Meta:

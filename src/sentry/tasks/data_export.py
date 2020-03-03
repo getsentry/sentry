@@ -9,7 +9,7 @@ from sentry import tagstore
 from sentry.constants import ExportQueryType
 from sentry.models import EventUser, ExportedData, File, Group, Project, get_group_with_redirect
 from sentry.tasks.base import instrumented_task
-from sentry.utils import snuba
+from sentry.utils import metrics, snuba
 from sentry.utils.sdk import capture_exception
 
 SNUBA_MAX_RESULTS = 1000
@@ -51,12 +51,15 @@ def assemble_download(data_export_id):
                 raise DataExportError("Failed to save the assembled file")
     except DataExportError as error:
         # TODO(Leander): Implement logging
+        metrics.incr("dataexport.error", instance="handled")
         return data_export.email_failure(message=error)
     except NotImplementedError as error:
         # TODO(Leander): Implement logging
+        metrics.incr("dataexport.error", instance="handled")
         return data_export.email_failure(message=error)
     except BaseException as error:
         # TODO(Leander): Implement logging
+        metrics.incr("dataexport.error", instance="unhandled", skip_internal=False)
         capture_exception(error)
         return data_export.email_failure(message="Internal processing failure")
 
