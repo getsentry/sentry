@@ -113,19 +113,9 @@ exports[`CrashContent renders with meta data 1`] = `
               >
                 <StyledPre
                   className="exc-message"
-                  style={
-                    Object {
-                      "marginTop": 0,
-                    }
-                  }
                 >
                   <pre
-                    className="exc-message css-16m13pv-StyledPre e1rxtykr0"
-                    style={
-                      Object {
-                        "marginTop": 0,
-                      }
-                    }
+                    className="exc-message css-1q8nviw-StyledPre e1rxtykr0"
                   >
                     <AnnotatedText
                       chunks={Array []}

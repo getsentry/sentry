@@ -28,11 +28,7 @@ class ExceptionContent extends React.Component {
         </h5>
 
         <Annotated object={exc} objectKey="value" required>
-          {value => (
-            <StyledPre className="exc-message" style={{marginTop: 0}}>
-              {value}
-            </StyledPre>
-          )}
+          {value => <StyledPre className="exc-message">{value}</StyledPre>}
         </Annotated>
 
         {exc.mechanism && (
@@ -69,4 +65,5 @@ export default ExceptionContent;
 
 const StyledPre = styled('pre')`
   margin-bottom: ${space(1)};
+  margin-top: 0;
 `;
