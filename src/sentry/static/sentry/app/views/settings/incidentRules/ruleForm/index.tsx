@@ -2,7 +2,6 @@ import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
-import {MetricAction} from 'app/types/alerts';
 import {Organization, Project, Config} from 'app/types';
 import {
   addErrorMessage,
@@ -31,6 +30,7 @@ import {
   AlertRuleAggregations,
   AlertRuleThresholdType,
   IncidentRule,
+  MetricActionTemplate,
   Trigger,
 } from '../types';
 import {addOrUpdateRule} from '../actions';
@@ -57,7 +57,7 @@ type State = {
   triggerErrors: Map<number, {[fieldName: string]: string}>;
 
   // `null` means loading
-  availableActions: MetricAction[] | null;
+  availableActions: MetricActionTemplate[] | null;
 
   // Rule conditions form inputs
   // Needed for TriggersChart
