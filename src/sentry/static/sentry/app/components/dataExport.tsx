@@ -17,6 +17,7 @@ type DataExportPayload = {
 
 type Props = {
   api: Client;
+  disabled: boolean;
   organization: Organization;
   payload: DataExportPayload;
 };
@@ -62,18 +63,24 @@ class DataExport extends React.Component<Props, State> {
 
   render() {
     const {inProgress, dataExportId} = this.state;
+    const {children, disabled} = this.props;
     return (
       <Feature features={['data-export']}>
         {inProgress && dataExportId ? (
           <Tooltip title={TooltipMessages.progress}>
-            <button className="btn btn-default btn-sm" disabled>
+            <button className="btn btn-default btn-sm" disabled {...this.props}>
               {t('Queued up!')}
             </button>
           </Tooltip>
         ) : (
           <Tooltip title={TooltipMessages.start}>
-            <button className="btn btn-default btn-sm" onClick={this.startDataExport}>
-              {t('Export All to CSV')}
+            <button
+              className="btn btn-default btn-sm"
+              onClick={this.startDataExport}
+              disabled={disabled}
+              {...this.props}
+            >
+              {children ? children : t('Export All to CSV')}
             </button>
           </Tooltip>
         )}
