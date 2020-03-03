@@ -68,6 +68,18 @@ export default class DetailsHeader extends React.Component<Props> {
   render() {
     const {hasIncidentDetailsError, incident, params, onSubscriptionChange} = this.props;
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
+    const eventLink = incident
+      ? {
+          pathname: `/organizations/${params.orgId}/events/`,
+
+          // Note we don't have project selector on here so there should be
+          // no query params to forward
+          query: {
+            group: incident.groups,
+          },
+        }
+      : '';
+
     const dateStarted = incident && moment(incident.dateStarted).format('LL');
     const duration =
       incident &&
@@ -126,6 +138,9 @@ export default class DetailsHeader extends React.Component<Props> {
             {incident && (
               <ItemValue>
                 <Count value={incident.totalEvents} />
+                <OpenLink to={eventLink}>
+                  <InlineSvg src="icon-open" size="14" />
+                </OpenLink>
               </ItemValue>
             )}
             {incident && (
