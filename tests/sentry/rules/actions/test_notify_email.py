@@ -275,7 +275,6 @@ class MailPluginTest(TestCase):
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
         )
 
-    @pytest.mark.skip(reason="This is a todo")
     @mock.patch.object(MailPlugin, "notify", side_effect=MailPlugin.notify, autospec=True)
     def test_notify_digest(self, notify):
         project = self.project
@@ -294,7 +293,7 @@ class MailPluginTest(TestCase):
         )
 
         with self.tasks():
-            self.plugin.notify_digest(project, digest)
+            self.plugin.notify_digest(project, digest, OWNERS)
 
         assert notify.call_count == 0
         assert len(mail.outbox) == 1
@@ -302,18 +301,16 @@ class MailPluginTest(TestCase):
         message = mail.outbox[0]
         assert "List-ID" in message.message()
 
-    @pytest.mark.skip(reason="This is a todo")
     @mock.patch.object(MailPlugin, "notify", side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
     def test_notify_digest_single_record(self, send_async, notify):
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.project.rule_set.all()[0]
         digest = build_digest(self.project, (event_to_record(event, (rule,)),))
-        self.plugin.notify_digest(self.project, digest)
+        self.plugin.notify_digest(self.project, digest, OWNERS)
         assert send_async.call_count == 1
         assert notify.call_count == 1
 
-    @pytest.mark.skip(reason="This is a todo")
     def test_notify_digest_subject_prefix(self):
         ProjectOption.objects.set_value(
             project=self.project, key=u"mail:subject_prefix", value="[Example prefix] "
@@ -334,7 +331,7 @@ class MailPluginTest(TestCase):
         )
 
         with self.tasks():
-            self.plugin.notify_digest(self.project, digest)
+            self.plugin.notify_digest(self.project, digest, OWNERS)
 
         assert len(mail.outbox) == 1
 
