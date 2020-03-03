@@ -65,13 +65,20 @@ class CreateProject extends React.Component {
   }
 
   componentDidMount() {
-    logExperiment({
-      organization: this.props.organization,
-      key: 'AlertDefaultsExperiment',
-      unitName: 'org_id',
-      unitId: parseInt(this.props.organization.id, 10),
-      param: 'variant',
-    });
+    const {organization} = this.props;
+    if (
+      ['2OptionsV1', '3OptionsV1', 'controlV1'].includes(
+        organization.experiments?.AlertDefaultsExperiment
+      )
+    ) {
+      logExperiment({
+        organization,
+        key: 'AlertDefaultsExperiment',
+        unitName: 'org_id',
+        unitId: parseInt(organization.id, 10),
+        param: 'variant',
+      });
+    }
     trackAnalyticsEvent({
       eventKey: 'new_project.visited',
       eventName: 'New Project Page Visited',
