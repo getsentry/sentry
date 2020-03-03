@@ -17,6 +17,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import routeTitleGen from 'app/utils/routeTitle';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import {IconAdd} from 'app/icons/iconAdd';
 
 import ProjectStatsGraph from './projectStatsGraph';
 
@@ -99,7 +100,7 @@ class OrganizationProjects extends AsyncView {
             : undefined
         }
         to={`/organizations/${organization.slug}/projects/new/`}
-        icon="icon-circle-add"
+        icon={<IconAdd size="xs" circle />}
       >
         {t('Create Project')}
       </Button>
