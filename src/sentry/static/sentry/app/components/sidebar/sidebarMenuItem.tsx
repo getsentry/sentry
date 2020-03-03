@@ -2,7 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
+import {Theme} from 'app/utils/theme';
+
 import SidebarMenuItemLink, {SidebarMenuItemLinkProps} from './sidebarMenuItemLink';
+import {OrgSummary} from './sidebarOrgSummary';
 
 type Props = {
   children: React.ReactNode;
@@ -11,13 +14,38 @@ type Props = {
 const SidebarMenuItem = ({to, href, children, ...props}: Props) => {
   const hasMenu = !to && !href;
   return (
-    <SidebarMenuItemLink to={to} href={href} {...props}>
+    <StyledSidebarMenuItemLink to={to} href={href} {...props}>
       <MenuItemLabel hasMenu={hasMenu}>{children}</MenuItemLabel>
-    </SidebarMenuItemLink>
+    </StyledSidebarMenuItemLink>
   );
 };
 
 export default SidebarMenuItem;
+
+export const menuItemStyles = (p: SidebarMenuItemLinkProps & {theme: Theme}) => css`
+  color: ${p.theme.gray5};
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  line-height: 32px;
+  padding: 0 ${p.theme.sidebar.menuSpacing};
+  position: relative;
+  transition: 0.1s all linear;
+  ${(!!p.to || !!p.href) && 'overflow: hidden'};
+
+  &:hover,
+  &:active,
+  &.focus-visible {
+    background: ${p.theme.offWhite};
+    color: ${p.theme.gray5};
+    outline: none;
+  }
+
+  ${OrgSummary} {
+    padding-left: 0;
+    padding-right: 0;
+  }
+`;
 
 const MenuItemLabel = styled('span')<{hasMenu?: boolean}>`
   flex: 1;
@@ -30,4 +58,8 @@ const MenuItemLabel = styled('span')<{hasMenu?: boolean}>`
       : css`
           overflow: hidden;
         `};
+`;
+
+const StyledSidebarMenuItemLink = styled(SidebarMenuItemLink)`
+  ${menuItemStyles}
 `;
