@@ -43,4 +43,8 @@ def test_get_project_config(default_project, insta_snapshot, full):
     del cfg["lastFetch"]
     del cfg["rev"]
 
-    insta_snapshot()
+    # public keys change every time
+    assert len(cfg["publicKeys"]) == len(keys)
+    del cfg["publicKeys"]
+
+    insta_snapshot(cfg)

@@ -1,5 +1,5 @@
 ---
-created: '2020-03-03T12:49:38.782287Z'
+created: '2020-03-03T14:29:52.755431Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -105,14 +105,6 @@ config:
   quotas: []
   trustedRelays: []
 disabled: false
-lastChange: 2020-03-03 12:49:38.746404+00:00
-lastFetch: 2020-03-03 12:49:38.768026+00:00
 organizationId: 3
 projectId: 3
-publicKeys:
-- isEnabled: true
-  numericId: 3
-  publicKey: acca6b2c20714fc39e1c0a28ccb4da32
-  quotas: []
-rev: f4086e0deb3e4ab9872f9b031e11f27a
 slug: bar
