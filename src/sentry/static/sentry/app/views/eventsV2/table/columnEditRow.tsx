@@ -1,66 +1,101 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {components} from 'react-select';
 
+import Badge from 'app/components/badge';
 import SelectControl from 'app/components/forms/selectControl';
-import {OrganizationSummary, SelectValue} from 'app/types';
+import {SelectValue} from 'app/types';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-import {
-  AGGREGATIONS,
-  FIELDS,
-  TRACING_FIELDS,
-  Field,
-  Aggregation,
-} from '../eventQueryParams';
+import {ColumnType, AggregateParameter} from '../eventQueryParams';
 import {Column} from '../eventView';
-import {AGGREGATE_ALIASES} from '../data';
+
+export enum FieldValueKind {
+  TAG = 'tag',
+  FIELD = 'field',
+  FUNCTION = 'function',
+}
+
+// Payload of select options used to update column
+// data as the first picker has tags, fields and functions all combined.
+export type FieldValue =
+  | {
+      kind: FieldValueKind.TAG;
+      meta: {
+        name: string;
+        dataType: ColumnType;
+      };
+    }
+  | {
+      kind: FieldValueKind.FIELD;
+      meta: {
+        name: string;
+        dataType: ColumnType;
+      };
+    }
+  | {
+      kind: FieldValueKind.FUNCTION;
+      meta: {
+        name: string;
+        parameters: AggregateParameter[];
+      };
+    };
 
 type Props = {
   className?: string;
-  organization: OrganizationSummary;
   parentIndex: number;
   column: Column;
-  tagKeys: string[];
+  fieldOptions: {[key: string]: SelectValue<FieldValue>};
   onChange: (index: number, column: Column) => void;
 };
 
-type State = {
-  fields: SelectValue<string>[];
-  aggregations: string[];
-};
+const NO_OPTIONS: SelectValue<string>[] = [{label: t('N/A'), value: ''}];
 
-class ColumnEditRow extends React.Component<Props, State> {
-  state = {
-    fields: generateOptions(Object.keys(FIELDS).concat(this.props.tagKeys)),
-    aggregations: filterAggregations(this.props.organization, this.props.column.field),
-  };
-
-  componentDidUpdate(prevProps: Props) {
-    if (prevProps.tagKeys !== this.props.tagKeys) {
-      this.syncFields();
-    }
-  }
-
+class ColumnEditRow extends React.Component<Props> {
   handleFieldChange = ({value}) => {
-    this.setState((state: State, props: Props) => {
-      const newAggregates = filterAggregations(props.organization, value);
-      const newState = {...state, aggregations: newAggregates};
-      let aggregation = props.column.aggregation;
+    const {column} = this.props;
+    let field = column.field,
+      aggregation = column.aggregation;
 
-      // If the new field makes the aggregation invalid, we should clear that state.
-      if (aggregation && !newAggregates.includes(aggregation as Aggregation)) {
+    switch (value.kind) {
+      case FieldValueKind.TAG:
+      case FieldValueKind.FIELD:
+        field = value.meta.name;
         aggregation = '';
-      }
-      this.triggerChange(value, aggregation as string);
+        break;
+      case FieldValueKind.FUNCTION:
+        aggregation = value.meta.name;
+        break;
+      default:
+        throw new Error('Invald field type found in column picker');
+    }
 
-      return newState;
-    });
+    const currentField = this.getFieldOrTagValue(field);
+    if (aggregation && currentField !== null) {
+      const parameterSpec: AggregateParameter = value.meta.parameters[0];
+
+      if (parameterSpec === undefined) {
+        // New function has no parameter, clear the field
+        field = '';
+      } else if (
+        (currentField.kind === FieldValueKind.FIELD ||
+          currentField.kind === FieldValueKind.TAG) &&
+        parameterSpec.columnTypes.includes(currentField.meta.dataType)
+      ) {
+        // New function accepts current field.
+        field = currentField.meta.name;
+      } else {
+        // field does not fit within new function requirements.
+        field = '';
+      }
+    }
+
+    this.triggerChange(field, aggregation);
   };
 
-  handleFunctionChange = ({value}) => {
-    // TODO(mark) When we add improved tracing function support also clear
-    // the function parameter as necessary.
-    this.triggerChange(this.props.column.field, value);
+  handleFieldParameterChange = ({value}) => {
+    this.triggerChange(value.meta.name, this.props.column.aggregation);
   };
 
   triggerChange(field: string, aggregation: string) {
@@ -71,77 +106,79 @@ class ColumnEditRow extends React.Component<Props, State> {
     });
   }
 
-  syncFields() {
-    this.setState({
-      fields: generateOptions(Object.keys(FIELDS).concat(this.props.tagKeys)),
-    });
+  getFieldOrTagValue(name: string): FieldValue | null {
+    const {fieldOptions} = this.props;
+    return (fieldOptions[`field:${name}`] || fieldOptions[`tag:${name}`] || {value: null})
+      .value;
+  }
+
+  getFieldParameterData() {
+    let field: FieldValue | null = null,
+      fieldParameter: FieldValue | null = null,
+      fieldParameterOptions: SelectValue<FieldValue>[] = [];
+
+    const {column, fieldOptions} = this.props;
+    const funcName = `function:${column.aggregation}`;
+
+    if (column.aggregation && fieldOptions[funcName] !== undefined) {
+      field = fieldOptions[funcName].value;
+      fieldParameter = this.getFieldOrTagValue(column.field);
+    } else {
+      field = this.getFieldOrTagValue(column.field);
+    }
+
+    if (
+      field &&
+      field.kind === FieldValueKind.FUNCTION &&
+      field.meta.parameters.length > 0
+    ) {
+      const parameters = field.meta.parameters;
+      fieldParameterOptions = Object.values(fieldOptions).filter(
+        item =>
+          item.value.kind === FieldValueKind.FIELD &&
+          parameters[0].columnTypes.includes(item.value.meta.dataType)
+      );
+    }
+
+    return {field, fieldParameter, fieldParameterOptions};
   }
 
   render() {
-    const {fields, aggregations} = this.state;
-    const {column, className} = this.props;
+    // TODO add additional parameter for tracing functions
+    const {className, fieldOptions} = this.props;
+    const {field, fieldParameter, fieldParameterOptions} = this.getFieldParameterData();
 
     return (
       <Container className={className}>
         <SelectControl
-          options={fields}
-          value={column.field}
+          options={Object.values(fieldOptions)}
+          components={{
+            Option: ({label, value, ...props}) => (
+              <components.Option {...props}>
+                <Label>
+                  {label}
+                  {value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                </Label>
+              </components.Option>
+            ),
+          }}
+          placeholder={t('Select (Required)')}
+          value={field}
           onChange={this.handleFieldChange}
         />
-        <SelectControl
-          options={generateOptions(aggregations)}
-          value={column.aggregation}
-          onChange={this.handleFunctionChange}
-        />
+        {fieldParameterOptions.length === 0 ? (
+          <SelectControl options={NO_OPTIONS} value="" isDisabled />
+        ) : (
+          <SelectControl
+            placeholder={t('Select (Required)')}
+            options={fieldParameterOptions}
+            value={fieldParameter}
+            onChange={this.handleFieldParameterChange}
+          />
+        )}
       </Container>
     );
   }
-}
-
-function generateOptions(values: string[]): SelectValue<string>[] {
-  return values.map(item => ({label: item, value: item}));
-}
-
-function filterAggregations(organization: OrganizationSummary, f?: Field): Aggregation[] {
-  let functionList = Object.keys(AGGREGATIONS);
-  if (!organization.features.includes('transaction-events')) {
-    functionList = functionList.filter(item => !TRACING_FIELDS.includes(item));
-  }
-
-  // sort list in ascending order
-  functionList.sort();
-
-  if (!f) {
-    return functionList as Aggregation[];
-  }
-  // Unknown fields are likely tag keys and thus strings.
-  const fieldType = FIELDS[f] || 'string';
-
-  if (fieldType === 'never') {
-    return [];
-  }
-
-  // Aggregate aliases cannot be aggregated again.
-  if (AGGREGATE_ALIASES.includes(f)) {
-    return [];
-  }
-
-  functionList = functionList.reduce((accumulator, a) => {
-    if (
-      AGGREGATIONS[a].type.includes(fieldType) ||
-      AGGREGATIONS[a].type === '*' ||
-      fieldType === '*'
-    ) {
-      accumulator.push(a as Aggregation);
-    }
-
-    return accumulator;
-  }, [] as Aggregation[]);
-
-  // sort list in ascending order
-  functionList.sort();
-
-  return functionList as Aggregation[];
 }
 
 const Container = styled('div')`
@@ -153,4 +190,11 @@ const Container = styled('div')`
   flex-grow: 1;
 `;
 
-export default ColumnEditRow;
+const Label = styled('span')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
+
+export {ColumnEditRow};

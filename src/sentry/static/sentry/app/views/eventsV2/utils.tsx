@@ -221,13 +221,11 @@ export function decodeColumnOrder(
     }
     column.key = col.aggregationField;
 
-    // Aggregations on any field make numbers.
+    // Aggregations can have a strict outputType or they can inherit from their field.
     // Otherwise use the FIELDS data to infer types.
-    if (
-      AGGREGATIONS[column.aggregation] &&
-      AGGREGATIONS[column.aggregation].type === '*'
-    ) {
-      column.type = 'number';
+    const aggregate = AGGREGATIONS[column.aggregation];
+    if (aggregate && aggregate.outputType) {
+      column.type = aggregate.outputType;
     } else if (FIELDS[column.aggregation]) {
       column.type = FIELDS[column.aggregation];
     } else {
