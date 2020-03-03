@@ -319,12 +319,7 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
     fields: headings,
     data: data.map(row =>
       headings.map(col => {
-        // alias for project doesn't match the table data name
-        if (col === 'project') {
-          col = 'project.name';
-        } else {
-          col = getAggregateAlias(col);
-        }
+        col = getAggregateAlias(col);
         return disableMacros(row[col]);
       })
     ),
@@ -529,7 +524,7 @@ function generateExpandedConditions(
 
   // Add additional conditions provided and generated.
   for (const key in conditions) {
-    if (key === 'project' || key === 'project.id') {
+    if (key === 'project.id') {
       eventView.project = [...eventView.project, parseInt(additionalConditions[key], 10)];
       continue;
     }
@@ -540,6 +535,10 @@ function generateExpandedConditions(
     const column = explodeFieldString(key);
     // Skip aggregates as they will be invalid.
     if (column.aggregation) {
+      continue;
+    }
+    // Skip project name
+    if (key === 'project' || key === 'project.name') {
       continue;
     }
     parsedQuery[key] = [conditions[key]];

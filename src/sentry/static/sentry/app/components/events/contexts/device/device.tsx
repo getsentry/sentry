@@ -1,13 +1,12 @@
 import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlockV2';
-import {defined} from 'app/utils';
 
 import {DeviceData, DeviceKnownDataType} from './types';
 import getDeviceKnownData from './getDeviceKnownData';
 
 type Props = {
-  data?: DeviceData;
+  data: DeviceData;
 };
 
 const deviceKnownDataValues = [
@@ -41,13 +40,9 @@ const deviceKnownDataValues = [
   DeviceKnownDataType.SCREEN_WIDTH_PIXELS,
 ];
 
-const Device = ({data}: Props) => {
-  if (!defined(data)) {
-    return null;
-  }
-
-  return <ContextBlock knownData={getDeviceKnownData(data, deviceKnownDataValues)} />;
-};
+const Device = ({data}: Props) => (
+  <ContextBlock knownData={getDeviceKnownData(data, deviceKnownDataValues)} />
+);
 
 Device.getTitle = () => 'Device';
 

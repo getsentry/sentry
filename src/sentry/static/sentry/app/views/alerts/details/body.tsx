@@ -17,12 +17,11 @@ import {t} from 'app/locale';
 import Duration from 'app/components/duration';
 import EventView from 'app/views/eventsV2/eventView';
 import Feature from 'app/components/acl/feature';
-import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
-import {IconEdit} from 'app/icons/iconEdit';
+import {IconEdit, IconTelescope} from 'app/icons';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -226,7 +225,7 @@ export default class DetailsBody extends React.Component<Props> {
                               ((initiallyLoaded && projects) as Project[]) || []
                             )}
                           >
-                            <InlineSvg src="icon-telescope" />
+                            <IconTelescope size="xs" />
                             {t('View in Discover')}
                           </SideHeaderLink>
                         )}

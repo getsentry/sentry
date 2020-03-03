@@ -23,6 +23,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
 import {trackAnalyticsEvent, logExperiment} from 'app/utils/analytics';
+import {IconAdd} from 'app/icons/iconAdd';
 
 class CreateProject extends React.Component {
   static propTypes = {
@@ -65,13 +66,12 @@ class CreateProject extends React.Component {
   }
 
   componentDidMount() {
-    // TODO(jeff): Change key to AlertDefaultExperiment on the real experiment run
     logExperiment({
       organization: this.props.organization,
-      key: 'AlertDefaultExperimentTmp',
+      key: 'AlertDefaultsExperimentTmp',
       unitName: 'org_id',
       unitId: parseInt(this.props.organization.id, 10),
-      param: 'exposed',
+      param: 'variant',
     });
     trackAnalyticsEvent({
       eventKey: 'new_project.visited',
@@ -132,7 +132,7 @@ class CreateProject extends React.Component {
                 borderless
                 data-test-id="create-team"
                 type="button"
-                icon="icon-circle-add"
+                icon={<IconAdd circle />}
                 onClick={() =>
                   openCreateTeamModal({
                     organization,
