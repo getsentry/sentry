@@ -1489,14 +1489,50 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
             <Route
-              path=":releaseSlug/"
+              path=":release/"
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "ReleasesV2Detail" */ 'app/views/releasesV2/detail'
                 )
               }
               component={errorHandler(LazyLoad)}
-            />
+            >
+              <IndexRoute
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ReleasesV2DetailOverview" */ 'app/views/releasesV2/detail/overview'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="commits/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ReleasesV2DetailCommits" */ 'app/views/releasesV2/detail/commits'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="artifacts/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ReleasesV2DetailArtifacts" */ 'app/views/releasesV2/detail/artifacts'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+              <Route
+                path="files-changed/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "ReleasesV2DetailFilesChanged" */ 'app/views/releasesV2/detail/filesChanged'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+            </Route>
           </Route>
           <Route
             path="/organizations/:orgId/alerts/"

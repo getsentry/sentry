@@ -2,18 +2,22 @@ import React from 'react';
 import * as ReactRouter from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
+import pick from 'lodash/pick';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import NoProjectMessage from 'app/components/noProjectMessage';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import PageHeading from 'app/components/pageHeading';
+import {PageContent} from 'app/styles/organization';
+import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+
+import ReleaseHeader from './releaseHeader';
+import space from 'app/styles/space';
 
 type Props = {
   organization: Organization;
@@ -24,9 +28,11 @@ type Props = {
 
 type State = {} & AsyncView['state'];
 
+// TODO(releasesv2): Handle project selection
 class ReleasesV2Detail extends AsyncView<Props, State> {
   getTitle() {
-    return routeTitleGen(t('Releases v2 Detail'), this.props.organization.slug, false);
+    const {params, organization} = this.props;
+    return routeTitleGen(t('Release %s', params.release), organization.slug, false);
   }
 
   getDefaultState() {
@@ -35,60 +41,84 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): [string, string][] {
-    return [['dummy', '/organizations/sentry/projects/']];
+  getEndpoints(): [string, string, {}][] {
+    const {organization, location, params} = this.props;
+
+    const query = {
+      ...pick(location.query, [...Object.values(URL_PARAM)]),
+    };
+
+    return [
+      [
+        'release',
+        `/organizations/${organization.slug}/releases/${encodeURIComponent(
+          params.release
+        )}/`,
+        {query},
+      ],
+    ];
   }
 
-  renderLoading() {
-    return this.renderBody();
-  }
+  renderError(error: Error, disableLog = false, disableReport = false) {
+    const {errors} = this.state;
+    const has404Errors = Object.values(errors).find(e => e?.status === 404);
 
-  renderEmpty() {
-    return <EmptyStateWarning small>{t('There are no data.')}</EmptyStateWarning>;
-  }
-
-  renderInnerBody() {
-    const {loading, dummy} = this.state;
-
-    if (loading) {
-      return <LoadingIndicator />;
+    if (has404Errors) {
+      return (
+        <PageContent>
+          <Alert type="error" icon="icon-circle-exclamation">
+            {t('This release may not be in your selected project')}
+          </Alert>
+        </PageContent>
+      );
     }
 
-    if (!dummy.length) {
-      return this.renderEmpty();
-    }
-
-    return (
-      <p>
-        Results: Lorem, ipsum dolor sit amet consectetur adipisicing elit. Illo dicta
-        pariatur incidunt sit vitae laborum, suscipit ducimus atque dolor nostrum rem
-        minima reiciendis nihil omnis eius, consequuntur eos nobis molestias!
-      </p>
-    );
+    return super.renderError(error, disableLog, disableReport);
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
+    const {release} = this.state;
 
     return (
-      <React.Fragment>
-        <GlobalSelectionHeader organization={organization} />
+      <NoProjectMessage organization={organization}>
+        <StyledPageContent>
+          <ReleaseHeader
+            location={location}
+            orgId={organization.slug}
+            release={release}
+          />
 
-        <NoProjectMessage organization={organization}>
-          <PageContent>
-            <PageHeader>
-              <PageHeading withMargins>
-                {t('Releases v2 Detail')} {this.props.params.releaseSlug}
-              </PageHeading>
-            </PageHeader>
-
-            {this.renderInnerBody()}
-          </PageContent>
-        </NoProjectMessage>
-      </React.Fragment>
+          <ContentBox>{this.props.children}</ContentBox>
+        </StyledPageContent>
+      </NoProjectMessage>
     );
   }
 }
 
-export default withOrganization(ReleasesV2Detail);
-export {ReleasesV2Detail};
+const ReleasesV2DetailContainer = (props: Props) => (
+  <React.Fragment>
+    <GlobalSelectionHeader organization={props.organization} />
+    <ReleasesV2Detail {...props} />
+  </React.Fragment>
+);
+
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
+const ContentBox = styled('div')`
+  padding: ${space(4)};
+  background-color: white;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: grid;
+    grid-template-columns: 66% auto;
+    grid-column-gap: ${space(3)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: auto 280px;
+  }
+`;
+
+export default withOrganization(ReleasesV2DetailContainer);
