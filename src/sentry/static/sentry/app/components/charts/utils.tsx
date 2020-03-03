@@ -7,7 +7,7 @@ const DEFAULT_TRUNCATE_LENGTH = 80;
 
 // In minutes
 const TWENTY_FOUR_HOURS = 1440;
-const THIRTY_MINUTES = 30;
+const ONE_HOUR = 60;
 
 type DateTimeObject = {
   start: Date | null;
@@ -45,20 +45,22 @@ export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
     } else {
       return '24h';
     }
-  } else if (diffInMinutes < THIRTY_MINUTES) {
-    // Less than 30 minutes
+  }
+
+  if (diffInMinutes <= ONE_HOUR) {
+    // Less than or equal to 1 hour
     if (highFidelity) {
       return '1m';
     } else {
       return '5m';
     }
+  }
+
+  // Between 1 hour and 24 hours
+  if (highFidelity) {
+    return '5m';
   } else {
-    // Between 30 minutes and 24 hours
-    if (highFidelity) {
-      return '5m';
-    } else {
-      return '15m';
-    }
+    return '15m';
   }
 }
 
