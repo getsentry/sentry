@@ -84,13 +84,13 @@ class CreateProject extends React.Component {
       });
     }
 
-    let analyticsEventOptions = {
+    const analyticsEventOptions = {
       eventKey: 'new_project.visited',
       eventName: 'New Project Page Visited',
       org_id: parseInt(this.props.organization.id, 10),
     };
     if (isInAlertDefaultsExperiment) {
-      analyticsEventOptions = {...analyticsEventOptions, alertDefaultsExperimentVariant};
+      analyticsEventOptions.alert_defaults_experiment_variant = alertDefaultsExperimentVariant;
     }
     trackAnalyticsEvent(analyticsEventOptions);
   }
