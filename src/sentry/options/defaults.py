@@ -214,3 +214,4 @@ register("discover2.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
 # Max number of tags to combine in a single query in Discover2 tags facet.
 register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
+register("ingest.use-relay-dsn-sample-rate", default=0.0)

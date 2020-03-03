@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import random
 import inspect
 import json
 import logging
@@ -21,7 +22,16 @@ from sentry import options
 from sentry.utils import metrics
 from sentry.utils.rust import RustInfoIntegration
 
-UNSAFE_FILES = ("sentry/event_manager.py", "sentry/tasks/process_buffer.py")
+UNSAFE_FILES = (
+    "sentry/web/api.py",
+    "sentry/event_manager.py",
+    "sentry/tasks/process_buffer.py",
+    "sentry/tasks/post_process.py",
+    "sentry/tasks/store.py",
+    "sentry/ingest/ingest_consumer.py",
+    "sentry/ingest/outcomes_consumer.py",
+    "sentry/eventstream/kafka/backend.py",
+)
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
@@ -93,32 +103,54 @@ def configure_sdk():
 
     # if this flag is set then the internal transport is disabled.  This is useful
     # for local testing in case the real python SDK behavior should be enforced.
-    if not sdk_options.pop("disable_internal_transport", False):
-        internal_transport = InternalTransport()
-        upstream_transport = None
-        if sdk_options.get("dsn"):
-            upstream_transport = make_transport(get_options(sdk_options))
+    #
+    # Make sure to pop all options that would be invalid for the SDK here
+    disable_internal_transport = sdk_options.pop("disable_internal_transport", False)
+    relay_dsn = sdk_options.pop("relay_dsn", None)
+    upstream_dsn = sdk_options.pop("dsn", None)
 
-        def capture_event(event):
-            if event.get("type") == "transaction" and options.get(
-                "transaction-events.force-disable-internal-project"
-            ):
+    if upstream_dsn:
+        upstream_transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
+    else:
+        upstream_transport = None
+
+    if not disable_internal_transport:
+        internal_transport = InternalTransport()
+    else:
+        internal_transport = None
+
+    if relay_dsn:
+        relay_transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+    else:
+        relay_transport = None
+
+    def capture_event(event):
+        if event.get("type") == "transaction" and options.get(
+            "transaction-events.force-disable-internal-project"
+        ):
+            return
+
+        # Upstream should get the event first because it is most isolated from
+        # the this sentry installation.
+        if upstream_transport:
+            # TODO(mattrobenolt): Bring this back safely.
+            # from sentry import options
+            # install_id = options.get('sentry:install-id')
+            # if install_id:
+            #     event.setdefault('tags', {})['install-id'] = install_id
+            upstream_transport.capture_event(event)
+
+        if relay_transport:
+            rate = options.get("ingest.use-relay-dsn-sample-rate")
+            if rate and random.random() < rate:
+                relay_transport.capture_event(event)
                 return
 
-            # Make sure we log to upstream when available first
-            if upstream_transport is not None:
-                # TODO(mattrobenolt): Bring this back safely.
-                # from sentry import options
-                # install_id = options.get('sentry:install-id')
-                # if install_id:
-                #     event.setdefault('tags', {})['install-id'] = install_id
-                upstream_transport.capture_event(event)
-
+        if internal_transport:
             internal_transport.capture_event(event)
 
-        sdk_options["transport"] = capture_event
-
     sentry_sdk.init(
+        transport=capture_event,
         integrations=[
             DjangoIntegration(),
             CeleryIntegration(),
