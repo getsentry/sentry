@@ -341,7 +341,9 @@ class GridEditable<
 
     // The last column has no resizer and should always be a flexible column
     // to prevent underflows.
-    widths[widths.length - 1] = `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
+    if (widths.length > 0) {
+      widths[widths.length - 1] = `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
+    }
 
     grid.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
   }
