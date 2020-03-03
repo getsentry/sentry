@@ -86,7 +86,7 @@ class TriggersChart extends React.PureComponent<Props> {
                         },
                       }}
                       maxValue={maxValue ? maxValue.value : maxValue}
-                      data={timeseriesData}
+                      data={timeseriesData.splice(-1, 1)}
                       triggers={triggers}
                     />
                   </React.Fragment>
