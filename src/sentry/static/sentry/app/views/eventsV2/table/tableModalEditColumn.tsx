@@ -17,6 +17,7 @@ import {
   TRACING_FIELDS,
   Aggregation,
   Field,
+  ColumnType,
 } from '../eventQueryParams';
 import {TableColumn} from './types';
 
@@ -258,15 +259,14 @@ function filterFieldByAggregation(
   fieldList = fieldList.reduce((accumulator, f) => {
     // tag keys are all strings, and values not in FIELDS is a tag.
     const fieldType = FIELDS[f] || 'string';
-    if (fieldType === 'never') {
+    if (fieldType === 'never' || typeof AGGREGATIONS[a] === 'undefined') {
       return accumulator;
     }
 
-    if (
-      AGGREGATIONS[a].type.includes(fieldType) ||
-      AGGREGATIONS[a].type === '*' ||
-      fieldType === '*'
-    ) {
+    const aggregate = AGGREGATIONS[a];
+    // Acts as a cast to get around the `as const` type narrowing.
+    const aggregateType: ColumnType[] = [...aggregate.type];
+    if (aggregateType.includes('*') || aggregateType.includes(fieldType as ColumnType)) {
       accumulator.push(f as Field);
     }
 
