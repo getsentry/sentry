@@ -1,0 +1,21 @@
+name: javascript
+on: push
+jobs:
+    build:
+      name: eslint
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v1
+        - uses: actions/setup-node@v1
+          with:
+            node-version: '10.x'
+
+        - name: yarn install
+          run: yarn install
+
+        - name: eslint
+          uses: getsentry/action-eslint@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            job-name: eslint
