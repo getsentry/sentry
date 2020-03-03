@@ -62,10 +62,8 @@ export type LightWeightOrganization = OrganizationSummary & {
   sensitiveFields: string[];
   openMembership: boolean;
   quota: {
-    maxRateInterval: number | null;
     projectLimit: number | null;
     accountLimit: number | null;
-    maxRate: number | null;
   };
   defaultRole: string;
   experiments: Partial<ActiveExperiments>;

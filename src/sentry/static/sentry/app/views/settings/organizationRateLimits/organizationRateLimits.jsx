@@ -1,14 +1,12 @@
-import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
-import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import RangeField from 'app/views/settings/components/forms/rangeField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const getRateLimitValues = () => {
   const steps = [];
@@ -41,7 +39,7 @@ export default class OrganizationRateLimit extends React.Component {
   render() {
     const {organization} = this.props;
     const {quota} = organization;
-    const {maxRate, maxRateInterval, projectLimit, accountLimit} = quota;
+    const {projectLimit, accountLimit} = quota;
     const initialData = {
       projectRateLimit: projectLimit || 100,
       accountRateLimit: accountLimit,
@@ -53,9 +51,7 @@ export default class OrganizationRateLimit extends React.Component {
 
         <Panel>
           <PanelHeader disablePadding>
-            <Box px={2} flex="1">
-              {t('Adjust Limits')}
-            </Box>
+            <Box>{t('Adjust Limits')}</Box>
           </PanelHeader>
           <PanelBody>
             <PanelAlert type="info">
@@ -72,43 +68,24 @@ export default class OrganizationRateLimit extends React.Component {
               apiEndpoint={`/organizations/${organization.slug}/`}
               initialData={initialData}
             >
-              {!maxRate ? (
-                <RangeField
-                  name="accountRateLimit"
-                  label={t('Account Limit')}
-                  min={0}
-                  max={1000000}
-                  allowedValues={ACCOUNT_RATE_LIMIT_VALUES}
-                  help={t(
-                    'The maximum number of events to accept across this entire organization.'
-                  )}
-                  placeholder="e.g. 500"
-                  formatLabel={value =>
-                    !value
-                      ? t('No Limit')
-                      : tct('[number] per hour', {
-                          number: value.toLocaleString(),
-                        })
-                  }
-                />
-              ) : (
-                <Field
-                  label={t('Account Limit')}
-                  help={t(
-                    'The maximum number of events to accept across this entire organization.'
-                  )}
-                >
-                  <TextBlock css={{marginBottom: 0}}>
-                    {tct(
-                      'Your account is limited to a maximum of [maxRate] events per [maxRateInterval] seconds.',
-                      {
-                        maxRate,
-                        maxRateInterval,
-                      }
-                    )}
-                  </TextBlock>
-                </Field>
-              )}
+              <RangeField
+                name="accountRateLimit"
+                label={t('Account Limit')}
+                min={0}
+                max={1000000}
+                allowedValues={ACCOUNT_RATE_LIMIT_VALUES}
+                help={t(
+                  'The maximum number of events to accept across this entire organization.'
+                )}
+                placeholder="e.g. 500"
+                formatLabel={value =>
+                  !value
+                    ? t('No Limit')
+                    : tct('[number] per hour', {
+                        number: value.toLocaleString(),
+                      })
+                }
+              />
               <RangeField
                 name="projectRateLimit"
                 label={t('Per-Project Limit')}
@@ -135,3 +112,9 @@ export default class OrganizationRateLimit extends React.Component {
     );
   }
 }
+
+const Box = styled('div')`
+  display: flex;
+  flex: 1;
+  padding: 0 2px;
+`;

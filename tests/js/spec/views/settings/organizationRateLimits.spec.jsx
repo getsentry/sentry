@@ -40,24 +40,6 @@ describe('Organization Rate Limits', function() {
     ).toBe(75);
   });
 
-  it('renders with maxRate and maxRateInterval set', function() {
-    const org = {
-      ...organization,
-      quota: {
-        maxRate: 100,
-        maxRateInterval: 60,
-      },
-    };
-    const wrapper = mountWithTheme(
-      creator({organization: org}),
-      TestStubs.routerContext()
-    );
-
-    expect(wrapper.find('RangeSlider')).toHaveLength(1);
-
-    expect(wrapper.find('Form TextBlock')).toMatchSnapshot();
-  });
-
   it('can change Account Rate Limit', function() {
     const mock = Client.addMockResponse({
       url: ENDPOINT,

@@ -5,7 +5,6 @@ import six
 from django.conf import settings
 
 from sentry import roles
-from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.lang.native.utils import convert_crashreport_count
@@ -133,11 +132,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         experiment_assignments = experiments.all(org=obj, actor=user)
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
-        max_rate = quotas.get_maximum_quota(obj)
         context["experiments"] = experiment_assignments
         context["quota"] = {
-            "maxRate": max_rate[0],
-            "maxRateInterval": max_rate[1],
             "accountLimit": int(
                 OrganizationOption.objects.get_value(
                     organization=obj,

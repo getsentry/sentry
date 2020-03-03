@@ -202,7 +202,6 @@ class Quota(Service):
     """
 
     __all__ = (
-        "get_maximum_quota",
         "get_organization_quota",
         "get_project_quota",
         "is_rate_limited",
@@ -363,9 +362,3 @@ class Quota(Service):
             settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE, system_limit
         )
         return (default_limit, 60)
-
-    def get_maximum_quota(self, organization):
-        """
-        Return the maximum capable rate for an organization.
-        """
-        return (_limit_from_settings(options.get("system.rate-limit")), 60)

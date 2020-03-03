@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from django.utils import timezone
-from sentry.utils.compat.mock import Mock, patch
 
 from sentry.testutils import AcceptanceTestCase
 
@@ -17,16 +16,6 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.path = u"/organizations/{}/rate-limits/".format(self.org.slug)
 
-    @patch("sentry.app.quotas.get_maximum_quota", Mock(return_value=(100, 60)))
-    def test_with_rate_limits(self):
-        self.project.update(first_event=timezone.now())
-        self.browser.get(self.path)
-        self.browser.wait_until_not(".loading-indicator")
-        self.browser.wait_until_test_id("rate-limit-editor")
-        self.browser.snapshot("organization rate limits with quota")
-        assert self.browser.element_exists_by_test_id("rate-limit-editor")
-
-    @patch("sentry.app.quotas.get_maximum_quota", Mock(return_value=(0, 60)))
     def test_without_rate_limits(self):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
