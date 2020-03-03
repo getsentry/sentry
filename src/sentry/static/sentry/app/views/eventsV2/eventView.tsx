@@ -342,7 +342,7 @@ class EventView {
     const environment: string[] =
       Array.isArray(newQuery.environment) && newQuery.environment.length > 0
         ? newQuery.environment
-        : collectQueryStringByKey(location.query, 'environment');
+        : collectQueryStringByKey(query, 'environment');
 
     const project: number[] =
       Array.isArray(newQuery.projects) && newQuery.projects.length > 0
