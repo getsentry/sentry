@@ -74,6 +74,10 @@ def get_filter_settings(project):
     return filter_settings
 
 
+def get_quotas(project, keys=None):
+    return [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+
+
 def get_project_config(project, org_options=None, full_config=True, project_keys=None):
     """
     Constructs the ProjectConfig information.
@@ -136,6 +140,8 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
         cfg["config"]["groupingConfig"] = get_grouping_config_dict_for_project(project)
     with Hub.current.start_span(op="get_event_retention"):
         cfg["config"]["eventRetention"] = quotas.get_event_retention(project.organization)
+    with Hub.current.start_span(op="get_all_quotas"):
+        cfg["config"]["quotas"] = get_quotas(project, keys=project_keys)
 
     return ProjectConfig(project, **cfg)
 
