@@ -189,7 +189,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["user.email"] == "bruce@example.com"
         assert data[0]["release"] == "first-release"
 
-        assert len(result["meta"]) == 9
+        assert len(result["meta"]) == 5
         assert result["meta"][0] == {"name": "user.email", "type": "Nullable(String)"}
         assert result["meta"][1] == {"name": "release", "type": "Nullable(String)"}
         assert result["meta"][2] == {"name": "id", "type": "FixedString(32)"}
