@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Panel, PanelBody} from 'app/components/panels';
+import DataExport from 'app/components/dataExport';
 import space from 'app/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
@@ -59,6 +60,16 @@ export const HeaderButton = styled('div')<{disabled?: boolean}>`
   &:hover,
   &:active {
     color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray4)};
+  }
+`;
+
+export const HeaderExportButton = styled(DataExport)<{disabled: boolean}>`
+  border: none;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
+  background: transparent;
+  > svg {
+    margin-right: ${space(0.5)};
   }
 `;
 

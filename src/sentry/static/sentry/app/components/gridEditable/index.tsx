@@ -1,4 +1,5 @@
 import React from 'react';
+import {Location} from 'history';
 
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -22,6 +23,7 @@ import {
   HeaderTitle,
   HeaderButton,
   HeaderButtonContainer,
+  HeaderExportButton,
   Body,
   Grid,
   GridRow,
@@ -43,7 +45,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
    */
   editFeatures: string[];
   noEditMessage?: string;
-
+  location: Location;
   isLoading?: boolean;
   error?: React.ReactNode | null;
 
@@ -301,7 +303,6 @@ class GridEditable<
         {p.children(p)}
       </Hovercard>
     );
-
     return (
       <Feature
         hookName="feature-disabled:grid-editable-actions"
@@ -310,6 +311,7 @@ class GridEditable<
       >
         {({hasFeature}) => (
           <React.Fragment>
+            {this.renderDownloadAllButton(hasFeature)}
             {this.renderDownloadCsvButton(hasFeature)}
             {this.renderEditButton(hasFeature)}
           </React.Fragment>
@@ -318,6 +320,21 @@ class GridEditable<
     );
   }
 
+  renderDownloadAllButton(canEdit: boolean) {
+    const disabled = this.props.isLoading || canEdit === false;
+    return (
+      <HeaderExportButton
+        payload={{
+          queryType: 'Discover',
+          queryInfo: this.props.location.query,
+        }}
+        disabled={disabled}
+      >
+        <InlineSvg src="icon-download" />
+        {t('Export All')}
+      </HeaderExportButton>
+    );
+  }
   renderDownloadCsvButton(canEdit: boolean) {
     const disabled = this.props.isLoading || canEdit === false;
     const onClick = disabled ? undefined : this.props.actions.downloadAsCsv;
@@ -329,7 +346,7 @@ class GridEditable<
         data-test-id="grid-download-csv"
       >
         <InlineSvg src="icon-download" />
-        {t('Download CSV')}
+        {t('Export Page')}
       </HeaderButton>
     );
   }

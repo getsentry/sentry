@@ -258,7 +258,7 @@ class TableView extends React.Component<TableViewProps> {
   }
 
   render() {
-    const {isLoading, error, tableData, eventView, title} = this.props;
+    const {isLoading, error, location, tableData, eventView, title} = this.props;
 
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
@@ -279,6 +279,7 @@ class TableView extends React.Component<TableViewProps> {
           renderPrependColumns: this._renderPrependColumns as any,
           prependColumnWidths: ['40px'],
         }}
+        location={location}
         actions={{
           editColumns: this.handleEditColumns,
           downloadAsCsv: () => downloadAsCsv(tableData, columnOrder, title),
