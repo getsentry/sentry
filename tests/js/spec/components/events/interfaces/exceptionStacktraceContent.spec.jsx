@@ -102,7 +102,7 @@ describe('ExceptionStacktraceContent', () => {
   });
 
   it('should not return the EmptyMessage component', () => {
-    props.stacktrace.frames[0]['inApp'] = true;
+    props.stacktrace.frames[0].inApp = true;
     const wrapper = mount(<ExceptionStacktraceContent {...props} />);
     const emptyMessageElement = wrapper.find(EmptyMessage).exists();
     expect(emptyMessageElement).toBe(false);
