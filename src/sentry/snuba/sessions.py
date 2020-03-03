@@ -14,55 +14,45 @@ def _get_conditions_and_filter_keys(project_releases, environments):
     return conditions, filter_keys
 
 
-def get_changed_project_release_model_materializations(project_ids):
-    """This returns data for project-release model materializations that
-    should be added to the `ProjectRelease` model.  This does not take
-    environments into account.
+def get_changed_project_release_model_adoptions(project_ids):
+    """Given some project IDs returns adoption rates that should be updated
+    on the postgres tables.
     """
     user_totals = {}
+    have_adoption = set()
+    yesterday = datetime.utcnow() - timedelta(days=7)
     rv = []
 
+    # Get the 24 hour totals per release
     for x in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["project_id", "users"],
         groupby=["project_id"],
-        rollup=24 * 60 * 60,
+        start=yesterday,
         filter_keys={"project_id": project_ids},
     )["data"]:
         user_totals[x["project_id"]] = x["users"]
 
+    # Find all releases with adoption in the last 24 hours
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=[
-            "project_id",
-            "started",
-            "release",
-            "users",
-            "sessions",
-            "sessions_crashed",
-            "sessions_crashed",
-        ],
+        selected_columns=["project_id", "release", "users"],
         groupby=["release", "project_id"],
-        rollup=24 * 60 * 60,
+        start=yesterday,
         filter_keys={"project_id": project_ids},
     )["data"]:
         totals = float(user_totals.get(x["project_id"]))
         rv.append(
             {
-                "date": parse_snuba_datetime(x["started"]),
+                "date": yesterday,
                 "project_id": x["project_id"],
                 "release": x["release"],
-                "sessions": x["sessions"],
-                "crash_free_sessions": (
-                    100 - x["sessions_crashed"] / float(x["sessions"]) * 100
-                    if x["sessions"]
-                    else None
-                ),
                 "adoption": x["users"] / totals * 100 if totals else None,
             }
         )
+        have_adoption.add((x["project_id"], x["release"]))
 
-    return rv, user_totals
+    return rv
 
 
 def get_release_health_data_overview(project_releases, environments=None):
@@ -83,7 +73,7 @@ def get_release_health_data_overview(project_releases, environments=None):
         dataset=Dataset.Sessions,
         selected_columns=["release", "users"],
         groupby=["release", "project_id"],
-        rollup=24 * 60 * 60,
+        start=yesterday,
         conditions=conditions,
         filter_keys=filter_keys,
     )["data"]:
@@ -101,8 +91,8 @@ def get_release_health_data_overview(project_releases, environments=None):
             "sessions_crashed",
             "users_crashed",
         ],
-        groupby=["release", "project_id", "started"],
-        rollup=24 * 60 * 60,
+        groupby=["release", "project_id"],
+        start=yesterday,
         conditions=conditions,
         filter_keys=filter_keys,
     )["data"]:
@@ -122,11 +112,11 @@ def get_release_health_data_overview(project_releases, environments=None):
             "stats": {"24h": [0] * 24},
         }
 
+    # The resolution on started is hourly so this does the right thing by itself.
     for x in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["release", "project_id", "started", "sessions"],
         groupby=["release", "project_id", "started"],
-        rollup=60 * 60,
         start=yesterday,
         conditions=conditions,
         filter_keys=filter_keys,

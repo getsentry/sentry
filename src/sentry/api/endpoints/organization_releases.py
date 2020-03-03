@@ -21,7 +21,7 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.models import Activity, Release, Project
 from sentry.signals import release_created
-from sentry.snuba.sessions import get_changed_project_release_model_materializations
+from sentry.snuba.sessions import get_changed_project_release_model_adoptions
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import cache
 
@@ -97,7 +97,7 @@ def debounce_update_releases_on_health_data(organization, project_ids):
     # health data over the last 24 hours. It will miss releases where the last
     # date is <24h ago.  We need to aggregate the data for the totals per release
     # manually here now.  This does not take environments into account.
-    for stats in get_changed_project_release_model_materializations(should_update.keys()):
+    for stats in get_changed_project_release_model_adoptions(should_update.keys()):
         project = Project.objects.get_from_cache(id=stats["project_id"])
 
         # We might have never observed the release.  This for instance can
@@ -108,7 +108,9 @@ def debounce_update_releases_on_health_data(organization, project_ids):
 
         # Make sure that the release knows about this project.  Like we had before
         # the project might not have been associated with this release yet.
-        release.add_project_and_update_health_data(project, adoption=int(stats["adoption"] * 1000))
+        release.add_project_and_update_health_data(
+            project, adoption=int(stats["adoption"] * 100000)
+        )
 
     # Debounce updates for a minute
     cache.set_many(dict(izip(should_update.values(), [True] * len(should_update))), 60)
