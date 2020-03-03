@@ -1,0 +1,118 @@
+---
+created: '2020-03-03T12:49:38.782287Z'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+config:
+  allowedDomains:
+  - '*'
+  datascrubbingSettings:
+    excludeFields: []
+    scrubData: true
+    scrubDefaults: true
+    scrubIpAddresses: false
+    sensitiveFields: []
+  eventRetention: null
+  filterSettings:
+    browserExtensions:
+      isEnabled: false
+    csp:
+      disallowedSources:
+      - about
+      - ms-browser-extension
+      - chrome://*
+      - chrome-extension://*
+      - chromeinvokeimmediate://*
+      - chromenull://*
+      - safari-extension://*
+      - mxaddon-pkg://*
+      - jar://*
+      - webviewprogressproxy://*
+      - ms-browser-extension://*
+      - tmtbff://*
+      - mbinit://*
+      - symres://*
+      - resource://*
+      - moz-extension://*
+      - '*.metrext.com'
+      - static.image2play.com
+      - '*.tlscdn.com'
+      - 73a5b0806e464be8bd4e694c744624f0.com
+      - 020dfefc4ac745dab7594f2f771c1ded.com
+      - '*.superfish.com'
+      - addons.mozilla.org
+      - v.zilionfast.in
+      - widgets.amung.us
+      - '*.superfish.com'
+      - xls.searchfun.in
+      - istatic.datafastguru.info
+      - v.zilionfast.in
+      - localhost
+      - resultshub-a.akamaihd.net
+      - pulseadnetwork.com
+      - gateway.zscalertwo.net
+      - www.passpack.com
+      - middlerush-a.akamaihd.net
+      - www.websmartcenter.com
+      - a.linkluster.com
+      - saveyoutime.ru
+      - cdncache-a.akamaihd.net
+      - x.rafomedia.com
+      - savingsslider-a.akamaihd.net
+      - injections.adguard.com
+      - icontent.us
+      - amiok.org
+      - connectionstrenth.com
+      - siteheart.net
+      - netanalitics.space
+      - printapplink.com
+      - godlinkapp.com
+      - devappstor.com
+      - hoholikik.club
+      - smartlink.cool
+      - promfflinkdev.com
+    legacyBrowsers:
+      isEnabled: false
+    localhost:
+      isEnabled: false
+    webCrawlers:
+      isEnabled: true
+  groupingConfig:
+    enhancements: eJybzDhxY3J-bm5-npWRgaGlroGxrpHxBABcTQcY
+    id: newstyle:2019-10-29
+  piiConfig:
+    applications:
+      $string:
+      - organization:remove_ips_and_macs
+      - project:remove_ips_and_macs
+    rules:
+      organization:remove_ips_and_macs:
+        hide_rule: false
+        redaction:
+          method: remove
+        rules:
+        - '@ip'
+        - '@mac'
+        type: multiple
+      project:remove_ips_and_macs:
+        hide_rule: false
+        redaction:
+          method: remove
+        rules:
+        - '@ip'
+        - '@mac'
+        type: multiple
+  quotas: []
+  trustedRelays: []
+disabled: false
+lastChange: 2020-03-03 12:49:38.746404+00:00
+lastFetch: 2020-03-03 12:49:38.768026+00:00
+organizationId: 3
+projectId: 3
+publicKeys:
+- isEnabled: true
+  numericId: 3
+  publicKey: acca6b2c20714fc39e1c0a28ccb4da32
+  quotas: []
+rev: f4086e0deb3e4ab9872f9b031e11f27a
+slug: bar
