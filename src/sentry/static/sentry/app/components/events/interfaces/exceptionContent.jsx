@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
-import {defined} from 'app/utils';
+import space from 'app/styles/space';
 import Annotated from 'app/components/events/meta/annotated';
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
-import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import SentryTypes from 'app/sentryTypes';
+
+import ExceptionStacktraceContent from './exceptionStacktraceContent';
 
 class ExceptionContent extends React.Component {
   static propTypes = {
@@ -27,33 +29,33 @@ class ExceptionContent extends React.Component {
 
         <Annotated object={exc} objectKey="value" required>
           {value => (
-            <pre className="exc-message" style={{marginTop: 0}}>
+            <StyledPre className="exc-message" style={{marginTop: 0}}>
               {value}
-            </pre>
+            </StyledPre>
           )}
         </Annotated>
 
         {exc.mechanism && (
           <ExceptionMechanism data={exc.mechanism} platform={this.props.platform} />
         )}
-        {defined(exc.stacktrace) && (
-          <StacktraceContent
-            data={
-              this.props.type === 'original'
-                ? exc.stacktrace
-                : exc.rawStacktrace || exc.stacktrace
-            }
-            expandFirstFrame={
-              platform === 'csharp' ? excIdx === values.length - 1 : excIdx === 0
-            }
-            includeSystemFrames={stackView === 'full'}
-            platform={this.props.platform}
-            newestFirst={newestFirst}
-            event={event}
-          />
-        )}
+        <ExceptionStacktraceContent
+          data={
+            this.props.type === 'original'
+              ? exc.stacktrace
+              : exc.rawStacktrace || exc.stacktrace
+          }
+          stackView={stackView}
+          stacktrace={exc.stacktrace}
+          expandFirstFrame={
+            platform === 'csharp' ? excIdx === values.length - 1 : excIdx === 0
+          }
+          platform={this.props.platform}
+          newestFirst={newestFirst}
+          event={event}
+        />
       </div>
     ));
+
     if (newestFirst) {
       children.reverse();
     }
@@ -64,3 +66,7 @@ class ExceptionContent extends React.Component {
 }
 
 export default ExceptionContent;
+
+const StyledPre = styled('pre')`
+  margin-bottom: ${space(1)};
+`;
