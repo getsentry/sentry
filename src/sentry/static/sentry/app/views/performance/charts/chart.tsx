@@ -73,15 +73,9 @@ class Chart extends React.Component<Props> {
           projects={projects}
           environments={environments}
         >
-          {zoomRenderProps => {
-            return (
-              <AreaChart
-                {...zoomRenderProps}
-                series={timeseriesData}
-                {...areaChartProps}
-              />
-            );
-          }}
+          {zoomRenderProps => (
+            <AreaChart {...zoomRenderProps} series={timeseriesData} {...areaChartProps} />
+          )}
         </ChartZoom>
       </Container>
     );

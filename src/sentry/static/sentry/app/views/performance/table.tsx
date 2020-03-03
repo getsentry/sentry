@@ -97,15 +97,13 @@ class Table extends React.Component<Props, State> {
           return;
         }
 
-        this.setState(prevState => {
-          return {
-            isLoading: false,
-            tableFetchID: undefined,
-            error: null,
-            pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
-            tableData: data,
-          };
-        });
+        this.setState(prevState => ({
+          isLoading: false,
+          tableFetchID: undefined,
+          error: null,
+          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
+          tableData: data,
+        }));
       })
       .catch(err => {
         this.setState({
@@ -231,43 +229,41 @@ class Table extends React.Component<Props, State> {
     const columnOrder = eventView.getColumns();
 
     const lastindex = columnOrder.length - 1;
-    return columnOrder.map((column, index) => {
-      return (
-        <HeaderCell column={column} tableData={tableData} key={index}>
-          {({align}) => {
-            const field = column.eventViewField;
+    return columnOrder.map((column, index) => (
+      <HeaderCell column={column} tableData={tableData} key={index}>
+        {({align}) => {
+          const field = column.eventViewField;
 
-            function generateSortLink(): LocationDescriptorObject | undefined {
-              if (!tableDataMeta) {
-                return undefined;
-              }
-
-              const nextEventView = eventView.sortOnField(field, tableDataMeta);
-              const queryStringObject = nextEventView.generateQueryStringObject();
-
-              const omitKeys = ['widths', 'query', 'name', 'field'];
-
-              return {
-                ...location,
-                query: omit(queryStringObject, omitKeys),
-              };
+          function generateSortLink(): LocationDescriptorObject | undefined {
+            if (!tableDataMeta) {
+              return undefined;
             }
 
-            return (
-              <HeadCell first={index === 0} last={lastindex === index}>
-                <SortLink
-                  align={align}
-                  field={field}
-                  eventView={eventView}
-                  tableDataMeta={tableDataMeta}
-                  generateSortLink={generateSortLink}
-                />
-              </HeadCell>
-            );
-          }}
-        </HeaderCell>
-      );
-    });
+            const nextEventView = eventView.sortOnField(field, tableDataMeta);
+            const queryStringObject = nextEventView.generateQueryStringObject();
+
+            const omitKeys = ['widths', 'query', 'name', 'field'];
+
+            return {
+              ...location,
+              query: omit(queryStringObject, omitKeys),
+            };
+          }
+
+          return (
+            <HeadCell first={index === 0} last={lastindex === index}>
+              <SortLink
+                align={align}
+                field={field}
+                eventView={eventView}
+                tableDataMeta={tableDataMeta}
+                generateSortLink={generateSortLink}
+              />
+            </HeadCell>
+          );
+        }}
+      </HeaderCell>
+    ));
   };
 
   render() {

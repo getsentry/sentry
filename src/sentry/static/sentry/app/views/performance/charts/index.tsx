@@ -128,27 +128,25 @@ class Container extends React.Component<Props, State> {
                 return <LoadingPanel data-test-id="events-request-loading" />;
               }
 
-              return YAXIS_OPTIONS.map(yAxis => {
-                return (
-                  <React.Fragment key={yAxis}>
-                    {getDynamicText({
-                      value: (
-                        <Chart
-                          loading={loading || reloading}
-                          yAxis={yAxis}
-                          data={results[yAxis]}
-                          router={router}
-                          statsPeriod={globalSelection.statsPeriod}
-                          utc={utc === 'true'}
-                          projects={globalSelection.project}
-                          environments={globalSelection.environment}
-                        />
-                      ),
-                      fixed: 'events chart',
-                    })}
-                  </React.Fragment>
-                );
-              });
+              return YAXIS_OPTIONS.map(yAxis => (
+                <React.Fragment key={yAxis}>
+                  {getDynamicText({
+                    value: (
+                      <Chart
+                        loading={loading || reloading}
+                        yAxis={yAxis}
+                        data={results[yAxis]}
+                        router={router}
+                        statsPeriod={globalSelection.statsPeriod}
+                        utc={utc === 'true'}
+                        projects={globalSelection.project}
+                        environments={globalSelection.environment}
+                      />
+                    ),
+                    fixed: 'events chart',
+                  })}
+                </React.Fragment>
+              ));
             }}
           </EventsRequest>
         </ChartsContainer>
