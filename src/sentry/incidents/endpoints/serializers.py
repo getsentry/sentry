@@ -6,12 +6,15 @@ import operator
 
 from rest_framework import serializers
 
+from django.db import transaction
+
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
+    InvalidTriggerActionError,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
@@ -138,12 +141,20 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        return create_alert_rule_trigger_action(trigger=self.context["trigger"], **validated_data)
+        try:
+            return create_alert_rule_trigger_action(
+                trigger=self.context["trigger"], **validated_data
+            )
+        except InvalidTriggerActionError as e:
+            raise serializers.ValidationError(e.message)
 
     def update(self, instance, validated_data):
         if "id" in validated_data:
             validated_data.pop("id")
-        return update_alert_rule_trigger_action(instance, **validated_data)
+        try:
+            return update_alert_rule_trigger_action(instance, **validated_data)
+        except InvalidTriggerActionError as e:
+            raise serializers.ValidationError(e.message)
 
 
 class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
@@ -189,7 +200,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             alert_rule_trigger = create_alert_rule_trigger(
                 alert_rule=self.context["alert_rule"], **validated_data
             )
-            self._handle_action_updates(alert_rule_trigger, actions)
+            self._handle_actions(alert_rule_trigger, actions)
 
             return alert_rule_trigger
         except AlertRuleTriggerLabelAlreadyUsedError:
@@ -201,12 +212,12 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             validated_data.pop("id")
         try:
             alert_rule_trigger = update_alert_rule_trigger(instance, **validated_data)
-            self._handle_action_updates(alert_rule_trigger, actions)
+            self._handle_actions(alert_rule_trigger, actions)
             return alert_rule_trigger
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
-    def _handle_action_updates(self, alert_rule_trigger, actions):
+    def _handle_actions(self, alert_rule_trigger, actions):
         if actions is not None:
             # Delete actions we don't have present in the updated data.
             action_ids = [x["id"] for x in actions if "id" in x]
@@ -388,12 +399,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         try:
-            triggers = validated_data.pop("triggers")
-            alert_rule = create_alert_rule(
-                organization=self.context["organization"], **validated_data
-            )
-            self._handle_trigger_updates(alert_rule, triggers)
-            return alert_rule
+            with transaction.atomic():
+                triggers = validated_data.pop("triggers")
+                alert_rule = create_alert_rule(
+                    organization=self.context["organization"], **validated_data
+                )
+                self._handle_triggers(alert_rule, triggers)
+                return alert_rule
         except AlertRuleNameAlreadyUsedError:
             raise serializers.ValidationError("This name is already in use for this project")
 
@@ -402,13 +414,14 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         if "id" in validated_data:
             validated_data.pop("id")
         try:
-            alert_rule = update_alert_rule(instance, **validated_data)
-            self._handle_trigger_updates(alert_rule, triggers)
-            return alert_rule
+            with transaction.atomic():
+                alert_rule = update_alert_rule(instance, **validated_data)
+                self._handle_triggers(alert_rule, triggers)
+                return alert_rule
         except AlertRuleNameAlreadyUsedError:
             raise serializers.ValidationError("This name is already in use for this project")
 
-    def _handle_trigger_updates(self, alert_rule, triggers):
+    def _handle_triggers(self, alert_rule, triggers):
         if triggers is not None:
             # Delete triggers we don't have present in the incoming data
             trigger_ids = [x["id"] for x in triggers if "id" in x]
