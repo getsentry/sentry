@@ -85,6 +85,7 @@ export const AGGREGATIONS = {
     type: ['duration'],
     isSortable: true,
   },
+  /* TODO(mark) swap these in with the new column builder
   last_seen: {
     parameters: [],
     outputType: 'timestamp',
@@ -109,6 +110,7 @@ export const AGGREGATIONS = {
     type: [],
     isSortable: true,
   },
+  */
 } as const;
 
 assert(
@@ -200,6 +202,12 @@ export const FIELDS = {
   // Field alises defined in src/sentry/api/event_search.py
   project: 'string',
   issue: 'string',
+
+  // TODO(mark) Remove these with the new column builder.
+  last_seen: 'timestamp',
+  p75: 'duration',
+  p95: 'duration',
+  p99: 'duration',
 } as const;
 assert(FIELDS as Readonly<{[key in keyof typeof FIELDS]: ColumnValueType}>);
 
