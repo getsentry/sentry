@@ -22,7 +22,10 @@ import theme from 'app/utils/theme';
 import Chart from './chart';
 import Footer from './footer';
 
-const YAXIS_OPTIONS = ['apdex()', 'rpm()'];
+const YAXIS_OPTIONS = [
+  {label: 'apdex()', value: 'apdex(transaction.duration, 300)'},
+  {label: 'rpm()', value: 'rpm()'},
+];
 
 type Props = {
   api: Client;
@@ -113,7 +116,7 @@ class Container extends React.Component<Props, State> {
             showLoading={false}
             query={eventView.getEventsAPIPayload(location).query}
             includePrevious={false}
-            yAxis={YAXIS_OPTIONS}
+            yAxis={YAXIS_OPTIONS.map(option => option.value)}
           >
             {({loading, reloading, errored, results}) => {
               if (errored) {
@@ -129,13 +132,13 @@ class Container extends React.Component<Props, State> {
               }
 
               return YAXIS_OPTIONS.map(yAxis => (
-                <React.Fragment key={yAxis}>
+                <React.Fragment key={yAxis.label}>
                   {getDynamicText({
                     value: (
                       <Chart
                         loading={loading || reloading}
-                        yAxis={yAxis}
-                        data={results[yAxis]}
+                        yAxis={yAxis.label}
+                        data={results[yAxis.value]}
                         router={router}
                         statsPeriod={globalSelection.statsPeriod}
                         utc={utc === 'true'}
