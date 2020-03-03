@@ -22,7 +22,6 @@ type Props = {
   event: SentryTypes.Event;
   platform: PlatformType;
   expandFirstFrame?: boolean;
-
   newestFirst?: boolean;
   stacktrace: Stacktrace;
 };
