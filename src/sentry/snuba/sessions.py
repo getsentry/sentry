@@ -6,11 +6,12 @@ from sentry.utils.snuba import raw_query, parse_snuba_datetime
 from sentry.snuba.dataset import Dataset
 
 
-def _get_conditions(project_releases, environments):
+def _get_conditions_and_filter_keys(project_releases, environments):
     conditions = [["release", "IN", list(x[1] for x in project_releases)]]
     if environments is not None:
         conditions.append(["environment", "IN", environments])
-    return conditions
+    filter_keys = {"project_id": list(set(x[0] for x in project_releases))}
+    return conditions, filter_keys
 
 
 def get_changed_project_release_model_materializations(project_ids):
@@ -75,7 +76,7 @@ def get_release_health_data_overview(project_releases, environments=None):
         return None if val != val else val
 
     yesterday = datetime.utcnow() - timedelta(days=1)
-    conditions = _get_conditions(project_releases, environments)
+    conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
 
     total_users_24h = {}
     for x in raw_query(
@@ -84,7 +85,7 @@ def get_release_health_data_overview(project_releases, environments=None):
         groupby=["release", "project_id"],
         rollup=24 * 60 * 60,
         conditions=conditions,
-        filter_keys={"project_id": list(x[0] for x in project_releases)},
+        filter_keys=filter_keys,
     )["data"]:
         total_users_24h[x["project_id"]] = x["users"]
 
@@ -94,7 +95,7 @@ def get_release_health_data_overview(project_releases, environments=None):
         selected_columns=[
             "release",
             "project_id",
-            "duration",
+            "duration_quantiles",
             "users",
             "sessions",
             "sessions_crashed",
@@ -103,7 +104,7 @@ def get_release_health_data_overview(project_releases, environments=None):
         groupby=["release", "project_id", "started"],
         rollup=24 * 60 * 60,
         conditions=conditions,
-        filter_keys={"project_id": list(x[0] for x in project_releases)},
+        filter_keys=filter_keys,
     )["data"]:
         total_users = total_users_24h.get(x["project_id"])
         rv[x["project_id"], x["release"]] = {
@@ -128,7 +129,7 @@ def get_release_health_data_overview(project_releases, environments=None):
         rollup=60 * 60,
         start=yesterday,
         conditions=conditions,
-        filter_keys={"project_id": list(x[0] for x in project_releases)},
+        filter_keys=filter_keys,
     )["data"]:
         time_bucket = int((parse_snuba_datetime(x["started"]) - yesterday).total_seconds() / 3600)
         rv[x["project_id"], x["release"]]["stats"]["24h"][time_bucket] = x["sessions"]
