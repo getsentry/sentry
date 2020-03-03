@@ -224,10 +224,10 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
   render() {
     const {data, triggers, xAxis} = this.props;
-
     return (
       <LineChart
         isGroupedByDate
+        showTimeInTooltip
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
         xAxis={xAxis}

@@ -9,6 +9,7 @@ import {Panel} from 'app/components/panels';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {getFormattedDate} from 'app/utils/dates';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
+import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import space from 'app/styles/space';
@@ -55,6 +56,7 @@ class TriggersChart extends React.PureComponent<Props> {
         period={getPeriodForTimeWindow(timeWindow)}
         yAxis={aggregation === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'}
         includePrevious={false}
+        currentSeriesName={getDisplayForAlertRuleAggregation(aggregation)}
       >
         {({loading, reloading, timeseriesData}) => {
           let maxValue: SeriesDataUnit | undefined;
