@@ -368,4 +368,18 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   &:focus::after {
     background-color: ${p => p.theme.purple};
   }
+
+  /**
+   * This element gives the resize handle a more visible knob to grab
+   */
+  &:hover::before {
+    position: absolute;
+    top: 0;
+    left: 3px;
+    content: ' ';
+    display: block;
+    width: 5px;
+    height: ${GRID_HEAD_ROW_HEIGHT}px;
+    background-color: ${p => p.theme.purpleLight};
+  }
 `;
