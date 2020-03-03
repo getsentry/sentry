@@ -66,11 +66,15 @@ class CreateProject extends React.Component {
 
   componentDidMount() {
     const {organization} = this.props;
-    if (
-      ['2OptionsV1', '3OptionsV1', 'controlV1'].includes(
-        organization.experiments?.AlertDefaultsExperiment
-      )
-    ) {
+    const alertDefaultsExperimentVariant =
+      organization.experiments?.AlertDefaultsExperiment;
+    const isInAlertDefaultsExperiment = [
+      '2OptionsV1',
+      '3OptionsV1',
+      'controlV1',
+    ].includes(alertDefaultsExperimentVariant);
+
+    if (isInAlertDefaultsExperiment) {
       logExperiment({
         organization,
         key: 'AlertDefaultsExperiment',
@@ -79,11 +83,16 @@ class CreateProject extends React.Component {
         param: 'variant',
       });
     }
-    trackAnalyticsEvent({
+
+    let analyticsEventOptions = {
       eventKey: 'new_project.visited',
       eventName: 'New Project Page Visited',
       org_id: parseInt(this.props.organization.id, 10),
-    });
+    };
+    if (isInAlertDefaultsExperiment) {
+      analyticsEventOptions = {...analyticsEventOptions, alertDefaultsExperimentVariant};
+    }
+    trackAnalyticsEvent(analyticsEventOptions);
   }
 
   renderProjectForm = (
