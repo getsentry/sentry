@@ -91,7 +91,7 @@ class DeleteActions extends React.Component {
   render() {
     return (
       <div className="btn-group">
-        <GuideAnchor target="ignore_delete_discard" />
+        <GuideAnchor target="ignore-delete-discard" />
         <LinkWithConfirmation
           className="group-remove btn btn-default btn-sm"
           title={t('Delete')}

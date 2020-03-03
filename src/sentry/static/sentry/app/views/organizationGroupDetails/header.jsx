@@ -102,7 +102,7 @@ class GroupHeader extends React.Component {
         <div className="row">
           <div className="col-sm-7">
             <h3>
-              <GuideAnchor target="issue_title">
+              <GuideAnchor target="issue-title">
                 <EventOrGroupTitle data={group} />
               </GuideAnchor>
             </h3>
@@ -139,7 +139,7 @@ class GroupHeader extends React.Component {
             <div className="flex flex-justify-right">
               {group.shortId && (
                 <div className="short-id-box count align-right">
-                  <GuideAnchor target="issue_number" position="right">
+                  <GuideAnchor target="issue-number" position="right">
                     <h6 className="nav-header">
                       <Tooltip
                         title={t(

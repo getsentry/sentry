@@ -110,7 +110,7 @@ const StreamGroup = createReactClass({
           <EventOrGroupHeader data={data} query={query} />
           <EventOrGroupExtraDetails {...data} />
         </GroupSummary>
-        {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
+        {hasGuideAnchor && <GuideAnchor target="issue-stream" />}
         <Box width={160} mx={2} className="hidden-xs hidden-sm">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data} />
         </Box>
