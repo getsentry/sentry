@@ -14,7 +14,7 @@ export const PERFORMANCE_EVENT_VIEW: Readonly<NewQuery> = {
     'transaction',
     'project',
     'rpm()',
-    'error_rate',
+    'error_rate()',
     'p95()',
     'avg(transaction.duration)',
     'apdex()',
