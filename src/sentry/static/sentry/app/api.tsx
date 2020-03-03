@@ -2,13 +2,13 @@ import isUndefined from 'lodash/isUndefined';
 import isNil from 'lodash/isNil';
 import get from 'lodash/get';
 import $ from 'jquery';
-import * as Sentry from '@sentry/browser';
 
 import {
   PROJECT_MOVED,
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'app/constants/apiErrorCodes';
+import {run} from 'app/utils/apiSentryClient';
 import {metric} from 'app/utils/analytics';
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import {uniqueId} from 'app/utils/guid';
@@ -241,11 +241,13 @@ export class Client {
     try {
       query = $.param(options.query || [], true);
     } catch (err) {
-      Sentry.withScope(scope => {
-        scope.setExtra('path', path);
-        scope.setExtra('query', options.query);
-        Sentry.captureException(err);
-      });
+      run(Sentry =>
+        Sentry.withScope(scope => {
+          scope.setExtra('path', path);
+          scope.setExtra('query', options.query);
+          Sentry.captureException(err);
+        })
+      );
       throw err;
     }
 
@@ -303,24 +305,26 @@ export class Client {
           });
 
           if (resp && resp.status !== 0 && resp.status !== 404) {
-            Sentry.withScope(scope => {
-              // `requestPromise` can pass its error object
-              const preservedError = options.preservedError || errorObject;
+            run(Sentry =>
+              Sentry.withScope(scope => {
+                // `requestPromise` can pass its error object
+                const preservedError = options.preservedError || errorObject;
 
-              const errorObjectToUse = createRequestError(
-                resp,
-                preservedError.stack,
-                method,
-                path
-              );
+                const errorObjectToUse = createRequestError(
+                  resp,
+                  preservedError.stack,
+                  method,
+                  path
+                );
 
-              errorObjectToUse.removeFrames(2);
+                errorObjectToUse.removeFrames(3);
 
-              // Setting this to warning because we are going to capture all failed requests
-              scope.setLevel(Sentry.Severity.Warning);
-              scope.setTag('http.statusCode', String(resp.status));
-              Sentry.captureException(errorObjectToUse);
-            });
+                // Setting this to warning because we are going to capture all failed requests
+                scope.setLevel(Sentry.Severity.Warning);
+                scope.setTag('http.statusCode', String(resp.status));
+                Sentry.captureException(errorObjectToUse);
+              })
+            );
           }
 
           this.handleRequestError(
