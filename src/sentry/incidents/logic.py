@@ -397,6 +397,8 @@ def bulk_get_incident_stats(incidents, prewindow=False):
     """
     Returns bulk stats for a list of incidents. This includes unique user count,
     total event count and event stats.
+    Note that even though this function accepts a prewindow parameter, it does not
+    affect the snapshots if they were created using a prewdow. Only the live-fetched stats.
     """
     closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
     incident_stats = {}
