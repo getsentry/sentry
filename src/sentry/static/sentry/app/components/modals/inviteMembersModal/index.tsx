@@ -10,6 +10,7 @@ import {uniqueId} from 'app/utils/guid';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
 import HookOrDefault from 'app/components/hookOrDefault';
+import {IconAdd} from 'app/icons/iconAdd';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 import {Organization, Team} from 'app/types';
@@ -372,7 +373,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           disabled={disableInputs}
           priority="link"
           onClick={this.addInviteRow}
-          icon="icon-circle-add"
+          icon={<IconAdd size="xs" circle />}
         >
           {t('Add another')}
         </AddButton>
