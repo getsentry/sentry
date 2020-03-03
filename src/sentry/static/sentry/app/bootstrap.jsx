@@ -20,6 +20,7 @@ import jQuery from 'jquery';
 import moment from 'moment';
 
 import {metric} from 'app/utils/analytics';
+import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
 import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
@@ -49,6 +50,10 @@ function getSentryIntegrations(config) {
 // App setup
 if (window.__initialData) {
   ConfigStore.loadInitialData(window.__initialData);
+
+  if (window.__initialData.dsn_requests) {
+    initApiSentryClient(window.__initialData.dsn_requests);
+  }
 }
 
 // SDK INIT  --------------------------------------------------------

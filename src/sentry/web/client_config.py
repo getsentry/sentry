@@ -96,6 +96,13 @@ def _get_public_dsn():
     return result
 
 
+def _get_dsn_requests():
+    if settings.SENTRY_FRONTEND_REQUESTS_DSN:
+        return settings.SENTRY_FRONTEND_REQUESTS_DSN
+
+    return ""
+
+
 def get_client_config(request=None):
     """
     Provides initial bootstrap data needed to boot the frontend application.
@@ -145,6 +152,7 @@ def get_client_config(request=None):
         "distPrefix": get_asset_url("sentry", "dist/"),
         "needsUpgrade": needs_upgrade,
         "dsn": public_dsn,
+        "dsn_requests": _get_dsn_requests(),
         "statuspage": _get_statuspage(),
         "messages": [{"message": msg.message, "level": msg.tags} for msg in messages],
         "apmSampling": float(settings.SENTRY_APM_SAMPLING or 0),
