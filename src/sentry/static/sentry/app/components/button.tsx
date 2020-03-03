@@ -379,6 +379,7 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
 
 const Icon = styled(({hasChildren, ...props}: IconProps) => <span {...props} />)`
   margin-right: ${getIconMargin};
+  display: flex;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`

@@ -8,6 +8,7 @@ import Button from 'app/components/button';
 import Input from 'app/views/settings/components/forms/controls/input';
 import InputField from 'app/views/settings/components/forms/inputField';
 import space from 'app/styles/space';
+import {IconAdd} from 'app/icons/iconAdd';
 
 const defaultProps = {
   addButtonText: t('Add Item'),
@@ -107,7 +108,12 @@ export default class TableField extends React.Component<Props> {
     };
 
     const button = (
-      <Button icon="icon-circle-add" onClick={addRow} size="xsmall" disabled={disabled}>
+      <Button
+        icon={<IconAdd size="xs" circle />}
+        onClick={addRow}
+        size="xsmall"
+        disabled={disabled}
+      >
         {addButtonText}
       </Button>
     );

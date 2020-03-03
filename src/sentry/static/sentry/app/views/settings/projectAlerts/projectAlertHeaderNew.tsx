@@ -10,6 +10,7 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import OnboardingHovercard from 'app/views/settings/projectAlerts/onboardingHovercard';
+import {IconAdd} from 'app/icons/iconAdd';
 
 type Props = {
   organization: Organization;
@@ -41,7 +42,7 @@ class ProjectAlertHeader extends React.Component<Props> {
                   disabled={!canEditRule}
                   priority="primary"
                   size="small"
-                  icon="icon-circle-add"
+                  icon={<IconAdd size="xs" circle />}
                 >
                   {t('New Alert Rule')}
                 </Button>

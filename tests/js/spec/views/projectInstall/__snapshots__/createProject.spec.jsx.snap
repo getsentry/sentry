@@ -66,7 +66,11 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
               <forwardRef<Button>
                 borderless={true}
                 data-test-id="create-team"
-                icon="icon-circle-add"
+                icon={
+                  <ForwardRef(IconAdd)
+                    circle={true}
+                  />
+                }
                 onClick={[Function]}
                 type="button"
               />
@@ -1516,7 +1520,11 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                               <forwardRef<Button>
                                 borderless={true}
                                 data-test-id="create-team"
-                                icon="icon-circle-add"
+                                icon={
+                                  <ForwardRef(IconAdd)
+                                    circle={true}
+                                  />
+                                }
                                 onClick={[Function]}
                                 type="button"
                               >
@@ -1526,7 +1534,11 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                   data-test-id="create-team"
                                   disabled={false}
                                   forwardRef={null}
-                                  icon="icon-circle-add"
+                                  icon={
+                                    <ForwardRef(IconAdd)
+                                      circle={true}
+                                    />
+                                  }
                                   onClick={[Function]}
                                   type="button"
                                 >
@@ -1573,34 +1585,34 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                                 hasChildren={false}
                                               >
                                                 <Component
-                                                  className="css-heib7e-Icon edwq9my2"
+                                                  className="css-1j44i9a-Icon edwq9my2"
                                                   hasChildren={false}
                                                 >
                                                   <span
-                                                    className="css-heib7e-Icon edwq9my2"
+                                                    className="css-1j44i9a-Icon edwq9my2"
                                                   >
-                                                    <StyledInlineSvg
-                                                      size="14px"
-                                                      src="icon-circle-add"
+                                                    <ForwardRef(IconAdd)
+                                                      circle={true}
                                                     >
-                                                      <ForwardRef
-                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                        size="14px"
-                                                        src="icon-circle-add"
+                                                      <svg
+                                                        fill="currentColor"
+                                                        height="16px"
+                                                        viewBox="0 0 16 16"
+                                                        width="16px"
                                                       >
-                                                        <svg
-                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                          height="14px"
-                                                          viewBox={Object {}}
-                                                          width="14px"
-                                                        >
-                                                          <use
-                                                            href="#test"
-                                                            xlinkHref="#test"
+                                                        <g>
+                                                          <path
+                                                            d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
                                                           />
-                                                        </svg>
-                                                      </ForwardRef>
-                                                    </StyledInlineSvg>
+                                                          <path
+                                                            d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                          />
+                                                          <path
+                                                            d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                          />
+                                                        </g>
+                                                      </svg>
+                                                    </ForwardRef(IconAdd)>
                                                   </span>
                                                 </Component>
                                               </Icon>
@@ -2193,12 +2205,12 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                       size="xsmall"
                                     >
                                       <Component
-                                        className="css-heib7e-Icon edwq9my2"
+                                        className="css-1j44i9a-Icon edwq9my2"
                                         hasChildren={false}
                                         size="xsmall"
                                       >
                                         <span
-                                          className="css-heib7e-Icon edwq9my2"
+                                          className="css-1j44i9a-Icon edwq9my2"
                                           size="xsmall"
                                         >
                                           <StyledInlineSvg
@@ -2530,7 +2542,11 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                               <forwardRef<Button>
                                 borderless={true}
                                 data-test-id="create-team"
-                                icon="icon-circle-add"
+                                icon={
+                                  <ForwardRef(IconAdd)
+                                    circle={true}
+                                  />
+                                }
                                 onClick={[Function]}
                                 type="button"
                               >
@@ -2540,7 +2556,11 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                   data-test-id="create-team"
                                   disabled={false}
                                   forwardRef={null}
-                                  icon="icon-circle-add"
+                                  icon={
+                                    <ForwardRef(IconAdd)
+                                      circle={true}
+                                    />
+                                  }
                                   onClick={[Function]}
                                   type="button"
                                 >
@@ -2587,34 +2607,34 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                                 hasChildren={false}
                                               >
                                                 <Component
-                                                  className="css-heib7e-Icon edwq9my2"
+                                                  className="css-1j44i9a-Icon edwq9my2"
                                                   hasChildren={false}
                                                 >
                                                   <span
-                                                    className="css-heib7e-Icon edwq9my2"
+                                                    className="css-1j44i9a-Icon edwq9my2"
                                                   >
-                                                    <StyledInlineSvg
-                                                      size="14px"
-                                                      src="icon-circle-add"
+                                                    <ForwardRef(IconAdd)
+                                                      circle={true}
                                                     >
-                                                      <ForwardRef
-                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                        size="14px"
-                                                        src="icon-circle-add"
+                                                      <svg
+                                                        fill="currentColor"
+                                                        height="16px"
+                                                        viewBox="0 0 16 16"
+                                                        width="16px"
                                                       >
-                                                        <svg
-                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                          height="14px"
-                                                          viewBox={Object {}}
-                                                          width="14px"
-                                                        >
-                                                          <use
-                                                            href="#test"
-                                                            xlinkHref="#test"
+                                                        <g>
+                                                          <path
+                                                            d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
                                                           />
-                                                        </svg>
-                                                      </ForwardRef>
-                                                    </StyledInlineSvg>
+                                                          <path
+                                                            d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                          />
+                                                          <path
+                                                            d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                          />
+                                                        </g>
+                                                      </svg>
+                                                    </ForwardRef(IconAdd)>
                                                   </span>
                                                 </Component>
                                               </Icon>
@@ -3107,12 +3127,12 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                       size="xsmall"
                                     >
                                       <Component
-                                        className="css-heib7e-Icon edwq9my2"
+                                        className="css-1j44i9a-Icon edwq9my2"
                                         hasChildren={false}
                                         size="xsmall"
                                       >
                                         <span
-                                          className="css-heib7e-Icon edwq9my2"
+                                          className="css-1j44i9a-Icon edwq9my2"
                                           size="xsmall"
                                         >
                                           <StyledInlineSvg
@@ -4244,7 +4264,11 @@ exports[`CreateProject should fill in project name if its empty when platform is
                               <forwardRef<Button>
                                 borderless={true}
                                 data-test-id="create-team"
-                                icon="icon-circle-add"
+                                icon={
+                                  <ForwardRef(IconAdd)
+                                    circle={true}
+                                  />
+                                }
                                 onClick={[Function]}
                                 type="button"
                               >
@@ -4254,7 +4278,11 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                   data-test-id="create-team"
                                   disabled={false}
                                   forwardRef={null}
-                                  icon="icon-circle-add"
+                                  icon={
+                                    <ForwardRef(IconAdd)
+                                      circle={true}
+                                    />
+                                  }
                                   onClick={[Function]}
                                   type="button"
                                 >
@@ -4301,34 +4329,34 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                                 hasChildren={false}
                                               >
                                                 <Component
-                                                  className="css-heib7e-Icon edwq9my2"
+                                                  className="css-1j44i9a-Icon edwq9my2"
                                                   hasChildren={false}
                                                 >
                                                   <span
-                                                    className="css-heib7e-Icon edwq9my2"
+                                                    className="css-1j44i9a-Icon edwq9my2"
                                                   >
-                                                    <StyledInlineSvg
-                                                      size="14px"
-                                                      src="icon-circle-add"
+                                                    <ForwardRef(IconAdd)
+                                                      circle={true}
                                                     >
-                                                      <ForwardRef
-                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                        size="14px"
-                                                        src="icon-circle-add"
+                                                      <svg
+                                                        fill="currentColor"
+                                                        height="16px"
+                                                        viewBox="0 0 16 16"
+                                                        width="16px"
                                                       >
-                                                        <svg
-                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                          height="14px"
-                                                          viewBox={Object {}}
-                                                          width="14px"
-                                                        >
-                                                          <use
-                                                            href="#test"
-                                                            xlinkHref="#test"
+                                                        <g>
+                                                          <path
+                                                            d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
                                                           />
-                                                        </svg>
-                                                      </ForwardRef>
-                                                    </StyledInlineSvg>
+                                                          <path
+                                                            d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                          />
+                                                          <path
+                                                            d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                          />
+                                                        </g>
+                                                      </svg>
+                                                    </ForwardRef(IconAdd)>
                                                   </span>
                                                 </Component>
                                               </Icon>

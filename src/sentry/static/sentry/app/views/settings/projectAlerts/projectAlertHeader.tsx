@@ -8,6 +8,7 @@ import Tooltip from 'app/components/tooltip';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withOrganization from 'app/utils/withOrganization';
 import {Organization} from 'app/types';
+import {IconAdd} from 'app/icons/iconAdd';
 
 type Props = {
   organization: Organization;
@@ -31,7 +32,7 @@ export default withOrganization(({organization, projectId}: Props) => {
             disabled={!canEditRule}
             priority="primary"
             size="small"
-            icon="icon-circle-add"
+            icon={<IconAdd size="xs" circle />}
           >
             {t('New Alert Rule')}
           </Button>

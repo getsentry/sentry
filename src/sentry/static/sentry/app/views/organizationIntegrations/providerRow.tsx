@@ -18,6 +18,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {growDown, highlight} from 'app/styles/animations';
 import {IntegrationProvider, Integration} from 'app/types';
+import {IconAdd, IconUpgrade} from 'app/icons';
 
 type DefaultProps = {
   enabledPlugins: string[];
@@ -96,7 +97,7 @@ export default class ProviderRow extends React.Component<Props> {
     const upgradeable = !this.isEnabled && this.isEnabledPlugin && this.isUpgradable;
 
     return {
-      icon: upgradeable ? 'icon-upgrade' : 'icon-circle-add',
+      icon: upgradeable ? <IconUpgrade size="xs" /> : <IconAdd size="xs" circle />,
       children: this.isEnabled
         ? t('Add Another')
         : upgradeable

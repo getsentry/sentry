@@ -9,7 +9,7 @@ import {addTeamToProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconAdd} from 'app/icons/iconAdd';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import SelectControl from 'app/components/forms/selectControl';
@@ -172,9 +172,8 @@ class SelectMembers extends React.Component<Props, State> {
               borderless
               disabled={!canAddTeam}
               onClick={this.handleAddTeamToProject.bind(this, team)}
-            >
-              <InlineSvg src="icon-circle-add" />
-            </AddToProjectButton>
+              icon={<IconAdd circle />}
+            />
           </Tooltip>
         </UnmentionableTeam>
       ),

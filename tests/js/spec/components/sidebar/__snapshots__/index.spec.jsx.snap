@@ -88,26 +88,28 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                       <span
                         className="css-1l4bf1b-MenuItemLabelWithIcon ejspo4a1"
                       >
-                        <AddIcon
-                          src="icon-circle-add"
-                        >
-                          <ForwardRef
-                            className="css-1tqex7n-InlineSvg-AddIcon ejspo4a0"
-                            src="icon-circle-add"
+                        <StyledIconAdd>
+                          <ForwardRef(IconAdd)
+                            className="css-4qjexj-StyledIconAdd ejspo4a0"
                           >
                             <svg
-                              className="css-1tqex7n-InlineSvg-AddIcon ejspo4a0"
-                              height="1em"
-                              viewBox={Object {}}
-                              width="1em"
+                              className="css-4qjexj-StyledIconAdd ejspo4a0"
+                              fill="currentColor"
+                              height="16px"
+                              viewBox="0 0 16 16"
+                              width="16px"
                             >
-                              <use
-                                href="#test"
-                                xlinkHref="#test"
-                              />
+                              <g>
+                                <path
+                                  d="M15.19,8.75H.81a.75.75,0,1,1,0-1.5H15.19a.75.75,0,0,1,0,1.5Z"
+                                />
+                                <path
+                                  d="M8,15.94a.76.76,0,0,1-.75-.75V.81a.75.75,0,0,1,1.5,0V15.19A.76.76,0,0,1,8,15.94Z"
+                                />
+                              </g>
                             </svg>
-                          </ForwardRef>
-                        </AddIcon>
+                          </ForwardRef(IconAdd)>
+                        </StyledIconAdd>
                         <span>
                           Create a new organization
                         </span>
