@@ -29,6 +29,26 @@ def get_regions():
     return public_region_list + cn_region_list
 
 
+def track_response_metric(fn):
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Queue.send_message
+    # boto3's send_message doesn't return success/fail or http codes
+    # success is a boolean based on whether there was an exception or not
+    def wrapper(*args, **kwargs):
+        try:
+            success = fn(*args, **kwargs)
+            metrics.incr(
+                "data-forwarding.http_response", tags={"plugin": "amazon-sqs", "success": success}
+            )
+        except Exception:
+            metrics.incr(
+                "data-forwarding.http_response", tags={"plugin": "amazon-sqs", "success": False}
+            )
+            raise
+        return success
+
+    return wrapper
+
+
 class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
     title = "Amazon SQS"
     slug = "amazon-sqs"
@@ -73,6 +93,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             },
         ]
 
+    @track_response_metric
     def forward_event(self, event, payload):
         queue_url = self.get_option("queue_url", event.project)
         access_key = self.get_option("access_key", event.project)
@@ -109,7 +130,6 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 # if content based de-duplication is not enabled, we need to provide a
                 # MessageDeduplicationId
                 message["MessageDeduplicationId"] = uuid4().hex
-
             client.send_message(**message)
         except ClientError as e:
             if six.text_type(e).startswith("An error occurred (AccessDenied)"):
@@ -156,5 +176,4 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 )
                 return False
             raise
-
         return True
