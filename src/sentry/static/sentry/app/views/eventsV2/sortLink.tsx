@@ -1,7 +1,6 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 
 import InlineSvg from 'app/components/inlineSvg';
@@ -15,21 +14,12 @@ export type Alignments = 'left' | 'right' | undefined;
 type Props = {
   align: Alignments;
   field: Field;
-  location: Location;
   eventView: EventView;
   tableDataMeta?: MetaType; // Will not be defined if data is not loaded
-  getTarget?: () => LocationDescriptorObject | undefined;
+  generateSortLink: () => LocationDescriptorObject | undefined;
 };
 
 class SortLink extends React.Component<Props> {
-  static propTypes = {
-    align: PropTypes.string,
-    field: PropTypes.object.isRequired,
-    location: PropTypes.object.isRequired,
-    eventView: PropTypes.object.isRequired,
-    tableDataMeta: PropTypes.object,
-  };
-
   isCurrentColumnSorted(): Sort | undefined {
     const {eventView, field, tableDataMeta} = this.props;
     if (!tableDataMeta) {
@@ -37,26 +27,6 @@ class SortLink extends React.Component<Props> {
     }
 
     return eventView.isFieldSorted(field, tableDataMeta);
-  }
-
-  getTarget(): LocationDescriptorObject | undefined {
-    const {location, field, eventView, tableDataMeta, getTarget} = this.props;
-
-    if (getTarget && typeof getTarget === 'function') {
-      return getTarget();
-    }
-
-    if (!tableDataMeta) {
-      return undefined;
-    }
-
-    const nextEventView = eventView.sortOnField(field, tableDataMeta);
-    const queryStringObject = nextEventView.generateQueryStringObject();
-
-    return {
-      ...location,
-      query: queryStringObject,
-    };
   }
 
   renderChevron() {
@@ -74,9 +44,9 @@ class SortLink extends React.Component<Props> {
   }
 
   render() {
-    const {align, field, tableDataMeta} = this.props;
+    const {align, field, tableDataMeta, generateSortLink} = this.props;
 
-    const target = this.getTarget();
+    const target = generateSortLink();
 
     if (!target || !isFieldSortable(field, tableDataMeta)) {
       return <StyledNonLink align={align}>{field.field}</StyledNonLink>;
@@ -98,6 +68,15 @@ const StyledLink = styled((props: StyledLinkProps) => {
 })`
   display: block;
   white-space: nowrap;
+  color: inherit;
+
+  &:hover,
+  &:active,
+  &:focus,
+  &:visited {
+    color: inherit;
+  }
+
   ${(p: StyledLinkProps) => (p.align ? `text-align: ${p.align};` : '')}
 `;
 

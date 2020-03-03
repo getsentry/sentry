@@ -14,7 +14,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
 import Link from 'app/components/links/link';
-import EventView, {isAPIPayloadSimilar, Field} from 'app/views/eventsV2/eventView';
+import EventView, {isAPIPayloadSimilar} from 'app/views/eventsV2/eventView';
 import SortLink from 'app/views/eventsV2/sortLink';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
@@ -222,33 +222,13 @@ class Table extends React.Component<Props, State> {
     });
   };
 
-  generateSortLink = (field: Field, tableDataMeta?: MetaType) => ():
-    | LocationDescriptorObject
-    | undefined => {
-    const {eventView} = this.props;
-
-    if (!tableDataMeta) {
-      return undefined;
-    }
-
-    const nextEventView = eventView.sortOnField(field, tableDataMeta);
-    const queryStringObject = nextEventView.generateQueryStringObject();
-
-    const omitKeys = ['widths', 'query', 'name', 'field'];
-
-    return {
-      ...location,
-      query: omit(queryStringObject, omitKeys),
-    };
-  };
-
   renderHeader = () => {
     const {location, eventView} = this.props;
     const {tableData} = this.state;
 
     const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
 
-    const columnOrder = this.props.eventView.getColumns();
+    const columnOrder = eventView.getColumns();
 
     const lastindex = columnOrder.length - 1;
     return columnOrder.map((column, index) => {
@@ -257,15 +237,30 @@ class Table extends React.Component<Props, State> {
           {({align}) => {
             const field = column.eventViewField;
 
+            function generateSortLink(): LocationDescriptorObject | undefined {
+              if (!tableDataMeta) {
+                return undefined;
+              }
+
+              const nextEventView = eventView.sortOnField(field, tableDataMeta);
+              const queryStringObject = nextEventView.generateQueryStringObject();
+
+              const omitKeys = ['widths', 'query', 'name', 'field'];
+
+              return {
+                ...location,
+                query: omit(queryStringObject, omitKeys),
+              };
+            }
+
             return (
               <HeadCell first={index === 0} last={lastindex === index}>
                 <SortLink
                   align={align}
                   field={field}
-                  location={location}
                   eventView={eventView}
                   tableDataMeta={tableDataMeta}
-                  getTarget={this.generateSortLink(field, tableDataMeta)}
+                  generateSortLink={generateSortLink}
                 />
               </HeadCell>
             );

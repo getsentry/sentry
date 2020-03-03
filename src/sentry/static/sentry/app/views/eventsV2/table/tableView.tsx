@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {Location, LocationDescriptorObject} from 'history';
 
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -254,13 +254,29 @@ class TableView extends React.Component<TableViewProps> {
         {({align}) => {
           const field = column.eventViewField;
 
+          const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
+
+          function generateSortLink(): LocationDescriptorObject | undefined {
+            if (!tableDataMeta) {
+              return undefined;
+            }
+
+            const nextEventView = eventView.sortOnField(field, tableDataMeta);
+            const queryStringObject = nextEventView.generateQueryStringObject();
+
+            return {
+              ...location,
+              query: queryStringObject,
+            };
+          }
+
           return (
             <SortLink
               align={align}
               field={field}
-              location={location}
               eventView={eventView}
               tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
+              generateSortLink={generateSortLink}
             />
           );
         }}
