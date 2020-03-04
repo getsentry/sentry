@@ -202,6 +202,20 @@ class ContextPickerModal extends React.Component<Props> {
 
     this.navigateIfFinish([{slug: organization}], [{slug: value}]);
   };
+  get headerText() {
+    const {needOrg, needProject} = this.props;
+    if (needOrg && needProject) {
+      return t('Select an organization and a project to continue');
+    }
+    if (needOrg) {
+      return t('Select an organization to continue');
+    }
+    if (needProject) {
+      return t('Select a project to continue');
+    }
+    //if neither project nor org needs to be selected, nothing will render anyways
+    return '';
+  }
 
   render() {
     const {
@@ -230,10 +244,9 @@ class ContextPickerModal extends React.Component<Props> {
 
     return (
       <React.Fragment>
-        <Header closeButton>{t('Select...')}</Header>
+        <Header closeButton>{this.headerText}</Header>
         <Body>
           {loading && <StyledLoadingIndicator overlay />}
-          <div>{t('Select an organization/project to continue')}</div>
           {needOrg && (
             <StyledSelectControl
               deprecatedSelectControl

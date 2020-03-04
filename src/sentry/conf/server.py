@@ -919,6 +919,8 @@ SENTRY_FRONTEND_PROJECT = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN = None
+# DSN for tracking all client HTTP requests (which can be noisy) [experimental]
+SENTRY_FRONTEND_REQUESTS_DSN = None
 
 # Configuration for JavaScript's whitelistUrls - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS = None

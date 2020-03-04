@@ -170,6 +170,7 @@ export class InstalledPlugin extends React.Component<Props> {
                 toggle={() =>
                   this.toggleEnablePlugin(projectItem.projectId, !projectItem.enabled)
                 }
+                isDisabled={!hasAccess}
               />
             </IntegrationFlex>
           )}
