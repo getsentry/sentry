@@ -5,11 +5,9 @@ import pytest
 from os import path
 import six
 from six.moves.urllib.parse import urlparse
+import sys
 import datetime
 import shutil
-import logging
-
-logger = logging.getLogger(__name__)
 
 from sentry.runner.commands.devservices import get_docker_client
 
@@ -46,15 +44,24 @@ def relay_server_setup(live_server, tmpdir_factory):
     config_path = tmpdir_factory.mktemp(prefix)
     config_path = six.text_type(config_path)
 
-    template_path = _get_template_dir()
+    parsed_live_server_url = urlparse(live_server.url)
+    if parsed_live_server_url.port is not None:
+        port = six.text_type(parsed_live_server_url.port)
+    else:
+        port = "80"
 
+    if sys.platform.startswith("linux"):
+        upstream_host = "http://127.0.0.1:%s/" % port
+    else:
+        upstream_host = "http://host.docker.internal:%s/" % port
+
+    template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
 
-    upstream_url = urlparse(live_server.url)
+    # NOTE: if we ever need to start the test relay server at various ports here's where we need to change
+    relay_port = 33331
 
-    port = "{}".format(upstream_url.port) if upstream_url.port is not None else "80"
-
-    env_vars = [("SENTRY_PORT", port)]
+    template_vars = {"SENTRY_HOST": upstream_host, "RELAY_PORT": relay_port}
 
     for source in sources:
         source_path = path.join(template_path, source)
@@ -62,9 +69,8 @@ def relay_server_setup(live_server, tmpdir_factory):
         with open(source_path, "rt") as input:
             content = input.read()
 
-        for var_name, var_val in env_vars:
-            name = "${{{}}}".format(var_name)
-            content = content.replace(name, var_val)
+        for var_name, var_val in six.iteritems(template_vars):
+            content = content.replace("${%s}" % var_name, six.text_type(var_val))
 
         with open(dest_path, "wt") as output:
             output.write(content)
@@ -74,11 +80,9 @@ def relay_server_setup(live_server, tmpdir_factory):
     docker_client = get_docker_client()
     container_name = _relay_server_container_name()
     _remove_container_if_exists(docker_client, container_name)
-    # NOTE: if we ever need to start the test relay server at various ports here's where we need to change
-    _relay_port = 3333
     options = {
         "image": "us.gcr.io/sentryio/relay:latest",
-        "ports": {"3000/tcp": _relay_port},
+        "ports": {"%s/tcp" % relay_port: relay_port},
         "network": "host",
         "detach": True,
         "name": container_name,
@@ -88,7 +92,7 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     # Some structure similar to what the live_server fixture returns
     server_info = {
-        "url": "http://localhost:{}".format(_relay_port),
+        "url": "http://127.0.0.1:{}".format(relay_port),
         "is_started": False,
         "options": options,
     }
