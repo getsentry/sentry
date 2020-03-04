@@ -19,8 +19,7 @@ def get_changed_project_release_model_adoptions(project_ids):
     on the postgres tables.
     """
     user_totals = {}
-    have_adoption = set()
-    yesterday = datetime.utcnow() - timedelta(days=7)
+    yesterday = datetime.utcnow() - timedelta(days=1)
     rv = []
 
     # Get the 24 hour totals per release
@@ -50,7 +49,6 @@ def get_changed_project_release_model_adoptions(project_ids):
                 "adoption": x["users"] / totals * 100 if totals else None,
             }
         )
-        have_adoption.add((x["project_id"], x["release"]))
 
     return rv
 

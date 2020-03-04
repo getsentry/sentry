@@ -3,8 +3,11 @@ from __future__ import absolute_import
 from itertools import izip
 
 import six
+import pytz
 from django.db import IntegrityError, transaction
+from django.db.models.expressions import RawSQL
 from rest_framework.response import Response
+from datetime import datetime, timedelta
 
 from sentry.api.bases import NoProjects, OrganizationEventsError
 from sentry.api.base import DocSection, EnvironmentMixin
@@ -19,7 +22,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseWithVersionSerializer,
     ListField,
 )
-from sentry.models import Activity, Release, Project
+from sentry.models import Activity, Release, Project, ReleaseProject
 from sentry.signals import release_created
 from sentry.snuba.sessions import get_changed_project_release_model_adoptions
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -83,12 +86,10 @@ def debounce_update_releases_on_health_data(organization, project_ids):
     # Figure out which projects need to get updates from the snuba.
     should_update = {}
     cache_keys = ["debounce-health:%d" % id for id in project_ids]
-    for project_id, indicator, cache_key in izip(
-        project_ids, cache.get_many(cache_keys), cache_keys
-    ):
-        if indicator is None:
+    cache_data = cache.get_many(cache_keys)
+    for project_id, cache_key in izip(project_ids, cache_keys):
+        if cache_data.get(cache_key) is None:
             should_update[project_id] = cache_key
-            should_update.add(project_id)
 
     if not should_update:
         return
@@ -112,6 +113,15 @@ def debounce_update_releases_on_health_data(organization, project_ids):
             project, adoption=int(stats["adoption"] * 100000)
         )
 
+    # Now force all release projects with health data that are older than
+    # 24 hours to have no adoption data.
+    ReleaseProject.objects.filter(
+        project_id__in=should_update.keys(),
+        last_health_update__isnull=False,
+        adoption__gt=0,
+        last_health_update__lt=datetime.now(pytz.UTC) - timedelta(days=1),
+    ).update(adoption=0)
+
     # Debounce updates for a minute
     cache.set_many(dict(izip(should_update.values(), [True] * len(should_update))), 60)
 
@@ -133,6 +143,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
+        sort = request.GET.get("sort") or "date"
+
+        if sort == "date":
+            sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
+        elif sort == "adoption":
+            sort_query = "sentry_release_project.adoption"
+        else:
+            return Response({"detail": "invalid sort"}, status=400)
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -141,8 +159,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         except OrganizationEventsError as e:
             return Response({"detail": six.text_type(e)}, status=400)
 
-        # if with_health:
-        #    debounce_update_releases_on_health_data(organization, filter_params["project_id"])
+        debounce_update_releases_on_health_data(organization, filter_params["project_id"])
 
         queryset = Release.objects.filter(
             organization=organization, projects__id__in=filter_params["project_id"]
@@ -157,7 +174,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         if query:
             queryset = queryset.filter(version__istartswith=query)
 
-        sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
         select_extra = {"sort": sort_query}
 
         if flatten:
@@ -176,7 +192,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="-sort",
+            order_by=RawSQL("sort", []).desc(nulls_last=True),
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user, serializer=serializer),
         )
