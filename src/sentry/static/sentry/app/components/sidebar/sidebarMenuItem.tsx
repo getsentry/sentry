@@ -20,13 +20,11 @@ const SidebarMenuItem = ({to, href, children, ...props}: Props) => {
   );
 };
 
-export default SidebarMenuItem;
-
-export const menuItemStyles = (p: SidebarMenuItemLinkProps & {theme: Theme}) => css`
+const menuItemStyles = (p: SidebarMenuItemLinkProps & {theme: Theme}) => css`
   color: ${p.theme.gray5};
   cursor: pointer;
   display: flex;
-  font-size: 14px;
+  font-size: ${p.theme.fontSizeMedium};
   line-height: 32px;
   padding: 0 ${p.theme.sidebar.menuSpacing};
   position: relative;
@@ -63,3 +61,6 @@ const MenuItemLabel = styled('span')<{hasMenu?: boolean}>`
 const StyledSidebarMenuItemLink = styled(SidebarMenuItemLink)`
   ${menuItemStyles}
 `;
+
+export {menuItemStyles};
+export default SidebarMenuItem;
