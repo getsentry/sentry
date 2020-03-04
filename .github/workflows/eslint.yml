@@ -11,7 +11,7 @@ jobs:
             node-version: '10.x'
 
         - name: yarn install
-          run: yarn install
+          run: yarn install --frozen-lockfile
 
         - name: eslint
           uses: getsentry/action-eslint@v1
