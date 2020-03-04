@@ -85,7 +85,7 @@ class EventsAreaChart extends React.Component {
         previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : null}
         grid={{
           left: '24px',
-          right: '48px',
+          right: '24px',
           top: '32px',
           bottom: '12px',
         }}
