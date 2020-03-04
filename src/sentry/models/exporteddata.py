@@ -63,15 +63,10 @@ class ExportedData(Model):
         payload["export_type"] = ExportQueryType.as_str(self.query_type)
         return payload
 
-    def get_date_string(self, date_field):
-        try:
-            if getattr(self, date_field) is None:
-                return None
-            else:
-                # Example: 12:21 PM on July 21, 2020 (UTC)
-                return getattr(self, date_field).strftime("%-I:%M %p on %B %d, %Y (%Z)")
-        except AttributeError:
-            pass
+    @classmethod
+    def format_date(cls, date):
+        # Example: 12:21 PM on July 21, 2020 (UTC)
+        return None if date is None else date.strftime("%-I:%M %p on %B %d, %Y (%Z)")
 
     def delete_file(self):
         if self.file:
@@ -100,7 +95,7 @@ class ExportedData(Model):
         )
         msg = MessageBuilder(
             subject="Your Download is Ready!",
-            context={"url": url, "expiration": self.get_date_string("date_expired")},
+            context={"url": url, "expiration": self.format_date(self.date_expired)},
             type="organization.export-data",
             template="sentry/emails/data-export-success.txt",
             html_template="sentry/emails/data-export-success.html",
@@ -113,7 +108,7 @@ class ExportedData(Model):
         msg = MessageBuilder(
             subject="Unable to Export Data",
             context={
-                "creation": self.get_date_string("date_added"),
+                "creation": self.format_date(self.date_added),
                 "error_message": message,
                 "payload": json.dumps(self.payload, indent=2, sort_keys=True),
             },

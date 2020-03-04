@@ -47,9 +47,9 @@ class ExportedDataTest(TestCase):
         keys = self.data_export.query_info.keys() + ["export_type"]
         assert sorted(self.data_export.payload.keys()) == sorted(keys)
 
-    def test_get_date_string(self):
-        assert self.data_export.get_date_string("imaginary_date_field") is None
-        assert isinstance(self.data_export.get_date_string("date_added"), six.binary_type)
+    def test_format_date(self):
+        assert ExportedData.format_date(self.data_export.date_finished) is None
+        assert isinstance(ExportedData.format_date(self.data_export.date_added), six.binary_type)
 
     def test_delete_file(self):
         # Empty call should have no effect
@@ -121,7 +121,7 @@ class ExportedDataTest(TestCase):
             "subject": "Your Download is Ready!",
             "context": {
                 "url": expected_url,
-                "expiration": self.data_export.get_date_string("date_expired"),
+                "expiration": ExportedData.format_date(date=self.data_export.date_expired),
             },
             "type": "organization.export-data",
             "template": "sentry/emails/data-export-success.txt",
@@ -142,7 +142,7 @@ class ExportedDataTest(TestCase):
         expected_email_args = {
             "subject": "Unable to Export Data",
             "context": {
-                "creation": self.data_export.get_date_string("date_added"),
+                "creation": ExportedData.format_date(date=self.data_export.date_added),
                 "error_message": self.TEST_STRING,
                 "payload": json.dumps(self.data_export.payload, indent=2, sort_keys=True),
             },
