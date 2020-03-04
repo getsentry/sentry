@@ -218,6 +218,8 @@ class ChartZoom extends React.Component {
     const hasShortInterval = useShortInterval(this.props);
     const xAxisOptions = {
       axisLabel: {
+        showMaxLabel: false,
+        showMiLabel: false,
         formatter: (value, index) => {
           const firstItem = index === 0;
           const format = hasShortInterval && !firstItem ? 'LT' : dateFormat;
