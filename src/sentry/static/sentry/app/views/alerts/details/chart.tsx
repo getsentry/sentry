@@ -74,7 +74,7 @@ export default class Chart extends React.PureComponent<Props> {
           {
             // e.g. Events or Users
             seriesName: getDisplayForAlertRuleAggregation(aggregation),
-            dataArray: chartData,
+            dataArray: chartData?.slice(0, -1),
             markPoint: MarkPoint({
               data: [
                 {
