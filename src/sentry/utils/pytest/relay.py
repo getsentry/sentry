@@ -52,8 +52,14 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     if sys.platform.startswith("linux"):
         upstream_host = "http://127.0.0.1:%s/" % port
+        kafka_host = "127.0.0.1"
+        redis_host = "127.0.0.1"
+        network = "host"
     else:
         upstream_host = "http://host.docker.internal:%s/" % port
+        kafka_host = "sentry_kafka"
+        redis_host = "sentry_redis"
+        network = "sentry"
 
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
@@ -61,7 +67,12 @@ def relay_server_setup(live_server, tmpdir_factory):
     # NOTE: if we ever need to start the test relay server at various ports here's where we need to change
     relay_port = 33331
 
-    template_vars = {"SENTRY_HOST": upstream_host, "RELAY_PORT": relay_port}
+    template_vars = {
+        "SENTRY_HOST": upstream_host,
+        "RELAY_PORT": relay_port,
+        "KAFKA_HOST": kafka_host,
+        "REDIS_HOST": redis_host,
+    }
 
     for source in sources:
         source_path = path.join(template_path, source)
@@ -83,7 +94,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     options = {
         "image": "us.gcr.io/sentryio/relay:latest",
         "ports": {"%s/tcp" % relay_port: relay_port},
-        "network": "host",
+        "network": network,
         "detach": True,
         "name": container_name,
         "volumes": {config_path: {"bind": "/etc/relay"}},

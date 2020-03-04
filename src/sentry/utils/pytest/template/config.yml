@@ -10,5 +10,5 @@ logging:
 processing:
   enabled: true
   kafka_config:
-    - {name: "bootstrap.servers", value: "127.0.0.1:9093"}
-  redis: redis://127.0.0.1:6379
+    - {name: "bootstrap.servers", value: "${KAFKA_HOST}:9093"}
+  redis: redis://${REDIS_HOST}:6379
