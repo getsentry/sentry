@@ -366,10 +366,6 @@ def bulk_get_incident_event_stats(incidents, query_params_list, data_points=50):
     ]
 
 
-def get_alert_rule_environment_names(alert_rule):
-    return [x.environment.name for x in AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)]
-
-
 def get_incident_aggregates(incident, start=None, end=None, prewindow=False):
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
@@ -667,7 +663,7 @@ def update_alert_rule(
                 QueryAggregations(alert_rule.aggregation),
                 timedelta(minutes=alert_rule.time_window),
                 timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
-                get_alert_rule_environment_names(alert_rule),
+                list(alert_rule.environment.all()),
             )
 
     return alert_rule
@@ -686,7 +682,7 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
         QueryAggregations(alert_rule.aggregation),
         timedelta(minutes=alert_rule.time_window),
         timedelta(minutes=alert_rule.resolution),
-        get_alert_rule_environment_names(alert_rule),
+        list(alert_rule.environment.all()),
     )
     subscription_links = [
         AlertRuleQuerySubscription(query_subscription=subscription, alert_rule=alert_rule)
