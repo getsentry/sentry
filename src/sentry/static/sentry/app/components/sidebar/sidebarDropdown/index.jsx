@@ -13,7 +13,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
-import SidebarMenuItem, {getMenuItemStyles} from 'app/components/sidebar/sidebarMenuItem';
+import SidebarMenuItem, {menuItemStyles} from 'app/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
 import TextOverflow from 'app/components/textOverflow';
 import withApi from 'app/utils/withApi';
@@ -176,7 +176,7 @@ const SentryLink = styled(Link)`
 `;
 
 const UserSummary = styled(Link)`
-  ${getMenuItemStyles}
+  ${menuItemStyles}
   padding: 10px 15px;
 `;
 

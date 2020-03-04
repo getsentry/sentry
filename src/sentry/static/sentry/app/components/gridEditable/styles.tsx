@@ -128,7 +128,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   height: ${GRID_HEAD_ROW_HEIGHT}px;
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  background-color: ${p => p.theme.offWhite};
 
   color: ${p => p.theme.gray3};
   background-color: ${p => p.theme.offWhite};
@@ -144,7 +144,32 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   text-transform: uppercase;
   user-select: none;
 
-  a {
+  background: ${p => {
+    if (p.isDragging) {
+      return p.theme.purple;
+    }
+
+    if (p.isEditing) {
+      return p.theme.offWhite2;
+    }
+
+    return 'none';
+  }};
+
+  color: ${p => {
+    if (p.isDragging) {
+      return p.theme.offWhite2;
+    }
+
+    if (p.isEditing) {
+      return p.theme.gray2;
+    }
+
+    return p.theme.gray3;
+  }};
+
+  a,
+  div {
     color: inherit;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -198,8 +223,8 @@ export const GridHeadCellStatic = styled('th')`
 export const GridBody = styled('tbody')`
   display: contents;
 
-  > tr:last-child td {
-    border-bottom: none;
+  > tr:first-child td {
+    border-top: 1px solid ${p => p.theme.borderDark};
   }
 `;
 export const GridBodyCell = styled('td')`
@@ -213,7 +238,7 @@ export const GridBodyCell = styled('td')`
   padding: ${space(1)} ${space(2)};
 
   background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.borderLight};
 
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -303,5 +328,19 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   &:active::after,
   &:focus::after {
     background-color: ${p => p.theme.purple};
+  }
+
+  /**
+   * This element gives the resize handle a more visible knob to grab
+   */
+  &:hover::before {
+    position: absolute;
+    top: 0;
+    left: 3px;
+    content: ' ';
+    display: block;
+    width: 5px;
+    height: ${GRID_HEAD_ROW_HEIGHT}px;
+    background-color: ${p => p.theme.purpleLight};
   }
 `;

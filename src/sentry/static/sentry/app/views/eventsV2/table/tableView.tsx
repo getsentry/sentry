@@ -301,8 +301,25 @@ const ExpandAggregateRow = (props: {
   const exploded = explodeField(eventViewField);
   const {aggregation} = exploded;
 
+  // count(column) drilldown
   if (aggregation === 'count') {
     const nextView = getExpandedResults(eventView, {}, dataRow);
+
+    const target = {
+      pathname: location.pathname,
+      query: nextView.generateQueryStringObject(),
+    };
+
+    return <Link to={target}>{children({willExpand: true})}</Link>;
+  }
+
+  // count_unique(column) drilldown
+  if (aggregation === 'count_unique') {
+    // Drilldown into each distinct value and get a count() for each value.
+    const nextView = getExpandedResults(eventView, {}, dataRow).withNewColumn({
+      field: '',
+      aggregation: 'count',
+    });
 
     const target = {
       pathname: location.pathname,
