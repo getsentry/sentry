@@ -219,7 +219,7 @@ class TestAlertRuleSerializer(TestCase):
 
     def test_invalid_slack_channel(self):
         # We had an error where an invalid slack channel was spitting out unclear
-        # error for the user, and CREATING THE RUEL. So the next save (after fixing slack action)
+        # error for the user, and CREATING THE RULE. So the next save (after fixing slack action)
         # says "Name already in use". This test makes sure that is not happening anymore.
         # We save a rule with an invalid slack, make sure we get back a useful error
         # and that the rule is not created.
