@@ -174,7 +174,6 @@ export const GridHeadCellStatic = styled('th')`
   align-items: center;
   padding: 0 ${space(2)};
   background-color: ${p => p.theme.offWhite};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   line-height: 1;
