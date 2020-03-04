@@ -959,16 +959,16 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
     </SidebarMenuItem>
     <SidebarMenuItem
       href="https://forum.sentry.io/"
-      openInANewTab={true}
+      openInNewTab={true}
     >
       <StyledSidebarMenuItemLink
         href="https://forum.sentry.io/"
-        openInANewTab={true}
+        openInNewTab={true}
       >
         <SidebarMenuItemLink
           className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
           href="https://forum.sentry.io/"
-          openInANewTab={true}
+          openInNewTab={true}
         >
           <Link
             className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
@@ -996,16 +996,16 @@ exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
     </SidebarMenuItem>
     <SidebarMenuItem
       href="https://status.sentry.io/"
-      openInANewTab={true}
+      openInNewTab={true}
     >
       <StyledSidebarMenuItemLink
         href="https://status.sentry.io/"
-        openInANewTab={true}
+        openInNewTab={true}
       >
         <SidebarMenuItemLink
           className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"
           href="https://status.sentry.io/"
-          openInANewTab={true}
+          openInNewTab={true}
         >
           <Link
             className="css-1eunyni-StyledSidebarMenuItemLink eev51g21"

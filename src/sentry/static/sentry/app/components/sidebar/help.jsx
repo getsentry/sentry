@@ -51,10 +51,10 @@ class SidebarHelp extends React.Component {
                 <SidebarMenuItem onClick={this.handleSearchClick}>
                   {t('Search Docs and FAQs')}
                 </SidebarMenuItem>
-                <SidebarMenuItem href="https://forum.sentry.io/" openInANewTab>
+                <SidebarMenuItem href="https://forum.sentry.io/" openInNewTab>
                   {t('Community Discussions')}
                 </SidebarMenuItem>
-                <SidebarMenuItem href="https://status.sentry.io/" openInANewTab>
+                <SidebarMenuItem href="https://status.sentry.io/" openInNewTab>
                   {t('Service Status')}
                 </SidebarMenuItem>
               </HelpMenu>

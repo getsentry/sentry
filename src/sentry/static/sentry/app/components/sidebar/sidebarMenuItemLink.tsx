@@ -19,7 +19,7 @@ export type SidebarMenuItemLinkProps = {
   /**
    * specifies whether to open the linked document in a new tab
    */
-  openInANewTab?: boolean;
+  openInNewTab?: boolean;
   /**
    * It is raised when the user clicks on the element - optional
    */
@@ -34,10 +34,10 @@ const SidebarMenuItemLink = ({
   to,
   href,
   external,
-  openInANewTab,
+  openInNewTab,
   ...props
 }: SidebarMenuItemLinkProps) => {
-  const target = openInANewTab ? '_blank' : '_self';
+  const target = openInNewTab ? '_blank' : '_self';
 
   if (to) {
     return <Link {...props} to={to} href={href} target={target} />;
