@@ -111,7 +111,7 @@ class MailPlugin(NotificationPlugin):
         from sentry.models import ProjectOption
         from sentry.tasks.digests import deliver_digest
         from sentry.digests import get_option_key as get_digest_option_key
-        from sentry.digests.notifications import event_to_record, unsplit_key
+        from sentry.digests.notifications import event_to_record, unsplit_key_for_targeted_action
         from sentry import digests
 
         # TODO(Jeff): Why did we remove rate limits
@@ -141,7 +141,9 @@ class MailPlugin(NotificationPlugin):
                     project, get_digest_option_key(self.get_conf_key(), key)
                 )
 
-            digest_key = unsplit_key(self, event.group.project)
+            digest_key = unsplit_key_for_targeted_action(
+                event.group.project, target_type, target_identifier
+            )
             extra["digest_key"] = digest_key
             immediate_delivery = digests.add(
                 digest_key,
