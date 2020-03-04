@@ -108,12 +108,9 @@ export function isFieldSortable(field: Field, tableMeta: MetaType | undefined): 
 
 const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
   const {aggregation, field} = props;
-
   const hasAggregation = aggregation.length > 0;
 
-  const fieldAsString = hasAggregation ? `${aggregation}(${field})` : field;
-
-  return fieldAsString;
+  return hasAggregation ? `${aggregation}(${field})` : field;
 };
 
 const decodeFields = (location: Location): Array<Field> => {
@@ -591,6 +588,18 @@ class EventView {
         return {field, width};
       });
     newEventView.fields = fields;
+
+    return newEventView;
+  }
+
+  withNewColumn(newColumn: Column): EventView {
+    const fieldAsString = generateFieldAsString(newColumn);
+    const newField: Field = {
+      field: fieldAsString,
+      width: newColumn.width || COL_WIDTH_UNDEFINED,
+    };
+    const newEventView = this.clone();
+    newEventView.fields = [...newEventView.fields, newField];
 
     return newEventView;
   }

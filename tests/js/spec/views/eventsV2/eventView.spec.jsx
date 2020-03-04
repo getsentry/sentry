@@ -1112,6 +1112,76 @@ describe('EventView.withColumns()', function() {
   });
 });
 
+describe('EventView.withNewColumn()', function() {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [
+      {field: 'count()', width: 30},
+      {field: 'project.id', width: 99},
+    ],
+    sorts: generateSorts(['count']),
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+  };
+
+  it('adds a field', function() {
+    const eventView = new EventView(state);
+    const newColumn = {
+      aggregation: '',
+      field: 'title',
+    };
+    const eventView2 = eventView.withNewColumn(newColumn);
+    expect(eventView2 !== eventView).toBeTruthy();
+    expect(eventView).toMatchObject(state);
+
+    const nextState = {
+      ...state,
+      fields: [...state.fields, {field: 'title'}],
+    };
+    expect(eventView2).toMatchObject(nextState);
+  });
+
+  it('adds an aggregate function with no arguments', function() {
+    const eventView = new EventView(state);
+    const newColumn = {
+      aggregation: 'count',
+      field: '',
+    };
+
+    const eventView2 = eventView.withNewColumn(newColumn);
+    expect(eventView2 !== eventView).toBeTruthy();
+    expect(eventView).toMatchObject(state);
+
+    const nextState = {
+      ...state,
+      fields: [...state.fields, {field: 'count()'}],
+    };
+    expect(eventView2).toMatchObject(nextState);
+  });
+
+  it('add an aggregate function with arguments', function() {
+    const eventView = new EventView(state);
+    const newColumn = {
+      aggregation: 'avg',
+      field: 'transaction.duration',
+    };
+    const eventView2 = eventView.withNewColumn(newColumn);
+    expect(eventView2 !== eventView).toBeTruthy();
+    expect(eventView).toMatchObject(state);
+
+    const nextState = {
+      ...state,
+      fields: [...state.fields, {field: 'avg(transaction.duration)'}],
+    };
+    expect(eventView2).toMatchObject(nextState);
+  });
+});
+
 describe('EventView.withUpdatedColumn()', function() {
   const state = {
     id: '1234',

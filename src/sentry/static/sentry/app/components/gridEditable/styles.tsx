@@ -124,49 +124,22 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   position: relative; /* Used by GridResizer */
-
   height: ${GRID_HEAD_ROW_HEIGHT}px;
-  border-right: 1px solid transparent;
-  border-left: 1px solid transparent;
-  background-color: ${p => p.theme.offWhite};
-
-  color: ${p => p.theme.gray3};
-  background-color: ${p => p.theme.offWhite};
-
   display: flex;
   align-items: center;
   min-width: 24px;
   padding: 0 ${space(1.5)};
+
+  border-right: 1px solid transparent;
+  border-left: 1px solid transparent;
+  background-color: ${p => p.theme.offWhite};
+  color: ${p => p.theme.gray3};
 
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   line-height: 1;
   text-transform: uppercase;
   user-select: none;
-
-  background: ${p => {
-    if (p.isDragging) {
-      return p.theme.purple;
-    }
-
-    if (p.isEditing) {
-      return p.theme.offWhite2;
-    }
-
-    return 'none';
-  }};
-
-  color: ${p => {
-    if (p.isDragging) {
-      return p.theme.offWhite2;
-    }
-
-    if (p.isEditing) {
-      return p.theme.gray2;
-    }
-
-    return p.theme.gray3;
-  }};
 
   a,
   div {
