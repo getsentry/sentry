@@ -68,18 +68,6 @@ export default class DetailsHeader extends React.Component<Props> {
   render() {
     const {hasIncidentDetailsError, incident, params, onSubscriptionChange} = this.props;
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
-    const eventLink = incident
-      ? {
-          pathname: `/organizations/${params.orgId}/events/`,
-
-          // Note we don't have project selector on here so there should be
-          // no query params to forward
-          query: {
-            group: incident.groups,
-          },
-        }
-      : '';
-
     const dateStarted = incident && moment(incident.dateStarted).format('LL');
     const duration =
       incident &&
@@ -138,9 +126,6 @@ export default class DetailsHeader extends React.Component<Props> {
             {incident && (
               <ItemValue>
                 <Count value={incident.totalEvents} />
-                <OpenLink to={eventLink}>
-                  <InlineSvg src="icon-open" size="14" />
-                </OpenLink>
               </ItemValue>
             )}
             {incident && (
@@ -247,13 +232,6 @@ const StyledMenuItem = styled(MenuItem)`
   text-align: left;
   padding: ${space(1)} 12px; /* To match dropdown */
   white-space: nowrap;
-`;
-
-const OpenLink = styled(Link)`
-  display: flex;
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray2};
-  margin-left: ${space(1)};
 `;
 
 const ResolveIcon = styled(InlineSvg)`
