@@ -64,7 +64,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             self.url,
             data={
                 "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
                 "interval": "1h",
             },
             format="json",
@@ -72,9 +72,9 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [
-            [],
             [{"count": 1}],
             [{"count": 2}],
+            [{"count": 0}],
         ]
 
     def test_no_projects(self):
@@ -132,11 +132,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             format="json",
         )
         assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [],
-            [{"count": 2}],
-            [{"count": 1}],
-        ]
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 2}], [{"count": 1}]]
 
     def test_discover2_backwards_compatibility(self):
         with self.feature("organizations:discover-basic"):
@@ -180,11 +176,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [],
-            [{"count": 1}],
-            [{"count": 2}],
-        ]
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
     def test_aggregate_function_count(self):
         with self.feature("organizations:discover-basic"):
@@ -199,11 +191,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [],
-            [{"count": 1}],
-            [{"count": 2}],
-        ]
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
     def test_invalid_aggregate(self):
         with self.feature("organizations:discover-basic"):
@@ -232,11 +220,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [],
-            [{"count": 1}],
-            [{"count": 1}],
-        ]
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 1}]]
 
     def test_aggregate_invalid(self):
         with self.feature("organizations:discover-basic"):
@@ -285,9 +269,9 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 8
+        assert len(data) == 7
 
-        rows = data[1:7]
+        rows = data[0:6]
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
@@ -324,8 +308,9 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 2
-        assert data[1][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
+        assert len(data) == 1
+
+        assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
     def test_throughput_rps_minute_rollup(self):
         project = self.create_project()
@@ -360,9 +345,9 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 8
+        assert len(data) == 7
 
-        rows = data[1:7]
+        rows = data[0:6]
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0] / 60.0
 
@@ -399,9 +384,12 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 62
 
-        rows = data[1:7]
+        # expect 61 data points between time span of 0 and 60 seconds
+        assert len(data) == 61
+
+        rows = data[0:6]
+
         for row in rows:
             assert row[1][0]["count"] == 1
 
@@ -447,11 +435,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200, response.content
         # Because we didn't send fields, the reference event is not applied
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [],
-            [{"count": 2}],
-            [{"count": 2}],
-        ]
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 2}], [{"count": 2}]]
 
     def test_field_and_reference_event(self):
         # Create a new event that message matches events made in setup
@@ -479,11 +463,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [
-            [],
-            [{"count": 1}],
-            [{"count": 1}],
-        ]
+        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 1}]]
 
     def test_transaction_events(self):
         prototype = {
@@ -553,12 +533,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["user_count"]["data"]] == [
-            [],
             [{"count": 1}],
             [{"count": 1}],
         ]
         assert [attrs for time, attrs in response.data["event_count"]["data"]] == [
-            [],
             [{"count": 1}],
             [{"count": 2}],
         ]

@@ -126,7 +126,7 @@ def value_from_row(row, tagkey):
 
 def zerofill(data, start, end, rollup):
     rv = []
-    start = ((int(to_timestamp(start)) // rollup) * rollup) - rollup
+    start = (int(to_timestamp(start)) // rollup) * rollup
     end = ((int(to_timestamp(end)) // rollup) * rollup) + rollup
     i = 0
     for key in six.moves.xrange(start, end, rollup):
