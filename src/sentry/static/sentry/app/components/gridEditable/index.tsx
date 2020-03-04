@@ -104,7 +104,7 @@ type GridEditableState = {
 class GridEditable<
   DataRow extends {[key: string]: any},
   ColumnKey extends ObjectKey
-> extends React.Component<GridEditableProps<DataRow, ColumnKey>> {
+> extends React.Component<GridEditableProps<DataRow, ColumnKey>, GridEditableState> {
   // Static methods do not allow the use of generics bounded to the parent class
   // For more info: https://github.com/microsoft/TypeScript/issues/14600
   static getDerivedStateFromProps(

@@ -584,10 +584,10 @@ class EventView {
         // Existing columns that were not re ordered should retain
         // their old widths.
         const existing = newEventView.fields[i];
-        let width = COL_WIDTH_UNDEFINED;
-        if (existing.field === field && existing.width !== undefined) {
-          width = existing.width;
-        }
+        const width =
+          existing.field === field && existing.width !== undefined
+            ? existing.width
+            : COL_WIDTH_UNDEFINED;
         return {field, width};
       });
     newEventView.fields = fields;
