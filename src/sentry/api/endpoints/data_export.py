@@ -14,7 +14,6 @@ from sentry.tasks.data_export import assemble_download
 
 
 class ExportedDataSerializer(serializers.Serializer):
-
     query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
     # TODO(Leander): Implement query_info validation with jsonschema
     query_info = serializers.JSONField(required=True)

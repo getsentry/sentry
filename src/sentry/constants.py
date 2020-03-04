@@ -454,7 +454,11 @@ class ExportQueryType(object):
 
     @classmethod
     def as_str_choices(cls):
-        return [cls.DISCOVER_V2_STR, cls.BILLING_REPORT_STR, cls.ISSUE_BY_TAG_STR]
+        return (
+            (cls.DISCOVER_V2_STR, cls.DISCOVER_V2_STR),
+            (cls.BILLING_REPORT_STR, cls.BILLING_REPORT_STR),
+            (cls.ISSUE_BY_TAG_STR, cls.ISSUE_BY_TAG_STR),
+        )
 
     @classmethod
     def as_str(cls, integer):
