@@ -23,6 +23,8 @@ export const FieldType = [
 
 export type FieldValue = any;
 
+type ConfirmKeyType = 'true' | 'false';
+
 type BaseField = {
   label?: React.ReactNode | (() => React.ReactNode);
   name?: string;
@@ -35,6 +37,12 @@ type BaseField = {
   disabledReason?: string;
   defaultValue?: FieldValue;
   updatesForm?: boolean;
+  confirm?: {[key in ConfirmKeyType]?: string};
+  autosize?: boolean;
+  maxRows?: number;
+  extraHelp?: string;
+  choices?: (props: {[key: string]: any}) => void;
+  formatLabel?: (value: number | '') => React.ReactNode;
 
   /**
    * Function to format the value displayed in the undo toast. May also be

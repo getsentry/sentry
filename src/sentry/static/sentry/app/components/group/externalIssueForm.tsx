@@ -124,7 +124,9 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
   getOptions = (field: IssueConfigField, input: string) =>
     new Promise((resolve, reject) => {
       if (!input) {
-        const options = (field.choices || []).map(([value, label]) => ({value, label}));
+        const choices =
+          (field.choices as Array<[number | string, number | string]>) || [];
+        const options = choices.map(([value, label]) => ({value, label}));
         return resolve({options});
       }
       return this.debouncedOptionLoad(field, input, (err, result) => {
