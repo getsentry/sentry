@@ -64,12 +64,14 @@ class ExportedData(Model):
         return payload
 
     def get_date_string(self, date_field):
-        if not hasattr(self, date_field):
-            raise ValueError(u"Unrecognized field {} on ExportedData object".format(date_field))
-        if getattr(self, date_field) is None:
-            return None
-        else:
-            return getattr(self, date_field).strftime("%-I:%M %p on %B %d, %Y (%Z)")
+        try:
+            if getattr(self, date_field) is None:
+                return None
+            else:
+                # Example: 12:21 PM on July 21, 2020 (UTC)
+                return getattr(self, date_field).strftime("%-I:%M %p on %B %d, %Y (%Z)")
+        except AttributeError:
+            pass
 
     def delete_file(self):
         if self.file:
@@ -80,7 +82,7 @@ class ExportedData(Model):
         super(ExportedData, self).delete(*args, **kwargs)
 
     def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION):
-        self.delete_file()
+        self.delete_file()  # If a file is present, remove it
         current_time = timezone.now()
         expire_time = current_time + expiration
         self.update(file=file, date_finished=current_time, date_expired=expire_time)
