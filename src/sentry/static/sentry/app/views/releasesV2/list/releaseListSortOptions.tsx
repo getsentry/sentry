@@ -16,15 +16,15 @@ const ReleaseListSortOptions = ({selected = 'date', onSelect}: Props) => {
       label: t('Date Created'),
     },
     {
-      key: 'adoptionRate',
+      key: 'adoption',
       label: t('Adoption Rate'),
     },
     {
-      key: 'crashFreeUsers',
+      key: 'crash_free_users',
       label: t('Crash Free Users'),
     },
     {
-      key: 'crashFreeSessions',
+      key: 'crash_free_sessions',
       label: t('Crash Free Sessions'),
     },
   ];
