@@ -4,12 +4,14 @@ import styled from '@emotion/styled';
 
 import {IconAdd} from 'app/icons';
 import {IssueAlertRule} from 'app/types/alerts';
+import {Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import OnboardingHovercard from 'app/views/settings/projectAlerts/onboardingHovercard';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import RuleRow from 'app/views/settings/projectAlerts/ruleRow';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -17,7 +19,10 @@ import Tooltip from 'app/components/tooltip';
 import routeTitle from 'app/utils/routeTitle';
 import space from 'app/styles/space';
 
-type Props = {canEditRule: boolean} & RouteComponentProps<
+type Props = {
+  canEditRule: boolean;
+  organization: Organization;
+} & RouteComponentProps<
   {
     orgId: string;
     projectId: string;
@@ -79,7 +84,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {canEditRule, params} = this.props;
+    const {canEditRule, organization, params} = this.props;
     const {orgId, projectId} = params;
     const {loading, rules} = this.state;
 
@@ -94,20 +99,22 @@ class ProjectAlertRules extends AsyncView<Props, State> {
               <Button to={`${basePath}settings/`} size="small" icon="icon-settings">
                 {t('Settings')}
               </Button>
-              <Tooltip
-                disabled={canEditRule}
-                title={t('You do not have permission to edit alert rules.')}
-              >
-                <Button
-                  to={`${basePath}new/`}
-                  disabled={!canEditRule}
-                  priority="primary"
-                  size="small"
-                  icon={<IconAdd size="xs" circle />}
+              <OnboardingHovercard organization={organization} location={location}>
+                <Tooltip
+                  disabled={canEditRule}
+                  title={t('You do not have permission to edit alert rules.')}
                 >
-                  {t('New Alert Rule')}
-                </Button>
-              </Tooltip>
+                  <Button
+                    to={`${basePath}new/`}
+                    disabled={!canEditRule}
+                    priority="primary"
+                    size="small"
+                    icon={<IconAdd size="xs" circle />}
+                  >
+                    {t('New Alert Rule')}
+                  </Button>
+                </Tooltip>
+              </OnboardingHovercard>
             </HeaderActions>
           }
         />
