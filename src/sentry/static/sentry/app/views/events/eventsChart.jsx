@@ -86,7 +86,7 @@ class EventsAreaChart extends React.Component {
         grid={{
           left: '24px',
           right: '24px',
-          top: '24px',
+          top: '32px',
           bottom: '12px',
         }}
       />
