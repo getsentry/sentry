@@ -217,9 +217,9 @@ class MailPlugin(NotificationPlugin):
     # def get_project_url(self, project):
     #     return absolute_uri(u"/{}/{}/".format(project.organization.slug, project.slug))
     #
-    # def is_configured(self, project, **kwargs):
-    #     # Nothing to configure here
-    #     return True
+    def is_configured(self, project, **kwargs):
+        # Nothing to configure here
+        return True
 
     def should_notify(self, group, event):
         send_to = self.get_sendable_users(group.project)
