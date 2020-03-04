@@ -13,7 +13,7 @@ from sentry.incidents.endpoints.serializers import (
     string_to_action_type,
     string_to_action_target_type,
 )
-from sentry.incidents.logic import create_alert_rule_trigger, InvalidTriggerActionError
+from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -449,5 +449,5 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         )
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
-        with self.assertRaises(InvalidTriggerActionError):
+        with self.assertRaises(serializers.ValidationError):
             serializer.save()
