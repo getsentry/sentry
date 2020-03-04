@@ -56,8 +56,8 @@ const ReleaseHeader = ({location, orgId, release}: Props) => {
             <StyledBadge text="prod" />
           </DeploysWrapper>
         </ReleaseStat>
-        <ReleaseStat label={t('Crashes')}>1234</ReleaseStat>
-        <ReleaseStat label={t('Errors')}>4321</ReleaseStat>
+        <ReleaseStat label={t('Crashes')}>{(1234).toLocaleString()}</ReleaseStat>
+        <ReleaseStat label={t('Errors')}>{(4321).toLocaleString()}</ReleaseStat>
         <div>
           <Button>
             <IconDelete size="xs" />

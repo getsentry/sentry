@@ -15,9 +15,9 @@ import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import space from 'app/styles/space';
 
 import ReleaseHeader from './releaseHeader';
-import space from 'app/styles/space';
 
 type Props = {
   organization: Organization;
@@ -89,7 +89,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             release={release}
           />
 
-          <ContentBox>{this.props.children}</ContentBox>
+          {this.props.children}
         </StyledPageContent>
       </NoProjectMessage>
     );
@@ -105,20 +105,6 @@ const ReleasesV2DetailContainer = (props: Props) => (
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
-`;
-const ContentBox = styled('div')`
-  padding: ${space(4)};
-  background-color: white;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: grid;
-    grid-template-columns: 66% auto;
-    grid-column-gap: ${space(3)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 280px;
-  }
 `;
 
 export default withOrganization(ReleasesV2DetailContainer);

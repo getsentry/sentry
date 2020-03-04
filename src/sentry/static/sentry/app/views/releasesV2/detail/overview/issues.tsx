@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Button from 'app/components/button';
-import IssueList from 'app/components/issueList';
+import GroupList from 'app/views/releases/detail/groupList';
 import space from 'app/styles/space';
+import {Panel} from 'app/components/panels';
 
 type Props = {
   orgId: string;
@@ -14,13 +14,6 @@ type Props = {
 };
 
 const Issues = ({orgId, version}: Props) => {
-  // cursor
-  const issuesPath = `/organizations/${orgId}/issues/`;
-
-  const query = {
-    'first-release': version,
-  };
-
   return (
     <React.Fragment>
       <ControlsWrapper>
@@ -45,23 +38,12 @@ const Issues = ({orgId, version}: Props) => {
       </ControlsWrapper>
 
       <TableWrapper>
-        <IssueList
-          endpoint={issuesPath}
-          query={{
-            ...query,
-            query: 'first-release:"' + version + '"',
-            limit: 5,
-          }}
-          statsPeriod="0"
-          pagination={false}
-          showActions={false}
-          renderEmpty={() => (
-            <Panel>
-              <PanelBody>
-                <PanelItem justifyContent="center">{t('No issues resolved')}</PanelItem>
-              </PanelBody>
-            </Panel>
-          )}
+        <GroupList
+          orgId={orgId}
+          // release:
+          query={`first-release:"${version}"`}
+          canSelectGroups={false}
+          withChart={false}
         />
       </TableWrapper>
     </React.Fragment>
@@ -77,6 +59,10 @@ const ControlsWrapper = styled('div')`
 
 const TableWrapper = styled('div')`
   margin-bottom: ${space(3)};
+  ${Panel} {
+    /* smaller space between table and pagination */
+    margin-bottom: -${space(1)};
+  }
 `;
 
 export default Issues;
