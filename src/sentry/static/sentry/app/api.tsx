@@ -2,6 +2,7 @@ import isUndefined from 'lodash/isUndefined';
 import isNil from 'lodash/isNil';
 import get from 'lodash/get';
 import $ from 'jquery';
+import {Severity} from '@sentry/browser';
 
 import {
   PROJECT_MOVED,
@@ -320,7 +321,7 @@ export class Client {
                 errorObjectToUse.removeFrames(3);
 
                 // Setting this to warning because we are going to capture all failed requests
-                scope.setLevel(Sentry.Severity.Warning);
+                scope.setLevel(Severity.Warning);
                 scope.setTag('http.statusCode', String(resp.status));
                 Sentry.captureException(errorObjectToUse);
               })

@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/browser';
 
 let hub;
 
-function init(dsn) {
+function init(dsn: string) {
   // This client is used to track all API requests that use `app/api`
   // This is a bit noisy so we don't want it in the main project (yet)
   const client = new Sentry.BrowserClient({
