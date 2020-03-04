@@ -167,6 +167,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                   <span
                     aria-describedby="hovercard-123456"
                     className="css-1gb8k2a"
+                    data-test-id="hover-target"
                     onMouseEnter={[Function]}
                     onMouseLeave={[Function]}
                   >
