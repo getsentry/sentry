@@ -131,7 +131,6 @@ DATABASES = {
         "PASSWORD": "",
         "HOST": "127.0.0.1",
         "PORT": "",
-        "AUTOCOMMIT": True,
         "ATOMIC_REQUESTS": False,
     }
 }
