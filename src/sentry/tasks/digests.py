@@ -5,7 +5,12 @@ import time
 
 from sentry.digests import get_option_key
 from sentry.digests.backends.base import InvalidState
-from sentry.digests.notifications import build_digest, split_key
+from sentry.digests.notifications import (
+    build_digest,
+    split_key,
+    is_targeted_action_key,
+    split_key_for_targeted_action,
+)
 from sentry.models import Project, ProjectOption
 from sentry.tasks.base import instrumented_task
 from sentry.utils import snuba
@@ -38,15 +43,24 @@ def schedule_digests():
 def deliver_digest(key, schedule_timestamp=None):
     from sentry import digests
 
+    is_targeted_action = is_targeted_action_key(key)
+
     try:
-        plugin, project = split_key(key)
+        if is_targeted_action:
+            mail_action, project, target_type, target_identifier = split_key_for_targeted_action(
+                key
+            )
+        else:
+            plugin, project = split_key(key)
     except Project.DoesNotExist as error:
         logger.info("Cannot deliver digest %r due to error: %s", key, error)
         digests.delete(key)
         return
 
+    # Currently only the `mail` plugin has a configuration
+    conf_key = "mail" if is_targeted_action else plugin.get_conf_key()
     minimum_delay = ProjectOption.objects.get_value(
-        project, get_option_key(plugin.get_conf_key(), "minimum_delay")
+        project, get_option_key(conf_key, "minimum_delay")
     )
 
     with snuba.options_override({"consistent": True}):
@@ -57,5 +71,10 @@ def deliver_digest(key, schedule_timestamp=None):
             logger.info("Skipped digest delivery: %s", error, exc_info=True)
             return
 
-        if digest:
+        if not digest:
+            return
+
+        if is_targeted_action:
+            mail_action.notify_digest(project, digest, target_type, target_identifier)
+        else:
             plugin.notify_digest(project, digest)
