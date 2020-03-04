@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import Result from 'app/views/discover/result';
 import createQueryBuilder from 'app/views/discover/queryBuilder';
 
@@ -186,7 +186,7 @@ describe('Result', function() {
 
         wrapper
           .find('ul.dropdown-menu')
-          .find('a')
+          .find('span')
           .at(1)
           .simulate('click');
 

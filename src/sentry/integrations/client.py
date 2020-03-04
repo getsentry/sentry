@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 import json
 import requests
+import six
 
 from collections import OrderedDict
 from time import time
@@ -111,14 +112,6 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
-def track_response_code(integration, code):
-    metrics.incr(
-        "integrations.http_response",
-        sample_rate=1.0,
-        tags={"integration": integration, "status": code},
-    )
-
-
 class ApiClient(object):
     base_url = None
 
@@ -131,8 +124,26 @@ class ApiClient(object):
     # Used in metrics and logging.
     integration_name = "undefined"
 
-    def __init__(self, verify_ssl=True):
+    def __init__(self, verify_ssl=True, logging_context=None):
         self.verify_ssl = verify_ssl
+        self.logging_context = logging_context
+
+    def track_response_data(self, integration, code, error=None):
+        logger = logging.getLogger("sentry.integrations.client")
+
+        metrics.incr(
+            "integrations.http_response",
+            sample_rate=1.0,
+            tags={"integration": integration, "status": code},
+        )
+
+        extra = {
+            "integration": integration,
+            "status": code,
+            "error": six.text_type(error[:128]) if error else None,
+        }
+        extra.update(getattr(self, "logging_context", None) or {})
+        logger.info("integrations.http_response", extra=extra)
 
     def build_url(self, path):
         if path.startswith("/"):
@@ -189,31 +200,24 @@ class ApiClient(object):
             )
             resp.raise_for_status()
         except ConnectionError as e:
-            metrics.incr(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": self.integration_name, "status": "connection_error"},
-            )
+            self.track_response_data(self.integration_name, "connection_error", six.text_type(e))
             raise ApiHostError.from_exception(e)
         except Timeout as e:
-            metrics.incr(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": self.integration_name, "status": "timeout"},
-            )
+            self.track_response_data(self.integration_name, "timeout", six.text_type(e))
             raise ApiTimeoutError.from_exception(e)
         except HTTPError as e:
             resp = e.response
             if resp is None:
-                track_response_code(self.integration_name, "unknown")
+                self.track_response_data(self.integration_name, "unknown", six.text_type(e))
                 self.logger.exception(
                     "request.error", extra={"integration": self.integration_name, "url": full_url}
                 )
                 raise ApiError("Internal Error")
-            track_response_code(self.integration_name, resp.status_code)
+            self.track_response_data(self.integration_name, resp.status_code, six.text_type(e))
             raise ApiError.from_response(resp)
 
-        track_response_code(self.integration_name, resp.status_code)
+        self.track_response_data(self.integration_name, resp.status_code)
+
         if resp.status_code == 204:
             return {}
 

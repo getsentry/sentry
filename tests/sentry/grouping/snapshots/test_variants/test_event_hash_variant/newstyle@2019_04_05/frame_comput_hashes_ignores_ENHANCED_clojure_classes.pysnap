@@ -1,26 +1,26 @@
 ---
-created: '2019-03-15T11:58:32.850844Z'
+created: '2020-02-26T19:54:30.209181Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
           module* (removed codegen marker)
-            u'sentry_clojure_example.core$_main$fn__<auto>'
+            "sentry_clojure_example.core$_main$fn__<auto>"
           function*
-            u'invoke'
+            "invoke"
 --------------------------------------------------------------------------
 system:
-  hash: '526b64456c48836a46ec1a89544fd412'
+  hash: "526b64456c48836a46ec1a89544fd412"
   component:
     system*
       stacktrace*
         frame*
           module* (removed codegen marker)
-            u'sentry_clojure_example.core$_main$fn__<auto>'
+            "sentry_clojure_example.core$_main$fn__<auto>"
           function*
-            u'invoke'
+            "invoke"

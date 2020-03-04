@@ -42,9 +42,6 @@ class StatusItem extends React.Component<Props> {
 
     return (
       <ActivityItem
-        bubbleProps={{
-          borderColor: 'transparent',
-        }}
         showTime={showTime}
         author={{
           type: activity.user ? 'user' : 'system',
@@ -61,7 +58,7 @@ class StatusItem extends React.Component<Props> {
                 ? tct('[user] was triggered', {
                     user: <AuthorName>{incident.alertRule.name}</AuthorName>,
                   })
-                : tct('[user] detected an alert', {
+                : tct('[user] created an alert', {
                     user: <AuthorName>{authorName}</AuthorName>,
                   }))}
           </div>

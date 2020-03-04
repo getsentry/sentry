@@ -31,7 +31,7 @@ from sentry_relay import ProcessingErrorInvalidTransaction
 
 from sentry import features, options, quotas
 from sentry.attachments import CachedAttachment
-from sentry.constants import ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.coreapi import (
     Auth,
     APIError,
@@ -200,6 +200,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
     del event_manager
 
     event_id = data["event_id"]
+    data_category = DataCategory.from_event_type(data.get("type"))
 
     if should_filter:
         signals_in_consumer = decide_signals_in_consumer()
@@ -217,11 +218,14 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
             Outcome.FILTERED,
             filter_reason,
             event_id=event_id,
+            category=data_category,
         )
         metrics.incr("events.blacklisted", tags={"reason": filter_reason}, skip_internal=False)
 
         if not signals_in_consumer:
-            event_filtered.send_robust(ip=remote_addr, project=project, sender=process_event)
+            event_filtered.send_robust(
+                ip=remote_addr, project=project, category=data_category, sender=process_event
+            )
 
         # relay will no longer be able to provide information about filter
         # status so to see the impact we're adding a way to turn on relay
@@ -260,11 +264,16 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
             Outcome.RATE_LIMITED,
             reason,
             event_id=event_id,
+            category=data_category,
         )
         metrics.incr("events.dropped", tags={"reason": reason or "unknown"}, skip_internal=False)
         if not signals_in_consumer:
             event_dropped.send_robust(
-                ip=remote_addr, project=project, reason_code=reason, sender=process_event
+                ip=remote_addr,
+                project=project,
+                reason_code=reason,
+                category=data_category,
+                sender=process_event,
             )
 
         if rate_limit is not None:
@@ -282,6 +291,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
             Outcome.INVALID,
             "duplicate",
             event_id=event_id,
+            category=data_category,
         )
         raise APIForbidden("An event with the same ID already exists (%s)" % (event_id,))
 
@@ -626,7 +636,12 @@ class StoreView(APIView):
             event_manager.normalize()
         except ProcessingErrorInvalidTransaction as e:
             track_outcome(
-                organization_id, project_id, key.id, Outcome.INVALID, "invalid_transaction"
+                organization_id,
+                project_id,
+                key.id,
+                Outcome.INVALID,
+                "invalid_transaction",
+                category=DataCategory.TRANSACTION,
             )
             raise APIError(six.text_type(e).split("\n", 1)[0])
 
@@ -643,6 +658,7 @@ class StoreView(APIView):
                 Outcome.INVALID,
                 "too_large",
                 event_id=dict_data.get("event_id"),
+                category=DataCategory.from_event_type(dict_data.get("type")),
             )
             raise APIForbidden("Event size exceeded 10MB after normalization.")
 
@@ -750,6 +766,9 @@ class MinidumpView(StoreView):
         request_files = request.FILES or {}
         content_type = request.META.get("CONTENT_TYPE")
 
+        # Track these submissions statically as ERROR. Relay infers properly.
+        data_category = DataCategory.ERROR
+
         if content_type in self.dump_types:
             minidump = io.BytesIO(request.body)
             minidump_name = "Minidump"
@@ -790,6 +809,7 @@ class MinidumpView(StoreView):
                 None,
                 Outcome.INVALID,
                 "missing_minidump_upload",
+                category=data_category,
             )
             raise APIError("Missing minidump upload")
 
@@ -830,6 +850,7 @@ class MinidumpView(StoreView):
                     None,
                     Outcome.INVALID,
                     "missing_minidump_upload",
+                    category=data_category,
                 )
                 raise APIError("Missing minidump upload")
 
@@ -841,6 +862,7 @@ class MinidumpView(StoreView):
                 None,
                 Outcome.INVALID,
                 "invalid_minidump",
+                category=data_category,
             )
             raise APIError("Uploaded file was not a minidump")
 
@@ -965,6 +987,9 @@ class UnrealView(StoreView):
         )
 
     def post(self, request, project, project_config, **kwargs):
+        # Track these submissions statically as ERROR. Relay infers properly.
+        data_category = DataCategory.ERROR
+
         attachments_enabled = features.has(
             "organizations:event-attachments", project.organization, actor=request.user
         )
@@ -986,6 +1011,7 @@ class UnrealView(StoreView):
                 None,
                 Outcome.INVALID,
                 "process_unreal",
+                category=data_category,
             )
             raise APIError(six.text_type(e).split("\n", 1)[0])
 
@@ -1122,6 +1148,9 @@ class SecurityReportView(StoreView):
         )
 
     def post(self, request, project, helper, key, project_config, **kwargs):
+        # This endpoint only accepts security reports.
+        data_category = DataCategory.SECURITY
+
         json_body = safely_load_json_string(request.body)
         report_type = self.security_report_type(json_body)
         if report_type is None:
@@ -1131,6 +1160,7 @@ class SecurityReportView(StoreView):
                 key.id,
                 Outcome.INVALID,
                 "security_report_type",
+                category=data_category,
             )
             raise APIError("Unrecognized security report type")
         interface = get_interface(report_type)
@@ -1144,6 +1174,7 @@ class SecurityReportView(StoreView):
                 key.id,
                 Outcome.INVALID,
                 "security_report",
+                category=data_category,
             )
             raise APIError("Invalid security report: %s" % str(e).splitlines()[0])
 
@@ -1156,6 +1187,7 @@ class SecurityReportView(StoreView):
                 key.id,
                 Outcome.INVALID,
                 FilterStatKeys.CORS,
+                category=data_category,
             )
             raise APIForbidden("Invalid origin")
 

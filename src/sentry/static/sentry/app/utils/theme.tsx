@@ -321,4 +321,6 @@ const theme = {
   space: [0, 8, 16, 20, 30],
 };
 
+export type Theme = typeof theme;
+
 export default theme;

@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
+
 import EventStore from 'app/stores/eventStore';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import TimeSince from 'app/components/timeSince';
@@ -47,13 +48,11 @@ class EventRow extends React.Component {
             <Link to={eventLink}>{event.title || event.message}</Link>
           </h5>
           <small className="tagList">
-            {tagList.map(tag => {
-              return (
-                <span key={tag[0]}>
-                  {tag[0]} = {tag[1]}{' '}
-                </span>
-              );
-            })}
+            {tagList.map(tag => (
+              <span key={tag[0]}>
+                {tag[0]} = {tag[1]}{' '}
+              </span>
+            ))}
           </small>
         </td>
         <td className="event-user table-user-info">

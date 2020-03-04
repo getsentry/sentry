@@ -176,7 +176,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["user.email"] == "foo@example.com"
         meta = response.data["meta"]
         assert meta["id"] == "string"
-        assert meta["project.name"] == "string"
         assert meta["user.email"] == "string"
         assert meta["user.ip"] == "string"
         assert meta["timestamp"] == "date"
@@ -197,6 +196,26 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["project.name"] == project.slug
+        assert "project.id" not in response.data["data"][0]
+        assert response.data["data"][0]["environment"] == "staging"
+
+    def test_project_without_name(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url, format="json", data={"field": ["project", "environment"]}
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["project"] == project.slug
+        assert response.data["meta"]["project"] == "string"
         assert "project.id" not in response.data["data"][0]
         assert response.data["data"][0]["environment"] == "staging"
 
@@ -221,7 +240,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project.name"] == project.slug
+        assert response.data["data"][0]["project"] == project.slug
         assert "project.id" not in response.data["data"][0]
 
     def test_project_in_query_not_in_header(self):
@@ -305,7 +324,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["project.name"] == project2.slug
+        assert response.data["data"][0]["project"] == project2.slug
         assert "project.id" not in response.data["data"][0]
 
     def test_implicit_groupby(self):
@@ -376,7 +395,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
         meta = response.data["meta"]
         assert meta["count_id"] == "integer"
-        assert meta["project.name"] == "string"
         assert meta["latest_event"] == "string"
 
     def test_orderby(self):
@@ -497,6 +515,61 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["issue.id"] == event2.group_id
         assert data[1]["count_id"] == 2
         assert data[1]["count_unique_user"] == 2
+
+    def test_aggregate_field_with_dotted_param(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_1"],
+                "user": {"id": "123", "email": "foo@example.com"},
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"id": "123", "email": "foo@example.com"},
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"id": "456", "email": "bar@example.com"},
+            },
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["issue.id", "issue_title", "count(id)", "count_unique(user.email)"],
+                    "orderby": "issue.id",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert data[0]["issue.id"] == event1.group_id
+        assert data[0]["count_id"] == 1
+        assert data[0]["count_unique_user_email"] == 1
+        assert "latest_event" in data[0]
+        assert "project.name" in data[0]
+        assert "projectid" not in data[0]
+        assert "project.id" not in data[0]
+        assert data[1]["issue.id"] == event2.group_id
+        assert data[1]["count_id"] == 2
+        assert data[1]["count_unique_user_email"] == 2
 
     def test_error_rate_alias_field(self):
         self.login_as(user=self.user)
@@ -1425,6 +1498,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         data = load_data("transaction")
+
         data["transaction"] = "/transactionstatus/1"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
@@ -1448,3 +1522,408 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             data = response.data["data"]
             assert len(data) == 1
             assert data[0]["count_id"] == 1
+
+    def test_not_has_transaction_status(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("transaction")
+
+        data["transaction"] = "/transactionstatus/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "count(id)"],
+                    "query": "event.type:transaction !has:transaction.status",
+                    "sort": "-count(id)",
+                    "statsPeriod": "24h",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["count_id"] == 0
+
+    def test_all_aggregates_in_columns(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("transaction")
+        data["transaction"] = "/error_rate/1"
+        data["timestamp"] = iso_format(before_now(minutes=2))
+        data["start_timestamp"] = iso_format(before_now(minutes=2, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction")
+        data["transaction"] = "/error_rate/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["contexts"]["trace"]["status"] = "unauthenticated"
+        event = self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": [
+                        "event.type",
+                        "p75",
+                        "p95()",
+                        "percentile(transaction.duration, 0.99)",
+                        "apdex",
+                        "impact()",
+                        "error_rate()",
+                    ],
+                    "query": "event.type:transaction",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["p75"] == 5000
+            assert data[0]["p95"] == 5000
+            assert data[0]["percentile_transaction_duration_0_99"] == 5000
+            assert data[0]["apdex"] == 0.0
+            assert data[0]["impact"] == 1.0
+            assert data[0]["error_rate"] == 0.5
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "last_seen", "latest_event()"],
+                    "query": "event.type:transaction",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert iso_format(before_now(minutes=1))[:-5] in data[0]["last_seen"]
+            assert data[0]["latest_event"] == event.event_id
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": [
+                        "event.type",
+                        "count()",
+                        "count(id)",
+                        "count_unique(project)",
+                        "min(transaction.duration)",
+                        "max(transaction.duration)",
+                        "avg(transaction.duration)",
+                        "sum(transaction.duration)",
+                    ],
+                    "query": "event.type:transaction",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["count"] == 2
+            assert data[0]["count_id"] == 2
+            assert data[0]["count_unique_project"] == 1
+            assert data[0]["min_transaction_duration"] == 5000
+            assert data[0]["max_transaction_duration"] == 5000
+            assert data[0]["avg_transaction_duration"] == 5000
+            assert data[0]["sum_transaction_duration"] == 10000
+
+    def test_all_aggregates_in_query(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("transaction")
+
+        data["transaction"] = "/error_rate/1"
+        data["timestamp"] = iso_format(before_now(minutes=2))
+        data["start_timestamp"] = iso_format(before_now(minutes=2, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction")
+        data["transaction"] = "/error_rate/2"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": [
+                        "event.type",
+                        "p75",
+                        "p95()",
+                        "percentile(transaction.duration, 0.99)",
+                    ],
+                    "query": "event.type:transaction p75:>1000 p95():>1000 percentile(transaction.duration, 0.99):>1000",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["p75"] == 5000
+            assert data[0]["p95"] == 5000
+            assert data[0]["percentile_transaction_duration_0_99"] == 5000
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "apdex", "impact()", "error_rate()"],
+                    "query": "event.type:transaction apdex:>-1.0 impact():>0.5 error_rate():>0.25",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["apdex"] == 0.0
+            assert data[0]["impact"] == 1.0
+            assert data[0]["error_rate"] == 0.5
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "last_seen", "latest_event()"],
+                    "query": u"event.type:transaction last_seen:>1990-12-01T00:00:00",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 0
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "count()", "count(id)", "count_unique(transaction)"],
+                    "query": "event.type:transaction count():>1 count(id):>1 count_unique(transaction):>1",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["count"] == 2
+            assert data[0]["count_id"] == 2
+            assert data[0]["count_unique_transaction"] == 2
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": [
+                        "event.type",
+                        "min(transaction.duration)",
+                        "max(transaction.duration)",
+                        "avg(transaction.duration)",
+                        "sum(transaction.duration)",
+                    ],
+                    "query": "event.type:transaction min(transaction.duration):>1000 max(transaction.duration):>1000 avg(transaction.duration):>1000 sum(transaction.duration):>1000",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["min_transaction_duration"] == 5000
+            assert data[0]["max_transaction_duration"] == 5000
+            assert data[0]["avg_transaction_duration"] == 5000
+            assert data[0]["sum_transaction_duration"] == 10000
+
+    def test_functions_in_orderby(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("transaction")
+
+        data["transaction"] = "/error_rate/1"
+        data["timestamp"] = iso_format(before_now(minutes=2))
+        data["start_timestamp"] = iso_format(before_now(minutes=2, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction")
+        data["transaction"] = "/error_rate/2"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data["contexts"]["trace"]["status"] = "unauthenticated"
+        event = self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "p75"],
+                    "sort": "-p75",
+                    "query": "event.type:transaction",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["p75"] == 5000
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "percentile(transaction.duration, 0.99)"],
+                    "sort": "-percentile(transaction.duration, 0.99)",
+                    "query": "event.type:transaction",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["percentile_transaction_duration_0_99"] == 5000
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "apdex()"],
+                    "sort": "-apdex",
+                    "query": "event.type:transaction",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["apdex"] == 0.0
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "latest_event()"],
+                    "query": u"event.type:transaction",
+                    "sort": "latest_event",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["latest_event"] == event.event_id
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "count_unique(transaction)"],
+                    "query": "event.type:transaction",
+                    "sort": "-count_unique_transaction",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["count_unique_transaction"] == 2
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "min(transaction.duration)"],
+                    "query": "event.type:transaction",
+                    "sort": "-min_transaction_duration",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["min_transaction_duration"] == 5000
+
+    def test_issue_alias_in_aggregate(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.two_min_ago, "fingerprint": ["group_1"]},
+            project_id=project.id,
+        )
+        self.store_event(
+            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group_2"]},
+            project_id=project.id,
+        )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "count_unique(issue)"],
+                    "query": "count_unique(issue):>1",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["count_unique_issue"] == 2

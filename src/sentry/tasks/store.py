@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import copy
 import logging
 from datetime import datetime
 
@@ -11,6 +10,7 @@ from django.conf import settings
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import features, reprocessing
+from sentry.constants import DataCategory
 from sentry.relay.config import get_project_config
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
@@ -193,14 +193,6 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
 
     project = Project.objects.get_from_cache(id=project_id)
 
-    with_datascrubbing = features.has(
-        "organizations:datascrubbers-v2", project.organization, actor=None
-    )
-
-    if with_datascrubbing:
-        with metrics.timer("tasks.store.datascrubbers.data_bak"):
-            data_bak = copy.deepcopy(data.data)
-
     with configure_scope() as scope:
         scope.set_tag("project", project_id)
 
@@ -265,18 +257,16 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     # XXX(markus): Javascript event error translation is happening after this block
     # because it uses `get_event_preprocessors` instead of
     # `get_event_enhancers`, possibly move?
-    if has_changed and with_datascrubbing:
+    if has_changed and features.has(
+        "organizations:datascrubbers-v2", project.organization, actor=None
+    ):
         with metrics.timer("tasks.store.datascrubbers.scrub"):
             project_config = get_project_config(project)
 
-            new_data = safe_execute(
-                scrub_data,
-                project_config=project_config,
-                event=data.data,
-                in_processing=True,
-                old_event=data_bak,
-            )
+            new_data = safe_execute(scrub_data, project_config=project_config, event=data.data)
 
+            # XXX(markus): When datascrubbing is finally "totally stable", we might want
+            # to drop the event if it crashes to avoid saving PII
             if new_data is not None:
                 data.data = new_data
 
@@ -488,6 +478,8 @@ def _do_save_event(
             if data is not None:
                 metric_tags["event_type"] = event_type = data.get("type") or "none"
 
+    data_category = DataCategory.from_event_type(event_type)
+
     with metrics.global_tags(event_type=event_type):
         if data is not None:
             data = CanonicalKeyDict(data)
@@ -540,6 +532,7 @@ def _do_save_event(
 
             with metrics.timer("tasks.store.do_save_event.track_outcome"):
                 # This is where we can finally say that we have accepted the event.
+                mark_signal_sent(event.project.id, event_id)
                 track_outcome(
                     event.project.organization_id,
                     event.project.id,
@@ -548,6 +541,7 @@ def _do_save_event(
                     None,
                     timestamp,
                     event_id,
+                    data_category,
                 )
 
         except HashDiscarded:
@@ -561,12 +555,12 @@ def _do_save_event(
                 pass
 
             quotas.refund(project, key=project_key, timestamp=start_time)
-            # There is no signal supposed to be sent for this particular
-            # outcome-reason combination. Prevent the outcome consumer from
-            # emitting it for now.
-            #
-            # XXX(markus): Revisit decision about signals once outcomes consumer is stable.
+
+            # This outcome corresponds to the event_discarded signal. The
+            # outcomes_consumer generically handles all FILTERED outcomes, but
+            # needs to skip this one.
             mark_signal_sent(project_id, event_id)
+
             track_outcome(
                 project.organization_id,
                 project_id,
@@ -575,6 +569,7 @@ def _do_save_event(
                 reason,
                 timestamp,
                 event_id,
+                data_category,
             )
 
         finally:

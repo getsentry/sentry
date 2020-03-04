@@ -104,7 +104,7 @@ class FetchReleaseFileTest(TestCase):
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        foo_file.putfile(six.BytesIO("foo"))
+        foo_file.putfile(six.BytesIO(b"foo"))
         foo_dist = release.add_dist("foo")
         ReleaseFile.objects.create(
             name="file.min.js",
@@ -119,7 +119,7 @@ class FetchReleaseFileTest(TestCase):
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        bar_file.putfile(six.BytesIO("bar"))
+        bar_file.putfile(six.BytesIO(b"bar"))
         bar_dist = release.add_dist("bar")
         ReleaseFile.objects.create(
             name="file.min.js",
@@ -227,7 +227,7 @@ class FetchFileTest(TestCase):
         assert len(responses.calls) == 1
 
         assert result.url == "http://example.com"
-        assert result.body == "foo bar"
+        assert result.body == b"foo bar"
         assert result.headers == {"content-type": "application/json"}
 
         # ensure we use the cached result
@@ -263,7 +263,7 @@ class FetchFileTest(TestCase):
             result = fetch_file(url, project=self.project)
 
             assert result.url == url
-            assert result.body == "foo bar"
+            assert result.body == b"foo bar"
             assert result.headers == {"content-type": "application/json"}
 
             assert len(responses.calls) == i + 1
@@ -301,7 +301,7 @@ class FetchFileTest(TestCase):
 
         result = fetch_file("/example.js", release=release)
         assert result.url == "/example.js"
-        assert result.body == "foo"
+        assert result.body == b"foo"
         assert isinstance(result.body, six.binary_type)
         assert result.headers == {"content-type": "application/json"}
         assert result.encoding is None
@@ -320,7 +320,7 @@ class FetchFileTest(TestCase):
         assert len(responses.calls) == 1
 
         assert result.url == "http://example.com"
-        assert result.body == '"f\xc3\xb4o bar"'
+        assert result.body == b'"f\xc3\xb4o bar"'
         assert result.headers == {"content-type": "application/json; charset=utf-8"}
         assert result.encoding == "utf-8"
 

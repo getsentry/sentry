@@ -132,13 +132,11 @@ class RuleRow extends React.Component<Props, State> {
                   </h6>
                   <table className="conditions-list table">
                     <tbody>
-                      {data.conditions.map((condition, i) => {
-                        return (
-                          <tr key={i}>
-                            <td>{condition.name}</td>
-                          </tr>
-                        );
-                      })}
+                      {data.conditions.map((condition, i) => (
+                        <tr key={i}>
+                          <td>{condition.name}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </Condition>
@@ -156,13 +154,11 @@ class RuleRow extends React.Component<Props, State> {
                   </h6>
                   <table className="actions-list table">
                     <tbody>
-                      {data.actions.map((action, i) => {
-                        return (
-                          <tr key={i}>
-                            <td>{action.name}</td>
-                          </tr>
-                        );
-                      })}
+                      {data.actions.map((action, i) => (
+                        <tr key={i}>
+                          <td>{action.name}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </Condition>

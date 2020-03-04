@@ -23,7 +23,7 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 
 
 def md5(*bits):
-    return _md5(":".join((force_bytes(bit, errors="replace") for bit in bits)))
+    return _md5(b":".join((force_bytes(bit, errors="replace") for bit in bits)))
 
 
 class JiraCloud(object):
@@ -91,13 +91,13 @@ class JiraApiClient(ApiClient):
 
     integration_name = "jira"
 
-    def __init__(self, base_url, jira_style, verify_ssl):
+    def __init__(self, base_url, jira_style, verify_ssl, logging_context=None):
         self.base_url = base_url
         # `jira_style` encapsulates differences between jira server & jira cloud.
         # We only support one API version for Jira, but server/cloud require different
         # authentication mechanisms and caching.
         self.jira_style = jira_style
-        super(JiraApiClient, self).__init__(verify_ssl)
+        super(JiraApiClient, self).__init__(verify_ssl, logging_context)
 
     def request(self, method, path, data=None, params=None, **kwargs):
         """

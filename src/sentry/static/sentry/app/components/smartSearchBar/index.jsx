@@ -200,9 +200,8 @@ class SmartSearchBar extends React.Component {
    *
    * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
    */
-  static getQueryTerms = (query, cursor) => {
-    return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
-  };
+  static getQueryTerms = (query, cursor) =>
+    query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
 
   static defaultProps = {
     defaultQuery: '',
@@ -312,13 +311,14 @@ class SmartSearchBar extends React.Component {
     });
   };
 
-  onQueryBlur = () => {
+  onQueryBlur = e => {
     // wait 200ms before closing dropdown in case blur was a result of
     // clicking a menu option
+    const value = e.target.value;
     this.blurTimeout = setTimeout(() => {
       this.blurTimeout = null;
       this.setState({dropdownVisible: false});
-      callIfFunction(this.props.onBlur);
+      callIfFunction(this.props.onBlur, value);
     }, DROPDOWN_BLUR_DURATION);
   };
 

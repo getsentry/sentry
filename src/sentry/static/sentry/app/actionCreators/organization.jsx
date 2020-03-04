@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/browser';
+
 import {Client} from 'app/api';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
@@ -60,5 +62,6 @@ export async function fetchOrganizationDetails(api, slug, detailed, silent) {
     }
   } catch (err) {
     OrganizationActions.fetchOrgError(err);
+    Sentry.captureException(err);
   }
 }

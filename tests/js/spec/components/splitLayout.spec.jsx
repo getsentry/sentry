@@ -1,6 +1,7 @@
 import React from 'react';
-import {shallow} from 'sentry-test/enzyme';
 import toJson from 'enzyme-to-json';
+
+import {shallow} from 'sentry-test/enzyme';
 import SplitLayout from 'app/components/splitLayout';
 
 describe('SplitLayout', function() {

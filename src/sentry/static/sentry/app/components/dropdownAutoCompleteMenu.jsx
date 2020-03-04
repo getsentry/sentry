@@ -185,22 +185,19 @@ class DropdownAutoCompleteMenu extends React.Component {
   };
 
   filterItems = (items, inputValue) =>
-    items.filter(item => {
-      return (
+    items.filter(
+      item =>
         (item.searchKey || `${item.value} ${item.label}`)
           .toLowerCase()
           .indexOf(inputValue.toLowerCase()) > -1
-      );
-    });
+    );
 
   filterGroupedItems = (groups, inputValue) =>
     groups
-      .map(group => {
-        return {
-          ...group,
-          items: this.filterItems(group.items, inputValue),
-        };
-      })
+      .map(group => ({
+        ...group,
+        items: this.filterItems(group.items, inputValue),
+      }))
       .filter(group => group.items.length > 0);
 
   autoCompleteFilter = (items, inputValue) => {
@@ -257,11 +254,11 @@ class DropdownAutoCompleteMenu extends React.Component {
               height={this.getHeight(items)}
               onScroll={onScroll}
               rowCount={items.length}
-              rowHeight={({index}) => {
-                return items[index].groupLabel && virtualizedLabelHeight
+              rowHeight={({index}) =>
+                items[index].groupLabel && virtualizedLabelHeight
                   ? virtualizedLabelHeight
-                  : virtualizedHeight;
-              }}
+                  : virtualizedHeight
+              }
               rowRenderer={({key, index, style}) => {
                 const item = items[index];
                 return this.renderRow({

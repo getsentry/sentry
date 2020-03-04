@@ -275,12 +275,10 @@ class AutoComplete extends React.Component {
       return;
     }
 
-    this.setState(state => {
-      return {
-        isOpen: false,
-        inputValue: resetInputOnClose ? '' : state.inputValue,
-      };
-    });
+    this.setState(state => ({
+      isOpen: false,
+      inputValue: resetInputOnClose ? '' : state.inputValue,
+    }));
   };
 
   getInputProps = inputProps => ({
@@ -298,7 +296,7 @@ class AutoComplete extends React.Component {
       console.warn('getItemProps requires an object with an `item` key');
     }
 
-    const newIndex = index || this.items.size;
+    const newIndex = index ?? this.items.size;
     this.items.set(newIndex, item);
 
     return {

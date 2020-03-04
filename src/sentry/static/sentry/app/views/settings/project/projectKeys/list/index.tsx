@@ -1,22 +1,21 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
+import React from 'react';
+
 import {
   addLoadingMessage,
   addErrorMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-
-import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
-
 import {Organization, Project} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
-
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import Pagination from 'app/components/pagination';
+import {IconAdd} from 'app/icons/iconAdd';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -53,13 +52,9 @@ class ProjectKeys extends AsyncView<Props, State> {
 
     addLoadingMessage(t('Revoking key..'));
 
-    this.setState(state => {
-      return {
-        keyList: state.keyList.filter(key => {
-          return key.id !== data.id;
-        }),
-      };
-    });
+    this.setState(state => ({
+      keyList: state.keyList.filter(key => key.id !== data.id),
+    }));
 
     const {orgId, projectId} = this.props.params;
 
@@ -120,11 +115,9 @@ class ProjectKeys extends AsyncView<Props, State> {
         }
       );
 
-      this.setState(state => {
-        return {
-          keyList: [...state.keyList, data],
-        };
-      });
+      this.setState(state => ({
+        keyList: [...state.keyList, data],
+      }));
       addSuccessMessage(t('Created a new key.'));
     } catch (_err) {
       addErrorMessage(t('Unable to create new key. Please try again.'));
@@ -149,23 +142,21 @@ class ProjectKeys extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        {this.state.keyList.map(key => {
-          return (
-            <KeyRow
-              api={this.api}
-              access={access}
-              key={key.id}
-              orgId={orgId}
-              projectId={`${projectId}`}
-              data={key}
-              onToggle={this.handleToggleKey}
-              onRemove={this.handleRemoveKey}
-              routes={routes}
-              location={location}
-              params={params}
-            />
-          );
-        })}
+        {this.state.keyList.map(key => (
+          <KeyRow
+            api={this.api}
+            access={access}
+            key={key.id}
+            orgId={orgId}
+            projectId={`${projectId}`}
+            data={key}
+            onToggle={this.handleToggleKey}
+            onRemove={this.handleRemoveKey}
+            routes={routes}
+            location={location}
+            params={params}
+          />
+        ))}
         <Pagination pageLinks={this.state.keyListPageLinks} />
       </React.Fragment>
     );
@@ -185,7 +176,7 @@ class ProjectKeys extends AsyncView<Props, State> {
                 onClick={this.handleCreateKey}
                 size="small"
                 priority="primary"
-                icon="icon-circle-add"
+                icon={<IconAdd size="xs" circle />}
               >
                 {t('Generate New Key')}
               </Button>

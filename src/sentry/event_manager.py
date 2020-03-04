@@ -16,6 +16,7 @@ from django.utils.encoding import force_text
 from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
 from sentry.attachments import attachment_cache
 from sentry.constants import (
+    DataCategory,
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
@@ -40,7 +41,6 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.ingest.outcomes_consumer import mark_signal_sent
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models import (
@@ -663,6 +663,7 @@ def _pull_out_data(jobs, projects):
         job["recorded_timestamp"] = data.get("timestamp")
         job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
         job["data"] = data = event.data.data
+        job["category"] = DataCategory.from_event_type(data.get("type"))
         job["platform"] = event.platform
         event._project_cache = projects[job["project_id"]]
 
@@ -786,9 +787,12 @@ def _materialize_metadata_many(jobs):
 @metrics.wraps("save_event.send_event_saved_signal_many")
 def _send_event_saved_signal_many(jobs, projects):
     for job in jobs:
-        mark_signal_sent(project_id=job["project_id"], event_id=job["event"].event_id)
         event_saved.send_robust(
-            project=projects[job["project_id"]], event_size=job["event"].size, sender=EventManager
+            project=projects[job["project_id"]],
+            event_size=job["event"].size,
+            category=job["category"],
+            quantity=1,
+            sender=EventManager,
         )
 
 

@@ -5,14 +5,8 @@ import six
 
 from time import time
 
-from sentry.quotas.base import (
-    DataCategory,
-    NotRateLimited,
-    Quota,
-    QuotaConfig,
-    QuotaScope,
-    RateLimited,
-)
+from sentry.constants import DataCategory
+from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     validate_dynamic_cluster,
@@ -66,7 +60,7 @@ class RedisQuota(Quota):
         interval = quota.window
         return u"{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
 
-    def get_quotas(self, project, key=None):
+    def get_quotas(self, project, key=None, keys=None):
         if key:
             key.project = project
 
@@ -98,7 +92,12 @@ class RedisQuota(Quota):
                 )
             )
 
-        if key:
+        if key and not keys:
+            keys = [key]
+        elif not keys:
+            keys = []
+
+        for key in keys:
             kquota = self.get_key_quota(key)
             if kquota[0] is not None:
                 results.append(

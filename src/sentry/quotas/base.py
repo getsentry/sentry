@@ -21,20 +21,6 @@ class QuotaScope(IntEnum):
         return self.name.lower()
 
 
-@unique
-class DataCategory(IntEnum):
-    DEFAULT = 0
-    ERROR = 1
-    TRANSACTION = 2
-    SECURITY = 3
-    ATTACHMENT = 4
-    SESSION = 5
-    CRASH = 6
-
-    def api_name(self):
-        return self.name.lower()
-
-
 class QuotaConfig(object):
     """
     Abstract configuration for a quota.
@@ -111,7 +97,7 @@ class QuotaConfig(object):
     @property
     def should_track(self):
         """
-        Whether the quotas service should track this quota at all.
+        Whether the quotas service should track this quota.
         """
 
         return self.id is not None
@@ -149,6 +135,10 @@ class QuotaConfig(object):
 
 
 class RateLimit(object):
+    """
+    Return value of ``quotas.is_rate_limited``.
+    """
+
     __slots__ = ["is_limited", "retry_after", "reason", "reason_code"]
 
     def __init__(self, is_limited, retry_after=None, reason=None, reason_code=None):
@@ -190,7 +180,7 @@ class RateLimited(RateLimit):
 def _limit_from_settings(x):
     """
     limit=0 (or any falsy value) in database means "no limit". Convert that to
-    limit=None as limit=0 in code means "reject all"
+    limit=None as limit=0 in code means "reject all".
     """
 
     return int(x or 0) or None
@@ -198,9 +188,17 @@ def _limit_from_settings(x):
 
 class Quota(Service):
     """
-    Quotas handle tracking a project's event usage (at a per minute tick) and
-    respond whether or not a project has been configured to throttle incoming
-    events if they go beyond the specified quota.
+    Quotas handle tracking a project's usage and respond whether or not a
+    project has been configured to throttle incoming data if they go beyond the
+    specified quota.
+
+    Quotas can specify a window to be tracked in, such as per minute or per
+    hour. Additionally, quotas allow to specify the data categories they apply
+    to, for example error events or attachments. For more information on quota
+    parameters, see ``QuotaConfig``.
+
+    To retrieve a list of active quotas, use ``quotas.get_quotas``. Also, to
+    check the current status of quota usage, call ``quotas.get_usage``.
     """
 
     __all__ = (
@@ -208,7 +206,6 @@ class Quota(Service):
         "get_organization_quota",
         "get_project_quota",
         "is_rate_limited",
-        "translate_quota",
         "validate",
         "refund",
         "get_event_retention",
@@ -218,16 +215,84 @@ class Quota(Service):
     def __init__(self, **options):
         pass
 
+    def get_quotas(self, project, key=None, keys=None):
+        """
+        Returns a quotas for the given project and its organization.
+
+        The return values are instances of ``QuotaConfig``. See its
+        documentation for more information about the values.
+
+        :param project: The project instance that is used to determine quotas.
+        :param key:     A project project key to obtain quotas for. If omitted,
+                        only project and organization quotas are used.
+        :param keys:    Similar to ``key``, except for multiple keys.
+        """
+        return []
+
     def is_rate_limited(self, project, key=None):
+        """
+        Checks whether any of the quotas in effect for the given project and
+        project key has been exceeded and records consumption of the quota.
+
+        By invoking this method, the caller signals that data is being ingested
+        and needs to be counted against the quota. This increment happens
+        atomically if none of the quotas have been exceeded. Otherwise, a rate
+        limit is returned and data is not counted against the quotas.
+
+        When an event or any other data is dropped after ``is_rate_limited`` has
+        been called, use ``quotas.refund``.
+
+        If no key is specified, then only organization-wide and project-wide
+        quotas are checked. If a key is specified, then key-quotas are also
+        checked.
+
+        The return value is a subclass of ``RateLimit``:
+
+         - ``RateLimited``, if at least one quota has been exceeded. The event
+           should not be ingested by the caller, and none of the quotas have
+           been counted.
+
+         - ``NotRateLimited``, if consumption is within all quotas. Data must be
+           ingested by the caller, and the counters for all counters have been
+           incremented.
+
+        :param project: The project instance that is used to determine quotas.
+        :param key:     A project key to obtain quotas for. If omitted, only
+                        project and organization quotas are used.
+        """
         return NotRateLimited()
 
     def refund(self, project, key=None, timestamp=None):
-        raise NotImplementedError
+        """
+        Signals event rejection after ``quotas.is_rate_limited`` has been called
+        successfully, and refunds the previously consumed quota.
 
-    def get_time_remaining(self):
-        return 0
+        :param project:   The project that the dropped data belonged to.
+        :param key:       The project key that was used to ingest the data. If
+                          omitted, then only project and organization quotas are
+                          refunded.
+        :param timestamp: The timestamp at which data was ingested. This is used
+                          to determine the correct quota window to refund the
+                          previously consumed data to.
+        """
+        pass
 
-    def translate_quota(self, quota, parent_quota):
+    def get_event_retention(self, organization):
+        """
+        Returns the retention for events in the given organization in days.
+        Returns ``None`` if events are to be stored indefinitely.
+
+        :param organization: The organization model.
+        """
+        return _limit_from_settings(options.get("system.event-retention-days"))
+
+    def validate(self):
+        """
+        Validates that the quota service is operational.
+        """
+        pass
+
+    def _translate_quota(self, quota, parent_quota):
         if six.text_type(quota).endswith("%"):
             pct = int(quota[:-1])
             quota = int(parent_quota or 0) * pct / 100
@@ -268,7 +333,7 @@ class Quota(Service):
         org_quota, window = self.get_organization_quota(org)
 
         if max_quota_share != 100 and org_quota:
-            quota = self.translate_quota(u"{}%".format(max_quota_share), org_quota)
+            quota = self._translate_quota(u"{}%".format(max_quota_share), org_quota)
         else:
             quota = None
 
@@ -294,19 +359,13 @@ class Quota(Service):
             # utilize percentage based limits
             return (account_limit, 3600)
 
-        return (
-            self.translate_quota(settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE, system_limit),
-            60,
+        default_limit = self._translate_quota(
+            settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE, system_limit
         )
+        return (default_limit, 60)
 
     def get_maximum_quota(self, organization):
         """
         Return the maximum capable rate for an organization.
         """
         return (_limit_from_settings(options.get("system.rate-limit")), 60)
-
-    def get_event_retention(self, organization):
-        return _limit_from_settings(options.get("system.event-retention-days"))
-
-    def get_quotas(self, project, key=None):
-        return []

@@ -5,7 +5,6 @@ import uniq from 'lodash/uniq';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-
 import SentryTypes from 'app/sentryTypes';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
@@ -26,10 +25,9 @@ class ProjectOwnershipModal extends AsyncComponent {
         `/issues/${issueId}/tags/url/`,
         {},
         {
-          allowError: error => {
+          allowError: error =>
             // Allow for 404s
-            return error.status === 404;
-          },
+            error.status === 404,
         },
       ],
       ['eventData', `/issues/${issueId}/events/latest/`],

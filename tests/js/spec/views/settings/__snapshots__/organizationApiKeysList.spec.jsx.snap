@@ -46,7 +46,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
     <StyledSettingsPageHeading
       action={
         <ForwardRef
-          icon="icon-circle-add"
+          icon={
+            <ForwardRef(IconAdd)
+              circle={true}
+              size="xs"
+            />
+          }
           priority="primary"
           size="small"
         >
@@ -59,7 +64,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
       <SettingsPageHeading
         action={
           <ForwardRef
-            icon="icon-circle-add"
+            icon={
+              <ForwardRef(IconAdd)
+                circle={true}
+                size="xs"
+              />
+            }
             priority="primary"
             size="small"
           >
@@ -97,7 +107,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                   className="css-au7gsx-Action e1uay4fd3"
                 >
                   <forwardRef<Button>
-                    icon="icon-circle-add"
+                    icon={
+                      <ForwardRef(IconAdd)
+                        circle={true}
+                        size="xs"
+                      />
+                    }
                     priority="primary"
                     size="small"
                   >
@@ -105,7 +120,12 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       align="center"
                       disabled={false}
                       forwardRef={null}
-                      icon="icon-circle-add"
+                      icon={
+                        <ForwardRef(IconAdd)
+                          circle={true}
+                          size="xs"
+                        />
+                      }
                       priority="primary"
                       size="small"
                     >
@@ -155,36 +175,37 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                     size="small"
                                   >
                                     <Component
-                                      className="css-1299qb2-Icon edwq9my2"
+                                      className="css-5zck09-Icon edwq9my2"
                                       hasChildren={true}
                                       size="small"
                                     >
                                       <span
-                                        className="css-1299qb2-Icon edwq9my2"
+                                        className="css-5zck09-Icon edwq9my2"
                                         size="small"
                                       >
-                                        <StyledInlineSvg
-                                          size="12px"
-                                          src="icon-circle-add"
+                                        <ForwardRef(IconAdd)
+                                          circle={true}
+                                          size="xs"
                                         >
-                                          <ForwardRef
-                                            className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                            size="12px"
-                                            src="icon-circle-add"
+                                          <svg
+                                            fill="currentColor"
+                                            height="12px"
+                                            viewBox="0 0 16 16"
+                                            width="12px"
                                           >
-                                            <svg
-                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                              height="12px"
-                                              viewBox={Object {}}
-                                              width="12px"
-                                            >
-                                              <use
-                                                href="#test"
-                                                xlinkHref="#test"
+                                            <g>
+                                              <path
+                                                d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
                                               />
-                                            </svg>
-                                          </ForwardRef>
-                                        </StyledInlineSvg>
+                                              <path
+                                                d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                              />
+                                              <path
+                                                d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                              />
+                                            </g>
+                                          </svg>
+                                        </ForwardRef(IconAdd)>
                                       </span>
                                     </Component>
                                   </Icon>

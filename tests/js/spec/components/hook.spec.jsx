@@ -1,6 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
 
+import {mount} from 'sentry-test/enzyme';
 import Hook from 'app/components/hook';
 import HookStore from 'app/stores/hookStore';
 
@@ -11,13 +11,11 @@ describe('Hook', function() {
   const routerContext = TestStubs.routerContext();
 
   beforeEach(function() {
-    HookStore.add('footer', ({organization} = {}) => {
-      return (
-        <Wrapper key="initial" organization={organization}>
-          {organization.slug}
-        </Wrapper>
-      );
-    });
+    HookStore.add('footer', ({organization} = {}) => (
+      <Wrapper key="initial" organization={organization}>
+        {organization.slug}
+      </Wrapper>
+    ));
   });
 
   afterEach(function() {
@@ -60,13 +58,11 @@ describe('Hook', function() {
 
     expect(wrapper.find('Wrapper')).toHaveLength(1);
 
-    HookStore.add('footer', ({organization} = {}) => {
-      return (
-        <Wrapper key="new" organization={null}>
-          New Hook
-        </Wrapper>
-      );
-    });
+    HookStore.add('footer', ({organization} = {}) => (
+      <Wrapper key="new" organization={null}>
+        New Hook
+      </Wrapper>
+    ));
 
     wrapper.update();
 
@@ -90,13 +86,11 @@ describe('Hook', function() {
       routerContext
     );
 
-    HookStore.add('footer', ({organization} = {}) => {
-      return (
-        <Wrapper key="new" organization={null}>
-          New Hook
-        </Wrapper>
-      );
-    });
+    HookStore.add('footer', ({organization} = {}) => (
+      <Wrapper key="new" organization={null}>
+        New Hook
+      </Wrapper>
+    ));
 
     wrapper.update();
 

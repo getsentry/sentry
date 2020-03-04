@@ -121,54 +121,52 @@ export const TableChart = styled(
         rowTotalWidth,
         widths,
         ...props
-      }) => {
-        return (
-          <Row>
+      }) => (
+        <Row>
+          {items &&
+            items.slice(0, dataStartIndex).map((rowHeaderValue, columnIndex) =>
+              renderCell({
+                isTableHeader,
+                isHeader: true,
+                value: rowHeaderValue,
+                columnIndex,
+                rowIndex,
+                width:
+                  columnIndex < widths.length
+                    ? widths[columnIndex]
+                    : showRowTotal
+                    ? rowTotalWidth
+                    : null,
+                showRowTotal,
+                ...props,
+              })
+            )}
+
+          <DataGroup>
             {items &&
-              items.slice(0, dataStartIndex).map((rowHeaderValue, columnIndex) =>
-                renderCell({
+              items.slice(dataStartIndex).map((rowDataValue, columnIndex) => {
+                const index = columnIndex + dataStartIndex;
+                const renderCellProps = {
                   isTableHeader,
-                  isHeader: true,
-                  value: rowHeaderValue,
-                  columnIndex,
+                  value: rowDataValue,
+                  columnIndex: index,
                   rowIndex,
                   width:
-                    columnIndex < widths.length
-                      ? widths[columnIndex]
+                    index < widths.length
+                      ? widths[index]
                       : showRowTotal
                       ? rowTotalWidth
                       : null,
+                  justify: 'right',
                   showRowTotal,
                   ...props,
-                })
-              )}
+                };
 
-            <DataGroup>
-              {items &&
-                items.slice(dataStartIndex).map((rowDataValue, columnIndex) => {
-                  const index = columnIndex + dataStartIndex;
-                  const renderCellProps = {
-                    isTableHeader,
-                    value: rowDataValue,
-                    columnIndex: index,
-                    rowIndex,
-                    width:
-                      index < widths.length
-                        ? widths[index]
-                        : showRowTotal
-                        ? rowTotalWidth
-                        : null,
-                    justify: 'right',
-                    showRowTotal,
-                    ...props,
-                  };
-
-                  return renderCell(renderCellProps);
-                })}
-            </DataGroup>
-          </Row>
-        );
-      };
+                return renderCell(renderCellProps);
+              })}
+          </DataGroup>
+        </Row>
+      );
 
       // Default renderer for ALL cells
       const defaultRenderCell = p => {

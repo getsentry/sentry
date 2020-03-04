@@ -1,6 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentDetails from 'app/views/alerts/details';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -115,7 +115,7 @@ describe('IncidentDetails', function() {
     expect(wrapper.find('Status').text()).not.toBe('Resolved');
     wrapper.find('[data-test-id="status-dropdown"] DropdownButton').simulate('click');
     wrapper
-      .find('[data-test-id="status-dropdown"] MenuItem a')
+      .find('[data-test-id="status-dropdown"] MenuItem span')
       .at(0)
       .simulate('click');
 

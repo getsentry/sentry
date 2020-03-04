@@ -264,6 +264,16 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         assert result.rollup == 15
         expected_start = start if start else incident.date_started
         expected_end = end if end else incident.current_end_date
+        assert result.start == expected_start
+        assert result.end == expected_end
+        assert [r["count"] for r in result.data["data"]] == expected_results
+
+        # A prewindow version of the same test:
+        result = get_incident_event_stats(incident, data_points=20, prewindow=True, **kwargs)
+        # Duration of 300s / 20 data points
+        assert result.rollup == 15
+        expected_start = start if start else incident.date_started
+        expected_end = end if end else incident.current_end_date
         expected_start = expected_start - calculate_incident_prewindow(
             expected_start, expected_end, incident
         )
@@ -282,7 +292,23 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
 
 class BulkGetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
     def run_test(self, incidents, expected_results_list, start=None, end=None):
-        query_params_list = bulk_build_incident_query_params(incidents, start=start, end=end)
+        query_params_list = bulk_build_incident_query_params(
+            incidents, start=start, end=end, prewindow=False
+        )
+        results = bulk_get_incident_event_stats(incidents, query_params_list, data_points=20)
+        for incident, result, expected_results in zip(incidents, results, expected_results_list):
+            # Duration of 300s / 20 data points
+            assert result.rollup == 15
+            expected_start = start if start else incident.date_started
+            expected_end = end if end else incident.current_end_date
+            assert result.start == expected_start
+            assert result.end == expected_end
+            assert [r["count"] for r in result.data["data"]] == expected_results
+
+        # A prewindow version of the same test:
+        query_params_list = bulk_build_incident_query_params(
+            incidents, start=start, end=end, prewindow=True
+        )
         results = bulk_get_incident_event_stats(incidents, query_params_list, data_points=20)
         for incident, result, expected_results in zip(incidents, results, expected_results_list):
             # Duration of 300s / 20 data points
@@ -397,9 +423,18 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
             date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
         )
         snapshot = create_event_stat_snapshot(
-            incident, incident.date_started, incident.current_end_date
+            incident, incident.date_started, incident.current_end_date, False
         )
         assert snapshot.start == incident.date_started
+        assert snapshot.end == incident.current_end_date
+        assert [row[1] for row in snapshot.values] == [2, 1]
+
+        snapshot = create_event_stat_snapshot(
+            incident, incident.date_started, incident.current_end_date, True
+        )
+        assert snapshot.start == incident.date_started - calculate_incident_prewindow(
+            incident.date_started, incident.current_end_date, incident
+        )
         assert snapshot.end == incident.current_end_date
         assert [row[1] for row in snapshot.values] == [2, 1]
 
@@ -520,7 +555,7 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         incident.update(status=IncidentStatus.CLOSED.value)
         snapshot = create_incident_snapshot(incident)
         expected_snapshot = create_event_stat_snapshot(
-            incident, incident.date_started, incident.date_closed
+            incident, incident.date_started, incident.date_closed, prewindow=True
         )
 
         assert snapshot.event_stats_snapshot.start == expected_snapshot.start
@@ -556,17 +591,14 @@ class BulkGetIncidentStatusTest(TestCase, BaseIncidentsTest):
             date_started=timezone.now() - timedelta(days=30),
         )
         incidents = [closed_incident, open_incident]
-        changed = False
-        for incident, incident_stats in zip(incidents, bulk_get_incident_stats(incidents)):
-            event_stats = get_incident_event_stats(incident)
+        # Note: Closing an incident above uses a prewindow in the snapshot by default, so without prewindows this test fails.
+        for incident, incident_stats in zip(
+            incidents, bulk_get_incident_stats(incidents, prewindow=True)
+        ):
+            event_stats = get_incident_event_stats(incident, prewindow=True)
             assert incident_stats["event_stats"].data["data"] == event_stats.data["data"]
             expected_start = incident_stats["event_stats"].start
             expected_end = incident_stats["event_stats"].end
-            if not changed:
-                expected_start = expected_start - calculate_incident_prewindow(
-                    expected_start, expected_end, incident
-                )
-                changed = True
             assert event_stats.start == expected_start
             assert event_stats.end == expected_end
             assert incident_stats["event_stats"].rollup == event_stats.rollup

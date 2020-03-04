@@ -1,6 +1,6 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import IssueListTagFilter from 'app/views/issueList/tagFilter';
 
 describe('IssueListTagFilter', function() {
@@ -11,9 +11,9 @@ describe('IssueListTagFilter', function() {
     MockApiClient.clearMockResponses();
     project = TestStubs.ProjectDetails();
 
-    tagValueLoader = () => {
-      return new Promise(function(resolve) {
-        const data = [
+    tagValueLoader = () =>
+      new Promise(resolve =>
+        resolve([
           {
             count: 0,
             firstSeen: '2018-05-30T11:33:46.535Z',
@@ -22,10 +22,8 @@ describe('IssueListTagFilter', function() {
             name: 'foo',
             value: 'foo',
           },
-        ];
-        return resolve(data);
-      });
-    };
+        ])
+      );
   });
 
   it('calls API and renders options when opened', async function() {

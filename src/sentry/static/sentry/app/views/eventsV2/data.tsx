@@ -247,16 +247,12 @@ export const SPECIAL_FIELDS: SpecialFields = {
     },
   },
   project: {
-    sortField: null,
+    sortField: 'project',
     renderFunc: (data, {organization}) => {
-      const project = organization.projects.find(p => p.slug === data['project.name']);
+      const project = organization.projects.find(p => p.slug === data.project);
       return (
         <Container>
-          {project ? (
-            <ProjectBadge project={project} avatarSize={16} />
-          ) : (
-            data['project.name']
-          )}
+          {project ? <ProjectBadge project={project} avatarSize={16} /> : data.project}
         </Container>
       );
     },
@@ -279,29 +275,24 @@ export const SPECIAL_FIELDS: SpecialFields = {
   },
   last_seen: {
     sortField: 'last_seen',
-    renderFunc: data => {
-      return (
-        <Container>
-          {data.last_seen
-            ? getDynamicText({
-                value: <StyledDateTime date={data.last_seen} />,
-                fixed: 'time',
-              })
-            : emptyValue}
-        </Container>
-      );
-    },
+    renderFunc: data => (
+      <Container>
+        {data.last_seen
+          ? getDynamicText({
+              value: <StyledDateTime date={data.last_seen} />,
+              fixed: 'time',
+            })
+          : emptyValue}
+      </Container>
+    ),
   },
   release: {
     sortField: 'release',
-    renderFunc: data => {
-      return (
-        data.release && (
-          <VersionContainer>
-            <Version version={data.release} anchor={false} tooltipRawVersion truncate />
-          </VersionContainer>
-        )
-      );
-    },
+    renderFunc: data =>
+      data.release && (
+        <VersionContainer>
+          <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+        </VersionContainer>
+      ),
   },
 };

@@ -33,6 +33,7 @@ type Props = {
   organization: Organization;
   projectSlug: string;
   disabled: boolean;
+  onFilterUpdate: (query: string) => void;
 };
 
 type State = {
@@ -67,7 +68,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled} = this.props;
+    const {organization, disabled, onFilterUpdate} = this.props;
 
     return (
       <Panel>
@@ -110,22 +111,27 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           <FormField
             name="query"
             label={t('Filter')}
-            defaultValue=""
             placeholder="error.type:TypeError"
             help={t(
               'You can apply standard Sentry filter syntax to filter by status, user, etc.'
             )}
           >
-            {({onChange, onBlur, onKeyDown, value}) => (
+            {({onChange, onBlur, onKeyDown, initialData}) => (
               <SearchBar
-                defaultQuery={value}
+                defaultQuery={initialData?.query ?? ''}
                 disabled={disabled}
                 useFormWrapper={false}
                 organization={organization}
                 onChange={onChange}
-                onBlur={onBlur}
                 onKeyDown={onKeyDown}
-                onSearch={query => onChange(query, {})}
+                onBlur={query => {
+                  onFilterUpdate(query);
+                  onBlur(query);
+                }}
+                onSearch={query => {
+                  onFilterUpdate(query);
+                  onChange(query, {});
+                }}
               />
             )}
           </FormField>
