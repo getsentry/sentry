@@ -238,14 +238,15 @@ def delete_comment(activity):
     return activity.delete()
 
 
-def create_incident_snapshot(incident):
+def create_incident_snapshot(incident, prewindow=True):
     """
     Creates a snapshot of an incident. This includes the count of unique users
     and total events, plus a time series snapshot of the entire incident.
     """
     assert incident.status == IncidentStatus.CLOSED.value
+
     event_stats_snapshot = create_event_stat_snapshot(
-        incident, incident.date_started, incident.date_closed
+        incident, incident.date_started, incident.date_closed, prewindow
     )
     aggregates = get_incident_aggregates(incident)
     return IncidentSnapshot.objects.create(
@@ -256,10 +257,13 @@ def create_incident_snapshot(incident):
     )
 
 
-def create_event_stat_snapshot(incident, start, end):
+def create_event_stat_snapshot(incident, start, end, prewindow):
     """
     Creates an event stats snapshot for an incident in a given period of time.
     """
+    if prewindow:
+        start = start - calculate_incident_prewindow(start, end, incident)
+
     event_stats = get_incident_event_stats(incident, start, end)
     return TimeSeriesSnapshot.objects.create(
         start=start,
@@ -321,18 +325,18 @@ def calculate_incident_prewindow(start, end, incident=None):
     # Make the a bit earlier to show more relevant data from before the incident started:
     prewindow = (end - start) / 5
     if incident and incident.alert_rule is not None:
-        alert_rule_time_window = incident.alert_rule.time_window
+        alert_rule_time_window = timedelta(minutes=incident.alert_rule.time_window)
         prewindow = max(alert_rule_time_window, prewindow)
     return prewindow
 
 
-def get_incident_event_stats(incident, start=None, end=None, data_points=50):
+def get_incident_event_stats(incident, start=None, end=None, data_points=50, prewindow=False):
     """
     Gets event stats for an incident. If start/end are provided, uses that time
     period, otherwise uses the incident start/current_end.
     """
     query_params = bulk_build_incident_query_params(
-        [incident], start=start, end=end, prewindow=True
+        [incident], start=start, end=end, prewindow=prewindow
     )
     return bulk_get_incident_event_stats([incident], query_params, data_points=data_points)[0]
 
@@ -389,10 +393,12 @@ def bulk_get_incident_aggregates(query_params_list):
     return [result["data"][0] for result in results]
 
 
-def bulk_get_incident_stats(incidents):
+def bulk_get_incident_stats(incidents, prewindow=False):
     """
     Returns bulk stats for a list of incidents. This includes unique user count,
     total event count and event stats.
+    Note that even though this function accepts a prewindow parameter, it does not
+    affect the snapshots if they were created using a prewindow. Only the live fetched stats.
     """
     closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
     incident_stats = {}
@@ -409,7 +415,7 @@ def bulk_get_incident_stats(incidents):
 
     to_fetch = [i for i in incidents if i.id not in incident_stats]
     if to_fetch:
-        query_params_list = bulk_build_incident_query_params(to_fetch, prewindow=True)
+        query_params_list = bulk_build_incident_query_params(to_fetch, prewindow=prewindow)
         all_event_stats = bulk_get_incident_event_stats(to_fetch, query_params_list)
         all_aggregates = bulk_get_incident_aggregates(query_params_list)
         for incident, event_stats, aggregates in zip(to_fetch, all_event_stats, all_aggregates):
