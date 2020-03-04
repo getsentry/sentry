@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import csv
 import tempfile
-import sentry_sdk
 from contextlib import contextmanager
 from django.db import transaction, IntegrityError
 
@@ -11,6 +10,7 @@ from sentry.constants import ExportQueryType
 from sentry.models import EventUser, ExportedData, File, Group, Project, get_group_with_redirect
 from sentry.tasks.base import instrumented_task
 from sentry.utils import snuba
+from sentry.utils.sdk import capture_exception
 
 SNUBA_MAX_RESULTS = 1000
 
@@ -25,7 +25,7 @@ def assemble_download(data_export_id):
     try:
         data_export = ExportedData.objects.get(id=data_export_id)
     except ExportedData.DoesNotExist as error:
-        return sentry_sdk.capture_exception(error)
+        return capture_exception(error)
 
     # Create a temporary file
     try:
@@ -47,7 +47,7 @@ def assemble_download(data_export_id):
                     file.putfile(tf)
                     data_export.finalize_upload(file=file)
             except IntegrityError as error:
-                sentry_sdk.capture_exception(error)
+                capture_exception(error)
                 raise DataExportError("Failed to save the assembled file")
     except DataExportError as error:
         # TODO(Leander): Implement logging
@@ -57,7 +57,7 @@ def assemble_download(data_export_id):
         return data_export.email_failure(message=error)
     except BaseException as error:
         # TODO(Leander): Implement logging
-        sentry_sdk.capture_exception(error)
+        capture_exception(error)
         return data_export.email_failure(message="Internal processing failure")
 
 
@@ -186,7 +186,7 @@ def snuba_error_handler():
             error,
             (snuba.UnqualifiedQueryError, snuba.QueryExecutionError, snuba.SchemaValidationError),
         ):
-            sentry_sdk.capture_exception(error)
+            capture_exception(error)
             message = "Internal error. Your query failed to run."
         raise DataExportError(message)
 
