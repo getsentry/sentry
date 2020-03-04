@@ -2,13 +2,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Params} from 'react-router/lib/Router';
 
-import HealthChart from './healthChart';
-import Issues from './issues';
 import withOrganization from 'app/utils/withOrganization';
 import {Organization} from 'app/types';
 
+import HealthChart from './healthChart';
+import Issues from './issues';
 import CommitAuthorBreakdown from './commitAuthorBreakdown';
 import ProjectReleaseDetails from './projectReleaseDetails';
+import TotalCrashFreeUsers from './totalCrashFreeUsers';
 
 type Props = {
   organization: Organization;
@@ -25,6 +26,7 @@ const ReleaseOverview = ({organization, params}: Props) => {
       <Sidebar>
         <CommitAuthorBreakdown />
         <ProjectReleaseDetails />
+        <TotalCrashFreeUsers />
       </Sidebar>
     </React.Fragment>
   );
