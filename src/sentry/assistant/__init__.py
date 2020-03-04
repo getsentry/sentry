@@ -1,10 +1,7 @@
 from __future__ import absolute_import
 
 from .manager import AssistantManager
-from .guides import AssistantGuide
+from .guides import GUIDES
 
 manager = AssistantManager()
-
-manager.add(AssistantGuide.ISSUE_DETAILS)
-manager.add(AssistantGuide.ISSUE_STREAM)
-manager.add(AssistantGuide.DISCOVER_SIDEBAR)
+manager.add(GUIDES)
