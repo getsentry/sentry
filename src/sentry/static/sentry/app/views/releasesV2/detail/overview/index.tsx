@@ -11,6 +11,7 @@ import Issues from './issues';
 import CommitAuthorBreakdown from './commitAuthorBreakdown';
 import ProjectReleaseDetails from './projectReleaseDetails';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
+import SessionDuration from './sessionDuration';
 
 type Props = {
   organization: Organization;
@@ -30,6 +31,7 @@ const ReleaseOverview = ({organization, params}: Props) => {
         <CommitAuthorBreakdown />
         <ProjectReleaseDetails />
         <TotalCrashFreeUsers />
+        <SessionDuration />
       </Sidebar>
     </ContentBox>
   );
