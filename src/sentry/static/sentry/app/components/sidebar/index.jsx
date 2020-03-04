@@ -365,7 +365,7 @@ class Sidebar extends React.Component {
                       features={['discover-basic']}
                       organization={organization}
                     >
-                      <GuideAnchor position="right" target="discover-sidebar">
+                      <GuideAnchor position="right" target="discover_sidebar">
                         <SidebarItem
                           {...sidebarItemProps}
                           onClick={(_id, evt) =>
