@@ -49,6 +49,8 @@ class ReleaseProject(Model):
 
     # persisted health stats
     adoption = BoundedPositiveIntegerField(null=True)
+    crash_free_users = BoundedPositiveIntegerField(null=True)
+    crash_free_sessions = BoundedPositiveIntegerField(null=True)
     last_health_update = DateTimeField(null=True)
 
     class Meta:
@@ -312,7 +314,9 @@ class Release(Model):
         else:
             return True
 
-    def add_project_and_update_health_data(self, project, adoption):
+    def add_project_and_update_health_data(
+        self, project, adoption=None, crash_free_users=None, crash_free_sessions=None
+    ):
         """Adds a project to the release if missing and updates the materialized
         health data on it.
         """
@@ -323,7 +327,12 @@ class Release(Model):
                 ReleaseProject.objects.update_or_create(
                     project=project,
                     release=self,
-                    defaults={"adoption": adoption, "last_health_update": datetime.now(pytz.UTC)},
+                    defaults={
+                        "adoption": adoption,
+                        "crash_free_users": crash_free_users,
+                        "crash_free_sessions": crash_free_sessions,
+                        "last_health_update": datetime.now(pytz.UTC),
+                    },
                 )
                 if not project.flags.has_releases:
                     project.flags.has_releases = True

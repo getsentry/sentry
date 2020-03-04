@@ -82,7 +82,11 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
 
 
-def debounce_update_releases_on_health_data(organization, project_ids):
+def debounce_update_release_health_data(organization, project_ids):
+    """This causes a flush of snuba health data to the postgres tables once
+    per minute for the given projects.  Currently only adoption statistics
+    are stored on postgres as those are always last 24 hour approximations.
+    """
     # Figure out which projects need to get updates from the snuba.
     should_update = {}
     cache_keys = ["debounce-health:%d" % id for id in project_ids]
@@ -110,7 +114,18 @@ def debounce_update_releases_on_health_data(organization, project_ids):
         # Make sure that the release knows about this project.  Like we had before
         # the project might not have been associated with this release yet.
         release.add_project_and_update_health_data(
-            project, adoption=int(stats["adoption"] * 100000)
+            project,
+            adoption=int(stats["adoption"] * 100000),
+            crash_free_sessions=(
+                int(stats["crash_free_sessions"] * 100000)
+                if stats["crash_free_sessions"] is not None
+                else None
+            ),
+            crash_free_users=(
+                int(stats["crash_free_users"] * 100000)
+                if stats["crash_free_users"] is not None
+                else None
+            ),
         )
 
     # Now force all release projects with health data that are older than
@@ -143,12 +158,16 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
-        sort = request.GET.get("sort") or "date"
+        sort = request.GET.get("sort") or "crash_free_sessions"
 
         if sort == "date":
             sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
         elif sort == "adoption":
             sort_query = "sentry_release_project.adoption"
+        elif sort == "crash_free_sessions":
+            sort_query = "sentry_release_project.crash_free_sessions"
+        elif sort == "crash_free_users":
+            sort_query = "sentry_release_project.crash_free_users"
         else:
             return Response({"detail": "invalid sort"}, status=400)
 
@@ -159,7 +178,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         except OrganizationEventsError as e:
             return Response({"detail": six.text_type(e)}, status=400)
 
-        debounce_update_releases_on_health_data(organization, filter_params["project_id"])
+        debounce_update_release_health_data(organization, filter_params["project_id"])
 
         queryset = Release.objects.filter(
             organization=organization, projects__id__in=filter_params["project_id"]

@@ -35,7 +35,14 @@ def get_changed_project_release_model_adoptions(project_ids):
     # Find all releases with adoption in the last 24 hours
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", "release", "users"],
+        selected_columns=[
+            "project_id",
+            "release",
+            "users",
+            "users_crashed",
+            "sessions",
+            "sessions_crashed",
+        ],
         groupby=["release", "project_id"],
         start=yesterday,
         filter_keys={"project_id": project_ids},
@@ -47,6 +54,14 @@ def get_changed_project_release_model_adoptions(project_ids):
                 "project_id": x["project_id"],
                 "release": x["release"],
                 "adoption": x["users"] / totals * 100 if totals else None,
+                "crash_free_users": (
+                    100 - x["users_crashed"] / float(x["users"]) * 100 if x["users"] else None
+                ),
+                "crash_free_sessions": (
+                    100 - x["sessions_crashed"] / float(x["sessions"]) * 100
+                    if x["sessions"]
+                    else None
+                ),
             }
         )
 
