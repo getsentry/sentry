@@ -63,8 +63,8 @@ class ExportedData(Model):
         payload["export_type"] = ExportQueryType.as_str(self.query_type)
         return payload
 
-    @classmethod
-    def format_date(cls, date):
+    @staticmethod
+    def format_date(date):
         # Example: 12:21 PM on July 21, 2020 (UTC)
         return None if date is None else date.strftime("%-I:%M %p on %B %d, %Y (%Z)")
 
