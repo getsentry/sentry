@@ -11,7 +11,7 @@ import logging
 
 _log = logging.getLogger(__name__)
 
-MAX_SECONDS_WAITING_FOR_EVENT = 8
+MAX_SECONDS_WAITING_FOR_EVENT = 16
 
 
 @pytest.fixture

@@ -7,6 +7,9 @@ import six
 from six.moves.urllib.parse import urlparse
 import datetime
 import shutil
+import logging
+
+logger = logging.getLogger(__name__)
 
 from sentry.runner.commands.devservices import get_docker_client
 
@@ -76,7 +79,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     options = {
         "image": "us.gcr.io/sentryio/relay:latest",
         "ports": {"3000/tcp": _relay_port},
-        "network": "sentry",
+        "network": "host",
         "detach": True,
         "name": container_name,
         "volumes": {config_path: {"bind": "/etc/relay"}},
@@ -105,6 +108,7 @@ def relay_server(relay_server_setup):
     _remove_container_if_exists(docker_client, container_name)
     docker_client.containers.run(**options)
     relay_server_setup["is_started"] = True
+
     return {"url": relay_server_setup["url"]}
 
 

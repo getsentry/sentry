@@ -1,9 +1,9 @@
 ---
 relay:
   mode: managed
-  upstream: "http://host.docker.internal:${SENTRY_PORT}/"
+  upstream: "http://127.0.0.1:${SENTRY_PORT}/"
   host: 0.0.0.0
-  port: 3000
+  port: 3333
   tls_port: ~
   tls_identity_path: ~
   tls_identity_password: ~
@@ -13,10 +13,10 @@ logging:
 processing:
   enabled: true
   kafka_config:
-    - {name: "bootstrap.servers", value: "sentry_kafka:9093"}
+    - {name: "bootstrap.servers", value: "127.0.0.1:9093"}
   topics:
     events: "ingest-events"
     attachments: "ingest-attachments"
     transactions: "ingest-transactions"
     outcomes: "event-outcomes"
-  redis: redis://sentry_redis:6379
+  redis: redis://127.0.0.1:6379

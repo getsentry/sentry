@@ -45,7 +45,13 @@ def adjust_settings_for_relay_tests(settings):
 
     :param settings: the app settings
     """
-    settings.ALLOWED_HOSTS = ["localhost", "testserver", "host.docker.internal"]
+    settings.ALLOWED_HOSTS = [
+        "localhost",
+        "testserver",
+        "host.docker.internal",
+        "0.0.0.0",
+        "127.0.0.1",
+    ]
     settings.KAFKA_CLUSTERS = {
         "default": {
             "bootstrap.servers": "127.0.0.1:9092",

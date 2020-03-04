@@ -55,19 +55,18 @@ dev_services_containers_start : &dev_services_containers_start
   - > # zookeeper
     docker run
     --name sentry_zookeeper
-    -d --network sentry
+    -d --network host
     -e ZOOKEEPER_CLIENT_PORT=2181
     confluentinc/cp-zookeeper:4.1.0
 
   - > # kafka
     docker run
     --name sentry_kafka
-    -d --network sentry
-    -p 127.0.0.1:9092:9092/tcp
+    -d --network host
     -v sentry_kafka:/var/lib/kafka
-    -e KAFKA_ZOOKEEPER_CONNECT=sentry_zookeeper:2181
+    -e KAFKA_ZOOKEEPER_CONNECT=127.0.0.1:2181
     -e KAFKA_LISTENERS=INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
-    -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://sentry_kafka:9093,EXTERNAL://127.0.0.1:9092
+    -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://127.0.0.1:9093,EXTERNAL://127.0.0.1:9092
     -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
     -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
     -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
@@ -76,10 +75,7 @@ dev_services_containers_start : &dev_services_containers_start
   - > # clickhouse
     docker run
     --name sentry_clickhouse
-    -d --network sentry
-    -p 127.0.0.1:9000:9000/tcp
-    -p 127.0.0.1:9009:9009/tcp
-    -p 127.0.0.1:8123:8123/tcp
+    -d --network host
     -v  sentry_clickhouse:/var/lib/clickhouse
     --ulimit nofile=262144:262144
     -e CLICKHOUSE_CONFIG=/etc/clickhouse-server/config.xml
@@ -88,15 +84,15 @@ dev_services_containers_start : &dev_services_containers_start
   - > # snuba
     docker run
     --name sentry_snuba
-    -d --network sentry
+    -d --network host
     -p 127.0.0.1:1218:1218/tcp
     -e PYTHONUNBUFFERED=1
     -e SNUBA_SETTINGS=docker
     -e DEBUG=1
-    -e CLICKHOUSE_HOST=sentry_clickhouse
+    -e CLICKHOUSE_HOST=127.0.0.1
     -e CLICKHOUSE_PORT=9000
     -e CLICKHOUSE_HTTP_PORT=8123
-    -e REDIS_HOST=sentry_redis
+    -e REDIS_HOST=127.0.0.1
     -e REDIS_PORT=6379
     -e REDIS_DB=1
     getsentry/snuba devserver --no-workers
