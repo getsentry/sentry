@@ -13,7 +13,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsError
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository
-from sentry.api.paginator import OffsetPaginator
+from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release import ReleaseSerializer
 from sentry.api.serializers.rest_framework import (
@@ -24,7 +24,10 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.models import Activity, Release, Project, ReleaseProject
 from sentry.signals import release_created
-from sentry.snuba.sessions import get_changed_project_release_model_adoptions
+from sentry.snuba.sessions import (
+    get_changed_project_release_model_adoptions,
+    get_project_releases_by_stability,
+)
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import cache
 
@@ -114,18 +117,7 @@ def debounce_update_release_health_data(organization, project_ids):
         # Make sure that the release knows about this project.  Like we had before
         # the project might not have been associated with this release yet.
         release.add_project_and_update_health_data(
-            project,
-            adoption=int(stats["adoption"] * 100000),
-            crash_free_sessions=(
-                int(stats["crash_free_sessions"] * 100000)
-                if stats["crash_free_sessions"] is not None
-                else None
-            ),
-            crash_free_users=(
-                int(stats["crash_free_users"] * 100000)
-                if stats["crash_free_users"] is not None
-                else None
-            ),
+            project, adoption=int(stats["adoption"] * 100000)
         )
 
     # Now force all release projects with health data that are older than
@@ -159,17 +151,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "crash_free_sessions"
-
-        if sort == "date":
-            sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
-        elif sort == "adoption":
-            sort_query = "sentry_release_project.adoption"
-        elif sort == "crash_free_sessions":
-            sort_query = "sentry_release_project.crash_free_sessions"
-        elif sort == "crash_free_users":
-            sort_query = "sentry_release_project.crash_free_users"
-        else:
-            return Response({"detail": "invalid sort"}, status=400)
+        paginator_cls = OffsetPaginator
+        paginator_kwargs = {}
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -178,11 +161,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         except OrganizationEventsError as e:
             return Response({"detail": six.text_type(e)}, status=400)
 
+        # This should get us all the projects into postgres that have received
+        # health data in the last 24 hours.
         debounce_update_release_health_data(organization, filter_params["project_id"])
 
-        queryset = Release.objects.filter(
-            organization=organization, projects__id__in=filter_params["project_id"]
-        ).select_related("owner")
+        queryset = Release.objects.filter(organization=organization).select_related("owner")
 
         if "environment" in filter_params:
             queryset = queryset.filter(
@@ -193,12 +176,40 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         if query:
             queryset = queryset.filter(version__istartswith=query)
 
-        select_extra = {"sort": sort_query}
+        select_extra = {}
+        sort_query = None
 
         if flatten:
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
         else:
             queryset = queryset.distinct()
+
+        if sort == "date":
+            sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
+        elif sort == "adoption":
+            sort_query = "sentry_release_project.adoption"
+        elif sort in ("crash_free_sessions", "crash_free_users"):
+            paginator_cls = MergingOffsetPaginator
+            paginator_kwargs.update(
+                data_load_func=lambda offset, limit: get_project_releases_by_stability(
+                    project_ids=filter_params["project_id"],
+                    environments=filter_params.get("environment"),
+                    scope=sort[11:],
+                    offset=offset,
+                    limit=limit,
+                ),
+                apply_to_queryset=lambda queryset, rows: queryset.filter(
+                    projects__id__in=list(x[0] for x in rows), version__in=list(x[1] for x in rows)
+                ),
+                key_from_model=lambda x: (x._for_project_id, x.version),
+            )
+        else:
+            return Response({"detail": "invalid sort"}, status=400)
+
+        if sort_query is not None:
+            queryset = queryset.filter(projects__id__in=filter_params["project_id"])
+            select_extra["sort"] = sort_query
+            paginator_kwargs["order_by"] = RawSQL("sort", []).desc(nulls_last=True)
 
         queryset = queryset.extra(select=select_extra)
         if filter_params["start"] and filter_params["end"]:
@@ -211,9 +222,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=RawSQL("sort", []).desc(nulls_last=True),
-            paginator_cls=OffsetPaginator,
+            paginator_cls=paginator_cls,
             on_results=lambda x: serialize(x, request.user, serializer=serializer),
+            **paginator_kwargs
         )
 
     @attach_scenarios([create_new_org_release_ref_scenario, create_new_org_release_commit_scenario])

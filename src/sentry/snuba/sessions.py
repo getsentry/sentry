@@ -35,14 +35,7 @@ def get_changed_project_release_model_adoptions(project_ids):
     # Find all releases with adoption in the last 24 hours
     for x in raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=[
-            "project_id",
-            "release",
-            "users",
-            "users_crashed",
-            "sessions",
-            "sessions_crashed",
-        ],
+        selected_columns=["project_id", "release", "users"],
         groupby=["release", "project_id"],
         start=yesterday,
         filter_keys={"project_id": project_ids},
@@ -54,16 +47,37 @@ def get_changed_project_release_model_adoptions(project_ids):
                 "project_id": x["project_id"],
                 "release": x["release"],
                 "adoption": x["users"] / totals * 100 if totals else None,
-                "crash_free_users": (
-                    100 - x["users_crashed"] / float(x["users"]) * 100 if x["users"] else None
-                ),
-                "crash_free_sessions": (
-                    100 - x["sessions_crashed"] / float(x["sessions"]) * 100
-                    if x["sessions"]
-                    else None
-                ),
             }
         )
+
+    return rv
+
+
+def get_project_releases_by_stability(project_ids, offset, limit, scope, environments=None):
+    """Given some project IDs returns adoption rates that should be updated
+    on the postgres tables.
+    """
+    assert scope in ("sessions", "users")
+
+    conditions = []
+    if environments is not None:
+        conditions.append(["environment", "IN", environments])
+    filter_keys = {"project_id": project_ids}
+    yesterday = datetime.utcnow() - timedelta(days=1)
+    rv = []
+
+    for x in raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=["project_id", "release"],
+        groupby=["release", "project_id"],
+        orderby=[["-divide", ["%s_crashed" % scope, scope]]],
+        start=yesterday,
+        offset=offset,
+        limit=limit,
+        conditions=conditions,
+        filter_keys=filter_keys,
+    )["data"]:
+        rv.append((x["project_id"], x["release"]))
 
     return rv
 
