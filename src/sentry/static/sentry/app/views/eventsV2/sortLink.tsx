@@ -68,6 +68,8 @@ const StyledLink = styled((props: StyledLinkProps) => {
 })`
   display: block;
   white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
   color: inherit;
 
   &:hover,

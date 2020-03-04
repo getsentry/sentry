@@ -124,7 +124,7 @@ class Table extends React.Component<Props, State> {
     if (isLoading) {
       return (
         <tr>
-          <td>
+          <td colSpan={8}>
             <LoadingIndicator />
           </td>
         </tr>
@@ -137,7 +137,7 @@ class Table extends React.Component<Props, State> {
     if (!hasResults) {
       return (
         <tr>
-          <td>
+          <td colSpan={8}>
             <EmptyStateWarning>
               <p>{t('No transactions found')}</p>
             </EmptyStateWarning>
@@ -265,26 +265,33 @@ class Table extends React.Component<Props, State> {
 }
 
 const TableGrid = styled('table')`
-  font-size: 14px;
   margin: 0;
   width: 100%;
 `;
 
 const GridHead = styled('thead')`
-  background: ${p => p.theme.offWhite};
-  border-top-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.gray3};
+  text-transform: uppercase;
+  font-size: 12px;
+  line-height: 1;
 `;
 
 const GridHeadCell = styled('th')`
-  color: ${p => p.theme.gray3};
-  padding: ${space(1.5)} ${space(2)};
-  line-height: 1.5;
+  padding: ${space(2)};
+  background: ${p => p.theme.offWhite};
   ${overflowEllipsis};
+
+  &:first-child {
+    border-top-left-radius: ${p => p.theme.borderRadius};
+  }
+
+  &:last-child {
+    border-top-right-radius: ${p => p.theme.borderRadius};
+  }
 `;
 
 const GridBody = styled('tbody')`
-  color: inherit;
+  font-size: 14px;
 `;
 
 const GridBodyCell = styled('td')`
