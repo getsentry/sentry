@@ -35,11 +35,11 @@ describe('ChartZoom', function() {
       });
 
       it('formats axis label for first data point', function() {
-        expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 8, 2018 5:00 PM');
+        expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 8 5:00 PM');
       });
 
       it('formats axis label for second data point', function() {
-        expect(axisLabelFormatter(timestamp, 1)).toEqual('Jul 8, 2018 5:00 PM');
+        expect(axisLabelFormatter(timestamp, 1)).toEqual('Jul 8 5:00 PM');
       });
     });
 
@@ -60,11 +60,11 @@ describe('ChartZoom', function() {
       });
 
       it('formats axis label for first data point', function() {
-        expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9, 2018 12:00 AM');
+        expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9 12:00 AM');
       });
 
       it('formats axis label for second data point', function() {
-        expect(axisLabelFormatter(timestamp, 1)).toEqual('Jul 9, 2018 12:00 AM');
+        expect(axisLabelFormatter(timestamp, 1)).toEqual('Jul 9 12:00 AM');
       });
     });
   });
@@ -82,7 +82,7 @@ describe('ChartZoom', function() {
         axisLabelFormatter = renderFunc.mock.calls[0][0].xAxis.axisLabel.formatter;
       });
       it('formats axis label for first data point', function() {
-        expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 8, 2018 5:00 PM');
+        expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 8 5:00 PM');
       });
 
       it('formats axis label for second data point', function() {
@@ -103,7 +103,7 @@ describe('ChartZoom', function() {
       });
 
       it('formats axis label for first data point', function() {
-        expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9, 2018 12:00 AM');
+        expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9 12:00 AM');
       });
 
       it('formats axis label for second data point', function() {

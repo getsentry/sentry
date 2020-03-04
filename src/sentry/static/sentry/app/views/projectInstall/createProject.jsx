@@ -66,18 +66,34 @@ class CreateProject extends React.Component {
   }
 
   componentDidMount() {
-    logExperiment({
-      organization: this.props.organization,
-      key: 'AlertDefaultsExperimentTmp',
-      unitName: 'org_id',
-      unitId: parseInt(this.props.organization.id, 10),
-      param: 'variant',
-    });
-    trackAnalyticsEvent({
+    const {organization} = this.props;
+    const alertDefaultsExperimentVariant =
+      organization.experiments?.AlertDefaultsExperiment;
+    const isInAlertDefaultsExperiment = [
+      '2OptionsV1',
+      '3OptionsV1',
+      'controlV1',
+    ].includes(alertDefaultsExperimentVariant);
+
+    if (isInAlertDefaultsExperiment) {
+      logExperiment({
+        organization,
+        key: 'AlertDefaultsExperiment',
+        unitName: 'org_id',
+        unitId: parseInt(organization.id, 10),
+        param: 'variant',
+      });
+    }
+
+    const analyticsEventOptions = {
       eventKey: 'new_project.visited',
       eventName: 'New Project Page Visited',
       org_id: parseInt(this.props.organization.id, 10),
-    });
+    };
+    if (isInAlertDefaultsExperiment) {
+      analyticsEventOptions.alert_defaults_experiment_variant = alertDefaultsExperimentVariant;
+    }
+    trackAnalyticsEvent(analyticsEventOptions);
   }
 
   renderProjectForm = (
