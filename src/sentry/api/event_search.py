@@ -397,15 +397,23 @@ class SearchVisitor(NodeVisitor):
         search_value = search_value[0] if not isinstance(search_value, RegexNode) else search_value
 
         try:
+            aggregate_value = None
             if search_value.expr_name == "duration_format":
-                search_value = parse_duration(*search_value.match.groups())
-            else:
-                search_value = float(search_value.text)
+                # Even if the search value matches duration format, only act as duration for certain columns
+                _, agg_additions = resolve_field(search_key.name, None)
+                if len(agg_additions) > 0:
+                    # Extract column and function name out so we can check if we should parse as duration
+                    column, function = agg_additions[0][-2:]
+                    if column in self.duration_keys or function in self.duration_keys:
+                        aggregate_value = parse_duration(*search_value.match.groups())
+
+            if aggregate_value is None:
+                aggregate_value = float(search_value.text)
         except ValueError:
             raise InvalidSearchQuery(u"Invalid aggregate query condition: {}".format(search_key))
         except InvalidQuery as exc:
             raise InvalidSearchQuery(six.text_type(exc))
-        return AggregateFilter(search_key, operator, SearchValue(search_value))
+        return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
