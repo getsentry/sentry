@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import json
-import pytest
 import six
 import tempfile
 from datetime import timedelta
@@ -48,9 +47,8 @@ class ExportedDataTest(TestCase):
         keys = self.data_export.query_info.keys() + ["export_type"]
         assert sorted(self.data_export.payload.keys()) == sorted(keys)
 
-    def test_date_string(self):
-        with pytest.raises(ValueError):
-            assert self.data_export.get_date_string("imaginary_date_field")
+    def test_get_date_string(self):
+        assert self.data_export.get_date_string("imaginary_date_field") is None
         assert isinstance(self.data_export.get_date_string("date_added"), six.binary_type)
 
     def test_delete_file(self):
