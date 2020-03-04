@@ -67,49 +67,4 @@ describe('Hovercard', function() {
     expect(wrapper.state().visible).toBe(false);
     expect(wrapper.contains("div[id='hovercard-text']")).toEqual(false);
   });
-
-  // describe('shrinkToFit', function() {
-  //   it('defaults to set width when shrinkToFit not specified - narrow contents', function() {
-  //     const wrapper = mountWithTheme(
-  //       <div>
-  //         <Hovercard body={<div id="short-text">Hi!</div>}>
-  //           I'm the first hover target!
-  //         </Hovercard>
-  //         <Hovercard
-  //           body={
-  //             <div id="long-text">
-  //               This is a bunch of long text which is definitely going to wrap if I keep
-  //               going long enough. This is a test. This is only a test. Had this been a
-  //               real emergency, you'd already be dead.
-  //             </div>
-  //           }
-  //         >
-  //           I'm the second hover target!
-  //         </Hovercard>
-  //       </div>
-  //     );
-
-  //     wrapper
-  //       .find("span[data-test-id='hover-target']")
-  //       .filterWhere(element => element.text().includes('first'))
-  //       .simulate('mouseEnter');
-  //     jest.runAllTimers();
-  //     wrapper.update();
-
-  //     expect(
-  //       wrapper
-  //         .find("div[id='short-text']")
-  //         .text()
-  //         .includes('Hi')
-  //     ).toEqual(true);
-  //     console.log(wrapper.find("div[id='short-text']").getDOMNode().width);
-
-  //   });
-
-  //   it('defaults to set width when shrinkToFit not specified - wide contents', function() {});
-  //   it('uses set width when shrinkToFit is false - narrow contents', function() {});
-  //   it('uses set width when shrinkToFit is false - wide contents', function() {});
-  //   it('has variable width when shrinkToFit is true - narrow contents', function() {});
-  //   it('has variable width when shrinkToFit is true - wide contents', function() {});
-  // });
 });
