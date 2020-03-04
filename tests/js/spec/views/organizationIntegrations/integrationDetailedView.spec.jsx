@@ -5,12 +5,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import IntegrationDetailedView from 'app/views/organizationIntegrations/integrationDetailedView';
 
 const mockResponse = mocks => {
-  mocks.forEach(([url, body]) => {
-    return Client.addMockResponse({
+  mocks.forEach(([url, body]) =>
+    Client.addMockResponse({
       url,
       body,
-    });
-  });
+    })
+  );
 };
 
 describe('IntegrationDetailedView', function() {

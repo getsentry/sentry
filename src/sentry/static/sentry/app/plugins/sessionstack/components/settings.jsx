@@ -16,20 +16,18 @@ class Settings extends BasePlugin.DefaultSettings {
   }
 
   renderFields(fields) {
-    return fields.map(f => {
-      return this.renderField({
+    return fields.map(f =>
+      this.renderField({
         config: f,
         formData: this.state.formData,
         formErrors: this.state.errors,
         onChange: this.changeField.bind(this, f.name),
-      });
-    });
+      })
+    );
   }
 
   filterFields(fields, fieldNames) {
-    return fields.filter(field => {
-      return fieldNames.includes(field.name);
-    });
+    return fields.filter(field => fieldNames.includes(field.name));
   }
 
   toggleOnPremisesConfiguration() {

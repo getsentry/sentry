@@ -26,50 +26,48 @@ const GroupEventAttachmentsTableRow = ({
   isDeleted,
   orgId,
   groupId,
-}: Props) => {
-  return (
-    <TableRow isDeleted={isDeleted}>
-      <td>
-        <h5>
-          {attachment.name}
-          <br />
-          <small>
-            <DateTime date={attachment.dateCreated} /> &middot;{' '}
-            <Link
-              to={`/organizations/${orgId}/issues/${groupId}/events/${attachment.event_id}/`}
-            >
-              {attachment.event_id}
-            </Link>
-          </small>
-        </h5>
-      </td>
+}: Props) => (
+  <TableRow isDeleted={isDeleted}>
+    <td>
+      <h5>
+        {attachment.name}
+        <br />
+        <small>
+          <DateTime date={attachment.dateCreated} /> &middot;{' '}
+          <Link
+            to={`/organizations/${orgId}/issues/${groupId}/events/${attachment.event_id}/`}
+          >
+            {attachment.event_id}
+          </Link>
+        </small>
+      </h5>
+    </td>
 
-      <td>{types[attachment.type] || t('Other')}</td>
+    <td>{types[attachment.type] || t('Other')}</td>
 
-      <td>
-        <FileSize bytes={attachment.size} />
-      </td>
+    <td>
+      <FileSize bytes={attachment.size} />
+    </td>
 
-      <td>
-        <AttachmentUrl
-          projectId={projectId}
-          eventId={attachment.event_id}
-          attachment={attachment}
-        >
-          {url =>
-            !isDeleted && (
-              <EventAttachmentActions
-                url={url}
-                onDelete={onDelete}
-                attachmentId={attachment.id}
-              />
-            )
-          }
-        </AttachmentUrl>
-      </td>
-    </TableRow>
-  );
-};
+    <td>
+      <AttachmentUrl
+        projectId={projectId}
+        eventId={attachment.event_id}
+        attachment={attachment}
+      >
+        {url =>
+          !isDeleted && (
+            <EventAttachmentActions
+              url={url}
+              onDelete={onDelete}
+              attachmentId={attachment.id}
+            />
+          )
+        }
+      </AttachmentUrl>
+    </td>
+  </TableRow>
+);
 
 const TableRow = styled('tr')<{isDeleted: boolean}>`
   opacity: ${p => (p.isDeleted ? 0.3 : 1)};

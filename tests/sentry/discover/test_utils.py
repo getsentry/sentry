@@ -59,7 +59,7 @@ class TransformAliasesAndQueryTest(SnubaTestCase, TestCase):
 
     def test_autoconversion_of_time_column(self):
         result = transform_aliases_and_query(
-            aggregations=[["count", "", "count"]],
+            aggregations=[["count", None, "count"]],
             filter_keys={"project_id": [self.project.id]},
             start=before_now(minutes=10),
             end=before_now(minutes=-1),

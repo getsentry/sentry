@@ -22,6 +22,7 @@ import {
   IconGraph,
   IconIssues,
   IconLab,
+  IconLightning,
   IconProject,
   IconReleases,
   IconSettings,
@@ -183,6 +184,7 @@ class Sidebar extends React.Component {
       'discover',
       'discover/queries',
       'discover/results',
+      'performance',
       'releasesv2',
     ].map(route => `/organizations/${this.props.organization.slug}/${route}/`);
 
@@ -363,7 +365,7 @@ class Sidebar extends React.Component {
                       features={['discover-basic']}
                       organization={organization}
                     >
-                      <GuideAnchor position="right" target="discover_sidebar">
+                      <GuideAnchor position="right" target="discover-sidebar">
                         <SidebarItem
                           {...sidebarItemProps}
                           onClick={(_id, evt) =>
@@ -381,7 +383,21 @@ class Sidebar extends React.Component {
                       </GuideAnchor>
                     </Feature>
                   )}
-
+                  <Feature features={['performance-view']} organization={organization}>
+                    <SidebarItem
+                      {...sidebarItemProps}
+                      onClick={(_id, evt) =>
+                        this.navigateWithGlobalSelection(
+                          `/organizations/${organization.slug}/performance/`,
+                          evt
+                        )
+                      }
+                      icon={<IconLightning size="md" />}
+                      label={t('Performance')}
+                      to={`/organizations/${organization.slug}/performance/`}
+                      id="performance"
+                    />
+                  </Feature>
                   <Feature features={['incidents']} organization={organization}>
                     <SidebarItem
                       {...sidebarItemProps}

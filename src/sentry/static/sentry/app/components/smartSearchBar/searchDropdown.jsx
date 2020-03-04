@@ -48,17 +48,15 @@ class SearchDropdown extends React.PureComponent {
     );
   };
 
-  renderHeaderItem = item => {
-    return (
-      <SearchDropdownGroup key={item.title}>
-        <SearchDropdownGroupTitle>
-          <GroupTitleIcon className={classNames('icon', item.icon)} />
-          {item.title && item.title}
-          {item.desc && <span>{item.desc}</span>}
-        </SearchDropdownGroupTitle>
-      </SearchDropdownGroup>
-    );
-  };
+  renderHeaderItem = item => (
+    <SearchDropdownGroup key={item.title}>
+      <SearchDropdownGroupTitle>
+        <GroupTitleIcon className={classNames('icon', item.icon)} />
+        {item.title && item.title}
+        {item.desc && <span>{item.desc}</span>}
+      </SearchDropdownGroupTitle>
+    </SearchDropdownGroup>
+  );
 
   renderItem = item => (
     <SearchItem

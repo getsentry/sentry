@@ -16,6 +16,7 @@ import Field from 'app/views/settings/components/forms/field';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Switch from 'app/components/switch';
 import Truncate from 'app/components/truncate';
+import {IconAdd} from 'app/icons/iconAdd';
 
 class ServiceHookRow extends React.Component {
   static propTypes = {
@@ -117,17 +118,15 @@ export default class ProjectServiceHooks extends AsyncView {
             Service Hooks are an early adopter preview feature and will change in the
             future.
           </PanelAlert>
-          {this.state.hookList.map(hook => {
-            return (
-              <ServiceHookRow
-                key={hook.id}
-                orgId={orgId}
-                projectId={projectId}
-                hook={hook}
-                onToggleActive={this.onToggleActive.bind(this, hook)}
-              />
-            );
-          })}
+          {this.state.hookList.map(hook => (
+            <ServiceHookRow
+              key={hook.id}
+              orgId={orgId}
+              projectId={projectId}
+              hook={hook}
+              onToggleActive={this.onToggleActive.bind(this, hook)}
+            />
+          ))}
         </PanelBody>
       </React.Fragment>
     );
@@ -155,9 +154,9 @@ export default class ProjectServiceHooks extends AsyncView {
                 to={`/settings/${orgId}/projects/${projectId}/hooks/new/`}
                 size="small"
                 priority="primary"
+                icon={<IconAdd size="xs" circle />}
               >
-                <span className="icon-plus" />
-                &nbsp;{t('Create New Hook')}
+                {t('Create New Hook')}
               </Button>
             ) : null
           }

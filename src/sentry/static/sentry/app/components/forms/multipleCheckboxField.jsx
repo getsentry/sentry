@@ -77,22 +77,20 @@ export default class MultipleCheckboxField extends FormField {
         </div>
 
         <div className="control-list">
-          {choices.map(([value, choiceLabel]) => {
-            return (
-              <label className="checkbox" key={value}>
-                <input
-                  type="checkbox"
-                  value={value}
-                  onChange={this.onChange.bind(this, value)}
-                  disabled={disabled}
-                  checked={
-                    defined(this.state.value) && this.state.value.indexOf(value) !== -1
-                  }
-                />
-                {choiceLabel}
-              </label>
-            );
-          })}
+          {choices.map(([value, choiceLabel]) => (
+            <label className="checkbox" key={value}>
+              <input
+                type="checkbox"
+                value={value}
+                onChange={this.onChange.bind(this, value)}
+                disabled={disabled}
+                checked={
+                  defined(this.state.value) && this.state.value.indexOf(value) !== -1
+                }
+              />
+              {choiceLabel}
+            </label>
+          ))}
         </div>
       </div>
     );

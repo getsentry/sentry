@@ -9,7 +9,7 @@ import {addTeamToProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconAdd} from 'app/icons/iconAdd';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import SelectControl from 'app/components/forms/selectControl';
@@ -102,52 +102,46 @@ class SelectMembers extends React.Component<Props, State> {
     this.closeSelectMenu();
   });
 
-  renderUserBadge = (user: User) => {
-    return <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />;
-  };
+  renderUserBadge = (user: User) => (
+    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
+  );
 
-  createMentionableUser = (user: User) => {
-    return {
-      value: user.id,
-      label: this.renderUserBadge(user),
-      searchKey: getSearchKeyForUser(user),
-      actor: {
-        type: 'user',
-        id: user.id,
-        name: user.name,
-      },
-    };
-  };
+  createMentionableUser = (user: User) => ({
+    value: user.id,
+    label: this.renderUserBadge(user),
+    searchKey: getSearchKeyForUser(user),
+    actor: {
+      type: 'user',
+      id: user.id,
+      name: user.name,
+    },
+  });
 
-  createUnmentionableUser = ({user}) => {
-    return {
-      ...this.createMentionableUser(user),
-      disabled: true,
-      label: (
-        <DisabledLabel>
-          <Tooltip
-            position="left"
-            title={t('%s is not a member of project', user.name || user.email)}
-          >
-            {this.renderUserBadge(user)}
-          </Tooltip>
-        </DisabledLabel>
-      ),
-    };
-  };
+  createUnmentionableUser = ({user}) => ({
+    ...this.createMentionableUser(user),
+    disabled: true,
+    label: (
+      <DisabledLabel>
+        <Tooltip
+          position="left"
+          title={t('%s is not a member of project', user.name || user.email)}
+        >
+          {this.renderUserBadge(user)}
+        </Tooltip>
+      </DisabledLabel>
+    ),
+  });
 
-  createMentionableTeam = (team: Team): MentionableTeam => {
-    return {
-      value: team.id,
-      label: <IdBadge team={team} />,
-      searchKey: `#${team.slug}`,
-      actor: {
-        type: 'team',
-        id: team.id,
-        name: team.slug,
-      },
-    };
-  };
+  createMentionableTeam = (team: Team): MentionableTeam => ({
+    value: team.id,
+    label: <IdBadge team={team} />,
+    searchKey: `#${team.slug}`,
+    actor: {
+      type: 'team',
+      id: team.id,
+      name: team.slug,
+    },
+  });
 
   createUnmentionableTeam = (team: Team): UnmentionableTeam => {
     const {organization} = this.props;
@@ -178,9 +172,8 @@ class SelectMembers extends React.Component<Props, State> {
               borderless
               disabled={!canAddTeam}
               onClick={this.handleAddTeamToProject.bind(this, team)}
-            >
-              <InlineSvg src="icon-circle-add" />
-            </AddToProjectButton>
+              icon={<IconAdd circle />}
+            />
           </Tooltip>
         </UnmentionableTeam>
       ),
@@ -311,15 +304,16 @@ class SelectMembers extends React.Component<Props, State> {
         }
       });
     })
-      .then(members => {
-        // Be careful here as we actually want the `users` object, otherwise it means user
-        // has not registered for sentry yet, but has been invited
-        return (members
-          ? (members as Member[])
-              .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
-              .map(this.createUnmentionableUser)
-          : []) as UnmentionableUser[];
-      })
+      .then(
+        members =>
+          // Be careful here as we actually want the `users` object, otherwise it means user
+          // has not registered for sentry yet, but has been invited
+          (members
+            ? (members as Member[])
+                .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
+                .map(this.createUnmentionableUser)
+            : []) as UnmentionableUser[]
+      )
       .then((members: UnmentionableUser[]) => {
         const options = [...usersInProject, ...members];
         this.setState({options});

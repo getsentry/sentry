@@ -157,9 +157,7 @@ class U2fInterface extends React.Component {
     );
   };
 
-  canTryAgain = () => {
-    return this.state.deviceFailure !== 'BAD_APPID';
-  };
+  canTryAgain = () => this.state.deviceFailure !== 'BAD_APPID';
 
   renderFailure = () => {
     const {deviceFailure} = this.state;

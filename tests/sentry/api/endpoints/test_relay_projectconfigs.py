@@ -151,6 +151,7 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubDefaults") is True
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is True
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
+    assert safe.get_path(cfg, "config", "quotas") == []
 
     # Event retention depends on settings, so assert the actual value. Likely
     # `None` in dev, but must not be missing.
@@ -235,6 +236,7 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is not None
     assert safe.get_path(cfg, "config", "piiConfig", "rules") is None
     assert safe.get_path(cfg, "config", "piiConfig", "applications") is None
+    assert safe.get_path(cfg, "config", "quotas") is None
 
 
 @pytest.mark.django_db

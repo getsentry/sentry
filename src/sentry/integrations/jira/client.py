@@ -23,7 +23,7 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 
 
 def md5(*bits):
-    return _md5(":".join((force_bytes(bit, errors="replace") for bit in bits)))
+    return _md5(b":".join((force_bytes(bit, errors="replace") for bit in bits)))
 
 
 class JiraCloud(object):

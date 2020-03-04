@@ -68,7 +68,7 @@ export type LightWeightOrganization = OrganizationSummary & {
     maxRate: number | null;
   };
   defaultRole: string;
-  experiments: ActiveExperiments;
+  experiments: Partial<ActiveExperiments>;
   allowJoinRequests: boolean;
   scrapeJavaScript: boolean;
   isDefault: boolean;
@@ -109,6 +109,7 @@ export type Project = {
   isBookmarked: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
+  firstEvent: 'string' | null;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
@@ -827,6 +828,8 @@ export type SentryAppComponent = {
 
 export type ActiveExperiments = {
   TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
+  IntegrationDirectoryExperiment: '1' | '0';
+  AlertDefaultsExperimentTmp: 'testControl' | 'test2Options' | 'test3Options';
 };
 
 type SavedQueryVersions = 1 | 2;
@@ -864,6 +867,10 @@ export type SavedQueryState = {
 export type SelectValue<T> = {
   label: string;
   value: T;
+};
+
+export type StringMap<T> = {
+  [key: string]: T;
 };
 
 /**
@@ -924,9 +931,9 @@ export type OnboardingTaskDescriptor = {
 export type OnboardingTaskStatus = {
   task: OnboardingTaskKey;
   status: 'skipped' | 'pending' | 'complete';
-  user: string | null;
-  dateCompleted: string;
-  data: object;
+  user?: string | null;
+  dateCompleted?: string;
+  data?: object;
 };
 
 export type OnboardingTask = OnboardingTaskStatus & OnboardingTaskDescriptor;

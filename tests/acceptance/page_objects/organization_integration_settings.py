@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from .base import BaseElement, BasePage, ButtonElement, ButtonWithIconElement, ModalElement
+from .base import BaseElement, BasePage, ButtonElement, ModalElement
 
 
 class IntegrationProviderRowElement(BaseElement):
@@ -9,7 +9,7 @@ class IntegrationProviderRowElement(BaseElement):
         super(IntegrationProviderRowElement, self).__init__(*args, **kwargs)
         self.provider = provider
 
-        self.install_button = ButtonWithIconElement(
+        self.install_button = ButtonElement(
             element=self.element.find_element_by_css_selector('[role="button"]')
         )
 
@@ -35,10 +35,10 @@ class InstallationElement(BaseElement):
     def __init__(self, integration, *args, **kwargs):
         super(InstallationElement, self).__init__(*args, **kwargs)
         self.integration = integration
-        self.configure_button = ButtonWithIconElement(
+        self.configure_button = ButtonElement(
             element=self.element.find_element_by_css_selector(self.configure_button_selector)
         )
-        self.remove_button = ButtonWithIconElement(
+        self.remove_button = ButtonElement(
             element=self.element.find_element_by_css_selector(self.remove_button_selector)
         )
 

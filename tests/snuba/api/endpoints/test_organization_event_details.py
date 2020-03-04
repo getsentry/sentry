@@ -489,6 +489,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                     "query": "transaction.duration:>2 p95():>0",
                 },
             )
-        assert response.status_code == 200
+
+        assert response.status_code == 200, response.content
         assert response.data["nextEventID"] == format_project_event(self.project.slug, "d" * 32)
         assert response.data["previousEventID"] == format_project_event(self.project.slug, "f" * 32)

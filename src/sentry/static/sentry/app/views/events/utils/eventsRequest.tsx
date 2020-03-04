@@ -15,7 +15,7 @@ import SentryTypes from 'app/sentryTypes';
 
 import LoadingPanel from '../loadingPanel';
 
-type TimeSeriesData = {
+export type TimeSeriesData = {
   // timeseries data
   timeseriesData?: Series[];
   allTimeseriesData?: EventsStatsData;
@@ -57,6 +57,7 @@ type EventsRequestPartialProps = {
   loading?: boolean;
   showLoading?: boolean;
   yAxis?: string | string[];
+  currentSeriesName?: string;
   children: (renderProps: RenderProps) => React.ReactNode;
 };
 
@@ -167,6 +168,10 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
      */
     showLoading: PropTypes.bool,
 
+    /**
+     * Name used for display current series data set tooltip
+     */
+    currentSeriesName: PropTypes.string,
     /**
      * The yAxis being plotted
      */
@@ -316,9 +321,10 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
    * Transforms query response into timeseries data to be used in a chart
    */
   transformTimeseriesData(data: EventsStatsData): Series[] {
+    const seriesName = this.props.currentSeriesName ?? 'Current';
     return [
       {
-        seriesName: 'Current',
+        seriesName,
         data: data.map(([timestamp, countsForTimestamp]) => ({
           name: timestamp * 1000,
           value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),

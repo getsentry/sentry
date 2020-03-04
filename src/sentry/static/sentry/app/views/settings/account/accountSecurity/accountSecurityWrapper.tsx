@@ -15,7 +15,7 @@ type Props = {
   AsyncComponent['props'];
 
 type State = {
-  authenticators?: Authenticator[];
+  authenticators?: Authenticator[] | null;
   organizations?: OrganizationSummary[];
 } & AsyncComponent['state'];
 
@@ -38,10 +38,9 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       await this.api.requestPromise(`${ENDPOINT}${auth.authId}/`, {method: 'DELETE'});
       this.remountComponent();
     } catch (_err) {
+      this.setState({loading: false});
       addErrorMessage(t('Error disabling %s', auth.name));
     }
-
-    this.setState({loading: false});
   };
 
   handleRegenerateBackupCodes = async () => {
@@ -53,10 +52,9 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       });
       this.remountComponent();
     } catch (_err) {
+      this.setState({loading: false});
       addErrorMessage(t('Error regenerating backup codes'));
     }
-
-    this.setState({loading: false});
   };
 
   renderBody() {

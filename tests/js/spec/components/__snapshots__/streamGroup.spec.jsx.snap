@@ -169,7 +169,7 @@ exports[`StreamGroup renders with anchors 1`] = `
     />
   </GroupSummary>
   <GuideAnchor
-    target="issue_stream"
+    target="issue-stream"
   />
   <Styled(div)
     className="hidden-xs hidden-sm"

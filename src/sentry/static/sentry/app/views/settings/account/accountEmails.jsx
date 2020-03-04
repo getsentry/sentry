@@ -162,17 +162,15 @@ class AccountEmails extends AsyncView {
             )}
 
             {secondary &&
-              secondary.map(emailObj => {
-                return (
-                  <EmailRow
-                    key={emailObj.email}
-                    onSetPrimary={this.handleSetPrimary}
-                    onRemove={this.handleRemove}
-                    onVerify={this.handleVerify}
-                    {...emailObj}
-                  />
-                );
-              })}
+              secondary.map(emailObj => (
+                <EmailRow
+                  key={emailObj.email}
+                  onSetPrimary={this.handleSetPrimary}
+                  onRemove={this.handleRemove}
+                  onVerify={this.handleVerify}
+                  {...emailObj}
+                />
+              ))}
           </PanelBody>
         </Panel>
 

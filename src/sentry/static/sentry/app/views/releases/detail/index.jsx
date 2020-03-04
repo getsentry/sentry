@@ -18,14 +18,12 @@ import withProjects from 'app/utils/withProjects';
 
 import ReleaseHeader from './releaseHeader';
 
-const ReleaseDetailsContainer = props => {
-  return (
-    <React.Fragment>
-      <GlobalSelectionHeader organization={props.organization} />
-      <OrganizationReleaseDetails {...props} />
-    </React.Fragment>
-  );
-};
+const ReleaseDetailsContainer = props => (
+  <React.Fragment>
+    <GlobalSelectionHeader organization={props.organization} />
+    <OrganizationReleaseDetails {...props} />
+  </React.Fragment>
+);
 ReleaseDetailsContainer.propTypes = {
   organization: SentryTypes.Organization,
 };
@@ -123,9 +121,7 @@ class OrganizationReleaseDetails extends AsyncView {
             )}
             :{' '}
             {selected_projects
-              .map(p => {
-                return all_projects.find(pp => parseInt(pp.id, 10) === p).name;
-              })
+              .map(p => all_projects.find(pp => parseInt(pp.id, 10) === p).name)
               .join(', ')}
           </Alert>
         </PageContent>

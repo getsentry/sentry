@@ -144,9 +144,10 @@ export function percent(value: number, totalValue: number): number {
 }
 
 export function toTitleCase(str: string): string {
-  return str.replace(/\w\S*/g, txt => {
-    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-  });
+  return str.replace(
+    /\w\S*/g,
+    txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  );
 }
 
 export function formatBytes(bytes: number): string {

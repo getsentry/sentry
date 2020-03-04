@@ -84,11 +84,10 @@ class DateRange extends React.Component {
     router: PropTypes.object,
   };
 
-  static getTimeStringFromDate = date => {
-    return moment(date)
+  static getTimeStringFromDate = date =>
+    moment(date)
       .local()
       .format('HH:mm');
-  };
 
   handleSelectDateRange = ({selection}) => {
     const {onChange} = this.props;

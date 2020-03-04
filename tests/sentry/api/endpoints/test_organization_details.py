@@ -201,6 +201,7 @@ class OrganizationUpdateTest(APITestCase):
             "safeFields": [u"email"],
             "storeCrashReports": 10,
             "scrubIPAddresses": True,
+            "relayPiiConfig": '{"applications": {"$string": []}}',
             "scrapeJavaScript": False,
             "defaultRole": "owner",
             "require2FA": True,
@@ -231,6 +232,7 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get("sentry:require_scrub_ip_address")
         assert options.get("sentry:sensitive_fields") == ["password"]
         assert options.get("sentry:safe_fields") == ["email"]
+        assert options.get("sentry:relay_pii_config") == '{"applications": {"$string": []}}'
         assert options.get("sentry:store_crash_reports") == 10
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
@@ -264,7 +266,7 @@ class OrganizationUpdateTest(APITestCase):
 
         response = self.client.put(url, data=data)
         assert response.status_code == 400
-        assert "feature" in response.content
+        assert b"feature" in response.content
 
     def test_setting_trusted_relays(self):
         org = self.create_organization(owner=self.user)

@@ -23,6 +23,7 @@ import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
+import {IconAdd} from 'app/icons/iconAdd';
 
 const renderDisabledCheckbox = p => (
   <Hovercard
@@ -124,9 +125,7 @@ class ProjectSelector extends React.Component {
 
     if (multiProjects) {
       return [
-        sortArray(multiProjects, project => {
-          return [!project.isBookmarked, project.name];
-        }),
+        sortArray(multiProjects, project => [!project.isBookmarked, project.name]),
         nonMemberProjects || [],
       ];
     }
@@ -140,9 +139,7 @@ class ProjectSelector extends React.Component {
       : unfilteredProjects.filter(project => project.isMember);
 
     return [
-      sortArray(filteredProjects, project => {
-        return [!project.isBookmarked, project.name];
-      }),
+      sortArray(filteredProjects, project => [!project.isBookmarked, project.name]),
       [],
     ];
   }
@@ -300,11 +297,12 @@ class ProjectSelector extends React.Component {
             disabled={!hasProjectWrite}
             to={`/organizations/${org.slug}/projects/new/`}
             size="xsmall"
+            icon={<IconAdd size="xs" circle />}
             title={
               hasProjectWrite ? null : t("You don't have permission to add a project")
             }
           >
-            <StyledAddIcon src="icon-circle-add" /> {t('Project')}
+            {t('Project')}
           </AddButton>
         )}
         menuFooter={renderProps => {
@@ -494,10 +492,6 @@ const SettingsIconLink = styled(Link)`
   &:hover {
     color: ${p => p.theme.gray4};
   }
-`;
-
-const StyledAddIcon = styled(InlineSvg)`
-  margin-right: ${space(0.5)};
 `;
 
 const SettingsIcon = styled(InlineSvg)`

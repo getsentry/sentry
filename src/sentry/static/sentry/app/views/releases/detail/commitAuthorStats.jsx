@@ -101,9 +101,7 @@ class CommitAuthorStats extends React.Component {
     const commitAuthorValues = Object.values(commitAuthors);
 
     // sort commitAuthors by highest commitCount to lowest commitCount
-    commitAuthorValues.sort((a, b) => {
-      return b.commitCount - a.commitCount;
-    });
+    commitAuthorValues.sort((a, b) => b.commitCount - a.commitCount);
 
     return (
       <div style={{marginTop: 5}}>

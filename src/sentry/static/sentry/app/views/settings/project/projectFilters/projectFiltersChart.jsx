@@ -63,19 +63,17 @@ class ProjectFiltersChart extends React.Component {
   }
 
   formatData(rawData) {
-    return Object.keys(this.getStatOpts()).map(stat => {
-      return {
-        data: rawData[stat].map(([x, y]) => {
-          if (y > 0) {
-            this.setState({blankStats: false});
-          }
+    return Object.keys(this.getStatOpts()).map(stat => ({
+      data: rawData[stat].map(([x, y]) => {
+        if (y > 0) {
+          this.setState({blankStats: false});
+        }
 
-          return {x, y};
-        }),
-        label: this.getStatOpts()[stat],
-        statName: stat,
-      };
-    });
+        return {x, y};
+      }),
+      label: this.getStatOpts()[stat],
+      statName: stat,
+    }));
   }
 
   getFilterStats() {
@@ -88,11 +86,11 @@ class ProjectFiltersChart extends React.Component {
       until: this.state.queryUntil,
       resolution: '1d',
     };
-    const requests = statOptions.map(stat => {
-      return this.props.api.requestPromise(statEndpoint, {
+    const requests = statOptions.map(stat =>
+      this.props.api.requestPromise(statEndpoint, {
         query: Object.assign({stat}, query),
-      });
-    });
+      })
+    );
     Promise.all(requests)
       .then(results => {
         const rawStatsData = {};
@@ -138,8 +136,8 @@ class ProjectFiltersChart extends React.Component {
         <div>
           {intcomma(totalY)} {tn('total event', 'total events', totalY)}
         </div>
-        {formattedData.map((dataPoint, i) => {
-          return (
+        {formattedData.map(
+          (dataPoint, i) =>
             point.y[i] > 0 && (
               <dl className="legend" key={dataPoint.statName}>
                 <dt>
@@ -154,8 +152,7 @@ class ProjectFiltersChart extends React.Component {
                 </dd>
               </dl>
             )
-          );
-        })}
+        )}
       </div>
     );
   };

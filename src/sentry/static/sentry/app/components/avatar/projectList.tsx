@@ -31,17 +31,15 @@ const ProjectList = ({projects, maxVisibleProjects = 5, avatarSize = 20}: Props)
         </Tooltip>
       )}
 
-      {visibleProjects.map(project => {
-        return (
-          <StyledProjectAvatar
-            project={project}
-            key={project.slug}
-            tooltip={project.slug}
-            size={avatarSize}
-            hasTooltip
-          />
-        );
-      })}
+      {visibleProjects.map(project => (
+        <StyledProjectAvatar
+          project={project}
+          key={project.slug}
+          tooltip={project.slug}
+          size={avatarSize}
+          hasTooltip
+        />
+      ))}
     </ProjectListWrapper>
   );
 };

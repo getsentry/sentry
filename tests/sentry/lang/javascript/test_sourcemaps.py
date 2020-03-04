@@ -7,7 +7,7 @@ from unittest import TestCase
 
 from sentry.utils import json
 
-sourcemap = """{
+sourcemap = b"""{
     "version":3,
     "file":"file.min.js",
     "sources":["file1.js","file2.js"],
@@ -51,7 +51,7 @@ indexed_sourcemap_example = json.dumps(
             },
         ],
     }
-)
+).encode("utf-8")
 
 
 class FindSourceTest(TestCase):

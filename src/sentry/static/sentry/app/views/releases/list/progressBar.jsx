@@ -2,13 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
-const ProgressBar = props => {
-  return (
-    <StyledBar>
-      <StyledSlider width={props.width} />
-    </StyledBar>
-  );
-};
+const ProgressBar = props => (
+  <StyledBar>
+    <StyledSlider width={props.width} />
+  </StyledBar>
+);
 ProgressBar.propTypes = {
   width: PropTypes.number,
 };

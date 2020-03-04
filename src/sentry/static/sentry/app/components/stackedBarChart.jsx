@@ -106,12 +106,11 @@ class StackedBarChart extends React.Component {
     return !isEqual(this.props, nextProps);
   }
 
-  getInterval = series => {
+  getInterval = series =>
     // TODO(dcramer): not guaranteed correct
-    return series.length && series[0].data.length > 1
+    series.length && series[0].data.length > 1
       ? series[0].data[1].x - series[0].data[0].x
       : null;
-  };
 
   pointsToSeries = points => {
     const series = [];
@@ -184,7 +183,8 @@ class StackedBarChart extends React.Component {
 
   timeLabelAsFull(point) {
     const timeMoment = moment(point.x * 1000);
-    return timeMoment.format('lll');
+    const format = this.use24Hours() ? 'MMM D, YYYY HH:mm' : 'lll';
+    return timeMoment.format(format);
   }
 
   getTimeLabel(point) {
@@ -210,7 +210,7 @@ class StackedBarChart extends React.Component {
   }
 
   renderMarker(marker, index, pointWidth) {
-    const timeLabel = moment(marker.x * 1000).format('lll');
+    const timeLabel = this.timeLabelAsFull(marker);
     const title = (
       <div style={{width: '130px'}}>
         {marker.label}
@@ -353,13 +353,9 @@ class StackedBarChart extends React.Component {
         const p = pointIndex[k];
         return {x: p.x, y: p.y};
       })
-      .sort((a, b) => {
-        return a.x - b.x;
-      });
+      .sort((a, b) => a.x - b.x);
 
-    markers.sort((a, b) => {
-      return a.x - b.x;
-    });
+    markers.sort((a, b) => a.x - b.x);
 
     const children = [];
     const markerChildren = [];

@@ -6,7 +6,7 @@ import getOperatingSystemKnownData from './getGPUKnownData';
 import {GPUData, GPUKnownDataType} from './types';
 
 type Props = {
-  data?: GPUData;
+  data: GPUData;
 };
 
 const gpuKnownDataValues = [
@@ -20,10 +20,6 @@ const gpuKnownDataValues = [
 ];
 
 const GPU = ({data}: Props) => {
-  if (data === undefined || data === null) {
-    return null;
-  }
-
   if (data.vendor_id > 0) {
     gpuKnownDataValues.unshift[GPUKnownDataType.VENDOR_ID];
   }
