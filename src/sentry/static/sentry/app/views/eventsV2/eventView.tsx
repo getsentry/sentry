@@ -55,6 +55,7 @@ export type Field = {
 export type Column = {
   aggregation: string;
   field: string;
+  refinement?: string;
   width?: number;
 };
 
@@ -106,11 +107,13 @@ export function isFieldSortable(field: Field, tableMeta: MetaType | undefined): 
   return !!getSortKeyFromField(field, tableMeta);
 }
 
-const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
-  const {aggregation, field} = props;
-  const hasAggregation = aggregation.length > 0;
-
-  return hasAggregation ? `${aggregation}(${field})` : field;
+const generateFieldAsString = (col: Column): string => {
+  const {aggregation, field, refinement} = col;
+  const parameters = [field, refinement].filter(i => i);
+  if (aggregation) {
+    return `${aggregation}(${parameters.join(',')})`;
+  }
+  return field;
 };
 
 const decodeFields = (location: Location): Array<Field> => {

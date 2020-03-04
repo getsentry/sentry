@@ -155,7 +155,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
   // Signal to the parent that a new column has been added.
   handleAddColumn = () => {
-    const newColumns = [...this.props.columns, {aggregation: '', field: ''}];
+    const newColumns = [
+      ...this.props.columns,
+      {aggregation: '', field: '', refinement: undefined},
+    ];
     this.props.onChange(newColumns);
   };
 
@@ -262,7 +265,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     });
   };
 
-  renderGhost() {
+  renderGhost(gridColumns: number) {
     const index = this.state.draggingIndex;
     if (typeof index !== 'number' || !this.state.isDragging || !this.portal) {
       return null;
@@ -277,7 +280,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     };
     const ghost = (
       <Ghost ref={this.dragGhostRef} style={style}>
-        {this.renderItem(col, index, {isGhost: true})}
+        {this.renderItem(col, index, {isGhost: true, gridColumns})}
       </Ghost>
     );
 
@@ -287,7 +290,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
   renderItem(
     col: Column,
     i: number,
-    {canDelete = true, isGhost = false}: {canDelete?: boolean; isGhost?: boolean}
+    {
+      canDelete = true,
+      isGhost = false,
+      gridColumns = 2,
+    }: {canDelete?: boolean; isGhost?: boolean; gridColumns: number}
   ) {
     const {isDragging, draggingTargetIndex, draggingIndex, fieldOptions} = this.state;
 
@@ -296,7 +303,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     if (isDragging && isGhost === false && draggingTargetIndex === i) {
       placeholder = (
         <DragPlaceholder
-          key={`placeholder:${col.aggregation}:${col.field}`}
+          key={`placeholder:${col.aggregation}:${col.field}:${col.refinement}`}
           className={DRAG_CLASS}
         />
       );
@@ -318,7 +325,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         {position === PlaceholderPosition.TOP && placeholder}
         <RowContainer
           className={isGhost ? '' : DRAG_CLASS}
-          key={`container:${col.aggregation}:${col.field}:${isGhost}`}
+          key={`container:${col.aggregation}:${col.field}:${col.refinement}:${isGhost}`}
         >
           {canDelete ? (
             <IconButton
@@ -332,6 +339,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
           )}
           <ColumnEditRow
             fieldOptions={fieldOptions}
+            gridColumns={gridColumns}
             column={col}
             parentIndex={i}
             onChange={this.handleUpdateColumn}
@@ -355,16 +363,25 @@ class ColumnEditCollection extends React.Component<Props, State> {
   render() {
     const {columns} = this.props;
     const canDelete = columns.length > 1;
+
+    // Get the longest number of columns so we can layout the rows.
+    // We always want at least 2 columns.
+    const gridColumns = Math.max(
+      ...columns.map(col => (col.field && col.refinement !== undefined ? 3 : 2))
+    );
+
     return (
       <div>
-        {this.renderGhost()}
+        {this.renderGhost(gridColumns)}
         <RowContainer>
-          <Heading>
+          <Heading gridColumns={gridColumns}>
             <strong>{t('Tag / Field / Function')}</strong>
-            <strong>{t('Field Parameter')}</strong>
+            <strong>{t('Parameters')}</strong>
           </Heading>
         </RowContainer>
-        {columns.map((col: Column, i: number) => this.renderItem(col, i, {canDelete}))}
+        {columns.map((col: Column, i: number) =>
+          this.renderItem(col, i, {canDelete, gridColumns})
+        )}
         <RowContainer>
           <Actions>
             <Button
@@ -435,12 +452,12 @@ const Actions = styled('div')`
   grid-column: 2 / 3;
 `;
 
-const Heading = styled('div')`
+const Heading = styled('div')<{gridColumns: number}>`
   grid-column: 2 / 3;
 
   /* Emulate the grid used in the column editor rows */
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(${p => p.gridColumns}, 1fr);
   grid-column-gap: ${space(1)};
 `;
 

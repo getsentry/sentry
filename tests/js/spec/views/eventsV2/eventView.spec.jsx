@@ -1189,7 +1189,7 @@ describe('EventView.withNewColumn()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 
-  it('add an aggregate function with arguments', function() {
+  it('add an aggregate function with field', function() {
     const eventView = new EventView(state);
     const newColumn = {
       aggregation: 'avg',
@@ -1204,6 +1204,20 @@ describe('EventView.withNewColumn()', function() {
       fields: [...state.fields, {field: 'avg(transaction.duration)'}],
     };
     expect(eventView2).toMatchObject(nextState);
+  });
+
+  it('add an aggregate function with field & refinement', function() {
+    const eventView = new EventView(state);
+    const newColumn = {
+      aggregation: 'percentile',
+      field: 'transaction.duration',
+      refinement: '0.5',
+    };
+    const updated = eventView.withNewColumn(newColumn);
+    expect(updated.fields).toEqual([
+      ...state.fields,
+      {field: 'percentile(transaction.duration,0.5)', width: COL_WIDTH_UNDEFINED},
+    ]);
   });
 });
 
@@ -1273,18 +1287,16 @@ describe('EventView.withUpdatedColumn()', function() {
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
 
     expect(eventView2 !== eventView).toBeTruthy();
-
     expect(eventView).toMatchObject(state);
 
     const nextState = {
       ...state,
       fields: [state.fields[0], {field: 'count()'}],
     };
-
     expect(eventView2).toMatchObject(nextState);
   });
 
-  it('update a column to an aggregate function with arguments', function() {
+  it('update a column to an aggregate function with field', function() {
     const eventView = new EventView(state);
 
     const newColumn = {
@@ -1295,15 +1307,29 @@ describe('EventView.withUpdatedColumn()', function() {
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
 
     expect(eventView2 !== eventView).toBeTruthy();
-
     expect(eventView).toMatchObject(state);
 
     const nextState = {
       ...state,
       fields: [state.fields[0], {field: 'avg(transaction.duration)'}],
     };
-
     expect(eventView2).toMatchObject(nextState);
+  });
+
+  it('update a column to an aggregate function with field & refinement', function() {
+    const eventView = new EventView(state);
+
+    const newColumn = {
+      aggregation: 'percentile',
+      field: 'transaction.duration',
+      refinement: '0.6',
+    };
+
+    const newView = eventView.withUpdatedColumn(1, newColumn, meta);
+    expect(newView.fields).toEqual([
+      state.fields[0],
+      {field: 'percentile(transaction.duration,0.5)', width: COL_WIDTH_UNDEFINED},
+    ]);
   });
 
   describe('update a column that is sorted', function() {
@@ -1318,7 +1344,6 @@ describe('EventView.withUpdatedColumn()', function() {
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
 
       expect(eventView2 !== eventView).toBeTruthy();
-
       expect(eventView).toMatchObject(state);
 
       const nextState = {
@@ -1326,7 +1351,6 @@ describe('EventView.withUpdatedColumn()', function() {
         sorts: [{field: 'title', kind: 'desc'}],
         fields: [{field: 'title'}, state.fields[1]],
       };
-
       expect(eventView2).toMatchObject(nextState);
     });
 
@@ -1346,14 +1370,12 @@ describe('EventView.withUpdatedColumn()', function() {
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
 
       expect(eventView2 !== eventView).toBeTruthy();
-
       expect(eventView).toMatchObject(modifiedState);
 
       const nextState = {
         ...state,
         fields: [{field: 'title'}, state.fields[1], {field: 'count()'}],
       };
-
       expect(eventView2).toMatchObject(nextState);
     });
 

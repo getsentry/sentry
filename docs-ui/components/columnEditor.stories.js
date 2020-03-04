@@ -45,6 +45,11 @@ storiesOf('Discover|ColumnEditor', module).add(
         field: 'issue.id',
         aggregation: 'count_unique',
       },
+      {
+        refinement: '0.81',
+        field: 'transaction.duration',
+        aggregation: 'percentile',
+      },
     ];
 
     const showModal = () => {
