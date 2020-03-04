@@ -310,7 +310,7 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-const StyledPageHeader = styled('div')`
+export const StyledPageHeader = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.headerFontSize};

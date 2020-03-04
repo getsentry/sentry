@@ -136,7 +136,6 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
   background-color: ${p => p.theme.offWhite};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
 
   &:first-child {
     border-top-left-radius: ${p => p.theme.borderRadius};
@@ -165,7 +164,7 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
   text-transform: uppercase;
   user-select: none;
 
-  background-color: ${p => {
+  background: ${p => {
     if (p.isDragging) {
       return p.theme.purple;
     }
@@ -189,7 +188,8 @@ export const GridHeadCellButton = styled('div')<GridEditableProps>`
     return p.theme.gray3;
   }};
 
-  a {
+  a,
+  div {
     color: inherit;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -207,7 +207,6 @@ export const GridHeadCellStatic = styled('th')`
   align-items: center;
   padding: ${space(2)};
   background-color: ${p => p.theme.offWhite};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
   font-size: 13px;
   font-weight: 600;
   line-height: 1;
@@ -263,8 +262,8 @@ export const GridHeadCellButtonHoverDraggable = styled(InlineSvg)`
 export const GridBody = styled('tbody')`
   display: contents;
 
-  > tr:last-child td {
-    border-bottom: none;
+  > tr:first-child td {
+    border-top: 1px solid ${p => p.theme.borderDark};
   }
 `;
 export const GridBodyCell = styled('td')`
@@ -278,7 +277,7 @@ export const GridBodyCell = styled('td')`
   padding: ${space(1)} ${space(2)};
 
   background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.borderLight};
 
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -320,14 +319,13 @@ export const GridBodyCellStatus = props => (
  * We have a fat GridResizer and we use the ::after pseudo-element to draw
  * a thin 1px border.
  *
- * The right-most GridResizer has a width of 2px and no right padding to make it
- * more obvious as it is usually sitting next to the border for <Panel>
+ * The right most cell does not have a resizer as resizing from that side does strange things.
  */
-export const GridResizer = styled('div')<{dataRows: number; isLast?: boolean}>`
+export const GridResizer = styled('div')<{dataRows: number}>`
   position: absolute;
   top: 0px;
-  right: ${p => (p.isLast ? '0px' : '-5px')};
-  width: ${p => (p.isLast ? '6px' : '9px')};
+  right: -6px;
+  width: 11px;
 
   height: ${p => {
     const numOfRows = p.dataRows;
@@ -341,8 +339,8 @@ export const GridResizer = styled('div')<{dataRows: number; isLast?: boolean}>`
     return height;
   }}px;
 
-  padding-left: 4px;
-  padding-right: ${p => (p.isLast ? '0px' : '4px')};
+  padding-left: 5px;
+  padding-right: 5px;
 
   cursor: col-resize;
   z-index: ${Z_INDEX_GRID_RESIZER};
@@ -369,5 +367,19 @@ export const GridResizer = styled('div')<{dataRows: number; isLast?: boolean}>`
   &:active::after,
   &:focus::after {
     background-color: ${p => p.theme.purple};
+  }
+
+  /**
+   * This element gives the resize handle a more visible knob to grab
+   */
+  &:hover::before {
+    position: absolute;
+    top: 0;
+    left: 3px;
+    content: ' ';
+    display: block;
+    width: 5px;
+    height: ${GRID_HEAD_ROW_HEIGHT}px;
+    background-color: ${p => p.theme.purpleLight};
   }
 `;

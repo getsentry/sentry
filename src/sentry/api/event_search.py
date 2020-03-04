@@ -702,6 +702,10 @@ def convert_search_filter_to_snuba_query(search_filter):
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
     elif name == "transaction.status":
+        # Handle "has" queries
+        if search_filter.value.raw_value == "":
+            return [["isNull", [name]], search_filter.operator, 1]
+
         internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
         if internal_value is None:
             raise InvalidSearchQuery(
@@ -1253,7 +1257,7 @@ def resolve_field_list(fields, snuba_args, params=None, auto_fields=True):
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
         aggregations.append(
             [
-                u"transform({}, [{}], [{}], '')".format(
+                u"transform({}, array({}), array({}), '')".format(
                     project_column,
                     # Need to use join like this so we don't get a list including Ls which confuses clickhouse
                     ",".join([six.text_type(project["id"]) for project in projects]),

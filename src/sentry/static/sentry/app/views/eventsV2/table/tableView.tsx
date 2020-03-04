@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {Location, LocationDescriptorObject} from 'history';
 
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -13,7 +13,6 @@ import Tooltip from 'app/components/tooltip';
 
 import {
   downloadAsCsv,
-  getAggregateAlias,
   getFieldRenderer,
   getExpandedResults,
   pushEventViewToLocation,
@@ -21,14 +20,14 @@ import {
   MetaType,
 } from '../utils';
 import EventView, {pickRelevantLocationQueryStrings} from '../eventView';
-import SortLink, {Alignments} from '../sortLink';
+import SortLink from '../sortLink';
 import renderTableModalEditColumnFactory from './tableModalEditColumn';
 import {TableColumn, TableData, TableDataRow} from './types';
-import {ColumnValueType} from '../eventQueryParams';
+import HeaderCell from './headerCell';
 import DraggableColumns, {
   DRAGGABLE_COLUMN_CLASSNAME_IDENTIFIER,
 } from './draggableColumns';
-import {generateEventDetailsRoute, generateEventSlug} from '../eventDetails/utils';
+import {generateEventSlug, eventDetailsRouteWithEventView} from '../eventDetails/utils';
 
 export type TableViewProps = {
   location: Location;
@@ -220,7 +219,7 @@ class TableView extends React.Component<TableViewProps> {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] => {
-    const {eventView} = this.props;
+    const {organization, eventView} = this.props;
     const hasAggregates = eventView.getAggregateFields().length > 0;
     if (isHeader) {
       return [
@@ -229,16 +228,14 @@ class TableView extends React.Component<TableViewProps> {
         </HeaderIcon>,
       ];
     }
-    const {organization, location} = this.props;
+
     const eventSlug = generateEventSlug(dataRow);
-    const pathname = generateEventDetailsRoute({
+
+    const target = eventDetailsRouteWithEventView({
       orgSlug: organization.slug,
       eventSlug,
+      eventView,
     });
-    const target = {
-      pathname,
-      query: {...location.query},
-    };
 
     return [
       <Tooltip key={`eventlink${rowIndex}`} title={t('View Details')}>
@@ -251,34 +248,39 @@ class TableView extends React.Component<TableViewProps> {
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
-    const field = column.eventViewField;
-
-    // establish alignment based on the type
-    const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer'];
-    let align: Alignments = alignedTypes.includes(column.type) ? 'right' : 'left';
-
-    if (column.type === 'never' || column.type === '*') {
-      // fallback to align the column based on the table metadata
-      const maybeType =
-        tableData && tableData.meta
-          ? tableData.meta[getAggregateAlias(field.field)]
-          : undefined;
-
-      if (maybeType === 'integer' || maybeType === 'number') {
-        align = 'right';
-      }
-    }
 
     return (
-      <SortLink
-        align={align}
-        field={field}
-        location={location}
-        eventView={eventView}
-        /* TODO(leedongwei): Verbosity is due to error in Prettier, fix after
-           upgrade to v1.19.1 */
-        tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
-      />
+      <HeaderCell column={column} tableData={tableData}>
+        {({align}) => {
+          const field = column.eventViewField;
+
+          const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
+
+          function generateSortLink(): LocationDescriptorObject | undefined {
+            if (!tableDataMeta) {
+              return undefined;
+            }
+
+            const nextEventView = eventView.sortOnField(field, tableDataMeta);
+            const queryStringObject = nextEventView.generateQueryStringObject();
+
+            return {
+              ...location,
+              query: queryStringObject,
+            };
+          }
+
+          return (
+            <SortLink
+              align={align}
+              field={field}
+              eventView={eventView}
+              tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
+              generateSortLink={generateSortLink}
+            />
+          );
+        }}
+      </HeaderCell>
     );
   };
 
@@ -476,8 +478,25 @@ const ExpandAggregateRow = (props: {
   const exploded = explodeField(eventViewField);
   const {aggregation} = exploded;
 
+  // count(column) drilldown
   if (aggregation === 'count') {
     const nextView = getExpandedResults(eventView, {}, dataRow);
+
+    const target = {
+      pathname: location.pathname,
+      query: nextView.generateQueryStringObject(),
+    };
+
+    return <Link to={target}>{children({willExpand: true})}</Link>;
+  }
+
+  // count_unique(column) drilldown
+  if (aggregation === 'count_unique') {
+    // Drilldown into each distinct value and get a count() for each value.
+    const nextView = getExpandedResults(eventView, {}, dataRow).withNewColumn({
+      field: '',
+      aggregation: 'count',
+    });
 
     const target = {
       pathname: location.pathname,
