@@ -83,6 +83,31 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                     ";z-index:",
                     [Function],
                     ";",
+                    Object {
+                      "$$typeof": Symbol(react.forward_ref),
+                      "__emotion_base": "div",
+                      "__emotion_forwardProp": undefined,
+                      "__emotion_real": [Circular],
+                      "__emotion_styles": Array [
+                        "label:SettingsHeader;",
+                        "position:sticky;top:0;z-index:",
+                        [Function],
+                        ";padding:",
+                        "20px",
+                        " ",
+                        "30px",
+                        ";border-bottom:1px solid ",
+                        [Function],
+                        ";background:#fff;",
+                      ],
+                      "defaultProps": undefined,
+                      "displayName": "SettingsHeader",
+                      "render": [Function],
+                      "withComponent": [Function],
+                    },
+                    " &{z-index:",
+                    [Function],
+                    ";}",
                     "label:BubbleWithMinWidth;",
                     Object {
                       "name": "13s4dk6",
@@ -110,7 +135,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                 onMouseLeave={[Function]}
               >
                 <div
-                  className="css-1q3f0gl-DropdownBubble-BubbleWithMinWidth ejumqxq11"
+                  className="css-1lfbn3y-DropdownBubble-BubbleWithMinWidth ejumqxq11"
                   onClick={[Function]}
                   onMouseDown={[Function]}
                   onMouseEnter={[Function]}
@@ -297,6 +322,31 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                     ";z-index:",
                     [Function],
                     ";",
+                    Object {
+                      "$$typeof": Symbol(react.forward_ref),
+                      "__emotion_base": "div",
+                      "__emotion_forwardProp": undefined,
+                      "__emotion_real": [Circular],
+                      "__emotion_styles": Array [
+                        "label:SettingsHeader;",
+                        "position:sticky;top:0;z-index:",
+                        [Function],
+                        ";padding:",
+                        "20px",
+                        " ",
+                        "30px",
+                        ";border-bottom:1px solid ",
+                        [Function],
+                        ";background:#fff;",
+                      ],
+                      "defaultProps": undefined,
+                      "displayName": "SettingsHeader",
+                      "render": [Function],
+                      "withComponent": [Function],
+                    },
+                    " &{z-index:",
+                    [Function],
+                    ";}",
                     "label:BubbleWithMinWidth;",
                     Object {
                       "name": "13s4dk6",
@@ -324,7 +374,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                 onMouseLeave={[Function]}
               >
                 <div
-                  className="css-1q3f0gl-DropdownBubble-BubbleWithMinWidth ejumqxq11"
+                  className="css-1lfbn3y-DropdownBubble-BubbleWithMinWidth ejumqxq11"
                   onClick={[Function]}
                   onMouseDown={[Function]}
                   onMouseEnter={[Function]}

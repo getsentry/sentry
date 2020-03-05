@@ -108,12 +108,9 @@ export function isFieldSortable(field: Field, tableMeta: MetaType | undefined): 
 
 const generateFieldAsString = (props: {aggregation: string; field: string}): string => {
   const {aggregation, field} = props;
-
   const hasAggregation = aggregation.length > 0;
 
-  const fieldAsString = hasAggregation ? `${aggregation}(${field})` : field;
-
-  return fieldAsString;
+  return hasAggregation ? `${aggregation}(${field})` : field;
 };
 
 const decodeFields = (location: Location): Array<Field> => {
@@ -572,26 +569,56 @@ class EventView {
     });
   }
 
-  withNewColumn(newColumn: Column): EventView {
-    const field = newColumn.field.trim();
-    const aggregation = newColumn.aggregation.trim();
-    const fieldAsString = generateFieldAsString({field, aggregation});
-    const newField: Field = {
-      field: fieldAsString,
-      width: newColumn.width || COL_WIDTH_UNDEFINED,
-    };
-
+  withColumns(columns: Column[]): EventView {
     const newEventView = this.clone();
-    newEventView.fields = [...newEventView.fields, newField];
+    const fields: Field[] = columns
+      .map(col => generateFieldAsString(col))
+      .map((field, i) => {
+        // newly added field
+        if (!newEventView.fields[i]) {
+          return {field, width: COL_WIDTH_UNDEFINED};
+        }
+        // Existing columns that were not re ordered should retain
+        // their old widths.
+        const existing = newEventView.fields[i];
+        const width =
+          existing.field === field && existing.width !== undefined
+            ? existing.width
+            : COL_WIDTH_UNDEFINED;
+        return {field, width};
+      });
+    newEventView.fields = fields;
+
+    // Update sorts as sorted fields may have been removed.
+    if (newEventView.sorts) {
+      // Filter the sort fields down to those that are still selected.
+      const sortKeys = fields.map(field => fieldToSort(field, undefined)?.field);
+      const newSort = newEventView.sorts.filter(
+        sort => sort && sortKeys.includes(sort.field)
+      );
+      // If the sort field was removed, try and find a new sortable column.
+      if (newSort.length === 0) {
+        const sortField = fields.find(field => isFieldSortable(field, undefined));
+        if (sortField) {
+          newSort.push({field: sortField.field, kind: 'desc'});
+        }
+      }
+      newEventView.sorts = newSort;
+    }
 
     return newEventView;
   }
 
-  withNewColumnAt(newColumn: Column, insertIndex: number): EventView {
-    const newEventView = this.withNewColumn(newColumn);
-    const fromIndex = newEventView.fields.length - 1;
+  withNewColumn(newColumn: Column): EventView {
+    const fieldAsString = generateFieldAsString(newColumn);
+    const newField: Field = {
+      field: fieldAsString,
+      width: newColumn.width || COL_WIDTH_UNDEFINED,
+    };
+    const newEventView = this.clone();
+    newEventView.fields = [...newEventView.fields, newField];
 
-    return newEventView.withMovedColumn({fromIndex, toIndex: insertIndex});
+    return newEventView;
   }
 
   withUpdatedColumn(

@@ -37,6 +37,14 @@ storiesOf('Discover|ColumnEditor', module).add(
         field: '',
         aggregation: 'p95',
       },
+      {
+        field: 'issue.id',
+        aggregation: '',
+      },
+      {
+        field: 'issue.id',
+        aggregation: 'count_unique',
+      },
     ];
 
     const showModal = () => {

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.api.serializers import Serializer, serialize, register
+from sentry.constants import ExportQueryType
 from sentry.models import ExportedData, User
 
 
@@ -29,6 +30,6 @@ class ExportedDataSerializer(Serializer):
             "dateCreated": obj.date_added,
             "dateFinished": obj.date_finished,
             "dateExpired": obj.date_expired,
-            "query": {"type": obj.query_type, "info": obj.query_info},
+            "query": {"type": ExportQueryType.as_str(obj.query_type), "info": obj.query_info},
             "status": obj.status,
         }

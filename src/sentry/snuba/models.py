@@ -19,10 +19,26 @@ class QueryDatasets(Enum):
     EVENTS = "events"
 
 
+class QuerySubscriptionEnvironment(Model):
+    __core__ = True
+
+    query_subscription = FlexibleForeignKey("sentry.QuerySubscription")
+    environment = FlexibleForeignKey("sentry.Environment")
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_querysubscriptionenvironment"
+        unique_together = (("query_subscription", "environment"),)
+
+
 class QuerySubscription(Model):
     __core__ = True
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
+    environments = models.ManyToManyField(
+        "sentry.Environment", through=QuerySubscriptionEnvironment
+    )
     type = models.TextField()
     subscription_id = models.TextField(unique=True)
     dataset = models.TextField()
