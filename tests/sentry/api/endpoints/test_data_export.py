@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from sentry.constants import ExportQueryType
 from sentry.models import ExportedData
 from sentry.models.exporteddata import ExportStatus
 from sentry.testutils import APITestCase
@@ -10,7 +11,7 @@ from sentry.testutils import APITestCase
 class DataExportTest(APITestCase):
     endpoint = "sentry-api-0-organization-data-export"
     method = "post"
-    payload = {"query_type": 0, "query_info": {"env": "test"}}
+    payload = {"query_type": "Discover", "query_info": {"env": "test"}}
 
     def setUp(self):
         self.user = self.create_user("user1@example.com")
@@ -61,6 +62,9 @@ class DataExportTest(APITestCase):
             "dateCreated": data_export.date_added,
             "dateFinished": data_export.date_finished,
             "dateExpired": data_export.date_expired,
-            "query": {"type": data_export.query_type, "info": data_export.query_info},
+            "query": {
+                "type": ExportQueryType.as_str(data_export.query_type),
+                "info": data_export.query_info,
+            },
             "status": data_export.status,
         }
