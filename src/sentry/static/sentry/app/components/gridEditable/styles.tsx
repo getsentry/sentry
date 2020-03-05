@@ -128,7 +128,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   display: flex;
   align-items: center;
   min-width: 24px;
-  padding: 0 ${space(1.5)};
+  padding: 0 ${space(2)};
 
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
