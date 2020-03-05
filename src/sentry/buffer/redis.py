@@ -328,13 +328,7 @@ class RedisBuffer(Buffer):
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                 filters = pickle.loads(values.pop("f"))
 
-            exclude_filters_values = None
-            if "ef" in values:
-                if values["ef"].startswith("{"):
-                    exclude_filters_values = self._load_values(json.loads(values.pop("ef")))
-                else:
-                    # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
-                    exclude_filters_values = pickle.loads(values.pop("ef"))
+            exclude_filters_values = pickle.loads(values.pop("ef")) if "ef" in values else None
 
             incr_values = {}
             extra_values = {}
