@@ -702,6 +702,10 @@ def convert_search_filter_to_snuba_query(search_filter):
         operator = "LIKE" if search_filter.operator == "=" else "NOT LIKE"
         return [name, operator, like_value]
     elif name == "transaction.status":
+        # Handle "has" queries
+        if search_filter.value.raw_value == "":
+            return [["isNull", [name]], search_filter.operator, 1]
+
         internal_value = SPAN_STATUS_NAME_TO_CODE.get(search_filter.value.raw_value)
         if internal_value is None:
             raise InvalidSearchQuery(
@@ -979,8 +983,8 @@ class IntervalDefault(NumberRange):
 FUNCTIONS = {
     "percentile": {
         "name": "percentile",
-        "args": [DurationColumn("column"), NumberRange("percentile", 0, 1)],
-        "transform": u"quantile({percentile:.2f})({column})",
+        "args": [DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
+        "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
     },
     "rps": {
         "name": "rps",
@@ -1127,6 +1131,7 @@ def resolve_function(field, match=None, params=None):
     elif "aggregate" in function:
         aggregate = deepcopy(function["aggregate"])
 
+        aggregate[0] = aggregate[0].format(**arguments)
         if isinstance(aggregate[1], six.string_types):
             aggregate[1] = aggregate[1].format(**arguments)
 
