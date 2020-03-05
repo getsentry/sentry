@@ -237,7 +237,7 @@ let appConfig = {
         exclude: /(vendor|node_modules|dist)/,
         // Make sure we typecheck in CI, but not for local dev since that is run with
         // the fork-ts plugin
-        use: SHOULD_FORK_TS ? [babelLoaderConfig, tsLoaderConfig] : babelLoaderConfig,
+        use: SHOULD_FORK_TS ? babelLoaderConfig : [babelLoaderConfig, tsLoaderConfig],
       },
       {
         test: /\.po$/,
