@@ -91,7 +91,7 @@ module.exports = ({config}) => {
       }),
       new webpack.DefinePlugin({
         'process.env': {
-          IS_PERCY: true,
+          FIXED_DYNAMIC_CONTENT: true,
         },
       }),
     ],
