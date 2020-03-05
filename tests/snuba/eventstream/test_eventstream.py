@@ -53,19 +53,9 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
 
     @patch("sentry.eventstream.insert")
     def test(self, mock_eventstream_insert):
-        def _get_event_count():
-            now = datetime.utcnow()
+        now = datetime.utcnow()
 
-            return snuba.query(
-                start=now - timedelta(days=1),
-                end=now + timedelta(days=1),
-                groupby=["project_id"],
-                filter_keys={"project_id": [self.project.id]},
-            ).get(self.project.id, 0)
-
-        assert _get_event_count() == 0
-
-        event = self.__build_event(datetime.utcnow())
+        event = self.__build_event(now)
 
         # verify eventstream was called by EventManager
         insert_args, insert_kwargs = list(mock_eventstream_insert.call_args)
@@ -81,7 +71,12 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         }
 
         self.__produce_event(*insert_args, **insert_kwargs)
-        assert _get_event_count() == 1
+        assert snuba.query(
+            start=now - timedelta(days=1),
+            end=now + timedelta(days=1),
+            groupby=["project_id"],
+            filter_keys={"project_id": [self.project.id]},
+        ).get(self.project.id, 0) == 1
 
     @patch("sentry.eventstream.insert")
     def test_issueless(self, mock_eventstream_insert):
