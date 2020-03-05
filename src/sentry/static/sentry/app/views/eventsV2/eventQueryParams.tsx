@@ -22,7 +22,6 @@ export const AGGREGATIONS = {
   count: {
     parameters: [],
     outputType: 'number',
-    type: ['*'],
     isSortable: true,
   },
   count_unique: {
@@ -34,7 +33,6 @@ export const AGGREGATIONS = {
       },
     ],
     outputType: 'number',
-    type: ['*'],
     isSortable: true,
   },
   min: {
@@ -46,7 +44,6 @@ export const AGGREGATIONS = {
       },
     ],
     outputType: null,
-    type: ['timestamp', 'duration'],
     isSortable: true,
   },
   max: {
@@ -58,7 +55,6 @@ export const AGGREGATIONS = {
       },
     ],
     outputType: null,
-    type: ['timestamp', 'duration'],
     isSortable: true,
   },
   avg: {
@@ -70,7 +66,6 @@ export const AGGREGATIONS = {
       },
     ],
     outputType: null,
-    type: ['duration'],
     isSortable: true,
   },
   sum: {
@@ -82,20 +77,16 @@ export const AGGREGATIONS = {
       },
     ],
     outputType: null,
-    type: ['duration'],
     isSortable: true,
   },
-  /* TODO(mark) swap these in with the new column builder
   last_seen: {
     parameters: [],
     outputType: 'timestamp',
-    type: [],
     isSortable: true,
   },
   p75: {
     parameters: [],
     outputType: 'duration',
-    type: [],
     isSortable: true,
   },
   p95: {
@@ -107,10 +98,8 @@ export const AGGREGATIONS = {
   p99: {
     parameters: [],
     outputType: 'duration',
-    type: [],
     isSortable: true,
   },
-  */
 } as const;
 
 assert(
@@ -120,7 +109,6 @@ assert(
         parameters: Readonly<AggregateParameter[]>;
         // null means to inherit from the column.
         outputType: null | ColumnType;
-        type: Readonly<ColumnType[]>;
         isSortable: boolean;
       };
     }
@@ -202,14 +190,8 @@ export const FIELDS = {
   // Field alises defined in src/sentry/api/event_search.py
   project: 'string',
   issue: 'string',
-
-  // TODO(mark) Remove these with the new column builder.
-  last_seen: 'timestamp',
-  p75: 'duration',
-  p95: 'duration',
-  p99: 'duration',
 } as const;
-assert(FIELDS as Readonly<{[key in keyof typeof FIELDS]: ColumnValueType}>);
+assert(FIELDS as Readonly<{[key in keyof typeof FIELDS]: ColumnType}>);
 
 export type Field = keyof typeof FIELDS | string | '';
 
@@ -226,4 +208,18 @@ export const TRACING_FIELDS = [
   'p95',
   'p75',
   'error_rate',
+];
+
+// In the early days of discover2 these functions were exposed
+// as simple fields. Until we clean up all the saved queries we
+// need this for backwards compatibility.
+export const FIELD_ALIASES = [
+  'apdex',
+  'impact',
+  'p99',
+  'p95',
+  'p75',
+  'error_rate',
+  'last_seen',
+  'latest_event',
 ];
