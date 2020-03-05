@@ -172,13 +172,14 @@ class RedisBuffer(Buffer):
         else:
             raise TypeError("invalid type: {}".format(type_))
 
-    def incr(self, model, columns, filters, extra=None):
+    def incr(self, model, columns, filters, extra=None, exclude_filters=None):
         """
         Increment the key by doing the following:
 
         - Insert/update a hashmap based on (model, columns)
             - Perform an incrby on counters
             - Perform a set (last write wins) on extra
+            - Perform a set (last write wins) on exclude_filters
         - Add hashmap key to pending flushes
         """
 
@@ -188,7 +189,7 @@ class RedisBuffer(Buffer):
                     frozen_filters = tuple(sorted(filters.items()))
                     key = (frozen_filters, model)
 
-                    stored_columns, stored_extra = _local_buffers.get(key, ({}, None))
+                    stored_columns, stored_extra, stored_exclude_filters = _local_buffers.get(key, ({}, None))
 
                     for k, v in columns.items():
                         stored_columns[k] = stored_columns.get(k, 0) + v
@@ -196,7 +197,10 @@ class RedisBuffer(Buffer):
                     if extra is not None:
                         stored_extra = extra
 
-                    _local_buffers[key] = stored_columns, stored_extra
+                    if exclude_filters is not None:
+                        stored_exclude_filters = exclude_filters
+
+                    _local_buffers[key] = stored_columns, stored_extra, stored_exclude_filters
                     return
 
         # TODO(dcramer): longer term we'd rather not have to serialize values
@@ -225,6 +229,10 @@ class RedisBuffer(Buffer):
                 # (this is to ensure a zero downtime deploy where we can transition event processing)
                 pipe.hset(key, "e+" + column, pickle.dumps(value))
                 # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
+
+        if exclude_filters:
+            pipe.hsetnx(key, "ef", pickle.dumps(exclude_filters))
+
         pipe.expire(key, self.key_expire)
         pipe.zadd(pending_key, time(), key)
         pipe.execute()
@@ -320,6 +328,14 @@ class RedisBuffer(Buffer):
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                 filters = pickle.loads(values.pop("f"))
 
+            exclude_filters_values = None
+            if "ef" in values:
+                if values["ef"].startswith("{"):
+                    exclude_filters_values = self._load_values(json.loads(values.pop("ef")))
+                else:
+                    # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
+                    exclude_filters_values = pickle.loads(values.pop("ef"))
+
             incr_values = {}
             extra_values = {}
             for k, v in six.iteritems(values):
@@ -332,6 +348,6 @@ class RedisBuffer(Buffer):
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                         extra_values[k[2:]] = pickle.loads(v)
 
-            super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+            super(RedisBuffer, self).process(model, incr_values, filters, extra_values, exclude_filters_values)
         finally:
             client.delete(lock_key)

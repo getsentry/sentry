@@ -34,18 +34,19 @@ class Buffer(Service):
 
     __all__ = ("incr", "process", "process_pending", "validate")
 
-    def incr(self, model, columns, filters, extra=None):
+    def incr(self, model, columns, filters, extra=None, exclude_filters=None):
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
         """
         process_incr.apply_async(
-            kwargs={"model": model, "columns": columns, "filters": filters, "extra": extra}
+            kwargs={"model": model, "columns": columns, "filters": filters, "extra": extra,
+                    "exclude_filters": exclude_filters}
         )
 
     def process_pending(self, partition=None):
         return []
 
-    def process(self, model, columns, filters, extra=None):
+    def process(self, model, columns, filters, extra=None, exclude_filters=None):
         from sentry.models import Group
         from sentry.event_manager import ScoreClause
 
@@ -62,7 +63,10 @@ class Buffer(Service):
                 last_seen=update_kwargs["last_seen"],
             )
 
-        _, created = model.objects.create_or_update(values=update_kwargs, **filters)
+        model_filters = {k: v for k, v in filters.iteritems() if k not in exclude_filters} \
+            if isinstance(exclude_filters, set) else filters
+
+        _, created = model.objects.create_or_update(values=update_kwargs, **model_filters)
 
         buffer_incr_complete.send_robust(
             model=model,

@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 from sentry.utils.compat import mock
 
+from calendar import timegm
 from datetime import timedelta
 from django.utils import timezone
 from sentry.buffer.base import Buffer
@@ -65,3 +66,13 @@ class BufferTest(TestCase):
         self.buf.process(ReleaseProject, columns, filters)
         release_project_ = ReleaseProject.objects.get(id=release_project.id)
         assert release_project_.new_groups == 1
+
+    @mock.patch("sentry.buffer.base.process_incr")
+    def test_process_called_with_exclude_filters(self, process_incr):
+        model = mock.Mock()
+        columns = {"times_seen": 1}
+        filters = {"id": 1, "category": 0, "ts": timegm(timezone.now().timetuple())}
+        exclude_filters = {"category", "ts"}
+        self.buf.incr(model, columns, filters, exclude_filters)
+        kwargs = dict(model=model, columns=columns, filters=filters, extra=None, exclude_filters=exclude_filters)
+        process_incr.apply_async.assert_called_once_with(kwargs=kwargs)
