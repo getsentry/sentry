@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import csv
 import logging
+import six
 import tempfile
 from contextlib import contextmanager
 from django.db import transaction, IntegrityError
@@ -52,9 +53,9 @@ def assemble_download(data_export_id):
                     data_export.finalize_upload(file=file)
                     logger.info("dataexport.end", extra={"id": data_export_id})
             except IntegrityError as error:
-                metrics.incr("dataexport.error", instance=error, skip_internal=False)
+                metrics.incr("dataexport.error", instance=error)
                 logger.error(
-                    u"dataexport.error: {}".format(error),
+                    six.text_type("dataexport.error: {}").format(error),
                     extra={"query": data_export.payload, "org": data_export.organization_id},
                 )
                 raise DataExportError("Failed to save the assembled file")
@@ -63,9 +64,9 @@ def assemble_download(data_export_id):
     except NotImplementedError as error:
         return data_export.email_failure(message=error)
     except BaseException as error:
-        metrics.incr("dataexport.error", instance=error, skip_internal=False)
+        metrics.incr("dataexport.error", instance=error)
         logger.error(
-            u"dataexport.error: {}".format(error),
+            six.text_type("dataexport.error: {}").format(error),
             extra={"query": data_export.payload, "org": data_export.organization_id},
         )
         return data_export.email_failure(message="Internal processing failure")
@@ -104,7 +105,7 @@ def process_issue_by_tag(data_export, file, limit=None):
 
     # Get the pertaining key
     key = payload["key"]
-    lookup_key = u"sentry:{}".format(key) if tagstore.is_reserved_key(key) else key
+    lookup_key = six.text_type("sentry:{}").format(key) if tagstore.is_reserved_key(key) else key
 
     # If the key is the 'user' tag, attach the event user
     def attach_eventuser(items):
@@ -130,7 +131,7 @@ def process_issue_by_tag(data_export, file, limit=None):
         fields = ["value", "times_seen", "last_seen", "first_seen"]
 
     # Example file name: ISSUE_BY_TAG-project10-user__721.csv
-    file_details = u"{}-{}__{}".format(project.slug, key, data_export.id)
+    file_details = six.text_type("{}-{}__{}").format(project.slug, key, data_export.id)
     file_name = get_file_name(ExportQueryType.ISSUE_BY_TAG_STR, file_details)
 
     # Iterate through all the GroupTagValues
@@ -168,7 +169,7 @@ def create_writer(file, fields):
 
 
 def get_file_name(export_type, custom_string, extension="csv"):
-    file_name = u"{}-{}.{}".format(export_type, custom_string, extension)
+    file_name = six.text_type("{}-{}.{}").format(export_type, custom_string, extension)
     return file_name
 
 
@@ -178,16 +179,16 @@ def snuba_error_handler():
     try:
         yield
     except snuba.QueryOutsideRetentionError as error:
-        metrics.incr("dataexport.error", instance=error, skip_internal=False)
-        logger.error(u"dataexport.error: {}".format(error))
+        metrics.incr("dataexport.error", instance=error)
+        logger.error(six.text_type("dataexport.error: {}").format(error))
         raise DataExportError("Invalid date range. Please try a more recent date range.")
     except snuba.QueryIllegalTypeOfArgument as error:
-        metrics.incr("dataexport.error", instance=error, skip_internal=False)
-        logger.error(u"dataexport.error: {}".format(error))
+        metrics.incr("dataexport.error", instance=error)
+        logger.error(six.text_type("dataexport.error: {}").format(error))
         raise DataExportError("Invalid query. Argument to function is wrong type.")
     except snuba.SnubaError as error:
-        metrics.incr("dataexport.error", instance=error, skip_internal=False)
-        logger.error(u"dataexport.error: {}".format(error))
+        metrics.incr("dataexport.error", instance=error)
+        logger.error(six.text_type("dataexport.error: {}").format(error))
         message = "Internal error. Please try again."
         if isinstance(
             error,
