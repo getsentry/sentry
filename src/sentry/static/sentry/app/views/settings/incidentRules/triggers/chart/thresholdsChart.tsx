@@ -224,6 +224,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
   render() {
     const {data, triggers, xAxis} = this.props;
+    data[0].data = data[0].data.splice(-1, 1);
     return (
       <LineChart
         isGroupedByDate
