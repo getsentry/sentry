@@ -9,6 +9,7 @@ import {
 } from 'app/types/alerts';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 
 import RuleNode from './ruleNode';
 
@@ -18,6 +19,10 @@ type Props = {
 
   // actions/conditions that have been added to the rule
   items?: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
+
+  project: Project;
+
+  organization: Organization;
 
   // Placeholder for select control
   placeholder: string;
@@ -49,6 +54,8 @@ class RuleNodeList extends React.Component<Props> {
       nodes,
       placeholder,
       items,
+      organization,
+      project,
     } = this.props;
 
     const options = nodes
@@ -72,6 +79,8 @@ class RuleNodeList extends React.Component<Props> {
                 onDelete={onDeleteRow}
                 data={item}
                 onPropertyChange={onPropertyChange}
+                organization={organization}
+                project={project}
               />
             ))}
           </RuleNodes>

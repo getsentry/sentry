@@ -13,6 +13,8 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import ActorAwareFields from 'app/views/settings/projectAlerts/issueEditor/actorAwareFields';
+import Alert from 'app/components/alert';
+import {Organization, Project} from 'app/types';
 
 type FormField = {
   // Type of form fields
@@ -25,6 +27,8 @@ type Props = {
   index: number;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
   data?: IssueAlertRuleAction | IssueAlertRuleCondition;
+  project: Project;
+  organization: Organization;
   onDelete: (rowIndex: number) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
@@ -189,21 +193,67 @@ class RuleNode extends React.Component<Props> {
     );
   }
 
+  conditionallyRenderHelpfulBanner() {
+    const {data, project, organization} = this.props;
+    // Can't do typechecking at runtime for data to be of type '...' due to type erasure of user defined types in the
+    // transpilation process.
+    // See: https://stackoverflow.com/questions/51528780/typescript-check-typeof-against-custom-type
+    if (!data?.targetType) {
+      return null;
+    }
+
+    switch (data.targetType) {
+      case 'Owners':
+        return (
+          <ThinAlert type="warning">
+            {t('If there are no matching ')}
+            <a href="https://docs.sentry.io/workflow/issue-owners/">
+              {t('issue owners')}
+            </a>
+            {t(', ownership is determined by the setting on ')}
+            <a
+              href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+            >
+              {t('this page')}
+            </a>
+            {t('.')}
+          </ThinAlert>
+        );
+      case 'Team':
+        return null;
+      case 'Member':
+        return (
+          <Alert thin type="warning">
+            {t('Alerts sent directly to a member override their ')}
+            <a href="/settings/account/notifications">
+              {t('personal project alert settings')}
+            </a>
+            {t('.')}
+          </Alert>
+        );
+      default:
+        return null;
+    }
+  }
+
   render() {
     const {data} = this.props;
 
     return (
-      <RuleRow>
-        {data && <input type="hidden" name="id" value={data.id} />}
-        {this.renderRow()}
-        <DeleteButton
-          label={t('Delete Node')}
-          onClick={this.handleDelete}
-          type="button"
-          size="small"
-          icon="icon-trash"
-        />
-      </RuleRow>
+      <RuleRowContainer>
+        <RuleRow>
+          {data && <input type="hidden" name="id" value={data.id} />}
+          {this.renderRow()}
+          <DeleteButton
+            label={t('Delete Node')}
+            onClick={this.handleDelete}
+            type="button"
+            size="small"
+            icon="icon-trash"
+          />
+        </RuleRow>
+        {this.conditionallyRenderHelpfulBanner()}
+      </RuleRowContainer>
     );
   }
 }
@@ -229,7 +279,9 @@ const RuleRow = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(1)};
+`;
 
+const RuleRowContainer = styled('div')`
   &:nth-child(odd) {
     background-color: ${p => p.theme.offWhite};
   }
@@ -244,4 +296,8 @@ const Rule = styled('div')`
 
 const DeleteButton = styled(Button)`
   flex-shrink: 0;
+`;
+
+const ThinAlert = styled(Alert)`
+  padding: ${space(1)};
 `;
