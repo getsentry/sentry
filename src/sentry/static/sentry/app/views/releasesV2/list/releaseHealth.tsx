@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
+import Link from 'app/components/links/link';
 import {ProjectRelease} from 'app/types';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -16,9 +18,12 @@ import {displayCrashFreePercent} from '../utils';
 
 type Props = {
   release: ProjectRelease;
+  location: Location;
 };
 
-const ReleaseHealth = ({release}: Props) => {
+const ReleaseHealth = ({release, location}: Props) => {
+  const {pathname, query} = location;
+  const activeHealthStatsPeriod = query.healthStatsPeriod || '24h';
   const {
     adoption,
     crashFreeUsers,
@@ -26,13 +31,39 @@ const ReleaseHealth = ({release}: Props) => {
     sessionsCrashed,
     sessionsErrored,
   } = release.healthData!;
+  const healthStatsPeriods = [
+    {
+      key: '24h',
+      label: t('24h'),
+    },
+    {
+      key: '14d',
+      label: t('14d'),
+    },
+  ];
 
   // TODO(releasesv2): make dynamic once api is finished
   return (
     <React.Fragment>
       <StyledPanelHeader>
         <HeaderLayout>
-          <DailyUsersColumn>{t('Daily active users')}</DailyUsersColumn>
+          <DailyUsersColumn>
+            {t('Daily Active users')}:
+            <StatsPeriodChanger>
+              {healthStatsPeriods.map(healthStatsPeriod => (
+                <StatsPeriod
+                  key={healthStatsPeriod.key}
+                  to={{
+                    pathname,
+                    query: {...query, healthStatsPeriod: healthStatsPeriod.key},
+                  }}
+                  active={activeHealthStatsPeriod === healthStatsPeriod.key}
+                >
+                  {healthStatsPeriod.label}
+                </StatsPeriod>
+              ))}
+            </StatsPeriodChanger>
+          </DailyUsersColumn>
           <AdoptionColumn>{t('Release adoption')}</AdoptionColumn>
           <CrashFreeUsersColumn>{t('Crash free users')}</CrashFreeUsersColumn>
           <CrashFreeSessionsColumn>{t('Crash free sessions')}</CrashFreeSessionsColumn>
@@ -107,7 +138,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 const Layout = styled('div')`
   display: grid;
   grid-template-areas: 'daily-users adoption crash-free-users crash-free-sessions crashes errors';
-  grid-template-columns: 3fr minmax(230px, 2fr) 2fr 2fr 1fr 1fr;
+  grid-template-columns: 3fr minmax(230px, 2fr) 2fr 2fr 160px 1fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
@@ -196,6 +227,24 @@ const ChartWrapper = styled('div')`
   g > .barchart-rect {
     background: #c6becf;
     fill: #c6becf;
+  }
+`;
+
+const StatsPeriodChanger = styled('div')`
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-column-gap: ${space(0.75)};
+  flex: 1;
+  justify-content: flex-end;
+  text-align: right;
+  margin-right: ${space(2)};
+`;
+
+const StatsPeriod = styled(Link)<{active: boolean}>`
+  color: ${p => (p.active ? p.theme.gray3 : p.theme.gray2)};
+
+  &:hover {
+    color: ${p => (p.active ? p.theme.gray3 : p.theme.gray2)};
   }
 `;
 
