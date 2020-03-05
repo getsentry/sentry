@@ -59,5 +59,6 @@ class DataExportEndpoint(OrganizationEndpoint):
                 status = 201
         except ValidationError as e:
             # This will handle invalid JSON requests
+            metrics.incr("dataexport.invalid", tags={"query_type": data.get("query_type")})
             return Response({"detail": six.text_type(e)}, status=400)
         return Response(serialize(data_export, request.user), status=status)
