@@ -26,8 +26,8 @@ class DataExportError(Exception):
 def assemble_download(data_export_id):
     # Extract the ExportedData object
     try:
-        data_export = ExportedData.objects.get(id=data_export_id)
         logger.info("dataexport.start", extra={"id": data_export_id})
+        data_export = ExportedData.objects.get(id=data_export_id)
     except ExportedData.DoesNotExist as error:
         return capture_exception(error)
 
@@ -49,28 +49,25 @@ def assemble_download(data_export_id):
                         name=file_name, type="export.csv", headers={"Content-Type": "text/csv"}
                     )
                     file.putfile(tf, logger=logger)
-                    logger.info("dataexport.end", extra={"id": data_export_id})
                     data_export.finalize_upload(file=file)
+                    logger.info("dataexport.end", extra={"id": data_export_id})
             except IntegrityError as error:
+                metrics.incr("dataexport.error", instance=error, skip_internal=False)
                 logger.error(
                     u"dataexport.error: {}".format(error),
                     extra={"query": data_export.payload, "org": data_export.organization_id},
                 )
-                capture_exception(error)
                 raise DataExportError("Failed to save the assembled file")
     except DataExportError as error:
-        metrics.incr("dataexport.error", instance="handled")
         return data_export.email_failure(message=error)
     except NotImplementedError as error:
-        metrics.incr("dataexport.error", instance="handled")
         return data_export.email_failure(message=error)
     except BaseException as error:
+        metrics.incr("dataexport.error", instance=error, skip_internal=False)
         logger.error(
             u"dataexport.error: {}".format(error),
             extra={"query": data_export.payload, "org": data_export.organization_id},
         )
-        metrics.incr("dataexport.error", instance="unhandled", skip_internal=False)
-        capture_exception(error)
         return data_export.email_failure(message="Internal processing failure")
 
 
@@ -180,11 +177,16 @@ def get_file_name(export_type, custom_string, extension="csv"):
 def snuba_error_handler():
     try:
         yield
-    except snuba.QueryOutsideRetentionError:
+    except snuba.QueryOutsideRetentionError as error:
+        metrics.incr("dataexport.error", instance=error, skip_internal=False)
+        logger.error(u"dataexport.error: {}".format(error))
         raise DataExportError("Invalid date range. Please try a more recent date range.")
-    except snuba.QueryIllegalTypeOfArgument:
+    except snuba.QueryIllegalTypeOfArgument as error:
+        metrics.incr("dataexport.error", instance=error, skip_internal=False)
+        logger.error(u"dataexport.error: {}".format(error))
         raise DataExportError("Invalid query. Argument to function is wrong type.")
     except snuba.SnubaError as error:
+        metrics.incr("dataexport.error", instance=error, skip_internal=False)
         logger.error(u"dataexport.error: {}".format(error))
         message = "Internal error. Please try again."
         if isinstance(
@@ -200,7 +202,6 @@ def snuba_error_handler():
             error,
             (snuba.UnqualifiedQueryError, snuba.QueryExecutionError, snuba.SchemaValidationError),
         ):
-            capture_exception(error)
             message = "Internal error. Your query failed to run."
         raise DataExportError(message)
 
