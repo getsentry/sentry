@@ -44,10 +44,9 @@ const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
 /**
  * User/tooling configurable enviroment variables
  */
-// Do not run webpack dev server
-const NO_DEV_SERVER = !!env.NO_DEV_SERVER;
-const TS_FORK_WITH_ESLINT = !!env.TS_FORK_WITH_ESLINT;
-const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK;
+const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
+const TS_FORK_WITH_ESLINT = !!env.TS_FORK_WITH_ESLINT; // Do not run eslint with fork-ts plugin
+const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD =
   DEV_MODE &&
   SENTRY_BACKEND_PORT &&
