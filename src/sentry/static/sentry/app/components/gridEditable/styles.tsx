@@ -137,12 +137,12 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
 
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
-  line-height: 1;
   text-transform: uppercase;
   user-select: none;
 
   a,
   div {
+    line-height: 1.1;
     color: inherit;
     white-space: nowrap;
     text-overflow: ellipsis;
