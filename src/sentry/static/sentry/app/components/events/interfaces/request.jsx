@@ -70,7 +70,7 @@ class RequestInterface extends React.Component {
           <Button
             className={view === 'formatted' ? 'active' : ''}
             priority={view === 'formatted' ? 'primary' : 'default'}
-            size="small"
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'formatted')}
           >
             {/* Translators: this means "formatted" rendering (fancy tables) */
@@ -79,7 +79,7 @@ class RequestInterface extends React.Component {
           <MonoButton
             className={view === 'curl' ? 'active' : ''}
             priority={view === 'curl' ? 'primary' : 'default'}
-            size="small"
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'curl')}
           >
             curl

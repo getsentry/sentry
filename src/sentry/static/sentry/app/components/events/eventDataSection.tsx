@@ -83,7 +83,7 @@ class EventDataSection extends React.Component<Props> {
                 <Button
                   className={!raw ? 'active' : ''}
                   priority={!raw ? 'primary' : 'default'}
-                  size="small"
+                  size="xsmall"
                   onClick={() => callIfFunction(toggleRaw, false)}
                 >
                   {t('Formatted')}
@@ -91,7 +91,7 @@ class EventDataSection extends React.Component<Props> {
                 <Button
                   className={raw ? 'active' : ''}
                   priority={raw ? 'primary' : 'default'}
-                  size="small"
+                  size="xsmall"
                   onClick={() => callIfFunction(toggleRaw, true)}
                 >
                   {t('Raw')}

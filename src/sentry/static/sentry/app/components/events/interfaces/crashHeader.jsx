@@ -133,7 +133,7 @@ class CrashHeader extends React.Component {
               <Button
                 className={stackView === 'app' ? 'active' : ''}
                 priority={stackView === 'app' ? 'primary' : 'default'}
-                size="small"
+                size="xsmall"
                 onClick={() => this.setStackView('app')}
               >
                 {t('App Only')}
@@ -142,7 +142,7 @@ class CrashHeader extends React.Component {
             <Button
               className={stackView === 'full' ? 'active' : ''}
               priority={stackView === 'full' ? 'primary' : 'default'}
-              size="small"
+              size="xsmall"
               onClick={() => this.setStackView('full')}
             >
               {t('Full')}
@@ -151,7 +151,7 @@ class CrashHeader extends React.Component {
               className={stackView === 'raw' ? 'active' : ''}
               priority={stackView === 'raw' ? 'primary' : 'default'}
               onClick={() => this.setStackView('raw')}
-              size="small"
+              size="xsmall"
             >
               {t('Raw')}
             </Button>
@@ -163,7 +163,7 @@ class CrashHeader extends React.Component {
                   key="original"
                   className={stackType === 'original' ? 'active' : ''}
                   priority={stackType === 'original' ? 'primary' : 'default'}
-                  size="small"
+                  size="xsmall"
                   onClick={() => this.setStackType('original')}
                 >
                   {this.getOriginalButtonLabel()}
@@ -172,7 +172,7 @@ class CrashHeader extends React.Component {
                   key="minified"
                   className={stackType === 'minified' ? 'active' : ''}
                   priority={stackType === 'minified' ? 'primary' : 'default'}
-                  size="small"
+                  size="xsmall"
                   onClick={() => this.setStackType('minified')}
                 >
                   {this.getMinifiedButtonLabel()}

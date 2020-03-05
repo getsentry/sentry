@@ -50,7 +50,7 @@ export default class GenericInterface extends Component {
           <Button
             className={view === 'report' ? 'active' : ''}
             priority={view === 'report' ? 'primary' : 'default'}
-            size="small"
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'report')}
           >
             {t('Report')}
@@ -58,7 +58,7 @@ export default class GenericInterface extends Component {
           <Button
             className={view === 'raw' ? 'active' : ''}
             priority={view === 'raw' ? 'primary' : 'default'}
-            size="small"
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'raw')}
           >
             {t('Raw')}

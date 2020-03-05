@@ -56,7 +56,7 @@ export default class CspInterface extends React.Component {
           <Button
             className={view === 'report' ? 'active' : ''}
             priority={view === 'report' ? 'primary' : 'default'}
-            size="small"
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'report')}
           >
             {t('Report')}
@@ -64,7 +64,7 @@ export default class CspInterface extends React.Component {
           <Button
             className={view === 'raw' ? 'active' : ''}
             priority={view === 'raw' ? 'primary' : 'default'}
-            size="small"
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'raw')}
           >
             {t('Raw')}
@@ -72,7 +72,7 @@ export default class CspInterface extends React.Component {
           <Button
             className={view === 'help' ? 'active' : ''}
             priority={view === 'help' ? 'primary' : 'default'}
-            size="small"
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'help')}
           >
             {t('Help')}
