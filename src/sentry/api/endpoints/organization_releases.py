@@ -150,7 +150,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
-        sort = request.GET.get("sort") or "crash_free_sessions"
+        sort = request.GET.get("sort") or "date"
         paginator_cls = OffsetPaginator
         paginator_kwargs = {}
 
