@@ -407,6 +407,8 @@ if (FORCE_WEBPACK_DEV_SERVER || (USE_HOT_MODULE_RELOAD && !NO_DEV_SERVER)) {
   const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
 
   // Hot reload react components on save
+  // We include the library here as to not break docker/google cloud builds
+  // since we do not install devDeps there.
   const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
   appConfig.plugins.push(new ReactRefreshWebpackPlugin());
 
