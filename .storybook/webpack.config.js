@@ -14,8 +14,20 @@ const staticPath = path.resolve(
   'app'
 );
 
-module.exports = ({config}) => {
+/**
+ * Default the config parameter that storybook passes into our webpack config
+ * to an empty object specifically for eslint, since it will load this config
+ * without passing in a config object.
+ */
+const emptyConfig = {
+  module: {rules: []},
+  resolve: {alias: {}, extensions: []},
+  plugins: [],
+};
+
+module.exports = ({config} = {config: emptyConfig}) => {
   const [firstRule, ...rules] = config.module.rules;
+
   const filteredRules = rules.filter(rule => {
     return (
       (!rule.loader || !rule.loader.includes('file-loader')) &&
