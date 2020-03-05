@@ -314,6 +314,7 @@ matrix:
 
   allow_failures:
     - name: 'Python 3.6 backend (no migrations) [Postgres]'
+    - name: 'Sentry-Relay integration tests'
 
 notifications:
   webhooks:
