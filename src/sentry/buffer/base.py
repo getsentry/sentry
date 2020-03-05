@@ -37,6 +37,10 @@ class Buffer(Service):
     def incr(self, model, columns, filters, extra=None, exclude_filters=None):
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
+        exclude_filters - added to be able to exclude filters by name when determining whether or not to
+        create or update a row for a model in the database. the primary reason for adding this(for now)
+        is to be able to add filters in the call to `buffer_incr_complete` which the receiver can use
+        in addition to the model attributes.
         """
         process_incr.apply_async(
             kwargs={"model": model, "columns": columns, "filters": filters, "extra": extra,
