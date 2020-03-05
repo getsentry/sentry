@@ -5,7 +5,7 @@ import {ProjectRelease} from 'app/types';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
-import CircleProgress from 'app/components/circularProgressbar';
+import ProgressRing from 'app/components/progressRing';
 import Count from 'app/components/count';
 import {defined} from 'app/utils';
 
@@ -52,10 +52,10 @@ const ReleaseHealth = ({release}: Props) => {
             <AdoptionColumn>
               {defined(adoption) ? (
                 <React.Fragment>
-                  <CircleProgress value={adoption} />
-                  <CircleProgressCaption>
+                  <ProgressRing value={adoption} />
+                  <ProgressRingCaption>
                     {`${adoption}% ${tn('with %s user', 'with %s users', total_users)}`}
-                  </CircleProgressCaption>
+                  </ProgressRingCaption>
                 </React.Fragment>
               ) : (
                 '-'
@@ -65,8 +65,8 @@ const ReleaseHealth = ({release}: Props) => {
             <CrashFreeUsersColumn>
               {defined(crash_free_users) ? (
                 <React.Fragment>
-                  <CircleProgress value={crash_free_users} />
-                  <CircleProgressCaption>{crash_free_users}%</CircleProgressCaption>
+                  <ProgressRing value={crash_free_users} />
+                  <ProgressRingCaption>{crash_free_users}%</ProgressRingCaption>
                 </React.Fragment>
               ) : (
                 '-'
@@ -76,8 +76,8 @@ const ReleaseHealth = ({release}: Props) => {
             <CrashFreeSessionsColumn>
               {defined(crash_free_sessions) ? (
                 <React.Fragment>
-                  <CircleProgress value={crash_free_sessions} />
-                  <CircleProgressCaption>{crash_free_sessions}%</CircleProgressCaption>
+                  <ProgressRing value={crash_free_sessions} />
+                  <ProgressRingCaption>{crash_free_sessions}%</ProgressRingCaption>
                 </React.Fragment>
               ) : (
                 '-'
@@ -181,7 +181,7 @@ const StyledPanelItem = styled(PanelItem)`
   padding-top: 0;
 `;
 
-const CircleProgressCaption = styled('span')`
+const ProgressRingCaption = styled('span')`
   margin-left: ${space(1)};
 `;
 

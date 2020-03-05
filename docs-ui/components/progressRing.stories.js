@@ -5,7 +5,7 @@ import {number, text, boolean, color} from '@storybook/addon-knobs';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import CircularProgressbar from 'app/components/circularProgressbar';
+import ProgressRing from 'app/components/progressRing';
 
 class Ticker extends React.Component {
   state = {
@@ -30,7 +30,7 @@ class Ticker extends React.Component {
   }
 }
 
-storiesOf('UI|CircularProgressbar', module).add(
+storiesOf('UI|ProgressRing', module).add(
   'default',
   withInfo('Circle style progress bar ')(() => {
     const value = number('Value', 29);
@@ -45,7 +45,7 @@ storiesOf('UI|CircularProgressbar', module).add(
 
     return (
       <Grid>
-        <CircularProgressbar
+        <ProgressRing
           value={value}
           minValue={minValue}
           maxValue={maxValue}
@@ -58,7 +58,7 @@ storiesOf('UI|CircularProgressbar', module).add(
         />
         <Ticker>
           {({tickNumber}) => (
-            <CircularProgressbar
+            <ProgressRing
               animateText
               value={tickNumber}
               text={tickNumber}
@@ -68,7 +68,7 @@ storiesOf('UI|CircularProgressbar', module).add(
             />
           )}
         </Ticker>
-        <CircularProgressbar
+        <ProgressRing
           value={65}
           size={60}
           barWidth={6}
