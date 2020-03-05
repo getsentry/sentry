@@ -154,7 +154,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
-        stats_period = request.GET.get("statsPeriod")
+        stats_period = request.GET.get("healthStatsPeriod")
         if stats_period not in (None, "", "24h", "14d"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         if stats_period is None and with_health:
