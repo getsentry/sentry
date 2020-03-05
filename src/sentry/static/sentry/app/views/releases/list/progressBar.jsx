@@ -20,6 +20,7 @@ const StyledBar = styled('div')`
   margin-bottom: 10px;
   border-radius: 20px;
   position: relative;
+  overflow: hidden;
 `;
 
 const StyledSlider = styled('div')`
@@ -33,4 +34,6 @@ const StyledSlider = styled('div')`
   bottom: 0;
   left: 0;
 `;
+
+export {ProgressBar, StyledBar, StyledSlider};
 export default ProgressBar;

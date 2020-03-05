@@ -3,14 +3,16 @@ import styled from '@emotion/styled';
 
 import {ProjectRelease} from 'app/types';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
-import {t, tn} from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import CircleProgress from 'app/components/circularProgressbar';
 import Count from 'app/components/count';
 import {defined} from 'app/utils';
+import ProgressBar, {StyledSlider, StyledBar} from 'app/views/releases/list/progressBar'; // TODO(releasesV2): wip
 
 import UsersChart from './usersChart';
 import {mockData} from './mock';
+import {displayCrashFreePercent} from '../utils';
 
 type Props = {
   release: ProjectRelease;
@@ -19,7 +21,6 @@ type Props = {
 const ReleaseHealth = ({release}: Props) => {
   const {
     adoption,
-    total_users,
     crash_free_users,
     crash_free_sessions,
     crashes,
@@ -50,23 +51,16 @@ const ReleaseHealth = ({release}: Props) => {
             </DailyUsersColumn>
 
             <AdoptionColumn>
-              {defined(adoption) ? (
-                <React.Fragment>
-                  <CircleProgress value={adoption} />
-                  <CircleProgressCaption>
-                    {`${adoption}% ${tn('with %s user', 'with %s users', total_users)}`}
-                  </CircleProgressCaption>
-                </React.Fragment>
-              ) : (
-                '-'
-              )}
+              {defined(adoption) ? <ProgressBar width={adoption} /> : '-'}
             </AdoptionColumn>
 
             <CrashFreeUsersColumn>
               {defined(crash_free_users) ? (
                 <React.Fragment>
                   <CircleProgress value={crash_free_users} />
-                  <CircleProgressCaption>{crash_free_users}%</CircleProgressCaption>
+                  <CircleProgressCaption>
+                    {displayCrashFreePercent(crash_free_users)}
+                  </CircleProgressCaption>
                 </React.Fragment>
               ) : (
                 '-'
@@ -77,7 +71,9 @@ const ReleaseHealth = ({release}: Props) => {
               {defined(crash_free_sessions) ? (
                 <React.Fragment>
                   <CircleProgress value={crash_free_sessions} />
-                  <CircleProgressCaption>{crash_free_sessions}%</CircleProgressCaption>
+                  <CircleProgressCaption>
+                    {displayCrashFreePercent(crash_free_sessions)}
+                  </CircleProgressCaption>
                 </React.Fragment>
               ) : (
                 '-'
@@ -153,6 +149,16 @@ const AdoptionColumn = styled(Column)`
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: none;
   }
+
+  ${StyledBar} {
+    background: ${p => p.theme.offWhite2};
+    margin-bottom: 0;
+    height: 8px;
+  }
+
+  ${StyledSlider} {
+    background: ${p => p.theme.green};
+  }
 `;
 const CrashFreeUsersColumn = styled(CenterColumn)`
   grid-area: crash-free-users;
@@ -188,8 +194,8 @@ const CircleProgressCaption = styled('span')`
 const ChartWrapper = styled('div')`
   margin-right: ${space(2)};
   g > .barchart-rect {
-    background: ${p => p.theme.gray2};
-    fill: ${p => p.theme.gray2};
+    background: #c6becf;
+    fill: #c6becf;
   }
 `;
 
