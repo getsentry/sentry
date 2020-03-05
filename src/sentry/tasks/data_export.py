@@ -92,7 +92,9 @@ def process_issue_by_tag(data_export, file, limit=None):
     try:
         payload = data_export.query_info
         project = Project.objects.get(id=payload["project_id"])
-    except Project.DoesNotExist:
+    except Project.DoesNotExist as error:
+        metrics.incr("dataexport.error", instance=error)
+        logger.error(six.text_type("dataexport.error: {}").format(error))
         raise DataExportError("Requested project does not exist")
 
     # Get the pertaining issue
@@ -100,7 +102,9 @@ def process_issue_by_tag(data_export, file, limit=None):
         group, _ = get_group_with_redirect(
             payload["group_id"], queryset=Group.objects.filter(project=project)
         )
-    except Group.DoesNotExist:
+    except Group.DoesNotExist as error:
+        metrics.incr("dataexport.error", instance=error)
+        logger.error(six.text_type("dataexport.error: {}").format(error))
         raise DataExportError("Requested issue does not exist")
 
     # Get the pertaining key
