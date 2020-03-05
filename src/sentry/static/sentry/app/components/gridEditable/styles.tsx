@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
 
@@ -20,12 +19,6 @@ const Z_INDEX_GRID = 5;
 
 // Parent context is GridHeadCell
 const Z_INDEX_GRID_RESIZER = 1;
-
-type GridEditableProps = {
-  isEditable?: boolean;
-  isEditing?: boolean;
-  isDragging?: boolean;
-};
 
 export const Header = styled('div')`
   display: flex;
@@ -131,11 +124,30 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   position: relative; /* Used by GridResizer */
-  min-width: 0;
   height: ${GRID_HEAD_ROW_HEIGHT}px;
+  display: flex;
+  align-items: center;
+  min-width: 24px;
+  padding: 0 ${space(2)};
+
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
   background-color: ${p => p.theme.offWhite};
+  color: ${p => p.theme.gray3};
+
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  text-transform: uppercase;
+  user-select: none;
+
+  a,
+  div {
+    line-height: 1.1;
+    color: inherit;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
 
   &:first-child {
     border-top-left-radius: ${p => p.theme.borderRadius};
@@ -152,51 +164,6 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   }
 `;
 
-export const GridHeadCellButton = styled('div')<GridEditableProps>`
-  display: block;
-  min-width: 24px;
-  margin: ${space(0.5)};
-  padding: ${space(1.5)};
-  border-radius: 2px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  text-transform: uppercase;
-  user-select: none;
-
-  background: ${p => {
-    if (p.isDragging) {
-      return p.theme.purple;
-    }
-
-    if (p.isEditing) {
-      return p.theme.offWhite2;
-    }
-
-    return 'none';
-  }};
-
-  color: ${p => {
-    if (p.isDragging) {
-      return p.theme.offWhite2;
-    }
-
-    if (p.isEditing) {
-      return p.theme.gray2;
-    }
-
-    return p.theme.gray3;
-  }};
-
-  a,
-  div {
-    color: inherit;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-`;
-
 /**
  * Create spacing/padding similar to GridHeadCellWrapper but
  * without interactive aspects.
@@ -205,9 +172,9 @@ export const GridHeadCellStatic = styled('th')`
   height: ${GRID_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
-  padding: ${space(2)};
+  padding: 0 ${space(2)};
   background-color: ${p => p.theme.offWhite};
-  font-size: 13px;
+  font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   line-height: 1;
   text-transform: uppercase;
@@ -219,40 +186,6 @@ export const GridHeadCellStatic = styled('th')`
     border-top-left-radius: ${p => p.theme.borderRadius};
     padding: ${space(1)} 0 ${space(1)} ${space(3)};
   }
-`;
-
-/**
- * GridHeadCellButtonHover is the collection of interactive elements to add or
- * move the columns. They are expected to be draggable.
- */
-export const GridHeadCellButtonHover = styled('div')<GridEditableProps>`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: absolute;
-  left: ${space(0.5)};
-  right: ${space(0.5)};
-  top: ${space(0.5)};
-  bottom: ${space(0.5)};
-`;
-
-export const GridHeadCellButtonHoverButton = styled('div')`
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  width: 24px;
-  height: 24px;
-  margin: 0 ${space(0.25)};
-  color: ${p => p.theme.gray4};
-  border: 2px solid ${p => p.theme.gray4};
-  background-color: ${p => p.theme.offWhite2};
-  border-radius: ${p => p.theme.borderRadius};
-  cursor: pointer;
-`;
-
-export const GridHeadCellButtonHoverDraggable = styled(InlineSvg)`
-  cursor: grab;
-  user-select: none;
 `;
 
 /**

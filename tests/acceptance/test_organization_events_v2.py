@@ -213,11 +213,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "events-v2 - errors query - empty state - querybuilder - column edit state"
             )
 
-            self.browser.click_when_visible('[data-test-id="grid-add-column"]')
-            self.browser.snapshot(
-                "events-v2 - errors query - empty state - querybuilder - add column"
-            )
-
     @patch("django.utils.timezone.now")
     def test_errors_query(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)

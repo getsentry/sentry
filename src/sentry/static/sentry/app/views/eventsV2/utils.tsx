@@ -194,7 +194,6 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   width: COL_WIDTH_UNDEFINED,
 
   type: 'never',
-  isDragging: false,
   isSortable: false,
 
   eventViewField: Object.freeze({field: '', width: COL_WIDTH_UNDEFINED}),
@@ -226,8 +225,6 @@ export function decodeColumnOrder(
     const aggregate = AGGREGATIONS[column.aggregation];
     if (aggregate && aggregate.outputType) {
       column.type = aggregate.outputType;
-    } else if (FIELDS[column.aggregation]) {
-      column.type = FIELDS[column.aggregation];
     } else {
       column.type = FIELDS[column.field];
     }

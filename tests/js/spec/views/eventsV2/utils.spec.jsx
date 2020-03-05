@@ -148,7 +148,6 @@ describe('decodeColumnOrder', function() {
         field: 'title',
         width: 123,
       },
-      isDragging: false,
       isSortable: false,
       type: 'string',
     });
@@ -168,7 +167,6 @@ describe('decodeColumnOrder', function() {
         field: 'count()',
         width: 123,
       },
-      isDragging: false,
       isSortable: true,
       type: 'number',
     });
@@ -192,7 +190,6 @@ describe('decodeColumnOrder', function() {
       field: 'transaction.duration',
       width: COL_WIDTH_NUMBER,
       eventViewField: {field: 'avg(transaction.duration)'},
-      isDragging: false,
       isSortable: true,
       type: 'duration',
     });
