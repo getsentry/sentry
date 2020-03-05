@@ -1,19 +1,5 @@
 /*eslint-env node*/
 /*eslint import/no-nodejs-modules:0 */
-const path = require('path');
-const webpack = require('webpack');
-const appConfig = require('../webpack.config');
-
-const staticPath = path.resolve(
-  __dirname,
-  '..',
-  'src',
-  'sentry',
-  'static',
-  'sentry',
-  'app'
-);
-
 module.exports = {
   stories: ['../docs-ui/components/*.stories.*'],
   addons: [
