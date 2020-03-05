@@ -1,113 +1,149 @@
-import * as React from 'react';
-import styled from '@emotion/styled';
+import React from 'react';
+import styled, {SerializedStyles} from '@emotion/styled';
+import posed, {PoseGroup} from 'react-pose';
 
-import space from 'app/styles/space';
+import theme from 'app/utils/theme';
+import testablePose from 'app/utils/testablePose';
 
-type PathProps = {
-  dashRatio: number;
-  pathRadius: number;
-  strokeWidth: number;
-  size: number;
-  className?: string;
+type TextProps = {
+  textCss?: Props['textCss'];
+  percent: number;
+  theme: typeof theme;
 };
 
-const Path = ({dashRatio, pathRadius, strokeWidth, size, className}: PathProps) => {
-  const diameter = Math.PI * 2 * pathRadius;
-  const gapLength = (1 - dashRatio) * diameter;
-
-  return (
-    <path
-      className={className}
-      style={{
-        strokeDasharray: `${diameter}px ${diameter}px`,
-        strokeDashoffset: `${gapLength}px`,
-      }}
-      d={`
-      M ${size / 2},${size / 2}
-      m 0,-${pathRadius}
-      a ${pathRadius},${pathRadius} 0 1 1 0,${2 * pathRadius}
-      a ${pathRadius},${pathRadius} 0 1 1 0,-${2 * pathRadius}
-    `}
-      strokeWidth={strokeWidth}
-      fillOpacity={0}
-    />
-  );
-};
-
-type Props = {
+type Props = React.HTMLAttributes<SVGSVGElement> & {
   value: number;
-  size?: number;
   maxValue?: number;
   minValue?: number;
-  strokeWidth?: number;
+  size?: number;
+  /**
+   * The width of the progress ring bar
+   */
+  barWidth?: number;
+  /**
+   * Text to display in the center of the ring
+   */
+  text?: React.ReactNode;
+  /**
+   * The css to apply to the center text. A function may be provided to compute
+   * styles based on the state of the progress bar.
+   */
+  textCss?: (p: TextProps) => SerializedStyles;
+  /**
+   * Apply a micro animation when the text value changes
+   */
+  animateText?: boolean;
+  /**
+   * The color of the ring bar. A function may be provided to compute the color
+   * based on the percent value filled of the progress bar.
+   */
+  progressColor?: string | ((opts: {percent: number}) => string);
+  /**
+   * The color of the ring background
+   */
+  backgroundColor?: string;
 };
 
-const CircularProgressbar = ({
+const Text = styled('text')<Omit<TextProps, 'theme'>>`
+  fill: ${p => p.theme.gray1};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  text-anchor: middle;
+  dominant-baseline: central;
+  transition: fill 100ms;
+  ${p => p.textCss && p.textCss(p)}
+`;
+
+const PosedText = posed(Text)(
+  testablePose({
+    init: {opacity: 0, y: -10},
+    enter: {opacity: 1, y: 0},
+    exit: {opacity: 0, y: 10},
+  })
+);
+
+const ProgressRing = ({
   value,
-  size = 20,
-  maxValue = 100,
   minValue = 0,
-  strokeWidth = 3,
+  maxValue = 100,
+  size = 20,
+  barWidth = 3,
+  text,
+  textCss,
+  animateText = false,
+  progressColor = theme.green,
+  backgroundColor = theme.offWhite2,
+  ...p
 }: Props) => {
-  const pathRadius = size / 2 - strokeWidth / 2;
+  const radius = size / 2 - barWidth / 2;
+  const circumference = 2 * Math.PI * radius;
+
   const boundedValue = Math.min(Math.max(value, minValue), maxValue);
-  const pathRatio = (boundedValue - minValue) / (maxValue - minValue);
+  const progress = (boundedValue - minValue) / (maxValue - minValue);
+  const percent = progress * 100;
+  const progressOffset = (1 - progress) * circumference;
+
+  const TextComponent = animateText ? PosedText : Text;
+
+  let textNode = (
+    <TextComponent key={text?.toString()} x="50%" y="50%" {...{textCss, percent}}>
+      {text}
+    </TextComponent>
+  );
+
+  textNode = animateText ? (
+    <PoseGroup preEnterPose="init">{textNode}</PoseGroup>
+  ) : (
+    textNode
+  );
+
+  const ringColor =
+    typeof progressColor === 'function' ? progressColor({percent}) : progressColor;
 
   return (
-    <ProgressbarWrapper>
-      <Progressbar viewBox={`0 0 ${size} ${size}`} size={size}>
-        <Trail
-          size={size}
-          dashRatio={1}
-          pathRadius={pathRadius}
-          strokeWidth={strokeWidth}
-        />
-
-        <Progress
-          value={value}
-          size={size}
-          dashRatio={pathRatio}
-          pathRadius={pathRadius}
-          strokeWidth={strokeWidth}
-        />
-      </Progressbar>
-    </ProgressbarWrapper>
+    <svg height={radius * 2 + barWidth} width={radius * 2 + barWidth} {...p}>
+      {text !== undefined && textNode}
+      <RingBackground
+        r={radius}
+        barWidth={barWidth}
+        cx={radius + barWidth / 2}
+        cy={radius + barWidth / 2}
+        color={backgroundColor}
+      />
+      <RingBar
+        strokeDashoffset={progressOffset}
+        circumference={circumference}
+        r={radius}
+        barWidth={barWidth}
+        cx={radius + barWidth / 2}
+        cy={radius + barWidth / 2}
+        color={ringColor}
+      />
+    </svg>
   );
 };
 
-// TODO(releasesv2): adjust thresholds once decided, probably pass as props
-const getColor = ({value, theme}) => {
-  if (value < 33) {
-    return theme.red;
-  }
-  if (value < 66) {
-    return theme.yellowOrange;
-  }
-  if (value >= 66) {
-    return theme.green;
-  }
-
-  return theme.gray3;
-};
-
-const ProgressbarWrapper = styled('div')`
-  display: inline-block;
-  position: relative;
-  bottom: ${space(0.25)};
+const RingBackground = styled('circle')<{color: string; barWidth: number}>`
+  fill: none;
+  stroke: ${p => p.color};
+  stroke-width: ${p => p.barWidth}px;
+  transition: stroke 100ms;
 `;
 
-const Progressbar = styled('svg')<{size: number}>`
-  width: ${p => p.size}px;
-  vertical-align: middle;
+const RingBar = styled('circle')<{
+  color: string;
+  circumference: number;
+  barWidth: number;
+}>`
+  fill: none;
+  stroke: ${p => p.color};
+  stroke-width: ${p => p.barWidth}px;
+  stroke-dasharray: ${p => p.circumference} ${p => p.circumference};
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  transition: stroke-dashoffset 200ms, stroke 100ms;
 `;
 
-const Trail = styled(Path)`
-  stroke: ${p => p.theme.offWhite2};
-`;
+export default ProgressRing;
 
-const Progress = styled(Path)<{value: number}>`
-  transition: stroke-dashoffset 0.5s ease 0s;
-  stroke: ${getColor};
-`;
-
-export default CircularProgressbar;
+// We export components to allow for css selectors
+export {RingBar, RingBackground, Text as RingText};
