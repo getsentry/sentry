@@ -589,6 +589,23 @@ class EventView {
       });
     newEventView.fields = fields;
 
+    // Update sorts as sorted fields may have been removed.
+    if (newEventView.sorts) {
+      // Filter the sort fields down to those that are still selected.
+      const sortKeys = fields.map(field => fieldToSort(field, undefined)?.field);
+      const newSort = newEventView.sorts.filter(
+        sort => sort && sortKeys.includes(sort.field)
+      );
+      // If the sort field was removed, try and find a new sortable column.
+      if (newSort.length === 0) {
+        const sortField = fields.find(field => isFieldSortable(field, undefined));
+        if (sortField) {
+          newSort.push({field: sortField.field, kind: 'desc'});
+        }
+      }
+      newEventView.sorts = newSort;
+    }
+
     return newEventView;
   }
 

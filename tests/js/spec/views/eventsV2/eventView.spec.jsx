@@ -1110,6 +1110,31 @@ describe('EventView.withColumns()', function() {
       {field: 'time', width: COL_WIDTH_UNDEFINED},
     ]);
   });
+
+  it('retains sorts when sorted field is included', function() {
+    const newView = eventView.withColumns([
+      {field: 'title', aggregation: ''},
+      {field: '', aggregation: 'count'},
+    ]);
+    expect(newView.fields).toEqual([
+      {field: 'title', width: COL_WIDTH_UNDEFINED},
+      {field: 'count()', width: COL_WIDTH_UNDEFINED},
+    ]);
+    expect(newView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
+  });
+
+  it('updates sorts when sorted field is removed', function() {
+    const newView = eventView.withColumns([{field: 'title', aggregation: ''}]);
+    expect(newView.fields).toEqual([{field: 'title', width: COL_WIDTH_UNDEFINED}]);
+    // Should pick a sortable field.
+    expect(newView.sorts).toEqual([{field: 'title', kind: 'desc'}]);
+  });
+
+  it('has no sort if no sortable fields remain', function() {
+    const newView = eventView.withColumns([{field: 'issue', aggregation: ''}]);
+    expect(newView.fields).toEqual([{field: 'issue', width: COL_WIDTH_UNDEFINED}]);
+    expect(newView.sorts).toEqual([]);
+  });
 });
 
 describe('EventView.withNewColumn()', function() {
