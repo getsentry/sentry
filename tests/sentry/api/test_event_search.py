@@ -1228,9 +1228,9 @@ class ResolveFieldListTest(unittest.TestCase):
                 None,
                 "impact_transaction_duration_300",
             ],
-            ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
-            ["quantile(0.95)(duration)", None, "percentile_transaction_duration_0_95"],
-            ["quantile(0.99)(duration)", None, "percentile_transaction_duration_0_99"],
+            ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
+            ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
+            ["quantile(0.99)", "transaction.duration", "percentile_transaction_duration_0_99"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
             ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
@@ -1332,7 +1332,7 @@ class ResolveFieldListTest(unittest.TestCase):
 
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["quantile(0.75)(duration)", None, "percentile_transaction_duration_0_75"],
+            ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
             ["transform(projectid, array(), array(), '')", None, "project.name"],
