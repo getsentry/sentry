@@ -70,7 +70,7 @@ def get_project_releases_by_stability(project_ids, offset, limit, scope, environ
         dataset=Dataset.Sessions,
         selected_columns=["project_id", "release"],
         groupby=["release", "project_id"],
-        orderby=[["-divide", ["%s_crashed" % scope, scope]]],
+        orderby=[["divide", ["%s_crashed" % scope, scope]]],
         start=yesterday,
         offset=offset,
         limit=limit,
