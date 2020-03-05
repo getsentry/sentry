@@ -14,7 +14,7 @@ import {
   explodeField,
   hasAggregateField,
 } from 'app/views/eventsV2/utils';
-import {COL_WIDTH_UNDEFINED, COL_WIDTH_NUMBER} from 'app/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
 describe('getAggregateAlias', function() {
   it('no-ops simple fields', function() {
@@ -142,6 +142,7 @@ describe('decodeColumnOrder', function() {
       key: 'title',
       name: 'title',
       aggregation: '',
+      refinement: '',
       field: 'title',
       width: 123,
       eventViewField: {
@@ -162,6 +163,7 @@ describe('decodeColumnOrder', function() {
       name: 'count()',
       aggregation: 'count',
       field: '',
+      refinement: '',
       width: 123,
       eventViewField: {
         field: 'count()',
@@ -188,8 +190,29 @@ describe('decodeColumnOrder', function() {
       name: 'avg(transaction.duration)',
       aggregation: 'avg',
       field: 'transaction.duration',
-      width: COL_WIDTH_NUMBER,
+      refinement: '',
+      width: COL_WIDTH_UNDEFINED,
       eventViewField: {field: 'avg(transaction.duration)'},
+      isSortable: true,
+      type: 'duration',
+    });
+  });
+
+  it('can decode elements with aggregate functions with multiple arguments', function() {
+    const results = decodeColumnOrder([
+      {field: 'percentile(transaction.duration, 0.65)'},
+    ]);
+
+    expect(Array.isArray(results)).toBeTruthy();
+
+    expect(results[0]).toEqual({
+      key: 'percentile(transaction.duration, 0.65)',
+      name: 'percentile(transaction.duration, 0.65)',
+      aggregation: 'percentile',
+      field: 'transaction.duration',
+      refinement: '0.65',
+      width: COL_WIDTH_UNDEFINED,
+      eventViewField: {field: 'percentile(transaction.duration, 0.65)'},
       isSortable: true,
       type: 'duration',
     });

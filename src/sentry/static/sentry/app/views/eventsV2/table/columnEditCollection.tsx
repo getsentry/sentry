@@ -9,7 +9,7 @@ import {
 } from 'app/components/events/interfaces/spans/utils';
 import {IconAdd, IconGrabbable, IconClose} from 'app/icons';
 import {t} from 'app/locale';
-import {SelectValue, OrganizationSummary} from 'app/types';
+import {SelectValue, OrganizationSummary, StringMap} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -34,7 +34,7 @@ type State = {
   left: undefined | number;
   top: undefined | number;
   // Stored as a object so we can find elements later.
-  fieldOptions: {[key: string]: SelectValue<FieldValue>};
+  fieldOptions: StringMap<SelectValue<FieldValue>>;
 };
 
 const DRAG_CLASS = 'draggable-item';
@@ -99,7 +99,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       fields = fields.filter(item => !TRACING_FIELDS.includes(item));
       functions = functions.filter(item => !TRACING_FIELDS.includes(item));
     }
-    const fieldOptions: {[key: string]: SelectValue<FieldValue>} = {};
+    const fieldOptions: StringMap<SelectValue<FieldValue>> = {};
 
     // Index items by prefixed keys as custom tags
     // can overlap both fields and function names.
@@ -107,7 +107,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     // later as well.
     functions.forEach(func => {
       fieldOptions[`function:${func}`] = {
-        label: `${func}(...)`,
+        label: AGGREGATIONS[func].parameters.length ? `${func}(...)` : `${func}()`,
         value: {
           kind: FieldValueKind.FUNCTION,
           meta: {
@@ -321,12 +321,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
         : PlaceholderPosition.BOTTOM;
 
     return (
-      <React.Fragment>
+      <React.Fragment
+        key={`${col.aggregation}:${col.field}:${col.refinement}:${isGhost}`}
+      >
         {position === PlaceholderPosition.TOP && placeholder}
-        <RowContainer
-          className={isGhost ? '' : DRAG_CLASS}
-          key={`container:${col.aggregation}:${col.field}:${col.refinement}:${isGhost}`}
-        >
+        <RowContainer className={isGhost ? '' : DRAG_CLASS}>
           {canDelete ? (
             <IconButton
               aria-label={t('Drag to reorder')}

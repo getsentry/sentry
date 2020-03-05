@@ -629,13 +629,11 @@ class EventView {
     updatedColumn: Column,
     tableMeta: MetaType | undefined
   ): EventView {
-    const {aggregation, field, width} = updatedColumn;
-
     const columnToBeUpdated = this.fields[columnIndex];
-    const fieldAsString = generateFieldAsString({field, aggregation});
+    const fieldAsString = generateFieldAsString(updatedColumn);
 
     const updateField = columnToBeUpdated.field !== fieldAsString;
-    const updateWidth = columnToBeUpdated.width !== width;
+    const updateWidth = columnToBeUpdated.width !== updatedColumn.width;
 
     if (!updateField && !updateWidth) {
       return this;
@@ -648,7 +646,7 @@ class EventView {
 
     const updatedField: Field = {
       field: fieldAsString,
-      width: width || COL_WIDTH_UNDEFINED,
+      width: updatedColumn.width || COL_WIDTH_UNDEFINED,
     };
 
     const fields = [...newEventView.fields];
@@ -957,7 +955,6 @@ class EventView {
     const yAxisOptions = this.getYAxisOptions();
 
     const yAxis = this.yAxis;
-
     const defaultOption = yAxisOptions[0].value;
 
     if (!yAxis) {

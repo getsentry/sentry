@@ -225,9 +225,9 @@ describe('EventView.fromSavedQuery()', function() {
 
   it('maps saved query with no conditions', function() {
     const saved = {
-      orderby: '-count_id',
+      orderby: '-count',
       name: 'foo bar',
-      fields: ['release', 'count(id)'],
+      fields: ['release', 'count()'],
       widths: [111, 222],
       dateCreated: '2019-10-30T06:13:17.632078Z',
       environment: ['dev', 'production'],
@@ -236,7 +236,7 @@ describe('EventView.fromSavedQuery()', function() {
       dateUpdated: '2019-10-30T06:13:17.632096Z',
       id: '5',
       projects: [1],
-      yAxis: 'count(id)',
+      yAxis: 'count()',
     };
 
     const eventView = EventView.fromSavedQuery(saved);
@@ -246,13 +246,13 @@ describe('EventView.fromSavedQuery()', function() {
       name: 'foo bar',
       fields: [
         {field: 'release', width: 111},
-        {field: 'count(id)', width: 222},
+        {field: 'count()', width: 222},
       ],
-      sorts: generateSorts(['count_id']),
+      sorts: generateSorts(['count']),
       query: '',
       project: [1],
       environment: ['dev', 'production'],
-      yAxis: 'count(id)',
+      yAxis: 'count()',
     };
 
     expect(eventView).toMatchObject(expected);
@@ -552,7 +552,7 @@ describe('EventView.generateQueryStringObject()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
-      yAxis: 'count(id)',
+      yAxis: 'count()',
     };
 
     const eventView = new EventView(state);
@@ -569,7 +569,7 @@ describe('EventView.generateQueryStringObject()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
-      yAxis: 'count(id)',
+      yAxis: 'count()',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -681,7 +681,7 @@ describe('EventView.getEventsAPIPayload()', function() {
         utc: 'true',
         statsPeriod: '14d',
         cursor: 'some cursor',
-        yAxis: 'count(id)',
+        yAxis: 'count()',
 
         // irrelevant query strings
         bestCountry: 'canada',
@@ -1322,7 +1322,7 @@ describe('EventView.withUpdatedColumn()', function() {
     const newColumn = {
       aggregation: 'percentile',
       field: 'transaction.duration',
-      refinement: '0.6',
+      refinement: '0.5',
     };
 
     const newView = eventView.withUpdatedColumn(1, newColumn, meta);
@@ -1508,7 +1508,7 @@ describe('EventView.withDeletedColumn()', function() {
 
       const state2 = {
         ...state,
-        fields: [{field: 'title'}, {field: 'timestamp'}, {field: 'count(id)'}],
+        fields: [{field: 'title'}, {field: 'timestamp'}, {field: 'count()'}],
         sorts: generateSorts(['timestamp']),
       };
 
@@ -1517,7 +1517,7 @@ describe('EventView.withDeletedColumn()', function() {
       const expected = {
         ...state,
         sorts: generateSorts(['title']),
-        fields: [{field: 'title'}, {field: 'count(id)'}],
+        fields: [{field: 'title'}, {field: 'count()'}],
       };
 
       const eventView2 = eventView.withDeletedColumn(1, {});
@@ -2012,18 +2012,18 @@ describe('EventView.getYAxisOptions', function() {
   it('should add aggregate fields as options', function() {
     let thisEventView = new EventView({
       ...state,
-      fields: generateFields(['ignored-field', 'count(user)']),
+      fields: generateFields(['ignored-field', 'count_unique(issue)']),
     });
 
     expect(thisEventView.getYAxisOptions()).toEqual([
-      generateYaxis('count(user)'),
+      generateYaxis('count_unique(issue)'),
       ...CHART_AXIS_OPTIONS,
     ]);
 
     // should de-duplicate entries
     thisEventView = new EventView({
       ...state,
-      fields: generateFields(['ignored-field', 'count(id)']),
+      fields: generateFields(['ignored-field', 'count()']),
     });
 
     expect(thisEventView.getYAxisOptions()).toEqual([...CHART_AXIS_OPTIONS]);
@@ -2034,14 +2034,14 @@ describe('EventView.getYAxisOptions', function() {
       ...state,
       fields: generateFields([
         'ignored-field',
-        'count(user)',
+        'count_unique(issue)',
         'last_seen',
         'latest_event',
       ]),
     });
 
     expect(thisEventView.getYAxisOptions()).toEqual([
-      generateYaxis('count(user)'),
+      generateYaxis('count_unique(issue)'),
       ...CHART_AXIS_OPTIONS,
     ]);
   });
@@ -2060,7 +2060,7 @@ describe('EventView.getYAxis', function() {
   it('should return first default yAxis', function() {
     const thisEventView = new EventView(state);
 
-    expect(thisEventView.getYAxis()).toEqual('count(id)');
+    expect(thisEventView.getYAxis()).toEqual('count()');
   });
 
   it('should return valid yAxis', function() {
@@ -2068,21 +2068,21 @@ describe('EventView.getYAxis', function() {
       ...state,
       fields: generateFields([
         'ignored-field',
-        'count(user)',
+        'count_unique(user)',
         'last_seen',
         'latest_event',
       ]),
-      yAxis: 'count(user)',
+      yAxis: 'count_unique(user)',
     });
 
-    expect(thisEventView.getYAxis()).toEqual('count(user)');
+    expect(thisEventView.getYAxis()).toEqual('count_unique(user)');
   });
 
   it('should ignore invalid yAxis', function() {
     const invalid = [
       'last_seen',
       'latest_event',
-      'count(user)', // this is not one of the selected fields
+      'count_unique(issue)', // this is not one of the selected fields
     ];
 
     for (const option of invalid) {
@@ -2093,7 +2093,7 @@ describe('EventView.getYAxis', function() {
       });
 
       // yAxis defaults to the first entry of the default yAxis options
-      expect(thisEventView.getYAxis()).toEqual('count(id)');
+      expect(thisEventView.getYAxis()).toEqual('count()');
     }
   });
 });

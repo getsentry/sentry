@@ -43,7 +43,7 @@ export type EventQuery = {
   per_page?: number;
 };
 
-const AGGREGATE_PATTERN = /^([^\(]+)\((.*)(?:\s*,\s*(.*))\)$/;
+const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
 
 function explodeFieldString(field: string): Column {
   const results = field.match(AGGREGATE_PATTERN);
