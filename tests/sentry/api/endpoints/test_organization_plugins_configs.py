@@ -24,8 +24,35 @@ class OrganizationPluginsTest(APITestCase):
     def test_no_configs(self):
         response = self.client.get(self.url)
         assert response.status_code == 200, (response.status_code, response.content)
-        # the number of plugins might change so let's just make sure we have most of them
-        assert len(response.data) > 18
+        # test needs to be updated if plugins are removed
+        expected_plugins = [
+            "amazon-sqs",
+            "asana",
+            "bitbucket",
+            "clubhouse",
+            "github",
+            "gitlab",
+            "heroku",
+            "jira",
+            "opsgenie",
+            "pagerduty",
+            "phabricator",
+            "pivotal",
+            "pushover",
+            "redmine",
+            "segment",
+            "sessionstack",
+            "slack",
+            "splunk",
+            "teamwork",
+            "trello",
+            "twilio",
+            "victorops",
+            "vsts",
+            "webhooks",
+        ]
+        for plugin in expected_plugins:
+            assert filter(lambda x: x["slug"] == plugin, response.data)
 
     def test_only_configuable_plugins(self):
         response = self.client.get(self.url)

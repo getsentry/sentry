@@ -24,7 +24,7 @@ class PluginManager(InstanceManager):
             yield plugin
 
     def plugin_that_can_be_configured(self):
-        for plugin in self.all():
+        for plugin in self.all(version=None):
             if plugin.has_project_conf():
                 yield plugin
 
