@@ -32,6 +32,9 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import cache
 
 
+ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+
+
 @scenario("CreateNewOrganizationReleaseWithRef")
 def create_new_org_release_ref_scenario(runner):
     runner.request(
@@ -151,6 +154,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         with_health = request.GET.get("health") == "1"
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
+        stats_period = request.GET.get("statsPeriod")
+        if stats_period not in (None, "", "24h", "14d"):
+            return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
+        if stats_period is None and with_health:
+            stats_period = "24h"
+
         paginator_cls = OffsetPaginator
         paginator_kwargs = {}
 
@@ -218,7 +227,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 params=[filter_params["start"], filter_params["end"]],
             )
 
-        serializer = ReleaseSerializer(with_health_data=with_health)
+        serializer = ReleaseSerializer(with_health_data=with_health, stats_period=stats_period)
         return self.paginate(
             request=request,
             queryset=queryset,

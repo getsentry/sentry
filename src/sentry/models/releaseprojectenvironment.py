@@ -32,16 +32,14 @@ class ReleaseProjectEnvironment(Model):
         return u"releaseprojectenv:{}:{}:{}".format(release_id, project_id, environment_id)
 
     @classmethod
-    def get_or_create(cls, release, project, environment, datetime, adoption=None, **kwargs):
+    def get_or_create(cls, release, project, environment, datetime, **kwargs):
         with metrics.timer("models.releaseprojectenvironment.get_or_create") as metrics_tags:
             return cls._get_or_create_impl(
                 release, project, environment, datetime, metrics_tags, **kwargs
             )
 
     @classmethod
-    def _get_or_create_impl(
-        cls, release, project, environment, datetime, metrics_tags, adoption=None, **kwargs
-    ):
+    def _get_or_create_impl(cls, release, project, environment, datetime, metrics_tags, **kwargs):
         cache_key = cls.get_cache_key(project.id, release.id, environment.id)
 
         instance = cache.get(cache_key)
@@ -51,17 +49,12 @@ class ReleaseProjectEnvironment(Model):
                 release=release,
                 project=project,
                 environment=environment,
-                defaults={"first_seen": datetime, "last_seen": datetime, "adoption": adoption},
+                defaults={"first_seen": datetime, "last_seen": datetime},
             )
             cache.set(cache_key, instance, 3600)
             metrics_tags["cache_hit"] = "true"
         else:
             created = False
-
-            # Update adoption here if needed.
-            if adoption is not None:
-                cls.objects.filter(id=instance.id).update(adoption=adoption)
-                instance.adoption = adoption
 
         metrics_tags["created"] = "true" if created else "false"
 

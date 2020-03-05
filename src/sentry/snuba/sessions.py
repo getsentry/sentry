@@ -82,7 +82,7 @@ def get_project_releases_by_stability(project_ids, offset, limit, scope, environ
     return rv
 
 
-def get_release_health_data_overview(project_releases, environments=None):
+def get_release_health_data_overview(project_releases, environments=None, stats_period=None):
     """Checks quickly for which of the given project releases we have
     health data available.  The argument is a tuple of `(project_id, release_name)`
     tuples.  The return value is a set of all the project releases that have health
@@ -94,6 +94,20 @@ def get_release_health_data_overview(project_releases, environments=None):
 
     yesterday = datetime.utcnow() - timedelta(days=1)
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
+
+    if stats_period == "24h":
+        stats_rollup = 3600
+        stats_start = yesterday
+        stats_buckets = 24
+    elif stats_period == "14d":
+        stats_rollup = 86400
+        stats_start = datetime.utcnow() - timedelta(days=14)
+        stats_buckets = 14
+    elif not stats_period:
+        stats_rollup = None
+        stats_start = None
+    else:
+        raise TypeError("Invalid stats period")
 
     total_users_24h = {}
     for x in raw_query(
@@ -124,7 +138,7 @@ def get_release_health_data_overview(project_releases, environments=None):
         filter_keys=filter_keys,
     )["data"]:
         total_users = total_users_24h.get(x["project_id"])
-        rv[x["project_id"], x["release"]] = {
+        rp = {
             "duration_p50": _nan_as_none(x["duration_quantiles"][0]),
             "duration_p90": _nan_as_none(x["duration_quantiles"][1]),
             "crash_free_users": (
@@ -136,19 +150,25 @@ def get_release_health_data_overview(project_releases, environments=None):
             "total_users": x["users"],
             "total_sessions": x["sessions"],
             "adoption": x["users"] / total_users * 100 if total_users and x["users"] else None,
-            "stats": {"24h": [0] * 24},
         }
+        if stats_period:
+            rp["stats"] = {stats_period: [0] * stats_buckets}
+        rv[x["project_id"], x["release"]] = rp
 
-    # The resolution on started is hourly so this does the right thing by itself.
-    for x in raw_query(
-        dataset=Dataset.Sessions,
-        selected_columns=["release", "project_id", "started", "sessions"],
-        groupby=["release", "project_id", "started"],
-        start=yesterday,
-        conditions=conditions,
-        filter_keys=filter_keys,
-    )["data"]:
-        time_bucket = int((parse_snuba_datetime(x["started"]) - yesterday).total_seconds() / 3600)
-        rv[x["project_id"], x["release"]]["stats"]["24h"][time_bucket] = x["sessions"]
+    if stats_period:
+        for x in raw_query(
+            dataset=Dataset.Sessions,
+            selected_columns=["release", "project_id", "bucketed_started", "sessions"],
+            groupby=["release", "project_id", "bucketed_started"],
+            rollup=stats_rollup,
+            start=stats_start,
+            conditions=conditions,
+            filter_keys=filter_keys,
+        )["data"]:
+            time_bucket = int(
+                (parse_snuba_datetime(x["bucketed_started"]) - stats_start).total_seconds()
+                / stats_rollup
+            )
+            rv[x["project_id"], x["release"]]["stats"][stats_period][time_bucket] = x["sessions"]
 
     return rv

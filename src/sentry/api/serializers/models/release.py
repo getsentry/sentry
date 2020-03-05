@@ -73,6 +73,7 @@ def get_users_for_authors(organization_id, authors, user=None):
 class ReleaseSerializer(Serializer):
     def __init__(self, *args, **kwargs):
         self.with_health_data = kwargs.pop("with_health_data", False)
+        self.stats_period = kwargs.pop("stats_period", None)
         Serializer.__init__(self, *args, **kwargs)
 
     def _get_commit_metadata(self, item_list, user):
@@ -257,7 +258,8 @@ class ReleaseSerializer(Serializer):
 
         if self.with_health_data:
             health_data = get_release_health_data_overview(
-                [(pr["project__id"], pr["release__version"]) for pr in project_releases]
+                [(pr["project__id"], pr["release__version"]) for pr in project_releases],
+                stats_period=self.stats_period,
             )
         else:
             health_data = None
