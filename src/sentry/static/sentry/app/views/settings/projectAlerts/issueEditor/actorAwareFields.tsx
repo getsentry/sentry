@@ -1,9 +1,9 @@
 import React from 'react';
+
 import SelectMembers from 'app/components/selectMembers';
 import SelectControl from 'app/components/forms/selectControl';
 import withProjects from 'app/utils/withProjects';
 import withProject from 'app/utils/withProject';
-
 import withOrganization from 'app/utils/withOrganization';
 import {Organization, Project} from 'app/types';
 import {IssueAlertRuleAction} from 'app/types/alerts';
@@ -33,8 +33,16 @@ class ActorAwareFields extends React.PureComponent<Props> {
     return (
       <PanelItemGrid>
         <SelectControl
+          isClearable={false}
           disabled={disabled || loading}
           value={action.targetType}
+          styles={{
+            control: provided => ({
+              ...provided,
+              minHeight: '28px',
+              height: '28px',
+            }),
+          }}
           options={[
             {value: 'Owners', label: 'Owner'},
             {value: 'Team', label: 'Team'},
@@ -51,6 +59,13 @@ class ActorAwareFields extends React.PureComponent<Props> {
             organization={organization}
             // The value from the endpoint is of type `number`, `SelectMembers` require value ot be of type `string`
             value={`${action.targetIdentifier}`}
+            styles={{
+              control: provided => ({
+                ...provided,
+                minHeight: '28px',
+                height: '28px',
+              }),
+            }}
             onChange={this.handleChangeActorId}
           />
         ) : (
@@ -95,6 +110,7 @@ class ActorAwareFields extends React.PureComponent<Props> {
 const PanelItemGrid = styled(PanelItem)`
   display: grid;
   grid-template-columns: 200px 200px;
+  padding: 0;
   align-items: center;
   grid-gap: ${space(2)};
 `;
