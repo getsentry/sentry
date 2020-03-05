@@ -325,6 +325,8 @@ class ReleaseSerializer(Serializer):
             }
 
         def expose_health_data(data):
+            if not data:
+                return None
             return {
                 "durationP50": data["duration_p50"],
                 "durationP90": data["duration_p90"],
