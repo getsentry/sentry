@@ -342,7 +342,7 @@ export class OrganizationIntegrations extends AsyncComponent<
               <SearchInput
                 value={this.state.searchInput || ''}
                 onChange={this.onSearchChange}
-                placeholder="Search Integrations..."
+                placeholder="Filter Integrations..."
                 width="25em"
               />
             }
