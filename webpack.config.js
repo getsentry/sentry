@@ -4,7 +4,6 @@ const fs = require('fs');
 
 const path = require('path');
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
-const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const webpack = require('webpack');
 const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
@@ -408,6 +407,7 @@ if (FORCE_WEBPACK_DEV_SERVER || (USE_HOT_MODULE_RELOAD && !NO_DEV_SERVER)) {
   const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
 
   // Hot reload react components on save
+  const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
   appConfig.plugins.push(new ReactRefreshWebpackPlugin());
 
   appConfig.devServer = {
