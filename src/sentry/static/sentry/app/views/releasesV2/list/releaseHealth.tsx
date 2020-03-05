@@ -13,7 +13,6 @@ import {defined} from 'app/utils';
 import ProgressBar, {StyledSlider, StyledBar} from 'app/views/releases/list/progressBar'; // TODO(releasesV2): wip
 
 import UsersChart from './usersChart';
-import {mockData} from './mock';
 import {displayCrashFreePercent} from '../utils';
 
 type Props = {
@@ -23,14 +22,16 @@ type Props = {
 
 const ReleaseHealth = ({release, location}: Props) => {
   const {pathname, query} = location;
-  const activeHealthStatsPeriod = query.healthStatsPeriod || '24h';
+  const activeHealthStatsPeriod = (query.healthStatsPeriod || '24h') as '24h' | '14d';
   const {
     adoption,
+    stats,
     crashFreeUsers,
     crashFreeSessions,
     sessionsCrashed,
     sessionsErrored,
   } = release.healthData!;
+
   const healthStatsPeriods = [
     {
       key: '24h',
@@ -77,7 +78,11 @@ const ReleaseHealth = ({release, location}: Props) => {
           <Layout>
             <DailyUsersColumn>
               <ChartWrapper>
-                <UsersChart data={mockData[0].graphData} height={20} statsPeriod="24h" />
+                <UsersChart
+                  data={stats}
+                  height={20}
+                  statsPeriod={activeHealthStatsPeriod}
+                />
               </ChartWrapper>
             </DailyUsersColumn>
 
