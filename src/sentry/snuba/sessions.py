@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+import pytz
 from datetime import datetime, timedelta
 
 from sentry.utils.snuba import raw_query, parse_snuba_datetime
+from sentry.utils.dates import to_timestamp
 from sentry.snuba.dataset import Dataset
 
 
@@ -19,7 +21,7 @@ def get_changed_project_release_model_adoptions(project_ids):
     on the postgres tables.
     """
     user_totals = {}
-    yesterday = datetime.utcnow() - timedelta(days=1)
+    yesterday = datetime.now(pytz.utc) - timedelta(days=1)
     rv = []
 
     # Get the 24 hour totals per release
@@ -82,6 +84,15 @@ def get_project_releases_by_stability(project_ids, offset, limit, scope, environ
     return rv
 
 
+def _make_stats(start, rollup, buckets):
+    rv = []
+    start = int(to_timestamp(start) // rollup) * rollup
+    for x in range(buckets):
+        rv.append([start, 0])
+        start += rollup
+    return rv
+
+
 def get_release_health_data_overview(project_releases, environments=None, stats_period=None):
     """Checks quickly for which of the given project releases we have
     health data available.  The argument is a tuple of `(project_id, release_name)`
@@ -92,7 +103,7 @@ def get_release_health_data_overview(project_releases, environments=None, stats_
     def _nan_as_none(val):
         return None if val != val else val
 
-    yesterday = datetime.utcnow() - timedelta(days=1)
+    yesterday = datetime.now(pytz.utc) - timedelta(days=1)
     conditions, filter_keys = _get_conditions_and_filter_keys(project_releases, environments)
 
     if stats_period == "24h":
@@ -101,7 +112,7 @@ def get_release_health_data_overview(project_releases, environments=None, stats_
         stats_buckets = 24
     elif stats_period == "14d":
         stats_rollup = 86400
-        stats_start = datetime.utcnow() - timedelta(days=14)
+        stats_start = datetime.now(pytz.utc) - timedelta(days=14)
         stats_buckets = 14
     elif not stats_period:
         stats_rollup = None
@@ -155,7 +166,7 @@ def get_release_health_data_overview(project_releases, environments=None, stats_
             "adoption": x["users"] / total_users * 100 if total_users and x["users"] else None,
         }
         if stats_period:
-            rp["stats"] = {stats_period: [0] * stats_buckets}
+            rp["stats"] = {stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)}
         rv[x["project_id"], x["release"]] = rp
 
     if stats_period:
@@ -172,6 +183,6 @@ def get_release_health_data_overview(project_releases, environments=None, stats_
                 (parse_snuba_datetime(x["bucketed_started"]) - stats_start).total_seconds()
                 / stats_rollup
             )
-            rv[x["project_id"], x["release"]]["stats"][stats_period][time_bucket] = x["sessions"]
+            rv[x["project_id"], x["release"]]["stats"][stats_period][time_bucket][1] = x["sessions"]
 
     return rv
