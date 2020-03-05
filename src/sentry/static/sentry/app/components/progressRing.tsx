@@ -44,12 +44,17 @@ type Props = React.HTMLAttributes<SVGSVGElement> & {
   backgroundColor?: string;
 };
 
-const Text = styled('text')<Omit<TextProps, 'theme'>>`
-  fill: ${p => p.theme.gray1};
+const Text = styled('div')<Omit<TextProps, 'theme'>>`
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  color: ${p => p.theme.gray1};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  text-anchor: middle;
-  dominant-baseline: central;
-  transition: fill 100ms;
+  padding-top: 1px;
+  transition: color 100ms;
   ${p => p.textCss && p.textCss(p)}
 `;
 
@@ -101,7 +106,6 @@ const ProgressRing = ({
 
   return (
     <svg height={radius * 2 + barWidth} width={radius * 2 + barWidth} {...p}>
-      {text !== undefined && textNode}
       <RingBackground
         r={radius}
         barWidth={barWidth}
@@ -118,6 +122,9 @@ const ProgressRing = ({
         cy={radius + barWidth / 2}
         color={ringColor}
       />
+      <foreignObject height="100%" width="100%">
+        {text !== undefined && textNode}
+      </foreignObject>
     </svg>
   );
 };
